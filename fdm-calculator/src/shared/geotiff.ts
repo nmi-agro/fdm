@@ -65,9 +65,9 @@ export async function getGeoTiffValue(
     const pixelHeight = image.getHeight()
     const bboxWidth = bbox[2] - bbox[0]
     const bboxHeight = bbox[3] - bbox[1]
-    const _noData = image.getGDALNoData()
+    const _noData = await image.fileDirectory.loadValue("GDAL_NODATA")
     const noDataValue =
-        typeof _noData === "string" ? Number.parseFloat(_noData) : _noData
+        typeof _noData === "string" ? Number.parseFloat(_noData) : (_noData as number | null)
 
     // Convert geographic coordinates to pixel coordinates.
     const widthPct = (longitude - bbox[0]) / bboxWidth
