@@ -307,9 +307,11 @@ export function BulkSoilAnalysisUploadForm({
                                 <div className="mt-4 space-y-2">
                                     <div className="flex justify-between text-xs">
                                         <span className="text-muted-foreground truncate max-w-[200px]">
-                                            {currentFile
-                                                ? `Analyseert: ${currentFile}`
-                                                : "Bestanden verwerken..."}
+                                            {uploadProgress >= 100
+                                                ? "Voltooien..."
+                                                : currentFile
+                                                  ? `Analyseert: ${currentFile}`
+                                                  : "Bestanden verwerken..."}
                                         </span>
                                         <span className="font-medium">
                                             {uploadProgress}%
