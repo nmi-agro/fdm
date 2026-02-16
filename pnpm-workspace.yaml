@@ -11,15 +11,15 @@ catalog:
   '@rollup/plugin-json': ^6.1.0
   '@rollup/plugin-node-resolve': ^16.0.3
   '@rollup/plugin-typescript': ^12.3.0
-  '@types/node': ^25.0.10
+  '@types/node': ^25.2.3
   '@vitest/coverage-v8': 4.0.18
-  better-auth: ^1.4.17
-  drizzle-kit: ^0.31.8
+  better-auth: ^1.4.18
+  drizzle-kit: ^0.31.9
   drizzle-orm: ^0.45.1
-  rollup: ^4.57.0
+  rollup: ^4.57.1
   rollup-plugin-esbuild: ^6.2.1
   rollup-plugin-polyfill-node: ^0.13.0
-  typedoc: ^0.28.16
+  typedoc: ^0.28.17
   typedoc-plugin-missing-exports: ^4.1.2
   typescript: ^5.9.3
   vite: ^7.3.1

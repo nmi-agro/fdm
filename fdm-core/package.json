@@ -53,7 +53,7 @@
         "@vitest/coverage-v8": "catalog:",
         "drizzle-kit": "catalog:",
         "fs-extra": "^11.3.3",
-        "globals": "^17.2.0",
+        "globals": "^17.3.0",
         "rollup": "catalog:",
         "rollup-plugin-esbuild": "catalog:",
         "rollup-plugin-polyfill-node": "catalog:",
