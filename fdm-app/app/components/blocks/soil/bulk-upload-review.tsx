@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import React, { memo, useCallback, useMemo, useState } from "react"
 import {
     type ColumnDef,
     flexRender,
@@ -78,7 +78,7 @@ function parseDateText(date: string | Date | undefined): Date | undefined {
     return parsedDate || undefined
 }
 
-function DateCell({
+const DateCell = memo(function DateCell({
     analysisId,
     initialDateStr,
     onDateChange,
@@ -162,7 +162,7 @@ function DateCell({
             </Popover>
         </div>
     )
-}
+})
 
 export type ProcessedAnalysis = {
     id: string
@@ -186,6 +186,97 @@ type Field = {
     b_id: string
     b_name: string
 }
+
+const MatchCell = memo(
+    ({
+        analysisId,
+        matchId,
+        isDateValid,
+        onFieldChange,
+        fieldOptions,
+    }: {
+        analysisId: string
+        matchId: string
+        isDateValid: boolean
+        onFieldChange: (analysisId: string, fieldId: string) => void
+        fieldOptions: React.ReactNode
+    }) => {
+        return (
+            <Select
+                value={matchId}
+                disabled={!isDateValid}
+                onValueChange={(value) => onFieldChange(analysisId, value)}
+            >
+                <SelectTrigger className="w-[250px] text-xs h-8">
+                    <SelectValue placeholder="Selecteer perceel..." />
+                </SelectTrigger>
+                <SelectContent>{fieldOptions}</SelectContent>
+            </Select>
+        )
+    },
+)
+
+const StatusCell = memo(
+    ({
+        matchId,
+        date,
+        matchReason,
+        initialMatchId,
+    }: {
+        matchId: string
+        date: string
+        matchReason?: "geometry" | "name" | "both"
+        initialMatchId?: string
+    }) => {
+        const isMatched = matchId && matchId !== "none"
+        const isDateValid = isValidDate(date)
+
+        if (!isDateValid) {
+            return (
+                <div className="flex items-center text-destructive">
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Datum ontbreekt</span>
+                </div>
+            )
+        }
+
+        if (isMatched) {
+            const isAutomatic = matchId === initialMatchId
+            let tooltipText = "Handmatig gekoppeld"
+
+            if (isAutomatic && matchReason) {
+                if (matchReason === "geometry")
+                    tooltipText = "Automatisch gekoppeld op basis van geometrie"
+                else if (matchReason === "name")
+                    tooltipText = "Automatisch gekoppeld op basis van naam"
+                else if (matchReason === "both")
+                    tooltipText =
+                        "Automatisch gekoppeld op basis van geometrie en naam"
+            }
+
+            return (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className="flex items-center text-green-600 cursor-help">
+                            <Check className="h-4 w-4 mr-1" />
+                            <span className="text-xs">Gekoppeld</span>
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{tooltipText}</p>
+                    </TooltipContent>
+                </Tooltip>
+            )
+        }
+
+        return (
+            <div className="flex items-center text-amber-600">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                <span className="text-xs">Niet gekoppeld</span>
+            </div>
+        )
+    },
+)
 
 export function BulkSoilAnalysisReview({
     analyses,
@@ -219,13 +310,16 @@ export function BulkSoilAnalysisReview({
         ),
     )
 
-    const handleFieldChange = (analysisId: string, fieldId: string) => {
-        setMatches((prev) => ({ ...prev, [analysisId]: fieldId }))
-    }
+    const handleFieldChange = useCallback(
+        (analysisId: string, fieldId: string) => {
+            setMatches((prev) => ({ ...prev, [analysisId]: fieldId }))
+        },
+        [],
+    )
 
-    const handleDateChange = (analysisId: string, date: string) => {
+    const handleDateChange = useCallback((analysisId: string, date: string) => {
         setDates((prev) => ({ ...prev, [analysisId]: date }))
-    }
+    }, [])
 
     const validMatches = useMemo(
         () =>
@@ -247,192 +341,171 @@ export function BulkSoilAnalysisReview({
         onSave(validMatches, updatedAnalyses)
     }
 
-    const columns: ColumnDef<ProcessedAnalysis>[] = [
-        {
-            accessorKey: "filename",
-            header: "Bestand / Lab",
-            cell: ({ row }) => {
-                const sourceParam = soilParameterDescription.find(
-                    (x: { parameter: string }) => x.parameter === "a_source",
-                )
-                const sourceOption = sourceParam?.options?.find(
-                    (x: { value: string }) => x.value === row.original.a_source,
-                )
-                const sourceLabel =
-                    sourceOption?.label || row.original.a_source || "Onbekend"
+    const fieldOptions = useMemo(
+        () => (
+            <>
+                <SelectItem value="none">-- Geen perceel --</SelectItem>
+                {fields.map((field) => (
+                    <SelectItem key={field.b_id} value={field.b_id}>
+                        {field.b_name}
+                    </SelectItem>
+                ))}
+            </>
+        ),
+        [fields],
+    )
 
-                return (
-                    <div className="flex flex-col">
-                        <span className="font-medium">
-                            {row.original.filename}
-                        </span>
-                        <div className="flex flex-col gap-0.5 mt-1 text-xs text-muted-foreground">
-                            <div className="flex items-center">
-                                <Microscope className="h-3 w-3 mr-1" />
-                                <span>{sourceLabel}</span>
+    const sourceLabelMap = useMemo(() => {
+        const sourceParam = soilParameterDescription.find(
+            (x: { parameter: string }) => x.parameter === "a_source",
+        )
+        return Object.fromEntries(
+            sourceParam?.options?.map((x: { value: string; label: string }) => [
+                x.value,
+                x.label,
+            ]) || [],
+        )
+    }, [soilParameterDescription])
+
+    const columns: ColumnDef<ProcessedAnalysis>[] = useMemo(
+        () => [
+            {
+                accessorKey: "filename",
+                header: "Bestand / Lab",
+                cell: ({ row }) => {
+                    const sourceLabel =
+                        sourceLabelMap[row.original.a_source] ||
+                        row.original.a_source ||
+                        "Onbekend"
+
+                    return (
+                        <div className="flex flex-col">
+                            <span className="font-medium">
+                                {row.original.filename}
+                            </span>
+                            <div className="flex flex-col gap-0.5 mt-1 text-xs text-muted-foreground">
+                                <div className="flex items-center">
+                                    <Microscope className="h-3 w-3 mr-1" />
+                                    <span>{sourceLabel}</span>
+                                </div>
+                                {(row.original.a_depth_upper !== undefined ||
+                                    row.original.a_depth_lower !==
+                                        undefined) && (
+                                    <div className="flex items-center ">
+                                        <Shovel className="h-3 w-3 mr-1" />
+                                        <span>
+                                            Diepte:{" "}
+                                            {row.original.a_depth_upper ?? 0} -{" "}
+                                            {row.original.a_depth_lower ?? "?"}{" "}
+                                            cm
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                            {(row.original.a_depth_upper !== undefined ||
-                                row.original.a_depth_lower !== undefined) && (
-                                <div className="flex items-center ">
-                                    <Shovel className="h-3 w-3 mr-1" />
-                                    <span>
-                                        Diepte:{" "}
-                                        {row.original.a_depth_upper ?? 0} -{" "}
-                                        {row.original.a_depth_lower ?? "?"} cm
-                                    </span>
-                                </div>
+                        </div>
+                    )
+                },
+            },
+            {
+                accessorKey: "b_sampling_date",
+                header: "Datum",
+                cell: ({ row, table }) => {
+                    const meta = table.options.meta as any
+                    return (
+                        <DateCell
+                            analysisId={row.original.id}
+                            initialDateStr={meta.dates[row.original.id]}
+                            onDateChange={meta.handleDateChange}
+                        />
+                    )
+                },
+            },
+            {
+                id: "parameters",
+                header: "Parameters",
+                cell: ({ row }) => (
+                    <div className="flex flex-wrap gap-1">
+                        {row.original.a_som_loi != null && (
+                            <Badge variant="secondary">
+                                OS: {row.original.a_som_loi}%
+                            </Badge>
+                        )}
+                        {row.original.a_p_al != null && (
+                            <Badge variant="secondary">
+                                P-Al: {row.original.a_p_al}
+                            </Badge>
+                        )}
+                        {row.original.a_p_cc != null && (
+                            <Badge variant="secondary">
+                                P-CaCl₂: {row.original.a_p_cc}
+                            </Badge>
+                        )}
+                        {row.original.a_nmin_cc != null && (
+                            <Badge variant="secondary">
+                                Nmin: {row.original.a_nmin_cc}
+                            </Badge>
+                        )}
+                        {row.original.a_nh4_cc != null && (
+                            <Badge variant="secondary">
+                                NH₄: {row.original.a_nh4_cc}
+                            </Badge>
+                        )}
+                        {row.original.a_no3_cc != null && (
+                            <Badge variant="secondary">
+                                NO₃: {row.original.a_no3_cc}
+                            </Badge>
+                        )}
+                    </div>
+                ),
+            },
+            {
+                id: "match",
+                header: "Perceel",
+                cell: ({ row, table }) => {
+                    const meta = table.options.meta as any
+                    return (
+                        <MatchCell
+                            analysisId={row.original.id}
+                            matchId={meta.matches[row.original.id]}
+                            isDateValid={isValidDate(
+                                meta.dates[row.original.id],
                             )}
-                        </div>
-                    </div>
-                )
-            },
-        },
-        {
-            accessorKey: "b_sampling_date",
-            header: "Datum",
-            cell: ({ row }) => (
-                <DateCell
-                    analysisId={row.original.id}
-                    initialDateStr={dates[row.original.id]}
-                    onDateChange={handleDateChange}
-                />
-            ),
-        },
-        {
-            id: "parameters",
-            header: "Parameters",
-            cell: ({ row }) => (
-                <div className="flex flex-wrap gap-1">
-                    {row.original.a_som_loi != null && (
-                        <Badge variant="secondary">
-                            OS: {row.original.a_som_loi}%
-                        </Badge>
-                    )}
-                    {row.original.a_p_al != null && (
-                        <Badge variant="secondary">
-                            P-Al: {row.original.a_p_al}
-                        </Badge>
-                    )}
-                    {row.original.a_p_cc != null && (
-                        <Badge variant="secondary">
-                            P-CaCl₂: {row.original.a_p_cc}
-                        </Badge>
-                    )}
-                    {row.original.a_nmin_cc != null && (
-                        <Badge variant="secondary">
-                            Nmin: {row.original.a_nmin_cc}
-                        </Badge>
-                    )}
-                    {row.original.a_nh4_cc != null && (
-                        <Badge variant="secondary">
-                            NH₄: {row.original.a_nh4_cc}
-                        </Badge>
-                    )}
-                    {row.original.a_no3_cc != null && (
-                        <Badge variant="secondary">
-                            NO₃: {row.original.a_no3_cc}
-                        </Badge>
-                    )}
-                </div>
-            ),
-        },
-        {
-            id: "match",
-            header: "Perceel",
-            cell: ({ row }) => {
-                const date = dates[row.original.id]
-                const isDateValid = isValidDate(date)
-
-                return (
-                    <Select
-                        value={matches[row.original.id]}
-                        disabled={!isDateValid}
-                        onValueChange={(value) =>
-                            handleFieldChange(row.original.id, value)
-                        }
-                    >
-                        <SelectTrigger className="w-[250px] text-xs h-8">
-                            <SelectValue placeholder="Selecteer perceel..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">
-                                -- Geen perceel --
-                            </SelectItem>
-                            {fields.map((field) => (
-                                <SelectItem key={field.b_id} value={field.b_id}>
-                                    {field.b_name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )
-            },
-        },
-        {
-            id: "status",
-            header: "Status",
-            cell: ({ row }) => {
-                const matchId = matches[row.original.id]
-                const isMatched = matchId && matchId !== "none"
-                const date = dates[row.original.id]
-                const isDateValid = isValidDate(date)
-                const reason = row.original.matchReason
-                const initialMatchId = row.original.matchedFieldId
-
-                if (!isDateValid) {
-                    return (
-                        <div className="flex items-center text-destructive">
-                            <AlertTriangle className="h-4 w-4 mr-1" />
-                            <span className="text-xs">Datum ontbreekt</span>
-                        </div>
+                            onFieldChange={meta.handleFieldChange}
+                            fieldOptions={meta.fieldOptions}
+                        />
                     )
-                }
-
-                if (isMatched) {
-                    const isAutomatic = matchId === initialMatchId
-                    let tooltipText = "Handmatig gekoppeld"
-
-                    if (isAutomatic && reason) {
-                        if (reason === "geometry")
-                            tooltipText =
-                                "Automatisch gekoppeld op basis van geometrie"
-                        else if (reason === "name")
-                            tooltipText =
-                                "Automatisch gekoppeld op basis van naam"
-                        else if (reason === "both")
-                            tooltipText =
-                                "Automatisch gekoppeld op basis van geometrie en naam"
-                    }
-
-                    return (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="flex items-center text-green-600 cursor-help">
-                                    <Check className="h-4 w-4 mr-1" />
-                                    <span className="text-xs">Gekoppeld</span>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{tooltipText}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    )
-                }
-
-                return (
-                    <div className="flex items-center text-amber-600">
-                        <AlertTriangle className="h-4 w-4 mr-1" />
-                        <span className="text-xs">Niet gekoppeld</span>
-                    </div>
-                )
+                },
             },
-        },
-    ]
+            {
+                id: "status",
+                header: "Status",
+                cell: ({ row, table }) => {
+                    const meta = table.options.meta as any
+                    return (
+                        <StatusCell
+                            matchId={meta.matches[row.original.id]}
+                            date={meta.dates[row.original.id]}
+                            matchReason={row.original.matchReason}
+                            initialMatchId={row.original.matchedFieldId}
+                        />
+                    )
+                },
+            },
+        ],
+        [sourceLabelMap],
+    )
 
     const table = useReactTable({
         data: analyses,
         columns,
         getCoreRowModel: getCoreRowModel(),
+        meta: {
+            matches,
+            dates,
+            handleFieldChange,
+            handleDateChange,
+            fieldOptions,
+        },
     })
 
     return (
