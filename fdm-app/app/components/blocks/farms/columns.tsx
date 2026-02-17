@@ -1,23 +1,36 @@
+import type { Cultivation, Fertilizer } from "@svenvw/fdm-core"
 import type { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpRightFromSquare, ChevronRight } from "lucide-react"
+import {
+    ArrowUpRightFromSquare,
+    ChevronRight,
+    Circle,
+    Diamond,
+    Square,
+    Triangle,
+} from "lucide-react"
 import { NavLink, useParams } from "react-router-dom"
 import { cn } from "@/app/lib/utils"
 import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
+import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
+import { Badge } from "~/components/ui/badge"
 
 export interface FarmExtended {
     type: "farm" | "field"
     b_id_farm: string
     b_name_farm: string | null
-    b_area: number
+    b_area: number | null
     owner?: {
         displayUserName: string | null
         image: string | null
         initials: string | null
     } | null
     fields?: FarmExtended[]
-    fertilizers: { p_name_nl: string; p_type: string }[]
-    cultivations: { b_lu_name: string; b_lu_croprotation: string }[]
+    fertilizers: Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type">[]
+    cultivations: Pick<
+        Cultivation,
+        "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation"
+    >[]
 }
 
 export const columns: ColumnDef<FarmExtended>[] = [
@@ -104,6 +117,88 @@ export const columns: ColumnDef<FarmExtended>[] = [
                 </div>
             )
         },
+    },
+    {
+        accessorKey: "cultivations",
+        enableSorting: true,
+        sortingFn: (rowA, rowB, _columnId) => {
+            const cultivationA = rowA.original.cultivations[0]?.b_lu_name || ""
+            const cultivationB = rowB.original.cultivations[0]?.b_lu_name || ""
+            return cultivationA.localeCompare(cultivationB)
+        },
+        header: ({ column }) => {
+            return <DataTableColumnHeader column={column} title="Gewassen" />
+        },
+        cell: ({ row }) => {
+            const field = row.original
+
+            const cultivationsSorted = [...field.cultivations].sort((a, b) =>
+                a.b_lu_name.localeCompare(b.b_lu_name),
+            )
+
+            return (
+                <div className="flex items-start flex-col space-y-2">
+                    {cultivationsSorted.map((cultivation, idx) => (
+                        <Badge
+                            key={`${cultivation.b_lu_name}-${idx}`}
+                            style={{
+                                backgroundColor: getCultivationColor(
+                                    cultivation.b_lu_croprotation || "other",
+                                ),
+                            }}
+                            className="text-white"
+                            variant="default"
+                        >
+                            {cultivation.b_lu_name}
+                        </Badge>
+                    ))}
+                </div>
+            )
+        },
+        enableHiding: true, // Enable hiding for mobile
+    },
+    {
+        accessorKey: "fertilizerApplications",
+        enableSorting: true,
+        sortingFn: (rowA, rowB, _columnId) => {
+            const fertilizerA = rowA.original.fertilizers[0]?.p_name_nl || ""
+            const fertilizerB = rowB.original.fertilizers[0]?.p_name_nl || ""
+            return fertilizerA.localeCompare(fertilizerB)
+        },
+        header: ({ column }) => {
+            return (
+                <DataTableColumnHeader column={column} title="Bemesting met:" />
+            )
+        },
+        cell: ({ row }) => {
+            const fertilizers = row.original.fertilizers
+
+            return (
+                <div className="flex items-start flex-col space-y-2">
+                    {fertilizers.map((fertilizer) => (
+                        <Badge
+                            key={fertilizer.p_id}
+                            variant="outline"
+                            className="text-muted-foreground gap-1"
+                        >
+                            <span>
+                                {fertilizer.p_type === "manure" ? (
+                                    <Square className="size-3 text-yellow-600 fill-yellow-600" />
+                                ) : fertilizer.p_type === "mineral" ? (
+                                    <Circle className="size-3 text-sky-600 fill-sky-600" />
+                                ) : fertilizer.p_type === "compost" ? (
+                                    <Triangle className="size-3 text-green-600 fill-green-600" />
+                                ) : (
+                                    <Diamond className="size-3 text-gray-600 fill-gray-600" />
+                                )}
+                            </span>
+                            {fertilizer.p_name_nl}
+                        </Badge>
+                    ))}
+                </div>
+            )
+        },
+        enableHiding: true, // Enable hiding for mobile
     },
     {
         accessorKey: "b_area",

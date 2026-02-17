@@ -1,8 +1,17 @@
-import { getFarms, getFields, listPrincipalsForFarm } from "@svenvw/fdm-core"
+import {
+    type Cultivation,
+    type Fertilizer,
+    getCultivations,
+    getFarms,
+    getFertilizerApplications,
+    getFertilizers,
+    getFields,
+    listPrincipalsForFarm,
+} from "@svenvw/fdm-core"
 import { data, useLoaderData } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { columns } from "~/components/blocks/farms/columns"
+import { columns, type FarmExtended } from "~/components/blocks/farms/columns"
 import { DataTable } from "~/components/blocks/farms/table"
 import { auth } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -27,7 +36,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
         const farms = await getFarms(fdm, organization.id)
 
-        const allFarms = await Promise.all(
+        const allFarms: FarmExtended[] = await Promise.all(
             farms.map(async (farm) => {
                 const myOrganization = organization
                 async function getOwner() {
@@ -57,33 +66,127 @@ export async function loader({ params, request }: Route.LoaderArgs) {
                         timeframe,
                     )
 
+                    // Total area
                     let b_area = 0
-                    const cultivations: Record<
-                        string,
-                        { b_lu_name: string; b_lu_croprotation: string }
-                    > = {}
-                    const fertilizers: Record<
-                        string,
-                        { p_name_nl: string; p_type: string }
-                    > = {}
-
                     fields.forEach((field) => {
                         b_area += field.b_area ?? 0
                     })
 
+                    const fertilizers = await getFertilizers(
+                        fdm,
+                        myOrganization.id,
+                        farm.b_id_farm,
+                    )
+
+                    const fieldsExtended: FarmExtended[] = await Promise.all(
+                        fields.map(async (field) => {
+                            const cultivations = getCultivations(
+                                fdm,
+                                myOrganization.id,
+                                field.b_id,
+                                timeframe,
+                            )
+
+                            const fertilizerApplications =
+                                getFertilizerApplications(
+                                    fdm,
+                                    myOrganization.id,
+                                    field.b_id,
+                                    timeframe,
+                                )
+
+                            const collectedCultivations: Record<
+                                string,
+                                Pick<
+                                    Cultivation,
+                                    | "b_lu_catalogue"
+                                    | "b_lu_name"
+                                    | "b_lu_croprotation"
+                                >
+                            > = {}
+
+                            const collectedFertilizers: Record<
+                                string,
+                                Pick<
+                                    Fertilizer,
+                                    "p_id" | "p_name_nl" | "p_type"
+                                >
+                            > = {}
+
+                            ;(await cultivations).forEach((cultivation) => {
+                                collectedCultivations[
+                                    cultivation.b_lu_catalogue
+                                ] ??= {
+                                    b_lu_catalogue: cultivation.b_lu_catalogue,
+                                    b_lu_name: cultivation.b_lu_name,
+                                    b_lu_croprotation:
+                                        cultivation.b_lu_croprotation,
+                                }
+                            })
+
+                            ;(await fertilizerApplications).forEach(
+                                (fertilizerApplication) => {
+                                    const fertilizer = fertilizers.find(
+                                        (fertilizer) =>
+                                            fertilizer.p_id ===
+                                            fertilizerApplication.p_id,
+                                    )
+
+                                    if (fertilizer) {
+                                        collectedFertilizers[fertilizer.p_id] =
+                                            {
+                                                p_id: fertilizer.p_id,
+                                                p_name_nl: fertilizer.p_name_nl,
+                                                p_type: fertilizer.p_type,
+                                            }
+                                    }
+                                },
+                            )
+
+                            return {
+                                type: "field",
+                                b_id_farm: field.b_id,
+                                b_name_farm: field.b_name,
+                                owner: null,
+                                b_area: field.b_area,
+                                cultivations: Object.values(
+                                    collectedCultivations,
+                                ),
+                                fertilizers:
+                                    Object.values(collectedFertilizers),
+                            }
+                        }),
+                    )
+
+                    const collectedCultivations: Record<
+                        string,
+                        Pick<
+                            Cultivation,
+                            "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation"
+                        >
+                    > = {}
+
+                    const collectedFertilizers: Record<
+                        string,
+                        Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type">
+                    > = {}
+
+                    for (const field of fieldsExtended) {
+                        field.cultivations.forEach((cultivation) => {
+                            collectedCultivations[
+                                cultivation.b_lu_catalogue
+                            ] ??= cultivation
+                        })
+                        field.fertilizers.forEach((fertilizer) => {
+                            collectedFertilizers[fertilizer.p_id] ??= fertilizer
+                        })
+                    }
+
                     return {
-                        fields: fields.map((field) => ({
-                            type: "field",
-                            b_id_farm: field.b_id,
-                            b_name_farm: field.b_name,
-                            owner: null,
-                            b_area: field.b_area,
-                            cultivations: [],
-                            fertilizers: [],
-                        })),
+                        fields: fieldsExtended,
                         b_area: b_area,
-                        cultivations: Object.values(cultivations),
-                        fertilizers: Object.values(fertilizers),
+                        cultivations: Object.values(collectedCultivations),
+                        fertilizers: Object.values(collectedFertilizers),
                     }
                 }
 
@@ -130,7 +233,8 @@ export default function OrganizationFarmsPage() {
                 <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
                     <div className="flex flex-col space-y-2 text-center">
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            Het lijkt erop dat je nog geen bouwplan hebt :(
+                            Het lijkt erop dat jouw organizatie tot geen
+                            bedrijven toegang heeft. :(
                         </h1>
                         <p>
                             Neem contact op met bedrijven om toegang tot hen te
