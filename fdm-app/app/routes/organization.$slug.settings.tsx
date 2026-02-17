@@ -84,7 +84,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
  *
  * This component initializes a form using data loaded from the route loader and sets default values for fields such as organization name (required), slug, and description. It leverages validation with a Zod schema and automatically resets form data when the loader data changes. Upon submission, the form sends a POST request to update the organization settings.
  */
-export default function FarmSettingsPropertiesBlock() {
+export default function OrganizationSettingsBlock() {
     const loaderData = useLoaderData<typeof loader>()
     return (
         <main className="container">
@@ -92,6 +92,7 @@ export default function FarmSettingsPropertiesBlock() {
                 <FarmTitle
                     title={"Organisatie instellingen"}
                     description={"Werk de gegevens bij van dit organisatie."}
+                    action={{ to: "./..", label: "Terug naar dashboard" }}
                 />
                 <Card>
                     <CardHeader>
