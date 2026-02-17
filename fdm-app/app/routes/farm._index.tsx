@@ -416,7 +416,7 @@ export default function AppIndex() {
                             </Card>
                         </div>
 
-                        {organizationFarms.length && (
+                        {organizationFarms.length > 0 && (
                             <>
                                 <FarmTitle
                                     title="Bedrijven van uw organizaties"
