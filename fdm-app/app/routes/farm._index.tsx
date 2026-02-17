@@ -11,6 +11,7 @@ import {
     Plus,
     PlusCircle,
 } from "lucide-react"
+import { useMemo } from "react"
 import {
     type LoaderFunctionArgs,
     type MetaFunction,
@@ -31,7 +32,7 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { getSession } from "~/lib/auth.server"
+import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -78,10 +79,111 @@ export async function loader({ request }: LoaderFunctionArgs) {
             }
         })
 
+        function parseMetadata(
+            slug: string,
+            rawMetadata: string | null | undefined,
+        ) {
+            try {
+                return { data: rawMetadata ? JSON.parse(rawMetadata) : {} }
+            } catch (e) {
+                console.error(e)
+                return {
+                    error: `Failed to parse organization metadata for ${slug}`,
+                }
+            }
+        }
+
+        const rawOrganizations = await auth.api.listOrganizations({
+            headers: request.headers,
+        })
+        const organizations = await Promise.all(
+            rawOrganizations.map(async (organization) => {
+                const membersListResponse = await auth.api.listMembers({
+                    headers: request.headers,
+                    query: {
+                        organizationId: organization.id,
+                    },
+                })
+
+                const member = membersListResponse.members.find(
+                    (member) => member.userId === session.principal_id,
+                )
+
+                const role = member?.role ?? "member"
+
+                return {
+                    ...organization,
+                    role: role,
+                    metadata: parseMetadata(
+                        organization.slug,
+                        organization.metadata,
+                    ),
+                }
+            }),
+        )
         // Return user information from loader
         return {
-            farms: farms,
+            farms: farms.map((farm) => {
+                const user = !!farm.roles.find(
+                    (role) => role.principal_type === "user",
+                )
+                const allOrganizationRoles = farm.roles.filter(
+                    (role) => role.principal_type === "organization",
+                )
+
+                // Find the organization with the most significant role
+                const roleHierarchy = [
+                    "owner",
+                    "advisor",
+                    "researcher",
+                ] as const
+                allOrganizationRoles.sort(
+                    (role1, role2) =>
+                        roleHierarchy.indexOf(role1.role) -
+                        roleHierarchy.indexOf(role2.role),
+                )
+                const organization = allOrganizationRoles
+                    .map((role) =>
+                        organizations.find(
+                            (organization) =>
+                                organization.id === role.principal_id,
+                        ),
+                    )
+                    .find((organization) => organization)
+
+                // Collect the user roles
+                const userRoles = [
+                    ...new Set(
+                        farm.roles
+                            .filter((role) => role.principal_type === "user")
+                            .map((role) => role.role),
+                    ),
+                ]
+                // Collect the roles for the chosen most significant organization
+                const organizationRoles = organization
+                    ? [
+                          ...new Set(
+                              farm.roles
+                                  .filter(
+                                      (role) =>
+                                          role.principal_type ===
+                                              "organization" &&
+                                          role.principal_id === organization.id,
+                                  )
+                                  .map((role) => role.role),
+                          ),
+                      ]
+                    : []
+                return {
+                    ...farm,
+                    userRoles: userRoles,
+                    organizationRoles: organizationRoles,
+                    user: user,
+                    organization: organization,
+                }
+            }),
             farmOptions: farmOptions,
+            organizations: organizations,
             calendar: calendar,
             username: session.userName,
         }
@@ -111,6 +213,92 @@ function SupportNote() {
     )
 }
 
+function FarmCard({
+    farm,
+}: {
+    farm: Awaited<ReturnType<typeof loader>>["farms"][number]
+}) {
+    return (
+        <Card className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md">
+            <NavLink
+                to={`/farm/${farm.b_id_farm}`}
+                className="flex h-full flex-col"
+            >
+                <CardHeader>
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                                <House className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-xl">
+                                    {farm.b_name_farm}
+                                </CardTitle>
+                                <div className="mt-1 flex gap-1">
+                                    {farm.organization && (
+                                        <Badge
+                                            variant="secondary"
+                                            className="text-[10px] uppercase tracking-wider"
+                                        >
+                                            <Building className="h-4 w-4" />{" "}
+                                            {farm.organization.name}
+                                        </Badge>
+                                    )}
+                                    {(farm.organization
+                                        ? farm.organizationRoles
+                                        : farm.userRoles
+                                    ).map((role) => (
+                                        <Badge
+                                            key={role}
+                                            variant="secondary"
+                                            className="text-[10px] uppercase tracking-wider"
+                                        >
+                                            {role === "owner"
+                                                ? "Eigenaar"
+                                                : role === "advisor"
+                                                  ? "Adviseur"
+                                                  : role === "researcher"
+                                                    ? "Onderzoeker"
+                                                    : "Lid"}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="grow py-4">
+                    <dl className="grid gap-2 text-sm text-left">
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Adres</dt>
+                            <dd className="font-medium text-right">
+                                {farm.b_address_farm || "Onbekend"}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Postcode</dt>
+                            <dd className="font-medium text-right">
+                                {farm.b_postalcode_farm || "Onbekend"}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">KvK</dt>
+                            <dd className="font-medium text-right">
+                                {farm.b_businessid_farm || "Onbekend"}
+                            </dd>
+                        </div>
+                    </dl>
+                </CardContent>
+                <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
+                    <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
+                        Selecteer bedrijf{" "}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </span>
+                </CardFooter>
+            </NavLink>
+        </Card>
+    )
+}
 /**
  * Renders the user interface for farm management.
  *
@@ -121,6 +309,14 @@ function SupportNote() {
 export default function AppIndex() {
     const loaderData = useLoaderData<typeof loader>()
     const greeting = getTimeBasedGreeting()
+
+    const [userFarms, organizationFarms] = useMemo(() => {
+        const userFarms = loaderData.farms.filter((farm) => farm.user)
+        const organizationFarms = loaderData.farms.filter(
+            (farm) => farm.organization,
+        )
+        return [userFarms, organizationFarms]
+    }, [loaderData])
 
     return (
         <SidebarInset>
@@ -283,92 +479,8 @@ export default function AppIndex() {
                             }}
                         />
                         <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
-                            {loaderData.farms.map((farm) => (
-                                <Card
-                                    key={farm.b_id_farm}
-                                    className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md"
-                                >
-                                    <NavLink
-                                        to={`/farm/${farm.b_id_farm}`}
-                                        className="flex h-full flex-col"
-                                    >
-                                        <CardHeader>
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                                                        <House className="h-5 w-5" />
-                                                    </div>
-                                                    <div>
-                                                        <CardTitle className="text-xl">
-                                                            {farm.b_name_farm}
-                                                        </CardTitle>
-                                                        <div className="mt-1 flex gap-1">
-                                                            {farm.roles.map(
-                                                                (role) => (
-                                                                    <Badge
-                                                                        key={
-                                                                            role
-                                                                        }
-                                                                        variant="secondary"
-                                                                        className="text-[10px] uppercase tracking-wider"
-                                                                    >
-                                                                        {role ===
-                                                                        "owner"
-                                                                            ? "Eigenaar"
-                                                                            : role ===
-                                                                                "advisor"
-                                                                              ? "Adviseur"
-                                                                              : role ===
-                                                                                  "researcher"
-                                                                                ? "Onderzoeker"
-                                                                                : "Lid"}
-                                                                    </Badge>
-                                                                ),
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="grow py-4">
-                                            <dl className="grid gap-2 text-sm text-left">
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        Adres
-                                                    </dt>
-                                                    <dd className="font-medium text-right">
-                                                        {farm.b_address_farm ||
-                                                            "Onbekend"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        Postcode
-                                                    </dt>
-                                                    <dd className="font-medium text-right">
-                                                        {farm.b_postalcode_farm ||
-                                                            "Onbekend"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        KvK
-                                                    </dt>
-                                                    <dd className="font-medium text-right">
-                                                        {farm.b_businessid_farm ||
-                                                            "Onbekend"}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </CardContent>
-                                        <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
-                                            <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
-                                                Selecteer bedrijf{" "}
-                                                <ArrowRight className="ml-2 h-4 w-4" />
-                                            </span>
-                                        </CardFooter>
-                                    </NavLink>
-                                </Card>
+                            {userFarms.map((farm) => (
+                                <FarmCard key={farm.b_id_farm} farm={farm} />
                             ))}
 
                             <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
@@ -389,6 +501,26 @@ export default function AppIndex() {
                                 </NavLink>
                             </Card>
                         </div>
+
+                        {organizationFarms.length && (
+                            <>
+                                <FarmTitle
+                                    title="Bedrijven van uw organizaties"
+                                    description={
+                                        "Selecteer een bedrijf van je organizaties voor beheer en analyses."
+                                    }
+                                />
+
+                                <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                                    {organizationFarms.map((farm) => (
+                                        <FarmCard
+                                            key={farm.b_id_farm}
+                                            farm={farm}
+                                        />
+                                    ))}
+                                </div>
+                            </>
+                        )}
 
                         <FarmTitle
                             title="Atlas"
@@ -482,38 +614,116 @@ export default function AppIndex() {
                             </Card>
                         </div>
                         <FarmTitle
-                            title="Andere Diensten"
-                            description={`${clientConfig.name} maakt het voor u gemakkelijker om meerdere bedrijven te beheren en samen te werken met andere gebruikers.`}
+                            title="Organisaties"
+                            description="Werk samen met andere gebruikers op bedrijven in een gemakkelijke manier."
                         />
-                        <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
-                            <Card className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md">
-                                <NavLink
-                                    to="/organization"
-                                    className="flex h-full flex-col"
-                                >
-                                    <CardHeader>
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                                                <Building className="h-5 w-5" />
+                        {loaderData.organizations.length ? (
+                            <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                                {loaderData.organizations.map(
+                                    (organization) => (
+                                        <Card
+                                            key={organization.id}
+                                            className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md"
+                                        >
+                                            <NavLink
+                                                to={`/organization/${organization.slug}`}
+                                                className="flex h-full flex-col"
+                                            >
+                                                <CardHeader>
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                                                                <House className="h-5 w-5" />
+                                                            </div>
+                                                            <div>
+                                                                <CardTitle className="text-xl">
+                                                                    {
+                                                                        organization.name
+                                                                    }
+                                                                </CardTitle>
+                                                                <div className="mt-1 flex gap-1">
+                                                                    <Badge
+                                                                        variant="secondary"
+                                                                        className="text-[10px] uppercase tracking-wider"
+                                                                    >
+                                                                        {{
+                                                                            owner: "Eigenaar",
+                                                                            admin: "Beheerder",
+                                                                            member: "Lid",
+                                                                        }[
+                                                                            organization
+                                                                                .role
+                                                                        ] ??
+                                                                            "Lid"}
+                                                                    </Badge>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="grow py-4">
+                                                    <p className="grid gap-2 text-sm text-left">
+                                                        {organization.metadata
+                                                            ?.data
+                                                            ?.description ??
+                                                            organization
+                                                                .metadata
+                                                                ?.error ??
+                                                            "Geen info"}
+                                                    </p>
+                                                </CardContent>
+                                                <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
+                                                    <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
+                                                        Selecteer organisatie{" "}
+                                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                                    </span>
+                                                </CardFooter>
+                                            </NavLink>
+                                        </Card>
+                                    ),
+                                )}
+
+                                <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
+                                    <NavLink
+                                        to="/organization/new"
+                                        className="flex h-full flex-col"
+                                    >
+                                        <CardHeader className="grow items-center justify-center text-center">
+                                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                                <Plus className="h-6 w-6" />
                                             </div>
-                                            <CardTitle className="text-xl">
-                                                Organisaties
+                                            <CardTitle>
+                                                Nieuwe organisatie
                                             </CardTitle>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="grow text-sm text-muted-foreground">
-                                        Werk samen met andere gebruikers op
-                                        bedrijven in een gemakkelijke manier.
-                                    </CardContent>
-                                    <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
-                                        <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
-                                            Naar uw organisaties{" "}
-                                            <ArrowRight className="ml-2 h-4 w-4" />
-                                        </span>
-                                    </CardFooter>
-                                </NavLink>
-                            </Card>
-                        </div>
+                                            <CardDescription>
+                                                Voeg een extra organisatie toe
+                                                aan uw account.
+                                            </CardDescription>
+                                        </CardHeader>
+                                    </NavLink>
+                                </Card>
+                            </div>
+                        ) : (
+                            <div className="mx-auto flex items-center flex-col justify-center space-y-6 sm:w-[350px]">
+                                <div className="flex flex-col space-y-2 text-center">
+                                    <h1 className="text-2xl font-semibold tracking-tight">
+                                        Het lijkt erop dat je nog geen
+                                        organisatie hebt.
+                                    </h1>
+                                </div>
+                                <div className="flex flex-col items-center relative">
+                                    <Button asChild>
+                                        <NavLink to="/organization/new">
+                                            Maak een organisatie
+                                        </NavLink>
+                                    </Button>
+                                </div>
+                                <p className="text-center text-sm text-muted-foreground">
+                                    of kunt u organisaties vragen om u te
+                                    uitnodigen.
+                                </p>
+                            </div>
+                        )}
                         <SupportNote />
                     </>
                 )}
