@@ -112,6 +112,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })
 
+        // Find unique roles
+        const roles = [...new Set(farm.roles.map((role) => role.role))]
+
         // Return the farm ID and session info
         return {
             b_id_farm: b_id_farm,
@@ -119,7 +122,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fieldsNumber: fields.length,
             farmArea: Math.round(farmArea),
             farmOptions: farmOptions,
-            roles: farm.roles,
+            roles: roles,
         }
     } catch (error) {
         throw handleLoaderError(error)

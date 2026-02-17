@@ -77,7 +77,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_id_farm,
         )
         // Add temporary workaround (until implemented in fdm-core) so that advisors are not able to delete a farm
-        if (canDeleteFarm && farm.roles.includes("advisor")) {
+        if (
+            canDeleteFarm &&
+            farm.roles.find((role) => role.role === "advisor")
+        ) {
             canDeleteFarm = false
         }
 
@@ -167,7 +170,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
             b_id_farm,
         )
         // Temporary workaround: advisors may not delete farms
-        if (canDeleteFarm && farm.roles.includes("advisor")) {
+        if (
+            canDeleteFarm &&
+            farm.roles.find((role) => role.role === "advisor")
+        ) {
             canDeleteFarm = false
         }
         if (!canDeleteFarm) {
