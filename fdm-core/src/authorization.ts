@@ -319,7 +319,13 @@ export async function getRolesOfPrincipalForResource(
     resource: Resource,
     resource_id: ResourceId,
     principal_id: PrincipalId,
-): Promise<Role[]> {
+): Promise<
+    {
+        principal_id: string
+        role: Role
+        principal_type: "user" | "organization"
+    }[]
+> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
             // Validate input
@@ -332,9 +338,15 @@ export async function getRolesOfPrincipalForResource(
                 ? principal_id
                 : [principal_id]
 
-            const result = await tx
+            const result: {
+                principal_id: string
+                role: Role
+                member_id: string | null
+            }[] = await tx
                 .select({
                     role: authZSchema.role.role,
+                    principal_id: authZSchema.role.principal_id,
+                    member_id: authNSchema.member.userId, // will be defined if this role is for an organization
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -365,10 +377,11 @@ export async function getRolesOfPrincipalForResource(
                     ),
                 )
 
-            const roles = result.map((item: { role: string }) => item.role)
-
-            // Make sure no duplicate roles are present
-            return [...new Set(roles)]
+            return result.map((item) => ({
+                role: item.role,
+                principal_id: item.principal_id,
+                principal_type: item.member_id ? "organization" : "user",
+            }))
         })
     } catch (err) {
         throw handleError(err, "Exception for getRolesOfPrincipalForResource", {

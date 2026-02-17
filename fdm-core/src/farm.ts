@@ -97,7 +97,11 @@ export async function getFarm(
     b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
     b_id_principal: PrincipalId
     b_id_principal_owner: PrincipalId
-    roles: Role[]
+    roles: {
+        principal_id: string
+        principal_type: "user" | "organization"
+        role: Role
+    }[]
 }> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
@@ -172,7 +176,11 @@ export async function getFarms(
         b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
         b_address_farm: schema.farmsTypeSelect["b_address_farm"]
         b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
-        roles: Role[]
+        roles: {
+            principal_id: string
+            principal_type: "user" | "organization"
+            role: Role
+        }[]
     }[]
 > {
     try {

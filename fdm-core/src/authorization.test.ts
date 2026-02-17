@@ -677,7 +677,13 @@ describe("Authorization Functions", () => {
                 farm_id,
                 principal_id,
             )
-            expect(roles).toEqual(["owner"])
+            expect(roles).toEqual([
+                {
+                    principal_id: principal_id,
+                    role: "owner",
+                    principal_type: "user",
+                },
+            ])
         })
 
         // it("should get inherited roles", async () => {
@@ -772,7 +778,13 @@ describe("Authorization Functions", () => {
                 farm_id,
                 organization_member_id,
             )
-            expect(roles).toEqual(["researcher"])
+            expect(roles).toEqual([
+                {
+                    principal_id: organization_id,
+                    principal_type: "organization",
+                    role: "researcher",
+                },
+            ])
         })
 
         it("should get all roles", async () => {
@@ -792,8 +804,16 @@ describe("Authorization Functions", () => {
                 organization_member_id,
             )
             expect(roles.length).toBe(2)
-            expect(roles).toContain("owner")
-            expect(roles).toContain("researcher")
+            expect(roles).toContainEqual({
+                principal_id: organization_id,
+                principal_type: "organization",
+                role: "owner",
+            })
+            expect(roles).toContainEqual({
+                principal_id: organization_member_id,
+                principal_type: "user",
+                role: "researcher",
+            })
         })
 
         it("should throw error with invalid resource", async () => {
