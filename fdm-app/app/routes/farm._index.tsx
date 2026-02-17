@@ -419,9 +419,9 @@ export default function AppIndex() {
                         {organizationFarms.length > 0 && (
                             <>
                                 <FarmTitle
-                                    title="Bedrijven van uw organizaties"
+                                    title="Bedrijven van uw organisaties"
                                     description={
-                                        "Selecteer een bedrijf van je organizaties voor beheer en analyses."
+                                        "Selecteer een bedrijf van je organisaties voor beheer en analyses."
                                     }
                                 />
 

@@ -1,5 +1,5 @@
 import { ArrowRight, Building, House } from "lucide-react"
-import { NavLink } from "react-router-dom"
+import { NavLink } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import {
     Card,

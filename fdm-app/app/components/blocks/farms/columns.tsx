@@ -14,6 +14,7 @@ import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
+import { Button } from "../../ui/button"
 
 export interface FarmExtended {
     type: "farm" | "field"
@@ -37,12 +38,21 @@ export const columns: ColumnDef<FarmExtended>[] = [
     {
         id: "Children",
         enableHiding: false,
+        header: () => (
+            <Button variant="ghost" type="button" className="invisible">
+                <ChevronRight />
+            </Button>
+        ),
         cell: ({ row }) => {
             return row.getCanExpand() ? (
                 <button
                     type="button"
                     onClick={row.getToggleExpandedHandler()}
                     style={{ cursor: "pointer" }}
+                    aria-label={
+                        row.getIsExpanded() ? "Klap rij in" : "Klap rij uit"
+                    }
+                    title={row.getIsExpanded() ? "Klap rij in" : "Klap rij uit"}
                 >
                     <ChevronRight
                         className={cn(
@@ -158,7 +168,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
         enableHiding: true, // Enable hiding for mobile
     },
     {
-        accessorKey: "fertilizerApplications",
+        accessorKey: "fertilizers",
         enableSorting: true,
         sortingFn: (rowA, rowB, _columnId) => {
             const fertilizerA = rowA.original.fertilizers[0]?.p_name_nl || ""
