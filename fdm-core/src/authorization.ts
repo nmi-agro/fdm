@@ -376,12 +376,26 @@ export async function getRolesOfPrincipalForResource(
                         isNull(authZSchema.role.deleted),
                     ),
                 )
-
-            return result.map((item) => ({
-                role: item.role,
-                principal_id: item.principal_id,
-                principal_type: item.member_id ? "organization" : "user",
-            }))
+            const deduped = new Map<
+                string,
+                {
+                    principal_id: string
+                    role: Role
+                    principal_type: "user" | "organization"
+                }
+            >()
+            for (const item of result) {
+                const principal_type = item.member_id ? "organization" : "user"
+                const key = `${principal_type}:${item.principal_id}:${item.role}`
+                if (!deduped.has(key)) {
+                    deduped.set(key, {
+                        principal_id: item.principal_id,
+                        role: item.role,
+                        principal_type,
+                    })
+                }
+            }
+            return [...deduped.values()]
         })
     } catch (err) {
         throw handleError(err, "Exception for getRolesOfPrincipalForResource", {
