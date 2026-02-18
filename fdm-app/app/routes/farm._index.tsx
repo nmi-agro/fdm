@@ -633,8 +633,8 @@ export default function AppIndex() {
                                     </Button>
                                 </div>
                                 <p className="text-center text-sm text-muted-foreground">
-                                    of kunt u organisaties vragen om u te
-                                    uitnodigen.
+                                    of kunt u organisaties vragen om u uit te
+                                    nodigen.
                                 </p>
                             </div>
                         )}

@@ -39,7 +39,7 @@ export function FarmCard({ farm }: { farm: Farm }) {
                             </div>
                             <div>
                                 <CardTitle className="text-xl">
-                                    {farm.b_name_farm}
+                                    {farm.b_name_farm ?? "Onbekend"}
                                 </CardTitle>
                                 <div className="mt-1 flex gap-1">
                                     {farm.organization && (

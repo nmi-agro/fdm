@@ -176,14 +176,30 @@ export default function AppIndex() {
                                 <h2 className="text-2xl font-semibold tracking-tight">
                                     Bedrijven met Toegang
                                 </h2>
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    {loaderData.farms.map((farm) => (
-                                        <FarmCard
-                                            key={farm.b_id_farm}
-                                            farm={farm}
-                                        />
-                                    ))}
-                                </div>
+                                {loaderData.farms.length > 0 ? (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                                        {loaderData.farms.map((farm) => (
+                                            <FarmCard
+                                                key={farm.b_id_farm}
+                                                farm={farm}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="mx-auto flex h-full w-full items-center flex-col justify-center py-6 sm:w-[350px]">
+                                        <div className="flex flex-col space-y-2 text-center">
+                                            <h1 className="text-2xl font-semibold tracking-tight">
+                                                Het lijkt erop dat jouw
+                                                organizatie tot geen bedrijven
+                                                toegang heeft. :(
+                                            </h1>
+                                            <p>
+                                                Neem contact op met bedrijven om
+                                                toegang tot hen te krijgen.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
