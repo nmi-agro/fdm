@@ -37,34 +37,32 @@ export function calculateNlvSupplyBySom({
     const paramT = new Decimal(5).div(12) // 5 months a year
     const paramDissMicro = new Decimal(2) // Dissimilation : assimilation ratio of micro organisms
 
-    // Step 1: Estimate density (g/cm3) - based on current SOM (a_som_loi)
-    const somDecimal = new Decimal(a_som_loi)
-    const densitySand = new Decimal(1).div(
-        somDecimal.times(0.02525).add(0.6541),
-    )
-
-    const densityClay = new Decimal(0.00000067)
-        .times(somDecimal.pow(4))
-        .sub(new Decimal(0.00007792).times(somDecimal.pow(3)))
-        .add(new Decimal(0.00314712).times(somDecimal.pow(2)))
-        .sub(new Decimal(0.06039523).times(somDecimal))
-        .add(1.33932206)
-
-    const pClayFr = Decimal.min(1, new Decimal(a_clay_mi).div(25))
-    const density = pClayFr
-        .times(densityClay)
-        .add(new Decimal(1).sub(pClayFr).times(densitySand))
+    const clayPct = new Decimal(a_clay_mi)
+    const cnFr = new Decimal(a_cn_fr)
 
     /**
      * Internal function to calculate NLV for a given SOM content.
      */
     const calculateNlv = (a_som_loi: number): Decimal => {
         const som = new Decimal(a_som_loi)
-        const cnFr = new Decimal(a_cn_fr)
 
-        // Estimate Soil Organic Carbon (SOC) stock for 30 cm soil (kg / ha)
+        // Step 1: Estimate density (g/cm3)
+        const densitySand = new Decimal(1).div(som.times(0.02525).add(0.6541))
+
+        const densityClay = new Decimal(0.00000067)
+            .times(som.pow(4))
+            .sub(new Decimal(0.00007792).times(som.pow(3)))
+            .add(new Decimal(0.00314712).times(som.pow(2)))
+            .sub(new Decimal(0.06039523).times(som))
+            .add(1.33932206)
+
+        const pClayFr = Decimal.min(1, clayPct.div(25))
+        const density = pClayFr
+            .times(densityClay)
+            .add(new Decimal(1).sub(pClayFr).times(densitySand))
+
+        // Step 2: Estimate Soil Organic Carbon (SOC) stock for 30 cm soil (kg / ha)
         // B_C_ST03 = 0.5 * (SOM / 100) * (100 * 100) * 0.3 * density * 1000
-        // (100 * 100) is m2 per ha, 0.3 is depth in m, 1000 is kg per m3 (approx, from g/cm3)
         const socStock = new Decimal(0.5)
             .times(som.div(100))
             .times(10000)
@@ -72,7 +70,7 @@ export function calculateNlvSupplyBySom({
             .times(density)
             .times(1000)
 
-        // Estimate NLV
+        // Step 3: Estimate NLV
         // c.diss = SOC * (1 - exp(4.7 * ((param.a + param.b * param.t)^-0.6 - param.a^-0.6)))
         const exponent = new Decimal(4.7).times(
             paramA.add(paramB.times(paramT)).pow(-0.6).sub(paramA.pow(-0.6)),
