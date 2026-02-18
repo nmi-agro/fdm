@@ -38,7 +38,7 @@ import type {
 } from "react-router"
 import { Form, redirect, useSearchParams } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import { redirectWithSuccess } from "remix-toast"
+import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
 import {
     Accordion,
@@ -71,6 +71,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { modifySearchParams } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
 import { extractFormValuesFromRequest } from "../lib/form"
+import { isInactiveRecipientError } from "~/lib/email.server"
 
 export const meta: MetaFunction = () => {
     const title = `${clientConfig.name}: Bemestingsadvies, Doelsturing & Perceelsdata`
@@ -1669,6 +1670,12 @@ export async function action({ request }: ActionFunctionArgs) {
             `Een aanmeldcode is verstuurd naar ${email}.`,
         )
     } catch (error) {
+        if (isInactiveRecipientError(error)) {
+            return dataWithError(null, {
+                message:
+                    "We hebben geen toestemming om e-mails naar dit adres te versturen. Neem contact op met de ondersteuning voor hulp.",
+            })
+        }
         console.error("Error sending magic link") // Don't log full error details
         handleActionError(error)
     }

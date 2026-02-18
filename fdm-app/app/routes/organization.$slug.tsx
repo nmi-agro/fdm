@@ -25,7 +25,11 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { auth, getSession } from "~/lib/auth.server"
-import { renderInvitationEmail, sendEmail } from "~/lib/email.server"
+import {
+    isInactiveRecipientError,
+    renderInvitationEmail,
+    sendEmail,
+} from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
 
@@ -428,7 +432,24 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     organizationName,
                     invitation.id,
                 )
-                await sendEmail(invitationEmail)
+                try {
+                    await sendEmail(invitationEmail)
+                } catch (e) {
+                    if (isInactiveRecipientError(e)) {
+                        await auth.api.cancelInvitation({
+                            headers: request.headers,
+                            body: {
+                                invitationId: invitation.id,
+                            },
+                        })
+                        return dataWithError(null, {
+                            message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
+                        })
+                    }
+                    return dataWithError(null, {
+                        message: `We kunnen geen e-mails naar ${formValues.email} sturen. Neem contact op met de ondersteuning voor hulp.`,
+                    })
+                }
             }
 
             return dataWithSuccess(null, {
