@@ -190,7 +190,7 @@ export default function AppIndex() {
                                         <div className="flex flex-col space-y-2 text-center">
                                             <h1 className="text-2xl font-semibold tracking-tight">
                                                 Het lijkt erop dat jouw
-                                                organizatie tot geen bedrijven
+                                                organisatie tot geen bedrijven
                                                 toegang heeft. :(
                                             </h1>
                                             <p>
@@ -226,7 +226,11 @@ export default function AppIndex() {
                                                     Totale oppervlakte
                                                 </dt>
                                                 <dd className="font-semibold">
-                                                    {loaderData.totalArea} ha
+                                                    {Math.round(
+                                                        loaderData.totalArea *
+                                                            10,
+                                                    ) / 10}{" "}
+                                                    ha
                                                 </dd>
                                             </div>
                                             <div className="flex items-center justify-between">

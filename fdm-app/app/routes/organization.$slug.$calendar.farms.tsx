@@ -233,7 +233,7 @@ export default function OrganizationFarmsPage() {
                 <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
                     <div className="flex flex-col space-y-2 text-center">
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            Het lijkt erop dat jouw organizatie tot geen
+                            Het lijkt erop dat jouw organisatie tot geen
                             bedrijven toegang heeft. :(
                         </h1>
                         <p>

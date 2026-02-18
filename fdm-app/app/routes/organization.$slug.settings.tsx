@@ -1,81 +1,88 @@
 import { data, useLoaderData } from "react-router-dom"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
-import { FarmTitle } from "../components/blocks/farm/farm-title"
-import { OrganizationSettingsForm } from "../components/blocks/organization/form"
-import { FormSchema } from "../components/blocks/organization/schema"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
+import { FormSchema } from "~/components/blocks/organization/schema"
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "../components/ui/card"
-import { auth, getSession } from "../lib/auth.server"
-import { handleActionError } from "../lib/error"
-import { extractFormValuesFromRequest } from "../lib/form"
+} from "~/components/ui/card"
+import { auth, getSession } from "~/lib/auth.server"
+import { handleActionError, handleLoaderError } from "~/lib/error"
+import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/organization.$slug.settings"
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-    const session = await getSession(request)
+    try {
+        const session = await getSession(request)
 
-    const organizations = await auth.api.listOrganizations({
-        headers: request.headers,
-    })
-
-    const organizationRaw = organizations.find(
-        (org) => org.slug === params.slug,
-    )
-
-    if (!organizationRaw) {
-        throw data("Organisatie niet gevonden.", 404)
-    }
-
-    const members = (
-        await auth.api.listMembers({
+        const organizations = await auth.api.listOrganizations({
             headers: request.headers,
-            query: {
-                organizationId: organizationRaw.id,
-            },
         })
-    ).members
 
-    // Determine permissions
-    const currentUserMember = members.find(
-        (m) => m.userId === session.principal_id,
-    )
-    const role = currentUserMember?.role || "viewer"
-    const permissions = {
-        canEdit: role === "owner" || role === "admin",
-        canDelete: role === "owner",
-        canInvite: role === "owner" || role === "admin",
-        canUpdateRoleUser: role === "owner" || role === "admin",
-        canRemoveUser: role === "owner" || role === "admin",
-    }
+        const organizationRaw = organizations.find(
+            (org) => org.slug === params.slug,
+        )
 
-    function parseMetadata(
-        slug: string,
-        rawMetadata: string | null | undefined,
-    ) {
-        try {
-            return rawMetadata ? JSON.parse(rawMetadata) : {}
-        } catch (e) {
-            throw new Error(
-                `Failed to parse organization metadata for ${slug}`,
-                {
-                    cause: e,
-                },
-            )
+        if (!organizationRaw) {
+            throw data("Organisatie niet gevonden.", 404)
         }
-    }
 
-    const organization = {
-        ...organizationRaw,
-        metadata: parseMetadata(organizationRaw.slug, organizationRaw.metadata),
-    }
+        const members = (
+            await auth.api.listMembers({
+                headers: request.headers,
+                query: {
+                    organizationId: organizationRaw.id,
+                },
+            })
+        ).members
 
-    return {
-        organization: organization,
-        permissions: permissions,
+        // Determine permissions
+        const currentUserMember = members.find(
+            (m) => m.userId === session.principal_id,
+        )
+        const role = currentUserMember?.role || "viewer"
+        const permissions = {
+            canEdit: role === "owner" || role === "admin",
+            canDelete: role === "owner",
+            canInvite: role === "owner" || role === "admin",
+            canUpdateRoleUser: role === "owner" || role === "admin",
+            canRemoveUser: role === "owner" || role === "admin",
+        }
+
+        function parseMetadata(
+            slug: string,
+            rawMetadata: string | null | undefined,
+        ) {
+            try {
+                return rawMetadata ? JSON.parse(rawMetadata) : {}
+            } catch (e) {
+                throw new Error(
+                    `Failed to parse organization metadata for ${slug}`,
+                    {
+                        cause: e,
+                    },
+                )
+            }
+        }
+
+        const organization = {
+            ...organizationRaw,
+            metadata: parseMetadata(
+                organizationRaw.slug,
+                organizationRaw.metadata,
+            ),
+        }
+
+        return {
+            organization: organization,
+            permissions: permissions,
+        }
+    } catch (e) {
+        throw handleLoaderError(e)
     }
 }
 
