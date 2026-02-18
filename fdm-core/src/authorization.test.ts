@@ -816,6 +816,24 @@ describe("Authorization Functions", () => {
             })
         })
 
+        it("should get organization's roles as organization roles", async () => {
+            await grantRole(fdm, "farm", "researcher", farm_id, organization_id)
+
+            const roles = await getRolesOfPrincipalForResource(
+                fdm,
+                "farm",
+                farm_id,
+                organization_id,
+            )
+            expect(roles).toEqual([
+                {
+                    principal_id: organization_id,
+                    principal_type: "organization",
+                    role: "researcher",
+                },
+            ])
+        })
+
         it("should throw error with invalid resource", async () => {
             await expect(
                 getRolesOfPrincipalForResource(
