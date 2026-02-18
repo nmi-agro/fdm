@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Copy, HelpCircle } from "lucide-react"
+import { ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { useState } from "react"
 import { useParams } from "react-router"
 import { toast } from "sonner"
@@ -169,12 +169,12 @@ export function CultivationHistoryCard({
                                                                 : "text-foreground/80",
                                                         )}
                                                     >
-                                                        {cultivation.b_lu_name}
+                                                        {cultivation.b_lu_name ?? "Onbekend gewas"}
                                                     </p>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
-                                                        {cultivation.b_lu_name}
+                                                        {cultivation.b_lu_name ?? "Onbekend gewas"}
                                                     </p>
                                                 </TooltipContent>
                                             </Tooltip>
@@ -245,8 +245,8 @@ export function CultivationHistorySkeleton() {
             <CardHeader>
                 <CardTitle>Gewashistorie</CardTitle>
                 <CardDescription>
-                    De gewassen van de afgelopen jaren op dit perceel volgens
-                    Basisregistratie Gewaspercelen.
+                    Dit zijn de gewassen zoals geregistreerd in de
+                    Basisregistratie Gewaspercelen (BRP).
                 </CardDescription>
             </CardHeader>
             <div className="px-6 pb-4">

@@ -48,17 +48,20 @@ export function CarbonSequestrationCard({
     // API values
     const currentOM = Math.round(carbonEstimates.a_som_loi * 10) / 10
     const maxOM = Math.round(carbonEstimates.b_som_potential * 10) / 10
-    const potentialCO2eq =
-        Math.round(carbonEstimates.b_c_delta * 3.67 * 10) / 10
+    const rawCO2eq = carbonEstimates.b_c_delta * 3.67
+    const potentialCO2eq = Math.round(rawCO2eq * 10) / 10
 
     // Derived values
     const percentageOfMax =
         maxOM > 0 ? Math.min((currentOM / maxOM) * 100, 100) : 0
 
-    // Impact calculations
-    const carKmEquivalent = Math.round(potentialCO2eq * 8000)
+    // Impact calculations (use raw unrounded CO2eq to avoid compounding errors)
+    const carKmEquivalent = Math.round(rawCO2eq * 8000)
     const extraWaterStorage = carbonEstimates.extraWaterStorage
     const extraNMineralization = carbonEstimates.extraNMineralization
+
+    // Euro estimate based on raw CO2eq
+    const euroEstimate = Math.round(rawCO2eq * 75)
 
     return (
         <Card>
@@ -196,9 +199,7 @@ export function CarbonSequestrationCard({
                             <div className="space-y-0.5">
                                 <p className="text-sm font-semibold">
                                     ~€{" "}
-                                    {Math.round(
-                                        potentialCO2eq * 75,
-                                    ).toLocaleString()}
+                                    {euroEstimate.toLocaleString()}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                     Geschatte waarde koolstofcertificaten via EU

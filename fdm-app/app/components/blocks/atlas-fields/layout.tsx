@@ -14,7 +14,7 @@ export function FieldDetailsAtlasLayout({
     groundWater: ReactNode
 }) {
     return (
-        <main className="pt-6 pb-10 max-w-7xl mx-auto">
+        <main className="pt-6 pb-20 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 px-4 md:px-6 items-start">
                 {/* Perceeldetails: Order 1 (Mobile & Desktop right stack) */}
                 <div className="lg:col-span-8 order-1 lg:order-2">

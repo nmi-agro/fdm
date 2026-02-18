@@ -8,6 +8,14 @@ import {
 } from "~/components/ui/card"
 import { Skeleton } from "~/components/ui/skeleton"
 
+const regionLabels = {
+    klei: "Klei",
+    veen: "Veen",
+    loess: "Löss",
+    zand_nwc: "Noordelijk, westelijk, en centraal zand",
+    zand_zuid: "Zuidelijk zand",
+}
+
 export function FieldDetailsCard({
     fieldDetails,
 }: {
@@ -19,14 +27,6 @@ export function FieldDetailsCard({
         isNatura2000Area?: boolean
     }
 }) {
-    const regionLabels = {
-        klei: "Klei",
-        veen: "Veen",
-        loess: "Löss",
-        zand_nwc: "Noordelijk, westelijk, en centraal zand",
-        zand_zuid: "Zuidelijk zand",
-    }
-
     return (
         <Card>
             <CardHeader>

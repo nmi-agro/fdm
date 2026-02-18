@@ -161,7 +161,6 @@ async function loadAsyncData(
                 a_clay_mi: Math.round(estimates.a_clay_mi),
                 a_silt_mi: Math.round(estimates.a_silt_mi),
                 a_sand_mi: Math.round(estimates.a_sand_mi),
-                a_cn_fr: estimates.a_cn_fr,
             },
             carbonEstimates: {
                 a_som_loi: estimates.a_som_loi,

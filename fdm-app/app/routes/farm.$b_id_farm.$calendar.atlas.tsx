@@ -91,7 +91,7 @@ export default function FarmContentBlock() {
 
     return (
         <SidebarInset>
-            <Header>
+            <Header action={undefined}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

@@ -54,9 +54,9 @@ export function calculateWaterSupplyBySom({
         a_clay_mi: number,
         a_silt_mi: number,
     ): Decimal => {
-        const som = new Decimal(a_som_loi)
-        const clayPct = new Decimal(a_clay_mi)
-        const siltPct = new Decimal(a_silt_mi)
+        const som = new Decimal(Math.max(a_som_loi, 1e-6))
+        const clayPct = new Decimal(Math.max(a_clay_mi, 1e-6))
+        const siltPct = new Decimal(Math.max(a_silt_mi, 1e-6))
 
         // Estimate density based on SOM and clay content
         // Dichtheid_zand = 1 / (0.02525 * SOM + 0.6541)
