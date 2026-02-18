@@ -92,11 +92,11 @@ export function CarbonSequestrationCard({
             <CardContent className="space-y-8">
                 {/* Visual Progress Section */}
                 <div className="space-y-3">
-                    <div className="flex justify-between text-sm font-medium">
-                        <span className="text-muted-foreground">
-                            Huidige benutting potentieel
+                    <div className="flex justify-between text-sm font-medium text-muted-foreground">
+                        <span>Huidig vs. fysieke bovengrens</span>
+                        <span>
+                            {Math.round(percentageOfMax)}% t.o.v. bovengrens
                         </span>
-                        <span>{Math.round(percentageOfMax)}%</span>
                     </div>
                     <Progress value={percentageOfMax} className="h-2" />
                     <div className="flex justify-between text-xs text-muted-foreground font-medium">
