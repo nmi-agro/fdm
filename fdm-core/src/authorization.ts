@@ -341,12 +341,12 @@ export async function getRolesOfPrincipalForResource(
             const result: {
                 principal_id: string
                 role: Role
-                member_id: string | null
+                member_user_id: string | null
             }[] = await tx
                 .select({
                     role: authZSchema.role.role,
                     principal_id: authZSchema.role.principal_id,
-                    member_id: authNSchema.member.userId, // will be defined if this role is for an organization
+                    member_user_id: authNSchema.member.userId, // will be defined if this role is for an organization
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -385,7 +385,9 @@ export async function getRolesOfPrincipalForResource(
                 }
             >()
             for (const item of result) {
-                const principal_type = item.member_id ? "organization" : "user"
+                const principal_type = item.member_user_id
+                    ? "organization"
+                    : "user"
                 const key = `${principal_type}:${item.principal_id}:${item.role}`
                 if (!deduped.has(key)) {
                     deduped.set(key, {
