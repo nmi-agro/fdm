@@ -1,4 +1,6 @@
 import {
+    calculateNlvSupplyBySom,
+    calculateWaterSupplyBySom,
     getRegion,
     isFieldInGWGBGebied,
     isFieldInNatura2000Gebied,
@@ -159,6 +161,7 @@ async function loadAsyncData(
                 a_clay_mi: Math.round(estimates.a_clay_mi),
                 a_silt_mi: Math.round(estimates.a_silt_mi),
                 a_sand_mi: Math.round(estimates.a_sand_mi),
+                a_cn_fr: estimates.a_cn_fr,
             },
             carbonEstimates: {
                 a_som_loi: estimates.a_som_loi,
@@ -166,6 +169,23 @@ async function loadAsyncData(
                 b_c_st03: estimates.b_c_st03,
                 b_c_st03_potential: estimates.b_c_st03_potential,
                 b_c_delta: estimates.b_c_delta,
+                extraWaterStorage: Math.round(
+                    calculateWaterSupplyBySom({
+                        a_clay_mi: estimates.a_clay_mi,
+                        a_silt_mi: estimates.a_silt_mi,
+                        a_sand_mi: estimates.a_sand_mi,
+                        a_som_loi: estimates.a_som_loi,
+                        b_som_potential: estimates.b_som_potential,
+                    }),
+                ),
+                extraNMineralization: Math.round(
+                    calculateNlvSupplyBySom({
+                        a_clay_mi: estimates.a_clay_mi,
+                        a_cn_fr: estimates.a_cn_fr,
+                        a_som_loi: estimates.a_som_loi,
+                        b_som_potential: estimates.b_som_potential,
+                    }),
+                ),
             },
             fieldDetails: {
                 b_area: queriedField?.properties?.b_area

@@ -41,6 +41,8 @@ export function CarbonSequestrationCard({
         b_c_st03: number
         b_c_st03_potential: number
         b_c_delta: number
+        extraWaterStorage: number
+        extraNMineralization: number
     }
 }) {
     // API values
@@ -54,11 +56,9 @@ export function CarbonSequestrationCard({
         maxOM > 0 ? Math.min((currentOM / maxOM) * 100, 100) : 0
 
     // Impact calculations
-    // TODO: come up with better calculations
-    const carKmEquivalent = Math.round(potentialCO2eq * 5000)
-    const extraOMPercentage = Math.max(0, maxOM - currentOM)
-    const extraWaterStorage = Math.round(extraOMPercentage * 5 * 10) / 10
-    const extraNMineralization = Math.round(extraOMPercentage * 18)
+    const carKmEquivalent = Math.round(potentialCO2eq * 8000)
+    const extraWaterStorage = carbonEstimates.extraWaterStorage
+    const extraNMineralization = carbonEstimates.extraNMineralization
 
     return (
         <Card>
@@ -195,7 +195,10 @@ export function CarbonSequestrationCard({
                             <Euro className="h-4 w-4 mt-0.5 text-muted-foreground" />
                             <div className="space-y-0.5">
                                 <p className="text-sm font-semibold">
-                                    ~€{(potentialCO2eq * 75).toLocaleString()}
+                                    ~€{" "}
+                                    {Math.round(
+                                        potentialCO2eq * 75,
+                                    ).toLocaleString()}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                     Geschatte waarde koolstofcertificaten via EU
@@ -233,8 +236,9 @@ export function CarbonSequestrationCard({
                         </p>
                         <p>
                             De getoonde voordelen voor water en stikstof zijn
-                            indicatieve schattingen op basis van bodemkundige
-                            vuistregels.
+                            berekend met behulp van de continue
+                            pedotransferfuncties van Wösten et al. (1999) en het
+                            MINIP-model.
                         </p>
                     </CollapsibleContent>
                 </Collapsible>
