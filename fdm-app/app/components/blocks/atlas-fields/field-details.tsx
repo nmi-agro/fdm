@@ -102,11 +102,11 @@ export function FieldDetailsSkeleton() {
                 <Skeleton className="h-4 w-1/2" />
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                 </div>
-                <div className="grid grid-cols-3 gap-4 pt-0 sm:pt-4 border-t-0 sm:border-t">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-0 sm:pt-4 border-t-0 sm:border-t">
                     <Skeleton className="h-8 w-full" />
                     <Skeleton className="h-8 w-full" />
                     <Skeleton className="h-8 w-full" />

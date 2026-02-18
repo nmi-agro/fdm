@@ -45,34 +45,33 @@ export const meta: MetaFunction = () => {
 }
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    try {
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", {
-                status: 400,
-                statusText: "Farm ID is required",
-            })
-        }
+    // Validate params before try/catch so data() throws reach React Router directly
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+        throw data("Farm ID is required", {
+            status: 400,
+            statusText: "Farm ID is required",
+        })
+    }
 
+    const centroid = params.centroid
+    if (!centroid) {
+        throw data("Centroid is required", {
+            status: 400,
+            statusText: "Centroid is required",
+        })
+    }
+    const [longitude, latitude] = centroid.split(",").map(Number)
+    if (Number.isNaN(longitude) || Number.isNaN(latitude)) {
+        throw data("Invalid centroid format", {
+            status: 400,
+            statusText: "Centroid must be in format: longitude,latitude",
+        })
+    }
+
+    try {
         // Get timeframe from calendar store
         const calendar = getCalendar(params)
-
-        // Get the estimates for this field
-        const centroid = params.centroid
-        if (!centroid) {
-            throw data("Centroid is required", {
-                status: 400,
-                statusText: "Centroid is required",
-            })
-        }
-        const [longitude, latitude] = centroid.split(",").map(Number)
-        if (Number.isNaN(longitude) || Number.isNaN(latitude)) {
-            throw data("Invalid centroid format", {
-                status: 400,
-                statusText: "Centroid must be in format: longitude,latitude",
-            })
-        }
 
         return {
             b_id_farm,
@@ -257,17 +256,25 @@ function FieldDetailsAtlas({
         <>
             <FieldDetailsAtlasLayout
                 cultivationHistory={
-                    <CultivationHistoryCard cultivationHistory={cultivationHistory} />
+                    <CultivationHistoryCard
+                        cultivationHistory={cultivationHistory}
+                    />
                 }
                 fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}
                 carbon={
-                    <CarbonSequestrationCard carbonEstimates={carbonEstimates} />
+                    <CarbonSequestrationCard
+                        carbonEstimates={carbonEstimates}
+                    />
                 }
                 soilTexture={
-                    <SoilTextureCard soilParameterEstimates={soilParameterEstimates} />
+                    <SoilTextureCard
+                        soilParameterEstimates={soilParameterEstimates}
+                    />
                 }
                 groundWater={
-                    <GroundwaterCard groundwaterEstimates={groundwaterEstimates} />
+                    <GroundwaterCard
+                        groundwaterEstimates={groundwaterEstimates}
+                    />
                 }
             />
             <div className="fixed bottom-6 right-6 z-50">
@@ -281,4 +288,3 @@ function FieldDetailsAtlas({
         </>
     )
 }
-

@@ -241,28 +241,32 @@ export function CultivationHistorySkeleton() {
     const SKELETON_KEYS = ["sk-1", "sk-2", "sk-3"] as const
 
     return (
-        <Card className="col-span-1 lg:row-span-2">
-            <CardHeader>
-                <CardTitle>Gewashistorie</CardTitle>
-                <CardDescription>
-                    Dit zijn de gewassen zoals geregistreerd in de
-                    Basisregistratie Gewaspercelen (BRP).
-                </CardDescription>
+        <Card className="col-span-1 lg:row-span-2 overflow-hidden">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+                <div className="space-y-1">
+                    <CardTitle>Gewashistorie</CardTitle>
+                    <CardDescription>
+                        Dit zijn de gewassen zoals geregistreerd in de
+                        Basisregistratie Gewaspercelen (BRP).
+                    </CardDescription>
+                </div>
+                <Skeleton className="h-8 w-8 rounded-md shrink-0" />
             </CardHeader>
-            <div className="px-6 pb-4">
-                <Skeleton className="h-16 w-full rounded-lg" />
-            </div>
+            <Separator className="opacity-50" />
             <CardContent className="pt-6 text-sm">
                 <div className="relative pl-1">
-                    {SKELETON_KEYS.map((key) => (
+                    {SKELETON_KEYS.map((key, index) => (
                         <div
                             key={key}
-                            className="flex items-start space-x-4 pb-6"
+                            className="flex items-start space-x-4 pb-6 relative"
                         >
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                            <div className="min-w-0 flex-1 space-y-2">
+                            {index !== SKELETON_KEYS.length - 1 && (
+                                <div className="absolute left-[19px] top-10 h-full w-0.5 bg-border" />
+                            )}
+                            <Skeleton className="relative z-10 h-10 w-10 rounded-full shrink-0" />
+                            <div className="min-w-0 flex-1 py-1 space-y-2">
                                 <Skeleton className="h-4 w-3/4" />
-                                <Skeleton className="h-3 w-1/2" />
+                                <Skeleton className="h-3 w-1/4" />
                             </div>
                         </div>
                     ))}

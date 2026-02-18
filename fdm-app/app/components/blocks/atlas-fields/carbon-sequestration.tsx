@@ -6,9 +6,6 @@ import {
     Droplets,
     Sprout,
     Euro,
-    Database,
-    Target,
-    Zap,
 } from "lucide-react"
 import {
     Card,
@@ -53,7 +50,13 @@ export function CarbonSequestrationCard({
 
     // Derived values
     const percentageOfMax =
-        maxOM > 0 ? Math.min((currentOM / maxOM) * 100, 100) : 0
+        carbonEstimates.b_som_potential > 0
+            ? Math.min(
+                  (carbonEstimates.a_som_loi / carbonEstimates.b_som_potential) *
+                      100,
+                  100,
+              )
+            : 0
 
     // Impact calculations (use raw unrounded CO2eq to avoid compounding errors)
     const carKmEquivalent = Math.round(rawCO2eq * 8000)
@@ -74,7 +77,13 @@ export function CarbonSequestrationCard({
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                <button
+                                    type="button"
+                                    aria-label="Meer informatie over koolstofvastlegging"
+                                    className="cursor-help"
+                                >
+                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                </button>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
                                 <p className="text-xs">
@@ -261,7 +270,7 @@ export function CarbonSequestrationSkeleton() {
                     <Skeleton className="h-2 w-full" />
                     <Skeleton className="h-3 w-3/4" />
                 </div>
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />

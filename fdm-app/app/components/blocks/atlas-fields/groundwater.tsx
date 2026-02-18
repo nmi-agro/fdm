@@ -81,7 +81,7 @@ export function GroundwaterSkeleton() {
                 <Skeleton className="h-4 w-1/2" />
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
