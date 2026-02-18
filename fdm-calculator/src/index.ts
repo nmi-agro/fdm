@@ -81,3 +81,5 @@ export type {
     NutrientAdviceInputs,
     NutrientAdviceResponse,
 } from "./nutrient-advice/types"
+export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
+export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
