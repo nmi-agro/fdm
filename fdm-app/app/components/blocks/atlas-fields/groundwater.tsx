@@ -45,7 +45,7 @@ export function GroundwaterCard({
                             <span className="text-2xl font-bold">
                                 {groundwaterEstimates.b_gwl_ghg ?? "Onbekend"}
                             </span>
-                            {groundwaterEstimates.b_gwl_ghg && (
+                            {groundwaterEstimates.b_gwl_ghg !== undefined && (
                                 <span className="text-sm text-muted-foreground">
                                     cm-mv
                                 </span>
@@ -60,7 +60,7 @@ export function GroundwaterCard({
                             <span className="text-2xl font-bold">
                                 {groundwaterEstimates.b_gwl_glg ?? "Onbekend"}
                             </span>
-                            {groundwaterEstimates.b_gwl_glg && (
+                            {groundwaterEstimates.b_gwl_glg !== undefined && (
                                 <span className="text-sm text-muted-foreground">
                                     cm-mv
                                 </span>

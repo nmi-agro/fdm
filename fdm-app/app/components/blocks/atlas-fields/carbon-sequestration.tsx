@@ -50,7 +50,8 @@ export function CarbonSequestrationCard({
         Math.round(carbonEstimates.b_c_delta * 3.67 * 10) / 10
 
     // Derived values
-    const percentageOfMax = Math.min((currentOM / maxOM) * 100, 100)
+    const percentageOfMax =
+        maxOM > 0 ? Math.min((currentOM / maxOM) * 100, 100) : 0
 
     // Impact calculations
     // TODO: come up with better calculations
@@ -139,7 +140,7 @@ export function CarbonSequestrationCard({
                         </p>
                         <div className="flex items-baseline gap-1">
                             <span className="text-xl font-bold">
-                                {potentialCO2eq}
+                                +{potentialCO2eq}
                             </span>
                             <span className="text-xs text-muted-foreground">
                                 ton CO₂eq/ha
@@ -259,6 +260,21 @@ export function CarbonSequestrationSkeleton() {
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
+                </div>
+                <Separator />
+                <div className="space-y-4">
+                    <Skeleton className="h-4 w-1/2" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="flex gap-3">
+                                <Skeleton className="h-8 w-8 rounded-full" />
+                                <div className="space-y-2 flex-1">
+                                    <Skeleton className="h-4 w-1/2" />
+                                    <Skeleton className="h-3 w-3/4" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </CardContent>
         </Card>

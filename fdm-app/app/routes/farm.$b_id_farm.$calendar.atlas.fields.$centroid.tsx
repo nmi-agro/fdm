@@ -234,28 +234,24 @@ function FieldDetailsAtlas({
         )
     }
 
-        return (
-            <>
-                <FieldDetailsAtlasLayout
-                                    cultivationHistory={
-                                        <CultivationHistoryCard
-                                            cultivationHistory={cultivationHistory}
-                                            regionTable2={fieldDetails.regionTable2}
-                                        />
-                                    }
-                    
-                    fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}
-                    carbon={<CarbonSequestrationCard carbonEstimates={carbonEstimates} />}
-                    soilTexture={
-                        <SoilTextureCard
-                            soilParameterEstimates={soilParameterEstimates}
-                        />
-                    }
-                    groundWater={
-                        <GroundwaterCard groundwaterEstimates={groundwaterEstimates} />
-                    }
-                />
-                <div className="fixed bottom-6 right-6 z-50">
+    return (
+        <>
+            <FieldDetailsAtlasLayout
+                cultivationHistory={
+                    <CultivationHistoryCard cultivationHistory={cultivationHistory} />
+                }
+                fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}
+                carbon={
+                    <CarbonSequestrationCard carbonEstimates={carbonEstimates} />
+                }
+                soilTexture={
+                    <SoilTextureCard soilParameterEstimates={soilParameterEstimates} />
+                }
+                groundWater={
+                    <GroundwaterCard groundwaterEstimates={groundwaterEstimates} />
+                }
+            />
+            <div className="fixed bottom-6 right-6 z-50">
                 <Button asChild size="lg" className="rounded-full shadow-lg">
                     <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
                         <MapIcon className="mr-2 h-4 w-4" />
