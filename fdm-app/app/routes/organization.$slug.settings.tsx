@@ -1,4 +1,4 @@
-import { data, useLoaderData } from "react-router-dom"
+import { data, useLoaderData } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
@@ -44,14 +44,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         const currentUserMember = members.find(
             (m) => m.userId === session.principal_id,
         )
-        const role = currentUserMember?.role || "viewer"
-        const permissions = {
-            canEdit: role === "owner" || role === "admin",
-            canDelete: role === "owner",
-            canInvite: role === "owner" || role === "admin",
-            canUpdateRoleUser: role === "owner" || role === "admin",
-            canRemoveUser: role === "owner" || role === "admin",
-        }
+        const role = currentUserMember?.role ?? "viewer"
+        const organizationEditPermission = role === "owner" || role === "admin"
 
         function parseMetadata(
             slug: string,
@@ -79,7 +73,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
         return {
             organization: organization,
-            permissions: permissions,
+            organizationEditPermission: organizationEditPermission,
         }
     } catch (e) {
         throw handleLoaderError(e)
@@ -111,7 +105,7 @@ export default function OrganizationSettingsBlock() {
                     <CardContent className="space-y-4">
                         <OrganizationSettingsForm
                             organization={loaderData.organization}
-                            canModify={loaderData.permissions.canEdit}
+                            canModify={loaderData.organizationEditPermission}
                         />
                     </CardContent>
                 </Card>
@@ -152,7 +146,11 @@ export async function action({ params, request }: Route.ActionArgs) {
                     },
                 })
             } catch (e) {
-                if ((e as any).body?.code === "SLUG_IS_TAKEN") {
+                if (
+                    e &&
+                    (e as { body?: { code?: string } }).body?.code ===
+                        "SLUG_IS_TAKEN"
+                ) {
                     return dataWithError(
                         null,
                         "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",

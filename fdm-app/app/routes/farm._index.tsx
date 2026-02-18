@@ -17,6 +17,10 @@ import {
     NavLink,
     useLoaderData,
 } from "react-router"
+import {
+    FarmCard,
+    type FarmWithRoles,
+} from "~/components/blocks/farm/farm-card"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -37,7 +41,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getTimeBasedGreeting } from "~/lib/greetings"
-import { FarmCard } from "../components/blocks/farm/farm-card"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -124,9 +127,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
         // Return user information from loader
         return {
             farms: farms.map((farm) => {
-                const user = !!farm.roles.find(
-                    (role) => role.principal_type === "user",
-                )
                 const allOrganizationRoles = farm.roles.filter(
                     (role) => role.principal_type === "organization",
                 )
@@ -178,9 +178,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
                     ...farm,
                     userRoles: userRoles,
                     organizationRoles: organizationRoles,
-                    user: user,
                     organization: organization,
-                }
+                } satisfies FarmWithRoles
             }),
             farmOptions: farmOptions,
             organizations: organizations,
@@ -225,7 +224,13 @@ export default function AppIndex() {
     const greeting = getTimeBasedGreeting()
 
     const [userFarms, organizationFarms] = useMemo(() => {
-        const userFarms = loaderData.farms.filter((farm) => farm.user)
+        const userFarms = loaderData.farms
+            .filter((farm) => farm.userRoles.length > 0)
+            .map((farm) => ({
+                ...farm,
+                organization: undefined,
+                organizationRoles: undefined,
+            }))
         const organizationFarms = loaderData.farms.filter(
             (farm) => farm.organization,
         )

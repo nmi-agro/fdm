@@ -1,7 +1,10 @@
 import { getFarms, getFields } from "@svenvw/fdm-core"
 import { Cog, Square, Users } from "lucide-react"
 import { data, NavLink, useLoaderData } from "react-router"
-import { FarmCard } from "~/components/blocks/farm/farm-card"
+import {
+    FarmCard,
+    type FarmWithRoles,
+} from "~/components/blocks/farm/farm-card"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
@@ -54,7 +57,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         // Get latest available year
         const calendar = getCalendarSelection()[0] ?? "all"
 
-        const farmsExtended = await Promise.all(
+        const farmsExtended: (FarmWithRoles & {
+            b_area_farm: number | null
+        })[] = await Promise.all(
             farms.map(async (farm) => {
                 const fields = await getFields(
                     fdm,
@@ -69,6 +74,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
                 return {
                     ...farm,
+                    roles: undefined,
                     b_area_farm: farmArea,
                     userRoles: [
                         ...new Set(farm.roles.map((role) => role.role)),
@@ -244,7 +250,7 @@ export default function AppIndex() {
                                                     }
                                                 >
                                                     <SelectTrigger className="w-[180px]">
-                                                        <SelectValue placeholder="Select a year" />
+                                                        <SelectValue placeholder="Selecteer een jaar" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {years.map((year) => (

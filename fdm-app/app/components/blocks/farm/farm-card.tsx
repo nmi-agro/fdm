@@ -10,7 +10,7 @@ import {
 } from "~/components/ui/card"
 
 type Role = "owner" | "advisor" | "researcher"
-interface Farm {
+export interface FarmWithRoles {
     b_id_farm: string
     b_name_farm: string | null
     b_address_farm: string | null
@@ -24,7 +24,7 @@ interface Farm {
     }
 }
 
-export function FarmCard({ farm }: { farm: Farm }) {
+export function FarmCard({ farm }: { farm: FarmWithRoles }) {
     return (
         <Card className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md">
             <NavLink
@@ -45,7 +45,7 @@ export function FarmCard({ farm }: { farm: Farm }) {
                                     {farm.organization && (
                                         <Badge
                                             variant="secondary"
-                                            className="text-[10px] uppercase tracking-wider"
+                                            className="text-[10px] uppercase tracking-wider gap-1"
                                         >
                                             <Building className="h-4 w-4" />{" "}
                                             {farm.organization.name}
