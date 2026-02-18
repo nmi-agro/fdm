@@ -6,11 +6,13 @@ import {
 } from "@svenvw/fdm-calculator"
 import { getCultivationCatalogue } from "@svenvw/fdm-data"
 import type { Feature, Point } from "geojson"
+import { Map as MapIcon } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
+    NavLink,
     useLoaderData,
     useLocation,
 } from "react-router"
@@ -22,8 +24,8 @@ import { FieldDetailsAtlasLayout } from "~/components/blocks/atlas-fields/layout
 import { getFieldByCentroid } from "~/components/blocks/atlas-fields/query"
 import { FieldDetailsAtlasSkeleton } from "~/components/blocks/atlas-fields/skeleton"
 import { SoilTextureCard } from "~/components/blocks/atlas-fields/soil-texture"
-import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { ErrorBlock } from "~/components/custom/error"
+import { Button } from "~/components/ui/button"
 import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -71,6 +73,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
         }
 
         return {
+            b_id_farm,
             calendar,
             centroid,
             asyncData: loadAsyncData(calendar, latitude, longitude),
@@ -204,6 +207,7 @@ export default function FieldDetailsAtlasBlock() {
  * would not render until `asyncData` resolves and the fallback would never be shown.
  */
 function FieldDetailsAtlas({
+    b_id_farm,
     calendar,
     asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
@@ -230,34 +234,36 @@ function FieldDetailsAtlas({
         )
     }
 
-    return (
-        <FieldDetailsAtlasLayout
-            title={
-                <FarmTitle
-                    title={
-                        cultivationHistory.find(
-                            (cultivation: { year: number }) =>
-                                cultivation.year === Number(calendar),
-                        )?.b_lu_name ?? "Onbekend gewas"
+        return (
+            <>
+                <FieldDetailsAtlasLayout
+                                    cultivationHistory={
+                                        <CultivationHistoryCard
+                                            cultivationHistory={cultivationHistory}
+                                            regionTable2={fieldDetails.regionTable2}
+                                        />
+                                    }
+                    
+                    fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}
+                    carbon={<CarbonSequestrationCard carbonEstimates={carbonEstimates} />}
+                    soilTexture={
+                        <SoilTextureCard
+                            soilParameterEstimates={soilParameterEstimates}
+                        />
                     }
-                    description="Bekijk alle details over dit perceel"
+                    groundWater={
+                        <GroundwaterCard groundwaterEstimates={groundwaterEstimates} />
+                    }
                 />
-            }
-            cultivationHistory={
-                <CultivationHistoryCard
-                    cultivationHistory={cultivationHistory}
-                />
-            }
-            fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}
-            carbon={<CarbonSequestrationCard carbonEstimates={carbonEstimates} />}
-            soilTexture={
-                <SoilTextureCard
-                    soilParameterEstimates={soilParameterEstimates}
-                />
-            }
-            groundWater={
-                <GroundwaterCard groundwaterEstimates={groundwaterEstimates} />
-            }
-        />
+                <div className="fixed bottom-6 right-6 z-50">
+                <Button asChild size="lg" className="rounded-full shadow-lg">
+                    <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
+                        <MapIcon className="mr-2 h-4 w-4" />
+                        Terug naar kaart
+                    </NavLink>
+                </Button>
+            </div>
+        </>
     )
 }
+
