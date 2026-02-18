@@ -14,6 +14,7 @@ import {
     useLoaderData,
     useLocation,
 } from "react-router"
+import { CarbonSequestrationCard } from "~/components/blocks/atlas-fields/carbon-sequestration"
 import { CultivationHistoryCard } from "~/components/blocks/atlas-fields/cultivation-history"
 import { FieldDetailsCard } from "~/components/blocks/atlas-fields/field-details"
 import { GroundwaterCard } from "~/components/blocks/atlas-fields/groundwater"
@@ -156,6 +157,13 @@ async function loadAsyncData(
                 a_silt_mi: Math.round(estimates.a_silt_mi),
                 a_sand_mi: Math.round(estimates.a_sand_mi),
             },
+            carbonEstimates: {
+                a_som_loi: estimates.a_som_loi,
+                b_som_potential: estimates.b_som_potential,
+                b_c_st03: estimates.b_c_st03,
+                b_c_st03_potential: estimates.b_c_st03_potential,
+                b_c_delta: estimates.b_c_delta,
+            },
             fieldDetails: {
                 b_area: queriedField?.properties?.b_area
                     ? Math.round(
@@ -204,6 +212,7 @@ function FieldDetailsAtlas({
         cultivationHistory,
         groundwaterEstimates,
         soilParameterEstimates,
+        carbonEstimates,
         errorMessage,
     } = use(asyncData)
 
@@ -240,6 +249,7 @@ function FieldDetailsAtlas({
                 />
             }
             fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}
+            carbon={<CarbonSequestrationCard carbonEstimates={carbonEstimates} />}
             soilTexture={
                 <SoilTextureCard
                     soilParameterEstimates={soilParameterEstimates}

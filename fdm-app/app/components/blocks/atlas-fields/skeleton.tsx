@@ -1,4 +1,5 @@
 import { FarmTitleSkeleton } from "../farm/farm-title"
+import { CarbonSequestrationSkeleton } from "./carbon-sequestration"
 import { CultivationHistorySkeleton } from "./cultivation-history"
 import { FieldDetailsSkeleton } from "./field-details"
 import { GroundwaterSkeleton } from "./groundwater"
@@ -11,6 +12,7 @@ export function FieldDetailsAtlasSkeleton() {
             title={<FarmTitleSkeleton />}
             cultivationHistory={<CultivationHistorySkeleton />}
             fieldDetails={<FieldDetailsSkeleton />}
+            carbon={<CarbonSequestrationSkeleton />}
             soilTexture={<SoilTextureSkeleton />}
             groundWater={<GroundwaterSkeleton />}
         />
