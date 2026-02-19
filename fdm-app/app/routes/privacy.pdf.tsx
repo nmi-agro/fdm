@@ -4,7 +4,7 @@ import { serverConfig } from "~/lib/config.server"
 export const loader: LoaderFunction = async () => {
     const privacyUrl = serverConfig.privacy_url
 
-    if (!privacyUrl || privacyUrl === "undefined") {
+    if (!privacyUrl) {
         return new Response("Privacy policy not configured", { status: 404 })
     }
 
@@ -22,6 +22,11 @@ export const loader: LoaderFunction = async () => {
     }
 
     if (!response.ok) {
+        try {
+            await response.body?.cancel()
+        } catch {
+            // ignore cancel errors
+        }
         return new Response("Failed to fetch privacy policy", { status: 502 })
     }
 
@@ -33,10 +38,8 @@ export const loader: LoaderFunction = async () => {
 
     const headers = new Headers()
     const contentType = response.headers.get("content-type")
-    const contentDisposition = response.headers.get("content-disposition")
     if (contentType) headers.set("content-type", contentType)
-    if (contentDisposition)
-        headers.set("content-disposition", contentDisposition)
+    headers.set("content-disposition", "inline")
 
     return new Response(response.body, {
         status: 200,
