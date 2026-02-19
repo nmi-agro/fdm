@@ -1670,13 +1670,17 @@ export async function action({ request }: ActionFunctionArgs) {
             `Een aanmeldcode is verstuurd naar ${email}.`,
         )
     } catch (error) {
+        console.error("Error sending magic link") // Don't log full error details
+        handleActionError(error)
         if (isInactiveRecipientError(error)) {
             return dataWithError(null, {
                 message:
                     "We hebben geen toestemming om e-mails naar dit adres te versturen. Neem contact op met de ondersteuning voor hulp.",
             })
         }
-        console.error("Error sending magic link") // Don't log full error details
-        handleActionError(error)
+        return dataWithError(null, {
+            message:
+                "Er is iets fout gegaan. Neem contact op met de ondersteuning voor hulp.",
+        })
     }
 }
