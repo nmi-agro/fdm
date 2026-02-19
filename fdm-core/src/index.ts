@@ -65,11 +65,15 @@ export {
 } from "./derogation"
 export {
     addFarm,
+    acceptFarmInvitation,
+    declineFarmInvitation,
     getFarm,
     getFarms,
     grantRoleToFarm,
     isAllowedToDeleteFarm,
     isAllowedToShareFarm,
+    listPendingInvitationsForFarm,
+    listPendingInvitationsForUser,
     listPrincipalsForFarm,
     removeFarm,
     revokePrincipalFromFarm,
@@ -144,7 +148,10 @@ export {
     removeOrganicCertification,
 } from "./organic"
 export type { OrganicCertification } from "./organic.d"
-export { lookupPrincipal } from "./principal"
+export { autoAcceptInvitationsForNewUser } from "./invitation"
+export {
+    lookupPrincipal,
+} from "./principal"
 export {
     addSoilAnalysis,
     getCurrentSoilData,

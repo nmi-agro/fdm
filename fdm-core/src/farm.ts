@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm"
+import { and, asc, eq, gt, inArray, or } from "drizzle-orm"
 import {
     checkPermission,
     getRolesOfPrincipalForResource,
@@ -9,6 +9,8 @@ import {
     updateRole,
 } from "./authorization"
 import type { PrincipalId, Role } from "./authorization.d"
+import * as authNSchema from "./db/schema-authn"
+import * as authZSchema from "./db/schema-authz"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
@@ -328,22 +330,118 @@ export async function grantRoleToFarm(
                 "grantRoleToFarm",
             )
 
-            const targetDetails = await identifyPrincipal(tx, target)
-            if (!targetDetails) {
-                throw new Error("Target not found")
+            const normalizedTarget = target.toLowerCase().trim()
+
+            // Check if target is a registered principal (user or organization)
+            const targetDetails = await identifyPrincipal(tx, normalizedTarget)
+
+            let targetEmail: string | null = null
+            let targetPrincipalId: string | null = null
+
+            if (targetDetails) {
+                // Registered user or organization
+                targetPrincipalId = targetDetails.id
+
+                // Check if target is already a member of this farm
+                const existingMembers = await listPrincipalsForResource(
+                    tx,
+                    "farm",
+                    b_id_farm,
+                )
+                const isAlreadyMember = existingMembers.some(
+                    (m) => m.principal_id === targetPrincipalId,
+                )
+                if (isAlreadyMember) {
+                    throw new Error("Target is already a member of this farm")
+                }
+            } else {
+                // Check if target is a valid email (unregistered user)
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                if (!emailRegex.test(normalizedTarget)) {
+                    throw new Error(
+                        "Target not found and not a valid email address",
+                    )
+                }
+                targetEmail = normalizedTarget
             }
 
-            await grantRole(tx, "farm", role, b_id_farm, targetDetails.id)
+            const expires = new Date()
+            expires.setDate(expires.getDate() + 7) // 7 days expiry
 
-            // Check if at least 1 owner is still prestent on this farm
-            const owners = await listPrincipalsForResource(
-                tx,
-                "farm",
-                b_id_farm,
-            )
-            const ownerCount = owners.filter((x) => x.role === "owner").length
-            if (ownerCount === 0) {
-                throw new Error("Farm should have at least 1 owner")
+            if (targetEmail) {
+                // Check for existing pending invitation for this email + farm
+                const existing = await tx
+                    .select()
+                    .from(authZSchema.farmInvitation)
+                    .where(
+                        and(
+                            eq(authZSchema.farmInvitation.farm_id, b_id_farm),
+                            eq(
+                                authZSchema.farmInvitation.target_email,
+                                targetEmail,
+                            ),
+                            eq(authZSchema.farmInvitation.status, "pending"),
+                        ),
+                    )
+                    .limit(1)
+
+                if (existing.length > 0) {
+                    await tx
+                        .update(authZSchema.farmInvitation)
+                        .set({ role, inviter_id: principal_id, expires })
+                        .where(
+                            eq(
+                                authZSchema.farmInvitation.invitation_id,
+                                existing[0].invitation_id,
+                            ),
+                        )
+                } else {
+                    await tx.insert(authZSchema.farmInvitation).values({
+                        invitation_id: createId(),
+                        farm_id: b_id_farm,
+                        target_email: targetEmail,
+                        role,
+                        inviter_id: principal_id,
+                        expires,
+                    })
+                }
+            } else {
+                // Check for existing pending invitation for this principal + farm
+                const existing = await tx
+                    .select()
+                    .from(authZSchema.farmInvitation)
+                    .where(
+                        and(
+                            eq(authZSchema.farmInvitation.farm_id, b_id_farm),
+                            eq(
+                                authZSchema.farmInvitation.target_principal_id,
+                                targetPrincipalId!,
+                            ),
+                            eq(authZSchema.farmInvitation.status, "pending"),
+                        ),
+                    )
+                    .limit(1)
+
+                if (existing.length > 0) {
+                    await tx
+                        .update(authZSchema.farmInvitation)
+                        .set({ role, inviter_id: principal_id, expires })
+                        .where(
+                            eq(
+                                authZSchema.farmInvitation.invitation_id,
+                                existing[0].invitation_id,
+                            ),
+                        )
+                } else {
+                    await tx.insert(authZSchema.farmInvitation).values({
+                        invitation_id: createId(),
+                        farm_id: b_id_farm,
+                        target_principal_id: targetPrincipalId,
+                        role,
+                        inviter_id: principal_id,
+                        expires,
+                    })
+                }
             }
         })
     } catch (err) {
@@ -476,7 +574,7 @@ export async function revokePrincipalFromFarm(
  * @param principal_id - The identifier of the principal requesting the list (must have 'read' permission).
  * @param b_id_farm - The identifier of the farm.
  *
- * @returns A Promise that resolves to an array of Principal objects, each representing a principal associated with the farm.
+ * @returns A Promise that resolves to an array of Principal objects (including pending ones), each representing a principal associated with the farm.
  *
  * @throws {Error} If the acting principal does not have 'read' permission, or if any other error occurs during the operation.
  */
@@ -484,7 +582,13 @@ export async function listPrincipalsForFarm(
     fdm: FdmType,
     principal_id: string,
     b_id_farm: string,
-): Promise<Principal[]> {
+): Promise<
+    (Principal & {
+        role: string
+        status: "active" | "pending"
+        invitation_id?: string
+    })[]
+> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
             await checkPermission(
@@ -501,21 +605,183 @@ export async function listPrincipalsForFarm(
                 b_id_farm,
             )
 
-            // Collect details of principals
-            const principalsDetails = await Promise.all(
-                principals.map(async (principal) => {
-                    const details = await getPrincipal(
-                        tx,
-                        principal.principal_id,
-                    )
-                    return {
-                        ...details,
-                        role: principal.role,
+            // Collect all principal IDs to fetch (active + pending with principal target)
+            const now = new Date()
+            const pendingInvitations = await tx
+                .select()
+                .from(authZSchema.farmInvitation)
+                .where(
+                    and(
+                        eq(authZSchema.farmInvitation.farm_id, b_id_farm),
+                        eq(authZSchema.farmInvitation.status, "pending"),
+                        gt(authZSchema.farmInvitation.expires, now),
+                    ),
+                )
+
+            const activeIds = principals.map((p) => p.principal_id)
+            const pendingIdsWithPrincipal: string[] = (
+                pendingInvitations as authZSchema.farmInvitationTypeSelect[]
+            )
+                .map((i) => i.target_principal_id)
+                .filter((id): id is string => id !== null)
+
+            const allPrincipalIds = [
+                ...new Set([...activeIds, ...pendingIdsWithPrincipal]),
+            ]
+
+            // Bulk fetch details for all principals
+            const principalsMap = new Map<string, Principal>()
+
+            if (allPrincipalIds.length > 0) {
+                // Fetch Users
+                const users = await tx
+                    .select({
+                        id: authNSchema.user.id,
+                        username: authNSchema.user.username,
+                        displayUserName: authNSchema.user.displayUsername,
+                        image: authNSchema.user.image,
+                        isVerified: authNSchema.user.emailVerified,
+                        firstname: authNSchema.user.firstname,
+                        surname: authNSchema.user.surname,
+                        email: authNSchema.user.email,
+                        name: authNSchema.user.name,
+                    })
+                    .from(authNSchema.user)
+                    .where(inArray(authNSchema.user.id, allPrincipalIds))
+
+                for (const u of users) {
+                    let initials = u.email
+                    if (u.firstname && u.surname) {
+                        initials = u.firstname.charAt(0).toUpperCase()
+                        const surnameParts = u.surname.split(/\s+/)
+                        let firstCap = ""
+                        for (const part of surnameParts) {
+                            if (part.length > 0) {
+                                const char = part.charAt(0)
+                                if (
+                                    char === char.toUpperCase() &&
+                                    char.match(/[a-zA-Z]/)
+                                ) {
+                                    firstCap = char.toUpperCase()
+                                    break
+                                }
+                            }
+                        }
+                        initials += firstCap
+                    } else if (u.firstname) {
+                        initials = u.firstname[0]
+                    } else if (u.name) {
+                        initials = u.name[0]
                     }
-                }),
+
+                    principalsMap.set(u.id, {
+                        id: u.id,
+                        username: u.username,
+                        email: u.email,
+                        initials: initials.toUpperCase(),
+                        displayUserName: u.displayUserName,
+                        image: u.image,
+                        type: "user",
+                        isVerified: u.isVerified,
+                    })
+                }
+
+                // Fetch Organizations (for IDs not found in users)
+                const remainingIds = allPrincipalIds.filter(
+                    (id) => !principalsMap.has(id),
+                )
+                if (remainingIds.length > 0) {
+                    const orgs = await tx
+                        .select({
+                            id: authNSchema.organization.id,
+                            name: authNSchema.organization.name,
+                            slug: authNSchema.organization.slug,
+                            logo: authNSchema.organization.logo,
+                            metadata: authNSchema.organization.metadata,
+                        })
+                        .from(authNSchema.organization)
+                        .where(
+                            inArray(authNSchema.organization.id, remainingIds),
+                        )
+
+                    for (const o of orgs) {
+                        const metadata = o.metadata
+                            ? JSON.parse(o.metadata)
+                            : null
+                        principalsMap.set(o.id, {
+                            id: o.id,
+                            username: o.slug,
+                            email: null,
+                            initials: o.name.charAt(0).toUpperCase(),
+                            displayUserName: o.name,
+                            image: o.logo,
+                            type: "organization",
+                            isVerified: metadata ? metadata.isVerified : false,
+                        })
+                    }
+                }
+            }
+
+            // Map active principals
+            const principalsDetails = principals.map((p) => {
+                const details = principalsMap.get(p.principal_id)
+                return {
+                    ...details,
+                    id: p.principal_id,
+                    username: details?.username ?? "unknown",
+                    initials: details?.initials ?? "?",
+                    displayUserName: details?.displayUserName ?? null,
+                    image: details?.image ?? null,
+                    type: details?.type ?? "user",
+                    isVerified: details?.isVerified ?? false,
+                    email: details?.email ?? null,
+                    role: p.role,
+                    status: "active" as const,
+                }
+            })
+
+            // Map pending invitations
+            const pendingDetails = pendingInvitations.map(
+                (invitation: authZSchema.farmInvitationTypeSelect) => {
+                    if (invitation.target_principal_id) {
+                        const details = principalsMap.get(
+                            invitation.target_principal_id,
+                        )
+                        return {
+                            ...details,
+                            id: invitation.target_principal_id,
+                            username: details?.username ?? "unknown",
+                            initials: details?.initials ?? "?",
+                            displayUserName: details?.displayUserName ?? null,
+                            image: details?.image ?? null,
+                            type: details?.type ?? "user",
+                            isVerified: details?.isVerified ?? false,
+                            email: details?.email ?? null,
+                            role: invitation.role,
+                            status: "pending" as const,
+                            invitation_id: invitation.invitation_id,
+                        }
+                    }
+
+                    // Email-based invitation (unregistered user)
+                    const email = invitation.target_email ?? "unknown"
+                    return {
+                        id: `pending-${invitation.invitation_id}`,
+                        username: email,
+                        email: email,
+                        initials: email.charAt(0).toUpperCase(),
+                        displayUserName: email,
+                        image: null,
+                        type: "user" as const,
+                        isVerified: false,
+                        role: invitation.role,
+                        status: "pending" as const,
+                        invitation_id: invitation.invitation_id,
+                    }
+                },
             )
 
-            return principalsDetails
+            return [...principalsDetails, ...pendingDetails]
         })
     } catch (err) {
         throw handleError(err, "Exception for listPrincipalsForFarm", {
@@ -525,7 +791,437 @@ export async function listPrincipalsForFarm(
 }
 
 /**
- * Checks if the specified principal is allowed to share a given farm.
+ * Accepts a pending farm invitation on behalf of the acting user.
+ *
+ * For user-targeted invitations: verifies email is verified and matches the invitation target.
+ * For organization-targeted invitations: verifies the acting user is an admin or owner of the organization.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param invitation_id - The unique identifier of the invitation to accept.
+ * @param user_id - The ID of the user accepting the invitation.
+ *
+ * @throws {Error} If the invitation is not found, already processed, expired, or the user is not authorized.
+ */
+export async function acceptFarmInvitation(
+    fdm: FdmType,
+    invitation_id: string,
+    user_id: string,
+): Promise<void> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            const invitations = await tx
+                .select()
+                .from(authZSchema.farmInvitation)
+                .where(
+                    eq(authZSchema.farmInvitation.invitation_id, invitation_id),
+                )
+                .limit(1)
+
+            if (invitations.length === 0) {
+                throw new Error("Invitation not found")
+            }
+            const invitation = invitations[0]
+
+            if (invitation.status !== "pending") {
+                throw new Error(`Invitation is already ${invitation.status}`)
+            }
+            if (invitation.expires < new Date()) {
+                await tx
+                    .update(authZSchema.farmInvitation)
+                    .set({ status: "expired" })
+                    .where(
+                        eq(
+                            authZSchema.farmInvitation.invitation_id,
+                            invitation_id,
+                        ),
+                    )
+                throw new Error("Invitation has expired")
+            }
+
+            let granteeId: string
+
+            if (invitation.target_principal_id) {
+                const targetDetails = await getPrincipal(
+                    tx,
+                    invitation.target_principal_id,
+                )
+                if (!targetDetails) {
+                    throw new Error("Invitation target not found")
+                }
+
+                if (targetDetails.type === "organization") {
+                    // Verify user is admin or owner of the organization
+                    const membership = await tx
+                        .select()
+                        .from(authNSchema.member)
+                        .where(
+                            and(
+                                eq(
+                                    authNSchema.member.organizationId,
+                                    invitation.target_principal_id,
+                                ),
+                                eq(authNSchema.member.userId, user_id),
+                            ),
+                        )
+                        .limit(1)
+
+                    if (
+                        membership.length === 0 ||
+                        !["admin", "owner"].includes(membership[0].role)
+                    ) {
+                        throw new Error(
+                            "Only admins or owners can accept farm invitations on behalf of an organization",
+                        )
+                    }
+                } else {
+                    // User target: verify it matches the accepting user
+                    if (invitation.target_principal_id !== user_id) {
+                        throw new Error("This invitation is not for you")
+                    }
+                    const userRecord = await tx
+                        .select({
+                            emailVerified: authNSchema.user.emailVerified,
+                        })
+                        .from(authNSchema.user)
+                        .where(eq(authNSchema.user.id, user_id))
+                        .limit(1)
+
+                    if (
+                        userRecord.length === 0 ||
+                        !userRecord[0].emailVerified
+                    ) {
+                        throw new Error(
+                            "Email must be verified before accepting a farm invitation",
+                        )
+                    }
+                }
+
+                granteeId = invitation.target_principal_id
+            } else if (invitation.target_email) {
+                // Email-based invitation: match accepting user's email
+                const userRecord = await tx
+                    .select({
+                        email: authNSchema.user.email,
+                        emailVerified: authNSchema.user.emailVerified,
+                    })
+                    .from(authNSchema.user)
+                    .where(eq(authNSchema.user.id, user_id))
+                    .limit(1)
+
+                if (userRecord.length === 0) {
+                    throw new Error("User not found")
+                }
+                if (
+                    userRecord[0].email.toLowerCase().trim() !==
+                    invitation.target_email
+                ) {
+                    throw new Error(
+                        "This invitation is not for your email address",
+                    )
+                }
+                if (!userRecord[0].emailVerified) {
+                    throw new Error(
+                        "Email must be verified before accepting a farm invitation",
+                    )
+                }
+                granteeId = user_id
+            } else {
+                throw new Error("Invalid invitation: no target specified")
+            }
+
+            // Grant the role
+            await grantRole(
+                tx,
+                "farm",
+                invitation.role as "owner" | "advisor" | "researcher",
+                invitation.farm_id,
+                granteeId,
+            )
+
+            // Mark invitation as accepted
+            await tx
+                .update(authZSchema.farmInvitation)
+                .set({
+                    status: "accepted",
+                    accepted_at: new Date(),
+                    target_principal_id: granteeId,
+                })
+                .where(
+                    eq(authZSchema.farmInvitation.invitation_id, invitation_id),
+                )
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for acceptFarmInvitation", {
+            invitation_id,
+            user_id,
+        })
+    }
+}
+
+/**
+ * Declines a pending farm invitation on behalf of the acting user.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param invitation_id - The unique identifier of the invitation to decline.
+ * @param user_id - The ID of the user declining the invitation.
+ *
+ * @throws {Error} If the invitation is not found, already processed, or the user is not authorized.
+ */
+export async function declineFarmInvitation(
+    fdm: FdmType,
+    invitation_id: string,
+    user_id: string,
+): Promise<void> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            const invitations = await tx
+                .select()
+                .from(authZSchema.farmInvitation)
+                .where(
+                    eq(authZSchema.farmInvitation.invitation_id, invitation_id),
+                )
+                .limit(1)
+
+            if (invitations.length === 0) {
+                throw new Error("Invitation not found")
+            }
+            const invitation = invitations[0]
+
+            if (invitation.status !== "pending") {
+                throw new Error(`Invitation is already ${invitation.status}`)
+            }
+
+            // Verify the user has the right to decline this invitation
+            if (invitation.target_principal_id) {
+                const targetDetails = await getPrincipal(
+                    tx,
+                    invitation.target_principal_id,
+                )
+                if (targetDetails?.type === "organization") {
+                    const membership = await tx
+                        .select()
+                        .from(authNSchema.member)
+                        .where(
+                            and(
+                                eq(
+                                    authNSchema.member.organizationId,
+                                    invitation.target_principal_id,
+                                ),
+                                eq(authNSchema.member.userId, user_id),
+                            ),
+                        )
+                        .limit(1)
+
+                    if (
+                        membership.length === 0 ||
+                        !["admin", "owner"].includes(membership[0].role)
+                    ) {
+                        throw new Error(
+                            "Only admins or owners can decline farm invitations on behalf of an organization",
+                        )
+                    }
+                } else {
+                    if (invitation.target_principal_id !== user_id) {
+                        throw new Error("This invitation is not for you")
+                    }
+                }
+            } else if (invitation.target_email) {
+                const userRecord = await tx
+                    .select({ email: authNSchema.user.email })
+                    .from(authNSchema.user)
+                    .where(eq(authNSchema.user.id, user_id))
+                    .limit(1)
+
+                if (
+                    userRecord.length === 0 ||
+                    userRecord[0].email.toLowerCase().trim() !==
+                        invitation.target_email
+                ) {
+                    throw new Error(
+                        "This invitation is not for your email address",
+                    )
+                }
+            }
+
+            await tx
+                .update(authZSchema.farmInvitation)
+                .set({ status: "declined" })
+                .where(
+                    eq(authZSchema.farmInvitation.invitation_id, invitation_id),
+                )
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for declineFarmInvitation", {
+            invitation_id,
+            user_id,
+        })
+    }
+}
+
+/**
+ * Lists all pending (non-expired) invitations for a specific farm.
+ *
+ * Requires `share` permission on the farm.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param principal_id - The identifier of the principal requesting the list (must have 'share' permission).
+ * @param b_id_farm - The identifier of the farm.
+ *
+ * @returns A Promise that resolves to an array of pending farm invitation records.
+ */
+export async function listPendingInvitationsForFarm(
+    fdm: FdmType,
+    principal_id: string,
+    b_id_farm: string,
+): Promise<authZSchema.farmInvitationTypeSelect[]> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            await checkPermission(
+                tx,
+                "farm",
+                "share",
+                b_id_farm,
+                principal_id,
+                "listPendingInvitationsForFarm",
+            )
+
+            const now = new Date()
+            return await tx
+                .select()
+                .from(authZSchema.farmInvitation)
+                .where(
+                    and(
+                        eq(authZSchema.farmInvitation.farm_id, b_id_farm),
+                        eq(authZSchema.farmInvitation.status, "pending"),
+                        gt(authZSchema.farmInvitation.expires, now),
+                    ),
+                )
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for listPendingInvitationsForFarm", {
+            b_id_farm,
+        })
+    }
+}
+
+/**
+ * Lists all pending (non-expired) farm invitations for a given user.
+ *
+ * Returns invitations where the target matches the user's principal ID, email address,
+ * or an organization for which the user is an admin or owner.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param user_id - The ID of the user to retrieve invitations for.
+ *
+ * @returns A Promise that resolves to an array of pending farm invitation records.
+ */
+export async function listPendingInvitationsForUser(
+    fdm: FdmType,
+    user_id: string,
+): Promise<
+    (authZSchema.farmInvitationTypeSelect & {
+        farm_name: string | null
+        org_name: string | null
+    })[]
+> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            // Get user's email
+            const userRecord = await tx
+                .select({ email: authNSchema.user.email })
+                .from(authNSchema.user)
+                .where(eq(authNSchema.user.id, user_id))
+                .limit(1)
+
+            if (userRecord.length === 0) {
+                return []
+            }
+            const userEmail = userRecord[0].email.toLowerCase().trim()
+
+            // Get organization IDs where user is admin or owner
+            const orgMemberships = await tx
+                .select({ organizationId: authNSchema.member.organizationId })
+                .from(authNSchema.member)
+                .where(
+                    and(
+                        eq(authNSchema.member.userId, user_id),
+                        inArray(authNSchema.member.role, ["admin", "owner"]),
+                    ),
+                )
+            const orgIds = orgMemberships.map(
+                (m: { organizationId: string }) => m.organizationId,
+            )
+
+            const now = new Date()
+
+            // Build conditions: by email, by principal_id, or by managed org
+            const conditions = [
+                and(
+                    eq(authZSchema.farmInvitation.target_email, userEmail),
+                    eq(authZSchema.farmInvitation.status, "pending"),
+                    gt(authZSchema.farmInvitation.expires, now),
+                ),
+                and(
+                    eq(authZSchema.farmInvitation.target_principal_id, user_id),
+                    eq(authZSchema.farmInvitation.status, "pending"),
+                    gt(authZSchema.farmInvitation.expires, now),
+                ),
+            ]
+
+            if (orgIds.length > 0) {
+                conditions.push(
+                    and(
+                        inArray(
+                            authZSchema.farmInvitation.target_principal_id,
+                            orgIds,
+                        ),
+                        eq(authZSchema.farmInvitation.status, "pending"),
+                        gt(authZSchema.farmInvitation.expires, now),
+                    ),
+                )
+            }
+
+            return await tx
+                .select({
+                    invitation_id: authZSchema.farmInvitation.invitation_id,
+                    farm_id: authZSchema.farmInvitation.farm_id,
+                    farm_name: schema.farms.b_name_farm,
+                    org_name: authNSchema.organization.name,
+                    target_email: authZSchema.farmInvitation.target_email,
+                    target_principal_id:
+                        authZSchema.farmInvitation.target_principal_id,
+                    role: authZSchema.farmInvitation.role,
+                    inviter_id: authZSchema.farmInvitation.inviter_id,
+                    status: authZSchema.farmInvitation.status,
+                    expires: authZSchema.farmInvitation.expires,
+                    created: authZSchema.farmInvitation.created,
+                    accepted_at: authZSchema.farmInvitation.accepted_at,
+                })
+                .from(authZSchema.farmInvitation)
+                .leftJoin(
+                    schema.farms,
+                    eq(
+                        authZSchema.farmInvitation.farm_id,
+                        schema.farms.b_id_farm,
+                    ),
+                )
+                .leftJoin(
+                    authNSchema.organization,
+                    eq(
+                        authZSchema.farmInvitation.target_principal_id,
+                        authNSchema.organization.id,
+                    ),
+                )
+                .where(or(...conditions))
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for listPendingInvitationsForUser", {
+            user_id,
+        })
+    }
+}
+
+/**
  *
  * This function verifies if the acting principal has 'share' permission on the farm.
  *
@@ -804,6 +1500,11 @@ export async function removeFarm(
                     principal.principal_id,
                 )
             }
+
+            // Step 4b: Delete all invitations for this farm
+            await tx
+                .delete(authZSchema.farmInvitation)
+                .where(eq(authZSchema.farmInvitation.farm_id, b_id_farm))
 
             // Step 5: Finally, delete the farm itself
             await tx

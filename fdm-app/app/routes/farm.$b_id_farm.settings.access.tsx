@@ -1,8 +1,11 @@
 import {
+    acceptFarmInvitation,
+    declineFarmInvitation,
     getFarm,
     grantRoleToFarm,
     isAllowedToShareFarm,
     listPrincipalsForFarm,
+    lookupPrincipal,
     revokePrincipalFromFarm,
     updateRoleOfPrincipalAtFarm,
 } from "@svenvw/fdm-core"
@@ -22,6 +25,10 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
+import {
+    renderFarmInvitationEmail,
+    sendEmail,
+} from "~/lib/email.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -127,8 +134,73 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 formValues.role,
             )
 
+            // Send invitation email
+            try {
+                const farm = await getFarm(fdm, session.user.id, b_id_farm)
+                const inviterName = session.userName
+                const normalizedTarget = formValues.username.toLowerCase().trim()
+                const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedTarget)
+
+                // Try to find the principal to get their email if they are registered
+                const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
+                const targetPrincipal = matchedPrincipals.find(
+                    (p) =>
+                        p.username.toLowerCase() === normalizedTarget ||
+                        (isEmail && p.email?.toLowerCase() === normalizedTarget),
+                )
+
+                const targetEmail = isEmail
+                    ? normalizedTarget
+                    : targetPrincipal?.type === "user"
+                      ? targetPrincipal.email
+                      : null
+
+                if (targetEmail) {
+                    const isUnregistered = !targetPrincipal
+                    const email = await renderFarmInvitationEmail(
+                        targetEmail,
+                        inviterName,
+                        farm.b_name_farm ?? b_id_farm,
+                        b_id_farm,
+                        formValues.role,
+                        isUnregistered,
+                    )
+                    await sendEmail(email)
+                }
+            } catch (emailError) {
+                console.error("Error sending farm invitation email:", emailError)
+            }
+
             return dataWithSuccess(null, {
                 message: `${formValues.username} is uitgenodigd! 🎉`,
+            })
+        }
+
+        if (formValues.intent === "accept_farm_invitation") {
+            if (!formValues.invitation_id) {
+                return handleActionError("missing: invitation_id")
+            }
+            await acceptFarmInvitation(
+                fdm,
+                formValues.invitation_id,
+                session.user.id,
+            )
+            return dataWithSuccess(null, {
+                message: "Uitnodiging geaccepteerd! 🎉",
+            })
+        }
+
+        if (formValues.intent === "decline_farm_invitation") {
+            if (!formValues.invitation_id) {
+                return handleActionError("missing: invitation_id")
+            }
+            await declineFarmInvitation(
+                fdm,
+                formValues.invitation_id,
+                session.user.id,
+            )
+            return dataWithSuccess(null, {
+                message: "Uitnodiging geweigerd.",
             })
         }
 

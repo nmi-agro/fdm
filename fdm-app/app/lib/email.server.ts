@@ -4,6 +4,7 @@ import type { User } from "better-auth"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import postmark from "postmark"
+import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
 import { InvitationEmail } from "~/components/blocks/email/invitation"
 import { MagicLinkEmail } from "~/components/blocks/email/magic-link"
 import { WelcomeEmail } from "~/components/blocks/email/welcome"
@@ -65,6 +66,40 @@ export async function renderInvitationEmail(
         Subject: `${inviter.firstname} ${inviter.surname} heeft je uitgenodigd om lid te worden van ${organizationName}!`,
         HtmlBody: emailHtml,
         Tag: "invitation-organization",
+    }
+
+    return email
+}
+
+export async function renderFarmInvitationEmail(
+    targetEmail: string,
+    inviterName: string,
+    farmName: string,
+    invitationId: string,
+    role: string,
+    isUnregistered: boolean,
+): Promise<Email> {
+    const emailHtml = await render(
+        FarmInvitationEmail({
+            farmName,
+            inviterName,
+            targetEmail,
+            invitationId,
+            role,
+            appName: serverConfig.name,
+            appBaseUrl: serverConfig.url,
+            isUnregistered,
+        }),
+        { pretty: true },
+    )
+
+    const subjectVerb = isUnregistered ? "nodigt je uit" : "heeft je uitgenodigd"
+    const email: Email = {
+        From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
+        To: targetEmail,
+        Subject: `${inviterName} ${subjectVerb} voor toegang tot bedrijf ${farmName}`,
+        HtmlBody: emailHtml,
+        Tag: "invitation-farm",
     }
 
     return email

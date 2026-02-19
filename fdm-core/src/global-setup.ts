@@ -86,6 +86,7 @@ export async function teardown() {
 
             await fdm.delete(authZSchema.role).execute()
             await fdm.delete(authZSchema.audit).execute()
+            await fdm.delete(authZSchema.farmInvitation).execute()
         })
     } catch (error) {
         console.error("Error cleaning up database tables:", error)

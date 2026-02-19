@@ -85,7 +85,9 @@ export async function getPrincipal(
                 }
 
                 return {
+                    id: principal_id,
                     username: user[0].username,
+                    email: user[0].email,
                     initials: initials.toUpperCase(),
                     displayUserName: user[0].displayUserName,
                     image: user[0].image,
@@ -112,7 +114,9 @@ export async function getPrincipal(
             const metadata = JSON.parse(organization[0].metadata)
 
             return {
+                id: principal_id,
                 username: organization[0].slug,
+                email: null,
                 initials: organization[0].name.charAt(0).toUpperCase(),
                 displayUserName: organization[0].name,
                 image: organization[0].logo,
