@@ -435,13 +435,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 try {
                     await sendEmail(invitationEmail)
                 } catch (e) {
+                    handleActionError(e)
+                    await auth.api.cancelInvitation({
+                        headers: request.headers,
+                        body: {
+                            invitationId: invitation.id,
+                        },
+                    })
                     if (isInactiveRecipientError(e)) {
-                        await auth.api.cancelInvitation({
-                            headers: request.headers,
-                            body: {
-                                invitationId: invitation.id,
-                            },
-                        })
                         return dataWithError(null, {
                             message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
                         })
@@ -451,7 +452,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     })
                 }
             }
-
             return dataWithSuccess(null, {
                 message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
             })
