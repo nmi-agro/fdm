@@ -19,7 +19,7 @@ export interface NlvSupplyBySomParams {
  *
  * This function calculates the change in Nitrogen Supplying Capacity (Stikstof Leverend Vermogen, NLV)
  * resulting from an increase in Soil Organic Matter (SOM) using the MINIP model logic.
- * It estimates the nitrogen mineralization potential for a 30 cm soil layer.
+ * It estimates the nitrogen mineralization potential for a 30 cm soil layer and assumes that the C-to-N ratio remains constant with increasing SOM.
  *
  * @param params The soil texture, CN ratio, and SOM parameters.
  * @returns The change in NLV (in kg N / ha).
