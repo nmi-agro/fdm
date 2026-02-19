@@ -1,34 +1,22 @@
-import type { LoaderFunction } from "react-router"
-import { serverConfig } from "~/lib/config.server"
+import type { MetaFunction } from "react-router"
+import { clientConfig } from "~/lib/config"
 
-export const loader: LoaderFunction = async () => {
-    const privacyUrl = serverConfig.privacy_url
+export const meta: MetaFunction = () => {
+    return [
+        { title: `Privacyvoorwaarden | ${clientConfig.name}` },
+        {
+            name: "description",
+            content: `Bekijk de privacyvoorwaarden van ${clientConfig.name}.`,
+        },
+    ]
+}
 
-    if (!privacyUrl || privacyUrl === "undefined") {
-        return new Response("Privacy policy not configured", { status: 404 })
-    }
-
-    let response: Response
-    try {
-        response = await fetch(privacyUrl)
-    } catch {
-        return new Response("Failed to fetch privacy policy", { status: 502 })
-    }
-
-    if (!response.ok) {
-        return new Response("Failed to fetch privacy policy", {
-            status: response.status,
-        })
-    }
-
-    const headers = new Headers()
-    const contentType = response.headers.get("content-type")
-    const contentDisposition = response.headers.get("content-disposition")
-    if (contentType) headers.set("content-type", contentType)
-    if (contentDisposition) headers.set("content-disposition", contentDisposition)
-
-    return new Response(response.body, {
-        status: 200,
-        headers,
-    })
+export default function PrivacyPage() {
+    return (
+        <iframe
+            src="/privacy/pdf"
+            title="Privacyvoorwaarden"
+            className="w-full h-screen border-0"
+        />
+    )
 }
