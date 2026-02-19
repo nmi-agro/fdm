@@ -77,6 +77,10 @@ export async function getSoilParameterEstimates(
     b_gwl_class: string
     b_gwl_ghg: number
     b_gwl_glg: number
+    b_c_st03: number
+    b_som_potential: number
+    b_c_st03_potential: number
+    b_c_delta: number
     cultivations: { year: number; b_lu_brp: number }[]
     a_source: string
     a_depth_upper: number
@@ -169,6 +173,10 @@ const soilParameterEstimatesSchema = z.object({
     b_gwl_class: z.string(),
     b_gwl_ghg: z.number(),
     b_gwl_glg: z.number(),
+    b_c_st03: z.number(),
+    b_som_potential: z.number(),
+    b_c_st03_potential: z.number(),
+    b_c_delta: z.number(),
     cultivations: z.array(z.object({ year: z.number(), b_lu_brp: z.number() })),
     a_source: z.string(),
 })

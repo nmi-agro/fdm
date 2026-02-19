@@ -1,4 +1,6 @@
 import {
+    calculateNlvSupplyBySom,
+    calculateWaterSupplyBySom,
     getRegion,
     isFieldInGWGBGebied,
     isFieldInNatura2000Gebied,
@@ -6,14 +8,17 @@ import {
 } from "@svenvw/fdm-calculator"
 import { getCultivationCatalogue } from "@svenvw/fdm-data"
 import type { Feature, Point } from "geojson"
+import { Map as MapIcon } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
+    NavLink,
     useLoaderData,
     useLocation,
 } from "react-router"
+import { CarbonSequestrationCard } from "~/components/blocks/atlas-fields/carbon-sequestration"
 import { CultivationHistoryCard } from "~/components/blocks/atlas-fields/cultivation-history"
 import { FieldDetailsCard } from "~/components/blocks/atlas-fields/field-details"
 import { GroundwaterCard } from "~/components/blocks/atlas-fields/groundwater"
@@ -21,8 +26,8 @@ import { FieldDetailsAtlasLayout } from "~/components/blocks/atlas-fields/layout
 import { getFieldByCentroid } from "~/components/blocks/atlas-fields/query"
 import { FieldDetailsAtlasSkeleton } from "~/components/blocks/atlas-fields/skeleton"
 import { SoilTextureCard } from "~/components/blocks/atlas-fields/soil-texture"
-import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { ErrorBlock } from "~/components/custom/error"
+import { Button } from "~/components/ui/button"
 import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -40,36 +45,36 @@ export const meta: MetaFunction = () => {
 }
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    try {
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", {
-                status: 400,
-                statusText: "Farm ID is required",
-            })
-        }
+    // Validate params before try/catch so data() throws reach React Router directly
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+        throw data("Farm ID is required", {
+            status: 400,
+            statusText: "Farm ID is required",
+        })
+    }
 
+    const centroid = params.centroid
+    if (!centroid) {
+        throw data("Centroid is required", {
+            status: 400,
+            statusText: "Centroid is required",
+        })
+    }
+    const [longitude, latitude] = centroid.split(",").map(Number)
+    if (Number.isNaN(longitude) || Number.isNaN(latitude)) {
+        throw data("Invalid centroid format", {
+            status: 400,
+            statusText: "Centroid must be in format: longitude,latitude",
+        })
+    }
+
+    try {
         // Get timeframe from calendar store
         const calendar = getCalendar(params)
 
-        // Get the estimates for this field
-        const centroid = params.centroid
-        if (!centroid) {
-            throw data("Centroid is required", {
-                status: 400,
-                statusText: "Centroid is required",
-            })
-        }
-        const [longitude, latitude] = centroid.split(",").map(Number)
-        if (Number.isNaN(longitude) || Number.isNaN(latitude)) {
-            throw data("Invalid centroid format", {
-                status: 400,
-                statusText: "Centroid must be in format: longitude,latitude",
-            })
-        }
-
         return {
+            b_id_farm,
             calendar,
             centroid,
             asyncData: loadAsyncData(calendar, latitude, longitude),
@@ -156,6 +161,30 @@ async function loadAsyncData(
                 a_silt_mi: Math.round(estimates.a_silt_mi),
                 a_sand_mi: Math.round(estimates.a_sand_mi),
             },
+            carbonEstimates: {
+                a_som_loi: estimates.a_som_loi,
+                b_som_potential: estimates.b_som_potential,
+                b_c_st03: estimates.b_c_st03,
+                b_c_st03_potential: estimates.b_c_st03_potential,
+                b_c_delta: estimates.b_c_delta,
+                extraWaterStorage: Math.round(
+                    calculateWaterSupplyBySom({
+                        a_clay_mi: estimates.a_clay_mi,
+                        a_silt_mi: estimates.a_silt_mi,
+                        a_sand_mi: estimates.a_sand_mi,
+                        a_som_loi: estimates.a_som_loi,
+                        b_som_potential: estimates.b_som_potential,
+                    }),
+                ),
+                extraNMineralization: Math.round(
+                    calculateNlvSupplyBySom({
+                        a_clay_mi: estimates.a_clay_mi,
+                        a_cn_fr: estimates.a_cn_fr,
+                        a_som_loi: estimates.a_som_loi,
+                        b_som_potential: estimates.b_som_potential,
+                    }),
+                ),
+            },
             fieldDetails: {
                 b_area: queriedField?.properties?.b_area
                     ? Math.round(
@@ -196,6 +225,7 @@ export default function FieldDetailsAtlasBlock() {
  * would not render until `asyncData` resolves and the fallback would never be shown.
  */
 function FieldDetailsAtlas({
+    b_id_farm,
     calendar,
     asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
@@ -204,6 +234,7 @@ function FieldDetailsAtlas({
         cultivationHistory,
         groundwaterEstimates,
         soilParameterEstimates,
+        carbonEstimates,
         errorMessage,
     } = use(asyncData)
 
@@ -222,32 +253,38 @@ function FieldDetailsAtlas({
     }
 
     return (
-        <FieldDetailsAtlasLayout
-            title={
-                <FarmTitle
-                    title={
-                        cultivationHistory.find(
-                            (cultivation: { year: number }) =>
-                                cultivation.year === Number(calendar),
-                        )?.b_lu_name ?? "Onbekend gewas"
-                    }
-                    description="Bekijk alle details over dit perceel"
-                />
-            }
-            cultivationHistory={
-                <CultivationHistoryCard
-                    cultivationHistory={cultivationHistory}
-                />
-            }
-            fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}
-            soilTexture={
-                <SoilTextureCard
-                    soilParameterEstimates={soilParameterEstimates}
-                />
-            }
-            groundWater={
-                <GroundwaterCard groundwaterEstimates={groundwaterEstimates} />
-            }
-        />
+        <>
+            <FieldDetailsAtlasLayout
+                cultivationHistory={
+                    <CultivationHistoryCard
+                        cultivationHistory={cultivationHistory}
+                    />
+                }
+                fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}
+                carbon={
+                    <CarbonSequestrationCard
+                        carbonEstimates={carbonEstimates}
+                    />
+                }
+                soilTexture={
+                    <SoilTextureCard
+                        soilParameterEstimates={soilParameterEstimates}
+                    />
+                }
+                groundWater={
+                    <GroundwaterCard
+                        groundwaterEstimates={groundwaterEstimates}
+                    />
+                }
+            />
+            <div className="fixed bottom-6 right-6 z-50">
+                <Button asChild size="lg" className="rounded-full shadow-lg">
+                    <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
+                        <MapIcon className="mr-2 h-4 w-4" />
+                        Terug naar kaart
+                    </NavLink>
+                </Button>
+            </div>
+        </>
     )
 }
