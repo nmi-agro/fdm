@@ -59,7 +59,6 @@ export interface ClientConfig {
     logo: string
     logomark: string
     url: string
-    privacy_url: string
     datasets_url: string
     analytics: {
         sentry?: {

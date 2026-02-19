@@ -4,7 +4,7 @@ import type { ServerConfig } from "~/types/config.d"
 export const serverConfig: ServerConfig = {
     name: String(process.env.PUBLIC_FDM_NAME),
     url: String(process.env.PUBLIC_FDM_URL),
-    privacy_url: String(process.env.PUBLIC_FDM_PRIVACY_URL),
+    privacy_url: String(process.env.FDM_PRIVACY_URL),
     datasets_url: String(process.env.PUBLIC_FDM_DATASETS_URL),
 
     // Authentication
