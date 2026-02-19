@@ -414,47 +414,52 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 return handleActionError("missing: role")
             }
 
-            const invitation = await auth.api.createInvitation({
-                headers: request.headers,
-                body: {
-                    email: formValues.email,
-                    role: formValues.role,
-                    organizationId: organizationId,
-                },
-            })
+            let invitation:
+                | Awaited<ReturnType<typeof auth.api.createInvitation>>
+                | undefined
+            try {
+                invitation = await auth.api.createInvitation({
+                    headers: request.headers,
+                    body: {
+                        email: formValues.email,
+                        role: formValues.role,
+                        organizationId: organizationId,
+                    },
+                })
 
-            // better-auth might not send email by default depending on config.
-            // We'll send it manually using our template.
-            if (invitation?.id) {
-                const invitationEmail = await renderInvitationEmail(
-                    formValues.email,
-                    session.user,
-                    organizationName,
-                    invitation.id,
-                )
-                try {
+                // better-auth might not send email by default depending on config.
+                // We'll send it manually using our template.
+                if (invitation?.id) {
+                    const invitationEmail = await renderInvitationEmail(
+                        formValues.email,
+                        session.user,
+                        organizationName,
+                        invitation.id,
+                    )
                     await sendEmail(invitationEmail)
-                } catch (e) {
-                    handleActionError(e)
+                }
+                return dataWithSuccess(null, {
+                    message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
+                })
+            } catch (e) {
+                handleActionError(e)
+                if (invitation?.id) {
                     await auth.api.cancelInvitation({
                         headers: request.headers,
                         body: {
                             invitationId: invitation.id,
                         },
                     })
-                    if (isInactiveRecipientError(e)) {
-                        return dataWithError(null, {
-                            message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
-                        })
-                    }
+                }
+                if (isInactiveRecipientError(e)) {
                     return dataWithError(null, {
-                        message: `We kunnen geen e-mails naar ${formValues.email} sturen. Neem contact op met de ondersteuning voor hulp.`,
+                        message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
                     })
                 }
+                return dataWithError(null, {
+                    message: `We kunnen geen e-mails naar ${formValues.email} sturen. Neem contact op met de ondersteuning voor hulp.`,
+                })
             }
-            return dataWithSuccess(null, {
-                message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
-            })
         }
         if (formValues.intent === "update_role") {
             if (!formValues.memberId) {
