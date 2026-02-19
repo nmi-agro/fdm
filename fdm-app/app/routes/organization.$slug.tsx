@@ -444,12 +444,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
             } catch (e) {
                 handleActionError(e)
                 if (invitation?.id) {
-                    await auth.api.cancelInvitation({
-                        headers: request.headers,
-                        body: {
-                            invitationId: invitation.id,
-                        },
-                    })
+                    try {
+                        await auth.api.cancelInvitation({
+                            headers: request.headers,
+                            body: {
+                                invitationId: invitation.id,
+                            },
+                        })
+                    } catch (e) {
+                        handleActionError(e)
+                    }
                 }
                 if (isInactiveRecipientError(e)) {
                     return dataWithError(null, {
