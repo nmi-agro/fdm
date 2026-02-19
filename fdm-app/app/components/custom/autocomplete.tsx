@@ -30,12 +30,14 @@ type Props<T extends string> = {
     searchParamName?: string // Query parameter name for search term (default: 'identifier')
     excludeValues?: T[] // Optional array of values to filter out
     iconMap?: IconMap // Optional map of icon identifiers to components
-    emptyMessage?: string
+    emptyMessage?: string | ((inputValue: string) => string)
     placeholder?: string
     // biome-ignore lint/suspicious/noExplicitAny: Using any temporarily due to potential type conflicts with remix-hook-form
     form?: any
     name?: string // Name for remix-hook-form registration
     className?: string
+    /** When true, values typed directly (not from dropdown) are accepted as-is (e.g. email addresses) */
+    allowValuesOutsideList?: boolean
 }
 
 export function AutoComplete<T extends string>({
@@ -45,11 +47,12 @@ export function AutoComplete<T extends string>({
     searchParamName = "identifier", // Default search param name
     excludeValues = [],
     iconMap = { user: User, organization: Users }, // Default icon map
-    emptyMessage = "No items.",
+    emptyMessage = "No items." as string | ((inputValue: string) => string),
     placeholder = "Search...",
     form,
     name,
     className,
+    allowValuesOutsideList = false,
 }: Props<T>) {
     const fetcher = useFetcher<LookupItem<T>[]>()
     const [open, setOpen] = useState(false)
@@ -152,17 +155,24 @@ export function AutoComplete<T extends string>({
         setOpen(false)
     }
 
-    // Keep input if it matches a valid item, otherwise clear if no selection
+    // Keep input if it matches a valid item, otherwise use typed value as-is (if allowFreeform)
     const handleInputBlur = () => {
         // Timeout to allow click selection to register first
         setTimeout(() => {
             if (!open) {
-                // If input doesn't match the selected label, and no value is selected, clear input
-                if (inputValue !== selectedLabel && !selectedValue) {
-                    setInputValue("")
+                if (inputValue && !selectedValue) {
+                    if (allowValuesOutsideList) {
+                        // Accept typed value as-is (e.g. email address)
+                        onSelectedValueChange(inputValue as T)
+                        if (form && name) {
+                            form.setValue(name, inputValue)
+                        }
+                    } else {
+                        // Only dropdown selections allowed — clear the input
+                        setInputValue("")
+                    }
                 }
-                // If input matches selected label, keep it.
-                // If input doesn't match, but a value IS selected, revert input to selected label
+                // If input doesn't match selected label, revert input to selected label
                 else if (inputValue !== selectedLabel && selectedValue) {
                     setInputValue(selectedLabel)
                 }
@@ -249,7 +259,9 @@ export function AutoComplete<T extends string>({
                             ) : null}
                             {!isLoading && !items.length && inputValue ? ( // Show empty only if not loading and user typed something
                                 <CommandEmpty>
-                                    {emptyMessage ?? "No items."}
+                                    {typeof emptyMessage === "function"
+                                        ? emptyMessage(inputValue)
+                                        : emptyMessage}
                                 </CommandEmpty>
                             ) : null}
                         </CommandList>

@@ -64,8 +64,13 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                                 shouldTouch: true,
                             })
                         }}
-                        emptyMessage="Geen gebruikers gevonden"
+                        emptyMessage={(value) =>
+                            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+                                ? `Nodig ${value} uit voor toegang`
+                                : "Geen gebruikers gevonden"
+                        }
                         placeholder="Zoek naar een gebruiker of organisatie"
+                        allowValuesOutsideList={true}
                         form={form} // Pass the form instance
                         name="username" // Name for remix-hook-form registration
                     />
