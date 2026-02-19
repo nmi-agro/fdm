@@ -45,14 +45,15 @@ export function CarbonSequestrationCard({
     // API values
     const currentOM = Math.round(carbonEstimates.a_som_loi * 10) / 10
     const maxOM = Math.round(carbonEstimates.b_som_potential * 10) / 10
-    const rawCO2eq = carbonEstimates.b_c_delta * 3.67
+    const rawCO2eq = Math.max(carbonEstimates.b_c_delta, 0) * 3.67
     const potentialCO2eq = Math.round(rawCO2eq * 10) / 10
 
     // Derived values
     const percentageOfMax =
         carbonEstimates.b_som_potential > 0
             ? Math.min(
-                  (carbonEstimates.a_som_loi / carbonEstimates.b_som_potential) *
+                  (carbonEstimates.a_som_loi /
+                      carbonEstimates.b_som_potential) *
                       100,
                   100,
               )
@@ -207,8 +208,7 @@ export function CarbonSequestrationCard({
                             <Euro className="h-4 w-4 mt-0.5 text-muted-foreground" />
                             <div className="space-y-0.5">
                                 <p className="text-sm font-semibold">
-                                    ~€{" "}
-                                    {euroEstimate.toLocaleString()}
+                                    ~€ {euroEstimate.toLocaleString()}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                     Geschatte waarde koolstofcertificaten via EU
