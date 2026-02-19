@@ -3,7 +3,7 @@ import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useRef } from "react"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
-import { useFetcher, useLoaderData } from "react-router"
+import { Form, useFetcher, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -258,7 +258,7 @@ const MemberAction = ({
             .catch((e) => toast.error(e.message))
     }
     return (
-        <form
+        <Form
             ref={formRef}
             method="post"
             className="flex items-center space-x-4"
@@ -289,7 +289,7 @@ const MemberAction = ({
                     Verwijder
                 </Button>
             ) : null}
-        </form>
+        </Form>
     )
 }
 
@@ -320,7 +320,7 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
                     })}
                 </p>
             </div>
-            <form method="post">
+            <Form method="post">
                 <input
                     type="hidden"
                     name="invitation_id"
@@ -335,7 +335,7 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
                 >
                     Annuleer
                 </Button>
-            </form>
+            </Form>
         </div>
     )
 }
@@ -346,7 +346,7 @@ const InvitationForm = ({
     organizationId: Organization["id"]
 }) => {
     return (
-        <form method="post" className="flex space-x-2">
+        <Form method="post" className="flex space-x-2">
             <input
                 type="hidden"
                 name="organization_id"
@@ -375,7 +375,7 @@ const InvitationForm = ({
             >
                 Uitnodigen
             </Button>
-        </form>
+        </Form>
     )
 }
 

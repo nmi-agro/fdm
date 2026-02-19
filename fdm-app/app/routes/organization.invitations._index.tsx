@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
-import { NavLink, useLoaderData } from "react-router-dom"
+import { Form, NavLink, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -128,7 +128,7 @@ export default function OrganizationsIndex() {
                                         </NavLink>
                                     </Button>
                                     <div className="flex gap-2">
-                                        <form method="post">
+                                        <Form method="post">
                                             <input
                                                 type="hidden"
                                                 name="invitation_id"
@@ -141,7 +141,7 @@ export default function OrganizationsIndex() {
                                             >
                                                 Accepteren
                                             </Button>
-                                        </form>
+                                        </Form>
                                         <Dialog>
                                             <DialogTrigger asChild>
                                                 <Button
@@ -166,7 +166,7 @@ export default function OrganizationsIndex() {
                                                     </DialogDescription>
                                                 </DialogHeader>
                                                 <DialogFooter>
-                                                    <form method="post">
+                                                    <Form method="post">
                                                         <input
                                                             type="hidden"
                                                             name="invitation_id"
@@ -182,7 +182,7 @@ export default function OrganizationsIndex() {
                                                         >
                                                             Ja, afwijzen
                                                         </Button>
-                                                    </form>
+                                                    </Form>
                                                 </DialogFooter>
                                             </DialogContent>
                                         </Dialog>

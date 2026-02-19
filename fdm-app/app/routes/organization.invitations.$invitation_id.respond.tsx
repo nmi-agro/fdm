@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import {
     type ActionFunctionArgs,
     data,
+    Form,
     isRouteErrorResponse,
     type LoaderFunctionArgs,
     redirect,
@@ -105,7 +106,7 @@ export default function Respond() {
                     </p>
                 </CardContent>
                 <CardFooter>
-                    <form method="post" className="flex flex-row gap-2">
+                    <Form method="post" className="flex flex-row gap-2">
                         <input
                             type="hidden"
                             name="invitation_id"
@@ -125,7 +126,7 @@ export default function Respond() {
                         >
                             Nee, terug naar Mijn Uitnodigingen
                         </Button>
-                    </form>
+                    </Form>
                 </CardFooter>
             </Card>
         </div>
