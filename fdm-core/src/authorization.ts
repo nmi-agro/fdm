@@ -353,9 +353,9 @@ export async function getRolesOfPrincipalForResource(
                     as_organization_member: isNotNull(
                         authNSchema.member.userId,
                     ),
-                    as_organization: inArray(
-                        authNSchema.member.organizationId,
-                        principal_ids,
+                    as_organization: and(
+                        isNotNull(authNSchema.organization.id),
+                        inArray(authZSchema.role.principal_id, principal_ids),
                     ),
                 })
                 .from(authZSchema.role)
@@ -364,6 +364,13 @@ export async function getRolesOfPrincipalForResource(
                     eq(
                         authZSchema.role.principal_id,
                         authNSchema.member.organizationId,
+                    ),
+                )
+                .leftJoin(
+                    authNSchema.organization,
+                    eq(
+                        authZSchema.role.principal_id,
+                        authNSchema.organization.id,
                     ),
                 )
                 .where(

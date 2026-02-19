@@ -834,6 +834,36 @@ describe("Authorization Functions", () => {
             ])
         })
 
+        it("should get role principal type properly for organization with no members", async () => {
+            // Create an organization without any members
+            const orgId = createId()
+            await fdm.insert(authNSchema.organization).values({
+                id: orgId,
+                name: "Test Organization No Members",
+                slug: "test-org-no-members",
+                createdAt: new Date(),
+            })
+
+            // Grant the organization a role on the farm
+            await grantRole(fdm, "farm", "advisor", farm_id, orgId)
+
+            // Get roles for the organization
+            const roles = await getRolesOfPrincipalForResource(
+                fdm,
+                "farm",
+                farm_id,
+                orgId,
+            )
+
+            // Should return one role with principal_type "organization"
+            expect(roles).toHaveLength(1)
+            expect(roles[0]).toEqual({
+                principal_id: orgId,
+                role: "advisor",
+                principal_type: "organization",
+            })
+        })
+
         it("should throw error with invalid resource", async () => {
             await expect(
                 getRolesOfPrincipalForResource(
