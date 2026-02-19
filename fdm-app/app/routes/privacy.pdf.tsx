@@ -10,14 +10,24 @@ export const loader: LoaderFunction = async () => {
 
     let response: Response
     try {
-        response = await fetch(privacyUrl)
-    } catch {
-        return new Response("Failed to fetch privacy policy", { status: 502 })
+        response = await fetch(privacyUrl, {
+            signal: AbortSignal.timeout(5000),
+        })
+    } catch (error) {
+        const message =
+            error instanceof DOMException && error.name === "TimeoutError"
+                ? "Privacy policy request timed out"
+                : "Failed to fetch privacy policy"
+        return new Response(message, { status: 502 })
     }
 
     if (!response.ok) {
-        return new Response("Failed to fetch privacy policy", {
-            status: response.status,
+        return new Response("Failed to fetch privacy policy", { status: 502 })
+    }
+
+    if (response.body === null) {
+        return new Response("Privacy policy returned empty body", {
+            status: 500,
         })
     }
 
