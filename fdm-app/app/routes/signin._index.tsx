@@ -598,7 +598,7 @@ export default function SignIn() {
                                         Door verder te gaan, gaat u akkoord met
                                         het{" "}
                                         <a
-                                            href={clientConfig.privacy_url}
+                                            href="/privacy"
                                             aria-label="Lees ons privacybeleid"
                                             target="_blank"
                                             rel="noopener noreferrer"
@@ -1589,7 +1589,7 @@ export default function SignIn() {
                                     </li>
                                     <li>
                                         <a
-                                            href={clientConfig.privacy_url}
+                                            href="/privacy"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="hover:text-primary"
