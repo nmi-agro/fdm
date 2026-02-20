@@ -1,4 +1,3 @@
-import type { LoaderFunctionArgs } from "react-router"
 import { NavLink, useLoaderData } from "react-router-dom"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Button } from "~/components/ui/button"
@@ -11,9 +10,24 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { auth, getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import type { Route } from "./+types/organization._index"
 
-export async function loader({ request }: LoaderFunctionArgs) {
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Organisaties | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk de organisaties waarvan je lid bent.",
+        },
+    ]
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
     try {
         await getSession(request)
 

@@ -11,9 +11,23 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { auth, getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/organization.$slug.settings"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Instellingen - Organisatie | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk en bewerk de gegevens van jouw organisatie.",
+        },
+    ]
+}
 
 export async function loader({ params, request }: Route.LoaderArgs) {
     try {

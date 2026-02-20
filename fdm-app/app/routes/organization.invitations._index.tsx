@@ -1,6 +1,5 @@
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import { Form, NavLink, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
@@ -24,10 +23,25 @@ import {
     DialogTrigger,
 } from "~/components/ui/dialog"
 import { auth, getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import type { Route } from "./+types/organization.invitations._index"
 
-export async function loader({ request }: LoaderFunctionArgs) {
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Uitnodigingen - Organisaties | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk en bewerk de gegevens van je organisatie.",
+        },
+    ]
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
     try {
         await getSession(request)
 
@@ -202,7 +216,7 @@ const FormSchema = z.object({
     intent: z.enum(["accept", "reject"]),
 })
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request }: Route.LoaderArgs) {
     try {
         const formValues = await extractFormValuesFromRequest(
             request,

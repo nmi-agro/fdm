@@ -15,9 +15,24 @@ import { columns, type FarmExtended } from "~/components/blocks/farms/columns"
 import { DataTable } from "~/components/blocks/farms/table"
 import { auth } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
+import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import type { Route } from "./+types/organization.$slug.$calendar.farms"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Bedrijven - Organisatie | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content:
+                "Bekijk en beheer de bedrijven waartoe jouw organisatie toagang heeft.",
+        },
+    ]
+}
 
 export async function loader({ params, request }: Route.LoaderArgs) {
     try {

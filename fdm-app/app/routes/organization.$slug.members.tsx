@@ -2,7 +2,6 @@ import type { Invitation, Member, Organization } from "better-auth/plugins"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useRef } from "react"
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import { Form, useFetcher, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { toast } from "sonner"
@@ -27,11 +26,26 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { auth, getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { renderInvitationEmail, sendEmail } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import type { Route } from "./+types/organization.$slug.members"
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Leden - Organisatie | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk en bewerk de leden van jouw organisatie.",
+        },
+    ]
+}
+
+export async function loader({ request, params }: Route.LoaderArgs) {
     if (!params.slug) {
         throw handleLoaderError("not found: organization")
     }
@@ -393,7 +407,7 @@ const FormSchema = z.object({
     ]),
 })
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params }: Route.ActionArgs) {
     try {
         if (!params.slug) {
             throw handleActionError("not found: organization")

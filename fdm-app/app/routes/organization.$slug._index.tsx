@@ -26,10 +26,24 @@ import {
 import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
+import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 import type { Route } from "./+types/organization.$slug._index"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Organisatie | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk en bewerk de gegevens van jouw organisatie.",
+        },
+    ]
+}
 
 export async function loader({ params, request }: Route.LoaderArgs) {
     try {
