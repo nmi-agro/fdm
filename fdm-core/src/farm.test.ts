@@ -597,6 +597,26 @@ describe("Farm Functions", () => {
                 "Principal does not have permission to perform this action",
             )
         })
+
+        it("should include organization as a pending principal when org is invited", async () => {
+            // No fdm-core API for org creation — use raw insert (same pattern as authorization.test.ts)
+            const orgId = createId()
+            const orgSlug = `listprincipals-org-${orgId.toLowerCase()}`
+            await fdm.insert(authNSchema.organization).values({
+                id: orgId,
+                name: "ListPrincipals Org",
+                slug: orgSlug,
+                createdAt: new Date(),
+            })
+
+            const orgFarmId = await addFarm(fdm, principal_id, "Org Principals Farm", "ORGPRI", "Org Principals Lane", "20001")
+            await grantRoleToFarm(fdm, principal_id, orgSlug, orgFarmId, "advisor")
+
+            const principals = await listPrincipalsForFarm(fdm, principal_id, orgFarmId)
+            const orgPrincipal = principals.find((p) => p.id === orgId)
+            expect(orgPrincipal).toBeDefined()
+            expect(orgPrincipal?.type).toBe("organization")
+        })
     })
 
     describe("isAllowedToShareFarm", () => {
@@ -1113,6 +1133,42 @@ describe("Farm Functions", () => {
                 nonExistentUserId,
             )
             expect(invitations).toEqual([])
+        })
+
+        it("should include org_name when invitation targets an organization", async () => {
+            const orgAdminUser = await fdmAuth.api.signUpEmail({
+                headers: undefined,
+                body: {
+                    email: "listuser_orgadmin@example.com",
+                    name: "listuser_orgadmin",
+                    username: "listuser_orgadmin",
+                    password: "password",
+                } as any,
+            })
+
+            const orgId = createId()
+            const orgSlug = `pending-inv-org-${orgId.toLowerCase()}`
+            await fdm.insert(authNSchema.organization).values({
+                id: orgId,
+                name: "Pending Invitations Org",
+                slug: orgSlug,
+                createdAt: new Date(),
+            })
+            await fdm.insert(authNSchema.member).values({
+                id: createId(),
+                organizationId: orgId,
+                userId: orgAdminUser.user.id,
+                role: "owner",
+                createdAt: new Date(),
+            })
+
+            const orgInvFarmId = await addFarm(fdm, principal_id, "List User Org Inv Farm", "LSUORG", "List User Org Lane", "20002")
+            await grantRoleToFarm(fdm, principal_id, orgSlug, orgInvFarmId, "advisor")
+
+            const invitations = await listPendingInvitationsForUser(fdm, orgAdminUser.user.id)
+            const orgInv = invitations.find((i) => i.resource_id === orgInvFarmId)
+            expect(orgInv).toBeDefined()
+            expect(orgInv?.org_name).toBe("Pending Invitations Org")
         })
     })
 })
