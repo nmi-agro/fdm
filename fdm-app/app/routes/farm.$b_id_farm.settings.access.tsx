@@ -129,7 +129,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
             await grantRoleToFarm(
                 fdm,
-                session.user.id,
+                session.principal_id,
                 formValues.username,
                 b_id_farm,
                 formValues.role,
@@ -162,7 +162,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         targetEmail,
                         inviterName,
                         farm.b_name_farm ?? b_id_farm,
-                        b_id_farm,
                         formValues.role,
                         isUnregistered,
                     )

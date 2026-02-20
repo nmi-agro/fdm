@@ -47,7 +47,7 @@ export function AutoComplete<T extends string>({
     searchParamName = "identifier", // Default search param name
     excludeValues = [],
     iconMap = { user: User, organization: Users }, // Default icon map
-    emptyMessage = "No items." as string | ((inputValue: string) => string),
+    emptyMessage = "No items.",
     placeholder = "Search...",
     form,
     name,
@@ -56,6 +56,7 @@ export function AutoComplete<T extends string>({
 }: Props<T>) {
     const fetcher = useFetcher<LookupItem<T>[]>()
     const [open, setOpen] = useState(false)
+    const openRef = useRef(open)
     const [inputValue, setInputValue] = useState("") // Internal input state
     const [items, setItems] = useState<LookupItem<T>[]>([])
     const [isLoading, setIsLoading] = useState(false)
@@ -159,7 +160,7 @@ export function AutoComplete<T extends string>({
     const handleInputBlur = () => {
         // Timeout to allow click selection to register first
         setTimeout(() => {
-            if (!open) {
+            if (!openRef.current) {
                 if (inputValue && !selectedValue) {
                     if (allowValuesOutsideList) {
                         // Accept typed value as-is (e.g. email address)
@@ -182,7 +183,13 @@ export function AutoComplete<T extends string>({
 
     return (
         <div className={cn("flex items-center", className)}>
-            <Popover open={open} onOpenChange={setOpen}>
+            <Popover
+                open={open}
+                onOpenChange={(value) => {
+                    setOpen(value)
+                    openRef.current = value
+                }}
+            >
                 <Command shouldFilter={false} className="w-full">
                     <PopoverAnchor asChild>
                         <CommandPrimitive.Input

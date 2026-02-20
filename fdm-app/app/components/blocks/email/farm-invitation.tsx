@@ -17,7 +17,6 @@ interface FarmInvitationEmailProps {
     farmName: string
     inviterName: string
     targetEmail: string
-    invitationId: string
     role: string
     appName: string
     appBaseUrl?: string
@@ -36,7 +35,6 @@ export const FarmInvitationEmail = ({
     farmName,
     inviterName,
     targetEmail,
-    invitationId,
     role,
     appName,
     appBaseUrl = "",

@@ -315,7 +315,7 @@ export async function updateFarm(
  */
 export async function grantRoleToFarm(
     fdm: FdmType,
-    principal_id: PrincipalId,
+    principal_id: string,
     target: string,
     b_id_farm: schema.farmsTypeInsert["b_id_farm"],
     role: "owner" | "advisor" | "researcher",
@@ -809,23 +809,43 @@ export async function acceptFarmInvitation(
 ): Promise<void> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
-            const invitations = await tx
-                .select()
-                .from(authZSchema.farmInvitation)
+            // Atomically claim the invitation: only succeeds if still pending and not expired
+            const claimed = await tx
+                .update(authZSchema.farmInvitation)
+                .set({ status: "accepted", accepted_at: new Date() })
                 .where(
-                    eq(authZSchema.farmInvitation.invitation_id, invitation_id),
+                    and(
+                        eq(
+                            authZSchema.farmInvitation.invitation_id,
+                            invitation_id,
+                        ),
+                        eq(authZSchema.farmInvitation.status, "pending"),
+                        gt(authZSchema.farmInvitation.expires, new Date()),
+                    ),
                 )
-                .limit(1)
+                .returning()
 
-            if (invitations.length === 0) {
-                throw new Error("Invitation not found")
-            }
-            const invitation = invitations[0]
+            if (claimed.length === 0) {
+                // Determine the precise reason for failure
+                const existing = await tx
+                    .select()
+                    .from(authZSchema.farmInvitation)
+                    .where(
+                        eq(
+                            authZSchema.farmInvitation.invitation_id,
+                            invitation_id,
+                        ),
+                    )
+                    .limit(1)
 
-            if (invitation.status !== "pending") {
-                throw new Error(`Invitation is already ${invitation.status}`)
-            }
-            if (invitation.expires < new Date()) {
+                if (existing.length === 0) {
+                    throw new Error("Invitation not found")
+                }
+                const inv = existing[0]
+                if (inv.status !== "pending") {
+                    throw new Error(`Invitation is already ${inv.status}`)
+                }
+                // Must be expired
                 await tx
                     .update(authZSchema.farmInvitation)
                     .set({ status: "expired" })
@@ -838,6 +858,7 @@ export async function acceptFarmInvitation(
                 throw new Error("Invitation has expired")
             }
 
+            const invitation = claimed[0]
             let granteeId: string
 
             if (invitation.target_principal_id) {
@@ -938,17 +959,18 @@ export async function acceptFarmInvitation(
                 granteeId,
             )
 
-            // Mark invitation as accepted
-            await tx
-                .update(authZSchema.farmInvitation)
-                .set({
-                    status: "accepted",
-                    accepted_at: new Date(),
-                    target_principal_id: granteeId,
-                })
-                .where(
-                    eq(authZSchema.farmInvitation.invitation_id, invitation_id),
-                )
+            // Update target_principal_id if this was an email-based invitation
+            if (!invitation.target_principal_id) {
+                await tx
+                    .update(authZSchema.farmInvitation)
+                    .set({ target_principal_id: granteeId })
+                    .where(
+                        eq(
+                            authZSchema.farmInvitation.invitation_id,
+                            invitation_id,
+                        ),
+                    )
+            }
         })
     } catch (err) {
         throw handleError(err, "Exception for acceptFarmInvitation", {
@@ -989,6 +1011,19 @@ export async function declineFarmInvitation(
 
             if (invitation.status !== "pending") {
                 throw new Error(`Invitation is already ${invitation.status}`)
+            }
+
+            if (invitation.expires < new Date()) {
+                await tx
+                    .update(authZSchema.farmInvitation)
+                    .set({ status: "expired" })
+                    .where(
+                        eq(
+                            authZSchema.farmInvitation.invitation_id,
+                            invitation_id,
+                        ),
+                    )
+                throw new Error("Invitation has expired")
             }
 
             // Verify the user has the right to decline this invitation

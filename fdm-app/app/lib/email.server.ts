@@ -75,7 +75,6 @@ export async function renderFarmInvitationEmail(
     targetEmail: string,
     inviterName: string,
     farmName: string,
-    invitationId: string,
     role: string,
     isUnregistered: boolean,
 ): Promise<Email> {
@@ -84,7 +83,6 @@ export async function renderFarmInvitationEmail(
             farmName,
             inviterName,
             targetEmail,
-            invitationId,
             role,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,

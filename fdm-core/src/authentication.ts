@@ -228,11 +228,19 @@ export function createFdmAuth(
 
                         // Auto-accept pending invitations if email is already verified (e.g. social login)
                         if (user.emailVerified) {
-                            await autoAcceptInvitationsForNewUser(
-                                fdm,
-                                user.email,
-                                user.id,
-                            )
+                            try {
+                                await autoAcceptInvitationsForNewUser(
+                                    fdm,
+                                    user.email,
+                                    user.id,
+                                )
+                            } catch (err) {
+                                console.warn(
+                                    "autoAcceptInvitationsForNewUser failed for user",
+                                    user.id,
+                                    err,
+                                )
+                            }
                         }
                     },
                 },
@@ -240,11 +248,19 @@ export function createFdmAuth(
                     after: async (user) => {
                         // Auto-accept pending invitations when email becomes verified
                         if (user.emailVerified) {
-                            await autoAcceptInvitationsForNewUser(
-                                fdm,
-                                user.email,
-                                user.id,
-                            )
+                            try {
+                                await autoAcceptInvitationsForNewUser(
+                                    fdm,
+                                    user.email,
+                                    user.id,
+                                )
+                            } catch (err) {
+                                console.warn(
+                                    "autoAcceptInvitationsForNewUser failed for user",
+                                    user.id,
+                                    err,
+                                )
+                            }
                         }
                     },
                 },

@@ -159,12 +159,7 @@ export async function getPrincipal(
 export async function identifyPrincipal(
     fdm: FdmType,
     identifier: string,
-): Promise<
-    | ({
-          id: string
-      } & Principal)
-    | undefined
-> {
+): Promise<Principal | undefined> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
             // Check if principal is an user
@@ -194,12 +189,8 @@ export async function identifyPrincipal(
 
             // Get the type of the principal
             const principalDetails = await getPrincipal(tx, principal_id[0].id)
-            // console.log(principalDetails)
 
-            return {
-                id: principal_id[0].id,
-                ...principalDetails,
-            }
+            return principalDetails
         })
     } catch (err) {
         throw handleError(err, "Exception for identifyPrincipal", {

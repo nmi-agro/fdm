@@ -78,7 +78,6 @@ export async function autoAcceptInvitationsForNewUser(
         })
     } catch (err) {
         throw handleError(err, "Exception for autoAcceptInvitationsForNewUser", {
-            email,
             user_id,
         })
     }

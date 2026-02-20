@@ -205,7 +205,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         targetEmail,
                         inviterName,
                         farm.b_name_farm ?? b_id_farm,
-                        b_id_farm,
                         formValues.role,
                         isUnregistered,
                     )

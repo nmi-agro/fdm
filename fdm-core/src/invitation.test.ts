@@ -3,7 +3,6 @@ import { beforeAll, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
 import { createFdmAuth } from "./authentication"
 import { listPrincipalsForResource } from "./authorization"
-import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { addFarm, grantRoleToFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -214,8 +213,8 @@ describe("autoAcceptInvitationsForNewUser", () => {
             } as any,
         })
 
-        // Auto-accept with the normalized email
-        await autoAcceptInvitationsForNewUser(fdm, normalizedEmail, caseUser.user.id)
+        // Auto-accept with the mixed-case email to exercise normalization
+        await autoAcceptInvitationsForNewUser(fdm, mixedCaseEmail, caseUser.user.id)
 
         const principals = await listPrincipalsForResource(
             fdm,
