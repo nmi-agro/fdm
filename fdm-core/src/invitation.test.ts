@@ -534,6 +534,12 @@ describe("declineInvitation", () => {
             } as any,
         })
 
+        // Mark email as verified
+        await fdm
+            .update(authNSchema.user)
+            .set({ emailVerified: true })
+            .where(eq(authNSchema.user.id, target.user.id))
+
         const pending = await listPendingInvitationsForPrincipal(
             fdm,
             target.user.id,
@@ -589,6 +595,12 @@ describe("declineInvitation", () => {
                 password: "password",
             } as any,
         })
+
+        // Mark email as verified
+        await fdm
+            .update(authNSchema.user)
+            .set({ emailVerified: true })
+            .where(eq(authNSchema.user.id, target.user.id))
 
         const pending = await listPendingInvitationsForPrincipal(
             fdm,
