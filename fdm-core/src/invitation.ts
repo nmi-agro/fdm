@@ -1,9 +1,6 @@
-import { and, eq, gt, inArray, or } from "drizzle-orm"
+import { and, count, eq, gt, inArray, or } from "drizzle-orm"
 import isEmail from "validator/lib/isEmail"
-import {
-    grantRole,
-    listPrincipalsForResource,
-} from "./authorization"
+import { grantRole, listPrincipalsForResource } from "./authorization"
 import type { Resource, Role } from "./authorization.d"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -11,6 +8,19 @@ import { handleError } from "./error"
 import type { FdmType } from "./fdm"
 import { createId } from "./id"
 import { identifyPrincipal } from "./principal"
+
+/**
+ * Maximum number of invitations an inviter can send within a rolling one-hour window.
+ * Enforced in {@link createInvitation} to prevent spam campaigns.
+ */
+export const MAX_INVITATIONS_PER_INVITER_PER_HOUR = 20
+
+/**
+ * Maximum number of globally pending invitations a single target (email or principal)
+ * may have at once across all resources.
+ * Enforced in {@link createInvitation} to prevent inbox flooding.
+ */
+export const MAX_INVITATIONS_PENDING_PER_TARGET = 10
 
 /**
  * Creates an invitation for a principal or email address to access a resource.
@@ -76,7 +86,25 @@ export async function createInvitation(
                 targetEmail = normalizedTarget
             }
 
-            const expiresDate = expires ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            // Rate limit: prevent an inviter from sending too many invitations per hour
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+            const [rateRow] = await tx
+                .select({ value: count() })
+                .from(authZSchema.invitation)
+                .where(
+                    and(
+                        eq(authZSchema.invitation.inviter_id, inviter_id),
+                        gt(authZSchema.invitation.created, oneHourAgo),
+                    ),
+                )
+            if (rateRow.value >= MAX_INVITATIONS_PER_INVITER_PER_HOUR) {
+                throw new Error(
+                    "Rate limit exceeded: too many invitations sent in the last hour",
+                )
+            }
+
+            const expiresDate =
+                expires ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
             if (targetEmail) {
                 const existing = await tx
@@ -86,7 +114,10 @@ export async function createInvitation(
                         and(
                             eq(authZSchema.invitation.resource, resource),
                             eq(authZSchema.invitation.resource_id, resource_id),
-                            eq(authZSchema.invitation.target_email, targetEmail),
+                            eq(
+                                authZSchema.invitation.target_email,
+                                targetEmail,
+                            ),
                             eq(authZSchema.invitation.status, "pending"),
                         ),
                     )
@@ -103,6 +134,27 @@ export async function createInvitation(
                             ),
                         )
                 } else {
+                    // Pending cap: prevent flooding a target's inbox across resources
+                    const [pendingRow] = await tx
+                        .select({ value: count() })
+                        .from(authZSchema.invitation)
+                        .where(
+                            and(
+                                eq(
+                                    authZSchema.invitation.target_email,
+                                    targetEmail,
+                                ),
+                                eq(authZSchema.invitation.status, "pending"),
+                            ),
+                        )
+                    if (
+                        pendingRow.value >= MAX_INVITATIONS_PENDING_PER_TARGET
+                    ) {
+                        throw new Error(
+                            "Target has too many pending invitations. Please try again later.",
+                        )
+                    }
+
                     await tx.insert(authZSchema.invitation).values({
                         invitation_id: createId(),
                         resource,
@@ -141,6 +193,27 @@ export async function createInvitation(
                             ),
                         )
                 } else {
+                    // Pending cap: prevent flooding a target's inbox across resources
+                    const [pendingRow] = await tx
+                        .select({ value: count() })
+                        .from(authZSchema.invitation)
+                        .where(
+                            and(
+                                eq(
+                                    authZSchema.invitation.target_principal_id,
+                                    targetPrincipalId!,
+                                ),
+                                eq(authZSchema.invitation.status, "pending"),
+                            ),
+                        )
+                    if (
+                        pendingRow.value >= MAX_INVITATIONS_PENDING_PER_TARGET
+                    ) {
+                        throw new Error(
+                            "Target has too many pending invitations. Please try again later.",
+                        )
+                    }
+
                     await tx.insert(authZSchema.invitation).values({
                         invitation_id: createId(),
                         resource,
@@ -216,10 +289,7 @@ export async function acceptInvitation(
                     .update(authZSchema.invitation)
                     .set({ status: "expired" })
                     .where(
-                        eq(
-                            authZSchema.invitation.invitation_id,
-                            invitation_id,
-                        ),
+                        eq(authZSchema.invitation.invitation_id, invitation_id),
                     )
                 throw new Error("Invitation has expired")
             }
@@ -246,9 +316,7 @@ export async function acceptInvitation(
                     if (orgMembership.length > 0) {
                         // Organization target: verify user is admin or owner
                         if (
-                            !["admin", "owner"].includes(
-                                orgMembership[0].role,
-                            )
+                            !["admin", "owner"].includes(orgMembership[0].role)
                         ) {
                             throw new Error(
                                 "Only admins or owners can accept invitations on behalf of an organization",
@@ -324,10 +392,7 @@ export async function acceptInvitation(
                     .update(authZSchema.invitation)
                     .set({ target_principal_id: granteeId })
                     .where(
-                        eq(
-                            authZSchema.invitation.invitation_id,
-                            invitation_id,
-                        ),
+                        eq(authZSchema.invitation.invitation_id, invitation_id),
                     )
             }
         })
@@ -358,9 +423,7 @@ export async function declineInvitation(
             const invitations = await tx
                 .select()
                 .from(authZSchema.invitation)
-                .where(
-                    eq(authZSchema.invitation.invitation_id, invitation_id),
-                )
+                .where(eq(authZSchema.invitation.invitation_id, invitation_id))
                 .limit(1)
 
             if (invitations.length === 0) {
@@ -377,10 +440,7 @@ export async function declineInvitation(
                     .update(authZSchema.invitation)
                     .set({ status: "expired" })
                     .where(
-                        eq(
-                            authZSchema.invitation.invitation_id,
-                            invitation_id,
-                        ),
+                        eq(authZSchema.invitation.invitation_id, invitation_id),
                     )
                 throw new Error("Invitation has expired")
             }
@@ -401,9 +461,7 @@ export async function declineInvitation(
                     .limit(1)
 
                 if (orgMembership.length > 0) {
-                    if (
-                        !["admin", "owner"].includes(orgMembership[0].role)
-                    ) {
+                    if (!["admin", "owner"].includes(orgMembership[0].role)) {
                         throw new Error(
                             "Only admins or owners can decline invitations on behalf of an organization",
                         )
@@ -434,9 +492,7 @@ export async function declineInvitation(
             await tx
                 .update(authZSchema.invitation)
                 .set({ status: "declined" })
-                .where(
-                    eq(authZSchema.invitation.invitation_id, invitation_id),
-                )
+                .where(eq(authZSchema.invitation.invitation_id, invitation_id))
         })
     } catch (err) {
         throw handleError(err, "Exception for declineInvitation", {
@@ -555,7 +611,10 @@ export async function autoAcceptInvitationsForNewUser(
                 .from(authZSchema.invitation)
                 .where(
                     and(
-                        eq(authZSchema.invitation.target_email, normalizedEmail),
+                        eq(
+                            authZSchema.invitation.target_email,
+                            normalizedEmail,
+                        ),
                         eq(authZSchema.invitation.status, "pending"),
                     ),
                 )
@@ -599,8 +658,12 @@ export async function autoAcceptInvitationsForNewUser(
             }
         })
     } catch (err) {
-        throw handleError(err, "Exception for autoAcceptInvitationsForNewUser", {
-            user_id,
-        })
+        throw handleError(
+            err,
+            "Exception for autoAcceptInvitationsForNewUser",
+            {
+                user_id,
+            },
+        )
     }
 }

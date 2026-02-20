@@ -28,7 +28,7 @@ import {
     renderFarmInvitationEmail,
     sendEmail,
 } from "~/lib/email.server"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
@@ -259,8 +259,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         throw new Error("Invalid intent")
     } catch (error) {
-        console.error(error)
-        return dataWithError(null, "Er is iets misgegaan")
-        // throw handleActionError(error)
+        return handleActionError(error)
     }
 }

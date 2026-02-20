@@ -239,8 +239,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
         throw new Error("invalid intent")
     } catch (error) {
-        console.error(error)
-        return dataWithError(null, "Er is iets misgegaan")
-        // throw handleActionError(error)
+        return handleActionError(error)
     }
 }
