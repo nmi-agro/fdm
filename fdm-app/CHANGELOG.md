@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.27.4
+
+### Patch Changes
+
+- [#469](https://github.com/SvenVw/fdm/pull/469) [`b9f30b6`](https://github.com/SvenVw/fdm/commit/b9f30b65b9e3b9375e0e6f17c9ad3f1bbaaab7da) Thanks [@SvenVw](https://github.com/SvenVw)! - Make privacy policy available under '/privacy' instead of redirecting to external domain
+
 ## 0.27.3
 
 ### Patch Changes
