@@ -2,6 +2,7 @@ import {
     Body,
     Button,
     Container,
+    Font,
     Head,
     Heading,
     Html,
@@ -19,7 +20,7 @@ interface FarmInvitationEmailProps {
     targetEmail: string
     role: string
     appName: string
-    appBaseUrl?: string
+    appBaseUrl: string
     logoFileName?: string
     /** If true, renders a "create account" CTA for unregistered users */
     isUnregistered?: boolean
@@ -37,26 +38,22 @@ export const FarmInvitationEmail = ({
     targetEmail,
     role,
     appName,
-    appBaseUrl = "",
+    appBaseUrl,
     logoFileName = "/fdm-high-resolution-logo-transparent.png",
     isUnregistered = false,
 }: FarmInvitationEmailProps) => {
     const logoPath = `${appBaseUrl}${logoFileName}`
     const roleLabel = roleLabels[role] ?? role
-    const fontFamily = `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif`
 
     return (
         <Html lang="nl">
             <Head>
-                <link
-                    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-                    rel="stylesheet"
+                <Font
+                    fontFamily="Inter"
+                    fallbackFontFamily="sans-serif"
+                    fontWeight={400}
+                    fontStyle="normal"
                 />
-                <style>{`
-                * {
-                    font-family: ${fontFamily};
-                }
-            `}</style>
             </Head>
             <Preview>
                 {`${inviterName} heeft je uitgenodigd voor toegang tot bedrijf ${farmName} in ${appName}.`}
