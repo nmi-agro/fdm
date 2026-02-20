@@ -442,7 +442,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
                 })
             } catch (sendingError) {
-                handleActionError(sendingError)
                 if (invitation?.id) {
                     try {
                         await auth.api.cancelInvitation({
@@ -456,12 +455,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     }
                 }
                 if (isInactiveRecipientError(sendingError)) {
+                    console.error(
+                        `Attempted to send organization invitation to inactive email: ${formValues.email}`,
+                    )
                     return dataWithError(null, {
                         message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
                     })
                 }
+                handleActionError(sendingError)
                 return dataWithError(null, {
-                    message: `We kunnen geen e-mails naar ${formValues.email} sturen. Neem contact op met de ondersteuning voor hulp.`,
+                    message:
+                        "Er is iets fout gegaan. Neem contact op met de ondersteuning voor hulp.",
                 })
             }
         }

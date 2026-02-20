@@ -1670,14 +1670,16 @@ export async function action({ request }: ActionFunctionArgs) {
             `Een aanmeldcode is verstuurd naar ${email}.`,
         )
     } catch (error) {
-        console.error("Error sending magic link") // Don't log full error details
-        handleActionError(error)
         if (isInactiveRecipientError(error)) {
+            console.error(
+                `Attempted to send magic link to inactive email: ${email}`,
+            )
             return dataWithError(null, {
-                message:
-                    "We hebben geen toestemming om e-mails naar dit adres te versturen. Neem contact op met de ondersteuning voor hulp.",
+                message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
             })
         }
+
+        handleActionError(error)
         return dataWithError(null, {
             message:
                 "Er is iets fout gegaan. Neem contact op met de ondersteuning voor hulp.",
