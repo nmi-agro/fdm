@@ -137,6 +137,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
 
             // Send invitation email
+            let targetPrincipal: any = null;
             try {
                 const farm = await getFarm(fdm, session.principal_id, b_id_farm)
                 const inviterName = session.userName
@@ -145,7 +146,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
                 // Try to find the principal to get their email if they are registered
                 const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-                const targetPrincipal = matchedPrincipals.find(
+                targetPrincipal = matchedPrincipals.find(
                     (p) =>
                         p.username.toLowerCase() === normalizedTarget ||
                         (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
@@ -171,13 +172,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
             } catch (emailError) {
                 console.error("Error sending farm invitation email:", emailError)
                 if (isInactiveRecipientError(emailError)) {
-                    // Revoke permission if email fails due to inactive recipient
-                    await revokePrincipalFromFarm(
-                        fdm,
-                        session.principal_id,
-                        formValues.username,
-                        b_id_farm,
-                    )
+                    // Only revoke if we resolved a registered principal;
+                    // otherwise (email-only invite), keep the pending invitation.
+                    if (targetPrincipal && targetPrincipal.type === "user") {
+                        await revokePrincipalFromFarm(
+                            fdm,
+                            session.principal_id,
+                            formValues.username,
+                            b_id_farm,
+                        )
+                    }
                     return dataWithError(
                         null,
                         `We kunnen geen e-mails naar ${formValues.username} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,

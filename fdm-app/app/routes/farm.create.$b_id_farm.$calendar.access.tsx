@@ -180,6 +180,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 formValues.role,
             )
 
+            let targetPrincipal: any = null;
+
             // Send invitation email
             try {
                 const farm = await getFarm(fdm, principalId, b_id_farm)
@@ -188,7 +190,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 const isEmailTarget = isEmail(normalizedTarget)
 
                 const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-                const targetPrincipal = matchedPrincipals.find(
+                targetPrincipal = matchedPrincipals.find(
                     (p) =>
                         p.username.toLowerCase() === normalizedTarget ||
                         (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
@@ -214,13 +216,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
             } catch (emailError) {
                 console.error("Error sending farm invitation email:", emailError)
                 if (isInactiveRecipientError(emailError)) {
-                    // Revoke permission if email fails due to inactive recipient
-                    await revokePrincipalFromFarm(
-                        fdm,
-                        principalId,
-                        formValues.username,
-                        b_id_farm,
-                    )
+                    // Only revoke if we resolved a registered principal;
+                    // otherwise (email-only invite), keep the pending invitation.
+                    if (targetPrincipal && targetPrincipal.type === "user") {
+                        await revokePrincipalFromFarm(
+                            fdm,
+                            principalId,
+                            formValues.username,
+                            b_id_farm,
+                        )
+                    }
                     return dataWithError(
                         null,
                         `We kunnen geen e-mails naar ${formValues.username} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
