@@ -21,6 +21,11 @@ interface Email {
     Tag: string
 }
 
+const getPrivacyUrl = () => {
+    if (serverConfig.privacy_url) return serverConfig.privacy_url
+    return `${serverConfig.url}/privacy`
+}
+
 export async function renderWelcomeEmail(user: User): Promise<Email> {
     const emailHtml = await render(
         WelcomeEmail({
@@ -28,6 +33,8 @@ export async function renderWelcomeEmail(user: User): Promise<Email> {
             url: serverConfig.url,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
+            privacyUrl: getPrivacyUrl(),
         }),
     )
 
@@ -56,6 +63,8 @@ export async function renderInvitationEmail(
             organizationName: organizationName,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
+            privacyUrl: getPrivacyUrl(),
         }),
         { pretty: true },
     )
@@ -86,7 +95,9 @@ export async function renderFarmInvitationEmail(
             role,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
             isUnregistered,
+            privacyUrl: getPrivacyUrl(),
         }),
         { pretty: true },
     )
@@ -146,6 +157,7 @@ export async function renderMagicLinkEmail(
             appBaseUrl: serverConfig.url,
             senderName: serverConfig.mail?.postmark.sender_name,
             emailTimestamp: emailTimestamp,
+            privacyUrl: getPrivacyUrl(),
         }),
         { pretty: true },
     )
