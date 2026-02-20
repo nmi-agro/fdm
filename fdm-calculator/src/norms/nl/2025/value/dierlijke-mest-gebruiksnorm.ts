@@ -34,9 +34,7 @@ export async function isFieldInGWGBGebied(
             return false
         }
         default: {
-            throw new Error(
-                `Unknown GWBG code: ${gwbgCode} for coordinates ${longitude}, ${latitude}`,
-            )
+            return false
         }
     }
 }
@@ -69,9 +67,7 @@ export async function isFieldInNatura2000Gebied(
             return false
         }
         default: {
-            throw new Error(
-                `Unknown Natura2000 code: ${natura2000Code} for coordinates ${longitude}, ${latitude}`,
-            )
+            return false
         }
     }
 }
@@ -108,9 +104,7 @@ export async function isFieldInDerogatieVrijeZone(
             return false
         }
         default: {
-            throw new Error(
-                `Unknown  derogatieVrijeZoneCodes code: ${derogatieVrijeZoneCode} for coordinates ${longitude}, ${latitude}`,
-            )
+            return false
         }
     }
 }
