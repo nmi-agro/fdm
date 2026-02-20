@@ -57,10 +57,10 @@ export const BaseEmailLayout = ({
     showFooter = true,
     footerText,
     reasonText,
-    privacyUrl,
     lang = "nl",
 }: BaseEmailLayoutProps) => {
     const logoPath = `${appBaseUrl}${logoFileName}`
+    const privacyUrl = appBaseUrl ? `${appBaseUrl}/privacy` : undefined
 
     return (
         <Html lang={lang}>
@@ -90,17 +90,14 @@ export const BaseEmailLayout = ({
                         {children}
 
                         {showFooter && (
-                            <>
-                                <Section className="mt-8 mb-8 text-center">
-                                    {footerText || (
-                                        <Text className="text-muted text-[12px] leading-6">
-                                            Met vriendelijke groet, <br />{" "}
-                                            {senderName ||
-                                                `Het ${appName} team`}
-                                        </Text>
-                                    )}
-                                </Section>
-                            </>
+                            <Section className="mt-8 mb-8 text-center">
+                                {footerText || (
+                                    <Text className="text-muted text-[12px] leading-6">
+                                        Met vriendelijke groet, <br />{" "}
+                                        {senderName || `Het ${appName} team`}
+                                    </Text>
+                                )}
+                            </Section>
                         )}
 
                         {(reasonText || privacyUrl) && (

@@ -10,7 +10,6 @@ interface InvitationEmailProps {
     appBaseUrl?: string // Optional base URL for logo path
     senderName?: string // Optional sender name for footer
     logoFileName?: string // Optional logo file name
-    privacyUrl?: string
 }
 
 export const InvitationEmail = ({
@@ -22,7 +21,6 @@ export const InvitationEmail = ({
     appBaseUrl = "",
     senderName,
     logoFileName = "/fdm-high-resolution-logo-transparent.png",
-    privacyUrl,
 }: InvitationEmailProps) => {
     const previewText = `${inviterName} heeft je uitgenodigd om lid te worden van ${organizationName} in ${appName}.`
 
@@ -32,7 +30,6 @@ export const InvitationEmail = ({
             appBaseUrl={appBaseUrl}
             senderName={senderName}
             logoFileName={logoFileName}
-            privacyUrl={privacyUrl}
             reasonText={`Je ontvangt deze e-mail omdat ${inviterName} je heeft uitgenodigd voor ${organizationName}.`}
             preview={previewText}
         >

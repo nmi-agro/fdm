@@ -12,7 +12,6 @@ interface FarmInvitationEmailProps {
     logoFileName?: string
     /** If true, renders a "create account" CTA for unregistered users */
     isUnregistered?: boolean
-    privacyUrl?: string
 }
 
 const roleLabels: Record<string, string> = {
@@ -31,7 +30,6 @@ export const FarmInvitationEmail = ({
     senderName,
     logoFileName = "/fdm-high-resolution-logo-transparent.png",
     isUnregistered = false,
-    privacyUrl,
 }: FarmInvitationEmailProps) => {
     const roleLabel = roleLabels[role] ?? role
     const previewText = `${inviterName} heeft je uitgenodigd voor toegang tot bedrijf ${farmName} in ${appName}.`
@@ -42,7 +40,6 @@ export const FarmInvitationEmail = ({
             appBaseUrl={appBaseUrl}
             senderName={senderName}
             logoFileName={logoFileName}
-            privacyUrl={privacyUrl}
             reasonText={`Je ontvangt deze e-mail omdat ${inviterName} je heeft uitgenodigd voor bedrijf ${farmName}.`}
             preview={previewText}
             showFooter={false}

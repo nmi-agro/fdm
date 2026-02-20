@@ -8,7 +8,6 @@ interface MagicLinkEmailProps {
     appBaseUrl: string
     senderName: string | undefined
     emailTimestamp: string
-    privacyUrl?: string
 }
 
 export const MagicLinkEmail = ({
@@ -18,7 +17,6 @@ export const MagicLinkEmail = ({
     appBaseUrl,
     senderName,
     emailTimestamp,
-    privacyUrl,
 }: MagicLinkEmailProps) => {
     const previewText = `Link om aan te melden bij ${appName}`
 
@@ -27,7 +25,6 @@ export const MagicLinkEmail = ({
             appName={appName}
             appBaseUrl={appBaseUrl}
             senderName={senderName}
-            privacyUrl={privacyUrl}
             reasonText={`Je ontvangt deze e-mail omdat je een aanmeldcode hebt aangevraagd voor ${appName}.`}
             preview={previewText}
             footerText={
