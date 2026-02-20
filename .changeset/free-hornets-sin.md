@@ -2,4 +2,4 @@
 "@svenvw/fdm-calculator": patch
 ---
 
-Fix for isFieldInGWGBGebied, isFieldInNatura2000Gebied and isFieldInDerogatieVrijeZone 0 is returned outside bounding box instead of an error
+Fix: isFieldInGWGBGebied, isFieldInNatura2000Gebied, and isFieldInDerogatieVrijeZone now return false instead of throwing an error when a centroid coordinate lies outside the GeoTIFF bounding box (null value)
