@@ -230,7 +230,6 @@ export async function createInvitation(
         throw handleError(err, "Exception for createInvitation", {
             resource,
             resource_id,
-            target,
             role,
         })
     }
@@ -299,50 +298,48 @@ export async function acceptInvitation(
 
             if (invitation.target_principal_id) {
                 const orgMembership = await tx
-                        .select()
-                        .from(authNSchema.member)
-                        .where(
-                            and(
-                                eq(
-                                    authNSchema.member.organizationId,
-                                    invitation.target_principal_id,
-                                ),
-                                eq(authNSchema.member.userId, user_id),
+                    .select()
+                    .from(authNSchema.member)
+                    .where(
+                        and(
+                            eq(
+                                authNSchema.member.organizationId,
+                                invitation.target_principal_id,
                             ),
+                            eq(authNSchema.member.userId, user_id),
+                        ),
+                    )
+                    .limit(1)
+
+                if (orgMembership.length > 0) {
+                    // Organization target: verify user is admin or owner
+                    if (!["admin", "owner"].includes(orgMembership[0].role)) {
+                        throw new Error(
+                            "Only admins or owners can accept invitations on behalf of an organization",
                         )
+                    }
+                } else {
+                    // User target: verify it matches the accepting user
+                    if (invitation.target_principal_id !== user_id) {
+                        throw new Error("This invitation is not for you")
+                    }
+                    const userRecord = await tx
+                        .select({
+                            emailVerified: authNSchema.user.emailVerified,
+                        })
+                        .from(authNSchema.user)
+                        .where(eq(authNSchema.user.id, user_id))
                         .limit(1)
 
-                    if (orgMembership.length > 0) {
-                        // Organization target: verify user is admin or owner
-                        if (
-                            !["admin", "owner"].includes(orgMembership[0].role)
-                        ) {
-                            throw new Error(
-                                "Only admins or owners can accept invitations on behalf of an organization",
-                            )
-                        }
-                    } else {
-                        // User target: verify it matches the accepting user
-                        if (invitation.target_principal_id !== user_id) {
-                            throw new Error("This invitation is not for you")
-                        }
-                        const userRecord = await tx
-                            .select({
-                                emailVerified: authNSchema.user.emailVerified,
-                            })
-                            .from(authNSchema.user)
-                            .where(eq(authNSchema.user.id, user_id))
-                            .limit(1)
-
-                        if (
-                            userRecord.length === 0 ||
-                            !userRecord[0].emailVerified
-                        ) {
-                            throw new Error(
-                                "Email must be verified before accepting an invitation",
-                            )
-                        }
+                    if (
+                        userRecord.length === 0 ||
+                        !userRecord[0].emailVerified
+                    ) {
+                        throw new Error(
+                            "Email must be verified before accepting an invitation",
+                        )
                     }
+                }
 
                 granteeId = invitation.target_principal_id
             } else if (invitation.target_email) {
