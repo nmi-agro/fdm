@@ -74,7 +74,7 @@ The full column reference for the `invitation` table is documented in the [Datab
 
 | Function | Description |
 |---|---|
-| `createInvitation(fdm, resource, resource_id, inviter_id, target, role)` | Creates a pending invitation |
+| `createInvitation(fdm, resource, resource_id, inviter_id, target, role, expires?)` | Creates a pending invitation; `expires` defaults to 7 days from now |
 | `acceptInvitation(fdm, invitation_id, user_id)` | Accepts and activates the role |
 | `declineInvitation(fdm, invitation_id, user_id)` | Declines the invitation |
 | `listPendingInvitationsForPrincipal(fdm, user_id)` | Lists all pending invitations for a user |
