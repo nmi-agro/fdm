@@ -679,7 +679,17 @@ export async function listPrincipalsForFarm(
                 },
             )
 
-            return [...principalsDetails, ...pendingDetails]
+            // Deduplicate by principal_id, preferring "active" over "pending"
+            const deduped = new Map<string, (typeof principalsDetails)[number]>()
+            for (const entry of principalsDetails) {
+                deduped.set(entry.id, entry)
+            }
+            for (const entry of pendingDetails) {
+                if (!deduped.has(entry.id)) {
+                    deduped.set(entry.id, entry)
+                }
+            }
+            return Array.from(deduped.values())
         })
     } catch (err) {
         throw handleError(err, "Exception for listPrincipalsForFarm", {

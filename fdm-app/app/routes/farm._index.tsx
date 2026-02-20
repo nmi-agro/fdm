@@ -49,6 +49,13 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 
+function getRoleLabel(role: string): string {
+    if (role === "owner") return "Eigenaar"
+    if (role === "advisor") return "Adviseur"
+    if (role === "researcher") return "Onderzoeker"
+    return "Lid"
+}
+
 // Meta
 export const meta: MetaFunction = () => {
     return [
@@ -355,13 +362,7 @@ export default function AppIndex() {
                                                                 </CardTitle>
                                                                 <CardDescription className="text-xs">
                                                                     Rol:{" "}
-                                                                    {invitation.role ===
-                                                                    "owner"
-                                                                        ? "Eigenaar"
-                                                                        : invitation.role ===
-                                                                            "advisor"
-                                                                          ? "Adviseur"
-                                                                          : "Onderzoeker"}
+                                                                    {getRoleLabel(invitation.role)}
                                                                 </CardDescription>
                                                             </div>
                                                         </div>
@@ -373,13 +374,7 @@ export default function AppIndex() {
                                                         {invitation.farm_name ??
                                                             invitation.resource_id}{" "}
                                                         als{" "}
-                                                        {invitation.role ===
-                                                        "owner"
-                                                            ? "Eigenaar"
-                                                            : invitation.role ===
-                                                                "advisor"
-                                                              ? "Adviseur"
-                                                              : "Onderzoeker"}
+                                                        {getRoleLabel(invitation.role)}
                                                         .
                                                         {invitation.org_name && (
                                                             <span className="block text-xs text-muted-foreground">
@@ -500,16 +495,7 @@ export default function AppIndex() {
                                                                         variant="secondary"
                                                                         className="text-[10px] uppercase tracking-wider"
                                                                     >
-                                                                        {role ===
-                                                                        "owner"
-                                                                            ? "Eigenaar"
-                                                                            : role ===
-                                                                                "advisor"
-                                                                              ? "Adviseur"
-                                                                              : role ===
-                                                                                  "researcher"
-                                                                                ? "Onderzoeker"
-                                                                                : "Lid"}
+                                                                        {getRoleLabel(role)}
                                                                     </Badge>
                                                                 ),
                                                             )}
@@ -604,13 +590,7 @@ export default function AppIndex() {
                                                             </CardTitle>
                                                             <CardDescription className="text-xs">
                                                                 Rol:{" "}
-                                                                {invitation.role ===
-                                                                "owner"
-                                                                    ? "Eigenaar"
-                                                                    : invitation.role ===
-                                                                        "advisor"
-                                                                      ? "Adviseur"
-                                                                      : "Onderzoeker"}
+                                                                {getRoleLabel(invitation.role)}
                                                             </CardDescription>
                                                         </div>
                                                     </div>
@@ -622,12 +602,7 @@ export default function AppIndex() {
                                                     {invitation.farm_name ??
                                                         invitation.resource_id}{" "}
                                                     als{" "}
-                                                    {invitation.role === "owner"
-                                                        ? "Eigenaar"
-                                                        : invitation.role ===
-                                                            "advisor"
-                                                          ? "Adviseur"
-                                                          : "Onderzoeker"}
+                                                    {getRoleLabel(invitation.role)}
                                                     .
                                                     {invitation.org_name && (
                                                         <span className="block text-xs text-muted-foreground">

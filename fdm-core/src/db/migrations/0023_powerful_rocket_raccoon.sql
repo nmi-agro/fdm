@@ -14,4 +14,5 @@ CREATE TABLE "fdm-authz"."invitation" (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX "invitation_unique_email_idx" ON "fdm-authz"."invitation" USING btree ("resource","resource_id","target_email") WHERE "fdm-authz"."invitation"."status" = 'pending';--> statement-breakpoint
-CREATE UNIQUE INDEX "invitation_unique_principal_idx" ON "fdm-authz"."invitation" USING btree ("resource","resource_id","target_principal_id") WHERE "fdm-authz"."invitation"."status" = 'pending';
+CREATE UNIQUE INDEX "invitation_unique_principal_idx" ON "fdm-authz"."invitation" USING btree ("resource","resource_id","target_principal_id") WHERE "fdm-authz"."invitation"."status" = 'pending';--> statement-breakpoint
+CREATE INDEX "invitation_pending_target_email_idx" ON "fdm-authz"."invitation" USING btree ("target_email") WHERE "fdm-authz"."invitation"."status" = 'pending';

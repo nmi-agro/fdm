@@ -84,6 +84,10 @@ export const invitation = fdmAuthZSchema.table(
             "invitation_target_check",
             sql`${table.target_email} IS NOT NULL OR ${table.target_principal_id} IS NOT NULL`,
         ),
+        // Partial index for fast lookup by target_email when status is pending
+        index("invitation_pending_target_email_idx")
+            .on(table.target_email)
+            .where(sql`${table.status} = 'pending'`),
     ],
 )
 

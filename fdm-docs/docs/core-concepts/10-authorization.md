@@ -77,7 +77,7 @@ The full column reference for the `invitation` table is documented in the [Datab
 | `createInvitation(fdm, resource, resource_id, inviter_id, target, role)` | Creates a pending invitation |
 | `acceptInvitation(fdm, invitation_id, user_id)` | Accepts and activates the role |
 | `declineInvitation(fdm, invitation_id, user_id)` | Declines the invitation |
-| `listPendingInvitationsForPrincipal(fdm, principal_id)` | Lists all pending invitations for a user |
+| `listPendingInvitationsForPrincipal(fdm, user_id)` | Lists all pending invitations for a user |
 | `autoAcceptInvitationsForNewUser(fdm, email, user_id)` | Auto-accepts email-targeted invitations after email verification |
 
 For farm-specific helpers that add permission checks, see `grantRoleToFarm`, `listPendingInvitationsForFarm`, and `listPendingInvitationsForUser` in the farm API.

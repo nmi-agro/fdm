@@ -298,8 +298,7 @@ export async function acceptInvitation(
             let granteeId: string
 
             if (invitation.target_principal_id) {
-                if (invitation.target_principal_id) {
-                    const orgMembership = await tx
+                const orgMembership = await tx
                         .select()
                         .from(authNSchema.member)
                         .where(
@@ -344,7 +343,6 @@ export async function acceptInvitation(
                             )
                         }
                     }
-                }
 
                 granteeId = invitation.target_principal_id
             } else if (invitation.target_email) {
@@ -642,27 +640,36 @@ export async function autoAcceptInvitationsForNewUser(
                     continue
                 }
 
-                await grantRole(
-                    tx,
-                    inv.resource as Resource,
-                    inv.role as Role,
-                    inv.resource_id,
-                    user_id,
-                )
+                try {
+                    await tx.transaction(async (savepointTx: FdmType) => {
+                        await grantRole(
+                            savepointTx,
+                            inv.resource as Resource,
+                            inv.role as Role,
+                            inv.resource_id,
+                            user_id,
+                        )
 
-                await tx
-                    .update(authZSchema.invitation)
-                    .set({
-                        status: "accepted",
-                        accepted_at: now,
-                        target_principal_id: user_id,
+                        await savepointTx
+                            .update(authZSchema.invitation)
+                            .set({
+                                status: "accepted",
+                                accepted_at: now,
+                                target_principal_id: user_id,
+                            })
+                            .where(
+                                eq(
+                                    authZSchema.invitation.invitation_id,
+                                    inv.invitation_id,
+                                ),
+                            )
                     })
-                    .where(
-                        eq(
-                            authZSchema.invitation.invitation_id,
-                            inv.invitation_id,
-                        ),
+                } catch (e) {
+                    console.warn(
+                        `Failed to auto-accept invitation ${inv.invitation_id} for user ${user_id}:`,
+                        e,
                     )
+                }
             }
         })
     } catch (err) {

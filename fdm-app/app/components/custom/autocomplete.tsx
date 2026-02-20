@@ -161,23 +161,21 @@ export function AutoComplete<T extends string>({
     // click fires. Dropdown item clicks are protected by onMouseDown e.preventDefault() on
     // each CommandItem, which prevents blur from firing during dropdown selection.
     const handleInputBlur = () => {
-        if (!openRef.current) {
-            if (inputValue && !selectedValue) {
-                if (allowValuesOutsideList) {
-                    // Accept typed value as-is (e.g. email address)
-                    onSelectedValueChange(inputValue as T)
-                    if (form && name) {
-                        form.setValue(name, inputValue)
-                    }
-                } else {
-                    // Only dropdown selections allowed — clear the input
-                    setInputValue("")
+        if (inputValue && !selectedValue) {
+            if (allowValuesOutsideList) {
+                // Accept typed value as-is (e.g. email address)
+                onSelectedValueChange(inputValue as T)
+                if (form && name) {
+                    form.setValue(name, inputValue)
                 }
+            } else {
+                // Only dropdown selections allowed — clear the input
+                setInputValue("")
             }
-            // If input doesn't match selected label, revert input to selected label
-            else if (inputValue !== selectedLabel && selectedValue) {
-                setInputValue(selectedLabel)
-            }
+        }
+        // If input doesn't match selected label, revert input to selected label
+        else if (inputValue !== selectedLabel && selectedValue) {
+            setInputValue(selectedLabel)
         }
     }
 

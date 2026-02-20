@@ -1,5 +1,5 @@
 {
-    "id": "29039011-db9f-4b69-96a8-26fa3ea37e28",
+    "id": "0440bcd2-2895-4237-9ebd-c7864e702108",
     "prevId": "8a96c296-24b8-4edc-bdbc-b140c973f74e",
     "version": "7",
     "dialect": "postgresql",
@@ -3322,6 +3322,22 @@
                         }
                     ],
                     "isUnique": true,
+                    "where": "\"fdm-authz\".\"invitation\".\"status\" = 'pending'",
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "invitation_pending_target_email_idx": {
+                    "name": "invitation_pending_target_email_idx",
+                    "columns": [
+                        {
+                            "expression": "target_email",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
                     "where": "\"fdm-authz\".\"invitation\".\"status\" = 'pending'",
                     "concurrently": false,
                     "method": "btree",
