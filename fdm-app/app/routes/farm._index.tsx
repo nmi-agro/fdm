@@ -27,6 +27,7 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -344,106 +345,10 @@ export default function AppIndex() {
                                     <div className="grid w-full gap-4 sm:grid-cols-2">
                                         {loaderData.pendingInvitations.map(
                                             (invitation) => (
-                                                <Card
-                                                    key={
-                                                        invitation.invitation_id
-                                                    }
-                                                    className="flex flex-col text-left"
-                                                >
-                                                    <CardHeader className="pb-2">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-                                                                <Bell className="h-5 w-5" />
-                                                            </div>
-                                                            <div>
-                                                                <CardTitle className="text-base">
-                                                                    {invitation.farm_name ??
-                                                                        invitation.resource_id}
-                                                                </CardTitle>
-                                                                <CardDescription className="text-xs">
-                                                                    Rol:{" "}
-                                                                    {getRoleLabel(invitation.role)}
-                                                                </CardDescription>
-                                                            </div>
-                                                        </div>
-                                                    </CardHeader>
-                                                    <CardContent className="grow py-2 text-sm text-muted-foreground">
-                                                        Je hebt een uitnodiging
-                                                        ontvangen voor toegang
-                                                        tot bedrijf{" "}
-                                                        {invitation.farm_name ??
-                                                            invitation.resource_id}{" "}
-                                                        als{" "}
-                                                        {getRoleLabel(invitation.role)}
-                                                        .
-                                                        {invitation.org_name && (
-                                                            <span className="block text-xs text-muted-foreground">
-                                                                Deze uitnodiging
-                                                                ontvang je
-                                                                namens
-                                                                organisatie:{" "}
-                                                                {
-                                                                    invitation.org_name
-                                                                }
-                                                            </span>
-                                                        )}
-                                                        Je kunt deze uitnodiging
-                                                        accepteren of weigeren.
-                                                    </CardContent>
-                                                    <CardFooter className="flex gap-2 pt-2">
-                                                        <Form
-                                                            method="post"
-                                                            className="flex-1"
-                                                        >
-                                                            <input
-                                                                type="hidden"
-                                                                name="intent"
-                                                                value="accept_farm_invitation"
-                                                            />
-                                                            <input
-                                                                type="hidden"
-                                                                name="invitation_id"
-                                                                value={
-                                                                    invitation.invitation_id
-                                                                }
-                                                            />
-                                                            <Button
-                                                                type="submit"
-                                                                size="sm"
-                                                                className="w-full"
-                                                            >
-                                                                <Check className="mr-1 h-3 w-3" />
-                                                                Accepteren
-                                                            </Button>
-                                                        </Form>
-                                                        <Form
-                                                            method="post"
-                                                            className="flex-1"
-                                                        >
-                                                            <input
-                                                                type="hidden"
-                                                                name="intent"
-                                                                value="decline_farm_invitation"
-                                                            />
-                                                            <input
-                                                                type="hidden"
-                                                                name="invitation_id"
-                                                                value={
-                                                                    invitation.invitation_id
-                                                                }
-                                                            />
-                                                            <Button
-                                                                type="submit"
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="w-full"
-                                                            >
-                                                                <X className="mr-1 h-3 w-3" />
-                                                                Weigeren
-                                                            </Button>
-                                                        </Form>
-                                                    </CardFooter>
-                                                </Card>
+                                                <PendingInvitationCard
+                                                    key={invitation.invitation_id}
+                                                    invitation={invitation}
+                                                />
                                             ),
                                         )}
                                     </div>
@@ -574,103 +479,10 @@ export default function AppIndex() {
                                 <div className="grid gap-4 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
                                     {loaderData.pendingInvitations.map(
                                         (invitation) => (
-                                            <Card
+                                            <PendingInvitationCard
                                                 key={invitation.invitation_id}
-                                                className="flex flex-col"
-                                            >
-                                                <CardHeader className="pb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-                                                            <Bell className="h-5 w-5" />
-                                                        </div>
-                                                        <div>
-                                                            <CardTitle className="text-base">
-                                                                {invitation.farm_name ??
-                                                                    invitation.resource_id}
-                                                            </CardTitle>
-                                                            <CardDescription className="text-xs">
-                                                                Rol:{" "}
-                                                                {getRoleLabel(invitation.role)}
-                                                            </CardDescription>
-                                                        </div>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="grow py-2 text-sm text-muted-foreground">
-                                                    Je hebt een uitnodiging
-                                                    ontvangen voor toegang tot
-                                                    bedrijf{" "}
-                                                    {invitation.farm_name ??
-                                                        invitation.resource_id}{" "}
-                                                    als{" "}
-                                                    {getRoleLabel(invitation.role)}
-                                                    .
-                                                    {invitation.org_name && (
-                                                        <span className="block text-xs text-muted-foreground">
-                                                            Deze uitnodiging
-                                                            ontvang je namens
-                                                            organisatie:{" "}
-                                                            {
-                                                                invitation.org_name
-                                                            }
-                                                        </span>
-                                                    )}{" "}
-                                                    Je kunt deze uitnodiging
-                                                    accepteren of weigeren.
-                                                </CardContent>
-                                                <CardFooter className="flex gap-2 pt-2">
-                                                    <Form
-                                                        method="post"
-                                                        className="flex-1"
-                                                    >
-                                                        <input
-                                                            type="hidden"
-                                                            name="intent"
-                                                            value="accept_farm_invitation"
-                                                        />
-                                                        <input
-                                                            type="hidden"
-                                                            name="invitation_id"
-                                                            value={
-                                                                invitation.invitation_id
-                                                            }
-                                                        />
-                                                        <Button
-                                                            type="submit"
-                                                            size="sm"
-                                                            className="w-full"
-                                                        >
-                                                            <Check className="mr-1 h-3 w-3" />
-                                                            Accepteren
-                                                        </Button>
-                                                    </Form>
-                                                    <Form
-                                                        method="post"
-                                                        className="flex-1"
-                                                    >
-                                                        <input
-                                                            type="hidden"
-                                                            name="intent"
-                                                            value="decline_farm_invitation"
-                                                        />
-                                                        <input
-                                                            type="hidden"
-                                                            name="invitation_id"
-                                                            value={
-                                                                invitation.invitation_id
-                                                            }
-                                                        />
-                                                        <Button
-                                                            type="submit"
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="w-full"
-                                                        >
-                                                            <X className="mr-1 h-3 w-3" />
-                                                            Weigeren
-                                                        </Button>
-                                                    </Form>
-                                                </CardFooter>
-                                            </Card>
+                                                invitation={invitation}
+                                            />
                                         ),
                                     )}
                                 </div>
