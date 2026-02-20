@@ -548,7 +548,7 @@ export async function listPrincipalsForFarm(
                     .where(inArray(authNSchema.user.id, allPrincipalIds))
 
                 for (const u of users) {
-                    let initials = u.email
+                    let initials = u.email?.charAt(0) ?? "U"
                     if (u.firstname && u.surname) {
                         initials = u.firstname.charAt(0).toUpperCase()
                         const surnameParts = u.surname.split(/\s+/)
@@ -680,7 +680,10 @@ export async function listPrincipalsForFarm(
             )
 
             // Deduplicate by principal_id, preferring "active" over "pending"
-            const deduped = new Map<string, (typeof principalsDetails)[number]>()
+            const deduped = new Map<
+                string,
+                (typeof principalsDetails)[number]
+            >()
             for (const entry of principalsDetails) {
                 deduped.set(entry.id, entry)
             }
