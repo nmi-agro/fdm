@@ -1114,7 +1114,12 @@ export async function removeFarm(
             // Step 4b: Delete all invitations for this farm
             await tx
                 .delete(authZSchema.invitation)
-                .where(eq(authZSchema.invitation.resource_id, b_id_farm))
+                .where(
+                    and(
+                        eq(authZSchema.invitation.resource, "farm"),
+                        eq(authZSchema.invitation.resource_id, b_id_farm),
+                    ),
+                )
 
             // Step 5: Finally, delete the farm itself
             await tx

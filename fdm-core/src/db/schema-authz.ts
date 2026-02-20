@@ -2,6 +2,7 @@
 import { sql } from "drizzle-orm"
 import {
     boolean,
+    check,
     index,
     integer,
     pgSchema,
@@ -79,6 +80,10 @@ export const invitation = fdmAuthZSchema.table(
         uniqueIndex("invitation_unique_principal_idx")
             .on(table.resource, table.resource_id, table.target_principal_id)
             .where(sql`${table.status} = 'pending'`),
+        check(
+            "invitation_target_check",
+            sql`${table.target_email} IS NOT NULL OR ${table.target_principal_id} IS NOT NULL`,
+        ),
     ],
 )
 

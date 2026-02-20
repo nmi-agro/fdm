@@ -473,7 +473,10 @@ export async function declineInvitation(
                 }
             } else if (invitation.target_email) {
                 const userRecord = await tx
-                    .select({ email: authNSchema.user.email })
+                    .select({
+                        email: authNSchema.user.email,
+                        emailVerified: authNSchema.user.emailVerified,
+                    })
                     .from(authNSchema.user)
                     .where(eq(authNSchema.user.id, user_id))
                     .limit(1)
@@ -485,6 +488,11 @@ export async function declineInvitation(
                 ) {
                     throw new Error(
                         "This invitation is not for your email address",
+                    )
+                }
+                if (!userRecord[0].emailVerified) {
+                    throw new Error(
+                        "Email must be verified before declining an invitation",
                     )
                 }
             }

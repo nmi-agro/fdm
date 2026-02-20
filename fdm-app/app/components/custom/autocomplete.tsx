@@ -64,13 +64,12 @@ export function AutoComplete<T extends string>({
     const prevInputValue = useRef<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null) // Ref for the input element
 
-    // Derive display label for the currently selected value
+    // Derive display label for the currently selected value.
+    // Falls back to selectedValue for free-form entries (when allowValuesOutsideList is true).
     const selectedLabel = useMemo(() => {
-        // Find the label from fetched items or potentially passed initial state if needed
-        // For now, assume we fetch it or it's cleared if not found
         const selectedItem = items.find((item) => item.value === selectedValue)
-        return selectedItem?.label ?? ""
-    }, [selectedValue, items])
+        return selectedItem?.label ?? (allowValuesOutsideList ? selectedValue : "")
+    }, [selectedValue, items, allowValuesOutsideList])
 
     // Effect to fetch data when input value changes (debounced)
     useEffect(() => {
@@ -154,6 +153,7 @@ export function AutoComplete<T extends string>({
             }
         }
         setOpen(false)
+        openRef.current = false
     }
 
     // Keep input if it matches a valid item, otherwise use typed value as-is (if allowFreeform).
@@ -196,11 +196,20 @@ export function AutoComplete<T extends string>({
                             asChild
                             value={inputValue}
                             onValueChange={handleInputChange}
-                            onKeyDown={(e) => setOpen(e.key !== "Escape")}
-                            onMouseDown={() =>
-                                setOpen((open) => !!inputValue || !open)
-                            }
-                            onFocus={() => setOpen(true)}
+                            onKeyDown={(e) => {
+                                const next = e.key !== "Escape"
+                                setOpen(next)
+                                openRef.current = next
+                            }}
+                            onMouseDown={() => {
+                                const next = !!inputValue || !open
+                                setOpen(next)
+                                openRef.current = next
+                            }}
+                            onFocus={() => {
+                                setOpen(true)
+                                openRef.current = true
+                            }}
                             onBlur={handleInputBlur}
                         >
                             <Input

@@ -38,7 +38,7 @@ Access control is handled by the `fdm-authz` schema, which contains three main t
 
 Permissions are inherited through the resource hierarchy. A role granted on a parent resource also covers all child resources:
 
-```
+```text
 farm
  └── field
       ├── cultivation

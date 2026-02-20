@@ -137,7 +137,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
             // Send invitation email
             try {
-                const farm = await getFarm(fdm, session.user.id, b_id_farm)
+                const farm = await getFarm(fdm, session.principal_id, b_id_farm)
                 const inviterName = session.userName
                 const normalizedTarget = formValues.username.toLowerCase().trim()
                 const isEmailTarget = isEmail(normalizedTarget)
