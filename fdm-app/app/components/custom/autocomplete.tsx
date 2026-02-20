@@ -156,29 +156,29 @@ export function AutoComplete<T extends string>({
         setOpen(false)
     }
 
-    // Keep input if it matches a valid item, otherwise use typed value as-is (if allowFreeform)
+    // Keep input if it matches a valid item, otherwise use typed value as-is (if allowFreeform).
+    // Runs synchronously (no setTimeout) so the form value is committed before the submit button
+    // click fires. Dropdown item clicks are protected by onMouseDown e.preventDefault() on
+    // each CommandItem, which prevents blur from firing during dropdown selection.
     const handleInputBlur = () => {
-        // Timeout to allow click selection to register first
-        setTimeout(() => {
-            if (!openRef.current) {
-                if (inputValue && !selectedValue) {
-                    if (allowValuesOutsideList) {
-                        // Accept typed value as-is (e.g. email address)
-                        onSelectedValueChange(inputValue as T)
-                        if (form && name) {
-                            form.setValue(name, inputValue)
-                        }
-                    } else {
-                        // Only dropdown selections allowed — clear the input
-                        setInputValue("")
+        if (!openRef.current) {
+            if (inputValue && !selectedValue) {
+                if (allowValuesOutsideList) {
+                    // Accept typed value as-is (e.g. email address)
+                    onSelectedValueChange(inputValue as T)
+                    if (form && name) {
+                        form.setValue(name, inputValue)
                     }
-                }
-                // If input doesn't match selected label, revert input to selected label
-                else if (inputValue !== selectedLabel && selectedValue) {
-                    setInputValue(selectedLabel)
+                } else {
+                    // Only dropdown selections allowed — clear the input
+                    setInputValue("")
                 }
             }
-        }, 100) // Small delay
+            // If input doesn't match selected label, revert input to selected label
+            else if (inputValue !== selectedLabel && selectedValue) {
+                setInputValue(selectedLabel)
+            }
+        }
     }
 
     return (
