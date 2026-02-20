@@ -325,22 +325,24 @@ export async function grantRoleToFarm(
     role: "owner" | "advisor" | "researcher",
 ): Promise<void> {
     try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "share",
-            b_id_farm,
-            principal_id,
-            "grantRoleToFarm",
-        )
-        return await createInvitation(
-            fdm,
-            "farm",
-            b_id_farm,
-            principal_id,
-            target,
-            role,
-        )
+        return await fdm.transaction(async (tx: FdmType) => {
+            await checkPermission(
+                tx,
+                "farm",
+                "share",
+                b_id_farm,
+                principal_id,
+                "grantRoleToFarm",
+            )
+            return await createInvitation(
+                tx,
+                "farm",
+                b_id_farm,
+                principal_id,
+                target,
+                role,
+            )
+        })
     } catch (err) {
         throw handleError(err, "Exception for grantRoleToFarm", {
             b_id_farm,
