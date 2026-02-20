@@ -840,7 +840,7 @@ describe("Authorization Functions", () => {
             await fdm.insert(authNSchema.organization).values({
                 id: orgId,
                 name: "Test Organization No Members",
-                slug: "test-org-no-members",
+                slug: `test-org-no-member-${createId(8).toLowerCase()}`,
                 createdAt: new Date(),
             })
 
