@@ -1,5 +1,5 @@
 {
-  "id": "d0d8c439-9f2f-4e24-9a46-df2d2caddb17",
+  "id": "8edcbd6c-ae47-4531-817e-34748171ba25",
   "prevId": "8a96c296-24b8-4edc-bdbc-b140c973f74e",
   "version": "7",
   "dialect": "postgresql",
@@ -3336,8 +3336,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "fdm-authz.farm_invitation": {
-      "name": "farm_invitation",
+    "fdm-authz.invitation": {
+      "name": "invitation",
       "schema": "fdm-authz",
       "columns": {
         "invitation_id": {
@@ -3346,8 +3346,14 @@
           "primaryKey": true,
           "notNull": true
         },
-        "farm_id": {
-          "name": "farm_id",
+        "resource": {
+          "name": "resource",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_id": {
+          "name": "resource_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -3404,11 +3410,17 @@
         }
       },
       "indexes": {
-        "farm_invitation_unique_email_idx": {
-          "name": "farm_invitation_unique_email_idx",
+        "invitation_unique_email_idx": {
+          "name": "invitation_unique_email_idx",
           "columns": [
             {
-              "expression": "farm_id",
+              "expression": "resource",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "resource_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3421,16 +3433,22 @@
             }
           ],
           "isUnique": true,
-          "where": "\"fdm-authz\".\"farm_invitation\".\"status\" = 'pending'",
+          "where": "\"fdm-authz\".\"invitation\".\"status\" = 'pending'",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "farm_invitation_unique_principal_idx": {
-          "name": "farm_invitation_unique_principal_idx",
+        "invitation_unique_principal_idx": {
+          "name": "invitation_unique_principal_idx",
           "columns": [
             {
-              "expression": "farm_id",
+              "expression": "resource",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "resource_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3443,7 +3461,7 @@
             }
           ],
           "isUnique": true,
-          "where": "\"fdm-authz\".\"farm_invitation\".\"status\" = 'pending'",
+          "where": "\"fdm-authz\".\"invitation\".\"status\" = 'pending'",
           "concurrently": false,
           "method": "btree",
           "with": {}

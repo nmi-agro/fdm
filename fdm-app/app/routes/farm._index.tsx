@@ -1,6 +1,6 @@
 import {
-    acceptFarmInvitation,
-    declineFarmInvitation,
+    acceptInvitation,
+    declineInvitation,
     getFarms,
     listPendingInvitationsForUser,
 } from "@svenvw/fdm-core"
@@ -120,7 +120,7 @@ export async function action({ request }: ActionFunctionArgs) {
             if (!formValues.invitation_id) {
                 return dataWithError(null, "Ontbrekend uitnodigingsnummer")
             }
-            await acceptFarmInvitation(
+            await acceptInvitation(
                 fdm,
                 formValues.invitation_id,
                 session.user.id,
@@ -134,7 +134,7 @@ export async function action({ request }: ActionFunctionArgs) {
             if (!formValues.invitation_id) {
                 return dataWithError(null, "Ontbrekend uitnodigingsnummer")
             }
-            await declineFarmInvitation(
+            await declineInvitation(
                 fdm,
                 formValues.invitation_id,
                 session.user.id,
@@ -366,7 +366,7 @@ export default function AppIndex() {
                                                         </div>
                                                     </CardHeader>
                                                     <CardContent className="grow py-2 text-sm text-muted-foreground">
-                                                        {invitation.farm_name ?? invitation.farm_id}
+                                                        {invitation.farm_name ?? invitation.resource_id}
                                                         {invitation.org_name && (
                                                             <span className="block text-xs text-muted-foreground">
                                                                 Voor organisatie: {invitation.org_name}
@@ -593,7 +593,7 @@ export default function AppIndex() {
                                                     </div>
                                                 </CardHeader>
                                                 <CardContent className="grow py-2 text-sm text-muted-foreground">
-                                                    {invitation.farm_name ?? invitation.farm_id}
+                                                    {invitation.farm_name ?? invitation.resource_id}
                                                     {invitation.org_name && (
                                                         <span className="block text-xs text-muted-foreground">
                                                             Voor organisatie: {invitation.org_name}

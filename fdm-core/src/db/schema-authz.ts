@@ -56,11 +56,12 @@ export const audit = fdmAuthZSchema.table("audit", {
 export type auditTypeSelect = typeof audit.$inferSelect
 export type auditTypeInsert = typeof audit.$inferInsert
 
-export const farmInvitation = fdmAuthZSchema.table(
-    "farm_invitation",
+export const invitation = fdmAuthZSchema.table(
+    "invitation",
     {
         invitation_id: text().primaryKey(),
-        farm_id: text().notNull(),
+        resource: text().notNull(), // e.g. 'farm', 'field'
+        resource_id: text().notNull(), // e.g. the farm/field ID
         target_email: text(), // For unregistered users (lowercased/trimmed)
         target_principal_id: text(), // For registered users or organizations
         role: text().notNull(), // 'owner', 'advisor', 'researcher'
@@ -71,15 +72,15 @@ export const farmInvitation = fdmAuthZSchema.table(
         accepted_at: timestamp({ withTimezone: true }),
     },
     (table) => [
-        // Prevent duplicate pending invitations for the same target/farm
-        uniqueIndex("farm_invitation_unique_email_idx")
-            .on(table.farm_id, table.target_email)
+        // Prevent duplicate pending invitations for the same target/resource
+        uniqueIndex("invitation_unique_email_idx")
+            .on(table.resource, table.resource_id, table.target_email)
             .where(sql`${table.status} = 'pending'`),
-        uniqueIndex("farm_invitation_unique_principal_idx")
-            .on(table.farm_id, table.target_principal_id)
+        uniqueIndex("invitation_unique_principal_idx")
+            .on(table.resource, table.resource_id, table.target_principal_id)
             .where(sql`${table.status} = 'pending'`),
     ],
 )
 
-export type farmInvitationTypeSelect = typeof farmInvitation.$inferSelect
-export type farmInvitationTypeInsert = typeof farmInvitation.$inferInsert
+export type invitationTypeSelect = typeof invitation.$inferSelect
+export type invitationTypeInsert = typeof invitation.$inferInsert

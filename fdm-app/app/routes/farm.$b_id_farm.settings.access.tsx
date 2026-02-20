@@ -1,6 +1,6 @@
 import {
-    acceptFarmInvitation,
-    declineFarmInvitation,
+    acceptInvitation,
+    declineInvitation,
     getFarm,
     grantRoleToFarm,
     isAllowedToShareFarm,
@@ -180,7 +180,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             if (!formValues.invitation_id) {
                 return handleActionError("missing: invitation_id")
             }
-            await acceptFarmInvitation(
+            await acceptInvitation(
                 fdm,
                 formValues.invitation_id,
                 session.user.id,
@@ -194,7 +194,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             if (!formValues.invitation_id) {
                 return handleActionError("missing: invitation_id")
             }
-            await declineFarmInvitation(
+            await declineInvitation(
                 fdm,
                 formValues.invitation_id,
                 session.user.id,

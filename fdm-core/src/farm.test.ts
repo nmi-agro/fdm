@@ -7,9 +7,7 @@ import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import * as schema from "./db/schema"
 import {
-    acceptFarmInvitation,
     addFarm,
-    declineFarmInvitation,
     getFarm,
     getFarms,
     grantRoleToFarm,
@@ -27,6 +25,7 @@ import type { FdmType } from "./fdm"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.d"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
+import { acceptInvitation, declineInvitation } from "./invitation"
 import { addField, getFields } from "./field"
 import { createId } from "./id"
 import { getPrincipal } from "./principal"
@@ -87,7 +86,7 @@ describe("Farm Functions", () => {
         })
         target_id = target.user.id
 
-        // Mark target's email as verified so acceptFarmInvitation works
+        // Mark target's email as verified so acceptInvitation works
         await fdm
             .update(authNSchema.user)
             .set({ emailVerified: true })
@@ -267,9 +266,9 @@ describe("Farm Functions", () => {
             // Verify invitation was created (not a direct role grant)
             const invitations = await fdm
                 .select()
-                .from(authZSchema.farmInvitation)
+                .from(authZSchema.invitation)
                 .where(
-                    eq(authZSchema.farmInvitation.farm_id, b_id_farm),
+                    eq(authZSchema.invitation.resource_id, b_id_farm),
                 )
             const invitation = invitations.find(
                 (i) => i.target_principal_id === target_id,
@@ -279,7 +278,7 @@ describe("Farm Functions", () => {
             expect(invitation?.status).toBe("pending")
 
             // Accept the invitation so subsequent tests (updateRole, revoke) work
-            await acceptFarmInvitation(fdm, invitation!.invitation_id, target_id)
+            await acceptInvitation(fdm, invitation!.invitation_id, target_id)
 
             // Now the role should be granted
             const principals = await listPrincipalsForResource(
@@ -370,9 +369,9 @@ describe("Farm Functions", () => {
 
             const invitations = await fdm
                 .select()
-                .from(authZSchema.farmInvitation)
+                .from(authZSchema.invitation)
                 .where(
-                    eq(authZSchema.farmInvitation.target_email, unregisteredEmail),
+                    eq(authZSchema.invitation.target_email, unregisteredEmail),
                 )
             expect(invitations.length).toBeGreaterThanOrEqual(1)
             expect(invitations[0].status).toBe("pending")
@@ -776,8 +775,8 @@ describe("Farm Functions", () => {
             // Verify farm invitations are deleted
             const farmInvitations = await fdm
                 .select()
-                .from(authZSchema.farmInvitation)
-                .where(eq(authZSchema.farmInvitation.farm_id, testFarmId))
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, testFarmId))
             expect(farmInvitations).toEqual([])
         })
 
@@ -831,7 +830,7 @@ describe("Farm Functions", () => {
         })
     })
 
-    describe("acceptFarmInvitation", () => {
+    describe("acceptInvitation", () => {
         let invitationFarmId: string
         let invitationId: string
 
@@ -858,13 +857,13 @@ describe("Farm Functions", () => {
 
             const rows = await fdm
                 .select()
-                .from(authZSchema.farmInvitation)
+                .from(authZSchema.invitation)
                 .where(
-                    eq(authZSchema.farmInvitation.farm_id, invitationFarmId),
+                    eq(authZSchema.invitation.resource_id, invitationFarmId),
                 )
             invitationId = rows[0].invitation_id
 
-            await acceptFarmInvitation(fdm, invitationId, target_id)
+            await acceptInvitation(fdm, invitationId, target_id)
 
             const principals = await listPrincipalsForResource(
                 fdm,
@@ -878,14 +877,14 @@ describe("Farm Functions", () => {
 
         it("should throw if invitation is already accepted", async () => {
             await expect(
-                acceptFarmInvitation(fdm, invitationId, target_id),
-            ).rejects.toThrowError("Exception for acceptFarmInvitation")
+                acceptInvitation(fdm, invitationId, target_id),
+            ).rejects.toThrowError("Exception for acceptInvitation")
         })
 
         it("should throw if invitation does not exist", async () => {
             await expect(
-                acceptFarmInvitation(fdm, createId(), target_id),
-            ).rejects.toThrowError("Exception for acceptFarmInvitation")
+                acceptInvitation(fdm, createId(), target_id),
+            ).rejects.toThrowError("Exception for acceptInvitation")
         })
 
         it("should throw if the user is not the invitation target", async () => {
@@ -906,8 +905,8 @@ describe("Farm Functions", () => {
             )
             const rows = await fdm
                 .select()
-                .from(authZSchema.farmInvitation)
-                .where(eq(authZSchema.farmInvitation.farm_id, otherFarmId))
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, otherFarmId))
             const otherInvitationId = rows[0].invitation_id
 
             const wrongUser = await fdmAuth.api.signUpEmail({
@@ -921,12 +920,12 @@ describe("Farm Functions", () => {
             })
 
             await expect(
-                acceptFarmInvitation(fdm, otherInvitationId, wrongUser.user.id),
-            ).rejects.toThrowError("Exception for acceptFarmInvitation")
+                acceptInvitation(fdm, otherInvitationId, wrongUser.user.id),
+            ).rejects.toThrowError("Exception for acceptInvitation")
         })
     })
 
-    describe("declineFarmInvitation", () => {
+    describe("declineInvitation", () => {
         let declineFarmId: string
         let declineInvitationId: string
 
@@ -948,20 +947,20 @@ describe("Farm Functions", () => {
             )
             const rows = await fdm
                 .select()
-                .from(authZSchema.farmInvitation)
-                .where(eq(authZSchema.farmInvitation.farm_id, declineFarmId))
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, declineFarmId))
             declineInvitationId = rows[0].invitation_id
         })
 
         it("should decline a pending invitation", async () => {
-            await declineFarmInvitation(fdm, declineInvitationId, target_id)
+            await declineInvitation(fdm, declineInvitationId, target_id)
 
             const rows = await fdm
                 .select()
-                .from(authZSchema.farmInvitation)
+                .from(authZSchema.invitation)
                 .where(
                     eq(
-                        authZSchema.farmInvitation.invitation_id,
+                        authZSchema.invitation.invitation_id,
                         declineInvitationId,
                     ),
                 )
@@ -970,8 +969,8 @@ describe("Farm Functions", () => {
 
         it("should throw if invitation is already declined", async () => {
             await expect(
-                declineFarmInvitation(fdm, declineInvitationId, target_id),
-            ).rejects.toThrowError("Exception for declineFarmInvitation")
+                declineInvitation(fdm, declineInvitationId, target_id),
+            ).rejects.toThrowError("Exception for declineInvitation")
         })
 
         it("should throw if the user is not the invitation target", async () => {
@@ -992,8 +991,8 @@ describe("Farm Functions", () => {
             )
             const rows = await fdm
                 .select()
-                .from(authZSchema.farmInvitation)
-                .where(eq(authZSchema.farmInvitation.farm_id, anotherFarmId))
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, anotherFarmId))
             const anotherInvitationId = rows[0].invitation_id
 
             const otherUser = await fdmAuth.api.signUpEmail({
@@ -1007,8 +1006,8 @@ describe("Farm Functions", () => {
             })
 
             await expect(
-                declineFarmInvitation(fdm, anotherInvitationId, otherUser.user.id),
-            ).rejects.toThrowError("Exception for declineFarmInvitation")
+                declineInvitation(fdm, anotherInvitationId, otherUser.user.id),
+            ).rejects.toThrowError("Exception for declineInvitation")
         })
     })
 
@@ -1041,7 +1040,7 @@ describe("Farm Functions", () => {
             )
             expect(invitations.length).toBeGreaterThanOrEqual(1)
             expect(invitations[0].status).toBe("pending")
-            expect(invitations[0].farm_id).toBe(listFarmId)
+            expect(invitations[0].resource_id).toBe(listFarmId)
         })
 
         it("should throw if principal does not have share permission", async () => {
@@ -1092,7 +1091,7 @@ describe("Farm Functions", () => {
                 listUserTargetId,
             )
             expect(invitations.length).toBeGreaterThanOrEqual(1)
-            const inv = invitations.find((i) => i.farm_id === listUserFarmId)
+            const inv = invitations.find((i) => i.resource_id === listUserFarmId)
             expect(inv).toBeDefined()
             expect(inv?.status).toBe("pending")
         })

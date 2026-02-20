@@ -96,11 +96,11 @@ describe("autoAcceptInvitationsForNewUser", () => {
         // Invitation should be marked as accepted
         const invitations = await fdm
             .select()
-            .from(authZSchema.farmInvitation)
+            .from(authZSchema.invitation)
             .where(
                 and(
-                    eq(authZSchema.farmInvitation.target_email, targetEmail),
-                    eq(authZSchema.farmInvitation.farm_id, farmId),
+                    eq(authZSchema.invitation.target_email, targetEmail),
+                    eq(authZSchema.invitation.resource_id, farmId),
                 ),
             )
         expect(invitations[0].status).toBe("accepted")
@@ -129,9 +129,9 @@ describe("autoAcceptInvitationsForNewUser", () => {
 
         // Manually expire the invitation
         await fdm
-            .update(authZSchema.farmInvitation)
+            .update(authZSchema.invitation)
             .set({ expires: new Date("2000-01-01") })
-            .where(eq(authZSchema.farmInvitation.target_email, expiredEmail))
+            .where(eq(authZSchema.invitation.target_email, expiredEmail))
 
         const expiredUser = await fdmAuth.api.signUpEmail({
             headers: undefined,
@@ -159,8 +159,8 @@ describe("autoAcceptInvitationsForNewUser", () => {
         // Invitation should be marked as expired
         const invitations = await fdm
             .select()
-            .from(authZSchema.farmInvitation)
-            .where(eq(authZSchema.farmInvitation.target_email, expiredEmail))
+            .from(authZSchema.invitation)
+            .where(eq(authZSchema.invitation.target_email, expiredEmail))
         expect(invitations[0].status).toBe("expired")
     })
 
