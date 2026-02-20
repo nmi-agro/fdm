@@ -1,4 +1,5 @@
 import { and, asc, eq, gt, inArray, or } from "drizzle-orm"
+import isEmail from "validator/lib/isEmail"
 import {
     checkPermission,
     getRolesOfPrincipalForResource,
@@ -356,8 +357,7 @@ export async function grantRoleToFarm(
                 }
             } else {
                 // Check if target is a valid email (unregistered user)
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                if (!emailRegex.test(normalizedTarget)) {
+                if (!isEmail(normalizedTarget)) {
                     throw new Error(
                         "Target not found and not a valid email address",
                     )

@@ -50,6 +50,7 @@
         "@rollup/plugin-node-resolve": "catalog:",
         "@svenvw/fdm-data": "workspace:^0.19.1",
         "@types/node": "catalog:",
+        "@types/validator": "^13.15.10",
         "@vitest/coverage-v8": "catalog:",
         "drizzle-kit": "catalog:",
         "fs-extra": "^11.3.3",
@@ -72,7 +73,8 @@
         "nanoid": "^5.1.6",
         "postgres": "^3.4.8",
         "safe-stable-stringify": "^2.5.0",
-        "unique-username-generator": "^1.5.1"
+        "unique-username-generator": "^1.5.1",
+        "validator": "^13.15.26"
     },
     "packageManager": "pnpm@10.29.3",
     "publishConfig": {

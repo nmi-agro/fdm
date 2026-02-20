@@ -9,6 +9,7 @@ import {
     revokePrincipalFromFarm,
     updateRoleOfPrincipalAtFarm,
 } from "@svenvw/fdm-core"
+import isEmail from "validator/lib/isEmail"
 import {
     type ActionFunctionArgs,
     data,
@@ -139,17 +140,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 const farm = await getFarm(fdm, session.user.id, b_id_farm)
                 const inviterName = session.userName
                 const normalizedTarget = formValues.username.toLowerCase().trim()
-                const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedTarget)
+                const isEmailTarget = isEmail(normalizedTarget)
 
                 // Try to find the principal to get their email if they are registered
                 const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
                 const targetPrincipal = matchedPrincipals.find(
                     (p) =>
                         p.username.toLowerCase() === normalizedTarget ||
-                        (isEmail && p.email?.toLowerCase() === normalizedTarget),
+                        (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
                 )
 
-                const targetEmail = isEmail
+                const targetEmail = isEmailTarget
                     ? normalizedTarget
                     : targetPrincipal?.type === "user"
                       ? targetPrincipal.email

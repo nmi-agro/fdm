@@ -3,6 +3,7 @@ import { User, Users } from "lucide-react"
 import { useState } from "react"
 import { Form } from "react-router-dom"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import isEmail from "validator/lib/isEmail"
 import type { z } from "zod"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
@@ -65,7 +66,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                             })
                         }}
                         emptyMessage={(value) =>
-                            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+                            isEmail(value)
                                 ? `Nodig ${value} uit voor toegang`
                                 : "Geen gebruikers gevonden"
                         }
