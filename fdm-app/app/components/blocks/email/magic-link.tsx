@@ -18,7 +18,7 @@ export const MagicLinkEmail = ({
     senderName,
     emailTimestamp,
 }: MagicLinkEmailProps) => {
-    const previewText = `Link om aan te melden bij ${appName}`
+    const previewText = `Gebruik de code of link om in te loggen.`
 
     return (
         <BaseEmailLayout

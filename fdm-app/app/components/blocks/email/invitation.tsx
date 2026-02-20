@@ -22,7 +22,7 @@ export const InvitationEmail = ({
     senderName,
     logoFileName = "/fdm-high-resolution-logo-transparent.png",
 }: InvitationEmailProps) => {
-    const previewText = `${inviterName} heeft je uitgenodigd om lid te worden van ${organizationName} in ${appName}.`
+    const previewText = `Accepteer de uitnodiging om samen te werken in ${organizationName}.`
 
     return (
         <BaseEmailLayout
