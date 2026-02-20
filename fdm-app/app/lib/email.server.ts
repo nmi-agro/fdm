@@ -200,6 +200,10 @@ export async function sendEmail(email: Email): Promise<void> {
     await client.sendEmail(email)
 }
 
+export function isInactiveRecipientError(e: any) {
+    return e && (e as { code: number }).code === 406
+}
+
 // Helper function to send magic link emails, to be passed to fdm-core
 export async function sendMagicLinkEmailToUser(
     emailAddress: string,
