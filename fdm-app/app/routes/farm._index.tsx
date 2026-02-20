@@ -590,7 +590,7 @@ export default function AppIndex() {
                                         (invitation) => (
                                             <Card
                                                 key={invitation.invitation_id}
-                                                className="flex flex-col border-amber-200 bg-amber-50/50"
+                                                className="flex flex-col"
                                             >
                                                 <CardHeader className="pb-2">
                                                     <div className="flex items-center gap-3">
@@ -599,7 +599,8 @@ export default function AppIndex() {
                                                         </div>
                                                         <div>
                                                             <CardTitle className="text-base">
-                                                                Uitnodiging
+                                                                {invitation.farm_name ??
+                                                                    invitation.resource_id}
                                                             </CardTitle>
                                                             <CardDescription className="text-xs">
                                                                 Rol:{" "}
@@ -615,16 +616,31 @@ export default function AppIndex() {
                                                     </div>
                                                 </CardHeader>
                                                 <CardContent className="grow py-2 text-sm text-muted-foreground">
+                                                    Je hebt een uitnodiging
+                                                    ontvangen voor toegang tot
+                                                    bedrijf{" "}
                                                     {invitation.farm_name ??
-                                                        invitation.resource_id}
+                                                        invitation.resource_id}{" "}
+                                                    als{" "}
+                                                    {invitation.role === "owner"
+                                                        ? "Eigenaar"
+                                                        : invitation.role ===
+                                                            "advisor"
+                                                          ? "Adviseur"
+                                                          : "Onderzoeker"}
+                                                    .
                                                     {invitation.org_name && (
                                                         <span className="block text-xs text-muted-foreground">
-                                                            Voor organisatie:{" "}
+                                                            Deze uitnodiging
+                                                            ontvang je namens
+                                                            organisatie:{" "}
                                                             {
                                                                 invitation.org_name
                                                             }
                                                         </span>
-                                                    )}
+                                                    )}{" "}
+                                                    Je kunt deze uitnodiging
+                                                    accepteren of weigeren.
                                                 </CardContent>
                                                 <CardFooter className="flex gap-2 pt-2">
                                                     <Form
