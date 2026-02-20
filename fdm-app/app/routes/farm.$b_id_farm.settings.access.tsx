@@ -29,6 +29,7 @@ import { AccessFormSchema } from "~/lib/schemas/access.schema"
 import {
     renderFarmInvitationEmail,
     sendEmail,
+    isInactiveRecipientError,
 } from "~/lib/email.server"
 
 // Meta
@@ -169,6 +170,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 }
             } catch (emailError) {
                 console.error("Error sending farm invitation email:", emailError)
+                if (isInactiveRecipientError(emailError)) {
+                    // Revoke permission if email fails due to inactive recipient
+                    await revokePrincipalFromFarm(
+                        fdm,
+                        session.principal_id,
+                        formValues.username,
+                        b_id_farm,
+                    )
+                    return dataWithError(
+                        null,
+                        `We kunnen geen e-mails naar ${formValues.username} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
+                    )
+                }
             }
 
             return dataWithSuccess(null, {
