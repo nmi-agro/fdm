@@ -44,11 +44,10 @@ export const InvitationEmail = ({
                 organisatie <b>{organizationName}</b> in {appName}.
             </Text>
             <Text className="text-black text-[14px] leading-6">
-                Met {appName} kun je op een eenvoudige manier de
-                nutriëntenbalans en organische stofbalans berekenen. Het is ook
-                mogelijk om te bekijken welke meststoffen er geschikt zijn voor
-                een perceel. Je kunt bedrijven aanmaken en met andere gebruikers
-                samenwerken.
+                {appName} biedt inzicht in uw bodem- en bemestingsdata. Bereken
+                eenvoudig de stikstof- en organische stofbalans, bekijk welke
+                meststoffen geschikt zijn en raadpleeg percelen in de Atlas.
+                Werk samen met adviseurs en collega's in één omgeving.
             </Text>
             <Section className="mt-8 mb-2 text-center">
                 <Button

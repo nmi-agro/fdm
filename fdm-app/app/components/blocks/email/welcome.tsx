@@ -18,7 +18,7 @@ export function WelcomeEmail({
     senderName,
     logoFileName = "/fdm-high-resolution-logo-transparent.png",
 }: WelcomeEmailProps) {
-    const previewText = `Ga aan de slag met je bedrijfsdata en ontdek de mogelijkheden.`
+    const previewText = "Ga aan de slag en krijg beter agronimisch inzicht."
     const absoluteUrl = url.startsWith("http") ? url : `https://${url}`
 
     return (
@@ -35,8 +35,9 @@ export function WelcomeEmail({
             </Heading>
             <Section className="my-5 mx-0 p-0">
                 <Text className="text-black text-[14px] leading-6">
-                    Bedankt voor je aanmelding. Dit is een overzicht van de
-                    belangrijkste functies.
+                    Fijn dat je er bent. Met {appName} heb je een handige tool
+                    in handen om beter agronimisch inzicht te krijgen. We helpen
+                    je graag op weg met de nieuwste mogelijkheden.
                 </Text>
             </Section>
 
@@ -47,50 +48,65 @@ export function WelcomeEmail({
                     as="h2"
                     className="text-black text-[20px] font-normal text-center p-0 my-7.5 mx-0"
                 >
-                    Wat kun je nu doen?
+                    Ontdek de mogelijkheden
                 </Heading>
+
                 <Text className="text-black text-[16px] font-bold leading-6">
-                    1. Een bedrijf aanmaken
+                    De Atlas: Alles in kaart gebracht
                 </Text>
                 <Text className="text-black text-[14px] leading-6">
-                    Door een bedrijf aan te maken, krijg je toegang tot de
-                    volgende functies:
+                    Verken agrarisch Nederland met de interactieve Atlas.
+                    Schakel tussen de beschikbare kaartlagen voor maximaal
+                    inzicht:
                 </Text>
                 <ul className="text-black text-[14px] leading-6 ml-4 list-disc pl-5">
                     <li>
-                        Stikstofbalans, bemestingsadvies en gebruiksruimte-apps.
+                        <b>Gewasrotatie</b>: Zie de percelen op de kaart en klik
+                        op een perceel om de gewashistorie tot 2009 te bekijken.
+                        terug tot 2009. Zie ook in welke gebieden het valt voor
+                        de gebruiksruimte en de potentie voor koolstofopslag.
                     </li>
                     <li>
-                        Beheer van meerdere jaren voor een compleet overzicht.
+                        <b>Hoogtekaart (AHN4)</b>: Analyseer het microreliëf van
+                        percelen tot in detail.
                     </li>
                     <li>
-                        Een uitgebreide lijst van meststoffen die je zelf kunt
-                        aanpassen.
+                        <b>Bodemkaart</b>: Raadpleeg de BRO-bodemkaart voor
+                        inzicht in bodemtype en samenstelling.
                     </li>
-                    <li>De mogelijkheid om je adviseur toegang te geven.</li>
                 </ul>
 
                 <Text className="text-black text-[16px] font-bold leading-6 mt-6">
-                    2. De Atlas verkennen
+                    Balansen en Bemesting
                 </Text>
                 <Text className="text-black text-[14px] leading-6">
-                    Je kunt er ook voor kiezen om de Atlas te verkennen. Hier
-                    vind je onder andere:
+                    {appName} ondersteunt doelsturing met concrete tools:
                 </Text>
                 <ul className="text-black text-[14px] leading-6 ml-4 list-disc pl-5">
-                    <li>De volledige gewashistorie van percelen sinds 2009.</li>
                     <li>
-                        Bekijk het microreliëf van percelen met de hoogtekaart.
+                        <b>Stikstofbalans</b>: Monitor de aan- en afvoer van
+                        stikstof en zie hoe efficiënt uw stikstofgebruik is
+                        (bodemoverschot).
                     </li>
                     <li>
-                        Of een perceel in een gebied met beperkingen voor de
-                        gebruiksruimte valt.
+                        <b>Organische stofbalans</b>: Krijg inzicht in de opbouw
+                        en afbraak van organische stof voor een gezonde bodem op
+                        lange termijn.
                     </li>
                     <li>
-                        Een inschatting van de bodemtextuur en het
-                        grondwaterpeil.
+                        <b>Bemestingsplan</b>: Maak een compleet plan inclusief
+                        gebruiksruimte en download deze als PDF.
                     </li>
                 </ul>
+
+                <Text className="text-black text-[16px] font-bold leading-6 mt-6">
+                    Samenwerken
+                </Text>
+                <Text className="text-black text-[14px] leading-6">
+                    Nodig uw adviseur of medewerkers uit om mee te kijken in uw
+                    bedrijf. U bepaalt wie toegang heeft en welke rechten zij
+                    krijgen.
+                </Text>
             </Section>
 
             <Section className="text-center mt-8 mb-8">
@@ -101,10 +117,11 @@ export function WelcomeEmail({
                     Start met {appName}
                 </Button>
             </Section>
+
             <Section className="my-5 mx-0 p-0">
                 <Text className="text-black text-[14px] leading-6">
-                    Heb je vragen of suggesties? We horen graag van je. Je kunt
-                    ons ook bereiken door te reageren op deze mail.
+                    Heeft u vragen of suggesties? We helpen u graag. U kunt ons
+                    bereiken door te reageren op deze mail.
                 </Text>
             </Section>
             <Hr className="border border-solid border-[#eaeaea] my-6.5 mx-0 w-full" />
