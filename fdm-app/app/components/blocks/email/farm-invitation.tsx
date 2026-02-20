@@ -73,7 +73,7 @@ export const FarmInvitationEmail = ({
                             />
                         </Section>
                         <Heading className="text-black text-[24px] font-normal text-center p-0 my-7.5 mx-0">
-                            Uitnodiging voor bedrijfstoegang
+                            Uitnodiging voor <b>{farmName}</b> in {appName}
                         </Heading>
                         <Text className="text-black text-[14px] leading-6">
                             Hallo {targetEmail},
@@ -87,8 +87,7 @@ export const FarmInvitationEmail = ({
                             <>
                                 <Text className="text-black text-[14px] leading-6">
                                     Maak een account aan om de uitnodiging te
-                                    accepteren. Na registratie en verificatie
-                                    van je e-mailadres wordt je toegang
+                                    accepteren. Na registratie wordt je toegang
                                     automatisch verleend.
                                 </Text>
                                 <Section className="mt-8 mb-2 text-center">
@@ -103,8 +102,8 @@ export const FarmInvitationEmail = ({
                         ) : (
                             <>
                                 <Text className="text-black text-[14px] leading-6">
-                                    Log in en accepteer of weiger de uitnodiging
-                                    via je dashboard.
+                                    Log in en accepteer of weiger de
+                                    uitnodiging.
                                 </Text>
                                 <Section className="mt-8 mb-2 text-center">
                                     <Button
@@ -116,7 +115,8 @@ export const FarmInvitationEmail = ({
                                 </Section>
                                 <Section className="mt-4 mb-8 text-center">
                                     <Link href={`${appBaseUrl}/farm`}>
-                                        of open je dashboard
+                                        of open {appName} om je uitnodigingen te
+                                        bekijken.
                                     </Link>
                                 </Section>
                             </>

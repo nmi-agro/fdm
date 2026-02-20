@@ -91,13 +91,17 @@ export async function renderFarmInvitationEmail(
         { pretty: true },
     )
 
-    const subjectVerb = isUnregistered ? "nodigt je uit" : "heeft je uitgenodigd"
+    const subjectVerb = isUnregistered
+        ? "nodigt je uit"
+        : "heeft je uitgenodigd"
     const email: Email = {
         From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
         To: targetEmail,
         Subject: `${inviterName} ${subjectVerb} voor toegang tot bedrijf ${farmName}`,
         HtmlBody: emailHtml,
-        Tag: "invitation-farm",
+        Tag: isUnregistered
+            ? "invitation-farm-new-user"
+            : "invitation-farm",
     }
 
     return email
