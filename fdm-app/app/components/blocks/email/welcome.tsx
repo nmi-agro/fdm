@@ -2,6 +2,7 @@ import {
     Body,
     Button,
     Container,
+    Font,
     Head,
     Heading,
     Hr,
@@ -30,23 +31,17 @@ export function WelcomeEmail({
 }: WelcomeEmailProps) {
     const previewText = `Welkom bij ${appName}! Krijg inzicht in je bedrijfsdata.`
     const logoPath = `${appBaseUrl}${logoFileName}`
-
-    const fontFamily = `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif`
-
     const absoluteUrl = url.startsWith("http") ? url : `https://${url}`
 
     return (
         <Html lang="nl">
             <Head>
-                <link
-                    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-                    rel="stylesheet"
+                <Font
+                    fontFamily="Inter"
+                    fallbackFontFamily="sans-serif"
+                    fontWeight={400}
+                    fontStyle="normal"
                 />
-                <style>{`
-                    * {
-                        font-family: ${fontFamily};
-                    }
-                `}</style>
             </Head>
             <Preview>{previewText}</Preview>
             <Tailwind>
