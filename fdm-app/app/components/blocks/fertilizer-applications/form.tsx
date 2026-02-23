@@ -54,8 +54,14 @@ export function FertilizerApplicationForm({
     navigation: Navigation
     b_id_farm: string
     b_id_or_b_lu_catalogue: string
-    fertilizerApplication?: Partial<FieldFertilizerFormValues>
-    exampleFertilizerApplication?: Partial<FieldFertilizerFormValues>
+    fertilizerApplication?:
+        | Partial<FieldFertilizerFormValues>
+        | null
+        | undefined
+    exampleFertilizerApplication?:
+        | Partial<FieldFertilizerFormValues>
+        | null
+        | undefined
 }) {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()

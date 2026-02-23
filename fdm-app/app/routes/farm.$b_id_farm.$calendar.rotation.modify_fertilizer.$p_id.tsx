@@ -25,6 +25,7 @@ import {
     Table,
     TableBody,
     TableCell,
+    TableHead,
     TableHeader,
     TableRow,
 } from "~/components/ui/table"
@@ -59,27 +60,23 @@ export async function loader({ params, request }: Route.LoaderArgs) {
             p_name_nl: originalFertilizer.p_name_nl,
         }
 
-        const allApplications = (
-            await Promise.all(
-                fieldIds.map((b_id) =>
-                    getFertilizerApplications(
-                        fdm,
-                        session.principal_id,
-                        b_id,
-                    ).then((apps) =>
-                        apps.map((app) => ({ ...app, b_id: b_id })),
-                    ),
+        const allApplicationsPerField = await Promise.all(
+            fieldIds.map((b_id) =>
+                getFertilizerApplications(fdm, session.principal_id, b_id).then(
+                    (apps) => apps.map((app) => ({ ...app, b_id: b_id })),
                 ),
-            )
-        ).flat()
-
-        const applications = allApplications.filter(
-            (app) => app.p_id === params.p_id,
+            ),
         )
 
-        applications.sort(
-            (app1, app2) =>
-                app1.p_app_date.getTime() - app2.p_app_date.getTime(),
+        const applicationsPerField = allApplicationsPerField.map(
+            (allApplications) =>
+                allApplications
+                    .filter((app) => app.p_id === params.p_id)
+                    .sort(
+                        (app1, app2) =>
+                            app1.p_app_date.getTime() -
+                            app2.p_app_date.getTime(),
+                    ),
         )
 
         const fertilizerParameterDescription =
@@ -91,24 +88,29 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         if (!applicationMethods) throw new Error("Parameter metadata missing")
 
         const applicationsExtended = await Promise.all(
-            applications.map(async (application) => {
-                const canModify = await checkPermission(
-                    fdm,
-                    "fertilizer_application",
-                    "write",
-                    application.p_app_id,
-                    session.principal_id,
-                    "RotationTableFertilizerApplicationListDialog",
-                    false,
-                )
-                return {
-                    ...application,
-                    canModify: canModify,
-                    p_app_method_name: applicationMethods.options?.find(
-                        (option) => option.value === application.p_app_method,
-                    )?.label,
-                }
-            }),
+            applicationsPerField.map((applications) =>
+                Promise.all(
+                    applications.map(async (application) => {
+                        const canModify = await checkPermission(
+                            fdm,
+                            "fertilizer_application",
+                            "write",
+                            application.p_app_id,
+                            session.principal_id,
+                            "RotationTableFertilizerApplicationListDialog",
+                            false,
+                        )
+                        return {
+                            ...application,
+                            canModify: canModify,
+                            p_app_method_name: applicationMethods.options?.find(
+                                (option) =>
+                                    option.value === application.p_app_method,
+                            )?.label,
+                        }
+                    }),
+                ),
+            ),
         )
 
         const returnUrl = `${url.pathname}${url.search}`
@@ -125,7 +127,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
 type ApplicationExtended = Awaited<
     ReturnType<typeof loader>
->["fertilizerApplications"][number]
+>["fertilizerApplications"][number][number]
 interface FertAppRecordItem {
     id: string
     dates: Date[]
@@ -151,9 +153,11 @@ function mapByOrder(
     })
 }
 
-function groupAndOrderFertApps(applications: ApplicationExtended[]) {
+function groupAndOrderFertApps(applicationsPerField: ApplicationExtended[][]) {
     const record: FertAppRecord = {}
-    mapByOrder(record, applications)
+    for (const group of applicationsPerField) {
+        mapByOrder(record, group)
+    }
 
     const entries = Object.entries(record).map(
         ([idx, reduced]) =>
@@ -171,23 +175,6 @@ function groupAndOrderFertApps(applications: ApplicationExtended[]) {
     })
     return entries.map((ent) => ent[1])
 }
-
-// function combineRecords(records: FertAppRecordItem[]): FertAppRecordItem {
-//     const timestamps = [
-//         ...new Set(
-//             records.flatMap((record) =>
-//                 record.dates.map((date) => date.getTime()),
-//             ),
-//         ),
-//     ]
-//     timestamps.sort()
-//     return {
-//         id: records[0].id,
-//         dates: timestamps.map((timestamp) => new Date(timestamp)),
-//         canModify: records.every(record => record.canModify),
-//         applications: records.flatMap((record) => record.applications),
-//     }
-// }
 
 function formatDateRange(dates: Date[]) {
     if (dates.length === 0) return ""
@@ -303,11 +290,14 @@ export default function FertilizerApplicationListDialog() {
     const navigate = useNavigate()
 
     const canModifyAnything = useMemo(
-        () => fertilizerApplications.some((app) => app.canModify),
+        () =>
+            fertilizerApplications.some((apps) =>
+                apps.some((app) => app.canModify),
+            ),
         [fertilizerApplications],
     )
 
-    const record = groupAndOrderFertApps(fertilizerApplications)
+    const records = groupAndOrderFertApps(fertilizerApplications)
 
     return (
         <Dialog open={true} onOpenChange={() => navigate("..")}>
@@ -320,13 +310,15 @@ export default function FertilizerApplicationListDialog() {
                 </DialogHeader>
                 <Table>
                     <TableHeader className="sticky">
-                        <TableCell>Datum</TableCell>
-                        <TableCell>Toedieningsmethode</TableCell>
-                        <TableCell>Hoeveelheid</TableCell>
-                        {canModifyAnything && <TableCell />}
+                        <TableRow>
+                            <TableHead>Datum</TableHead>
+                            <TableHead>Toedieningsmethode</TableHead>
+                            <TableHead>Hoeveelheid</TableHead>
+                            {canModifyAnything && <TableHead />}
+                        </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {record.map((record) => (
+                        {records.map((record) => (
                             <FertilizerApplicationRow
                                 key={record.id}
                                 record={record}

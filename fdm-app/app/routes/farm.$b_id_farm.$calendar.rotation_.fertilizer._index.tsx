@@ -33,7 +33,10 @@ import {
     FertilizerApplicationForm,
     type FertilizerOption,
 } from "~/components/blocks/fertilizer-applications/form"
-import { FormSchema } from "~/components/blocks/fertilizer-applications/formschema"
+import {
+    FormSchema,
+    FormSchemaModify,
+} from "~/components/blocks/fertilizer-applications/formschema"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import {
@@ -159,7 +162,6 @@ async function loadByCultivationAndFieldIds(
     cultivationIds: string[],
     fieldIds: string[] | null,
 ): Promise<StrategizedLoaderData> {
-    console.log("loading by cultivation and field ids")
     const timeframe = getTimeframe(params)
     const fields = await getFields(
         fdm,
@@ -202,7 +204,7 @@ async function loadByCultivationAndFieldIds(
         selectedFieldIds: selectedFieldIds,
         canReselect: true,
         appIds: null,
-        exampleFertilizerApplication: {},
+        exampleFertilizerApplication: undefined,
         fertilizerApplication: undefined,
     }
 }
@@ -212,8 +214,6 @@ async function loadByAppIds(
     _params: PathParams,
     appIdPairs: string[],
 ): Promise<StrategizedLoaderData> {
-    console.log("loading by app ids")
-
     const applicationRefs = parseAppIds(appIdPairs)
 
     const fields = await Promise.all(
@@ -272,15 +272,6 @@ async function loadByAppIds(
             delete exampleFertilizerApplication.p_app_amount
         }
     }
-
-    console.log({
-        fields: fields as StrategizedLoaderData["fields"],
-        selectedFieldIds: fields.map((field) => field.b_id),
-        canReselect: false,
-        appIds: fertilizerApplications.map((app) => app.p_app_id),
-        exampleFertilizerApplication: exampleFertilizerApplication,
-        fertilizerApplication: fertilizerApplication,
-    })
 
     return {
         fields: fields as StrategizedLoaderData["fields"],
@@ -419,10 +410,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             cultivationIds: cultivationIds,
             canReselect: canReselect,
             exampleFertilizerApplication: exampleFertilizerApplication,
-            fertilizerApplication: {
-                ...fertilizerApplication,
-                p_app_ids: appIds,
-            },
+            fertilizerApplication: fertilizerApplication
+                ? {
+                      ...fertilizerApplication,
+                      p_app_ids: appIds,
+                  }
+                : undefined,
             create: url.searchParams.has("create"),
         }
     } catch (error) {
@@ -843,22 +836,26 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const validatedData = await extractFormValuesFromRequest(
             request,
-            FormSchema,
+            url.searchParams.has("appIds") ? FormSchemaModify : FormSchema,
         )
 
-        const appIdPairs = url.searchParams
-            .get("appIds")
-            ?.split(",")
-            .filter(Boolean)
-        if (appIdPairs && appIdPairs.length > 0) {
-            const applicationRefs = parseAppIds(appIdPairs)
+        const returnUrlParam = url.searchParams.get("returnUrl")
+        const returnUrl =
+            returnUrlParam && isOfOrigin(returnUrlParam, url.origin)
+                ? returnUrlParam
+                : url.searchParams.has("create")
+                  ? `/farm/create/${b_id_farm}/${calendar}/rotation`
+                  : `/farm/${b_id_farm}/${calendar}/rotation`
+
+        if (validatedData.p_app_id) {
+            const p_app_ids = validatedData.p_app_id.split(",").filter(Boolean)
             fdm.transaction((tx) =>
                 Promise.all(
-                    applicationRefs.map((ref) =>
+                    p_app_ids.map((p_app_id) =>
                         updateFertilizerApplication(
                             tx,
                             session.principal_id,
-                            ref.p_app_id,
+                            p_app_id,
                             validatedData.p_id,
                             validatedData.p_app_amount,
                             validatedData.p_app_method,
@@ -868,17 +865,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 ),
             )
 
-            const returnUrl = url.searchParams.get("returnUrl")
-            return redirectWithSuccess(
-                returnUrl && isOfOrigin(returnUrl, url.origin)
-                    ? returnUrl
-                    : url.searchParams.has("create")
-                      ? `/farm/create/${b_id_farm}/${calendar}/rotation`
-                      : `/farm/${b_id_farm}/${calendar}/rotation`,
-                {
-                    message: `Bemesting succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
-                },
-            )
+            return redirectWithSuccess(returnUrl, {
+                message: `${p_app_ids.length} ${p_app_ids.length === 1 ? "bemesting is" : "bemestingen zijn"} succesvol bijgewerkt.`,
+            })
         }
 
         const fieldIds =
@@ -904,14 +893,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             ),
         )
 
-        return redirectWithSuccess(
-            url.searchParams.has("create")
-                ? `/farm/create/${b_id_farm}/${calendar}/rotation`
-                : `/farm/${b_id_farm}/${calendar}/rotation`,
-            {
-                message: `Bemesting succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
-            },
-        )
+        return redirectWithSuccess(returnUrl, {
+            message: `Bemesting succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+        })
     } catch (error) {
         if (error instanceof z.ZodError) {
             return dataWithError(
