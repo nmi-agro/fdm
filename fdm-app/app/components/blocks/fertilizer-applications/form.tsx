@@ -1,24 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { FertilizerApplication } from "@svenvw/fdm-core"
+import { formatDate } from "date-fns"
+import { nl } from "date-fns/locale"
 import { Plus } from "lucide-react"
 import type { MouseEvent } from "react"
 import { useEffect, useId } from "react"
+import { Controller } from "react-hook-form"
 import type { Navigation } from "react-router"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
 import { Combobox } from "~/components/custom/combobox"
-import { DatePicker } from "~/components/custom/date-picker"
+import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
-import {
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "~/components/ui/form"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
 import {
     Select,
     SelectContent,
@@ -51,13 +47,15 @@ export function FertilizerApplicationForm({
     b_id_farm,
     b_id_or_b_lu_catalogue,
     fertilizerApplication,
+    exampleFertilizerApplication,
 }: {
     options: FertilizerOption[]
     action: string
     navigation: Navigation
     b_id_farm: string
     b_id_or_b_lu_catalogue: string
-    fertilizerApplication: FertilizerApplication
+    fertilizerApplication?: Partial<FieldFertilizerFormValues>
+    exampleFertilizerApplication?: Partial<FieldFertilizerFormValues>
 }) {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
@@ -120,7 +118,7 @@ export function FertilizerApplicationForm({
     ])
 
     useEffect(() => {
-        if (fertilizerApplication) {
+        if (fertilizerApplication?.p_app_amount) {
             form.setValue("p_app_amount", fertilizerApplication.p_app_amount)
         }
     }, [fertilizerApplication, form.setValue])
@@ -158,7 +156,7 @@ export function FertilizerApplicationForm({
     }
 
     return (
-        <RemixFormProvider {...(form as any)}>
+        <RemixFormProvider {...form}>
             <Form
                 id={formId}
                 action={action}
@@ -166,8 +164,8 @@ export function FertilizerApplicationForm({
                 method="post"
             >
                 <fieldset disabled={isSubmitting}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 items-end gap-x-8 gap-y-4">
-                        <div className="flex flex-row items-baseline min-w-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-x-8 gap-y-4">
+                        <div className="flex flex-row align-top min-w-0">
                             <div className="min-w-0 flex-1">
                                 <Combobox
                                     options={options}
@@ -181,10 +179,11 @@ export function FertilizerApplicationForm({
                                             </span>
                                         </span>
                                     }
+                                    defaultValue={fertilizerApplication?.p_id}
                                 />
                             </div>
-                            <div className="py-2 shrink-0 grow-0">
-                                <p className="invisible">&nbsp;</p>
+                            <div className="space-y-2 shrink-0 grow-0">
+                                <Label className="invisible">&nbsp;</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button
@@ -202,22 +201,22 @@ export function FertilizerApplicationForm({
                                 </Tooltip>
                             </div>
                         </div>
-                        <FormField
-                            control={form.control}
+                        <Controller
                             name="p_app_method"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Toedieningsmethode</FormLabel>
+                            render={({ field, fieldState }) => (
+                                <Field
+                                    data-invalid={fieldState.invalid}
+                                    className="gap-1"
+                                >
+                                    <FieldLabel>Toedieningsmethode</FieldLabel>
                                     <Select
                                         onValueChange={field.onChange}
                                         value={field.value ?? ""}
                                         disabled={!selectedFertilizer}
                                     >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecteer een methode" />
-                                            </SelectTrigger>
-                                        </FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecteer een methode" />
+                                        </SelectTrigger>
                                         <SelectContent>
                                             {selectedFertilizer?.applicationMethodOptions?.map(
                                                 (option) => (
@@ -231,65 +230,97 @@ export function FertilizerApplicationForm({
                                             )}
                                         </SelectContent>
                                     </Select>
-                                    <FormDescription />
-                                    <FormMessage />
-                                </FormItem>
+                                    {fieldState.invalid && (
+                                        <FieldError
+                                            errors={[fieldState.error]}
+                                        />
+                                    )}
+                                </Field>
                             )}
                         />
-                        <div>
-                            <FormField
-                                control={form.control}
-                                name="p_app_amount"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Hoeveelheid</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                value={
-                                                    field.value === undefined ||
-                                                    field.value === null ||
-                                                    Number.isNaN(
-                                                        Number.parseFloat(
-                                                            String(field.value),
-                                                        ),
-                                                    )
-                                                        ? ""
-                                                        : field.value
-                                                }
-                                                onChange={(e) => {
-                                                    const val = e.target.value
-                                                    if (val === "") {
-                                                        field.onChange(
-                                                            undefined,
-                                                        )
-                                                    } else {
-                                                        field.onChange(
-                                                            Number.parseFloat(
-                                                                val,
-                                                            ),
-                                                        )
-                                                    }
-                                                }}
-                                                type="number"
-                                                placeholder="12500 kg/ha"
-                                                required
-                                            />
-                                        </FormControl>
-                                        <FormDescription />
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        <div>
-                            <DatePicker
-                                form={form}
-                                name={"p_app_date"}
-                                label={"Datum"}
-                                description={""}
-                            />
-                        </div>
+                        <Controller
+                            name="p_app_date"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                                <Field
+                                    data-invalid={fieldState.invalid}
+                                    className="gap-1"
+                                >
+                                    <DatePicker
+                                        label="Oogstdatum"
+                                        placeholder={
+                                            exampleFertilizerApplication?.p_app_date
+                                                ? `Er zijn verschillende waarden ingevuld, bv: ${formatDate(exampleFertilizerApplication.p_app_date, "PP", { locale: nl })}`
+                                                : undefined
+                                        }
+                                        defaultValue={
+                                            fertilizerApplication?.p_app_date
+                                        }
+                                        field={{
+                                            ...field,
+                                            value: field.value,
+                                        }}
+                                        fieldState={fieldState}
+                                        required={true}
+                                    />
+                                    {fieldState.invalid && (
+                                        <FieldError
+                                            errors={[fieldState.error]}
+                                        />
+                                    )}
+                                </Field>
+                            )}
+                        />
+                        <Controller
+                            name="p_app_amount"
+                            render={({ field, fieldState }) => (
+                                <Field
+                                    data-invalid={fieldState.invalid}
+                                    className="gap-1"
+                                >
+                                    <FieldLabel>Hoeveelheid</FieldLabel>
+                                    <Input
+                                        {...field}
+                                        placeholder={
+                                            Number.isFinite(
+                                                exampleFertilizerApplication?.p_app_amount,
+                                            )
+                                                ? `Er zijn verschillende waarden ingevuld, bv: ${exampleFertilizerApplication?.p_app_amount} kg/ha`
+                                                : "Bv. 37500 kg / ha"
+                                        }
+                                        aria-required="true"
+                                        aria-invalid={fieldState.invalid}
+                                        type="number"
+                                        value={
+                                            field.value === undefined ||
+                                            field.value === null ||
+                                            Number.isNaN(
+                                                Number.parseFloat(
+                                                    String(field.value),
+                                                ),
+                                            )
+                                                ? ""
+                                                : field.value
+                                        }
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            if (val === "") {
+                                                field.onChange(undefined)
+                                            } else {
+                                                field.onChange(
+                                                    Number.parseFloat(val),
+                                                )
+                                            }
+                                        }}
+                                    />
+                                    {fieldState.invalid && (
+                                        <FieldError
+                                            errors={[fieldState.error]}
+                                        />
+                                    )}
+                                </Field>
+                            )}
+                        />
                         <div className="invisible" />
                         <div className="ml-auto">
                             <Button type="submit">

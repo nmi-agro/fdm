@@ -7,6 +7,7 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import type { FieldRow, RotationExtended } from "./columns"
+import { NavLink } from "react-router"
 
 type FertilizerDisplayProps = {
     cultivation: RotationExtended
@@ -58,6 +59,10 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
 
     const fertilizerDisplay = React.useMemo(() => {
         const fields = cultivation.fields
+        const fieldIds =
+            cultivation.type === "field"
+                ? [cultivation.b_id]
+                : cultivation.fields.map((field) => field.b_id)
         return (
             <div className="flex items-start flex-col space-y-2">
                 {uniqueFertilizers.map((fertilizer) => {
@@ -79,26 +84,30 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
                             variant="outline"
                             className="gap-1 text-muted-foreground"
                         >
-                            <span>
-                                {fertilizer.p_type === "manure" ? (
-                                    <Square
-                                        className={`size-3 ${fertilizerIconClassMap.manure.text} ${fertilizerIconClassMap.manure.fill[fertilizerIconFillShade]}`}
-                                    />
-                                ) : fertilizer.p_type === "mineral" ? (
-                                    <Circle
-                                        className={`size-3 ${fertilizerIconClassMap.mineral.text} ${fertilizerIconClassMap.mineral.fill[fertilizerIconFillShade]}`}
-                                    />
-                                ) : fertilizer.p_type === "compost" ? (
-                                    <Triangle
-                                        className={`size-3 ${fertilizerIconClassMap.compost.text} ${fertilizerIconClassMap.compost.fill[fertilizerIconFillShade]}`}
-                                    />
-                                ) : (
-                                    <Diamond
-                                        className={`size-3 ${fertilizerIconClassMap.other.text} ${fertilizerIconClassMap.other.fill[fertilizerIconFillShade]}`}
-                                    />
-                                )}
-                            </span>
-                            {fertilizer.p_name_nl}
+                            <NavLink
+                                to={`./modify_fertilizer/${fertilizer.p_id}?fieldIds=${fieldIds.map(encodeURIComponent).join(",")}`}
+                            >
+                                <span>
+                                    {fertilizer.p_type === "manure" ? (
+                                        <Square
+                                            className={`size-3 ${fertilizerIconClassMap.manure.text} ${fertilizerIconClassMap.manure.fill[fertilizerIconFillShade]}`}
+                                        />
+                                    ) : fertilizer.p_type === "mineral" ? (
+                                        <Circle
+                                            className={`size-3 ${fertilizerIconClassMap.mineral.text} ${fertilizerIconClassMap.mineral.fill[fertilizerIconFillShade]}`}
+                                        />
+                                    ) : fertilizer.p_type === "compost" ? (
+                                        <Triangle
+                                            className={`size-3 ${fertilizerIconClassMap.compost.text} ${fertilizerIconClassMap.compost.fill[fertilizerIconFillShade]}`}
+                                        />
+                                    ) : (
+                                        <Diamond
+                                            className={`size-3 ${fertilizerIconClassMap.other.text} ${fertilizerIconClassMap.other.fill[fertilizerIconFillShade]}`}
+                                        />
+                                    )}
+                                </span>
+                                {fertilizer.p_name_nl}
+                            </NavLink>
                         </Badge>
                     )
 
@@ -117,7 +126,12 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
                 })}
             </div>
         )
-    }, [uniqueFertilizers, cultivation.type, cultivation.fields])
+    }, [
+        uniqueFertilizers,
+        (cultivation as FieldRow).b_id,
+        cultivation.type,
+        cultivation.fields,
+    ])
 
     return fertilizerDisplay
 }

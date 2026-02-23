@@ -1,18 +1,22 @@
 import {
     addFertilizerApplication,
+    type FertilizerApplication,
+    type Field,
     getCultivations,
     getCultivationsFromCatalogue,
     getFarms,
+    getFertilizerApplication,
     getFertilizerParametersDescription,
     getFertilizers,
+    getField,
     getFields,
+    updateFertilizerApplication,
 } from "@svenvw/fdm-core"
 import { AlertTriangle, Info } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
     type ActionFunctionArgs,
     data,
-    type LoaderFunctionArgs,
     type MetaFunction,
     NavLink,
     redirect,
@@ -74,7 +78,8 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { modifySearchParams } from "~/lib/url-utils"
+import { isOfOrigin, modifySearchParams } from "~/lib/url-utils"
+import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation_.fertilizer._index"
 
 export const meta: MetaFunction = () => {
     return [
@@ -86,30 +91,215 @@ export const meta: MetaFunction = () => {
     ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the active farm
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("missing: b_id_farm", {
-                status: 400,
-                statusText: "missing: b_id_farm",
-            })
+function parseAppIds(
+    appIdPairs: string[],
+): { b_id: string; p_app_id: string }[] {
+    const applicationRefs: { p_app_id: string; b_id: string }[] = []
+
+    // Parse application references
+    for (const appId of appIdPairs as string[]) {
+        const splitting = appId.split(":")
+        if (splitting.length < 2) {
+            throw new Error(`invalid b_id:p_app_id : ${appId}`)
+        }
+        const [b_id, p_app_id] = splitting
+        applicationRefs.push({ b_id, p_app_id })
+    }
+
+    return applicationRefs
+}
+
+type PathParams = Route.LoaderArgs["params"]
+interface StrategizedLoaderData {
+    fields: (Field & { cultivations?: string[] })[]
+    selectedFieldIds: string[]
+    canReselect: boolean
+    appIds: string[] | null
+    exampleFertilizerApplication?: Partial<FertilizerApplication> | null
+    fertilizerApplication?: Partial<FertilizerApplication> | null
+}
+function loadByStrategy(
+    principal_id: string,
+    params: PathParams,
+    searchParams: URLSearchParams,
+) {
+    // Get cultivationIds from search params
+    const appIds = searchParams.get("appIds")?.split(",").filter(Boolean)
+
+    if (appIds && appIds.length > 0) {
+        return loadByAppIds(principal_id, params, appIds)
+    }
+
+    // Get cultivationIds from search params
+    const cultivationIds =
+        searchParams.get("cultivationIds")?.split(",").filter(Boolean) ?? []
+
+    if (!cultivationIds || cultivationIds.length === 0) {
+        throw data("missing: cultivationIds", {
+            status: 400,
+            statusText: "missing: cultivationIds",
+        })
+    }
+
+    // Get fieldIds from search params (if any)
+    const fieldIdsFromSearchParams =
+        searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? null
+
+    return loadByCultivationAndFieldIds(
+        principal_id,
+        params,
+        cultivationIds,
+        fieldIdsFromSearchParams,
+    )
+}
+
+async function loadByCultivationAndFieldIds(
+    principal_id: string,
+    params: PathParams,
+    cultivationIds: string[],
+    fieldIds: string[] | null,
+): Promise<StrategizedLoaderData> {
+    console.log("loading by cultivation and field ids")
+    const timeframe = getTimeframe(params)
+    const fields = await getFields(
+        fdm,
+        principal_id,
+        params.b_id_farm,
+        timeframe,
+    )
+
+    const fieldsExtended = await Promise.all(
+        fields.map(async (field) => {
+            const cultivations = await getCultivations(
+                fdm,
+                principal_id,
+                field.b_id,
+                timeframe,
+            )
+            return {
+                ...field,
+                cultivations: cultivations.map((c) => c.b_lu_catalogue),
+            }
+        }),
+    )
+
+    const fieldsWithCultivation = fieldsExtended.filter((field) =>
+        field.cultivations.some((b_lu_catalogue) =>
+            cultivationIds.includes(b_lu_catalogue),
+        ),
+    )
+
+    const fieldIdsSet = new Set(fieldIds)
+
+    const selectedFieldIds = fieldIds
+        ? fieldsWithCultivation
+              .map((cultivation) => cultivation.b_id)
+              .filter((b_id) => fieldIdsSet.has(b_id))
+        : fieldsWithCultivation.map((cultivation) => cultivation.b_id)
+
+    return {
+        fields: fieldsWithCultivation,
+        selectedFieldIds: selectedFieldIds,
+        canReselect: true,
+        appIds: null,
+        exampleFertilizerApplication: {},
+        fertilizerApplication: undefined,
+    }
+}
+
+async function loadByAppIds(
+    principal_id: string,
+    _params: PathParams,
+    appIdPairs: string[],
+): Promise<StrategizedLoaderData> {
+    console.log("loading by app ids")
+
+    const applicationRefs = parseAppIds(appIdPairs)
+
+    const fields = await Promise.all(
+        applicationRefs.map((ref) => getField(fdm, principal_id, ref.b_id)),
+    )
+
+    const fertilizerApplications = (await Promise.all(
+        applicationRefs.map(async ({ p_app_id }) =>
+            getFertilizerApplication(fdm, principal_id, p_app_id),
+        ),
+    )) as FertilizerApplication[]
+
+    let exampleFertilizerApplication: Partial<FertilizerApplication> = {}
+    let fertilizerApplication: Partial<FertilizerApplication> = {}
+
+    if (fertilizerApplications.length > 0) {
+        // These will be shown as form placeholders at worst
+        exampleFertilizerApplication = { ...fertilizerApplications[0] }
+
+        // These keys are shown on the form
+        const keyTypes = {
+            p_id: "string",
+            p_app_date: "date",
+            p_app_method: "string",
+            p_app_amount: "number",
+        } as const
+        const keys = Object.keys(keyTypes) as (keyof typeof keyTypes)[]
+
+        // Select the values that can be shown on the form
+        fertilizerApplication = Object.fromEntries(
+            keys.map((key) => [key, exampleFertilizerApplication[key]]),
+        )
+
+        // Only keep values that are common between the fertilizer applications
+        for (const key of keys) {
+            for (const app of fertilizerApplications) {
+                if (!exampleFertilizerApplication[key] || !app[key]) {
+                    delete fertilizerApplication[key]
+                }
+                if (
+                    keyTypes[key] === "date"
+                        ? (
+                              exampleFertilizerApplication[key] as Date
+                          ).getTime() !== (app[key] as Date).getTime()
+                        : exampleFertilizerApplication[key] !== app[key]
+                ) {
+                    delete fertilizerApplication[key]
+                }
+            }
         }
 
-        // Get cultivationIds from search params
-        const url = new URL(request.url)
-        const cultivationIds =
-            url.searchParams
-                .get("cultivationIds")
-                ?.split(",")
-                .filter(Boolean) ?? []
+        // If the fertilizer types are different, assume the application methods are different too
+        if (!fertilizerApplication.p_id) {
+            delete fertilizerApplication.p_app_method
+            // Also, no specific placeholder should be shown
+            delete exampleFertilizerApplication.p_app_amount
+        }
+    }
 
+    console.log({
+        fields: fields as StrategizedLoaderData["fields"],
+        selectedFieldIds: fields.map((field) => field.b_id),
+        canReselect: false,
+        appIds: fertilizerApplications.map((app) => app.p_app_id),
+        exampleFertilizerApplication: exampleFertilizerApplication,
+        fertilizerApplication: fertilizerApplication,
+    })
+
+    return {
+        fields: fields as StrategizedLoaderData["fields"],
+        selectedFieldIds: fields.map((field) => field.b_id),
+        canReselect: false,
+        appIds: fertilizerApplications.map((app) => app.p_app_id),
+        exampleFertilizerApplication: exampleFertilizerApplication,
+        fertilizerApplication: fertilizerApplication,
+    }
+}
+
+export async function loader({ request, params }: Route.LoaderArgs) {
+    try {
         // Get the session
         const session = await getSession(request)
 
+        const url = new URL(request.url)
+
         // Get timeframe from calendar store
-        const timeframe = getTimeframe(params)
         const calendar = getCalendar(params)
 
         // Get a list of possible farms of the user
@@ -131,79 +321,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })
 
-        // Get all fields for the farm and their cultivations
-        const allFieldsWithCultivations = await Promise.all(
-            (
-                await getFields(fdm, session.principal_id, b_id_farm, timeframe)
-            ).map(async (field) => {
-                const cultivations = await getCultivations(
-                    fdm,
-                    session.principal_id,
-                    field.b_id,
-                    timeframe,
-                )
-                return {
-                    ...field,
-                    cultivations: cultivations.map((c) => c.b_lu_catalogue),
-                }
-            }),
-        )
+        const {
+            fields,
+            selectedFieldIds,
+            canReselect,
+            appIds,
+            exampleFertilizerApplication,
+            fertilizerApplication,
+        } = await loadByStrategy(session.principal_id, params, url.searchParams)
 
-        // Get fieldIds from search params (if any)
-        const fieldIdsFromSearchParams =
-            url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? null
-
-        // Filter fields based on cultivationIds or fieldIdsFromSearchParams
-        let selectedFields = []
-        let cultivationName = ""
-        let cultivationCatalogueData = []
-
-        if (cultivationIds.length > 0) {
-            cultivationCatalogueData = await getCultivationsFromCatalogue(
-                fdm,
-                session.principal_id,
-                b_id_farm,
-            )
-
-            const targetCultivation = cultivationCatalogueData.find(
-                (c: { b_lu_catalogue: string }) =>
-                    c.b_lu_catalogue === cultivationIds[0],
-            )
-
-            if (targetCultivation) {
-                cultivationName = targetCultivation.b_lu_name
-            }
-
-            if (fieldIdsFromSearchParams) {
-                // If fieldIds are in search params, use them to determine selected fields
-                selectedFields =
-                    fieldIdsFromSearchParams.length > 0
-                        ? allFieldsWithCultivations.filter((field) =>
-                              fieldIdsFromSearchParams.includes(field.b_id!),
-                          )
-                        : []
-            } else {
-                // Otherwise, default to fields with the selected cultivation
-                selectedFields = allFieldsWithCultivations.filter((field) =>
-                    field.cultivations.some((c) => cultivationIds.includes(c)),
-                )
-            }
-        } else {
-            throw data("missing: cultivationIds", {
-                status: 400,
-                statusText: "missing: cultivationIds",
-            })
-        }
-
-        const fieldOptions = allFieldsWithCultivations.map((field) => {
+        const fieldOptions = fields.map((field) => {
             if (!field?.b_id || !field?.b_name) {
                 throw new Error("Invalid field data structure")
             }
             return {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
-                cultivations: field.cultivations, // Pass cultivations for each field
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+                cultivations: field.cultivations ?? [], // Pass cultivations for each field
             }
         })
 
@@ -211,7 +346,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fertilizers = await getFertilizers(
             fdm,
             session.principal_id,
-            b_id_farm,
+            params.b_id_farm,
         )
         const fertilizerParameterDescription =
             getFertilizerParametersDescription()
@@ -219,69 +354,75 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             (x: { parameter: string }) =>
                 x.parameter === "p_app_method_options",
         )
-        if (!applicationMethods) throw new Error("Parameter metadata missing")
+        const applicationMethodOptionsRaw = applicationMethods?.options
+        if (!applicationMethodOptionsRaw)
+            throw new Error("Parameter metadata missing")
         // Map fertilizers to options for the combobox
         const fertilizerOptions: FertilizerOption[] = fertilizers.map(
             (fertilizer) => {
                 const applicationMethodOptions = fertilizer.p_app_method_options
-                    .map((opt: string) => {
-                        const meta = applicationMethods.options.find(
-                            (x: { value: string }) => x.value === opt,
+                    ?.map((opt: string) => {
+                        const meta = applicationMethodOptionsRaw.find(
+                            (x) => x.value === opt,
                         )
                         return meta
                             ? { value: opt, label: meta.label }
                             : undefined
                     })
                     .filter(
-                        (option: {
-                            value: string
-                            label: string
-                        }): option is { value: string; label: string } =>
+                        (option): option is { value: string; label: string } =>
                             option !== undefined,
                     )
                 return {
                     value: fertilizer.p_id,
-                    label: fertilizer.p_name_nl,
+                    label: fertilizer.p_name_nl ?? "Onbekend",
                     applicationMethodOptions: applicationMethodOptions,
                 }
             },
         )
 
+        const catalogueCultivations = await getCultivationsFromCatalogue(
+            fdm,
+            session.principal_id,
+            params.b_id_farm,
+        )
+        const cultivationIds =
+            url.searchParams
+                .get("cultivationIds")
+                ?.split(",")
+                .filter(Boolean) ?? []
+        const cultivationNames = cultivationIds
+            .map(
+                (b_lu_catalogue) =>
+                    catalogueCultivations.find(
+                        (c) => c.b_lu_catalogue === b_lu_catalogue,
+                    )?.b_lu_name,
+            )
+            .filter((v) => v)
+            .sort()
+
         // Return user information from loader
         return {
-            b_id_farm: b_id_farm,
+            b_id_farm: params.b_id_farm,
             farmOptions: farmOptions,
-            fieldAmount: selectedFields.length,
+            fieldAmount: selectedFieldIds.length,
             fertilizerOptions: fertilizerOptions,
             calendar: calendar,
-            selectedFields: selectedFields.map(
-                (field: {
-                    b_id: string
-                    b_name: string
-                    b_area: number
-                    cultivations: string[]
-                }) => ({
-                    b_id: field.b_id,
-                    b_name: field.b_name,
-                    b_area: Math.round(field.b_area * 10) / 10,
-                    cultivations: field.cultivations,
-                }),
-            ),
-            fieldOptions: fieldOptions.map(
-                (field: {
-                    b_id: string
-                    b_name: string
-                    b_area: number
-                    cultivations: string[]
-                }) => ({
-                    b_id: field.b_id,
-                    b_name: field.b_name,
-                    b_area: field.b_area,
-                    cultivations: field.cultivations,
-                }),
-            ), // All fields for selection
-            cultivationName: cultivationName,
+            selectedFieldIds: selectedFieldIds,
+            fieldOptions: fieldOptions.map((field) => ({
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area: field.b_area,
+                cultivations: field.cultivations,
+            })), // All fields for selection
+            cultivationNames: cultivationNames,
             cultivationIds: cultivationIds,
+            canReselect: canReselect,
+            exampleFertilizerApplication: exampleFertilizerApplication,
+            fertilizerApplication: {
+                ...fertilizerApplication,
+                p_app_ids: appIds,
+            },
             create: url.searchParams.has("create"),
         }
     } catch (error) {
@@ -296,14 +437,12 @@ export default function FarmRotationFertilizerAddIndex() {
     const [searchParams, setSearchParams] = useSearchParams()
     const [open, setOpen] = useState(false)
     const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
-        loaderData.selectedFields.map((field) => field.b_id!),
+        loaderData.selectedFieldIds,
     )
 
     useEffect(() => {
-        setSelectedFieldIds(
-            loaderData.selectedFields.map((field) => field.b_id!),
-        )
-    }, [loaderData.selectedFields])
+        setSelectedFieldIds(loaderData.selectedFieldIds)
+    }, [loaderData.selectedFieldIds])
 
     const isSubmitting = navigation.state === "submitting"
 
@@ -329,7 +468,7 @@ export default function FarmRotationFertilizerAddIndex() {
     }
 
     const displayedSelectedFields = loaderData.fieldOptions.filter((field) =>
-        selectedFieldIds.includes(field.b_id!),
+        selectedFieldIds.includes(field.b_id),
     )
 
     function handleSelectionDialogOpenChange(open: boolean) {
@@ -365,7 +504,7 @@ export default function FarmRotationFertilizerAddIndex() {
             </Header>
             <main>
                 <FarmTitle
-                    title={`Bemesting toevoegen aan ${loaderData.cultivationName}`}
+                    title={`Bemesting toevoegen aan ${loaderData.cultivationNames.join(", ")}`}
                     description="Kies 1 of meerdere percelen om een bemesting toe te voegen"
                 />
                 <div className="relative">
@@ -547,9 +686,13 @@ export default function FarmRotationFertilizerAddIndex() {
                                                                 <span className="text-sm font-semibold">
                                                                     Percelen
                                                                     zonder{" "}
-                                                                    {
-                                                                        loaderData.cultivationName
-                                                                    }
+                                                                    {loaderData
+                                                                        .cultivationNames
+                                                                        .length ===
+                                                                    1
+                                                                        ? loaderData
+                                                                              .cultivationNames[0]
+                                                                        : "deze gewassen"}
                                                                 </span>
                                                             </AccordionTrigger>
                                                             <AccordionContent>
@@ -666,7 +809,12 @@ export default function FarmRotationFertilizerAddIndex() {
                                                     "cultivationIds",
                                                 ) || "cultivationIds"
                                             }
-                                            fertilizerApplication={undefined}
+                                            fertilizerApplication={
+                                                loaderData.fertilizerApplication
+                                            }
+                                            exampleFertilizerApplication={
+                                                loaderData.exampleFertilizerApplication
+                                            }
                                         />
                                     ) : (
                                         <div className="flex h-full min-h-60 items-center justify-center rounded-md border border-dashed">
@@ -689,12 +837,50 @@ export default function FarmRotationFertilizerAddIndex() {
 export async function action({ request, params }: ActionFunctionArgs) {
     try {
         const { b_id_farm, calendar = "all" } = params
-        if (!b_id_farm) {
-            throw new Error("Farm ID is missing")
-        }
 
         const session = await getSession(request)
         const url = new URL(request.url)
+
+        const validatedData = await extractFormValuesFromRequest(
+            request,
+            FormSchema,
+        )
+
+        const appIdPairs = url.searchParams
+            .get("appIds")
+            ?.split(",")
+            .filter(Boolean)
+        if (appIdPairs && appIdPairs.length > 0) {
+            const applicationRefs = parseAppIds(appIdPairs)
+            fdm.transaction((tx) =>
+                Promise.all(
+                    applicationRefs.map((ref) =>
+                        updateFertilizerApplication(
+                            tx,
+                            session.principal_id,
+                            ref.p_app_id,
+                            validatedData.p_id,
+                            validatedData.p_app_amount,
+                            validatedData.p_app_method,
+                            validatedData.p_app_date,
+                        ),
+                    ),
+                ),
+            )
+
+            const returnUrl = url.searchParams.get("returnUrl")
+            return redirectWithSuccess(
+                returnUrl && isOfOrigin(returnUrl, url.origin)
+                    ? returnUrl
+                    : url.searchParams.has("create")
+                      ? `/farm/create/${b_id_farm}/${calendar}/rotation`
+                      : `/farm/${b_id_farm}/${calendar}/rotation`,
+                {
+                    message: `Bemesting succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+                },
+            )
+        }
+
         const fieldIds =
             url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
 
@@ -702,21 +888,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
             return dataWithError(null, "Selecteer eerst een perceel.")
         }
 
-        const validatedData = await extractFormValuesFromRequest(
-            request,
-            FormSchema,
-        )
-
-        await Promise.all(
-            fieldIds.map((fieldId) =>
-                addFertilizerApplication(
-                    fdm,
-                    session.principal_id,
-                    fieldId,
-                    validatedData.p_id,
-                    validatedData.p_app_amount,
-                    validatedData.p_app_method,
-                    validatedData.p_app_date,
+        await fdm.transaction((tx) =>
+            Promise.all(
+                fieldIds.map((fieldId) =>
+                    addFertilizerApplication(
+                        tx,
+                        session.principal_id,
+                        fieldId,
+                        validatedData.p_id,
+                        validatedData.p_app_amount,
+                        validatedData.p_app_method,
+                        validatedData.p_app_date,
+                    ),
                 ),
             ),
         )
