@@ -58,7 +58,7 @@ export const BaseEmailLayout = ({
     reasonText,
     lang = "nl",
 }: BaseEmailLayoutProps) => {
-    const logoPath = `${appBaseUrl}${logoFileName}`
+    const logoPath = appBaseUrl ? `${appBaseUrl}${logoFileName}` : logoFileName
     const privacyUrl = appBaseUrl ? `${appBaseUrl}/privacy` : undefined
 
     return (
@@ -75,7 +75,7 @@ export const BaseEmailLayout = ({
             <Tailwind config={defaultTheme}>
                 <Body className="bg-background my-auto mx-auto font-sans">
                     <Container className="border border-solid border-secondary rounded my-10 mx-auto p-5 w-116.25 max-w-full">
-                        {showLogo && (
+                        {showLogo && appBaseUrl && (
                             <Section className="mt-7.5 text-center">
                                 <Img
                                     src={logoPath}
