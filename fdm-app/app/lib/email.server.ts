@@ -28,6 +28,7 @@ export async function renderWelcomeEmail(user: User): Promise<Email> {
             url: serverConfig.url,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
         }),
     )
 
@@ -56,6 +57,7 @@ export async function renderInvitationEmail(
             organizationName: organizationName,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
         }),
         { pretty: true },
     )
@@ -86,6 +88,7 @@ export async function renderFarmInvitationEmail(
             role,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
             isUnregistered,
         }),
         { pretty: true },
