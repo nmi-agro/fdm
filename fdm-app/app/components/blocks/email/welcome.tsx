@@ -41,7 +41,7 @@ export function WelcomeEmail({
                 </Text>
             </Section>
 
-            <Hr className="border border-solid border-[#eaeaea] my-6.5 mx-0 w-full" />
+            <Hr className="border border-solid border-[#eaeaea] my-6 mx-0 w-full" />
 
             <Section>
                 <Heading
@@ -124,7 +124,7 @@ export function WelcomeEmail({
                     bereiken door te reageren op deze mail.
                 </Text>
             </Section>
-            <Hr className="border border-solid border-[#eaeaea] my-6.5 mx-0 w-full" />
+            <Hr className="border border-solid border-[#eaeaea] my-6 mx-0 w-full" />
         </BaseEmailLayout>
     )
 }
