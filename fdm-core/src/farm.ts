@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm"
+import { and, asc, eq, gt, inArray } from "drizzle-orm"
 import {
     checkPermission,
     getRolesOfPrincipalForResource,
@@ -9,12 +9,18 @@ import {
     updateRole,
 } from "./authorization"
 import type { PrincipalId, Role } from "./authorization.d"
+import * as authNSchema from "./db/schema-authn"
+import * as authZSchema from "./db/schema-authz"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
 import { removeField } from "./field"
 import { createId } from "./id"
-import { getPrincipal, identifyPrincipal } from "./principal"
+import {
+    createInvitation,
+    listPendingInvitationsForPrincipal,
+} from "./invitation"
+import { identifyPrincipal } from "./principal"
 import type { Principal } from "./principal.d"
 
 /**
@@ -298,21 +304,22 @@ export async function updateFarm(
 }
 
 /**
- * Grants a specified role to a principal for a given farm.
+ * Grants a specified role to a principal for a given farm via an invitation.
  *
- * This function checks if the acting principal has 'share' permission on the farm, then grants the specified role to the grantee.
+ * Checks if the acting principal has 'share' permission on the farm, then creates
+ * an invitation for the target. Delegates to {@link createInvitation}.
  *
- * @param fdm - The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param fdm - The FDM instance providing the connection to the database.
  * @param principal_id - The identifier of the principal performing the grant (must have 'share' permission).
- * @param target - The username, email or slug of the principal whose role is being updated.
+ * @param target - The username, email, or slug of the invitee.
  * @param b_id_farm - The identifier of the farm.
  * @param role - The role to be granted ('owner', 'advisor', or 'researcher').
  *
- * @throws {Error} If the acting principal does not have 'share' permission, or if any other error occurs during the operation.
+ * @throws {Error} If the acting principal does not have 'share' permission, or if any other error occurs.
  */
 export async function grantRoleToFarm(
     fdm: FdmType,
-    principal_id: PrincipalId,
+    principal_id: string,
     target: string,
     b_id_farm: schema.farmsTypeInsert["b_id_farm"],
     role: "owner" | "advisor" | "researcher",
@@ -327,24 +334,14 @@ export async function grantRoleToFarm(
                 principal_id,
                 "grantRoleToFarm",
             )
-
-            const targetDetails = await identifyPrincipal(tx, target)
-            if (!targetDetails) {
-                throw new Error("Target not found")
-            }
-
-            await grantRole(tx, "farm", role, b_id_farm, targetDetails.id)
-
-            // Check if at least 1 owner is still prestent on this farm
-            const owners = await listPrincipalsForResource(
+            return await createInvitation(
                 tx,
                 "farm",
                 b_id_farm,
+                principal_id,
+                target,
+                role,
             )
-            const ownerCount = owners.filter((x) => x.role === "owner").length
-            if (ownerCount === 0) {
-                throw new Error("Farm should have at least 1 owner")
-            }
         })
     } catch (err) {
         throw handleError(err, "Exception for grantRoleToFarm", {
@@ -476,7 +473,7 @@ export async function revokePrincipalFromFarm(
  * @param principal_id - The identifier of the principal requesting the list (must have 'read' permission).
  * @param b_id_farm - The identifier of the farm.
  *
- * @returns A Promise that resolves to an array of Principal objects, each representing a principal associated with the farm.
+ * @returns A Promise that resolves to an array of Principal objects (including pending ones), each representing a principal associated with the farm.
  *
  * @throws {Error} If the acting principal does not have 'read' permission, or if any other error occurs during the operation.
  */
@@ -484,7 +481,13 @@ export async function listPrincipalsForFarm(
     fdm: FdmType,
     principal_id: string,
     b_id_farm: string,
-): Promise<Principal[]> {
+): Promise<
+    (Principal & {
+        role: string
+        status: "active" | "pending"
+        invitation_id?: string
+    })[]
+> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
             await checkPermission(
@@ -501,21 +504,197 @@ export async function listPrincipalsForFarm(
                 b_id_farm,
             )
 
-            // Collect details of principals
-            const principalsDetails = await Promise.all(
-                principals.map(async (principal) => {
-                    const details = await getPrincipal(
-                        tx,
-                        principal.principal_id,
-                    )
-                    return {
-                        ...details,
-                        role: principal.role,
+            // Collect all principal IDs to fetch (active + pending with principal target)
+            const now = new Date()
+            const pendingInvitations = await tx
+                .select()
+                .from(authZSchema.invitation)
+                .where(
+                    and(
+                        eq(authZSchema.invitation.resource, "farm"),
+                        eq(authZSchema.invitation.resource_id, b_id_farm),
+                        eq(authZSchema.invitation.status, "pending"),
+                        gt(authZSchema.invitation.expires, now),
+                    ),
+                )
+
+            const activeIds = principals.map((p) => p.principal_id)
+            const pendingIdsWithPrincipal: string[] = (
+                pendingInvitations as authZSchema.invitationTypeSelect[]
+            )
+                .map((i) => i.target_principal_id)
+                .filter((id): id is string => id !== null)
+
+            const allPrincipalIds = [
+                ...new Set([...activeIds, ...pendingIdsWithPrincipal]),
+            ]
+
+            // Bulk fetch details for all principals
+            const principalsMap = new Map<string, Principal>()
+
+            if (allPrincipalIds.length > 0) {
+                // Fetch Users
+                const users = await tx
+                    .select({
+                        id: authNSchema.user.id,
+                        username: authNSchema.user.username,
+                        displayUserName: authNSchema.user.displayUsername,
+                        image: authNSchema.user.image,
+                        isVerified: authNSchema.user.emailVerified,
+                        firstname: authNSchema.user.firstname,
+                        surname: authNSchema.user.surname,
+                        email: authNSchema.user.email,
+                        name: authNSchema.user.name,
+                    })
+                    .from(authNSchema.user)
+                    .where(inArray(authNSchema.user.id, allPrincipalIds))
+
+                for (const u of users) {
+                    let initials = u.email?.charAt(0) ?? "U"
+                    if (u.firstname && u.surname) {
+                        initials = u.firstname.charAt(0).toUpperCase()
+                        const surnameParts = u.surname.split(/\s+/)
+                        let firstCap = ""
+                        for (const part of surnameParts) {
+                            if (part.length > 0) {
+                                const char = part.charAt(0)
+                                if (
+                                    char === char.toUpperCase() &&
+                                    char.match(/[a-zA-Z]/)
+                                ) {
+                                    firstCap = char.toUpperCase()
+                                    break
+                                }
+                            }
+                        }
+                        initials += firstCap
+                    } else if (u.firstname) {
+                        initials = u.firstname[0]
+                    } else if (u.name) {
+                        initials = u.name[0]
                     }
-                }),
+
+                    principalsMap.set(u.id, {
+                        id: u.id,
+                        username: u.username,
+                        email: u.email,
+                        initials: initials.toUpperCase(),
+                        displayUserName: u.displayUserName,
+                        image: u.image,
+                        type: "user",
+                        isVerified: u.isVerified,
+                    })
+                }
+
+                // Fetch Organizations (for IDs not found in users)
+                const remainingIds = allPrincipalIds.filter(
+                    (id) => !principalsMap.has(id),
+                )
+                if (remainingIds.length > 0) {
+                    const orgs = await tx
+                        .select({
+                            id: authNSchema.organization.id,
+                            name: authNSchema.organization.name,
+                            slug: authNSchema.organization.slug,
+                            logo: authNSchema.organization.logo,
+                            metadata: authNSchema.organization.metadata,
+                        })
+                        .from(authNSchema.organization)
+                        .where(
+                            inArray(authNSchema.organization.id, remainingIds),
+                        )
+
+                    for (const o of orgs) {
+                        const metadata = o.metadata
+                            ? JSON.parse(o.metadata)
+                            : null
+                        principalsMap.set(o.id, {
+                            id: o.id,
+                            username: o.slug,
+                            email: null,
+                            initials: o.name.charAt(0).toUpperCase(),
+                            displayUserName: o.name,
+                            image: o.logo,
+                            type: "organization",
+                            isVerified: metadata ? metadata.isVerified : false,
+                        })
+                    }
+                }
+            }
+
+            // Map active principals
+            const principalsDetails = principals.map((p) => {
+                const details = principalsMap.get(p.principal_id)
+                return {
+                    ...details,
+                    id: p.principal_id,
+                    username: details?.username ?? "unknown",
+                    initials: details?.initials ?? "?",
+                    displayUserName: details?.displayUserName ?? null,
+                    image: details?.image ?? null,
+                    type: details?.type ?? "user",
+                    isVerified: details?.isVerified ?? false,
+                    email: details?.email ?? null,
+                    role: p.role,
+                    status: "active" as const,
+                }
+            })
+
+            // Map pending invitations
+            const pendingDetails = pendingInvitations.map(
+                (invitation: authZSchema.invitationTypeSelect) => {
+                    if (invitation.target_principal_id) {
+                        const details = principalsMap.get(
+                            invitation.target_principal_id,
+                        )
+                        return {
+                            ...details,
+                            id: invitation.target_principal_id,
+                            username: details?.username ?? "unknown",
+                            initials: details?.initials ?? "?",
+                            displayUserName: details?.displayUserName ?? null,
+                            image: details?.image ?? null,
+                            type: details?.type ?? "user",
+                            isVerified: details?.isVerified ?? false,
+                            email: details?.email ?? null,
+                            role: invitation.role,
+                            status: "pending" as const,
+                            invitation_id: invitation.invitation_id,
+                        }
+                    }
+
+                    // Email-based invitation (unregistered user)
+                    const email = invitation.target_email ?? "unknown"
+                    return {
+                        id: `pending-${invitation.invitation_id}`,
+                        username: email,
+                        email: email,
+                        initials: email.charAt(0).toUpperCase(),
+                        displayUserName: email,
+                        image: null,
+                        type: "user" as const,
+                        isVerified: false,
+                        role: invitation.role,
+                        status: "pending" as const,
+                        invitation_id: invitation.invitation_id,
+                    }
+                },
             )
 
-            return principalsDetails
+            // Deduplicate by principal_id, preferring "active" over "pending"
+            const deduped = new Map<
+                string,
+                (typeof principalsDetails)[number]
+            >()
+            for (const entry of principalsDetails) {
+                deduped.set(entry.id, entry)
+            }
+            for (const entry of pendingDetails) {
+                if (!deduped.has(entry.id)) {
+                    deduped.set(entry.id, entry)
+                }
+            }
+            return Array.from(deduped.values())
         })
     } catch (err) {
         throw handleError(err, "Exception for listPrincipalsForFarm", {
@@ -525,7 +704,149 @@ export async function listPrincipalsForFarm(
 }
 
 /**
- * Checks if the specified principal is allowed to share a given farm.
+ * Lists all pending (non-expired) invitations for a specific farm.
+ *
+ * Requires `share` permission on the farm.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param principal_id - The identifier of the principal requesting the list (must have 'share' permission).
+ * @param b_id_farm - The identifier of the farm.
+ *
+ * @returns A Promise that resolves to an array of pending invitation records for this farm.
+ */
+export async function listPendingInvitationsForFarm(
+    fdm: FdmType,
+    principal_id: string,
+    b_id_farm: string,
+): Promise<authZSchema.invitationTypeSelect[]> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            await checkPermission(
+                tx,
+                "farm",
+                "share",
+                b_id_farm,
+                principal_id,
+                "listPendingInvitationsForFarm",
+            )
+
+            const now = new Date()
+            return await tx
+                .select()
+                .from(authZSchema.invitation)
+                .where(
+                    and(
+                        eq(authZSchema.invitation.resource, "farm"),
+                        eq(authZSchema.invitation.resource_id, b_id_farm),
+                        eq(authZSchema.invitation.status, "pending"),
+                        gt(authZSchema.invitation.expires, now),
+                    ),
+                )
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for listPendingInvitationsForFarm", {
+            b_id_farm,
+        })
+    }
+}
+
+/**
+ * Lists all pending (non-expired) farm invitations for a given user, enriched with farm and organization names.
+ *
+ * Delegates to {@link listPendingInvitationsForPrincipal} and enriches farm-resource rows with names.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param user_id - The ID of the user to retrieve invitations for.
+ *
+ * @returns A Promise that resolves to an array of pending invitation records enriched with farm_name and org_name.
+ */
+export async function listPendingInvitationsForUser(
+    fdm: FdmType,
+    user_id: string,
+): Promise<
+    (authZSchema.invitationTypeSelect & {
+        farm_name: string | null
+        org_name: string | null
+    })[]
+> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            const pending = await listPendingInvitationsForPrincipal(
+                tx,
+                user_id,
+            )
+
+            if (pending.length === 0) {
+                return []
+            }
+
+            // Enrich with farm names for farm-resource invitations
+            const farmIds = [
+                ...new Set(
+                    pending
+                        .filter((i) => i.resource === "farm")
+                        .map((i) => i.resource_id),
+                ),
+            ]
+
+            const farmNames = new Map<string, string | null>()
+            if (farmIds.length > 0) {
+                const farms = await tx
+                    .select({
+                        b_id_farm: schema.farms.b_id_farm,
+                        b_name_farm: schema.farms.b_name_farm,
+                    })
+                    .from(schema.farms)
+                    .where(inArray(schema.farms.b_id_farm, farmIds))
+
+                for (const f of farms) {
+                    farmNames.set(f.b_id_farm, f.b_name_farm)
+                }
+            }
+
+            // Collect org IDs from principal-targeted invitations
+            const orgTargetIds = [
+                ...new Set(
+                    pending
+                        .filter((i) => i.target_principal_id !== null)
+                        .map((i) => i.target_principal_id as string),
+                ),
+            ]
+
+            const orgNames = new Map<string, string | null>()
+            if (orgTargetIds.length > 0) {
+                const orgs = await tx
+                    .select({
+                        id: authNSchema.organization.id,
+                        name: authNSchema.organization.name,
+                    })
+                    .from(authNSchema.organization)
+                    .where(inArray(authNSchema.organization.id, orgTargetIds))
+
+                for (const o of orgs) {
+                    orgNames.set(o.id, o.name)
+                }
+            }
+
+            return pending.map((i) => ({
+                ...i,
+                farm_name:
+                    i.resource === "farm"
+                        ? (farmNames.get(i.resource_id) ?? null)
+                        : null,
+                org_name: i.target_principal_id
+                    ? (orgNames.get(i.target_principal_id) ?? null)
+                    : null,
+            }))
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for listPendingInvitationsForUser", {
+            user_id,
+        })
+    }
+}
+
+/**
  *
  * This function verifies if the acting principal has 'share' permission on the farm.
  *
@@ -804,6 +1125,16 @@ export async function removeFarm(
                     principal.principal_id,
                 )
             }
+
+            // Step 4b: Delete all invitations for this farm
+            await tx
+                .delete(authZSchema.invitation)
+                .where(
+                    and(
+                        eq(authZSchema.invitation.resource, "farm"),
+                        eq(authZSchema.invitation.resource_id, b_id_farm),
+                    ),
+                )
 
             // Step 5: Finally, delete the farm itself
             await tx

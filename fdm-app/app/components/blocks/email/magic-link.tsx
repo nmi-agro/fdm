@@ -2,6 +2,7 @@ import {
     Body,
     Button,
     Container,
+    Font,
     Head,
     Heading,
     Html,
@@ -33,15 +34,12 @@ export const MagicLinkEmail = ({
     <Html lang="nl">
         <Head>
             <title>{`Aanmelden bij ${appName}`}</title>
-            <link
-                href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-                rel="stylesheet"
+            <Font
+                fontFamily="Inter"
+                fallbackFontFamily="sans-serif"
+                fontWeight={400}
+                fontStyle="normal"
             />
-            <style>{`
-                * {
-                    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                }
-            `}</style>
         </Head>
         <Preview>{`Link om aan te melden bij ${appName}`}</Preview>
         <Tailwind>

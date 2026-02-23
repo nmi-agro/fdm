@@ -30,12 +30,14 @@ type Props<T extends string> = {
     searchParamName?: string // Query parameter name for search term (default: 'identifier')
     excludeValues?: T[] // Optional array of values to filter out
     iconMap?: IconMap // Optional map of icon identifiers to components
-    emptyMessage?: string
+    emptyMessage?: string | ((inputValue: string) => string)
     placeholder?: string
     // biome-ignore lint/suspicious/noExplicitAny: Using any temporarily due to potential type conflicts with remix-hook-form
     form?: any
     name?: string // Name for remix-hook-form registration
     className?: string
+    /** When true, values typed directly (not from dropdown) are accepted as-is (e.g. email addresses) */
+    allowValuesOutsideList?: boolean
 }
 
 export function AutoComplete<T extends string>({
@@ -50,9 +52,11 @@ export function AutoComplete<T extends string>({
     form,
     name,
     className,
+    allowValuesOutsideList = false,
 }: Props<T>) {
     const fetcher = useFetcher<LookupItem<T>[]>()
     const [open, setOpen] = useState(false)
+    const openRef = useRef(open)
     const [inputValue, setInputValue] = useState("") // Internal input state
     const [items, setItems] = useState<LookupItem<T>[]>([])
     const [isLoading, setIsLoading] = useState(false)
@@ -60,13 +64,12 @@ export function AutoComplete<T extends string>({
     const prevInputValue = useRef<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null) // Ref for the input element
 
-    // Derive display label for the currently selected value
+    // Derive display label for the currently selected value.
+    // Falls back to selectedValue for free-form entries (when allowValuesOutsideList is true).
     const selectedLabel = useMemo(() => {
-        // Find the label from fetched items or potentially passed initial state if needed
-        // For now, assume we fetch it or it's cleared if not found
         const selectedItem = items.find((item) => item.value === selectedValue)
-        return selectedItem?.label ?? ""
-    }, [selectedValue, items])
+        return selectedItem?.label ?? (allowValuesOutsideList ? selectedValue : "")
+    }, [selectedValue, items, allowValuesOutsideList])
 
     // Effect to fetch data when input value changes (debounced)
     useEffect(() => {
@@ -150,40 +153,61 @@ export function AutoComplete<T extends string>({
             }
         }
         setOpen(false)
+        openRef.current = false
     }
 
-    // Keep input if it matches a valid item, otherwise clear if no selection
+    // Keep input if it matches a valid item, otherwise use typed value as-is (if allowFreeform).
+    // Runs synchronously (no setTimeout) so the form value is committed before the submit button
+    // click fires. Dropdown item clicks are protected by onMouseDown e.preventDefault() on
+    // each CommandItem, which prevents blur from firing during dropdown selection.
     const handleInputBlur = () => {
-        // Timeout to allow click selection to register first
-        setTimeout(() => {
-            if (!open) {
-                // If input doesn't match the selected label, and no value is selected, clear input
-                if (inputValue !== selectedLabel && !selectedValue) {
-                    setInputValue("")
+        if (inputValue && !selectedValue) {
+            if (allowValuesOutsideList) {
+                // Accept typed value as-is (e.g. email address)
+                onSelectedValueChange(inputValue as T)
+                if (form && name) {
+                    form.setValue(name, inputValue)
                 }
-                // If input matches selected label, keep it.
-                // If input doesn't match, but a value IS selected, revert input to selected label
-                else if (inputValue !== selectedLabel && selectedValue) {
-                    setInputValue(selectedLabel)
-                }
+            } else {
+                // Only dropdown selections allowed — clear the input
+                setInputValue("")
             }
-        }, 100) // Small delay
+        }
+        // If input doesn't match selected label, revert input to selected label
+        else if (inputValue !== selectedLabel && selectedValue) {
+            setInputValue(selectedLabel)
+        }
     }
 
     return (
         <div className={cn("flex items-center", className)}>
-            <Popover open={open} onOpenChange={setOpen}>
+            <Popover
+                open={open}
+                onOpenChange={(value) => {
+                    setOpen(value)
+                    openRef.current = value
+                }}
+            >
                 <Command shouldFilter={false} className="w-full">
                     <PopoverAnchor asChild>
                         <CommandPrimitive.Input
                             asChild
                             value={inputValue}
                             onValueChange={handleInputChange}
-                            onKeyDown={(e) => setOpen(e.key !== "Escape")}
-                            onMouseDown={() =>
-                                setOpen((open) => !!inputValue || !open)
-                            }
-                            onFocus={() => setOpen(true)}
+                            onKeyDown={(e) => {
+                                const next = e.key !== "Escape"
+                                setOpen(next)
+                                openRef.current = next
+                            }}
+                            onMouseDown={() => {
+                                const next = !!inputValue || !open
+                                setOpen(next)
+                                openRef.current = next
+                            }}
+                            onFocus={() => {
+                                setOpen(true)
+                                openRef.current = true
+                            }}
                             onBlur={handleInputBlur}
                         >
                             <Input
@@ -249,7 +273,9 @@ export function AutoComplete<T extends string>({
                             ) : null}
                             {!isLoading && !items.length && inputValue ? ( // Show empty only if not loading and user typed something
                                 <CommandEmpty>
-                                    {emptyMessage ?? "No items."}
+                                    {typeof emptyMessage === "function"
+                                        ? emptyMessage(inputValue)
+                                        : emptyMessage}
                                 </CommandEmpty>
                             ) : null}
                         </CommandList>

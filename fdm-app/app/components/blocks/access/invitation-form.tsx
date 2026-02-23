@@ -1,8 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { User, Users } from "lucide-react"
 import { useState } from "react"
-import { Form } from "react-router-dom"
+import { Form, useSubmit } from "react-router-dom"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import isEmail from "validator/lib/isEmail"
 import type { z } from "zod"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
@@ -31,6 +32,7 @@ type InvitationFormProps = {
 }
 
 export const InvitationForm = ({ principals }: InvitationFormProps) => {
+    const submit = useSubmit()
     const [selectedValue, setSelectedValue] = useState<string>("")
     const form = useRemixForm<z.infer<typeof AccessFormSchema>>({
         mode: "onTouched",
@@ -39,6 +41,18 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
             role: "advisor", // Set default role
             intent: "invite_user",
         },
+        submitHandlers: {
+            onValid: (data) => {
+                submit(
+                    {
+                        username: data.username,
+                        role: data.role,
+                        intent: "invite_user",
+                    },
+                    { method: "post" },
+                )
+            },
+        },
     })
 
     // Define icon map for AutoComplete
@@ -46,7 +60,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
 
     return (
         <RemixFormProvider {...form}>
-            <Form method="post">
+            <Form method="post" onSubmit={form.handleSubmit}>
                 <fieldset
                     disabled={form.formState.isSubmitting}
                     className="flex items-center justify-between space-x-4"
@@ -64,8 +78,34 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                                 shouldTouch: true,
                             })
                         }}
-                        emptyMessage="Geen gebruikers gevonden"
+                        emptyMessage={(value) =>
+                            isEmail(value) ? (
+                                <button
+                                    className="w-full cursor-pointer text-center hover:underline"
+                                    onClick={() => {
+                                        form.setValue("username", value)
+                                        // Trigger form submission programmatically
+                                        // This will use the onSubmit handler defined on the Form
+                                        ;(form.handleSubmit as any)({
+                                            preventDefault: () => {},
+                                        })
+                                    }}
+                                    type="button"
+                                >
+                                    Nodig {value} uit voor toegang als{" "}
+                                    {form.getValues("role") === "owner"
+                                        ? "eigenaar"
+                                        : form.getValues("role") === "advisor"
+                                          ? "adviseur"
+                                          : "onderzoeker"}
+                                    .
+                                </button>
+                            ) : (
+                                "Geen gebruikers gevonden. Je kunt ook een e-mailadres invoeren om een uitnodiging te sturen."
+                            )
+                        }
                         placeholder="Zoek naar een gebruiker of organisatie"
+                        allowValuesOutsideList={true}
                         form={form} // Pass the form instance
                         name="username" // Name for remix-hook-form registration
                     />
