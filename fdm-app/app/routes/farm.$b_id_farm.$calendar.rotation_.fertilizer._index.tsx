@@ -36,6 +36,7 @@ import {
 import {
     FormSchema,
     FormSchemaModify,
+    FormSchemaPartialModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -257,6 +258,7 @@ async function loadByAppIds(
                     typeof app[key] === "undefined"
                 ) {
                     delete fertilizerApplication[key]
+                    continue
                 }
                 if (
                     keyTypes[key] === "date"
@@ -813,6 +815,11 @@ export default function FarmRotationFertilizerAddIndex() {
                                             exampleFertilizerApplication={
                                                 loaderData.exampleFertilizerApplication
                                             }
+                                            schema={
+                                                loaderData.exampleFertilizerApplication
+                                                    ? FormSchemaPartialModify
+                                                    : FormSchemaModify
+                                            }
                                         />
                                     ) : (
                                         <div className="flex h-full min-h-60 items-center justify-center rounded-md border border-dashed">
@@ -841,7 +848,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const validatedData = await extractFormValuesFromRequest(
             request,
-            url.searchParams.has("appIds") ? FormSchemaModify : FormSchema,
+            url.searchParams.has("appIds")
+                ? FormSchemaPartialModify
+                : FormSchema,
         )
 
         const returnUrlParam = url.searchParams.get("returnUrl")
@@ -856,17 +865,29 @@ export async function action({ request, params }: ActionFunctionArgs) {
             const p_app_ids = validatedData.p_app_id.split(",").filter(Boolean)
             await fdm.transaction((tx) =>
                 Promise.all(
-                    p_app_ids.map((p_app_id) =>
-                        updateFertilizerApplication(
+                    p_app_ids.map(async (p_app_id) => {
+                        const original = await getFertilizerApplication(
                             tx,
                             session.principal_id,
                             p_app_id,
-                            validatedData.p_id,
+                        )
+
+                        if (!original) {
+                            throw new Error(
+                                `Application ${p_app_id} not found.`,
+                            )
+                        }
+
+                        return updateFertilizerApplication(
+                            tx,
+                            session.principal_id,
+                            p_app_id,
+                            validatedData.p_id ?? original.p_id,
                             validatedData.p_app_amount,
                             validatedData.p_app_method,
                             validatedData.p_app_date,
-                        ),
-                    ),
+                        )
+                    }),
                 ),
             )
 

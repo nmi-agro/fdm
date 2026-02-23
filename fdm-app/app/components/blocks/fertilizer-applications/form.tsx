@@ -32,6 +32,7 @@ import {
     type FieldFertilizerFormValues,
     FormSchema,
     FormSchemaModify,
+    type FormSchemaPartial,
 } from "./formschema"
 
 export type FertilizerOption = {
@@ -40,7 +41,7 @@ export type FertilizerOption = {
     applicationMethodOptions?: { value: string; label: string }[]
 }
 
-export function FertilizerApplicationForm({
+export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     options,
     action,
     navigation,
@@ -48,6 +49,7 @@ export function FertilizerApplicationForm({
     b_id_or_b_lu_catalogue,
     fertilizerApplication,
     exampleFertilizerApplication,
+    schema,
 }: {
     options: FertilizerOption[]
     action: string
@@ -62,6 +64,7 @@ export function FertilizerApplicationForm({
         | Partial<FieldFertilizerFormValues>
         | null
         | undefined
+    schema?: T
 }) {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
@@ -69,7 +72,7 @@ export function FertilizerApplicationForm({
     const form = useRemixForm<FieldFertilizerFormValues>({
         mode: "onTouched",
         resolver: zodResolver(
-            fertilizerApplication ? FormSchemaModify : FormSchema,
+            schema ?? (fertilizerApplication ? FormSchemaModify : FormSchema),
         ),
         defaultValues: {
             p_app_id: fertilizerApplication?.p_app_ids
@@ -78,7 +81,11 @@ export function FertilizerApplicationForm({
             p_id: fertilizerApplication?.p_id,
             p_app_method: fertilizerApplication?.p_app_method,
             p_app_amount: undefined, // Handled through an effect due to blank behavior
-            p_app_date: fertilizerApplication?.p_app_date ?? new Date(),
+            p_app_date: fertilizerApplication?.p_app_date
+                ? fertilizerApplication.p_app_date
+                : exampleFertilizerApplication
+                  ? undefined
+                  : new Date(),
         },
         submitConfig: {
             method: fertilizerApplication ? "PUT" : "POST",
@@ -298,33 +305,22 @@ export function FertilizerApplicationForm({
                             name="p_app_date"
                             control={form.control}
                             render={({ field, fieldState }) => (
-                                <Field
-                                    data-invalid={fieldState.invalid}
-                                    className="gap-1"
-                                >
-                                    <DatePicker
-                                        label="Datum"
-                                        placeholder={
-                                            exampleFertilizerApplication?.p_app_date
-                                                ? `Er zijn verschillende waarden ingevuld, bv: ${formatDate(exampleFertilizerApplication.p_app_date, "PP", { locale: nl })}`
-                                                : undefined
-                                        }
-                                        defaultValue={
-                                            fertilizerApplication?.p_app_date
-                                        }
-                                        field={{
-                                            ...field,
-                                            value: field.value,
-                                        }}
-                                        fieldState={fieldState}
-                                        required={true}
-                                    />
-                                    {fieldState.invalid && (
-                                        <FieldError
-                                            errors={[fieldState.error]}
-                                        />
-                                    )}
-                                </Field>
+                                <DatePicker
+                                    label="Datum"
+                                    placeholder={
+                                        exampleFertilizerApplication?.p_app_date
+                                            ? `Er zijn verschillende waarden ingevuld, bv: ${formatDate(exampleFertilizerApplication.p_app_date, "PP", { locale: nl })}`
+                                            : undefined
+                                    }
+                                    defaultValue={
+                                        fertilizerApplication?.p_app_date
+                                    }
+                                    field={{
+                                        ...field,
+                                        value: field.value,
+                                    }}
+                                    fieldState={fieldState}
+                                />
                             )}
                         />
                         <div className="invisible" />

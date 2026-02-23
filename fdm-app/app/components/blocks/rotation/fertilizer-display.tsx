@@ -1,5 +1,6 @@
 import { Circle, Diamond, Square, Triangle } from "lucide-react"
 import React from "react"
+import { NavLink } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import {
     Tooltip,
@@ -7,7 +8,6 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import type { FieldRow, RotationExtended } from "./columns"
-import { NavLink } from "react-router"
 
 type FertilizerDisplayProps = {
     cultivation: RotationExtended

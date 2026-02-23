@@ -247,7 +247,7 @@ function FertilizerApplicationRow({
             record.applications
                 .map((application) => application.p_app_amount)
                 .filter((amount) => amount !== null)
-                .sort(),
+                .sort((a, b) => a - b),
             "kg / ha",
         )
         const modifiableApps = record.applications.filter(
