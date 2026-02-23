@@ -849,7 +849,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         if (validatedData.p_app_id) {
             const p_app_ids = validatedData.p_app_id.split(",").filter(Boolean)
-            fdm.transaction((tx) =>
+            await fdm.transaction((tx) =>
                 Promise.all(
                     p_app_ids.map((p_app_id) =>
                         updateFertilizerApplication(

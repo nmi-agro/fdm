@@ -387,7 +387,7 @@ export async function action({ request }: Route.ActionArgs) {
         const formData = await extractFormValuesFromRequest(request, FormSchema)
 
         if (formData.intent === "remove_application") {
-            fdm.transaction((tx) =>
+            await fdm.transaction((tx) =>
                 Promise.all(
                     formData.appIds.map((p_app_id) =>
                         removeFertilizerApplication(
