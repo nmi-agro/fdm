@@ -32,7 +32,7 @@ export const FarmInvitationEmail = ({
     isUnregistered = false,
 }: FarmInvitationEmailProps) => {
     const roleLabel = roleLabels[role] ?? role
-    const previewText = `Je hebt toegang gekregen tot ${farmName}. Bekijk de details.`
+    const previewText = `Je bent uitgenodigd voor ${farmName}. Bekijk de details.`
 
     return (
         <BaseEmailLayout
