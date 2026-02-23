@@ -7,7 +7,7 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import type { FieldRow, RotationExtended } from "./columns"
-import { NavLink, useLocation, useParams } from "react-router"
+import { NavLink } from "react-router"
 
 type FertilizerDisplayProps = {
     cultivation: RotationExtended
@@ -79,13 +79,13 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
                             : "300"
 
                     const component = (
-                        <Badge
+                        <NavLink
                             key={fertilizer.p_id}
-                            variant="outline"
-                            className="gap-1 text-muted-foreground"
+                            to={`./modify_fertilizer/${fertilizer.p_id}?fieldIds=${fieldIds.map(encodeURIComponent).join(",")}`}
                         >
-                            <NavLink
-                                to={`./modify_fertilizer/${fertilizer.p_id}?fieldIds=${fieldIds.map(encodeURIComponent).join(",")}`}
+                            <Badge
+                                variant="outline"
+                                className="gap-1 text-muted-foreground"
                             >
                                 <span>
                                     {fertilizer.p_type === "manure" ? (
@@ -107,8 +107,8 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
                                     )}
                                 </span>
                                 {fertilizer.p_name_nl}
-                            </NavLink>
-                        </Badge>
+                            </Badge>
+                        </NavLink>
                     )
 
                     return cultivation.type === "field" ? (

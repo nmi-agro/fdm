@@ -245,39 +245,6 @@ export function FertilizerApplicationForm({
                             )}
                         />
                         <Controller
-                            name="p_app_date"
-                            control={form.control}
-                            render={({ field, fieldState }) => (
-                                <Field
-                                    data-invalid={fieldState.invalid}
-                                    className="gap-1"
-                                >
-                                    <DatePicker
-                                        label="Oogstdatum"
-                                        placeholder={
-                                            exampleFertilizerApplication?.p_app_date
-                                                ? `Er zijn verschillende waarden ingevuld, bv: ${formatDate(exampleFertilizerApplication.p_app_date, "PP", { locale: nl })}`
-                                                : undefined
-                                        }
-                                        defaultValue={
-                                            fertilizerApplication?.p_app_date
-                                        }
-                                        field={{
-                                            ...field,
-                                            value: field.value,
-                                        }}
-                                        fieldState={fieldState}
-                                        required={true}
-                                    />
-                                    {fieldState.invalid && (
-                                        <FieldError
-                                            errors={[fieldState.error]}
-                                        />
-                                    )}
-                                </Field>
-                            )}
-                        />
-                        <Controller
                             name="p_app_amount"
                             render={({ field, fieldState }) => (
                                 <Field
@@ -318,6 +285,39 @@ export function FertilizerApplicationForm({
                                                 )
                                             }
                                         }}
+                                    />
+                                    {fieldState.invalid && (
+                                        <FieldError
+                                            errors={[fieldState.error]}
+                                        />
+                                    )}
+                                </Field>
+                            )}
+                        />
+                        <Controller
+                            name="p_app_date"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                                <Field
+                                    data-invalid={fieldState.invalid}
+                                    className="gap-1"
+                                >
+                                    <DatePicker
+                                        label="Datum"
+                                        placeholder={
+                                            exampleFertilizerApplication?.p_app_date
+                                                ? `Er zijn verschillende waarden ingevuld, bv: ${formatDate(exampleFertilizerApplication.p_app_date, "PP", { locale: nl })}`
+                                                : undefined
+                                        }
+                                        defaultValue={
+                                            fertilizerApplication?.p_app_date
+                                        }
+                                        field={{
+                                            ...field,
+                                            value: field.value,
+                                        }}
+                                        fieldState={fieldState}
+                                        required={true}
                                     />
                                     {fieldState.invalid && (
                                         <FieldError

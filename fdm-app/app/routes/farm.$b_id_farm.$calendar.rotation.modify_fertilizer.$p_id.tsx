@@ -180,7 +180,7 @@ function groupAndOrderFertApps(applicationsPerField: ApplicationExtended[][]) {
             [Number.parseFloat(idx), reduced] as [number, typeof reduced],
     )
     entries.sort((a, b) => a[0] - b[0])
-    // Harvests with no date get filtered out in the mapping function
+    // Applications with no date get filtered out in the mapping function
     entries.forEach((ent) => {
         ent[1].applications.sort(
             (a, b) =>

@@ -100,7 +100,7 @@ function parseAppIds(
     const applicationRefs: { p_app_id: string; b_id: string }[] = []
 
     // Parse application references
-    for (const appId of appIdPairs as string[]) {
+    for (const appId of appIdPairs) {
         const splitting = appId.split(":")
         if (splitting.length < 2) {
             throw new Error(`invalid b_id:p_app_id : ${appId}`)
@@ -250,7 +250,12 @@ async function loadByAppIds(
         // Only keep values that are common between the fertilizer applications
         for (const key of keys) {
             for (const app of fertilizerApplications) {
-                if (!exampleFertilizerApplication[key] || !app[key]) {
+                if (
+                    exampleFertilizerApplication[key] === null ||
+                    typeof exampleFertilizerApplication[key] === "undefined" ||
+                    app[key] === null ||
+                    typeof app[key] === "undefined"
+                ) {
                     delete fertilizerApplication[key]
                 }
                 if (
