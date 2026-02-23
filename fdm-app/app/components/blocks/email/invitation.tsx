@@ -52,13 +52,13 @@ export const InvitationEmail = ({
             <Section className="mt-8 mb-2 text-center">
                 <Button
                     href={`${appBaseUrl}/organization/invitations/${invitationId}/respond?intent=accept`}
-                    className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-[150px]"
+                    className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
                 >
                     Accepteren
                 </Button>
                 <Button
                     href={`${appBaseUrl}/organization/invitations/${invitationId}/respond?intent=reject`}
-                    className="bg-[#f5f5f5] text-[#171717] border-solid border-[#171717] border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-[150px]"
+                    className="bg-[#f5f5f5] text-[#171717] border-solid border-[#171717] border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
                 >
                     Afwijzen
                 </Button>

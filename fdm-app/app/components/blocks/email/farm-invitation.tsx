@@ -64,7 +64,7 @@ export const FarmInvitationEmail = ({
                     <Section className="mt-8 mb-2 text-center">
                         <Button
                             href={`${appBaseUrl}/signin`}
-                            className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-[150px]"
+                            className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
                         >
                             Account aanmaken
                         </Button>
@@ -78,7 +78,7 @@ export const FarmInvitationEmail = ({
                     <Section className="mt-8 mb-2 text-center">
                         <Button
                             href={`${appBaseUrl}/farm`}
-                            className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-[150px]"
+                            className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
                         >
                             Bekijk uitnodiging
                         </Button>
