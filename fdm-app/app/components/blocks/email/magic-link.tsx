@@ -18,7 +18,7 @@ export const MagicLinkEmail = ({
     senderName,
     emailTimestamp,
 }: MagicLinkEmailProps) => {
-    const previewText = `Gebruik de code of link om in te loggen.`
+    const previewText = "Gebruik de code of link om in te loggen."
 
     return (
         <BaseEmailLayout
@@ -39,7 +39,7 @@ export const MagicLinkEmail = ({
                     >
                         {appName}
                     </Link>
-                    <Text className="text-muted text-[12px] leading-6 mt-1.25 block text-center">
+                    <Text className="text-muted text-[12px] leading-6 mt-1.5 block text-center">
                         {`Deze link is aangemaakt op ${emailTimestamp}`}
                     </Text>
                 </>
@@ -70,12 +70,12 @@ export const MagicLinkEmail = ({
                 <Button
                     href={url}
                     aria-label={`Aanmelden bij ${appName}`}
-                    className="bg-primary text-white rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-[200px]"
+                    className="bg-primary text-white rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-50"
                 >
                     Aanmelden bij {appName}
                 </Button>
             </Section>
-            <Text className="text-[#666666] text-[12px] leading-6 mt-1.25 block text-center mb-8">
+            <Text className="text-muted text-[12px] leading-6 mt-1.5 block text-center mb-8">
                 Deze code en link zijn éénmalig en voor 15 minuten geldig.
             </Text>
             <Text className="text-black text-[14px] leading-6">
