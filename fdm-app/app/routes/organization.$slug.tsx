@@ -25,7 +25,11 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { auth, getSession } from "~/lib/auth.server"
-import { renderInvitationEmail, sendEmail } from "~/lib/email.server"
+import {
+    isInactiveRecipientError,
+    renderInvitationEmail,
+    sendEmail,
+} from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
 
@@ -410,30 +414,60 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 return handleActionError("missing: role")
             }
 
-            const invitation = await auth.api.createInvitation({
-                headers: request.headers,
-                body: {
-                    email: formValues.email,
-                    role: formValues.role,
-                    organizationId: organizationId,
-                },
-            })
+            let invitation:
+                | Awaited<ReturnType<typeof auth.api.createInvitation>>
+                | undefined
+            try {
+                invitation = await auth.api.createInvitation({
+                    headers: request.headers,
+                    body: {
+                        email: formValues.email,
+                        role: formValues.role,
+                        organizationId: organizationId,
+                    },
+                })
 
-            // better-auth might not send email by default depending on config.
-            // We'll send it manually using our template.
-            if (invitation?.id) {
-                const invitationEmail = await renderInvitationEmail(
-                    formValues.email,
-                    session.user,
-                    organizationName,
-                    invitation.id,
-                )
-                await sendEmail(invitationEmail)
+                // better-auth might not send email by default depending on config.
+                // We'll send it manually using our template.
+                if (invitation?.id) {
+                    const invitationEmail = await renderInvitationEmail(
+                        formValues.email,
+                        session.user,
+                        organizationName,
+                        invitation.id,
+                    )
+                    await sendEmail(invitationEmail)
+                }
+                return dataWithSuccess(null, {
+                    message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
+                })
+            } catch (sendingError) {
+                if (invitation?.id) {
+                    try {
+                        await auth.api.cancelInvitation({
+                            headers: request.headers,
+                            body: {
+                                invitationId: invitation.id,
+                            },
+                        })
+                    } catch (cancellationError) {
+                        handleActionError(cancellationError)
+                    }
+                }
+                if (isInactiveRecipientError(sendingError)) {
+                    console.error(
+                        `Attempted to send organization invitation to inactive email: ${formValues.email}`,
+                    )
+                    return dataWithError(null, {
+                        message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
+                    })
+                }
+                handleActionError(sendingError)
+                return dataWithError(null, {
+                    message:
+                        "Er is iets fout gegaan. Neem contact op met de ondersteuning voor hulp.",
+                })
             }
-
-            return dataWithSuccess(null, {
-                message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
-            })
         }
         if (formValues.intent === "update_role") {
             if (!formValues.memberId) {

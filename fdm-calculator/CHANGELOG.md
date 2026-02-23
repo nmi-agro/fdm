@@ -1,5 +1,11 @@
 # fdm-calculator
 
+## 0.11.1
+
+### Patch Changes
+
+- [#472](https://github.com/SvenVw/fdm/pull/472) [`d82c60b`](https://github.com/SvenVw/fdm/commit/d82c60b1162ebe982a337d9ea1bde96650446b17) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix: isFieldInGWGBGebied, isFieldInNatura2000Gebied, and isFieldInDerogatieVrijeZone now return false instead of throwing an error when a centroid coordinate lies outside the GeoTIFF bounding box (null value)
+
 ## 0.11.0
 
 ### Minor Changes

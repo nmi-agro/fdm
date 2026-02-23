@@ -43,9 +43,7 @@ export async function isFieldInNVGebied(
             return false
         }
         default: {
-            throw new Error(
-                `Unknown NV-gebied code: ${NVGebiedCode} for coordinates ${longitude}, ${latitude}`,
-            )
+            return false
         }
     }
 }

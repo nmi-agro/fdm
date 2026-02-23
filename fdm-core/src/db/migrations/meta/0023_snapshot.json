@@ -1,6 +1,6 @@
 {
-    "id": "8a96c296-24b8-4edc-bdbc-b140c973f74e",
-    "prevId": "68820e10-7b74-4632-9d86-500508549bb8",
+    "id": "0440bcd2-2895-4237-9ebd-c7864e702108",
+    "prevId": "8a96c296-24b8-4edc-bdbc-b140c973f74e",
     "version": "7",
     "dialect": "postgresql",
     "tables": {
@@ -3195,6 +3195,165 @@
             "uniqueConstraints": {},
             "policies": {},
             "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authz.invitation": {
+            "name": "invitation",
+            "schema": "fdm-authz",
+            "columns": {
+                "invitation_id": {
+                    "name": "invitation_id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "resource": {
+                    "name": "resource",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "resource_id": {
+                    "name": "resource_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "target_email": {
+                    "name": "target_email",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "target_principal_id": {
+                    "name": "target_principal_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "role": {
+                    "name": "role",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "inviter_id": {
+                    "name": "inviter_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "status": {
+                    "name": "status",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'pending'"
+                },
+                "expires": {
+                    "name": "expires",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "accepted_at": {
+                    "name": "accepted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "invitation_unique_email_idx": {
+                    "name": "invitation_unique_email_idx",
+                    "columns": [
+                        {
+                            "expression": "resource",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "resource_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "target_email",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "where": "\"fdm-authz\".\"invitation\".\"status\" = 'pending'",
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "invitation_unique_principal_idx": {
+                    "name": "invitation_unique_principal_idx",
+                    "columns": [
+                        {
+                            "expression": "resource",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "resource_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "target_principal_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "where": "\"fdm-authz\".\"invitation\".\"status\" = 'pending'",
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "invitation_pending_target_email_idx": {
+                    "name": "invitation_pending_target_email_idx",
+                    "columns": [
+                        {
+                            "expression": "target_email",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "where": "\"fdm-authz\".\"invitation\".\"status\" = 'pending'",
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {
+                "invitation_target_check": {
+                    "name": "invitation_target_check",
+                    "value": "\"fdm-authz\".\"invitation\".\"target_email\" IS NOT NULL OR \"fdm-authz\".\"invitation\".\"target_principal_id\" IS NOT NULL"
+                }
+            },
             "isRLSEnabled": false
         },
         "fdm-authz.role": {
