@@ -64,7 +64,7 @@ export const MagicLinkEmail = ({
                 Deze code en link zijn éénmalig en voor 15 minuten geldig.
             </Text>
             <Text className="text-black text-[14px] leading-6">
-                Indien u dit niet heeft aangevraagd, kunt u deze e-mail negeren.
+                Indien je dit niet hebt aangevraagd, kun je deze e-mail negeren.
             </Text>
         </BaseEmailLayout>
     )

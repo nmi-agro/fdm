@@ -182,8 +182,8 @@ export function WelcomeEmail({
                     Samenwerken
                 </Text>
                 <Text className="text-black text-[14px] leading-6">
-                    Nodig uw adviseur of medewerkers uit om mee te kijken in uw
-                    bedrijf. U bepaalt wie toegang heeft en welke rechten zij
+                    Nodig je adviseur of medewerkers uit om mee te kijken in uw
+                    bedrijf. Jij bepaalt wie toegang heeft en welke rechten zij
                     krijgen.
                 </Text>
             </Section>
@@ -199,7 +199,7 @@ export function WelcomeEmail({
 
             <Section className="my-5 mx-0 p-0">
                 <Text className="text-black text-[14px] leading-6">
-                    Heeft u vragen of suggesties? We helpen u graag. U kunt ons
+                    Heb je vragen of suggesties? We helpen je graag. Je kunt ons
                     bereiken door te reageren op deze mail.
                 </Text>
             </Section>
