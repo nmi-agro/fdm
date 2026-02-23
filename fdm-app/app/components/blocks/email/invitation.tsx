@@ -7,7 +7,7 @@ interface InvitationEmailProps {
     inviteeEmail: string
     invitationId: string
     appName: string
-    appBaseUrl?: string // Optional base URL for logo path
+    appBaseUrl: string // Optional base URL for logo path
     senderName?: string // Optional sender name for footer
     logoFileName?: string // Optional logo file name
 }

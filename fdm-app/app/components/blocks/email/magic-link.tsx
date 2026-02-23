@@ -6,7 +6,7 @@ interface MagicLinkEmailProps {
     code: string
     appName: string
     appBaseUrl: string
-    senderName: string | undefined
+    senderName?: string
     emailTimestamp: string
 }
 
