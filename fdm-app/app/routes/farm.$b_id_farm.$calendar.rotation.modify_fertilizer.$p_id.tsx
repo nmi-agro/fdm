@@ -8,7 +8,14 @@ import {
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useMemo } from "react"
-import { data, Form, NavLink, useLoaderData, useNavigate } from "react-router"
+import {
+    data,
+    Form,
+    NavLink,
+    useLoaderData,
+    useNavigate,
+    useParams,
+} from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import z from "zod"
 import { Button } from "~/components/ui/button"
@@ -22,6 +29,12 @@ import {
     DialogTitle,
 } from "~/components/ui/dialog"
 import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyTitle,
+} from "~/components/ui/empty"
+import {
     Table,
     TableBody,
     TableCell,
@@ -32,7 +45,7 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { extractFormValuesFromRequest } from "../lib/form"
+import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_fertilizer.$p_id"
 
 interface FertilizerInfo {
@@ -203,6 +216,8 @@ function FertilizerApplicationRow({
     returnUrl: string
     includeModifyCellWhenReadonly: boolean
 }) {
+    const params = useParams()
+
     const {
         dates,
         applicationMethods,
@@ -256,7 +271,7 @@ function FertilizerApplicationRow({
                 <TableCell className="flex flex-row justify-end gap-2">
                     <Button asChild>
                         <NavLink
-                            to={`../fertilizer?appIds=${modifiableAppIds}&returnUrl=${encodeURIComponent(returnUrl)}`}
+                            to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${modifiableAppIds}&returnUrl=${encodeURIComponent(returnUrl)}`}
                         >
                             Bijwerken
                         </NavLink>
@@ -308,28 +323,41 @@ export default function FertilizerApplicationListDialog() {
                         Bekijk en beheer de bemestingen met deze meststof.
                     </DialogDescription>
                 </DialogHeader>
-                <Table>
-                    <TableHeader className="sticky">
-                        <TableRow>
-                            <TableHead>Datum</TableHead>
-                            <TableHead>Toedieningsmethode</TableHead>
-                            <TableHead>Hoeveelheid</TableHead>
-                            {canModifyAnything && <TableHead />}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {records.map((record) => (
-                            <FertilizerApplicationRow
-                                key={record.id}
-                                record={record}
-                                includeModifyCellWhenReadonly={
-                                    canModifyAnything
-                                }
-                                returnUrl={returnUrl}
-                            />
-                        ))}
-                    </TableBody>
-                </Table>
+                {records.length > 0 ? (
+                    <Table>
+                        <TableHeader className="sticky">
+                            <TableRow>
+                                <TableHead>Datum</TableHead>
+                                <TableHead>Toedieningsmethode</TableHead>
+                                <TableHead>Hoeveelheid</TableHead>
+                                {canModifyAnything && <TableHead />}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {records.map((record) => (
+                                <FertilizerApplicationRow
+                                    key={record.id}
+                                    record={record}
+                                    includeModifyCellWhenReadonly={
+                                        canModifyAnything
+                                    }
+                                    returnUrl={returnUrl}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyTitle>Geen bemestingen gevonden</EmptyTitle>
+                            <EmptyDescription>
+                                Het lijkt erop dat deze meststof niet langer op
+                                dit perceel/deze percelen en gewassen wordt
+                                toegepast.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                )}
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button variant="outline" type="button">

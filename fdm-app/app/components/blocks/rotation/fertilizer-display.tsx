@@ -7,7 +7,7 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import type { FieldRow, RotationExtended } from "./columns"
-import { NavLink } from "react-router"
+import { NavLink, useLocation, useParams } from "react-router"
 
 type FertilizerDisplayProps = {
     cultivation: RotationExtended
