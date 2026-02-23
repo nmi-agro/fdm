@@ -250,7 +250,7 @@ function FertilizerApplicationRow({
             (app) => app.canModify,
         )
         const modifiableAppIds = modifiableApps
-            .map((app) => encodeURIComponent(`${app.b_id}:${app.p_app_id}`))
+            .map((app) => `${app.b_id}:${app.p_app_id}`)
             .join(",")
 
         return {
@@ -271,12 +271,12 @@ function FertilizerApplicationRow({
                 <TableCell className="flex flex-row justify-end gap-2">
                     <Button asChild>
                         <NavLink
-                            to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${modifiableAppIds}&returnUrl=${encodeURIComponent(returnUrl)}`}
+                            to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
                         >
                             Bijwerken
                         </NavLink>
                     </Button>
-                    <Form>
+                    <Form method="POST">
                         <input
                             name="appIds"
                             type="hidden"
@@ -370,13 +370,26 @@ export default function FertilizerApplicationListDialog() {
     )
 }
 
+function parseAppIds(value: string) {
+    return value
+        .split(",")
+        .map((pairStr) => pairStr.split(":"))
+        .filter(
+            (pair) =>
+                pair.length === 2 && pair[0].length > 0 && pair[1].length > 0,
+        )
+        .map(([b_id, p_app_id]) => ({ b_id, p_app_id }))
+}
+
 const FormSchema = z.discriminatedUnion("intent", [
     z.object({
         intent: z.literal("remove_application"),
         appIds: z
             .string()
-            .transform((str) => str.split(","))
-            .refine((ids) => ids.length > 0, { error: "missing: p_app_id" }),
+            .transform(parseAppIds)
+            .refine((ids) => ids.length > 0, {
+                error: "missing: appIds",
+            }),
     }),
 ])
 
@@ -389,7 +402,7 @@ export async function action({ request }: Route.ActionArgs) {
         if (formData.intent === "remove_application") {
             await fdm.transaction((tx) =>
                 Promise.all(
-                    formData.appIds.map((p_app_id) =>
+                    formData.appIds.map(({ p_app_id }) =>
                         removeFertilizerApplication(
                             tx,
                             session.principal_id,
