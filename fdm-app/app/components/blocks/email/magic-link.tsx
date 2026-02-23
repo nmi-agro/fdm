@@ -1,4 +1,4 @@
-import { Button, Heading, Link, Section, Text } from "@react-email/components"
+import { Button, Heading, Section, Text } from "@react-email/components"
 import BaseEmailLayout from "./layout"
 
 interface MagicLinkEmailProps {
@@ -19,6 +19,7 @@ export const MagicLinkEmail = ({
     emailTimestamp,
 }: MagicLinkEmailProps) => {
     const previewText = "Gebruik de code of link om in te loggen."
+    const absoluteUrl = url.startsWith("http") ? url : `https://${url}`
 
     return (
         <BaseEmailLayout
@@ -27,23 +28,7 @@ export const MagicLinkEmail = ({
             senderName={senderName}
             reasonText={`Je ontvangt deze e-mail omdat je een aanmeldcode hebt aangevraagd voor ${appName}.`}
             preview={previewText}
-            footerText={
-                <>
-                    <Text className="text-muted text-[12px] leading-6">
-                        Met vriendelijke groet, <br />
-                        {senderName ? senderName : `Het ${appName} team`}
-                    </Text>
-                    <Link
-                        href={appBaseUrl}
-                        className="text-muted text-[12px] leading-6 mt-5 block text-center"
-                    >
-                        {appName}
-                    </Link>
-                    <Text className="text-muted text-[12px] leading-6 mt-1.5 block text-center">
-                        {`Deze link is aangemaakt op ${emailTimestamp}`}
-                    </Text>
-                </>
-            }
+            emailTimestamp={emailTimestamp}
         >
             <Heading className="text-black text-[24px] font-normal text-center p-0 my-7.5 mx-0">
                 Aanmelden bij {appName}
@@ -68,7 +53,7 @@ export const MagicLinkEmail = ({
             </Text>
             <Section className="mt-8 mb-8 text-center">
                 <Button
-                    href={url}
+                    href={absoluteUrl}
                     aria-label={`Aanmelden bij ${appName}`}
                     className="bg-primary text-white rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-50"
                 >

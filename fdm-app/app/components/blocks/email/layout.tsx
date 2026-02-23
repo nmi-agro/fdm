@@ -25,6 +25,7 @@ interface BaseEmailLayoutProps {
     footerText?: React.ReactNode
     reasonText?: string // Why the user received this email
     lang?: string
+    emailTimestamp?: string
 }
 
 const defaultTheme = {
@@ -57,6 +58,7 @@ export const BaseEmailLayout = ({
     footerText,
     reasonText,
     lang = "nl",
+    emailTimestamp,
 }: BaseEmailLayoutProps) => {
     const logoPath = appBaseUrl ? `${appBaseUrl}${logoFileName}` : logoFileName
     const privacyUrl = appBaseUrl ? `${appBaseUrl}/privacy` : undefined
@@ -91,10 +93,28 @@ export const BaseEmailLayout = ({
                         {showFooter && (
                             <Section className="mt-8 mb-8 text-center">
                                 {footerText || (
-                                    <Text className="text-muted text-[12px] leading-6">
-                                        Met vriendelijke groet, <br />{" "}
-                                        {senderName || `Het ${appName} team`}
-                                    </Text>
+                                    <>
+                                        <Text className="text-muted text-[12px] leading-6">
+                                            Met vriendelijke groet, <br />{" "}
+                                            {getGreetingName(
+                                                senderName,
+                                                appName,
+                                            )}
+                                        </Text>
+                                        {appBaseUrl && (
+                                            <Link
+                                                href={appBaseUrl}
+                                                className="text-muted text-[12px] leading-6 mt-5 block text-center"
+                                            >
+                                                {appName}
+                                            </Link>
+                                        )}
+                                        {emailTimestamp && (
+                                            <Text className="text-muted text-[12px] leading-6 mt-1.5 block text-center">
+                                                {`Deze link is aangemaakt op ${emailTimestamp}`}
+                                            </Text>
+                                        )}
+                                    </>
                                 )}
                             </Section>
                         )}
@@ -127,6 +147,13 @@ export const BaseEmailLayout = ({
             </Tailwind>
         </Html>
     )
+}
+
+const getGreetingName = (
+    senderName: string | undefined | null,
+    appName: string,
+): string => {
+    return senderName || `Het ${appName} team`
 }
 
 export default BaseEmailLayout

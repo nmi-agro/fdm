@@ -59,22 +59,62 @@ export function WelcomeEmail({
                     Schakel tussen de beschikbare kaartlagen voor maximaal
                     inzicht:
                 </Text>
-                <ul className="text-black text-[14px] leading-6 ml-4 list-disc pl-5">
-                    <li>
-                        <b>Gewasrotatie</b>: Zie de percelen op de kaart en klik
-                        op een perceel om de gewashistorie tot 2009 terug te
-                        bekijken. Zie ook in welke gebieden het valt voor de
-                        gebruiksruimte en de potentie voor koolstofopslag.
-                    </li>
-                    <li>
-                        <b>Hoogtekaart (AHN4)</b>: Analyseer het microreliëf van
-                        percelen tot in detail.
-                    </li>
-                    <li>
-                        <b>Bodemkaart</b>: Raadpleeg de BRO-bodemkaart voor
-                        inzicht in bodemtype en samenstelling.
-                    </li>
-                </ul>
+                <table
+                    border={0}
+                    cellPadding="0"
+                    cellSpacing="0"
+                    role="presentation"
+                    className="w-full"
+                >
+                    <tr>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pl-4 pr-2 w-6"
+                            valign="top"
+                        >
+                            &bull;
+                        </td>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top"
+                            valign="top"
+                        >
+                            <b>Gewasrotatie</b>: Zie de percelen op de kaart en
+                            klik op een perceel om de gewashistorie tot 2009
+                            terug te bekijken. Zie ook in welke gebieden het
+                            valt voor de gebruiksruimte en de potentie voor
+                            koolstofopslag.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pl-4 pr-2 w-6 pt-2"
+                            valign="top"
+                        >
+                            &bull;
+                        </td>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pt-2"
+                            valign="top"
+                        >
+                            <b>Hoogtekaart (AHN4)</b>: Analyseer het microreliëf
+                            van percelen tot in detail.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pl-4 pr-2 w-6 pt-2"
+                            valign="top"
+                        >
+                            &bull;
+                        </td>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pt-2"
+                            valign="top"
+                        >
+                            <b>Bodemkaart</b>: Raadpleeg de BRO-bodemkaart voor
+                            inzicht in bodemtype en samenstelling.
+                        </td>
+                    </tr>
+                </table>
 
                 <Text className="text-black text-[16px] font-bold leading-6 mt-6">
                     Balansen en bemesting
@@ -82,22 +122,61 @@ export function WelcomeEmail({
                 <Text className="text-black text-[14px] leading-6">
                     {appName} ondersteunt doelsturing met concrete tools:
                 </Text>
-                <ul className="text-black text-[14px] leading-6 ml-4 list-disc pl-5">
-                    <li>
-                        <b>Stikstofbalans</b>: Monitor de aan- en afvoer van
-                        stikstof en zie hoe efficiënt uw stikstofgebruik is
-                        (bodemoverschot).
-                    </li>
-                    <li>
-                        <b>Organische stofbalans</b>: Krijg inzicht in de opbouw
-                        en afbraak van organische stof voor een gezonde bodem op
-                        lange termijn.
-                    </li>
-                    <li>
-                        <b>Bemestingsplan</b>: Maak een compleet plan inclusief
-                        gebruiksruimte en download deze als PDF.
-                    </li>
-                </ul>
+                <table
+                    border={0}
+                    cellPadding="0"
+                    cellSpacing="0"
+                    role="presentation"
+                    className="w-full"
+                >
+                    <tr>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pl-4 pr-2 w-6"
+                            valign="top"
+                        >
+                            &bull;
+                        </td>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top"
+                            valign="top"
+                        >
+                            <b>Stikstofbalans</b>: Monitor de aan- en afvoer van
+                            stikstof en zie hoe efficiënt uw stikstofgebruik is
+                            (bodemoverschot).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pl-4 pr-2 w-6 pt-2"
+                            valign="top"
+                        >
+                            &bull;
+                        </td>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pt-2"
+                            valign="top"
+                        >
+                            <b>Organische stofbalans</b>: Krijg inzicht in de
+                            opbouw en afbraak van organische stof voor een
+                            gezonde bodem op lange termijn.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pl-4 pr-2 w-6 pt-2"
+                            valign="top"
+                        >
+                            &bull;
+                        </td>
+                        <td
+                            className="text-black text-[14px] leading-6 align-top pt-2"
+                            valign="top"
+                        >
+                            <b>Bemestingsplan</b>: Maak een compleet plan
+                            inclusief gebruiksruimte en download deze als PDF.
+                        </td>
+                    </tr>
+                </table>
 
                 <Text className="text-black text-[16px] font-bold leading-6 mt-6">
                     Samenwerken

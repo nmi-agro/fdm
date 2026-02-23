@@ -23,6 +23,9 @@ export const InvitationEmail = ({
     logoFileName = "/fdm-high-resolution-logo-transparent.png",
 }: InvitationEmailProps) => {
     const previewText = `Accepteer de uitnodiging om samen te werken in ${organizationName}.`
+    const baseUrl = appBaseUrl.startsWith("http")
+        ? appBaseUrl
+        : `https://${appBaseUrl}`
 
     return (
         <BaseEmailLayout
@@ -50,21 +53,36 @@ export const InvitationEmail = ({
                 Werk samen met adviseurs en collega's in één omgeving.
             </Text>
             <Section className="mt-8 mb-2 text-center">
-                <Button
-                    href={`${appBaseUrl}/organization/invitations/${invitationId}/respond?intent=accept`}
-                    className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
+                <table
+                    align="center"
+                    border={0}
+                    cellPadding="0"
+                    cellSpacing="0"
+                    role="presentation"
+                    style={{ margin: "0 auto" }}
                 >
-                    Accepteren
-                </Button>
-                <Button
-                    href={`${appBaseUrl}/organization/invitations/${invitationId}/respond?intent=reject`}
-                    className="bg-[#f5f5f5] text-[#171717] border-solid border-[#171717] border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
-                >
-                    Afwijzen
-                </Button>
+                    <tr>
+                        <td align="center" style={{ padding: "0 12px" }}>
+                            <Button
+                                href={`${baseUrl}/organization/invitations/${invitationId}/respond?intent=accept`}
+                                className="bg-primary text-white border-solid border-primary border-2 rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
+                            >
+                                Accepteren
+                            </Button>
+                        </td>
+                        <td align="center" style={{ padding: "0 12px" }}>
+                            <Button
+                                href={`${baseUrl}/organization/invitations/${invitationId}/respond?intent=reject`}
+                                className="bg-[#f5f5f5] text-[#171717] border-solid border-[#171717] border-2 rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
+                            >
+                                Afwijzen
+                            </Button>
+                        </td>
+                    </tr>
+                </table>
             </Section>
             <Section className="mt-8 mb-8 text-center">
-                <Link href={`${appBaseUrl}/organization/invitations`}>
+                <Link href={`${baseUrl}/organization/invitations`}>
                     of bekijk je uitnodigingen
                 </Link>
             </Section>
