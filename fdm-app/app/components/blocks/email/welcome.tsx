@@ -62,9 +62,9 @@ export function WelcomeEmail({
                 <ul className="text-black text-[14px] leading-6 ml-4 list-disc pl-5">
                     <li>
                         <b>Gewasrotatie</b>: Zie de percelen op de kaart en klik
-                        op een perceel om de gewashistorie tot 2009 te bekijken.
-                        terug tot 2009. Zie ook in welke gebieden het valt voor
-                        de gebruiksruimte en de potentie voor koolstofopslag.
+                        op een perceel om de gewashistorie tot 2009 terug te
+                        bekijken. Zie ook in welke gebieden het valt voor de
+                        gebruiksruimte en de potentie voor koolstofopslag.
                     </li>
                     <li>
                         <b>Hoogtekaart (AHN4)</b>: Analyseer het microreliëf van
