@@ -24,7 +24,6 @@ interface BaseEmailLayoutProps {
     showFooter?: boolean
     footerText?: React.ReactNode
     reasonText?: string // Why the user received this email
-    privacyUrl?: string // URL to privacy policy
     lang?: string
 }
 
