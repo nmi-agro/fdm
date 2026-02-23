@@ -18,7 +18,7 @@ export function WelcomeEmail({
     senderName,
     logoFileName = "/fdm-high-resolution-logo-transparent.png",
 }: WelcomeEmailProps) {
-    const previewText = "Ga aan de slag en krijg beter agronimisch inzicht."
+    const previewText = "Ga aan de slag en krijg beter agronomisch inzicht."
     const absoluteUrl = url.startsWith("http") ? url : `https://${url}`
 
     return (
@@ -36,7 +36,7 @@ export function WelcomeEmail({
             <Section className="my-5 mx-0 p-0">
                 <Text className="text-black text-[14px] leading-6">
                     Fijn dat je er bent. Met {appName} heb je een handige tool
-                    in handen om beter agronimisch inzicht te krijgen. We helpen
+                    in handen om beter agronomisch inzicht te krijgen. We helpen
                     je graag op weg met de nieuwste mogelijkheden.
                 </Text>
             </Section>
@@ -77,7 +77,7 @@ export function WelcomeEmail({
                 </ul>
 
                 <Text className="text-black text-[16px] font-bold leading-6 mt-6">
-                    Balansen en Bemesting
+                    Balansen en bemesting
                 </Text>
                 <Text className="text-black text-[14px] leading-6">
                     {appName} ondersteunt doelsturing met concrete tools:
@@ -111,7 +111,7 @@ export function WelcomeEmail({
 
             <Section className="text-center mt-8 mb-8">
                 <Button
-                    className="bg-primary rounded text-white text-[14px] font-semibold no-underline px-5 py-3 min-w-[200px]"
+                    className="bg-primary rounded text-white text-[14px] font-semibold no-underline px-5 py-3 min-w-50"
                     href={absoluteUrl}
                 >
                     Start met {appName}
