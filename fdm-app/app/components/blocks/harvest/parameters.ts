@@ -1,4 +1,4 @@
-import type { HarvestParameters } from "@svenvw/fdm-core"
+import type { HarvestParameters } from "@nmi-agro/fdm-core"
 
 export function getHarvestParameterLabel(param: HarvestParameters[number]) {
     switch (param) {

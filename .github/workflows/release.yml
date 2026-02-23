@@ -69,7 +69,7 @@ jobs:
         shell: bash
         run: |
           # Build packages
-          pnpm build --filter="!@svenvw/fdm-app"
+          pnpm build --filter="!@nmi-agro/fdm-app"
           
           # Publish to GitHub Packages
           pnpm changeset publish

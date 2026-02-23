@@ -1,7 +1,7 @@
 import {
     getCultivationCatalogue,
     getFertilizersCatalogue,
-} from "@svenvw/fdm-data"
+} from "@nmi-agro/fdm-data"
 import { eq, isNotNull } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import {

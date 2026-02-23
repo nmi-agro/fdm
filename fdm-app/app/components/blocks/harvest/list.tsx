@@ -1,4 +1,4 @@
-import type { Harvest, HarvestParameters } from "@svenvw/fdm-core"
+import type { Harvest, HarvestParameters } from "@nmi-agro/fdm-core"
 import { format } from "date-fns/format"
 import { nl } from "date-fns/locale"
 import { ArrowRight, Calendar } from "lucide-react"

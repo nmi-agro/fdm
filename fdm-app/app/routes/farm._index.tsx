@@ -1,4 +1,4 @@
-import { getFarms } from "@svenvw/fdm-core"
+import { getFarms } from "@nmi-agro/fdm-core"
 import {
     ArrowRight,
     Check,

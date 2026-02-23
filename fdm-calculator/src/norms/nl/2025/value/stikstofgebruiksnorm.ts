@@ -1,4 +1,4 @@
-import { type Field, withCalculationCache } from "@svenvw/fdm-core"
+import { type Field, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
 import { getGeoTiffValue } from "../../../../shared/geotiff"

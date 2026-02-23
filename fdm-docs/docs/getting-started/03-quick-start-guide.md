@@ -9,7 +9,7 @@ This guide will walk you through the basics of using the Farm Data Model (FDM) i
 First, you need to install the FDM packages from `npm`. You will need `fdm-core` for the core data model and `fdm-data` for the standardized catalogues.
 
 ```bash
-npm install @svenvw/fdm-core @svenvw/fdm-data
+npm install @nmi-agro/fdm-core @nmi-agro/fdm-data
 ```
 
 ## Connecting to a Database
@@ -19,7 +19,7 @@ FDM uses a PostgreSQL database to store its data. You will need to have a runnin
 Here is an example of how to create a `Drizzle` client and connect to a PostgreSQL database:
 
 ```typescript
-import { createFdmServer } from '@svenvw/fdm-core';
+import { createFdmServer } from '@nmi-agro/fdm-core';
 
 // Ensure your environment variables are set for PostgreSQL connection
 const fdm = createFdmServer(
@@ -41,7 +41,7 @@ The `farm` is the top-level asset in FDM. It is the container for all other asse
 Here is how you can create a new `farm`:
 
 ```typescript
-import { addFarm } from '@svenvw/fdm-core';
+import { addFarm } from '@nmi-agro/fdm-core';
 
 // To create a new farm:
 const farmName = 'My Test Farm';
@@ -63,7 +63,7 @@ A `field` is the primary spatial asset in FDM. It represents a specific area of 
 Here is how you can add a new `field` to a `farm`:
 
 ```typescript
-import { addField } from '@svenvw/fdm-core';
+import { addField } from '@nmi-agro/fdm-core';
 
 // To add a new field to the farm:
 const fieldName = 'My Test Field';
@@ -100,8 +100,8 @@ Sowing is an `action` that creates a new `cultivation` asset on a `field`.
 Here is how you can sow a crop on a `field`:
 
 ```typescript
-import { addCultivation } from '@svenvw/fdm-core';
-import { cultivationsCatalogue } from '@svenvw/fdm-data';
+import { addCultivation } from '@nmi-agro/fdm-core';
+import { cultivationsCatalogue } from '@nmi-agro/fdm-data';
 
 // To sow a crop on a field:
 const cropName = 'Wheat'; // Example crop

@@ -1,5 +1,5 @@
-import type { NitrogenBalanceFieldResultNumeric } from "@svenvw/fdm-calculator"
-import { getFarm, getFields } from "@svenvw/fdm-core"
+import type { NitrogenBalanceFieldResultNumeric } from "@nmi-agro/fdm-calculator"
+import { getFarm, getFields } from "@nmi-agro/fdm-core"
 import {
     ArrowDown,
     ArrowRight,

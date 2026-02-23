@@ -1,7 +1,7 @@
 import type {
     CurrentSoilData,
     SoilParameterDescription,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { format } from "date-fns/format"
 import { nl } from "date-fns/locale/nl"
 import { Calendar, Microscope, Pencil, Sparkles, User } from "lucide-react"

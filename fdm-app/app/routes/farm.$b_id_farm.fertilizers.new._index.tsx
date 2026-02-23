@@ -1,4 +1,4 @@
-import { type Fertilizer, getFertilizers } from "@svenvw/fdm-core"
+import { type Fertilizer, getFertilizers } from "@nmi-agro/fdm-core"
 import type { LoaderFunctionArgs } from "react-router"
 import { useLoaderData } from "react-router"
 import {

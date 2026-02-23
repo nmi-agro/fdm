@@ -9,7 +9,7 @@ import type {
     Harvest,
     PrincipalId,
     SoilAnalysis,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     getCultivations,
     getCultivationsFromCatalogue,
@@ -18,16 +18,16 @@ import {
     getFields,
     getHarvests,
     getSoilAnalyses,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { collectInputForNitrogenBalance } from "./input"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 import type { FieldInput, NitrogenBalanceInput } from "./types"
 
-// Mock the @svenvw/fdm-core module
-vi.mock("@svenvw/fdm-core", async () => {
-    const actual = await vi.importActual("@svenvw/fdm-core")
+// Mock the @nmi-agro/fdm-core module
+vi.mock("@nmi-agro/fdm-core", async () => {
+    const actual = await vi.importActual("@nmi-agro/fdm-core")
     return {
         ...actual,
         getFields: vi.fn(),

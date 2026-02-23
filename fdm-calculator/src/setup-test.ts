@@ -1,4 +1,4 @@
-import { runMigration } from "@svenvw/fdm-core"
+import { runMigration } from "@nmi-agro/fdm-core"
 import postgres from "postgres"
 import type { TestProject } from "vitest/node"
 
@@ -41,7 +41,7 @@ export default async function setup(project: TestProject) {
     const password = String(process.env.POSTGRES_PASSWORD)
     const database = String(process.env.POSTGRES_DB)
     const migrationsFolderPath =
-        "node_modules/@svenvw/fdm-core/dist/db/migrations"
+        "node_modules/@nmi-agro/fdm-core/dist/db/migrations"
 
     client = postgres({
         host,

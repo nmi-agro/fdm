@@ -5,7 +5,7 @@ import {
     listPrincipalsForFarm,
     revokePrincipalFromFarm,
     updateRoleOfPrincipalAtFarm,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,

@@ -1,4 +1,4 @@
-import type { FertilizerApplication } from "@svenvw/fdm-core"
+import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type {
     CultivationDetail,

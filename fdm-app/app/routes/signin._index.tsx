@@ -1579,7 +1579,7 @@ export default function SignIn() {
                                     </li>
                                     <li>
                                         <a
-                                            href="https://github.com/SvenVw/fdm"
+                                            href="https://github.com/nmi-agro/fdm"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="hover:text-primary flex items-center gap-2"

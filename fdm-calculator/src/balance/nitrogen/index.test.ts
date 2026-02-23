@@ -1,4 +1,4 @@
-import type { FdmType } from "@svenvw/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { describe, expect, it } from "vitest"
 import {

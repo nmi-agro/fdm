@@ -1,4 +1,4 @@
-import type { FertilizerParameters } from "@svenvw/fdm-core"
+import type { FertilizerParameters } from "@nmi-agro/fdm-core"
 import { Form } from "react-router"
 import { RemixFormProvider, type useRemixForm } from "remix-hook-form"
 import type { z } from "zod"

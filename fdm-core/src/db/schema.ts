@@ -1,4 +1,4 @@
-import type { ApplicationMethods } from "@svenvw/fdm-data"
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { sql } from "drizzle-orm"
 import {
     boolean,

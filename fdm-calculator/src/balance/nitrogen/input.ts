@@ -3,7 +3,7 @@ import type {
     fdmSchema,
     PrincipalId,
     Timeframe,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     getCultivations,
     getCultivationsFromCatalogue,
@@ -13,7 +13,7 @@ import {
     getFields,
     getHarvests,
     getSoilAnalyses,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 import type { NitrogenBalanceInput } from "./types"

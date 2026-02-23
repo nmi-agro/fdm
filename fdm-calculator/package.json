@@ -1,11 +1,11 @@
 {
-    "name": "@svenvw/fdm-calculator",
+    "name": "@nmi-agro/fdm-calculator",
     "private": false,
     "version": "0.11.1",
     "description": "Calculate various insights based on the Farm Data Model",
     "license": "MIT",
-    "homepage": "https://github.com/SvenVw/fdm",
-    "bugs": "https://github.com/SvenVw/fdm/issues/new",
+    "homepage": "https://github.com/nmi-agro/fdm",
+    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
     "author": {
         "name": "Sven Verweij",
         "email": "37927107+SvenVw@users.noreply.github.com",
@@ -40,7 +40,7 @@
         "watch": "dotenvx run -- vitest"
     },
     "dependencies": {
-        "@svenvw/fdm-core": "workspace:^",
+        "@nmi-agro/fdm-core": "workspace:^",
         "date-fns": "^4.1.0",
         "decimal.js": "^10.6.0",
         "geotiff": "^3.0.3"
@@ -49,7 +49,7 @@
         "@dotenvx/dotenvx": "catalog:",
         "@rollup/plugin-commonjs": "catalog:",
         "@rollup/plugin-node-resolve": "catalog:",
-        "@svenvw/fdm-core": "workspace:*",
+        "@nmi-agro/fdm-core": "workspace:*",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
         "postgres": "^3.4.8",

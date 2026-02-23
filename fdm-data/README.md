@@ -15,7 +15,7 @@ The `fdm-data` package extends the Farm Data Model (FDM) core functionality by p
 1.  **Installation:**
 
     ```bash
-    pnpm add @svenvw/fdm-data
+    pnpm add @nmi-agro/fdm-data
     ```
 
 2.  **Integration:** Import `fdm-data` into your application along with `fdm-core`. The catalogues are designed to work directly with the core FDM schema. See the usage examples below.
@@ -25,7 +25,7 @@ The `fdm-data` package extends the Farm Data Model (FDM) core functionality by p
 ### Fertilizers
 
 ```typescript
-import { getFertilizersCatalogue } from "@svenvw/fdm-data";
+import { getFertilizersCatalogue } from "@nmi-agro/fdm-data";
 
 // Get the BAAT fertilizer catalogue
 const baatCatalogue = getFertilizersCatalogue("baat");

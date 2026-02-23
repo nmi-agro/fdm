@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { FertilizerApplication } from "@svenvw/fdm-core"
+import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import { Plus } from "lucide-react"
 import type { MouseEvent } from "react"
 import { useEffect, useId } from "react"
