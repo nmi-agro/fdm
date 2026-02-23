@@ -14,6 +14,7 @@ import {
     NavLink,
     useLoaderData,
     useNavigate,
+    useNavigation,
     useParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
@@ -46,6 +47,8 @@ import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { Spinner } from "../components/ui/spinner"
+import { cn } from "../lib/utils"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_fertilizer.$p_id"
 
 interface FertilizerInfo {
@@ -217,6 +220,7 @@ function FertilizerApplicationRow({
     includeModifyCellWhenReadonly: boolean
 }) {
     const params = useParams()
+    const navigation = useNavigation()
 
     const {
         dates,
@@ -268,7 +272,7 @@ function FertilizerApplicationRow({
             <TableCell>{applicationMethods}</TableCell>
             <TableCell>{applicationAmount}</TableCell>
             {modifiableApps.length > 0 ? (
-                <TableCell className="flex flex-row justify-end gap-2">
+                <TableCell className="flex flex-row justify-end items-center gap-2">
                     <Button asChild>
                         <NavLink
                             to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
@@ -286,10 +290,17 @@ function FertilizerApplicationRow({
                             name="intent"
                             variant="destructive"
                             value="remove_application"
+                            disabled={navigation.state === "submitting"}
                         >
                             Verwijderen
                         </Button>
                     </Form>
+                    <Spinner
+                        className={cn(
+                            "h-4 w-4",
+                            navigation.state !== "submitting" && "invisible",
+                        )}
+                    />
                 </TableCell>
             ) : (
                 includeModifyCellWhenReadonly && <TableCell />
