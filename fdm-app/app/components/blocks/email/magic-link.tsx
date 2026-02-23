@@ -52,11 +52,11 @@ export const MagicLinkEmail = ({
             <Text className="text-black text-[14px] leading-6">
                 Gebruik onderstaande code om veilig in te loggen bij {appName}.
             </Text>
-            <Section className="bg-gray-100 rounded p-4 text-center my-6 border border-gray-200 dark:bg-slate-800 dark:border-slate-700">
-                <Text className="m-0 text-gray-500 text-xs uppercase tracking-wider font-semibold dark:text-gray-400">
+            <Section className="bg-gray-100 rounded p-4 text-center my-6 border border-gray-200">
+                <Text className="m-0 text-gray-500 text-xs uppercase tracking-wider font-semibold">
                     Uw inlogcode
                 </Text>
-                <Text className="m-0 text-black text-3xl font-bold tracking-[0.2em] py-2 dark:text-white">
+                <Text className="m-0 text-black text-3xl font-bold tracking-[0.2em] py-2">
                     {code.length === 8
                         ? `${code.slice(0, 4)}-${code.slice(4)}`
                         : code}
