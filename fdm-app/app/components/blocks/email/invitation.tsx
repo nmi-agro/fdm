@@ -2,6 +2,7 @@ import {
     Body,
     Button,
     Container,
+    Font,
     Head,
     Heading,
     Html,
@@ -34,20 +35,15 @@ export const InvitationEmail = ({
 }: InvitationEmailProps) => {
     const logoPath = `${appBaseUrl}${logoFileName}`
 
-    const fontFamily = `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif`
-
     return (
         <Html lang="nl">
             <Head>
-                <link
-                    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-                    rel="stylesheet"
+                <Font
+                    fontFamily="Inter"
+                    fallbackFontFamily="sans-serif"
+                    fontWeight={400}
+                    fontStyle="normal"
                 />
-                <style>{`
-                * {
-                    font-family: ${fontFamily};
-                }
-            `}</style>
             </Head>
             <Preview>
                 {`${inviterName} heeft je uitgenodigd om lid te worden van ${organizationName} in ${appName}.`}

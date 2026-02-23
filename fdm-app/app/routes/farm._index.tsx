@@ -1,6 +1,12 @@
-import { getFarms } from "@svenvw/fdm-core"
+import {
+    acceptInvitation,
+    declineInvitation,
+    getFarms,
+    listPendingInvitationsForUser,
+} from "@svenvw/fdm-core"
 import {
     ArrowRight,
+    Bell,
     Check,
     House,
     Layers,
@@ -9,14 +15,19 @@ import {
     Mountain,
     Plus,
     PlusCircle,
+    X,
 } from "lucide-react"
 import {
+    type ActionFunctionArgs,
+    Form,
     type LoaderFunctionArgs,
     type MetaFunction,
     NavLink,
     useLoaderData,
 } from "react-router"
+import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -35,7 +46,16 @@ import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
+import { AccessFormSchema } from "~/lib/schemas/access.schema"
+
+function getRoleLabel(role: string): string {
+    if (role === "owner") return "Eigenaar"
+    if (role === "advisor") return "Adviseur"
+    if (role === "researcher") return "Onderzoeker"
+    return "Lid"
+}
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -77,15 +97,65 @@ export async function loader({ request }: LoaderFunctionArgs) {
             }
         })
 
+        // Get pending farm invitations for this user
+        const pendingInvitations = await listPendingInvitationsForUser(
+            fdm,
+            session.user.id,
+        )
+
         // Return user information from loader
         return {
             farms: farms,
             farmOptions: farmOptions,
             calendar: calendar,
             username: session.userName,
+            pendingInvitations: pendingInvitations,
         }
     } catch (error) {
         throw handleLoaderError(error)
+    }
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+    try {
+        const session = await getSession(request)
+        const formValues = await extractFormValuesFromRequest(
+            request,
+            AccessFormSchema,
+        )
+
+        if (formValues.intent === "accept_farm_invitation") {
+            if (!formValues.invitation_id) {
+                return dataWithError(null, "Ontbrekend uitnodigings id")
+            }
+            await acceptInvitation(
+                fdm,
+                formValues.invitation_id,
+                session.user.id,
+            )
+            return dataWithSuccess(null, {
+                message: "Uitnodiging geaccepteerd! 🎉",
+            })
+        }
+
+        if (formValues.intent === "decline_farm_invitation") {
+            if (!formValues.invitation_id) {
+                return dataWithError(null, "Ontbrekend uitnodigings id")
+            }
+            await declineInvitation(
+                fdm,
+                formValues.invitation_id,
+                session.user.id,
+            )
+            return dataWithSuccess(null, {
+                message: "Uitnodiging geweigerd.",
+            })
+        }
+
+        return dataWithError(null, "Onbekende actie")
+    } catch (error) {
+        console.error(error)
+        return dataWithError(null, "Er is iets misgegaan")
     }
 }
 
@@ -266,6 +336,25 @@ export default function AppIndex() {
                                     </CardFooter>
                                 </Card>
                             </div>
+
+                            {loaderData.pendingInvitations.length > 0 && (
+                                <div className="w-full space-y-4">
+                                    <h2 className="text-xl font-semibold">
+                                        Openstaande uitnodigingen
+                                    </h2>
+                                    <div className="grid w-full gap-4 sm:grid-cols-2">
+                                        {loaderData.pendingInvitations.map(
+                                            (invitation) => (
+                                                <PendingInvitationCard
+                                                    key={invitation.invitation_id}
+                                                    invitation={invitation}
+                                                />
+                                            ),
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             <SupportNote />
                         </div>
                     </div>
@@ -311,16 +400,7 @@ export default function AppIndex() {
                                                                         variant="secondary"
                                                                         className="text-[10px] uppercase tracking-wider"
                                                                     >
-                                                                        {role ===
-                                                                        "owner"
-                                                                            ? "Eigenaar"
-                                                                            : role ===
-                                                                                "advisor"
-                                                                              ? "Adviseur"
-                                                                              : role ===
-                                                                                  "researcher"
-                                                                                ? "Onderzoeker"
-                                                                                : "Lid"}
+                                                                        {getRoleLabel(role)}
                                                                     </Badge>
                                                                 ),
                                                             )}
@@ -388,6 +468,26 @@ export default function AppIndex() {
                                 </NavLink>
                             </Card>
                         </div>
+
+                        {/* Pending farm invitations */}
+                        {loaderData.pendingInvitations.length > 0 && (
+                            <>
+                                <FarmTitle
+                                    title="Openstaande uitnodigingen"
+                                    description="Je hebt uitnodigingen ontvangen voor toegang tot de volgende bedrijven."
+                                />
+                                <div className="grid gap-4 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                                    {loaderData.pendingInvitations.map(
+                                        (invitation) => (
+                                            <PendingInvitationCard
+                                                key={invitation.invitation_id}
+                                                invitation={invitation}
+                                            />
+                                        ),
+                                    )}
+                                </div>
+                            </>
+                        )}
 
                         <FarmTitle
                             title="Atlas"
