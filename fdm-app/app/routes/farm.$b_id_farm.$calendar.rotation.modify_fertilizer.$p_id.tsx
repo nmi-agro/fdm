@@ -7,7 +7,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import {
     data,
     Form,
@@ -48,6 +48,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { Spinner } from "../components/ui/spinner"
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { cn } from "../lib/utils"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_fertilizer.$p_id"
 
@@ -152,27 +153,47 @@ interface FertAppRecordItem {
 
 type FertAppRecord = Record<string, FertAppRecordItem>
 
-function mapByOrder(
-    record: FertAppRecord,
-    applications: ApplicationExtended[],
-) {
-    applications.forEach((application, i) => {
-        if (!application.p_app_date) return
-        const key = i
-        record[key] ??= {
-            id: `${application.p_id}_${key}`,
-            dates: [],
-            applications: [],
-        }
-        record[key].applications.push(application)
-        record[key].dates.push(application.p_app_date)
-    })
-}
+const createMapper =
+    (
+        mapper: (
+            application: Omit<ApplicationExtended, "p_app_date"> & {
+                p_app_date: Date
+            },
+            i: number,
+        ) => string,
+    ) =>
+    (record: FertAppRecord, applications: ApplicationExtended[]) => {
+        applications.forEach((application, i) => {
+            if (!application.p_app_date) return
+            const key = mapper(application, i)
+            record[key] ??= {
+                id: `${application.p_id}_${key}`,
+                dates: [],
+                applications: [],
+            }
+            record[key].applications.push(application)
+            record[key].dates.push(application.p_app_date)
+        })
+    }
 
-function groupAndOrderFertApps(applicationsPerField: ApplicationExtended[][]) {
+export const mappers = {
+    mapByOrder: createMapper((_application, i) => i.toString()),
+    mapByDate: createMapper((application) =>
+        application.p_app_date.getTime().toString(),
+    ),
+    mapEach: createMapper((application) => application.p_app_id),
+} as const
+
+function groupAndOrderFertApps(
+    applicationsPerField: ApplicationExtended[][],
+    mapper: (
+        record: FertAppRecord,
+        applications: ApplicationExtended[],
+    ) => void,
+) {
     const record: FertAppRecord = {}
     for (const group of applicationsPerField) {
-        mapByOrder(record, group)
+        mapper(record, group)
     }
 
     const entries = Object.entries(record).map(
@@ -324,11 +345,17 @@ export default function FertilizerApplicationListDialog() {
         [fertilizerApplications],
     )
 
-    const records = groupAndOrderFertApps(fertilizerApplications)
+    const [rowMapper, setRowMapper] =
+        useState<keyof typeof mappers>("mapByDate")
+
+    const records = useMemo(
+        () => groupAndOrderFertApps(fertilizerApplications, mappers[rowMapper]),
+        [fertilizerApplications, rowMapper],
+    )
 
     return (
         <Dialog open={true} onOpenChange={() => navigate("..")}>
-            <DialogContent className="max-w-4xl">
+            <DialogContent className="max-w-4xl transition-transform duration-1000">
                 <DialogHeader>
                     <DialogTitle>{fertilizer.p_name_nl}</DialogTitle>
                     <DialogDescription>
@@ -336,28 +363,54 @@ export default function FertilizerApplicationListDialog() {
                     </DialogDescription>
                 </DialogHeader>
                 {records.length > 0 ? (
-                    <Table>
-                        <TableHeader className="sticky">
-                            <TableRow>
-                                <TableHead>Datum</TableHead>
-                                <TableHead>Toedieningsmethode</TableHead>
-                                <TableHead>Hoeveelheid</TableHead>
-                                {canModifyAnything && <TableHead />}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {records.map((record) => (
-                                <FertilizerApplicationRow
-                                    key={record.id}
-                                    record={record}
-                                    includeModifyCellWhenReadonly={
-                                        canModifyAnything
-                                    }
-                                    returnUrl={returnUrl}
-                                />
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <>
+                        <div className="flex flex-row items-center gap-2">
+                            <p>Groeperen op </p>
+                            <Tabs
+                                value={rowMapper}
+                                onValueChange={(value) => {
+                                    if (value in mappers)
+                                        setRowMapper(
+                                            value as keyof typeof mappers,
+                                        )
+                                }}
+                            >
+                                <TabsList>
+                                    <TabsTrigger value="mapByDate">
+                                        Datum
+                                    </TabsTrigger>
+                                    <TabsTrigger value="mapByOrder">
+                                        Volgorde
+                                    </TabsTrigger>
+                                    <TabsTrigger value="mapEach">
+                                        Niet groupen
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                        <Table>
+                            <TableHeader className="sticky">
+                                <TableRow>
+                                    <TableHead>Datum</TableHead>
+                                    <TableHead>Toedieningsmethode</TableHead>
+                                    <TableHead>Hoeveelheid</TableHead>
+                                    {canModifyAnything && <TableHead />}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {records.map((record) => (
+                                    <FertilizerApplicationRow
+                                        key={record.id}
+                                        record={record}
+                                        includeModifyCellWhenReadonly={
+                                            canModifyAnything
+                                        }
+                                        returnUrl={returnUrl}
+                                    />
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </>
                 ) : (
                     <Empty>
                         <EmptyHeader>
