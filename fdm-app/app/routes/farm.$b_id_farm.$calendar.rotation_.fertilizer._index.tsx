@@ -846,13 +846,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const session = await getSession(request)
         const url = new URL(request.url)
 
-        const validatedData = await extractFormValuesFromRequest(
-            request,
-            url.searchParams.has("appIds")
-                ? FormSchemaPartialModify
-                : FormSchema,
-        )
-
         const returnUrlParam = url.searchParams.get("returnUrl")
         const returnUrl =
             returnUrlParam && isOfOrigin(returnUrlParam, url.origin)
@@ -861,7 +854,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
                   ? `/farm/create/${b_id_farm}/${calendar}/rotation`
                   : `/farm/${b_id_farm}/${calendar}/rotation`
 
-        if (validatedData.p_app_id) {
+        if (url.searchParams.has("appIds")) {
+            const validatedData = await extractFormValuesFromRequest(
+                request,
+                FormSchemaPartialModify,
+            )
+
             const p_app_ids = validatedData.p_app_id.split(",").filter(Boolean)
             await fdm.transaction((tx) =>
                 Promise.all(
@@ -895,6 +893,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 message: `${p_app_ids.length} ${p_app_ids.length === 1 ? "bemesting is" : "bemestingen zijn"} succesvol bijgewerkt.`,
             })
         }
+
+        const validatedData = await extractFormValuesFromRequest(
+            request,
+            FormSchema,
+        )
 
         const fieldIds =
             url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
