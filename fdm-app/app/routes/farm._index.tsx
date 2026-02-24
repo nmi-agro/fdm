@@ -7,7 +7,6 @@ import {
 } from "@nmi-agro/fdm-core"
 import {
     ArrowRight,
-    Bell,
     Check,
     House,
     Layers,
@@ -16,11 +15,10 @@ import {
     Mountain,
     Plus,
     PlusCircle,
-    X,
+
 } from "lucide-react"
 import {
     type ActionFunctionArgs,
-    Form,
     type LoaderFunctionArgs,
     type MetaFunction,
     NavLink,
@@ -203,12 +201,12 @@ export default function AppIndex() {
             <main className="flex flex-1 flex-col">
                 {loaderData.farms.length === 0 ? (
                     <div className="flex flex-1 items-center justify-center p-6 md:p-10">
-                        <div className="mx-auto flex w-full max-w-[850px] flex-col items-center space-y-8 text-center">
+                        <div className="mx-auto flex w-full max-w-212.5 flex-col items-center space-y-8 text-center">
                             <div className="space-y-4">
                                 <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
                                     Welkom bij {clientConfig.name}
                                 </h1>
-                                <p className="mx-auto max-w-[650px] text-lg text-muted-foreground sm:text-xl font-medium">
+                                <p className="mx-auto max-w-162.5 text-lg text-muted-foreground sm:text-xl font-medium">
                                     Een open-source platform voor goede
                                     landbouwpraktijk om samen te leren en
                                     innoveren.
