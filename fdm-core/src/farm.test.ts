@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm"
-import { beforeAll, describe, expect, inject, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
 import { createFdmAuth } from "./authentication"
 import { listPrincipalsForResource } from "./authorization"
@@ -1202,12 +1202,13 @@ describe("Farm Functions", () => {
         let updateInvFarmId: string
         let updateInvitationId: string
 
-        beforeAll(async () => {
+        beforeEach(async () => {
+            const randomId = Math.random().toString(36).substring(7)
             updateInvFarmId = await addFarm(
                 fdm,
                 principal_id,
-                "Update Invitation Role Farm",
-                "UPD001",
+                `Update Invitation Role Farm ${randomId}`,
+                `UPD${randomId}`,
                 "Update Lane",
                 "88001",
             )
