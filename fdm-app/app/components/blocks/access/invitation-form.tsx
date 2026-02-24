@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { User, Users } from "lucide-react"
-import { useState } from "react"
-import { Form, useSubmit } from "react-router-dom"
+import { useEffect, useRef, useState } from "react"
+import { Form, useNavigation, useSubmit } from "react-router-dom"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import isEmail from "validator/lib/isEmail"
 import type { z } from "zod"
@@ -36,6 +36,9 @@ type InvitationFormProps = {
 
 export const InvitationForm = ({ principals }: InvitationFormProps) => {
     const submit = useSubmit()
+    const navigation = useNavigation()
+    const isSubmitting = navigation.state !== "idle"
+    const wasSubmitting = useRef(false)
     const [selectedValue, setSelectedValue] = useState<string>("")
     const form = useRemixForm<z.infer<typeof AccessFormSchema>>({
         mode: "onTouched",
@@ -58,6 +61,15 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
         },
     })
 
+    // Reset form and autocomplete input when submission completes
+    useEffect(() => {
+        if (wasSubmitting.current && navigation.state === "idle") {
+            setSelectedValue("")
+            form.reset({ role: form.getValues("role"), intent: "invite_user" })
+        }
+        wasSubmitting.current = navigation.state !== "idle"
+    }, [navigation.state, form.getValues, form.reset])
+
     // Define icon map for AutoComplete
     const iconMap = { user: User, organization: Users }
 
@@ -65,7 +77,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
         <RemixFormProvider {...form}>
             <Form method="post" onSubmit={form.handleSubmit}>
                 <fieldset
-                    disabled={form.formState.isSubmitting}
+                    disabled={isSubmitting}
                     className="flex items-center justify-between space-x-4"
                 >
                     <AutoComplete
@@ -109,6 +121,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                         }
                         placeholder="Zoek naar een gebruiker of organisatie"
                         allowValuesOutsideList={true}
+                        disabled={isSubmitting}
                         form={form} // Pass the form instance
                         name="username" // Name for remix-hook-form registration
                     />
@@ -143,8 +156,10 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                             value="invite_user"
                             type="submit"
                         >
-                            {form.formState.isSubmitting ? (
-                                <Spinner />
+                            {isSubmitting ? (
+                                <span className="sr-only">
+                                    <Spinner /> Uitnodigen
+                                </span>
                             ) : (
                                 "Uitnodigen"
                             )}
