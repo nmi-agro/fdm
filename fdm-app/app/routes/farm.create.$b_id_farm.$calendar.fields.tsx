@@ -1,4 +1,4 @@
-import { getCurrentSoilData, getFarm, getFields } from "@svenvw/fdm-core"
+import { getCurrentSoilData, getFarm, getFields } from "@nmi-agro/fdm-core"
 import {
     data,
     type LoaderFunctionArgs,
@@ -75,10 +75,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
 
         // Get soil status for each field
-        const soilStatus: Record<
-            string,
-            "estimated" | "measured" | "missing"
-        > = {}
+        const soilStatus: Record<string, "estimated" | "measured" | "missing"> =
+            {}
 
         await Promise.all(
             fields.map(async (field) => {
@@ -92,7 +90,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 if (currentSoilData.length === 0) {
                     soilStatus[field.b_id] = "missing"
                 } else {
-                    const sources = new Set(currentSoilData.map((i) => i.a_source))
+                    const sources = new Set(
+                        currentSoilData.map((i) => i.a_source),
+                    )
                     const hasMeasured = Array.from(sources).some(
                         (s) => s !== "nl-other-nmi",
                     )

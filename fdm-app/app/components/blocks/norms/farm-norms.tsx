@@ -1,7 +1,7 @@
 import type {
     AggregatedNormFillingsToFarmLevel,
     AggregatedNormsToFarmLevel,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import { AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { NormCard } from "./norm-card"

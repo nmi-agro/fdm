@@ -8,7 +8,7 @@ import {
     enableFertilizerCatalogue,
     getFertilizersFromCatalogue,
     setGrazingIntention,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Controller, type Resolver } from "react-hook-form"
 import type {

@@ -1,4 +1,4 @@
-import type { FdmServerType } from "@svenvw/fdm-core"
+import type { FdmServerType } from "@nmi-agro/fdm-core"
 import {
     addFarm,
     addFertilizer,
@@ -6,7 +6,7 @@ import {
     addFertilizerToCatalogue,
     addField,
     createFdmServer,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import { getDoseForField } from "./get-dose-field"
 

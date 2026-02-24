@@ -1,4 +1,4 @@
-import { getFarm } from "@svenvw/fdm-core"
+import { getFarm } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, type MetaFunction } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"

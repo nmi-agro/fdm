@@ -1,7 +1,7 @@
 import {
     type CatalogueCultivationItem,
     getCultivationCatalogue,
-} from "@svenvw/fdm-data"
+} from "@nmi-agro/fdm-data"
 import centroid from "@turf/centroid"
 import { deserialize } from "flatgeobuf/lib/mjs/geojson.js"
 import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"

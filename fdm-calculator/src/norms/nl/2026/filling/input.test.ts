@@ -4,13 +4,13 @@ import type {
     Fertilizer,
     FertilizerApplication,
     Field,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { collectNL2026InputForFertilizerApplicationFilling } from "./input"
 import type { NL2026NormsFillingInput } from "./types"
 
-// Mock the entire @svenvw/fdm-core module
-vi.mock("@svenvw/fdm-core", () => ({
+// Mock the entire @nmi-agro/fdm-core module
+vi.mock("@nmi-agro/fdm-core", () => ({
     getField: vi.fn(),
     getGrazingIntention: vi.fn(),
     isOrganicCertificationValid: vi.fn(),
@@ -27,7 +27,7 @@ import {
     getField,
     getGrazingIntention,
     isOrganicCertificationValid,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 
 describe("collectNL2026InputForFertilizerApplicationFilling", () => {
     const mockFdm = {} as FdmType

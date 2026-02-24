@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { HarvestableAnalysis, HarvestParameters } from "@svenvw/fdm-core"
+import type { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"

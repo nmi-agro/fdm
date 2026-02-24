@@ -1,11 +1,11 @@
-import { calculateDose, getNutrientAdvice } from "@svenvw/fdm-calculator"
+import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
 import {
     getCultivations,
     getCurrentSoilData,
     getFertilizerApplications,
     getFertilizers,
     getField,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { Suspense, use } from "react"
 import {
     type LoaderFunctionArgs,

@@ -4,17 +4,17 @@
 
 ### Minor Changes
 
-- [#403](https://github.com/SvenVw/fdm/pull/403) [`ae0468c`](https://github.com/SvenVw/fdm/commit/ae0468c9b37f1326634bff24bd667ec5003d4bed) Thanks [@SvenVw](https://github.com/SvenVw)! - Remove organization functions as better-auth can handle them now server-side as well
+- [#403](https://github.com/nmi-agro/fdm/pull/403) [`ae0468c`](https://github.com/nmi-agro/fdm/commit/ae0468c9b37f1326634bff24bd667ec5003d4bed) Thanks [@SvenVw](https://github.com/SvenVw)! - Remove organization functions as better-auth can handle them now server-side as well
 
-- [#407](https://github.com/SvenVw/fdm/pull/407) [`c316515`](https://github.com/SvenVw/fdm/commit/c3165156c249931f56a97fa4a0b82493a5e25c9b) Thanks [@SvenVw](https://github.com/SvenVw)! - For withCalculationCache add the option to provide which sensitive keys should be redacted in the cache
+- [#407](https://github.com/nmi-agro/fdm/pull/407) [`c316515`](https://github.com/nmi-agro/fdm/commit/c3165156c249931f56a97fa4a0b82493a5e25c9b) Thanks [@SvenVw](https://github.com/SvenVw)! - For withCalculationCache add the option to provide which sensitive keys should be redacted in the cache
 
-- [#422](https://github.com/SvenVw/fdm/pull/422) [`da3e50a`](https://github.com/SvenVw/fdm/commit/da3e50a571483c576dd88abecd3e70ca0b9f22ba) Thanks [@SvenVw](https://github.com/SvenVw)! - Replace the derived field parameter `b_isproductive` with the stored parameter `b_bufferstrip` so users can set it explicitly.
+- [#422](https://github.com/nmi-agro/fdm/pull/422) [`da3e50a`](https://github.com/nmi-agro/fdm/commit/da3e50a571483c576dd88abecd3e70ca0b9f22ba) Thanks [@SvenVw](https://github.com/SvenVw)! - Replace the derived field parameter `b_isproductive` with the stored parameter `b_bufferstrip` so users can set it explicitly.
 
-- [#422](https://github.com/SvenVw/fdm/pull/422) [`bcd3a32`](https://github.com/SvenVw/fdm/commit/bcd3a3289c9a13ffc36ea108e502661496164bf7) Thanks [@SvenVw](https://github.com/SvenVw)! - Set for existing fields the b_bufferstrip based on the same logic as in determineIfFieldIsBuffer
+- [#422](https://github.com/nmi-agro/fdm/pull/422) [`bcd3a32`](https://github.com/nmi-agro/fdm/commit/bcd3a3289c9a13ffc36ea108e502661496164bf7) Thanks [@SvenVw](https://github.com/SvenVw)! - Set for existing fields the b_bufferstrip based on the same logic as in determineIfFieldIsBuffer
 
 ### Patch Changes
 
-- [#403](https://github.com/SvenVw/fdm/pull/403) [`75553c4`](https://github.com/SvenVw/fdm/commit/75553c41830c8519788a68560d9403192790d051) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix type of FdmAuth by including plugins and other settings
+- [#403](https://github.com/nmi-agro/fdm/pull/403) [`75553c4`](https://github.com/nmi-agro/fdm/commit/75553c41830c8519788a68560d9403192790d051) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix type of FdmAuth by including plugins and other settings
 
 ## 0.28.0
 
@@ -27,7 +27,7 @@
 - 022a347: Cultivation ending date can now be cleared. If the cultivation can only be harvested once, any harvestings are deleted along with the cultivation ending date.
 - 2c5de99: Make fdm-data, fdm-calculator and fdm-data fully type-safe, including inferring dependencies in the monorepo
 - Updated dependencies [2c5de99]
-  - @svenvw/fdm-data@0.19.1
+  - @nmi-agro/fdm-data@0.19.1
 
 ## 0.27.0
 
@@ -54,14 +54,14 @@
 - Updated dependencies [b24d2d1]
 - Updated dependencies [9283c86]
 - Updated dependencies [b24d2d1]
-  - @svenvw/fdm-data@0.19.0
+  - @nmi-agro/fdm-data@0.19.0
 
 ## 0.26.1
 
 ### Patch Changes
 
 - Updated dependencies [ed53b86]
-  - @svenvw/fdm-data@0.18.1
+  - @nmi-agro/fdm-data@0.18.1
 
 ## 0.26.0
 
@@ -82,14 +82,14 @@
 - 6bcb528: Add the missing options for b_acquiring_method: "In gebruik van een terreinbeherende organisatie" (nl_03), "Tijdelijk gebruik in het kader van landinrichting" (nl_04), "Pacht van geringe oppervlakten" (nl_10) and "Natuurpacht" (nl_11)
 - Updated dependencies [97083dd]
 - Updated dependencies [d6b8900]
-  - @svenvw/fdm-data@0.18.0
+  - @nmi-agro/fdm-data@0.18.0
 
 ## 0.25.1
 
 ### Patch Changes
 
 - Updated dependencies [e4ce36a]
-  - @svenvw/fdm-data@0.17.1
+  - @nmi-agro/fdm-data@0.17.1
 
 ## 0.25.0
 
@@ -106,7 +106,7 @@
 - 86e16c2: Removed `null` for `p_app_date` at FertilizerApplication
 - Updated dependencies [16270d6]
 - Updated dependencies [e844f9d]
-  - @svenvw/fdm-data@0.17.0
+  - @nmi-agro/fdm-data@0.17.0
 
 ## 0.24.2
 
@@ -133,7 +133,7 @@
 - Updated dependencies [34ce6df]
 - Updated dependencies [5790000]
 - Updated dependencies [34ce6df]
-  - @svenvw/fdm-data@0.16.0
+  - @nmi-agro/fdm-data@0.16.0
 
 ## 0.23.2
 
@@ -164,14 +164,14 @@
 - cbf5340: Fix exception when removing a cultivation with an harvest
 - Updated dependencies [db5e7fe]
 - Updated dependencies [6821ee9]
-  - @svenvw/fdm-data@0.15.0
+  - @nmi-agro/fdm-data@0.15.0
 
 ## 0.22.1
 
 ### Patch Changes
 
 - Updated dependencies [ffd1b3e]
-  - @svenvw/fdm-data@0.14.1
+  - @nmi-agro/fdm-data@0.14.1
 
 ## 0.22.0
 
@@ -192,7 +192,7 @@
 - Updated dependencies [e37b6f0]
 - Updated dependencies [7f95233]
 - Updated dependencies [a898e30]
-  - @svenvw/fdm-data@0.14.0
+  - @nmi-agro/fdm-data@0.14.0
 
 ## 0.21.1
 
@@ -200,7 +200,7 @@
 
 - 8cb4399: Fix typo in parameter name `p_cl_rt` in the type Fertilizer
 - Updated dependencies [5eb6ef2]
-  - @svenvw/fdm-data@0.13.1
+  - @nmi-agro/fdm-data@0.13.1
 
 ## 0.21.0
 
@@ -277,7 +277,7 @@
 - dd7bb7b: Make type `SoilAnalysis` available
 - 0a546d4: Make type `Field` available
 - Updated dependencies [af2c6a2]
-  - @svenvw/fdm-data@0.13.0
+  - @nmi-agro/fdm-data@0.13.0
 
 ## 0.19.0
 
@@ -307,7 +307,7 @@
 - Updated dependencies [7e66231]
 - Updated dependencies [1218ab7]
 - Updated dependencies [175ea6a]
-  - @svenvw/fdm-data@0.12.0
+  - @nmi-agro/fdm-data@0.12.0
 
 ## 0.17.0
 
@@ -337,7 +337,7 @@
 - Updated dependencies [c93c076]
 - Updated dependencies [5a93b69]
 - Updated dependencies [ae3447f]
-  - @svenvw/fdm-data@0.11.0
+  - @nmi-agro/fdm-data@0.11.0
 
 ## 0.14.0
 

@@ -1,18 +1,5 @@
-import {
-    Body,
-    Button,
-    Container,
-    Font,
-    Head,
-    Heading,
-    Html,
-    Img,
-    Link,
-    Preview,
-    Section,
-    Text,
-} from "@react-email/components"
-import { Tailwind } from "@react-email/tailwind"
+import { Button, Heading, Link, Section, Text } from "@react-email/components"
+import BaseEmailLayout from "./layout"
 
 interface InvitationEmailProps {
     organizationName: string
@@ -20,7 +7,8 @@ interface InvitationEmailProps {
     inviteeEmail: string
     invitationId: string
     appName: string
-    appBaseUrl?: string // Optional base URL for logo path
+    appBaseUrl: string // Required base URL for constructing action links
+    senderName?: string // Optional sender name for footer
     logoFileName?: string // Optional logo file name
 }
 
@@ -30,85 +18,79 @@ export const InvitationEmail = ({
     inviteeEmail,
     invitationId,
     appName,
-    appBaseUrl = "",
+    appBaseUrl,
+    senderName,
     logoFileName = "/fdm-high-resolution-logo-transparent.png",
 }: InvitationEmailProps) => {
-    const logoPath = `${appBaseUrl}${logoFileName}`
+    const previewText = `Accepteer de uitnodiging om samen te werken in ${organizationName}.`
+    const baseUrl = appBaseUrl.startsWith("http")
+        ? appBaseUrl
+        : `https://${appBaseUrl}`
 
     return (
-        <Html lang="nl">
-            <Head>
-                <Font
-                    fontFamily="Inter"
-                    fallbackFontFamily="sans-serif"
-                    fontWeight={400}
-                    fontStyle="normal"
-                />
-            </Head>
-            <Preview>
-                {`${inviterName} heeft je uitgenodigd om lid te worden van ${organizationName} in ${appName}.`}
-            </Preview>
-            <Tailwind>
-                <Body className="bg-white my-auto mx-auto font-sans">
-                    <Container className="border border-solid border-[#eaeaea] rounded my-10 mx-auto p-5 w-116.25">
-                        <Section className="mt-7.5">
-                            <Img
-                                src={logoPath}
-                                width="150"
-                                alt={`${appName} Logo`}
-                                className="my-0 mx-auto"
-                            />
-                        </Section>
-                        <Heading className="text-black text-[24px] font-normal text-center p-0 my-7.5 mx-0">
-                            Je bent uitgenodigd!
-                        </Heading>
-                        <Text className="text-black text-[14px] leading-6">
-                            Hallo {inviteeEmail},
-                        </Text>
-                        <Text className="text-black text-[14px] leading-6">
-                            {inviterName} heeft je uitgenodigd om lid te worden
-                            van de organisatie <b>{organizationName}</b> in{" "}
-                            {appName}.
-                        </Text>
-                        <Text className="text-black text-[14px] leading-6">
-                            Met {appName} kun je op een eenvoudige manier de
-                            nutriëntenbalans en organische stofbalans berekenen.
-                            Het is ook mogelijk om te bekijken welke meststoffen
-                            er geschikt zijn voor een perceel. Je kunt bedrijven
-                            aanmaken en met andere gebruikers samenwerken.
-                        </Text>
-                        <Section className="mt-8 mb-2 text-center">
+        <BaseEmailLayout
+            appName={appName}
+            appBaseUrl={appBaseUrl}
+            senderName={senderName}
+            logoFileName={logoFileName}
+            reasonText={`Je ontvangt deze e-mail omdat ${inviterName} je heeft uitgenodigd voor ${organizationName}.`}
+            preview={previewText}
+        >
+            <Heading className="text-black text-[24px] font-normal text-center p-0 my-7.5 mx-0">
+                Je bent uitgenodigd!
+            </Heading>
+            <Text className="text-black text-[14px] leading-6">
+                Hallo {inviteeEmail},
+            </Text>
+            <Text className="text-black text-[14px] leading-6">
+                {inviterName} heeft je uitgenodigd om lid te worden van de
+                organisatie <b>{organizationName}</b> in {appName}.
+            </Text>
+            <Text className="text-black text-[14px] leading-6">
+                {appName} biedt inzicht in uw bodem- en bemestingsdata. Bereken
+                eenvoudig de stikstof- en organische stofbalans, bekijk welke
+                meststoffen geschikt zijn en raadpleeg percelen in de Atlas.
+                Werk samen met adviseurs en collega's in één omgeving.
+            </Text>
+            <Section className="mt-8 mb-2 text-center">
+                <table
+                    align="center"
+                    border={0}
+                    cellPadding="0"
+                    cellSpacing="0"
+                    role="presentation"
+                    style={{ margin: "0 auto" }}
+                >
+                    <tr>
+                        <td align="center" style={{ padding: "0 12px" }}>
                             <Button
-                                href={`${appBaseUrl}/organization/invitations/${invitationId}/respond?intent=accept`}
-                                className="bg-[#0070f3] text-white border-solid border-[#0070f3] border-2 rounded mx-6 px-3 py-3 text-[14px] font-semibold no-underline"
+                                href={`${baseUrl}/organization/invitations/${invitationId}/respond?intent=accept`}
+                                className="bg-primary text-white border-solid border-primary border-2 rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
                             >
                                 Accepteren
                             </Button>
+                        </td>
+                        <td align="center" style={{ padding: "0 12px" }}>
                             <Button
-                                href={`${appBaseUrl}/organization/invitations/${invitationId}/respond?intent=reject`}
-                                className="bg-[#f5f5f5] text-[#171717] border-solid border-[#171717] border-2 rounded mx-6 px-3 py-3 text-[14px] font-semibold no-underline"
+                                href={`${baseUrl}/organization/invitations/${invitationId}/respond?intent=reject`}
+                                className="bg-[#f5f5f5] text-[#171717] border-solid border-[#171717] border-2 rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
                             >
                                 Afwijzen
                             </Button>
-                        </Section>
-                        <Section className="mt-8 mb-8 text-center">
-                            <Link
-                                href={`${appBaseUrl}/organization/invitations`}
-                            >
-                                of bekijk je uitnodigingen
-                            </Link>
-                        </Section>
-                        <Text className="text-black text-[14px] leading-6">
-                            Als je deze uitnodiging niet wilt accepteren, kun je
-                            deze e-mail negeren, of op bovenstaande knop klikken
-                            om de uitnodiging te weigeren.
-                        </Text>
-                        <Text className="text-black text-[14px] leading-6 mt-8">
-                            Met vriendelijke groet, <br /> Het {appName} team
-                        </Text>
-                    </Container>
-                </Body>
-            </Tailwind>
-        </Html>
+                        </td>
+                    </tr>
+                </table>
+            </Section>
+            <Section className="mt-8 mb-8 text-center">
+                <Link href={`${baseUrl}/organization/invitations`}>
+                    of bekijk je uitnodigingen
+                </Link>
+            </Section>
+            <Text className="text-black text-[14px] leading-6">
+                Als je deze uitnodiging niet wilt accepteren, kun je deze e-mail
+                negeren, of op bovenstaande knop klikken om de uitnodiging te
+                weigeren.
+            </Text>
+        </BaseEmailLayout>
     )
 }

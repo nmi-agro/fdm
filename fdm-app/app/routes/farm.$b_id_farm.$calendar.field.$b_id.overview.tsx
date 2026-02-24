@@ -4,7 +4,7 @@ import {
     getField,
     listAvailableAcquiringMethods,
     updateField,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Controller } from "react-hook-form"
 import type { MetaFunction } from "react-router"

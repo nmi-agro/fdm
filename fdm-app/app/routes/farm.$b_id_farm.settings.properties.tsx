@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { checkPermission, getFarm, updateFarm } from "@svenvw/fdm-core"
+import { checkPermission, getFarm, updateFarm } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Form } from "react-hook-form"
 import {

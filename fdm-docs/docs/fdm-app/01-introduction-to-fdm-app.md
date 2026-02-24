@@ -32,13 +32,13 @@ The `fdm-app` is built with a technical stack that provides specific functionali
 * **Backend & Data Management:**
   * **PostgreSQL:** An open-source relational database system.
   * **Drizzle ORM:** A TypeScript ORM for interacting with the database in a type-safe way.
-  * **@svenvw/fdm-core:** The core Farm Data Model library, providing business logic and data interaction capabilities.
-  * **@svenvw/fdm-data:** Standardized agricultural catalogues for consistent data entry and reference.
-  * **@svenvw/fdm-calculator:** A library for performing agronomic calculations.
+  * **@nmi-agro/fdm-core:** The core Farm Data Model library, providing business logic and data interaction capabilities.
+  * **@nmi-agro/fdm-data:** Standardized agricultural catalogues for consistent data entry and reference.
+  * **@nmi-agro/fdm-calculator:** A library for performing agronomic calculations.
 
 * **Authentication & Authorization:**
   * **Better Auth:** A library for user authentication and session management.
-  * **@svenvw/fdm-core (Authorization module):** Manages role-based access control (RBAC) for various FDM resources.
+  * **@nmi-agro/fdm-core (Authorization module):** Manages role-based access control (RBAC) for various FDM resources.
 
 * **GIS & Mapping:**
   * **MapLibre GL JS & React Map GL:** For interactive maps and geospatial data visualization.

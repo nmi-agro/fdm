@@ -7,7 +7,7 @@ import {
     getFarm,
     getFarms,
     getFields,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/turf"
 import type {
     Feature,

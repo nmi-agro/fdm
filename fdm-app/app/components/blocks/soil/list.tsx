@@ -1,4 +1,4 @@
-import type { SoilParameterDescription } from "@svenvw/fdm-core"
+import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { NavLink } from "react-router"

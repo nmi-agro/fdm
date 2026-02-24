@@ -2,7 +2,7 @@ import type {
     FieldInput as FdmFieldInput,
     NitrogenBalanceFieldNumeric,
     NitrogenBalanceNumeric,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import { format } from "date-fns/format"
 import { useId, useMemo, useState } from "react"
 import { nl } from "react-day-picker/locale"

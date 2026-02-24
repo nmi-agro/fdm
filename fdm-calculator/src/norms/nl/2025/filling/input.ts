@@ -1,4 +1,4 @@
-import type { FdmType, PrincipalId, Timeframe } from "@svenvw/fdm-core"
+import type { FdmType, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
     getFertilizerApplications,
@@ -6,7 +6,7 @@ import {
     getField,
     getGrazingIntention,
     isOrganicCertificationValid,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { NL2025NormsFillingInput } from "./types"
 
 /**

@@ -4,7 +4,7 @@ import {
     getSoilAnalysis,
     getSoilParametersDescription,
     updateSoilAnalysis,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { ArrowLeft } from "lucide-react"
 import {
     type ActionFunctionArgs,
@@ -162,7 +162,7 @@ export default function FarmFieldSoilOverviewBlock() {
  *
  * This function updates a soil analysis based on the provided form data.
  * It validates the data, retrieves the necessary IDs from the route parameters,
- * and uses the `updateSoilAnalysis` function from `@svenvw/fdm-core` to perform the update.
+ * and uses the `updateSoilAnalysis` function from `@nmi-agro/fdm-core` to perform the update.
  *
  * @param request - The HTTP request object.
  * @param params - The route parameters, including `a_id`, `b_id`, and `b_id_farm`.

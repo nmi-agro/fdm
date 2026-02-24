@@ -6,7 +6,7 @@ import {
     lookupPrincipal,
     revokePrincipalFromFarm,
     updateRoleOfPrincipalAtFarm,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import isEmail from "validator/lib/isEmail"
 import {
     type ActionFunctionArgs,

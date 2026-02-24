@@ -20,7 +20,7 @@
         "noFallthroughCasesInSwitch": true,
         "baseUrl": ".",
         "paths": {
-            "@svenvw/fdm-data": ["../fdm-data/src/index.ts"]
+            "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"]
         }
     },
     "include": ["./src/**/*"]

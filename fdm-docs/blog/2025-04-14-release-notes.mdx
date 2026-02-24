@@ -6,7 +6,7 @@ tags: [release, fdm-core, fdm-data, fdm-calculator, fdm-docs]
 date: 2025-04-14
 ---
 
-This post provides a detailed overview of the changes included in the next release for the FDM libraries: `@svenvw/fdm-core`, `@svenvw/fdm-data`, `@svenvw/fdm-calculator`, and `@svenvw/fdm-docs`. These updates introduce new functionalities and improvements aimed at enhancing data management, clarifying data insights, and refining the developer experience.
+This post provides a detailed overview of the changes included in the next release for the FDM libraries: `@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`, `@nmi-agro/fdm-calculator`, and `@nmi-agro/fdm-docs`. These updates introduce new functionalities and improvements aimed at enhancing data management, clarifying data insights, and refining the developer experience.
 
 {/* truncate */}
 
@@ -14,33 +14,33 @@ This post provides a detailed overview of the changes included in the next relea
 
 Several updates focus on providing more granular control and flexibility when working with farm data:
 
-*   **Management of Custom Fertilizers:** Responding to the need for farm-specific fertilizer definitions, two new functions, `addFertilizerToCatalogue` and `updateFertilizerFromCatalogue`, have been added to `@svenvw/fdm-core`. The first allows adding fertilizers not present in the standard catalogue directly to a farm's specific list, while the second enables modification of these custom entries. This provides greater accuracy for farms using unique blends or products.
-*   **Time-Based Data Filtering:** To facilitate analysis over specific periods (e.g., a single growing season, a calendar year), a `timeframe` argument has been introduced to several key data retrieval functions in `@svenvw/fdm-core`. This includes `getCultivations`, `getCultivationPlan`, `getFertilizerApplications`, `getFields`, `getHarvests`, and `getSoilAnalyses`. Users can now specify start and end dates to narrow down the results, simplifying reporting and historical data review.
-*   **Unique Data Identification with Hashing:** To aid in data comparison and potentially detect duplicate entries, new hashing functions have been added to `@svenvw/fdm-data`. `hashFertilizer` generates a consistent hash value for a fertilizer object based on its properties, and `hashCultivation` does the same for cultivation items.
+*   **Management of Custom Fertilizers:** Responding to the need for farm-specific fertilizer definitions, two new functions, `addFertilizerToCatalogue` and `updateFertilizerFromCatalogue`, have been added to `@nmi-agro/fdm-core`. The first allows adding fertilizers not present in the standard catalogue directly to a farm's specific list, while the second enables modification of these custom entries. This provides greater accuracy for farms using unique blends or products.
+*   **Time-Based Data Filtering:** To facilitate analysis over specific periods (e.g., a single growing season, a calendar year), a `timeframe` argument has been introduced to several key data retrieval functions in `@nmi-agro/fdm-core`. This includes `getCultivations`, `getCultivationPlan`, `getFertilizerApplications`, `getFields`, `getHarvests`, and `getSoilAnalyses`. Users can now specify start and end dates to narrow down the results, simplifying reporting and historical data review.
+*   **Unique Data Identification with Hashing:** To aid in data comparison and potentially detect duplicate entries, new hashing functions have been added to `@nmi-agro/fdm-data`. `hashFertilizer` generates a consistent hash value for a fertilizer object based on its properties, and `hashCultivation` does the same for cultivation items.
 
 ### Agronomic Data Insights
 
 Updates have been implemented to improve the clarity, accessibility, and completeness of agronomic data:
 
-*   **Soil Parameter Descriptions:** To make soil analysis results more understandable, the new `getSoilParameterDescription` function in `@svenvw/fdm-core` translates standard soil parameter codes (like `p_ph_kcl` or `p_oc`) into human-readable descriptions (e.g., "pH (KCl)" or "Organic Carbon").
-*   **Expanded Fertilizer Details:** The data returned by `getFertilizer` and `getFertilizers` in `@svenvw/fdm-core` has been enriched. It now includes `p_type_*` (indicating fertilizer type, e.g., organic, mineral) and `p_source` (origin or source information) values, offering a more comprehensive profile for each fertilizer.
-*   **Retrieving Latest Soil Data:** Accessing the most current soil conditions is often necessary. The `getCurrentSoilData` function, added to `@svenvw/fdm-core`, simplifies this by retrieving the most recent recorded value for each soil parameter associated with a specific field or zone, saving the need to manually sort through historical analyses.
+*   **Soil Parameter Descriptions:** To make soil analysis results more understandable, the new `getSoilParameterDescription` function in `@nmi-agro/fdm-core` translates standard soil parameter codes (like `p_ph_kcl` or `p_oc`) into human-readable descriptions (e.g., "pH (KCl)" or "Organic Carbon").
+*   **Expanded Fertilizer Details:** The data returned by `getFertilizer` and `getFertilizers` in `@nmi-agro/fdm-core` has been enriched. It now includes `p_type_*` (indicating fertilizer type, e.g., organic, mineral) and `p_source` (origin or source information) values, offering a more comprehensive profile for each fertilizer.
+*   **Retrieving Latest Soil Data:** Accessing the most current soil conditions is often necessary. The `getCurrentSoilData` function, added to `@nmi-agro/fdm-core`, simplifies this by retrieving the most recent recorded value for each soil parameter associated with a specific field or zone, saving the need to manually sort through historical analyses.
 
 ### Documentation and Developer Experience
 
 Significant effort has been directed towards improving the documentation and resources available to developers using the FDM libraries:
 
-*   **Integrated API Reference:** A major addition is the automatically generated API reference documentation, now part of the `fdm-docs` website. Using TypeDoc, this reference covers `@svenvw/fdm-core`, `@svenvw/fdm-data`, and `@svenvw/fdm-calculator`. Developers can find detailed information on functions, types, interfaces, and parameters directly within the documentation site under the "Reference" section, streamlining development workflows.
+*   **Integrated API Reference:** A major addition is the automatically generated API reference documentation, now part of the `fdm-docs` website. Using TypeDoc, this reference covers `@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`, and `@nmi-agro/fdm-calculator`. Developers can find detailed information on functions, types, interfaces, and parameters directly within the documentation site under the "Reference" section, streamlining development workflows.
 *   **Comprehensive Documentation Updates:** Beyond the API reference, the general documentation content, including guides and conceptual explanations, has been reviewed and updated. This includes providing more complete and accurate descriptions for the underlying database tables, ensuring the documentation reflects the current state of the FDM structure.
 
 ### Other Improvements and Fixes
 
 This release also incorporates several smaller, yet important, fixes and technical improvements:
 
-*   **Parameter Name Correction:** A typo in a parameter name used for chloride content has been corrected from `p_cl_cr` to `p_cl_rt` within `@svenvw/fdm-core` and `@svenvw/fdm-data` for consistency and accuracy.
-*   **Soil Data Inclusion:** An issue where soil analysis records lacking a specific sampling date might be inadvertently excluded from query results has been resolved in `@svenvw/fdm-core`.
-*   **Migration File Naming:** Database migration scripts within `@svenvw/fdm-core` are now named using version tags, making the migration history clearer and easier to track.
-*   **Code Optimization:** The build process for `@svenvw/fdm-core`, `@svenvw/fdm-data`, and `@svenvw/fdm-calculator` now includes a minification step using Terser. This reduces the final bundle size of the packages, potentially improving load times in applications that use them.
+*   **Parameter Name Correction:** A typo in a parameter name used for chloride content has been corrected from `p_cl_cr` to `p_cl_rt` within `@nmi-agro/fdm-core` and `@nmi-agro/fdm-data` for consistency and accuracy.
+*   **Soil Data Inclusion:** An issue where soil analysis records lacking a specific sampling date might be inadvertently excluded from query results has been resolved in `@nmi-agro/fdm-core`.
+*   **Migration File Naming:** Database migration scripts within `@nmi-agro/fdm-core` are now named using version tags, making the migration history clearer and easier to track.
+*   **Code Optimization:** The build process for `@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`, and `@nmi-agro/fdm-calculator` now includes a minification step using Terser. This reduces the final bundle size of the packages, potentially improving load times in applications that use them.
 
 ---
 

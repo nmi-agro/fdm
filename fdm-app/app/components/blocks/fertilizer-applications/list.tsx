@@ -1,5 +1,5 @@
-import type { Fertilizer, FertilizerApplication } from "@svenvw/fdm-core"
-import type { ApplicationMethods } from "@svenvw/fdm-data"
+import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Circle, Diamond, Square, Trash, Triangle } from "lucide-react"

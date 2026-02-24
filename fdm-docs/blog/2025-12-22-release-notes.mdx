@@ -17,7 +17,7 @@ As we approach the end of the year, the December release of the Farm Data Model 
     *   **Current Implementation:** Please note that for the time being, the 2026 calculations are based on the **2025 norms**, with the important exception that **derogation is no longer available**, reflecting the ongoing phase-out.
     *   **Looking Ahead:** We will be monitoring the political discussions regarding the *gebruiksruimte* for 2026. As soon as new regulations are officially publicized, we will update the calculator to ensure compliance.
 
-### FDM Application Enhancements (`@svenvw/fdm-app`)
+### FDM Application Enhancements (`@nmi-agro/fdm-app`)
 
 *   **Atlas Upgrades:**
     *   **AHN4 Elevation:** We have integrated the **AHN4** dataset into the Atlas, providing high-resolution elevation data for detailed field analysis.
@@ -33,7 +33,7 @@ As we approach the end of the year, the December release of the Farm Data Model 
     *   **Authentication:** The login flow is now smoother with a redesigned **OTP verification page** and improved accessibility. When using magic links, you now have the flexibility to either manually enter the OTP code or simply click the button in your email to have it automatically filled in and verified. We've also refined the redirection logic—only first-time social logins are guided to the onboarding page, while returning users are taken directly to their work.
     *   **Landing Page:** The landing page has been refreshed with more detailed information about FDM's capabilities and improved mobile responsiveness.
 
-### FDM Calculator Refinements (`@svenvw/fdm-calculator`)
+### FDM Calculator Refinements (`@nmi-agro/fdm-calculator`)
 
 *   **Precision & Consistency:**
     *   **Unified Data:** We have unified the data shape for nitrogen balance results across farm and field levels, ensuring consistent reporting.
@@ -41,7 +41,7 @@ As we approach the end of the year, the December release of the Farm Data Model 
     *   **Target Values:** Corrected the nitrogen balance target value for arable crops on dry clay soil to **115 kg N/ha** (previously 125 kg N/ha).
     *   **Catch Crops:** Fixed the calculation for the fertilizer application discount (*korting*) when a catch crop is sown on October 15th.
 
-### Technical Improvements (`@svenvw/fdm-core`, `@svenvw/fdm-data`)
+### Technical Improvements (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`)
 
 *   **Type Safety:** We have achieved full type safety across `fdm-data`, `fdm-calculator`, and `fdm-core`, including inferred dependencies within our monorepo structure. This significantly improves developer experience and code reliability.
 *   **Performance:**

@@ -1,4 +1,4 @@
-import type { SoilAnalysis } from "@svenvw/fdm-core"
+import type { SoilAnalysis } from "@nmi-agro/fdm-core"
 import {
     calculateBulkDensity,
     calculateCarbonNitrogenRatio,

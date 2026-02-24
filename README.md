@@ -1,6 +1,6 @@
 # FDM: Transforming Farm Data into Actionable Insights
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/SvenVw/fdm)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nmi-agro/fdm)
 
 The Farm Data Model (FDM) is an open-source project designed to empower data-driven decision-making in agriculture.  By providing a standardized, flexible, and extensible schema for organizing and analyzing farm data, FDM enables seamless data integration, analysis, and ultimately, improved farm management practices and lowering environmental impact.
 
@@ -43,7 +43,7 @@ The preferred way to run the `fdm-app` locally is using Docker. This ensures a c
 
 1.  **Clone the Repository:**
     ```bash
-    git clone https://github.com/SvenVw/fdm.git
+    git clone https://github.com/nmi-agro/fdm.git
     cd fdm
     ```
     This will download the entire FDM project to your local machine.
