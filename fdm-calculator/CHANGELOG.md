@@ -1,25 +1,31 @@
 # fdm-calculator
 
+## 0.11.1
+
+### Patch Changes
+
+- [#472](https://github.com/nmi-agro/fdm/pull/472) [`d82c60b`](https://github.com/nmi-agro/fdm/commit/d82c60b1162ebe982a337d9ea1bde96650446b17) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix: isFieldInGWGBGebied, isFieldInNatura2000Gebied, and isFieldInDerogatieVrijeZone now return false instead of throwing an error when a centroid coordinate lies outside the GeoTIFF bounding box (null value)
+
 ## 0.11.0
 
 ### Minor Changes
 
-- [#422](https://github.com/SvenVw/fdm/pull/422) [`4687738`](https://github.com/SvenVw/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be) Thanks [@SvenVw](https://github.com/SvenVw)! - Exclude buffer strips from calculating farm balances and set field values to 0
+- [#422](https://github.com/nmi-agro/fdm/pull/422) [`4687738`](https://github.com/nmi-agro/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be) Thanks [@SvenVw](https://github.com/SvenVw)! - Exclude buffer strips from calculating farm balances and set field values to 0
 
-- [#415](https://github.com/SvenVw/fdm/pull/415) [`01d7174`](https://github.com/SvenVw/fdm/commit/01d7174bef42f2fc8e71b4bb25eee045687e8c56) Thanks [@SvenVw](https://github.com/SvenVw)! - Implement Dutch nitrogen reduction (korting) logic for grassland renewal and destruction for 2025 and 2026. Includes localized Dutch error messages for invalid operation dates.
+- [#415](https://github.com/nmi-agro/fdm/pull/415) [`01d7174`](https://github.com/nmi-agro/fdm/commit/01d7174bef42f2fc8e71b4bb25eee045687e8c56) Thanks [@SvenVw](https://github.com/SvenVw)! - Implement Dutch nitrogen reduction (korting) logic for grassland renewal and destruction for 2025 and 2026. Includes localized Dutch error messages for invalid operation dates.
 
-- [#407](https://github.com/SvenVw/fdm/pull/407) [`6f7f271`](https://github.com/SvenVw/fdm/commit/6f7f27183f66bcc329720af5dcc17f250d74cbcf) Thanks [@SvenVw](https://github.com/SvenVw)! - For balance calculation cache per field instead of per farm and thus replace getNitrogenBalance with getNitrogenBalanceField and getOrganicMatterBalance with getOrganicMatterBalanceField
+- [#407](https://github.com/nmi-agro/fdm/pull/407) [`6f7f271`](https://github.com/nmi-agro/fdm/commit/6f7f27183f66bcc329720af5dcc17f250d74cbcf) Thanks [@SvenVw](https://github.com/SvenVw)! - For balance calculation cache per field instead of per farm and thus replace getNitrogenBalance with getNitrogenBalanceField and getOrganicMatterBalance with getOrganicMatterBalanceField
 
-- [#422](https://github.com/SvenVw/fdm/pull/422) [`4687738`](https://github.com/SvenVw/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be) Thanks [@SvenVw](https://github.com/SvenVw)! - Do not provide nutrient advice for buffer strips by setting the output to 0
+- [#422](https://github.com/nmi-agro/fdm/pull/422) [`4687738`](https://github.com/nmi-agro/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be) Thanks [@SvenVw](https://github.com/SvenVw)! - Do not provide nutrient advice for buffer strips by setting the output to 0
 
-- [#422](https://github.com/SvenVw/fdm/pull/422) [`4687738`](https://github.com/SvenVw/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be) Thanks [@SvenVw](https://github.com/SvenVw)! - For buffer strips set the norm values to 0 as they have no 'plaatsingsruimte'
+- [#422](https://github.com/nmi-agro/fdm/pull/422) [`4687738`](https://github.com/nmi-agro/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be) Thanks [@SvenVw](https://github.com/SvenVw)! - For buffer strips set the norm values to 0 as they have no 'plaatsingsruimte'
 
 ### Patch Changes
 
-- [#407](https://github.com/SvenVw/fdm/pull/407) [`6f7f271`](https://github.com/SvenVw/fdm/commit/6f7f27183f66bcc329720af5dcc17f250d74cbcf) Thanks [@SvenVw](https://github.com/SvenVw)! - Refactor Nitrogen and Organic Matter balance calculations to use a bottom-up (Field -> Farm) approach
+- [#407](https://github.com/nmi-agro/fdm/pull/407) [`6f7f271`](https://github.com/nmi-agro/fdm/commit/6f7f27183f66bcc329720af5dcc17f250d74cbcf) Thanks [@SvenVw](https://github.com/SvenVw)! - Refactor Nitrogen and Organic Matter balance calculations to use a bottom-up (Field -> Farm) approach
 
-- Updated dependencies [[`ae0468c`](https://github.com/SvenVw/fdm/commit/ae0468c9b37f1326634bff24bd667ec5003d4bed), [`c316515`](https://github.com/SvenVw/fdm/commit/c3165156c249931f56a97fa4a0b82493a5e25c9b), [`da3e50a`](https://github.com/SvenVw/fdm/commit/da3e50a571483c576dd88abecd3e70ca0b9f22ba), [`bcd3a32`](https://github.com/SvenVw/fdm/commit/bcd3a3289c9a13ffc36ea108e502661496164bf7), [`75553c4`](https://github.com/SvenVw/fdm/commit/75553c41830c8519788a68560d9403192790d051)]:
-  - @svenvw/fdm-core@0.29.0
+- Updated dependencies [[`ae0468c`](https://github.com/nmi-agro/fdm/commit/ae0468c9b37f1326634bff24bd667ec5003d4bed), [`c316515`](https://github.com/nmi-agro/fdm/commit/c3165156c249931f56a97fa4a0b82493a5e25c9b), [`da3e50a`](https://github.com/nmi-agro/fdm/commit/da3e50a571483c576dd88abecd3e70ca0b9f22ba), [`bcd3a32`](https://github.com/nmi-agro/fdm/commit/bcd3a3289c9a13ffc36ea108e502661496164bf7), [`75553c4`](https://github.com/nmi-agro/fdm/commit/75553c41830c8519788a68560d9403192790d051)]:
+  - @nmi-agro/fdm-core@0.29.0
 
 ## 0.10.2
 
@@ -51,7 +57,7 @@
 - Updated dependencies [022a347]
 - Updated dependencies [1885f8a]
 - Updated dependencies [2c5de99]
-  - @svenvw/fdm-core@0.28.0
+  - @nmi-agro/fdm-core@0.28.0
 
 ## 0.9.0
 
@@ -76,7 +82,7 @@
 - Updated dependencies [f51b412]
 - Updated dependencies [f51b412]
 - Updated dependencies [92fdf21]
-  - @svenvw/fdm-core@0.27.0
+  - @nmi-agro/fdm-core@0.27.0
 
 ## 0.8.0
 
@@ -101,7 +107,7 @@
 - Updated dependencies [ac5d94f]
 - Updated dependencies [6bcb528]
 - Updated dependencies [91d4103]
-  - @svenvw/fdm-core@0.26.0
+  - @nmi-agro/fdm-core@0.26.0
 
 ## 0.7.2
 
@@ -117,7 +123,7 @@
 - dcf0577: Add check for bare soil crop codes at `determineManureAmmoniaEmissionFactor`
 - e715493: Fix determining cropland at `determineManureAmmoniaEmissionFactor`
 - 12565b2: Improved `determineManureAmmoniaEmissionFactor` so that it in all cases will return a value
-  - @svenvw/fdm-core@0.25.1
+  - @nmi-agro/fdm-core@0.25.1
 
 ## 0.7.0
 
@@ -141,7 +147,7 @@
 - Updated dependencies [8cc6e4a]
 - Updated dependencies [5cf76d4]
 - Updated dependencies [86e16c2]
-  - @svenvw/fdm-core@0.25.0
+  - @nmi-agro/fdm-core@0.25.0
 
 ## 0.6.1
 
@@ -160,7 +166,7 @@
 ### Patch Changes
 
 - Updated dependencies [344e75c]
-  - @svenvw/fdm-core@0.24.0
+  - @nmi-agro/fdm-core@0.24.0
 
 ## 0.5.3
 
@@ -176,7 +182,7 @@
 
 - 11136b2: Fix issues with tests that used outdated gwl classes
 - Updated dependencies [828ad89]
-  - @svenvw/fdm-core@0.23.2
+  - @nmi-agro/fdm-core@0.23.2
 
 ## 0.5.1
 
@@ -184,7 +190,7 @@
 
 - 48b94c3: Support the updated classed for `b_gwl_class` at `calculateTargetForNitrogenBalance`
 - Updated dependencies [d331cca]
-  - @svenvw/fdm-core@0.23.1
+  - @nmi-agro/fdm-core@0.23.1
 
 ## 0.5.0
 
@@ -205,7 +211,7 @@
 - Updated dependencies [cbf5340]
 - Updated dependencies [51722cc]
 - Updated dependencies [2ac1471]
-  - @svenvw/fdm-core@0.23.0
+  - @nmi-agro/fdm-core@0.23.0
 
 ## 0.4.1
 
@@ -213,7 +219,7 @@
 
 - 7c36ecc: Fix calculation of ammonia emission by other fertilizers by excluding manure, mineral and compost
 - 3e73281: Switch to return 0 for unsupported application methods for organic fertilizers at NH3 emission
-  - @svenvw/fdm-core@0.22.1
+  - @nmi-agro/fdm-core@0.22.1
 
 ## 0.4.0
 
@@ -234,7 +240,7 @@
 - Updated dependencies [afe2a32]
 - Updated dependencies [e6c0fa3]
 - Updated dependencies [75693e4]
-  - @svenvw/fdm-core@0.22.0
+  - @nmi-agro/fdm-core@0.22.0
 
 ## 0.3.3
 
@@ -247,7 +253,7 @@
 ### Patch Changes
 
 - Updated dependencies [8cb4399]
-  - @svenvw/fdm-core@0.21.1
+  - @nmi-agro/fdm-core@0.21.1
 
 ## 0.3.1
 
@@ -257,7 +263,7 @@
 - Updated dependencies [7b447f6]
 - Updated dependencies [7b447f6]
 - Updated dependencies [842aac4]
-  - @svenvw/fdm-core@0.21.0
+  - @nmi-agro/fdm-core@0.21.0
 
 ## 0.3.0
 
@@ -298,14 +304,14 @@
 - Updated dependencies [ec0494c]
 - Updated dependencies [6676992]
 - Updated dependencies [4027c9a]
-  - @svenvw/fdm-core@0.20.0
+  - @nmi-agro/fdm-core@0.20.0
 
 ## 0.2.6
 
 ### Patch Changes
 
 - Updated dependencies [eed1780]
-  - @svenvw/fdm-core@0.19.0
+  - @nmi-agro/fdm-core@0.19.0
 
 ## 0.2.5
 
@@ -323,21 +329,21 @@
 - Updated dependencies [0944ef1]
 - Updated dependencies [175ea6a]
 - Updated dependencies [9f4d818]
-  - @svenvw/fdm-core@0.18.0
+  - @nmi-agro/fdm-core@0.18.0
 
 ## 0.2.4
 
 ### Patch Changes
 
 - Updated dependencies [9bfd0a8]
-  - @svenvw/fdm-core@0.17.0
+  - @nmi-agro/fdm-core@0.17.0
 
 ## 0.2.3
 
 ### Patch Changes
 
 - Updated dependencies [e134cfc]
-  - @svenvw/fdm-core@0.16.0
+  - @nmi-agro/fdm-core@0.16.0
 
 ## 0.2.2
 
@@ -348,7 +354,7 @@
 - Updated dependencies [f056396]
 - Updated dependencies [cdb1d02]
 - Updated dependencies [9a6e329]
-  - @svenvw/fdm-core@0.15.0
+  - @nmi-agro/fdm-core@0.15.0
 
 ## 0.2.1
 
@@ -373,7 +379,7 @@
 - Updated dependencies [6a01698]
 - Updated dependencies [972bac8]
 - Updated dependencies [7387530]
-  - @svenvw/fdm-core@0.14.0
+  - @nmi-agro/fdm-core@0.14.0
 
 ## 0.1.1
 
@@ -382,7 +388,7 @@
 - da00990: Fix using incorrect unit for nutrient content of fertilizer
 - Updated dependencies [9830186]
 - Updated dependencies [06619e7]
-  - @svenvw/fdm-core@0.13.0
+  - @nmi-agro/fdm-core@0.13.0
 
 ## 0.1.0
 
@@ -404,7 +410,7 @@
 - Updated dependencies [aede4a7]
 - Updated dependencies [9e6f2d7]
 - Updated dependencies [644a159]
-  - @svenvw/fdm-core@0.12.0
+  - @nmi-agro/fdm-core@0.12.0
 
 ## 0.0.2
 

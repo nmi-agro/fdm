@@ -1,5 +1,5 @@
-import type { OrganicMatterBalanceFieldResultNumeric } from "@svenvw/fdm-calculator"
-import { getFarm, getFields } from "@svenvw/fdm-core"
+import type { OrganicMatterBalanceFieldResultNumeric } from "@nmi-agro/fdm-calculator"
+import { getFarm, getFields } from "@nmi-agro/fdm-core"
 import {
     ArrowDownToLine,
     ArrowRightLeft,

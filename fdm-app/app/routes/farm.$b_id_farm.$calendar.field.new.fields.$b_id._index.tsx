@@ -7,7 +7,7 @@ import {
     removeField,
     updateCultivation,
     updateField,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { FeatureCollection } from "geojson"
 import {
     type ActionFunctionArgs,

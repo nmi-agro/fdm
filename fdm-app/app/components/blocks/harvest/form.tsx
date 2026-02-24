@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { HarvestParameters } from "@svenvw/fdm-core"
+import type { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Controller } from "react-hook-form"
@@ -37,7 +39,9 @@ import { FormSchema } from "./schema"
 
 type HarvestFormDialogProps = {
     harvestParameters: HarvestParameters
-    b_lu_harvest_date: Date | string | undefined // Changed to allow Date or string
+    exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
+    example_b_lu_harvest_date?: Date | null
+    b_lu_harvest_date: Date | string | null | undefined // Changed to allow Date or string
     b_lu_yield: number | undefined
     b_lu_yield_fresh: number | undefined
     b_lu_yield_bruto: number | undefined
@@ -70,6 +74,7 @@ function useHarvestRemixForm({
     b_lu_harvestable,
     b_lu_start,
     b_lu_end,
+    example_b_lu_harvest_date,
     handleConfirmation,
 }: HarvestFormDialogProps) {
     const form = useRemixForm<z.infer<typeof FormSchema>>({
@@ -87,6 +92,16 @@ function useHarvestRemixForm({
                 Object.keys(validation.errors).length > 0
             ) {
                 return validation
+            }
+            // If this was not a partial update and there were mandatory fields missing
+            if (!example_b_lu_harvest_date) {
+                if (!values.b_lu_harvest_date) {
+                    return {
+                        errors: {
+                            b_lu_harvest_date: "Selecteer een oogstdatum",
+                        },
+                    }
+                }
             }
             // If submitting, handle the confirmation procedure
             // (it might just return true without a dialog)
@@ -140,14 +155,19 @@ function useHarvestRemixForm({
 }
 
 function HarvestFields({
-    b_lu_harvest_date,
-    harvestParameters,
     form,
     className,
+    harvestParameters,
+    exampleHarvestableAnalysis,
+    example_b_lu_harvest_date,
+    b_lu_harvest_date,
 }: HarvestFormDialogProps & {
     form: ReturnType<typeof useHarvestRemixForm>
     className: React.ComponentProps<typeof FieldGroup>["className"]
 }) {
+    const formatted_b_lu_harvest_date = example_b_lu_harvest_date
+        ? format(new Date(example_b_lu_harvest_date), "PP", { locale: nl })
+        : undefined
     return (
         <FieldGroup className={cn("gap-5", className)}>
             <Controller
@@ -156,6 +176,12 @@ function HarvestFields({
                 render={({ field, fieldState }) => (
                     <DatePicker
                         label="Oogstdatum"
+                        placeholder={
+                            example_b_lu_harvest_date !== undefined &&
+                            example_b_lu_harvest_date !== null
+                                ? `Er zijn verschillende waarden ingevuld, bv: ${formatted_b_lu_harvest_date}`
+                                : undefined
+                        }
                         defaultValue={
                             b_lu_harvest_date instanceof Date
                                 ? b_lu_harvest_date
@@ -190,7 +216,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 37500 kg / ha"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_yield,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield} kg / ha`
+                                    : "Bv. 37500 kg / ha"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"
@@ -221,7 +253,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 37500 kg / ha"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_yield_fresh,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield_fresh} kg / ha`
+                                    : "Bv. 37500 kg / ha"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"
@@ -251,7 +289,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 37500 kg / ha"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_yield_bruto,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield_bruto} kg / ha`
+                                    : "Bv. 37500 kg / ha"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"
@@ -282,7 +326,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 5 %"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_tarra,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_tarra} %`
+                                    : "Bv. 5 %"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"
@@ -312,7 +362,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 850 g / kg"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_dm,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_dm} g / kg`
+                                    : "Bv. 850 g / kg"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"
@@ -342,7 +398,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 350 g / 5 kg"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_uww,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_uww} g / 5 kg`
+                                    : "Bv. 350 g / 5 kg"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"
@@ -372,7 +434,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 15 %"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_moist,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_moist} %`
+                                    : "Bv. 15 %"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"
@@ -402,7 +470,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 850 g / kg"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_n_harvestable,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_n_harvestable} g / kg`
+                                    : "Bv. 850 g / kg"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"
@@ -432,7 +506,13 @@ function HarvestFields({
                         </FieldLabel>
                         <Input
                             {...field}
-                            placeholder="Bv. 170 g RE / kg DS"
+                            placeholder={
+                                Number.isFinite(
+                                    exampleHarvestableAnalysis?.b_lu_cp,
+                                )
+                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_cp} g RE / kg DS`
+                                    : "Bv. 170 g RE / kg DS"
+                            }
                             aria-required="true"
                             aria-invalid={fieldState.invalid}
                             type="number"

@@ -1,4 +1,4 @@
-import { getFarm, isAllowedToDeleteFarm, removeFarm } from "@svenvw/fdm-core"
+import { getFarm, isAllowedToDeleteFarm, removeFarm } from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,
@@ -139,7 +139,7 @@ export default function FarmSettingsDeleteBlock() {
  * Handles the deletion of a farm.
  *
  * This action function retrieves the farm ID from the request parameters,
- * validates its presence, and then calls the `removeFarm` function from `@svenvw/fdm-core`
+ * validates its presence, and then calls the `removeFarm` function from `@nmi-agro/fdm-core`
  * to delete the specified farm and all its associated data.
  *
  * Upon successful deletion, the user is redirected to the farm overview page.

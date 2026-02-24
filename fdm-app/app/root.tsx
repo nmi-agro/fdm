@@ -48,7 +48,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const runtimeEnv = {
             PUBLIC_FDM_URL: process.env.PUBLIC_FDM_URL,
             PUBLIC_FDM_NAME: process.env.PUBLIC_FDM_NAME,
-            PUBLIC_FDM_PRIVACY_URL: process.env.PUBLIC_FDM_PRIVACY_URL,
             PUBLIC_FDM_DATASETS_URL: process.env.PUBLIC_FDM_DATASETS_URL,
             PUBLIC_MAP_PROVIDER: process.env.PUBLIC_MAP_PROVIDER,
             PUBLIC_MAPTILER_API_KEY: process.env.PUBLIC_MAPTILER_API_KEY,

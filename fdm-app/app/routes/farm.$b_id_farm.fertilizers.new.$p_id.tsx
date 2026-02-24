@@ -6,7 +6,7 @@ import {
     getFertilizer,
     getFertilizerParametersDescription,
     getFertilizers,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,

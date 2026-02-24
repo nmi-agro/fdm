@@ -3,7 +3,7 @@ import type {
     fdmSchema,
     PrincipalId,
     Timeframe,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     getCultivations,
     getCultivationsFromCatalogue,
@@ -12,7 +12,7 @@ import {
     getField,
     getFields,
     getSoilAnalyses,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { OrganicMatterBalanceInput } from "./types"
 
 /**

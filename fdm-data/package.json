@@ -1,15 +1,15 @@
 {
-    "name": "@svenvw/fdm-data",
+    "name": "@nmi-agro/fdm-data",
     "private": false,
     "version": "0.19.1",
     "description": "Extend Farm Data Model with catalogue data",
     "license": "MIT",
-    "homepage": "https://github.com/SvenVw/fdm",
+    "homepage": "https://github.com/nmi-agro/fdm",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/SvenVw/fdm.git"
+        "url": "git+https://github.com/nmi-agro/fdm.git"
     },
-    "bugs": "https://github.com/SvenVw/fdm/issues/new",
+    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
     "author": {
         "name": "Sven Verweij",
         "email": "37927107+SvenVw@users.noreply.github.com",
@@ -56,7 +56,7 @@
         "typescript": "catalog:",
         "vitest": "catalog:"
     },
-    "packageManager": "pnpm@10.28.1",
+    "packageManager": "pnpm@10.29.3",
     "engines": {
         "node": ">=20.10"
     },

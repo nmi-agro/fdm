@@ -1,4 +1,4 @@
-import type { Field } from "@svenvw/fdm-core"
+import type { Field } from "@nmi-agro/fdm-core"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import * as GeoTiff from "../../../../shared/geotiff"
 import {

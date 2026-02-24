@@ -4,8 +4,8 @@ import type {
     NitrogenBalanceFieldResultNumeric,
     NormFilling,
     NutrientAdvice,
-} from "@svenvw/fdm-calculator"
-import type { Cultivation } from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-calculator"
+import type { Cultivation } from "@nmi-agro/fdm-core"
 import { CircleAlert, CircleCheck, CircleX, Sprout } from "lucide-react"
 import { Suspense } from "react"
 import { Await, NavLink } from "react-router-dom"

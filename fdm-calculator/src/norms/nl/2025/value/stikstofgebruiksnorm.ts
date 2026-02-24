@@ -1,4 +1,4 @@
-import { type Field, withCalculationCache } from "@svenvw/fdm-core"
+import { type Field, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
 import { getGeoTiffValue } from "../../../../shared/geotiff"
@@ -43,9 +43,7 @@ export async function isFieldInNVGebied(
             return false
         }
         default: {
-            throw new Error(
-                `Unknown NV-gebied code: ${NVGebiedCode} for coordinates ${longitude}, ${latitude}`,
-            )
+            return false
         }
     }
 }

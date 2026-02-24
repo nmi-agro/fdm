@@ -77,9 +77,9 @@ export default defineConfig((env) => {
         },
         optimizeDeps: {
             exclude: [
-                "@svenvw/fdm-core",
-                "@svenvw/fdm-data",
-                "@svenvw/fdm-calculator",
+                "@nmi-agro/fdm-core",
+                "@nmi-agro/fdm-data",
+                "@nmi-agro/fdm-calculator",
             ],
         },
     }

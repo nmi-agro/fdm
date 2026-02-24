@@ -1,4 +1,4 @@
-import { lookupPrincipal } from "@svenvw/fdm-core"
+import { lookupPrincipal } from "@nmi-agro/fdm-core"
 import type { LoaderFunctionArgs } from "react-router-dom"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"

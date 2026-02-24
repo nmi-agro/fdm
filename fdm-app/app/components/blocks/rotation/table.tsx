@@ -195,16 +195,23 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 [...new Set(dates.map(formatDate))].join(" ")
 
             const fields = (item as CropRow).fields.map((field) => {
-                field.b_lu_start.map((v) => crop_b_lu_start.add(formatDate(v)))
-                field.b_lu_end.map((v) => crop_b_lu_end.add(formatDate(v)))
-                field.b_lu_harvest_date.map((v) =>
-                    crop_b_lu_harvest_date.add(formatDate(v)),
-                )
+                field.b_lu_start.forEach((v) => {
+                    crop_b_lu_start.add(formatDate(v))
+                })
+                field.b_lu_end.forEach((v) => {
+                    crop_b_lu_end.add(formatDate(v))
+                })
+                field.harvests.forEach((v) => {
+                    if (v.b_lu_harvest_date)
+                        crop_b_lu_harvest_date.add(
+                            formatDate(v.b_lu_harvest_date),
+                        )
+                })
 
                 return {
                     ...field,
                     b_lu_catalogue: (item as CropRow).b_lu_catalogue,
-                    searchTarget: `${field.b_name} ${commonTerms} ${dateTermsArr(field.b_lu_start)} ${dateTermsArr(field.b_lu_end)} ${dateTermsArr(field.b_lu_harvest_date)}`,
+                    searchTarget: `${field.b_name} ${commonTerms} ${dateTermsArr(field.b_lu_start)} ${dateTermsArr(field.b_lu_end)} ${dateTermsArr(field.harvests.flatMap((harvest) => harvest.b_lu_harvest_date ?? []))}`,
                 }
             })
 

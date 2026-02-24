@@ -1,4 +1,4 @@
-import { fdmSchema as schema } from "@svenvw/fdm-core"
+import { fdmSchema as schema } from "@nmi-agro/fdm-core"
 import { drizzle } from "drizzle-orm/postgres-js"
 import { serverConfig } from "~/lib/config.server"
 

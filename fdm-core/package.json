@@ -1,5 +1,5 @@
 {
-    "name": "@svenvw/fdm-core",
+    "name": "@nmi-agro/fdm-core",
     "private": false,
     "version": "0.29.0",
     "description": "Interface for the Farm Data Model",
@@ -7,9 +7,9 @@
     "homepage": "https://svenvw.github.io/fdm/",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/SvenVw/fdm.git"
+        "url": "git+https://github.com/nmi-agro/fdm.git"
     },
-    "bugs": "https://github.com/SvenVw/fdm/issues/new",
+    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
     "author": {
         "name": "Sven Verweij",
         "email": "37927107+SvenVw@users.noreply.github.com",
@@ -48,12 +48,13 @@
         "@dotenvx/dotenvx": "catalog:",
         "@rollup/plugin-commonjs": "catalog:",
         "@rollup/plugin-node-resolve": "catalog:",
-        "@svenvw/fdm-data": "workspace:^0.19.1",
+        "@nmi-agro/fdm-data": "workspace:^0.19.1",
         "@types/node": "catalog:",
+        "@types/validator": "^13.15.10",
         "@vitest/coverage-v8": "catalog:",
         "drizzle-kit": "catalog:",
         "fs-extra": "^11.3.3",
-        "globals": "^17.2.0",
+        "globals": "^17.3.0",
         "rollup": "catalog:",
         "rollup-plugin-esbuild": "catalog:",
         "rollup-plugin-polyfill-node": "catalog:",
@@ -64,7 +65,7 @@
     },
     "dependencies": {
         "@electric-sql/pglite": "^0.3.15",
-        "@svenvw/fdm-data": "workspace:*",
+        "@nmi-agro/fdm-data": "workspace:*",
         "@types/geojson": "^7946.0.16",
         "better-auth": "catalog:",
         "decimal.js": "^10.6.0",
@@ -72,9 +73,10 @@
         "nanoid": "^5.1.6",
         "postgres": "^3.4.8",
         "safe-stable-stringify": "^2.5.0",
-        "unique-username-generator": "^1.5.1"
+        "unique-username-generator": "^1.5.1",
+        "validator": "^13.15.26"
     },
-    "packageManager": "pnpm@10.28.1",
+    "packageManager": "pnpm@10.29.3",
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
     }

@@ -1,5 +1,5 @@
 ARG NODE_VERSION=24
-ARG PROJECT=@svenvw/fdm-app
+ARG PROJECT=@nmi-agro/fdm-app
 
 # Base stage
 FROM node:${NODE_VERSION}-alpine AS base
@@ -10,7 +10,7 @@ WORKDIR /app
 # Pruner stage
 FROM base AS pruner
 COPY . .
-RUN turbo prune --scope=@svenvw/fdm-app --docker
+RUN turbo prune --scope=@nmi-agro/fdm-app --docker
 
 # Builder stage
 FROM base AS builder

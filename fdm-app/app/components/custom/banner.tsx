@@ -156,7 +156,7 @@ export function Banner() {
                                     </span>
                                     <br />
                                     <a
-                                        href={clientConfig.privacy_url}
+                                        href="/privacy"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         aria-label="Naar privacybeleid (opent in nieuw tabblad)"

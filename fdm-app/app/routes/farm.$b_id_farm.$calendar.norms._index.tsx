@@ -5,12 +5,12 @@ import type {
     InputAggregateNormFillingsToFarmLevel,
     InputAggregateNormsToFarmLevel,
     NormFilling,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
-} from "@svenvw/fdm-calculator"
-import { getFarm, getFarms, getFields } from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-calculator"
+import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import { AlertTriangle } from "lucide-react"
 import { Suspense, use } from "react"
 import {

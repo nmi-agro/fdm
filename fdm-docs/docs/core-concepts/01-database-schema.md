@@ -742,6 +742,31 @@ This schema manages roles, permissions, and auditing for authorization purposes.
 
 * Composite index on (`resource`, `resource_id`, `principal_id`, `role`, `deleted`).
 
+#### **`invitation`**
+
+**Purpose**: Stores pending and historical invitations to access a resource. A role is only granted after the recipient explicitly accepts the invitation.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| **invitation_id** | `text` | Primary Key | Unique identifier for the invitation. |
+| **resource** | `text` | Not Null | Resource type being shared (e.g. `farm`). |
+| **resource_id** | `text` | Not Null | Identifier of the specific resource instance. |
+| **inviter_id** | `text` | Not Null | Principal who created the invitation. |
+| **target_email** | `text` | | Email address for invitations to unregistered users. |
+| **target_principal_id** | `text` | | Principal ID for invitations to existing users or organizations. |
+| **role** | `text` | Not Null | Role to grant on acceptance (`owner`, `advisor`, `researcher`). |
+| **status** | `text` | Not Null | Current state: `pending`, `accepted`, `declined`, or `expired`. |
+| **expires** | `timestamp with time zone` | Not Null | Expiry cutoff (default: 7 days after creation). |
+| **created** | `timestamp with time zone` | Not Null | Timestamp when the invitation was created. |
+| **accepted_at** | `timestamp with time zone` | | Timestamp when the invitation was accepted. |
+
+At least one of `target_email` or `target_principal_id` must be set.
+
+**Indexes:**
+
+* Unique partial index on (`resource`, `resource_id`, `target_email`) where `status = 'pending'` — prevents duplicate pending email invitations.
+* Unique partial index on (`resource`, `resource_id`, `target_principal_id`) where `status = 'pending'` — prevents duplicate pending principal invitations.
+
 #### **`audit`**
 
 **Purpose**: Logs authorization checks (audit trail) to record who attempted what action on which resource.

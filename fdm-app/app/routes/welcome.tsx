@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { updateUserProfile } from "@svenvw/fdm-core"
+import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { Cookie } from "lucide-react"
 import type {
     ActionFunctionArgs,

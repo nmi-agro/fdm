@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { Fertilizer } from "@svenvw/fdm-core"
+import type { Fertilizer } from "@nmi-agro/fdm-core"
 import { useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
 import {

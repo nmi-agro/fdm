@@ -2,7 +2,7 @@ import {
     createDisplayUsername,
     createFdmAuth,
     type FdmAuth,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { GenericEndpointContext, Session } from "better-auth"
 import { redirect } from "react-router"
 import { fdm } from "~/lib/fdm.server"

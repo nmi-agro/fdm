@@ -1,4 +1,4 @@
-import { getField } from "@svenvw/fdm-core"
+import { getField } from "@nmi-agro/fdm-core"
 import { ArrowLeft } from "lucide-react"
 import {
     data,

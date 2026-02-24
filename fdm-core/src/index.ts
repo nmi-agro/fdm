@@ -5,8 +5,8 @@
  * The `fdm` defines the {@link fdmLocal} and {@link fdmServer} class to store, retrieve and update the Farm Data Model
  *
  * Created by Nutriënten Management Instituut (www.nmi-agro.nl)
- * Source code available at https://github.com/SvenVw/fdm
- * In case you find a bug, please report at https://github.com/SvenVw/fdm/issues
+ * Source code available at https://github.com/nmi-agro/fdm
+ * In case you find a bug, please report at https://github.com/nmi-agro/fdm/issues
  *
  * @public
  * @packageDocumentation
@@ -70,6 +70,8 @@ export {
     grantRoleToFarm,
     isAllowedToDeleteFarm,
     isAllowedToShareFarm,
+    listPendingInvitationsForFarm,
+    listPendingInvitationsForUser,
     listPrincipalsForFarm,
     removeFarm,
     revokePrincipalFromFarm,
@@ -144,6 +146,19 @@ export {
     removeOrganicCertification,
 } from "./organic"
 export type { OrganicCertification } from "./organic.d"
+export {
+    autoAcceptInvitationsForNewUser,
+    createInvitation,
+    acceptInvitation,
+    declineInvitation,
+    listPendingInvitationsForPrincipal,
+    MAX_INVITATIONS_PER_INVITER_PER_HOUR,
+    MAX_INVITATIONS_PENDING_PER_TARGET,
+} from "./invitation"
+export type {
+    invitationTypeSelect,
+    invitationTypeInsert,
+} from "./db/schema-authz"
 export { lookupPrincipal } from "./principal"
 export {
     addSoilAnalysis,

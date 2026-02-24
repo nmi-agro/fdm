@@ -3,7 +3,7 @@ import {
     getFields,
     getSoilParametersDescription,
     addSoilAnalysis,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { fdm } from "~/lib/fdm.server"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError, handleActionError } from "~/lib/error"

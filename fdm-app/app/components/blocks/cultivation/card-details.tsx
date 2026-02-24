@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { Cultivation } from "@svenvw/fdm-core"
+import type { Cultivation } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"

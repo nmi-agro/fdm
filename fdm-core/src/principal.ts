@@ -85,7 +85,9 @@ export async function getPrincipal(
                 }
 
                 return {
+                    id: principal_id,
                     username: user[0].username,
+                    email: user[0].email,
                     initials: initials.toUpperCase(),
                     displayUserName: user[0].displayUserName,
                     image: user[0].image,
@@ -112,7 +114,9 @@ export async function getPrincipal(
             const metadata = JSON.parse(organization[0].metadata)
 
             return {
+                id: principal_id,
                 username: organization[0].slug,
+                email: null,
                 initials: organization[0].name.charAt(0).toUpperCase(),
                 displayUserName: organization[0].name,
                 image: organization[0].logo,
@@ -128,25 +132,23 @@ export async function getPrincipal(
 }
 
 /**
- * Identifies a principal (either a user or an organization) based on a username or email.
+ * Identifies a principal (either a user or an organization) based on a username, email, or org slug.
  *
  * This function searches for a principal, first by checking the user table for a matching username or email,
- * and then, if not found, by checking the organization table for a matching slug. If a principal is found,
- * its details are retrieved and returned.
+ * and then, if not found, by checking the organization table for a matching slug.
  *
  * @param fdm - The FDM instance providing the connection to the database.
  * @param identifier - The username, email, or organization slug to search for.
- * @returns A promise that resolves to an array of LookupPrincipal objects. If a principal is found, the array contains a single object with the principal's details. If no principal is found, the array is empty.
+ * @returns A promise that resolves to the matching {@link Principal}, or `undefined` if not found.
  *
  * @throws {Error} - Throws an error if any database operation fails.
  *   The error includes a message and context information about the failed operation.
  *
  * @example
  * ```typescript
- * // Example usage:
- * const principalDetails = await identifyPrincipal(fdm, "john.doe@example.com");
- * if (principalDetails.length > 0) {
- *   console.log("Principal Details:", principalDetails[0]);
+ * const principal = await identifyPrincipal(fdm, "john.doe@example.com");
+ * if (principal) {
+ *   console.log("Principal Details:", principal);
  * } else {
  *   console.log("Principal not found.");
  * }
@@ -155,12 +157,7 @@ export async function getPrincipal(
 export async function identifyPrincipal(
     fdm: FdmType,
     identifier: string,
-): Promise<
-    | ({
-          id: string
-      } & Principal)
-    | undefined
-> {
+): Promise<Principal | undefined> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
             // Check if principal is an user
@@ -190,12 +187,8 @@ export async function identifyPrincipal(
 
             // Get the type of the principal
             const principalDetails = await getPrincipal(tx, principal_id[0].id)
-            // console.log(principalDetails)
 
-            return {
-                id: principal_id[0].id,
-                ...principalDetails,
-            }
+            return principalDetails
         })
     } catch (err) {
         throw handleError(err, "Exception for identifyPrincipal", {

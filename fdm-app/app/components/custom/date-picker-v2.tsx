@@ -31,6 +31,7 @@ import { cn } from "~/lib/utils"
 type DatePickerProps = {
     label: string | undefined
     description?: string
+    placeholder?: string
     defaultValue?: Date
     field: ControllerRenderProps<FieldValues, string>
     fieldState: ControllerFieldState
@@ -41,6 +42,7 @@ type DatePickerProps = {
 export function DatePicker({
     label,
     description,
+    placeholder,
     defaultValue,
     field,
     fieldState,
@@ -117,7 +119,7 @@ export function DatePicker({
                     value={inputValue}
                     aria-required={required ? "true" : "false"}
                     aria-invalid={fieldState.invalid}
-                    placeholder="Kies een datum"
+                    placeholder={ placeholder ?? "Kies een datum" }
                     className="bg-background pr-10"
                     onChange={handleInputChange}
                     onBlur={handleInputBlur}
@@ -138,7 +140,9 @@ export function DatePicker({
                             disabled={field.disabled}
                         >
                             <CalendarIcon className="size-3.5" />
-                            <span className="sr-only">Kies een datum</span>
+                            <span className="sr-only">
+                                {placeholder ?? "Kies een datum"}
+                            </span>
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent

@@ -7,13 +7,13 @@ import {
     aggregateNormsToFarmLevel,
     collectInputForOrganicMatterBalance,
     getOrganicMatterBalanceField,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import {
     getCultivations,
     getCurrentSoilData,
     getFarm,
     getFields,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { data, type LoaderFunctionArgs } from "react-router"

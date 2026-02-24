@@ -1,4 +1,4 @@
-import type { fdmSchema } from "@svenvw/fdm-core"
+import type { fdmSchema } from "@nmi-agro/fdm-core"
 import { differenceInCalendarDays } from "date-fns"
 import Decimal from "decimal.js"
 import type {

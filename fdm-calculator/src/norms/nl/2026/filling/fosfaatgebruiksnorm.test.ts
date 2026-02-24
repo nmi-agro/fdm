@@ -1,4 +1,4 @@
-import type { Fertilizer, FertilizerApplication } from "@svenvw/fdm-core"
+import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
 import { calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./fosfaatgebruiksnorm"
 import type { NL2026NormsFillingInput } from "./types"

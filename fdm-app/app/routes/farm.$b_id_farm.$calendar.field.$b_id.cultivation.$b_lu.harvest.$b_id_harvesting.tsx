@@ -5,7 +5,7 @@ import {
     getParametersForHarvestCat,
     removeHarvest,
     updateHarvest,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,
@@ -226,6 +226,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 request,
                 FormSchema,
             )
+            if (!formValues.b_lu_harvest_date) {
+                const errors = [
+                    {
+                        path: "b_lu_harvest_date",
+                        message: "Selecteer een oogstdatum",
+                    },
+                ]
+
+                throw new Error(JSON.stringify(errors))
+            }
 
             // Get required harvest parameters for the cultivation's harvest category
             const requiredHarvestParameters = getParametersForHarvestCat(

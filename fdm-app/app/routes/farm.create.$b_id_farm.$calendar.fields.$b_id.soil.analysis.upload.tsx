@@ -4,7 +4,7 @@ import {
     addSoilAnalysis,
     getField,
     getSoilParametersDescription,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { fileTypeFromBuffer } from "file-type"
 import {
     type ActionFunctionArgs,
@@ -142,8 +142,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 await fileStorage.set(storageKey, file)
 
                 const storedFile = await fileStorage.get(storageKey)
-                if (storedFile && 'toFile' in storedFile && typeof storedFile.toFile === 'function') {
-                    return (storedFile as unknown as { toFile: () => File }).toFile()
+                if (
+                    storedFile &&
+                    "toFile" in storedFile &&
+                    typeof storedFile.toFile === "function"
+                ) {
+                    return (
+                        storedFile as unknown as { toFile: () => File }
+                    ).toFile()
                 }
                 return storedFile
             }

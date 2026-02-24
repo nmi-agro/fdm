@@ -1,4 +1,4 @@
-import type { Cultivation } from "@svenvw/fdm-core"
+import type { Cultivation } from "@nmi-agro/fdm-core"
 import { useSearchParams } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"

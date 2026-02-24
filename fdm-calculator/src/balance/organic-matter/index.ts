@@ -1,4 +1,4 @@
-import { type FdmType, withCalculationCache } from "@svenvw/fdm-core"
+import { type FdmType, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../package"
 import { convertDecimalToNumberRecursive } from "../shared/conversion"

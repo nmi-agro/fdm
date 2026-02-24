@@ -1,7 +1,7 @@
 import type {
     CurrentSoilData,
     SoilParameterDescription,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type maplibregl from "maplibre-gl"
 import { NewFieldsAtlas } from "./atlas"
 import { NewFieldsForm } from "./form"
@@ -71,4 +71,3 @@ type NewFieldsBlockProps = {
     soilParameterDescription: SoilParameterDescription
     isFarmCreateWizard?: boolean
 }
-

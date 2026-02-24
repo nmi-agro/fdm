@@ -1,4 +1,4 @@
-import { getCultivations } from "@svenvw/fdm-core"
+import { getCultivations } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, redirect } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
