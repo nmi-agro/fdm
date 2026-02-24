@@ -191,7 +191,7 @@ async function loadByCultivationAndFieldIds(
         ),
     )
 
-    const fieldIdsSet = new Set(fieldIds)
+    const fieldIdsSet = new Set(fieldIds ?? [])
 
     const selectedFieldIds = fieldIds
         ? fieldsWithCultivation
@@ -216,8 +216,10 @@ async function loadByAppIds(
 ): Promise<StrategizedLoaderData> {
     const applicationRefs = parseAppIds(appIdPairs)
 
+    const fieldIds = [...new Set(applicationRefs.map((ref) => ref.b_id))]
+
     const fields = await Promise.all(
-        applicationRefs.map((ref) => getField(fdm, principal_id, ref.b_id)),
+        fieldIds.map((b_id) => getField(fdm, principal_id, b_id)),
     )
 
     const fertilizerApplications = await Promise.all(
@@ -485,6 +487,8 @@ export default function FarmRotationFertilizerAddIndex() {
         setOpen(open)
     }
 
+    const isModification = !!loaderData.fertilizerApplication?.p_app_ids
+
     return (
         <SidebarInset>
             <Header
@@ -506,12 +510,14 @@ export default function FarmRotationFertilizerAddIndex() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem className="hidden md:block">
-                    Bemesting toevoegen
+                    {isModification
+                        ? "Bemesting wijzigen"
+                        : "Bemesting toevoegen"}
                 </BreadcrumbItem>
             </Header>
             <main>
                 <FarmTitle
-                    title={`Bemesting toevoegen aan ${loaderData.cultivationNames.join(", ")}`}
+                    title={`Bemesting ${isModification ? "bijwerken" : "toevoegen"} ${loaderData.cultivationNames.join(", ")}`}
                     description="Kies 1 of meerdere percelen om een bemesting toe te voegen"
                 />
                 <div className="relative">
@@ -519,7 +525,12 @@ export default function FarmRotationFertilizerAddIndex() {
                         <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                             <div className="flex items-center text-sm text-muted-foreground">
                                 <Spinner className="mr-2" />
-                                <span>Bemesting wordt toegevoegd...</span>
+                                <span>
+                                    Bemesting wordt{" "}
+                                    {isModification
+                                        ? "bijgewerkt..."
+                                        : "toegevoegd..."}
+                                </span>
                             </div>
                         </div>
                     )}
@@ -531,8 +542,11 @@ export default function FarmRotationFertilizerAddIndex() {
                                         Geselecteerde percelen
                                     </CardTitle>
                                     <CardDescription>
-                                        De bemesting wordt toegepast op de
-                                        volgende percelen.
+                                        De bemesting{" "}
+                                        {isModification
+                                            ? "is toegepast"
+                                            : "wordt toegepast"}{" "}
+                                        op de volgende percelen.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -617,14 +631,16 @@ export default function FarmRotationFertilizerAddIndex() {
                                             handleSelectionDialogOpenChange
                                         }
                                     >
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="secondary"
-                                                className="w-full"
-                                            >
-                                                Wijzig selectie
-                                            </Button>
-                                        </DialogTrigger>
+                                        {loaderData.canReselect && (
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="secondary"
+                                                    className="w-full"
+                                                >
+                                                    Wijzig selectie
+                                                </Button>
+                                            </DialogTrigger>
+                                        )}
                                         <DialogContent className="sm:max-w-[425px]">
                                             <DialogHeader>
                                                 <DialogTitle>
@@ -789,9 +805,13 @@ export default function FarmRotationFertilizerAddIndex() {
                                     <CardDescription>
                                         {loaderData.fieldAmount === 0
                                             ? "Selecteer eerst een of meerdere percelen."
-                                            : loaderData.fieldAmount === 1
-                                              ? "Voeg een nieuwe bemestingstoepassing toe aan het geselecteerde perceel."
-                                              : `Voeg een nieuwe bemestingstoepassing toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
+                                            : isModification
+                                              ? loaderData.fieldAmount === 1
+                                                  ? "Werk de bemesting van het geselecteerde perceel bij."
+                                                  : `Werk de bemesting van de ${loaderData.fieldAmount} geselecteerde percelen bij.`
+                                              : loaderData.fieldAmount === 1
+                                                ? "Voeg een nieuwe bemestingstoepassing toe aan het geselecteerde perceel."
+                                                : `Voeg een nieuwe bemestingstoepassing toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
