@@ -955,10 +955,20 @@ export async function cancelInvitationForFarm(
                 principal_id,
             )
 
-            await tx
+            const result = await tx
                 .update(authZSchema.invitation)
                 .set({ status: "declined" })
-                .where(eq(authZSchema.invitation.invitation_id, invitation_id))
+                .where(
+                    and(
+                        eq(authZSchema.invitation.invitation_id, invitation_id),
+                        eq(authZSchema.invitation.status, "pending"),
+                    ),
+                )
+                .returning({ invitation_id: authZSchema.invitation.invitation_id })
+
+            if (result.length === 0) {
+                throw new Error("Invitation is no longer pending")
+            }
         })
     } catch (err) {
         throw handleError(err, "Exception for cancelInvitationForFarm", {
@@ -992,10 +1002,20 @@ export async function updateRoleOfInvitationForFarm(
                 principal_id,
             )
 
-            await tx
+            const result = await tx
                 .update(authZSchema.invitation)
                 .set({ role })
-                .where(eq(authZSchema.invitation.invitation_id, invitation_id))
+                .where(
+                    and(
+                        eq(authZSchema.invitation.invitation_id, invitation_id),
+                        eq(authZSchema.invitation.status, "pending"),
+                    ),
+                )
+                .returning({ invitation_id: authZSchema.invitation.invitation_id })
+
+            if (result.length === 0) {
+                throw new Error("Invitation is no longer pending")
+            }
         })
     } catch (err) {
         throw handleError(err, "Exception for updateRoleOfInvitationForFarm", {
