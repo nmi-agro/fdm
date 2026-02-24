@@ -1,4 +1,4 @@
-import type { Cultivation, Fertilizer } from "@svenvw/fdm-core"
+import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
     ArrowUpRightFromSquare,

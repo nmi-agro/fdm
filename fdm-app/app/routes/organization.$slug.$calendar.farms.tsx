@@ -7,7 +7,7 @@ import {
     getFertilizers,
     getFields,
     listPrincipalsForFarm,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { data, useLoaderData } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"

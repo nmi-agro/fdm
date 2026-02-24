@@ -1,5 +1,5 @@
 ---
-"@svenvw/fdm-app": minor
+"@nmi-agro/fdm-app": minor
 ---
 
 Add the possibility for users to accept or reject an invitation to a farm, instead of having it automatically. This makes it also possible to invite non-registered users to get access to a farm after signing up.

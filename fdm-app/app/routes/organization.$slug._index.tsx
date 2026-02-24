@@ -1,4 +1,4 @@
-import { getFarms, getFields } from "@svenvw/fdm-core"
+import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import { Cog, Square, Users } from "lucide-react"
 import { data, NavLink, useLoaderData } from "react-router"
 import {
