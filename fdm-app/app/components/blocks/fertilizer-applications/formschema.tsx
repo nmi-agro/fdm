@@ -68,4 +68,5 @@ export const FormSchemaPartialModify = FormSchemaPartial.extend({
 
 export type FieldFertilizerFormValues = z.infer<typeof FormSchema> & {
     p_app_id?: string | undefined
+    p_app_ids?: string[] | undefined
 }

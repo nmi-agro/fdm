@@ -205,7 +205,8 @@ function formatNumberRange(numbers: number[], unit = "") {
     if (numbers.length === 0) return ""
     const firstNumber = numbers[0]
     const lastNumber = numbers[numbers.length - 1]
-    return lastNumber - firstNumber < firstNumber / 100
+    return firstNumber === lastNumber ||
+        Math.abs(lastNumber - firstNumber) < Math.abs(firstNumber) / 100
         ? `${firstNumber} ${unit}`
         : `${firstNumber} - ${lastNumber} ${unit}`
 }

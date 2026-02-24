@@ -35,7 +35,6 @@ import {
 } from "~/components/blocks/fertilizer-applications/form"
 import {
     FormSchema,
-    FormSchemaModify,
     FormSchemaPartialModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
 import { Header } from "~/components/blocks/header/base"
@@ -221,11 +220,19 @@ async function loadByAppIds(
         applicationRefs.map((ref) => getField(fdm, principal_id, ref.b_id)),
     )
 
-    const fertilizerApplications = (await Promise.all(
-        applicationRefs.map(async ({ p_app_id }) =>
-            getFertilizerApplication(fdm, principal_id, p_app_id),
-        ),
-    )) as FertilizerApplication[]
+    const fertilizerApplications = await Promise.all(
+        applicationRefs.map(async ({ p_app_id }) => {
+            const application = await getFertilizerApplication(
+                fdm,
+                principal_id,
+                p_app_id,
+            )
+            if (!application) {
+                throw new Error(`Application ${p_app_id} not found`)
+            }
+            return application
+        }),
+    )
 
     let exampleFertilizerApplication: Partial<FertilizerApplication> = {}
     let fertilizerApplication: Partial<FertilizerApplication> = {}
@@ -818,7 +825,7 @@ export default function FarmRotationFertilizerAddIndex() {
                                             schema={
                                                 loaderData.exampleFertilizerApplication
                                                     ? FormSchemaPartialModify
-                                                    : FormSchemaModify
+                                                    : FormSchema
                                             }
                                         />
                                     ) : (
@@ -881,9 +888,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             session.principal_id,
                             p_app_id,
                             validatedData.p_id ?? original.p_id,
-                            validatedData.p_app_amount,
-                            validatedData.p_app_method,
-                            validatedData.p_app_date,
+                            validatedData.p_app_amount ?? original.p_app_amount,
+                            validatedData.p_app_method ?? original.p_app_method,
+                            validatedData.p_app_date ?? original.p_app_date,
                         )
                     }),
                 ),

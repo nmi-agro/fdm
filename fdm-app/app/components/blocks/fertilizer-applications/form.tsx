@@ -41,6 +41,15 @@ export type FertilizerOption = {
     applicationMethodOptions?: { value: string; label: string }[]
 }
 
+/**
+ * Renders a fertilizer application creation or modification form.
+ *
+ * The form contains fields for the fertilizer applied, the application method, the amount, and the application date.
+ *
+ * It accepts two partial FieldFertilizerFormValues objects to pre-fill the form and set the placeholders.
+ * - The fields are pre-filled according to the fertilizerApplication prop value. If it is missing, all form fields are left empty. fertilizerApplication cannot be used to drive the form state.
+ * - The placeholders will be set according to the exampleFertilizerApplication prop value. If it is missing, the default placeholders are used for all form fields.
+ */
 export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     options,
     action,
