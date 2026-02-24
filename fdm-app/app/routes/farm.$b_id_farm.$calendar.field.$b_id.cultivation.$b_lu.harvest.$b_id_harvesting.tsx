@@ -5,7 +5,7 @@ import {
     getParametersForHarvestCat,
     removeHarvest,
     updateHarvest,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,

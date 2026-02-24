@@ -6,15 +6,15 @@ tags: [release, fdm-core, fdm-calculator, fdm-data]
 date: 2025-07-31
 ---
 
-This post outlines the recent updates to the FDM libraries: `@svenvw/fdm-core`, `@svenvw/fdm-calculator`, and `@svenvw/fdm-data`. This release introduces a robust derogation management system, implements the 2025 Dutch fertilizer norms, and enhances data management capabilities to provide a more comprehensive and compliant precision farming experience.
+This post outlines the recent updates to the FDM libraries: `@nmi-agro/fdm-core`, `@nmi-agro/fdm-calculator`, and `@nmi-agro/fdm-data`. This release introduces a robust derogation management system, implements the 2025 Dutch fertilizer norms, and enhances data management capabilities to provide a more comprehensive and compliant precision farming experience.
 
 {/* truncate */}
 
 ### Comprehensive Derogation Management
 
-A significant addition to `@svenvw/fdm-core` is the introduction of a full suite of functions to manage derogations for farms. This is essential for farmers who need to operate under specific exemptions from standard regulations.
+A significant addition to `@nmi-agro/fdm-core` is the introduction of a full suite of functions to manage derogations for farms. This is essential for farmers who need to operate under specific exemptions from standard regulations.
 
-*   **Derogation Functions (`@svenvw/fdm-core`):**
+*   **Derogation Functions (`@nmi-agro/fdm-core`):**
     *   `addDerogation`: Allows for the addition of a derogation for a specific farm and year.
     *   `removeDerogation`: Enables the removal of a previously granted derogation.
     *   `listDerogations`: Retrieves a list of derogations per year for a farm.
@@ -24,22 +24,22 @@ A significant addition to `@svenvw/fdm-core` is the introduction of a full suite
 
 We've introduced several new features and improvements to give users more granular control over their farm data.
 
-*   **Field Removal (`@svenvw/fdm-core`):**
+*   **Field Removal (`@nmi-agro/fdm-core`):**
     *   The new `removeField` function allows for the complete deletion of a field, including all associated data such as cultivations, soil analyses, and fertilizer applications.
 
-*   **Harvest Updates (`@svenvw/fdm-core`):**
+*   **Harvest Updates (`@nmi-agro/fdm-core`):**
     *   The `updateHarvest` function has been added, allowing users to modify the details of a harvest event after it has been created.
 
-*   **Refined Acquiring Methods (`@svenvw/fdm-core`):**
+*   **Refined Acquiring Methods (`@nmi-agro/fdm-core`):**
     *   The `b_acquiring_method` options have been refactored to align with the official RVO codes, ensuring better standardization and interoperability.
     *   The `listAvailableAcquiringMethods` function has been introduced to retrieve all possible acquiring method options.
 
-*   **Cultivation Plan Enhancements (`@svenvw/fdm-core`):**
+*   **Cultivation Plan Enhancements (`@nmi-agro/fdm-core`):**
     *   The `getCultivationPlan` function now includes the `b_area` (area in hectares) in its output, providing a more complete overview of the cultivation plan.
 
 ### Detailed Implementation of 2025 Dutch Fertilizer Norms
 
-`@svenvw/fdm-calculator` has been significantly updated with the latest Dutch fertilizer regulations for 2025, a critical update for our users in the Netherlands. The new implementation automates the complex calculations for three key usage norms (`gebruiksnormen`), ensuring that farm management plans are compliant with national environmental regulations. For a complete breakdown, you can refer to our detailed documentation on the 2025 Dutch Fertilization Norms.
+`@nmi-agro/fdm-calculator` has been significantly updated with the latest Dutch fertilizer regulations for 2025, a critical update for our users in the Netherlands. The new implementation automates the complex calculations for three key usage norms (`gebruiksnormen`), ensuring that farm management plans are compliant with national environmental regulations. For a complete breakdown, you can refer to our detailed documentation on the 2025 Dutch Fertilization Norms.
 
 Here’s a summary of what the calculator now handles:
 
@@ -58,13 +58,13 @@ Here’s a summary of what the calculator now handles:
 
 ### Data Corrections and Improvements
 
-*   **`brp` Catalogue Update (`@svenvw/fdm-data`):**
+*   **`brp` Catalogue Update (`@nmi-agro/fdm-data`):**
     *   The values for `b_lu_yield` in the `brp` cultivation catalogue have been corrected to ensure more accurate yield estimations.
 
 ### Bug Fixes and Maintenance
 
-*   **Harvest Removal Bug (`@svenvw/fdm-core`):** A bug that caused an exception when removing a cultivation with an associated harvest has been fixed.
-*   **Crop Residue Calculation (`@svenvw/fdm-calculator`):** A fix has been implemented for the calculation of crop residue biomass in the nitrogen balance.
+*   **Harvest Removal Bug (`@nmi-agro/fdm-core`):** A bug that caused an exception when removing a cultivation with an associated harvest has been fixed.
+*   **Crop Residue Calculation (`@nmi-agro/fdm-calculator`):** A fix has been implemented for the calculation of crop residue biomass in the nitrogen balance.
 *   **Dependency Updates:** All packages have been updated with the latest dependencies.
 
 ---

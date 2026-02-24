@@ -1,4 +1,4 @@
-import type { Timeframe } from "@svenvw/fdm-core"
+import type { Timeframe } from "@nmi-agro/fdm-core"
 import type { Params } from "react-router"
 
 const yearStart = 2020

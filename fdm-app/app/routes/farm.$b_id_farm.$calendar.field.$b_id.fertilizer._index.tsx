@@ -1,4 +1,4 @@
-import { calculateDose, getNutrientAdvice } from "@svenvw/fdm-calculator"
+import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
 import {
     addFertilizerApplication,
     checkPermission,
@@ -10,7 +10,7 @@ import {
     getField,
     removeFertilizerApplication,
     updateFertilizerApplication,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,

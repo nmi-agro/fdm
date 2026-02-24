@@ -1,9 +1,10 @@
+
 import {
     acceptInvitation,
     declineInvitation,
     getFarms,
     listPendingInvitationsForUser,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     ArrowRight,
     Bell,

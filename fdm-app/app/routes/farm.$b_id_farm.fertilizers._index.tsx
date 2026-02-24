@@ -4,7 +4,7 @@ import {
     getFarms,
     getFertilizerParametersDescription,
     getFertilizers,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     data,
     type LoaderFunctionArgs,

@@ -1,4 +1,4 @@
-import type { FdmType } from "@svenvw/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { describe, expect, it, vi } from "vitest"
 import { calculateOrganicMatterBalance } from "./index"
 import type {

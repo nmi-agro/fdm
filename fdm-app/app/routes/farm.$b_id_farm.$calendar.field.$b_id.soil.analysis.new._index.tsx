@@ -1,4 +1,4 @@
-import { getField } from "@svenvw/fdm-core"
+import { getField } from "@nmi-agro/fdm-core"
 import { ArrowLeft } from "lucide-react"
 import { data, type LoaderFunctionArgs, NavLink } from "react-router"
 import { SoilAnalysisFormSelection } from "~/components/blocks/soil/form-selection"

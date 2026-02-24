@@ -10,7 +10,7 @@ import {
     getFields,
     getHarvests,
     updateCultivation,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type MetaFunction,
     NavLink,

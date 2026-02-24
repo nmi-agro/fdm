@@ -5,8 +5,8 @@ import {
     isFieldInGWGBGebied,
     isFieldInNatura2000Gebied,
     isFieldInNVGebied,
-} from "@svenvw/fdm-calculator"
-import { getCultivationCatalogue } from "@svenvw/fdm-data"
+} from "@nmi-agro/fdm-calculator"
+import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import type { Feature, Point } from "geojson"
 import { Map as MapIcon } from "lucide-react"
 import { Suspense, use } from "react"

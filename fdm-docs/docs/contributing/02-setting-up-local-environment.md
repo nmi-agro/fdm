@@ -19,7 +19,7 @@ Before you begin, you will need to have the following software installed on your
 First, you need to clone the FDM repository from GitHub:
 
 ```bash
-git clone https://github.com/SvenVw/fdm.git
+git clone https://github.com/nmi-agro/fdm.git
 ```
 
 ## Installing Dependencies

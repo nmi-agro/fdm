@@ -1,4 +1,4 @@
-import type { CurrentSoilData } from "@svenvw/fdm-core"
+import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 import {
     afterAll,
     afterEach,

@@ -1,4 +1,4 @@
-import { getField } from "@svenvw/fdm-core"
+import { getField } from "@nmi-agro/fdm-core"
 import type { FeatureCollection } from "geojson"
 import maplibregl from "maplibre-gl"
 import { useEffect, useRef } from "react"

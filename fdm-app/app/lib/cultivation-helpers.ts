@@ -1,4 +1,4 @@
-import type { Cultivation } from "@svenvw/fdm-core"
+import type { Cultivation } from "@nmi-agro/fdm-core"
 
 /**
  * Determines the default cultivation based on the "May 15th" rule.

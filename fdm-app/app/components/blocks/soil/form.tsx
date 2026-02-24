@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { SoilParameterDescription } from "@svenvw/fdm-core"
+import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"

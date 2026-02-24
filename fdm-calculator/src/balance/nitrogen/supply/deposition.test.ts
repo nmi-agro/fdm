@@ -1,4 +1,4 @@
-import type { Field } from "@svenvw/fdm-core"
+import type { Field } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { describe, expect, it } from "vitest"
 import { getFdmPublicDataUrl } from "../../../shared/public-data-url"

@@ -124,13 +124,13 @@ importers:
       '@sentry/react-router':
         specifier: ^10.39.0
         version: 10.39.0(@react-router/node@7.13.0(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(typescript@5.9.3))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
-      '@svenvw/fdm-calculator':
+      '@nmi-agro/fdm-calculator':
         specifier: workspace:^
         version: link:../fdm-calculator
-      '@svenvw/fdm-core':
+      '@nmi-agro/fdm-core':
         specifier: workspace:^
         version: link:../fdm-core
-      '@svenvw/fdm-data':
+      '@nmi-agro/fdm-data':
         specifier: workspace:*
         version: link:../fdm-data
       '@tailwindcss/vite':
@@ -338,7 +338,7 @@ importers:
 
   fdm-calculator:
     dependencies:
-      '@svenvw/fdm-core':
+      '@nmi-agro/fdm-core':
         specifier: workspace:^
         version: link:../fdm-core
       date-fns:
@@ -396,7 +396,7 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.3.15
         version: 0.3.15
-      '@svenvw/fdm-data':
+      '@nmi-agro/fdm-data':
         specifier: workspace:*
         version: link:../fdm-data
       '@types/geojson':

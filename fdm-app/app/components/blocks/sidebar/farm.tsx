@@ -1,4 +1,4 @@
-import type { getFarm } from "@svenvw/fdm-core"
+import type { getFarm } from "@nmi-agro/fdm-core"
 import {
     Calendar,
     Check,

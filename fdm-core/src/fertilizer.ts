@@ -1,4 +1,7 @@
-import { type CatalogueFertilizerItem, hashFertilizer } from "@svenvw/fdm-data"
+import {
+    type CatalogueFertilizerItem,
+    hashFertilizer,
+} from "@nmi-agro/fdm-data"
 import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"

@@ -1,8 +1,8 @@
 import {
     calculateNitrogenBalance,
     collectInputForNitrogenBalance,
-} from "@svenvw/fdm-calculator"
-import { getFarm, getField } from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-calculator"
+import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
     ArrowDown,
     ArrowRight,

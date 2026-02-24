@@ -1,4 +1,4 @@
-import { withCalculationCache } from "@svenvw/fdm-core"
+import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
 import type { NormFilling } from "../../types"

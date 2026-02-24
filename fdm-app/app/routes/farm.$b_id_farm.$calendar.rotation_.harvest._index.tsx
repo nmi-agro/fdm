@@ -8,7 +8,7 @@ import {
     getHarvests,
     getParametersForHarvestCat,
     removeHarvest,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { AlertTriangle, Info } from "lucide-react"
 import { useEffect, useState } from "react"
 import {

@@ -18,7 +18,7 @@ The `fdm-core` package is the heart of the Farm Data Model (FDM) project. It pro
 
 1. **Installation:**
    ```bash
-   pnpm add @svenvw/fdm-core
+   pnpm add @nmi-agro/fdm-core
    ```
 2. **Database Setup:** `fdm-core` utilizes [Drizzle ORM](https://github.com/drizzle-team/drizzle-orm) and requires a PostgreSQL-compatible database. Configure your database connection details (URL, authentication) using environment variables as described in the documentation.
 

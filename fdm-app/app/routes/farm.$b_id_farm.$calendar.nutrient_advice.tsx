@@ -1,4 +1,4 @@
-import { getFarm, getFarms, getFields } from "@svenvw/fdm-core"
+import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
     data,
     type LoaderFunctionArgs,

@@ -7,11 +7,11 @@ const config: Config = {
     tagline: "Transforming Farm Data into Actionable Insights",
     favicon: "img/favicon.ico",
 
-    url: "https://svenvw.github.io",
+    url: "https://nmi-agro.github.io",
     baseUrl: "/fdm/",
 
     // GitHub pages deployment config.
-    organizationName: "SvenVw",
+    organizationName: "nmi-agro",
     projectName: "fdm",
     deploymentBranch: "gh-pages",
 
@@ -29,7 +29,7 @@ const config: Config = {
                 docs: {
                     sidebarPath: "./sidebars.ts",
                     editUrl:
-                        "https://github.com/SvenVw/fdm/tree/main/fdm-docs/docs/",
+                        "https://github.com/nmi-agro/fdm/tree/main/fdm-docs/docs/",
                 },
                 blog: {
                     showReadingTime: true,
@@ -38,7 +38,7 @@ const config: Config = {
                         xslt: true,
                     },
                     editUrl:
-                        "https://github.com/SvenVw/fdm/tree/main/fdm-docs/blog/",
+                        "https://github.com/nmi-agro/fdm/tree/main/fdm-docs/blog/",
                     onInlineTags: "warn",
                     onInlineAuthors: "warn",
                     onUntruncatedBlogPosts: "warn",
@@ -114,7 +114,7 @@ const config: Config = {
                 },
                 { to: "/blog", label: "Blog", position: "left" },
                 {
-                    href: "https://github.com/SvenVw/fdm",
+                    href: "https://github.com/nmi-agro/fdm",
                     label: "GitHub",
                     position: "right",
                 },
@@ -125,7 +125,7 @@ const config: Config = {
             logo: {
                 alt: "FDM Logo",
                 src: "img/fdm-high-resolution-logo-transparent-no-text.png",
-                href: "https://github.com/SvenVw/fdm",
+                href: "https://github.com/nmi-agro/fdm",
                 height: 50,
             },
             links: [
@@ -159,7 +159,7 @@ const config: Config = {
                     items: [
                         {
                             label: "Discussions",
-                            href: "https://github.com/SvenVw/fdm/discussions",
+                            href: "https://github.com/nmi-agro/fdm/discussions",
                         },
                         // {
                         //     label: "Stack Overflow",
@@ -176,7 +176,7 @@ const config: Config = {
                         },
                         {
                             label: "GitHub",
-                            href: "https://github.com/SvenVw/fdm",
+                            href: "https://github.com/nmi-agro/fdm",
                         },
                     ],
                 },

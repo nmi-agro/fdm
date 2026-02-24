@@ -3,7 +3,7 @@ import {
     checkPermission,
     listDerogations,
     removeDerogation,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     type LoaderFunctionArgs,

@@ -1,10 +1,10 @@
-import type * as schema from "@svenvw/fdm-core"
+import type * as schema from "@nmi-agro/fdm-core"
 import type {
     Cultivation,
     Fertilizer,
     FertilizerApplication,
     Field,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { RegionKey } from "../value/types"
 
 export type Table11Mestcodes = {

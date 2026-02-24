@@ -15,7 +15,7 @@ import {
     type NutrientAdvice,
     type OrganicMatterBalanceFieldResultNumeric,
     type OrganicMatterBalanceNumeric,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import {
     type FdmType,
     type Field,
@@ -27,7 +27,7 @@ import {
     getField,
     type PrincipalId,
     type Timeframe,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { getNmiApiKey } from "./nmi"
 

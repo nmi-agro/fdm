@@ -4,7 +4,7 @@ import {
     getFertilizerParametersDescription,
     getFertilizers,
     getFields,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { Info } from "lucide-react"
 import { useState } from "react"
 import {

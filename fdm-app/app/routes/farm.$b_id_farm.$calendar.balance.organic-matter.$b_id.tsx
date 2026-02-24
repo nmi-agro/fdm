@@ -1,4 +1,4 @@
-import { getFarm, getField } from "@svenvw/fdm-core"
+import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
     ArrowDownToLine,
     ArrowRightLeft,

@@ -1,4 +1,4 @@
-import type { Field } from "@svenvw/fdm-core"
+import type { Field } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
 import { calculateNL2026StikstofGebruiksNorm } from "./stikstofgebruiksnorm"
 import type { NL2026NormsInput, NL2026NormsInputForCultivation } from "./types"

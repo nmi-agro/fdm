@@ -4,7 +4,7 @@ import {
     getCultivationsFromCatalogue,
     getDefaultsForHarvestParameters,
     getParametersForHarvestCat,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,

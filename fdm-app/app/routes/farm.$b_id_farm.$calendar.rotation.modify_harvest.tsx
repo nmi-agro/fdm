@@ -8,7 +8,7 @@ import {
     type HarvestableAnalysis,
     removeHarvest,
     updateHarvest,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { data, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"

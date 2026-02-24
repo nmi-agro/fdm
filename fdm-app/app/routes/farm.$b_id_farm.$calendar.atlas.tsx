@@ -1,4 +1,4 @@
-import { getFarm, getFarms } from "@svenvw/fdm-core"
+import { getFarm, getFarms } from "@nmi-agro/fdm-core"
 import {
     type LoaderFunctionArgs,
     type MetaFunction,
@@ -108,4 +108,3 @@ export default function FarmContentBlock() {
         </SidebarInset>
     )
 }
-

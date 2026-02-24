@@ -2,7 +2,7 @@ import {
     checkPermission,
     getGrazingIntentions,
     setGrazingIntention,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     type LoaderFunctionArgs,

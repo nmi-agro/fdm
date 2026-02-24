@@ -5,7 +5,7 @@ import type postgres from "postgres"
 
 export async function runMigration(
     client: ReturnType<typeof postgres>,
-    migrationsFolderPath = "node_modules/@svenvw/fdm-core/dist/db/migrations",
+    migrationsFolderPath = "node_modules/@nmi-agro/fdm-core/dist/db/migrations",
 ) {
     console.log("Migration started ⌛")
 

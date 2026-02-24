@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- [#415](https://github.com/SvenVw/fdm/pull/415) [`3675792`](https://github.com/SvenVw/fdm/commit/36757922dd4e71d4767defd906d2a986757d09f5) Thanks [@SvenVw](https://github.com/SvenVw)! - Updated 2025 nitrogen usage norm documentation to include grassland renewal and destruction reduction rules.
+- [#415](https://github.com/nmi-agro/fdm/pull/415) [`3675792`](https://github.com/nmi-agro/fdm/commit/36757922dd4e71d4767defd906d2a986757d09f5) Thanks [@SvenVw](https://github.com/SvenVw)! - Updated 2025 nitrogen usage norm documentation to include grassland renewal and destruction reduction rules.
 
 ## 0.9.0
 
@@ -82,7 +82,7 @@
 
 ### Patch Changes
 
-- Rename to `@svenvw/fdm-docs` to be consistent in naming with the other packages
+- Rename to `@nmi-agro/fdm-docs` to be consistent in naming with the other packages
 - Use the same version for `vite`, `typescript` and `dotenvx` across packages and update those to the latest version
 
 ## 0.2.0

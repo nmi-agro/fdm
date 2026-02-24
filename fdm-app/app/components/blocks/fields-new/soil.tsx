@@ -1,7 +1,7 @@
 import type {
     CurrentSoilData,
     SoilParameterDescription,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { FileUp, Info, Keyboard } from "lucide-react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
@@ -39,7 +39,10 @@ export function NewFieldSoilAnalysisBlock({
                         <CardTitle className="flex items-center gap-2">
                             Bodem
                             {isEstimated && (
-                                <Badge variant="secondary" className="bg-orange-100 text-orange-800 hover:bg-orange-100 font-normal border-transparent">
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-orange-100 text-orange-800 hover:bg-orange-100 font-normal border-transparent"
+                                >
                                     Schatting
                                 </Badge>
                             )}
@@ -56,7 +59,11 @@ export function NewFieldSoilAnalysisBlock({
                         <div className="flex items-start gap-2 text-sm text-muted-foreground leading-snug">
                             <Info className="h-4 w-4 shrink-0" />
                             <p>
-                                Voor een nauwkeuriger advies kun je al je bodemanalyses (pdf) in één keer uploaden. We proberen deze automatisch aan het juiste perceel te koppelen, maar je kunt dit na het uploaden ook zelf controleren en aanpassen.
+                                Voor een nauwkeuriger advies kun je al je
+                                bodemanalyses (pdf) in één keer uploaden. We
+                                proberen deze automatisch aan het juiste perceel
+                                te koppelen, maar je kunt dit na het uploaden
+                                ook zelf controleren en aanpassen.
                             </p>
                         </div>
                     )}
@@ -68,7 +75,11 @@ export function NewFieldSoilAnalysisBlock({
                                 Bodemanalyses uploaden (pdf)
                             </NavLink>
                         </Button>
-                        <Button variant="outline" asChild className="flex-1 sm:flex-none">
+                        <Button
+                            variant="outline"
+                            asChild
+                            className="flex-1 sm:flex-none"
+                        >
                             <NavLink
                                 to={`../${b_id}/soil/analysis${location.search}`}
                             >
@@ -79,7 +90,7 @@ export function NewFieldSoilAnalysisBlock({
                     </div>
 
                     <Separator />
-                    
+
                     <div className="">
                         <SoilDataCards
                             currentSoilData={currentSoilData}
