@@ -30,7 +30,7 @@ type Props<T extends string> = {
     searchParamName?: string // Query parameter name for search term (default: 'identifier')
     excludeValues?: T[] // Optional array of values to filter out
     iconMap?: IconMap // Optional map of icon identifiers to components
-    emptyMessage?: string | ((inputValue: string) => string)
+    emptyMessage?: string | ((inputValue: string) => React.ReactNode)
     placeholder?: string
     // biome-ignore lint/suspicious/noExplicitAny: Using any temporarily due to potential type conflicts with remix-hook-form
     form?: any

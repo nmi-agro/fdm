@@ -20,11 +20,14 @@ import { AccessFormSchema } from "~/lib/schemas/access.schema"
 // Define the type for the principal object based on usage
 type Principal = {
     username: string
-    displayUserName: string
-    image?: string
+    displayUserName: string | null
+    image?: string | null
     initials: string
-    role: "owner" | "advisor" | "researcher"
+    role: string
     type: "user" | "organization"
+    status: "active" | "pending"
+    invitation_id?: string
+    invitation_expires_at?: Date | string
 }
 
 type InvitationFormProps = {
@@ -45,8 +48,8 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
             onValid: (data) => {
                 submit(
                     {
-                        username: data.username,
-                        role: data.role,
+                        username: data.username ?? "",
+                        role: (data.role as string) ?? "advisor",
                         intent: "invite_user",
                     },
                     { method: "post" },

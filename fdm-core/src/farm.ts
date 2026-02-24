@@ -486,6 +486,7 @@ export async function listPrincipalsForFarm(
         role: string
         status: "active" | "pending"
         invitation_id?: string
+        invitation_expires_at?: Date
     })[]
 > {
     try {
@@ -660,6 +661,7 @@ export async function listPrincipalsForFarm(
                             role: invitation.role,
                             status: "pending" as const,
                             invitation_id: invitation.invitation_id,
+                            invitation_expires_at: invitation.expires,
                         }
                     }
 
@@ -677,6 +679,7 @@ export async function listPrincipalsForFarm(
                         role: invitation.role,
                         status: "pending" as const,
                         invitation_id: invitation.invitation_id,
+                        invitation_expires_at: invitation.expires,
                     }
                 },
             )
@@ -873,6 +876,142 @@ export async function isAllowedToShareFarm(
         return true
     } catch (_err) {
         return false
+    }
+}
+
+/**
+ * Cancels a pending invitation for a farm.
+ *
+ * This function checks if the acting principal has 'share' permission on the farm,
+ * then sets the invitation status to "declined", effectively cancelling it.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The identifier of the principal cancelling the invitation (must have 'share' permission).
+ * @param invitation_id - The identifier of the invitation to cancel.
+ * @param b_id_farm - The identifier of the farm.
+ */
+export async function cancelInvitationForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    invitation_id: string,
+): Promise<void> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            const invitations = await tx
+                .select()
+                .from(authZSchema.invitation)
+                .where(
+                    and(
+                        eq(
+                            authZSchema.invitation.invitation_id,
+                            invitation_id,
+                        ),
+                        eq(authZSchema.invitation.resource, "farm"),
+                    ),
+                )
+                .limit(1)
+
+            if (invitations.length === 0) {
+                throw new Error("Invitation not found")
+            }
+
+            if (invitations[0].status !== "pending") {
+                throw new Error(
+                    `Invitation is already ${invitations[0].status}`,
+                )
+            }
+
+            const b_id_farm = invitations[0].resource_id
+
+            await checkPermission(
+                tx,
+                "farm",
+                "share",
+                b_id_farm,
+                principal_id,
+                "cancelInvitationForFarm",
+            )
+
+            await tx
+                .update(authZSchema.invitation)
+                .set({ status: "declined" })
+                .where(
+                    eq(authZSchema.invitation.invitation_id, invitation_id),
+                )
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for cancelInvitationForFarm", {
+            invitation_id,
+        })
+    }
+}
+
+/**
+ * Updates the role on a pending invitation for a farm.
+ *
+ * This function looks up the invitation by invitation_id, checks if the acting
+ * principal has 'share' permission on the farm, then updates the role field.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The identifier of the principal updating the role (must have 'share' permission).
+ * @param invitation_id - The identifier of the invitation to update.
+ * @param role - The new role to assign.
+ */
+export async function updateRoleOfInvitationForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    invitation_id: string,
+    role: "owner" | "advisor" | "researcher",
+): Promise<void> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            const invitations = await tx
+                .select()
+                .from(authZSchema.invitation)
+                .where(
+                    and(
+                        eq(
+                            authZSchema.invitation.invitation_id,
+                            invitation_id,
+                        ),
+                        eq(authZSchema.invitation.resource, "farm"),
+                    ),
+                )
+                .limit(1)
+
+            if (invitations.length === 0) {
+                throw new Error("Invitation not found")
+            }
+
+            if (invitations[0].status !== "pending") {
+                throw new Error(
+                    `Invitation is already ${invitations[0].status}`,
+                )
+            }
+
+            const b_id_farm = invitations[0].resource_id
+
+            await checkPermission(
+                tx,
+                "farm",
+                "share",
+                b_id_farm,
+                principal_id,
+                "updateRoleOfInvitationForFarm",
+            )
+
+            await tx
+                .update(authZSchema.invitation)
+                .set({ role })
+                .where(
+                    eq(authZSchema.invitation.invitation_id, invitation_id),
+                )
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for updateRoleOfInvitationForFarm", {
+            invitation_id,
+            role,
+        })
     }
 }
 

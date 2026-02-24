@@ -1,4 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { formatDistanceToNow } from "date-fns"
+import { nl } from "date-fns/locale"
 import type React from "react"
 import { useFetcher } from "react-router-dom"
 import { useRemixForm } from "remix-hook-form"
@@ -19,11 +21,14 @@ import { AccessFormSchema } from "~/lib/schemas/access.schema"
 // Define the props type based on usage in the original file
 type PrincipalRowProps = {
     username: string
-    displayUserName: string
-    image?: string // Optional image URL
+    displayUserName: string | null
+    image?: string | null
     initials: string
-    role: "owner" | "advisor" | "researcher"
+    role: string
     type: "user" | "organization"
+    status: "active" | "pending"
+    invitation_id?: string
+    invitation_expires_at?: Date | string
     hasSharePermission: boolean
 }
 
@@ -34,6 +39,9 @@ export const PrincipalRow = ({
     initials,
     role,
     type,
+    status,
+    invitation_id,
+    invitation_expires_at,
     hasSharePermission,
 }: PrincipalRowProps) => {
     const fetcher = useFetcher()
@@ -43,7 +51,7 @@ export const PrincipalRow = ({
         resolver: zodResolver(AccessFormSchema),
         defaultValues: {
             username: username,
-            role: role,
+            role: role as "owner" | "advisor" | "researcher",
             intent: "update_role", // Default intent
         },
     })
@@ -52,7 +60,11 @@ export const PrincipalRow = ({
     const handleRemove = async (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault()
         fetcher.submit(
-            { username: username, intent: "remove_user" },
+            {
+                username: username,
+                intent: "remove_user",
+                ...(invitation_id ? { invitation_id } : {}),
+            },
             { method: "post" },
         )
     }
@@ -67,29 +79,47 @@ export const PrincipalRow = ({
                 username: username,
                 role: value,
                 intent: "update_role",
+                ...(invitation_id ? { invitation_id } : {}),
             },
             { method: "post" },
         )
     }
 
+    const isPending = status === "pending"
+
+    const expiryLabel =
+        isPending && invitation_expires_at
+            ? formatDistanceToNow(new Date(invitation_expires_at), {
+                  locale: nl,
+                  addSuffix: true,
+              })
+            : null
+
     return (
         <div className="flex items-center justify-between space-x-4">
             <div className="flex items-center space-x-4">
                 <Avatar>
-                    <AvatarImage src={image} />
+                    <AvatarImage src={image ?? undefined} />
                     <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <div>
                     <p className="text-sm font-medium leading-none">
                         {displayUserName}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                        {type === "user"
-                            ? "Gebruiker"
-                            : type === "organization"
-                              ? "Organisatie"
-                              : "Onbekend"}
-                    </p>
+                    {isPending ? (
+                        <p className="text-sm text-muted-foreground">
+                            Uitnodiging
+                            {expiryLabel ? ` · verloopt ${expiryLabel}` : ""}
+                        </p>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            {type === "user"
+                                ? "Gebruiker"
+                                : type === "organization"
+                                  ? "Organisatie"
+                                  : "Onbekend"}
+                        </p>
+                    )}
                 </div>
             </div>
             {hasSharePermission ? (
@@ -109,7 +139,7 @@ export const PrincipalRow = ({
                             // Disable select while submitting
                             disabled={fetcher.state !== "idle"}
                         >
-                            <SelectTrigger className="ml-auto w-[150px]">
+                            <SelectTrigger className="ml-auto w-37.5">
                                 <SelectValue placeholder="Selecteer rol" />
                             </SelectTrigger>
                             <SelectContent>

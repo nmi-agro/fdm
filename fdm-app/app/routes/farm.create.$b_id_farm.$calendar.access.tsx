@@ -1,10 +1,12 @@
 import {
+    cancelInvitationForFarm,
     getFarm,
     grantRoleToFarm,
     isAllowedToShareFarm,
     listPrincipalsForFarm,
     lookupPrincipal,
     revokePrincipalFromFarm,
+    updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
 import isEmail from "validator/lib/isEmail"
@@ -26,6 +28,8 @@ import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import {
     renderFarmInvitationEmail,
+    renderFarmInvitationCancelledEmail,
+    renderFarmInvitationRoleUpdatedEmail,
     sendEmail,
     isInactiveRecipientError,
 } from "~/lib/email.server"
@@ -248,13 +252,51 @@ export async function action({ request, params }: ActionFunctionArgs) {
             if (!formValues.role) {
                 return dataWithError(null, "Rol is verplicht.")
             }
-            await updateRoleOfPrincipalAtFarm(
-                fdm,
-                principalId,
-                formValues.username,
-                b_id_farm,
-                formValues.role,
-            )
+            if (formValues.invitation_id) {
+                // Pending invitation — update the invitation's role
+                await updateRoleOfInvitationForFarm(
+                    fdm,
+                    principalId,
+                    formValues.invitation_id,
+                    formValues.role,
+                )
+                // Send role-updated notification email; failure is non-fatal as the role was already updated
+                try {
+                    const farm = await getFarm(fdm, principalId, b_id_farm)
+                    const normalizedTarget = formValues.username.toLowerCase().trim()
+                    const isEmailTarget = isEmail(normalizedTarget)
+                    const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
+                    const targetPrincipal = matchedPrincipals.find(
+                        (p) =>
+                            p.username.toLowerCase() === normalizedTarget ||
+                            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
+                    )
+                    const targetEmail = isEmailTarget
+                        ? normalizedTarget
+                        : targetPrincipal?.type === "user"
+                          ? targetPrincipal.email
+                          : null
+                    if (targetEmail) {
+                        const email = await renderFarmInvitationRoleUpdatedEmail(
+                            targetEmail,
+                            session.userName,
+                            farm.b_name_farm ?? b_id_farm,
+                            formValues.role,
+                        )
+                        await sendEmail(email)
+                    }
+                } catch (emailError) {
+                    console.error("Error sending role-updated invitation email:", emailError)
+                }
+            } else {
+                await updateRoleOfPrincipalAtFarm(
+                    fdm,
+                    principalId,
+                    formValues.username,
+                    b_id_farm,
+                    formValues.role,
+                )
+            }
             return dataWithSuccess(null, { message: "Rol is bijgewerkt!" })
         }
 
@@ -265,12 +307,48 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     "Gebruikersnaam/Organisatie is verplicht.",
                 )
             }
-            await revokePrincipalFromFarm(
-                fdm,
-                principalId,
-                formValues.username,
-                b_id_farm,
-            )
+            if (formValues.invitation_id) {
+                // Pending invitation — cancel it
+                await cancelInvitationForFarm(
+                    fdm,
+                    principalId,
+                    formValues.invitation_id,
+                )
+                // Send cancellation notification email; failure is non-fatal as the invitation was already cancelled
+                try {
+                    const farm = await getFarm(fdm, principalId, b_id_farm)
+                    const normalizedTarget = formValues.username.toLowerCase().trim()
+                    const isEmailTarget = isEmail(normalizedTarget)
+                    const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
+                    const targetPrincipal = matchedPrincipals.find(
+                        (p) =>
+                            p.username.toLowerCase() === normalizedTarget ||
+                            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
+                    )
+                    const targetEmail = isEmailTarget
+                        ? normalizedTarget
+                        : targetPrincipal?.type === "user"
+                          ? targetPrincipal.email
+                          : null
+                    if (targetEmail) {
+                        const email = await renderFarmInvitationCancelledEmail(
+                            targetEmail,
+                            session.userName,
+                            farm.b_name_farm ?? b_id_farm,
+                        )
+                        await sendEmail(email)
+                    }
+                } catch (emailError) {
+                    console.error("Error sending invitation cancelled email:", emailError)
+                }
+            } else {
+                await revokePrincipalFromFarm(
+                    fdm,
+                    principalId,
+                    formValues.username,
+                    b_id_farm,
+                )
+            }
             return dataWithSuccess(null, {
                 message: `Toegang voor ${formValues.username} ingetrokken.`,
             })
