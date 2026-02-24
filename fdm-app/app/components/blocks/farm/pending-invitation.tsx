@@ -34,7 +34,7 @@ function getRoleLabel(role: string): string {
 
 export function PendingInvitationCard({ invitation }: Props) {
     const farmLabel = invitation.farm_name ?? invitation.resource_id
-    const expiresText = formatDistanceToNow(new Date("2026-02-24 12:30:00"), {
+    const expiresText = formatDistanceToNow(new Date(invitation.expires), {
         addSuffix: true,
         locale: nl,
     })
