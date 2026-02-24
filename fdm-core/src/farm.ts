@@ -880,6 +880,59 @@ export async function isAllowedToShareFarm(
 }
 
 /**
+ * Internal helper to validate a pending farm invitation and check caller permissions.
+ *
+ * @param tx - The transaction context.
+ * @param invitation_id - The invitation ID to look up.
+ * @param principal_id - The principal attempting the action.
+ * @returns The validated invitation record.
+ * @throws Error if invitation not found, not pending, expired, or permission denied.
+ */
+async function getAndValidatePendingFarmInvitation(
+    tx: FdmType,
+    invitation_id: string,
+    principal_id: PrincipalId,
+): Promise<authZSchema.invitationTypeSelect> {
+    const invitations = await tx
+        .select()
+        .from(authZSchema.invitation)
+        .where(
+            and(
+                eq(authZSchema.invitation.invitation_id, invitation_id),
+                eq(authZSchema.invitation.resource, "farm"),
+            ),
+        )
+        .limit(1)
+
+    if (invitations.length === 0) {
+        throw new Error("Invitation not found")
+    }
+
+    const invitation = invitations[0]
+
+    if (invitation.status !== "pending") {
+        throw new Error(`Invitation is already ${invitation.status}`)
+    }
+
+    if (invitation.expires < new Date()) {
+        throw new Error("Invitation has expired")
+    }
+
+    const b_id_farm = invitation.resource_id
+
+    await checkPermission(
+        tx,
+        "farm",
+        "share",
+        b_id_farm,
+        principal_id,
+        "getAndValidatePendingFarmInvitation",
+    )
+
+    return invitation
+}
+
+/**
  * Cancels a pending invitation for a farm.
  *
  * This function checks if the acting principal has 'share' permission on the farm,
@@ -888,7 +941,6 @@ export async function isAllowedToShareFarm(
  * @param fdm - The FDM instance.
  * @param principal_id - The identifier of the principal cancelling the invitation (must have 'share' permission).
  * @param invitation_id - The identifier of the invitation to cancel.
- * @param b_id_farm - The identifier of the farm.
  */
 export async function cancelInvitationForFarm(
     fdm: FdmType,
@@ -897,39 +949,10 @@ export async function cancelInvitationForFarm(
 ): Promise<void> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
-            const invitations = await tx
-                .select()
-                .from(authZSchema.invitation)
-                .where(
-                    and(
-                        eq(
-                            authZSchema.invitation.invitation_id,
-                            invitation_id,
-                        ),
-                        eq(authZSchema.invitation.resource, "farm"),
-                    ),
-                )
-                .limit(1)
-
-            if (invitations.length === 0) {
-                throw new Error("Invitation not found")
-            }
-
-            if (invitations[0].status !== "pending") {
-                throw new Error(
-                    `Invitation is already ${invitations[0].status}`,
-                )
-            }
-
-            const b_id_farm = invitations[0].resource_id
-
-            await checkPermission(
+            await getAndValidatePendingFarmInvitation(
                 tx,
-                "farm",
-                "share",
-                b_id_farm,
+                invitation_id,
                 principal_id,
-                "cancelInvitationForFarm",
             )
 
             await tx
@@ -965,39 +988,10 @@ export async function updateRoleOfInvitationForFarm(
 ): Promise<void> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
-            const invitations = await tx
-                .select()
-                .from(authZSchema.invitation)
-                .where(
-                    and(
-                        eq(
-                            authZSchema.invitation.invitation_id,
-                            invitation_id,
-                        ),
-                        eq(authZSchema.invitation.resource, "farm"),
-                    ),
-                )
-                .limit(1)
-
-            if (invitations.length === 0) {
-                throw new Error("Invitation not found")
-            }
-
-            if (invitations[0].status !== "pending") {
-                throw new Error(
-                    `Invitation is already ${invitations[0].status}`,
-                )
-            }
-
-            const b_id_farm = invitations[0].resource_id
-
-            await checkPermission(
+            await getAndValidatePendingFarmInvitation(
                 tx,
-                "farm",
-                "share",
-                b_id_farm,
+                invitation_id,
                 principal_id,
-                "updateRoleOfInvitationForFarm",
             )
 
             await tx
