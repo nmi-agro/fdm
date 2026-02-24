@@ -24,7 +24,7 @@ type PrincipalRowProps = {
     displayUserName: string | null
     image?: string | null
     initials: string
-    role: string
+    role: "owner" | "advisor" | "researcher"
     type: "user" | "organization"
     status: "active" | "pending"
     invitation_id?: string
