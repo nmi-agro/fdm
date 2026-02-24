@@ -914,7 +914,7 @@ async function getAndValidatePendingFarmInvitation(
         throw new Error(`Invitation is already ${invitation.status}`)
     }
 
-    if (invitation.expires < new Date()) {
+    if (invitation.expires <= new Date()) {
         throw new Error("Invitation has expired")
     }
 
@@ -958,9 +958,7 @@ export async function cancelInvitationForFarm(
             await tx
                 .update(authZSchema.invitation)
                 .set({ status: "declined" })
-                .where(
-                    eq(authZSchema.invitation.invitation_id, invitation_id),
-                )
+                .where(eq(authZSchema.invitation.invitation_id, invitation_id))
         })
     } catch (err) {
         throw handleError(err, "Exception for cancelInvitationForFarm", {
@@ -997,9 +995,7 @@ export async function updateRoleOfInvitationForFarm(
             await tx
                 .update(authZSchema.invitation)
                 .set({ role })
-                .where(
-                    eq(authZSchema.invitation.invitation_id, invitation_id),
-                )
+                .where(eq(authZSchema.invitation.invitation_id, invitation_id))
         })
     } catch (err) {
         throw handleError(err, "Exception for updateRoleOfInvitationForFarm", {
