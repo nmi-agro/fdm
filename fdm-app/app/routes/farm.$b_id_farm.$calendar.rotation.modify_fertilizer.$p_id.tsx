@@ -3,6 +3,7 @@ import {
     getFertilizer,
     getFertilizerApplications,
     getFertilizerParametersDescription,
+    getField,
     removeFertilizerApplication,
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
@@ -35,6 +36,8 @@ import {
     EmptyHeader,
     EmptyTitle,
 } from "~/components/ui/empty"
+import { ScrollArea } from "~/components/ui/scroll-area"
+import { Spinner } from "~/components/ui/spinner"
 import {
     Table,
     TableBody,
@@ -47,9 +50,14 @@ import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { Spinner } from "../components/ui/spinner"
-import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { cn } from "../lib/utils"
+import { cn } from "~/lib/utils"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_fertilizer.$p_id"
 
 interface FertilizerInfo {
@@ -78,11 +86,20 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         }
 
         const allApplicationsPerField = await Promise.all(
-            fieldIds.map((b_id) =>
-                getFertilizerApplications(fdm, session.principal_id, b_id).then(
-                    (apps) => apps.map((app) => ({ ...app, b_id: b_id })),
-                ),
-            ),
+            fieldIds.map(async (b_id) => {
+                const field = await getField(fdm, session.principal_id, b_id)
+                return getFertilizerApplications(
+                    fdm,
+                    session.principal_id,
+                    b_id,
+                ).then((apps) =>
+                    apps.map((app) => ({
+                        ...app,
+                        b_id: b_id,
+                        b_name: field.b_name,
+                    })),
+                )
+            }),
         )
 
         const applicationsPerField = allApplicationsPerField.map(
@@ -153,9 +170,21 @@ interface FertAppRecordItem {
 
 type FertAppRecord = Record<string, FertAppRecordItem>
 
+type RowMapperFunction = (
+    record: FertAppRecord,
+    applications: ApplicationExtended[],
+) => void
+/**
+ * Creates a mapper function that places applications into table rows.
+ *
+ * @param keyExtractor given a fertilizer application an index unique within the field's fertilizer
+ * applications group, it should return a stringified number that will determine which row the
+ * application goes into.
+ * @returns the mapper function
+ */
 const createMapper =
     (
-        mapper: (
+        keyExtractor: (
             application: Omit<ApplicationExtended, "p_app_date"> & {
                 p_app_date: Date
             },
@@ -165,7 +194,7 @@ const createMapper =
     (record: FertAppRecord, applications: ApplicationExtended[]) => {
         applications.forEach((application, i) => {
             if (!application.p_app_date) return
-            const key = mapper(application, i)
+            const key = keyExtractor(application, i)
             record[key] ??= {
                 id: `${application.p_id}_${key}`,
                 dates: [],
@@ -176,20 +205,43 @@ const createMapper =
         })
     }
 
+/** This mapper function maps each application as a separate entry. */
+const mapEach: RowMapperFunction = (record, applications) => {
+    const offset = Object.keys(record).length
+    applications
+        .filter((application) => application.p_app_date != null)
+        .sort((a, b) => a.p_app_date.getTime() - b.p_app_date.getTime())
+        .forEach((application, i) => {
+            if (!application.p_app_date) return
+            const key = offset + i
+            record[key] = {
+                id: `${application.p_id}_${key}`,
+                dates: [application.p_app_date],
+                applications: [application],
+            }
+        })
+}
+
+/**
+ * Mapper functions that can be used to group the fertilizer applications into table rows in different ways
+ */
 export const mappers = {
     mapByOrder: createMapper((_application, i) => i.toString()),
     mapByDate: createMapper((application) =>
         application.p_app_date.getTime().toString(),
     ),
-    mapEach: createMapper((application) => application.p_app_id),
+    mapEach: mapEach,
 } as const
 
+/**
+ *
+ * @param applicationsPerField
+ * @param mapper
+ * @returns
+ */
 function groupAndOrderFertApps(
     applicationsPerField: ApplicationExtended[][],
-    mapper: (
-        record: FertAppRecord,
-        applications: ApplicationExtended[],
-    ) => void,
+    mapper: RowMapperFunction,
 ) {
     const record: FertAppRecord = {}
     for (const group of applicationsPerField) {
@@ -235,23 +287,30 @@ function formatNumberRange(numbers: number[], unit = "") {
 function FertilizerApplicationRow({
     record,
     returnUrl,
-    includeModifyCellWhenReadonly,
+    columnVisibility,
 }: {
     record: FertAppRecordItem
     returnUrl: string
-    includeModifyCellWhenReadonly: boolean
+    columnVisibility: Record<"count" | "modify", boolean>
 }) {
     const params = useParams()
     const navigation = useNavigation()
 
     const {
         dates,
+        fieldNames,
         applicationMethods,
         applicationAmount,
         modifiableApps,
         modifiableAppIds,
     } = useMemo(() => {
         const dates = formatDateRange(record.dates)
+        // Gets names of distinct fields
+        const fieldNames = Object.entries(
+            Object.fromEntries(
+                record.applications.map((app) => [app.b_id, app.b_name]),
+            ),
+        ).sort((a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0))
         const applicationMethods = [
             ...new Set(
                 record.applications
@@ -281,6 +340,7 @@ function FertilizerApplicationRow({
 
         return {
             dates,
+            fieldNames,
             applicationMethods,
             applicationAmount,
             modifiableApps,
@@ -291,42 +351,86 @@ function FertilizerApplicationRow({
     return (
         <TableRow>
             <TableCell>{dates}</TableCell>
+            <TableCell>
+                {columnVisibility.count && (
+                    <TableCell>
+                        {record.applications.length > 1 ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost">
+                                        <p className="text-muted-foreground">
+                                            {fieldNames.length === 1
+                                                ? "1 perceel"
+                                                : `${fieldNames.length} percelen`}
+                                        </p>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <ScrollArea
+                                        className={
+                                            fieldNames.length >= 8
+                                                ? "h-72 overflow-y-auto w-48"
+                                                : "w-48"
+                                        }
+                                    >
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {fieldNames.map(
+                                                ([b_id, b_name]) => (
+                                                    <DropdownMenuItem
+                                                        key={b_id}
+                                                    >
+                                                        {b_name}
+                                                    </DropdownMenuItem>
+                                                ),
+                                            )}
+                                        </div>
+                                    </ScrollArea>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : (
+                            <div className="px-4 py-2">{fieldNames[0][1]}</div>
+                        )}
+                    </TableCell>
+                )}
+            </TableCell>
             <TableCell>{applicationMethods}</TableCell>
             <TableCell>{applicationAmount}</TableCell>
-            {modifiableApps.length > 0 ? (
-                <TableCell className="flex flex-row justify-end items-center gap-2">
-                    <Button asChild>
-                        <NavLink
-                            to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
-                        >
-                            Bijwerken
-                        </NavLink>
-                    </Button>
-                    <Form method="POST">
-                        <input
-                            name="appIds"
-                            type="hidden"
-                            value={modifiableAppIds}
-                        />
-                        <Button
-                            name="intent"
-                            variant="destructive"
-                            value="remove_application"
-                            disabled={navigation.state === "submitting"}
-                        >
-                            Verwijderen
+            {columnVisibility.modify &&
+                (modifiableApps.length > 0 ? (
+                    <TableCell className="flex flex-row justify-end items-center gap-2">
+                        <Button asChild>
+                            <NavLink
+                                to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
+                            >
+                                Bijwerken
+                            </NavLink>
                         </Button>
-                    </Form>
-                    <Spinner
-                        className={cn(
-                            "h-4 w-4",
-                            navigation.state !== "submitting" && "invisible",
-                        )}
-                    />
-                </TableCell>
-            ) : (
-                includeModifyCellWhenReadonly && <TableCell />
-            )}
+                        <Form method="POST">
+                            <input
+                                name="appIds"
+                                type="hidden"
+                                value={modifiableAppIds}
+                            />
+                            <Button
+                                name="intent"
+                                variant="destructive"
+                                value="remove_application"
+                                disabled={navigation.state === "submitting"}
+                            >
+                                Verwijderen
+                            </Button>
+                        </Form>
+                        <Spinner
+                            className={cn(
+                                "h-4 w-4",
+                                navigation.state !== "submitting" &&
+                                    "invisible",
+                            )}
+                        />
+                    </TableCell>
+                ) : (
+                    <TableCell />
+                ))}
         </TableRow>
     )
 }
@@ -337,20 +441,22 @@ export default function FertilizerApplicationListDialog() {
 
     const navigate = useNavigate()
 
-    const canModifyAnything = useMemo(
-        () =>
-            fertilizerApplications.some((apps) =>
-                apps.some((app) => app.canModify),
-            ),
-        [fertilizerApplications],
-    )
-
     const [rowMapper, setRowMapper] =
         useState<keyof typeof mappers>("mapByDate")
 
     const records = useMemo(
         () => groupAndOrderFertApps(fertilizerApplications, mappers[rowMapper]),
         [fertilizerApplications, rowMapper],
+    )
+
+    const columnVisibility = useMemo(
+        () => ({
+            count: records.some((app) => app.applications.length > 1),
+            modify: fertilizerApplications.some((apps) =>
+                apps.some((app) => app.canModify),
+            ),
+        }),
+        [fertilizerApplications, records],
     )
 
     return (
@@ -364,47 +470,55 @@ export default function FertilizerApplicationListDialog() {
                 </DialogHeader>
                 {records.length > 0 ? (
                     <>
-                        <div className="flex flex-row items-center gap-2">
-                            <p>Groeperen op </p>
-                            <Tabs
-                                value={rowMapper}
-                                onValueChange={(value) => {
-                                    if (value in mappers)
-                                        setRowMapper(
-                                            value as keyof typeof mappers,
-                                        )
-                                }}
-                            >
-                                <TabsList>
-                                    <TabsTrigger value="mapByDate">
-                                        Datum
-                                    </TabsTrigger>
-                                    <TabsTrigger value="mapByOrder">
-                                        Volgorde
-                                    </TabsTrigger>
-                                    <TabsTrigger value="mapEach">
-                                        Niet groupen
-                                    </TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                        </div>
+                        {fertilizerApplications
+                            .map((apps) => apps.length)
+                            .reduce((a, b) => a + b) > 1 && (
+                            <div className="flex flex-row items-center gap-2">
+                                <p>Groeperen op </p>
+                                <Tabs
+                                    value={rowMapper}
+                                    onValueChange={(value) => {
+                                        if (value in mappers)
+                                            setRowMapper(
+                                                value as keyof typeof mappers,
+                                            )
+                                    }}
+                                >
+                                    <TabsList>
+                                        <TabsTrigger value="mapByDate">
+                                            Datum
+                                        </TabsTrigger>
+                                        <TabsTrigger value="mapByOrder">
+                                            Volgorde
+                                        </TabsTrigger>
+                                        <TabsTrigger value="mapEach">
+                                            Niet groeperen
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            </div>
+                        )}
                         <Table>
                             <TableHeader className="sticky">
                                 <TableRow>
                                     <TableHead>Datum</TableHead>
+                                    <TableHead>Percelen</TableHead>
+                                    {columnVisibility.count && (
+                                        <TableHead>
+                                            Aantal Bemestingen
+                                        </TableHead>
+                                    )}
                                     <TableHead>Toedieningsmethode</TableHead>
                                     <TableHead>Hoeveelheid</TableHead>
-                                    {canModifyAnything && <TableHead />}
+                                    {columnVisibility.modify && <TableHead />}
                                 </TableRow>
                             </TableHeader>
-                            <TableBody>
+                            <TableBody className="text-muted-foreground">
                                 {records.map((record) => (
                                     <FertilizerApplicationRow
                                         key={record.id}
                                         record={record}
-                                        includeModifyCellWhenReadonly={
-                                            canModifyAnything
-                                        }
+                                        columnVisibility={columnVisibility}
                                         returnUrl={returnUrl}
                                     />
                                 ))}

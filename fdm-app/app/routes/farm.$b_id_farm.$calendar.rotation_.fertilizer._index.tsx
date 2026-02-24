@@ -548,33 +548,34 @@ export default function FarmRotationFertilizerAddIndex() {
                                                             {field.b_name}
                                                         </p>
                                                         <div className="flex gap-2 items-center">
-                                                            {!field.cultivations.some(
-                                                                (c) =>
-                                                                    loaderData.cultivationIds.includes(
-                                                                        c,
-                                                                    ),
-                                                            ) && (
-                                                                <TooltipProvider>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger
-                                                                            asChild
-                                                                        >
-                                                                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>
-                                                                                Dit
-                                                                                perceel
-                                                                                heeft
-                                                                                het
-                                                                                geselecteerde
-                                                                                gewas
-                                                                                niet
-                                                                            </p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
-                                                            )}
+                                                            {loaderData.canReselect &&
+                                                                !field.cultivations.some(
+                                                                    (c) =>
+                                                                        loaderData.cultivationIds.includes(
+                                                                            c,
+                                                                        ),
+                                                                ) && (
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger
+                                                                                asChild
+                                                                            >
+                                                                                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                <p>
+                                                                                    Dit
+                                                                                    perceel
+                                                                                    heeft
+                                                                                    het
+                                                                                    geselecteerde
+                                                                                    gewas
+                                                                                    niet
+                                                                                </p>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                )}
                                                             <Badge variant="secondary">
                                                                 {field.b_area}{" "}
                                                                 ha
