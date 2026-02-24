@@ -4,7 +4,7 @@ import {
     getFertilizerApplications,
     getFertilizerParametersDescription,
     removeFertilizerApplication,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useMemo } from "react"
