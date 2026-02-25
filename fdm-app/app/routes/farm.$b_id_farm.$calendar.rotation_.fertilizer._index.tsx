@@ -80,6 +80,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { parseAppIds } from "~/lib/fertilizer-application-helpers"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { isOfOrigin, modifySearchParams } from "~/lib/url-utils"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation_.fertilizer._index"
@@ -92,24 +93,6 @@ export const meta: MetaFunction = () => {
             content: "",
         },
     ]
-}
-
-function parseAppIds(
-    appIdPairs: string[],
-): { b_id: string; p_app_id: string }[] {
-    const applicationRefs: { p_app_id: string; b_id: string }[] = []
-
-    // Parse application references
-    for (const appId of appIdPairs) {
-        const splitting = appId.split(":")
-        if (splitting.length < 2) {
-            throw new Error(`invalid b_id:p_app_id : ${appId}`)
-        }
-        const [b_id, p_app_id] = splitting
-        applicationRefs.push({ b_id, p_app_id })
-    }
-
-    return applicationRefs
 }
 
 type PathParams = Route.LoaderArgs["params"]
@@ -126,11 +109,17 @@ function loadByStrategy(
     params: PathParams,
     searchParams: URLSearchParams,
 ) {
-    // Get cultivationIds from search params
-    const appIds = searchParams.get("appIds")?.split(",").filter(Boolean)
-
-    if (appIds && appIds.length > 0) {
-        return loadByAppIds(principal_id, params, appIds)
+    if (searchParams.has("appIds")) {
+        // Get appIds from search params
+        const appIds = searchParams.get("appIds") ?? ""
+        const appIdPairs = parseAppIds(appIds)
+        if (appIdPairs.length === 0) {
+            throw data("invalid: appIds", {
+                status: 400,
+                statusText: "invalid: appIds",
+            })
+        }
+        return loadByAppIds(principal_id, params, appIdPairs)
     }
 
     // Get cultivationIds from search params
@@ -212,10 +201,8 @@ async function loadByCultivationAndFieldIds(
 async function loadByAppIds(
     principal_id: string,
     _params: PathParams,
-    appIdPairs: string[],
+    applicationRefs: ReturnType<typeof parseAppIds>,
 ): Promise<StrategizedLoaderData> {
-    const applicationRefs = parseAppIds(appIdPairs)
-
     const fieldIds = [...new Set(applicationRefs.map((ref) => ref.b_id))]
 
     const fields = await Promise.all(
@@ -488,6 +475,8 @@ export default function FarmRotationFertilizerAddIndex() {
     }
 
     const isModification = !!loaderData.fertilizerApplication?.p_app_ids
+    const returnUrl = searchParams.get("returnUrl")
+    const comingFromFieldsTable = returnUrl?.includes("/field/")
 
     return (
         <SidebarInset>
@@ -506,7 +495,7 @@ export default function FarmRotationFertilizerAddIndex() {
                 />
                 <BreadcrumbSeparator />
                 <BreadcrumbItem className="hidden md:block">
-                    Bouwplan
+                    {comingFromFieldsTable ? "Percelen" : "Bouwplan"}
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem className="hidden md:block">
@@ -517,8 +506,18 @@ export default function FarmRotationFertilizerAddIndex() {
             </Header>
             <main>
                 <FarmTitle
-                    title={`Bemesting ${isModification ? "bijwerken" : "toevoegen"} ${loaderData.cultivationNames.join(", ")}`}
-                    description="Kies 1 of meerdere percelen om een bemesting toe te voegen"
+                    title={
+                        isModification
+                            ? `Bemesting wijzigen op ${loaderData.fieldOptions.length} ${loaderData.fieldOptions.length === 1 ? "perceel" : "percelen"}`
+                            : `Bemesting toevoegen aan ${loaderData.cultivationNames.join(", ")}`
+                    }
+                    description={
+                        loaderData.canReselect
+                            ? isModification
+                                ? "Kies 1 of meerdere percelen om hun bemesting te wijzigen"
+                                : "Kies 1 of meerdere percelen om een bemesting toe te voegen"
+                            : ""
+                    }
                 />
                 <div className="relative">
                     {isSubmitting && (

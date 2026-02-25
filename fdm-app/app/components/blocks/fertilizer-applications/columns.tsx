@@ -3,7 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useMemo } from "react"
-import { Form, NavLink, useNavigation, useParams } from "react-router"
+import { NavLink, useFetcher, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import {
@@ -157,9 +157,11 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
     {
         id: "modify",
         header: "",
-        cell: ({ returnUrl, row }) => {
+        cell: ({ row, table }) => {
             const params = useParams()
-            const navigation = useNavigation()
+            const fetcher = useFetcher()
+            const returnUrl = (table.options.meta as { returnUrl: string })
+                .returnUrl
 
             const modifiableAppIds = useMemo(
                 () =>
@@ -175,17 +177,17 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
                     <Spinner
                         className={cn(
                             "h-4 w-4",
-                            navigation.state !== "submitting" && "invisible",
+                            fetcher.state !== "submitting" && "invisible",
                         )}
                     />
                     <Button asChild>
                         <NavLink
                             to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
                         >
-                            Bijwerken
+                            Wijzigen
                         </NavLink>
                     </Button>
-                    <Form method="POST">
+                    <fetcher.Form method="POST">
                         <input
                             name="appIds"
                             type="hidden"
@@ -195,11 +197,11 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
                             name="intent"
                             variant="destructive"
                             value="remove_application"
-                            disabled={navigation.state === "submitting"}
+                            disabled={fetcher.state === "submitting"}
                         >
                             Verwijderen
                         </Button>
-                    </Form>
+                    </fetcher.Form>
                 </Field>
             )
         },

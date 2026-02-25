@@ -140,10 +140,11 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     ])
 
     useEffect(() => {
-        if (fertilizerApplication?.p_app_amount) {
-            form.setValue("p_app_amount", fertilizerApplication.p_app_amount)
+        const p_app_amount = fertilizerApplication?.p_app_amount
+        if (p_app_amount !== null && typeof p_app_amount !== "undefined") {
+            form.setValue("p_app_amount", p_app_amount)
         }
-    }, [fertilizerApplication, form.setValue])
+    }, [fertilizerApplication?.p_app_amount, form.setValue])
 
     // Change fertilizer selection if the user has added a new fertilizer
     const new_p_id = searchParams.get("p_id")

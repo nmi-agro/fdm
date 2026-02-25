@@ -29,6 +29,7 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { parseAppIds } from "~/lib/fertilizer-application-helpers"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_fertilizer.$p_id"
 
@@ -146,7 +147,7 @@ export default function FertilizerApplicationListDialog() {
 
     const numFertilizerApplications = fertilizerApplications
         .map((apps) => apps.length)
-        .reduce((a, b) => a + b)
+        .reduce((a, b) => a + b, 0)
 
     return (
         <Dialog open={true} onOpenChange={() => navigate("..")}>
@@ -189,17 +190,6 @@ export default function FertilizerApplicationListDialog() {
             </DialogContent>
         </Dialog>
     )
-}
-
-function parseAppIds(value: string) {
-    return value
-        .split(",")
-        .map((pairStr) => pairStr.split(":"))
-        .filter(
-            (pair) =>
-                pair.length === 2 && pair[0].length > 0 && pair[1].length > 0,
-        )
-        .map(([b_id, p_app_id]) => ({ b_id, p_app_id }))
 }
 
 const FormSchema = z.discriminatedUnion("intent", [

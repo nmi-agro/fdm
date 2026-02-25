@@ -73,7 +73,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             const toTest = url.pathname.endsWith("/")
                 ? url.pathname.substring(0, url.pathname.length - 1)
                 : url.pathname
-            if (toTest !== base && toTest !== `${base}/modify_fertilizer`) {
+            if (
+                toTest !== base &&
+                !toTest.startsWith(`${base}/modify_fertilizer`)
+            ) {
                 return {
                     shouldShowLayout: false,
                     b_id_farm: params.b_id_farm,

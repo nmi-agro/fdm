@@ -144,7 +144,7 @@ export function DataTable({
 
     const numFertilizerApplications = fertilizerApplications
         .map((apps) => apps.length)
-        .reduce((a, b) => a + b)
+        .reduce((a, b) => a + b, 0)
 
     const shouldShowGroupingSelector =
         numFields > 1 && numFertilizerApplications > 1
@@ -171,6 +171,7 @@ export function DataTable({
         columns: columns,
         data: records,
         getCoreRowModel: getCoreRowModel(),
+        meta: { returnUrl },
         state: {
             columnVisibility: columnVisibility,
         },
@@ -239,10 +240,10 @@ export function DataTable({
                                             cell.column.id === "modify",
                                     })}
                                 >
-                                    {flexRender(cell.column.columnDef.cell, {
-                                        ...cell.getContext(),
-                                        returnUrl: returnUrl,
-                                    })}
+                                    {flexRender(
+                                        cell.column.columnDef.cell,
+                                        cell.getContext(),
+                                    )}
                                 </TableCell>
                             ))}
                         </TableRow>
