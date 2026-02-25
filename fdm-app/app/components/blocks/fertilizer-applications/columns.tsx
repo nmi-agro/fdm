@@ -1,0 +1,207 @@
+import type { FertilizerApplication } from "@nmi-agro/fdm-core"
+import type { ColumnDef } from "@tanstack/react-table"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
+import { useMemo } from "react"
+import { Form, NavLink, useNavigation, useParams } from "react-router"
+import { cn } from "@/app/lib/utils"
+import { Button } from "~/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
+import { Field } from "~/components/ui/field"
+import { ScrollArea } from "~/components/ui/scroll-area"
+import { Spinner } from "~/components/ui/spinner"
+
+export type ApplicationExtended = FertilizerApplication & {
+    b_id: string
+    b_name: string
+    p_app_method_name: string | null | undefined
+    canModify: boolean
+}
+
+export interface FertAppRecordItem {
+    id: string
+    applications: ApplicationExtended[]
+}
+
+/**
+ * Stringifies a single date if the given range is all the same dates,
+ * otherwise stringifies the earliest and the latest date with a dash in between.
+ *
+ * @param dates array of dates. Nulls and undefined items are not allowed.
+ * @returns the formatted string.
+ */
+function formatDateRange(dates: Date[]) {
+    if (dates.length === 0) return ""
+    const firstDate = dates[0]
+    const lastDate = dates[dates.length - 1]
+    return firstDate.getTime() === lastDate.getTime()
+        ? `${format(firstDate, "PP", { locale: nl })}`
+        : `${format(firstDate, "PP", { locale: nl })} - ${format(lastDate, "PP", { locale: nl })}`
+}
+
+/**
+ * Stringifies a single number with an unit if the given range is all the same numbers or very close down to roughly 2 decimal places,
+ * otherwise stringifies the least and the greatest numbers with a dash in between and the unit at the end.
+ *
+ * @param dates array of numbers. Nulls and undefined items are not allowed.
+ * @returns the formatted string.
+ */
+function formatNumberRange(numbers: number[], unit = "") {
+    if (numbers.length === 0) return ""
+    const firstNumber = numbers[0]
+    const lastNumber = numbers[numbers.length - 1]
+    return firstNumber === lastNumber ||
+        Math.abs(lastNumber - firstNumber) < Math.abs(firstNumber) / 100
+        ? `${firstNumber} ${unit}`
+        : `${firstNumber} - ${lastNumber} ${unit}`
+}
+
+export const columns: ColumnDef<FertAppRecordItem>[] = [
+    {
+        id: "p_app_date",
+        header: "Datum",
+        cell: ({ row }) =>
+            formatDateRange(
+                row.original.applications.map((app) => app.p_app_date),
+            ),
+    },
+    {
+        accessorKey: "applications.length",
+        header: "Aantal Bemestingen",
+    },
+    {
+        id: "b_name",
+        header: "Perceel",
+        cell: ({ row }) => {
+            const fieldNames = useMemo(
+                () =>
+                    Object.entries(
+                        Object.fromEntries(
+                            row.original.applications.map((app) => [
+                                app.b_id,
+                                app.b_name,
+                            ]),
+                        ),
+                    ).sort((a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0)),
+                [row.original],
+            )
+            return row.original.applications.length > 1 ? (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="-ms-4">
+                            <p className="text-muted-foreground">
+                                {fieldNames.length === 1
+                                    ? "(1 perceel)"
+                                    : `(${fieldNames.length} percelen)`}
+                            </p>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <ScrollArea
+                            className={
+                                fieldNames.length >= 8
+                                    ? "h-72 overflow-y-auto w-48"
+                                    : "w-48"
+                            }
+                        >
+                            <div className="grid grid-cols-1 gap-2">
+                                {fieldNames.map(([b_id, b_name]) => (
+                                    <DropdownMenuItem key={b_id}>
+                                        {b_name}
+                                    </DropdownMenuItem>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ) : (
+                fieldNames[0][1]
+            )
+        },
+    },
+    {
+        id: "p_app_method",
+        header: "Toedieningsmethode",
+        cell: ({ row }) =>
+            [
+                ...new Set(
+                    row.original.applications
+                        .map(
+                            (application) =>
+                                application.p_app_method_name ??
+                                application.p_app_method,
+                        )
+                        .filter((date) => date !== null),
+                ),
+            ]
+                .sort()
+                .join(", "),
+    },
+    {
+        id: "p_app_amount",
+        header: "Hoeveelheid",
+        cell: ({ row }) =>
+            formatNumberRange(
+                row.original.applications
+                    .map((application) => application.p_app_amount)
+                    .filter((amount) => amount !== null)
+                    .sort((a, b) => a - b),
+                "kg / ha",
+            ),
+    },
+    {
+        id: "modify",
+        header: "",
+        cell: ({ returnUrl, row }) => {
+            const params = useParams()
+            const navigation = useNavigation()
+
+            const modifiableAppIds = useMemo(
+                () =>
+                    row.original.applications
+                        .filter((app) => app.canModify)
+                        .map((app) => `${app.b_id}:${app.p_app_id}`)
+                        .join(","),
+                [row.original],
+            )
+
+            return (
+                <Field orientation="horizontal">
+                    <Spinner
+                        className={cn(
+                            "h-4 w-4",
+                            navigation.state !== "submitting" && "invisible",
+                        )}
+                    />
+                    <Button asChild>
+                        <NavLink
+                            to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
+                        >
+                            Bijwerken
+                        </NavLink>
+                    </Button>
+                    <Form method="POST">
+                        <input
+                            name="appIds"
+                            type="hidden"
+                            value={modifiableAppIds}
+                        />
+                        <Button
+                            name="intent"
+                            variant="destructive"
+                            value="remove_application"
+                            disabled={navigation.state === "submitting"}
+                        >
+                            Verwijderen
+                        </Button>
+                    </Form>
+                </Field>
+            )
+        },
+    },
+]
