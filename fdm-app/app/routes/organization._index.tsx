@@ -28,6 +28,9 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "../lib/form"
 import type { Route } from "./+types/organization._index"
+import { Plus } from "lucide-react"
+import { PendingInvitationCard } from "../components/blocks/farm/pending-invitation"
+import { PendingOrganizationInvitationCard } from "../components/blocks/organization/pending-organization-invitation"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
@@ -84,22 +87,9 @@ export async function loader({ request }: Route.LoaderArgs) {
             }),
         )
 
-        const invitationsList = await auth.api.listUserInvitations({
+        const invitations = await auth.api.listUserInvitations({
             headers: request.headers,
         })
-
-        const invitations = await Promise.all(
-            invitationsList
-                .filter((invitation) => invitation.status === "pending")
-                .map(async (invitation) => {
-                    return await auth.api.getInvitation({
-                        query: {
-                            id: invitation.id,
-                        },
-                        headers: request.headers,
-                    })
-                }),
-        )
 
         return { organizations, invitations }
     } catch (error) {
@@ -125,179 +115,67 @@ export default function OrganizationsIndex() {
                     }}
                 />
             </div>
-            <div className="flex flex-col xl:flex-row gap-12 p-6">
-                <div className="xl:grow space-y-4">
-                    <div className="text-2xl font-semibold tracking-tight invisible">
-                        &nbsp;
+            {organizations.length === 0 ? (
+                <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-87.5">
+                    <div className="flex flex-col space-y-2 text-center">
+                        <h1 className="text-2xl font-semibold tracking-tight">
+                            Je bent nog geen lid van een organisatie
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Vraag bij je contactpersoon om een uitnodiging of
+                            maak zelf een organisatie aan.
+                        </p>
                     </div>
-                    {organizations.length === 0 ? (
-                        <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-87.5">
-                            <div className="flex flex-col space-y-2 text-center">
-                                <h1 className="text-2xl font-semibold tracking-tight">
-                                    Je bent nog geen lid van een organisatie
-                                </h1>
-                                <p className="text-sm text-muted-foreground">
-                                    Vraag bij je contactpersoon om een
-                                    uitnodiging of maak zelf een organisatie
-                                    aan.
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-                            {organizations.map((org) => (
-                                <OrganizationCard
-                                    key={org.id}
-                                    organization={org}
-                                />
-                            ))}
-                        </div>
-                    )}
                 </div>
-                <div className="space-y-4">
-                    <h2 className="text-2xl font-semibold tracking-tight ps-4">
-                        Mijn Uitnodigingen
+            ) : (
+                <div className="grid gap-4 grid-cols-1 lg:grid-cols-3 p-6">
+                    {organizations.map((org) => (
+                        <OrganizationCard key={org.id} organization={org} />
+                    ))}
+                    <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
+                        <NavLink
+                            to="/organization/new"
+                            className="flex h-full flex-col"
+                        >
+                            <CardHeader className="grow items-center justify-center text-center">
+                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                    <Plus className="h-6 w-6" />
+                                </div>
+                                <CardTitle>Nieuwe organisatie</CardTitle>
+                                <CardDescription>
+                                    Voeg een extra organisatie toe aan uw
+                                    account.
+                                </CardDescription>
+                            </CardHeader>
+                        </NavLink>
+                    </Card>
+                </div>
+            )}
+            {invitations.length > 0 && (
+                <div className="w-full p-6 space-y-4">
+                    <h2 className="text-xl font-semibold">
+                        Openstaande uitnodigingen
                     </h2>
-                    {invitations.length === 0 ? (
-                        <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-87.5">
-                            <div className="flex flex-col space-y-2 text-center">
-                                <h1 className="text-2xl font-semibold tracking-tight">
-                                    Je hebt op dit moment geen uitnodigingen
-                                    open staan
-                                </h1>
-                                <p className="text-sm text-muted-foreground">
-                                    Vraag bij je contactpersoon om een
-                                    uitnodiging als je bij een organisatie wil.
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="grid gap-4 grid-cols-1">
-                            {invitations.map((invitation) => (
-                                <Card
-                                    key={invitation.id}
-                                    className="p-4 space-y-4"
-                                >
-                                    <CardHeader className="p-0">
-                                        <CardTitle>
-                                            {invitation.organizationName}
-                                        </CardTitle>
-                                        <CardDescription>
-                                            Uitgenodigd door{" "}
-                                            {invitation.inviterEmail}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="p-0">
-                                        <p className="leading-none">
-                                            Je bent uitgenodigd als{" "}
-                                            <i className="font-semibold">
-                                                {
-                                                    {
-                                                        owner: "Eigenaar",
-                                                        admin: "Beheerder",
-                                                        member: "Lid",
-                                                    }[invitation.role]
-                                                }
-                                            </i>
-                                        </p>
-                                        <br />
-                                        <p className="text-sm text-muted-foreground mt-2">
-                                            Verloopt{" "}
-                                            {formatDistanceToNow(
-                                                new Date(invitation.expiresAt),
-                                                {
-                                                    addSuffix: true,
-                                                    locale: nl,
-                                                },
-                                            )}
-                                        </p>
-                                    </CardContent>
-                                    <CardFooter className="flex justify-between p-0">
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            size="sm"
-                                        >
-                                            <NavLink
-                                                to={`/organization/${invitation.organizationSlug}`}
-                                            >
-                                                Meer info
-                                            </NavLink>
-                                        </Button>
-                                        <div className="flex gap-2">
-                                            <Form method="post">
-                                                <input
-                                                    type="hidden"
-                                                    name="invitation_id"
-                                                    value={invitation.id}
-                                                />
-                                                <Button
-                                                    name="intent"
-                                                    value="accept"
-                                                    size="sm"
-                                                >
-                                                    Accepteren
-                                                </Button>
-                                            </Form>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                    >
-                                                        Afwijzen
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>
-                                                            Uitnodiging afwijzen
-                                                        </DialogTitle>
-                                                        <DialogDescription>
-                                                            Weet je zeker dat je
-                                                            de uitnodiging van{" "}
-                                                            {
-                                                                invitation.organizationName
-                                                            }{" "}
-                                                            wilt afwijzen?
-                                                        </DialogDescription>
-                                                    </DialogHeader>
-                                                    <DialogFooter>
-                                                        <Form method="post">
-                                                            <input
-                                                                type="hidden"
-                                                                name="invitation_id"
-                                                                value={
-                                                                    invitation.id
-                                                                }
-                                                            />
-                                                            <Button
-                                                                variant="default"
-                                                                name="intent"
-                                                                value="reject"
-                                                                size="sm"
-                                                            >
-                                                                Ja, afwijzen
-                                                            </Button>
-                                                        </Form>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
-                                    </CardFooter>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
+                    <div className="grid w-full gap-4 sm:grid-cols-2">
+                        {invitations.map((invitation) => (
+                            <PendingOrganizationInvitationCard
+                                key={invitation.id}
+                                invitation={invitation}
+                            />
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
         </main>
     )
 }
 
 const FormSchema = z.object({
     invitation_id: z.string(),
-    intent: z.enum(["accept", "reject"]),
+    intent: z.enum([
+        "accept_organization_invitation",
+        "decline_organization_invitation",
+    ]),
 })
 
 export async function action({ request }: Route.LoaderArgs) {
@@ -310,7 +188,7 @@ export async function action({ request }: Route.LoaderArgs) {
         // getSession call is important to validate session
         await getSession(request)
 
-        if (formValues.intent === "accept") {
+        if (formValues.intent === "accept_organization_invitation") {
             await auth.api.acceptInvitation({
                 headers: request.headers,
                 body: { invitationId: formValues.invitation_id },
@@ -319,7 +197,7 @@ export async function action({ request }: Route.LoaderArgs) {
                 message: "Uitnodiging geaccepteerd! 🎉",
             })
         }
-        if (formValues.intent === "reject") {
+        if (formValues.intent === "decline_organization_invitation") {
             await auth.api.rejectInvitation({
                 headers: request.headers,
                 body: { invitationId: formValues.invitation_id },
