@@ -20,6 +20,7 @@ type PendingInvitation = {
 
 type Props = {
     invitation: PendingInvitation
+    principalType?: "user" | "organization"
 }
 
 function getRoleLabel(role: string): string {
@@ -29,7 +30,10 @@ function getRoleLabel(role: string): string {
     return "Lid"
 }
 
-export function PendingInvitationCard({ invitation }: Props) {
+export function PendingInvitationCard({
+    invitation,
+    principalType = "user",
+}: Props) {
     const farmLabel = invitation.farm_name ?? invitation.resource_id
 
     return (
@@ -48,9 +52,12 @@ export function PendingInvitationCard({ invitation }: Props) {
                 </div>
             </CardHeader>
             <CardContent className="grow py-2 text-sm text-muted-foreground">
-                Je hebt een uitnodiging ontvangen voor toegang tot bedrijf{" "}
-                {farmLabel} als {getRoleLabel(invitation.role)}.
-                {invitation.org_name && (
+                {principalType === "organization"
+                    ? `${invitation.org_name ?? "Jouw organisatie"} heeft`
+                    : "Je hebt"}{" "}
+                een uitnodiging ontvangen voor toegang tot bedrijf {farmLabel}{" "}
+                als {getRoleLabel(invitation.role)}.
+                {principalType === "user" && invitation.org_name && (
                     <span className="block text-xs text-muted-foreground">
                         Deze uitnodiging ontvang je namens organisatie:{" "}
                         {invitation.org_name}

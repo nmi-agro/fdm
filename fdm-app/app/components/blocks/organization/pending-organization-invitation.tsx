@@ -10,6 +10,17 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "~/components/ui/dialog"
+import { Field } from "~/components/ui/field"
 
 type Props = {
     invitation: Awaited<ReturnType<typeof auth.api.listUserInvitations>>[number]
@@ -65,27 +76,66 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                         Accepteren
                     </Button>
                 </Form>
-                <Form method="post" className="flex-1">
-                    <input
-                        type="hidden"
-                        name="intent"
-                        value="decline_organization_invitation"
-                    />
-                    <input
-                        type="hidden"
-                        name="invitation_id"
-                        value={invitation.id}
-                    />
-                    <Button
-                        type="submit"
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                    >
-                        <X className="mr-1 h-3 w-3" />
-                        Weigeren
-                    </Button>
-                </Form>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                        >
+                            <X className="mr-1 h-3 w-3" />
+                            Weigeren
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Uitnodiging weigeren</DialogTitle>
+                            <DialogDescription>
+                                Weet je zeker dat je de uitnodiging van{" "}
+                                {invitation.organizationName} wilt weigeren?
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Form method="post">
+                                <Field orientation="horizontal">
+                                    <input
+                                        type="hidden"
+                                        name="intent"
+                                        value="decline_organization_invitation"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        name="invitation_id"
+                                        value={invitation.id}
+                                    />
+                                    <input
+                                        type="hidden"
+                                        name="invitation_id"
+                                        value={invitation.id}
+                                    />
+                                    <Button
+                                        variant="default"
+                                        name="intent"
+                                        value="decline_organization_invitation"
+                                        size="sm"
+                                    >
+                                        Ja, weigeren
+                                    </Button>
+                                    <DialogClose asChild>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                        >
+                                            Nee, sluiten
+                                        </Button>
+                                    </DialogClose>
+                                </Field>
+                            </Form>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </CardFooter>
         </Card>
     )

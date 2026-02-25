@@ -1,36 +1,21 @@
-import { formatDistanceToNow } from "date-fns"
-import { nl } from "date-fns/locale"
-import { Form, NavLink, useLoaderData } from "react-router-dom"
+import { Plus } from "lucide-react"
+import { NavLink, useLoaderData } from "react-router-dom"
 import { redirectWithSuccess } from "remix-toast"
 import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
-import { Button } from "~/components/ui/button"
+import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
 import {
     Card,
-    CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "~/components/ui/dialog"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { extractFormValuesFromRequest } from "../lib/form"
+import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/organization._index"
-import { Plus } from "lucide-react"
-import { PendingInvitationCard } from "../components/blocks/farm/pending-invitation"
-import { PendingOrganizationInvitationCard } from "../components/blocks/organization/pending-organization-invitation"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
@@ -203,7 +188,7 @@ export async function action({ request }: Route.LoaderArgs) {
                 body: { invitationId: formValues.invitation_id },
             })
             return redirectWithSuccess("/organization", {
-                message: "Uitnodiging afgewezen",
+                message: "Uitnodiging geweigerd.",
             })
         }
         throw new Error("invalid intent")

@@ -1,12 +1,20 @@
-import { getFarms, getFields } from "@nmi-agro/fdm-core"
-import { Cog, Square, Users } from "lucide-react"
+import {
+    acceptInvitation,
+    declineInvitation,
+    getFarms,
+    getFields,
+    listPendingInvitationsForUser,
+} from "@nmi-agro/fdm-core"
+import { Square, Users } from "lucide-react"
 import { data, NavLink, useLoaderData } from "react-router"
+import { dataWithError, dataWithSuccess } from "remix-toast"
 import {
     FarmCard,
     type FarmWithRoles,
 } from "~/components/blocks/farm/farm-card"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import {
@@ -29,6 +37,9 @@ import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { extractFormValuesFromRequest } from "~/lib/form"
+import { AccessFormSchema } from "~/lib/schemas/access.schema"
+import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 import type { Route } from "./+types/organization.$slug._index"
 
@@ -60,10 +71,39 @@ export async function loader({ params, request }: Route.LoaderArgs) {
             throw data("Organisatie niet gevonden.", 404)
         }
 
+        let metadata: { data?: { description?: string }; error?: string } = {
+            data: { description: "Geen beschrijving" },
+        }
+        if (organization.metadata) {
+            try {
+                metadata = JSON.parse(organization.metadata)
+            } catch (e) {
+                metadata = { error: (e as Error).message }
+            }
+        }
+
         const members = await auth.api.listMembers({
             headers: request.headers,
             query: { organizationSlug: params.slug },
         })
+
+        const userRoles = new Set(
+            members.members
+                .filter((member) => member.userId === session.principal_id)
+                .map((member) => member.role),
+        )
+
+        // TODO: Sync role permissions with fdm-core better
+        const canModify = userRoles.has("owner") || userRoles.has("admin")
+
+        // Get pending farm invitations for this organization
+        const allPendingInvitations = await listPendingInvitationsForUser(
+            fdm,
+            session.principal_id,
+        )
+        const pendingInvitations = allPendingInvitations.filter(
+            (invitation) => invitation.target_principal_id === organization.id,
+        )
 
         // Get a list of possible farms of the user
         const farms = await getFarms(fdm, organization.id)
@@ -108,7 +148,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
             calendar: calendar,
             slug: params.slug,
             organization: organization,
+            metadata: metadata,
             members: members.members,
+            pendingInvitations: pendingInvitations,
+            canModify: canModify,
         }
     } catch (e) {
         throw handleLoaderError(e)
@@ -194,7 +237,7 @@ export default function AppIndex() {
                             </div>
                             <div className="space-y-4">
                                 <h2 className="text-2xl font-semibold tracking-tight">
-                                    Bedrijven met Toegang
+                                    Bedrijven
                                 </h2>
                                 {loaderData.farms.length > 0 ? (
                                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -206,33 +249,85 @@ export default function AppIndex() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="mx-auto flex h-full w-full items-center flex-col justify-center py-6 sm:w-[350px]">
-                                        <div className="flex flex-col space-y-2 text-center">
-                                            <h1 className="text-2xl font-semibold tracking-tight">
-                                                Het lijkt erop dat jouw
-                                                organisatie tot geen bedrijven
-                                                toegang heeft. :(
-                                            </h1>
-                                            <p>
-                                                Neem contact op met bedrijven om
-                                                toegang tot hen te krijgen.
-                                            </p>
+                                    loaderData.pendingInvitations.length ===
+                                        0 && (
+                                        <div className="mx-auto flex h-full w-full items-center flex-col justify-center py-6 sm:w-[350px]">
+                                            <div className="flex flex-col space-y-2 text-center">
+                                                <h1 className="text-2xl font-semibold tracking-tight">
+                                                    Het lijkt erop dat jouw
+                                                    organisatie tot geen
+                                                    bedrijven toegang heeft. :(
+                                                </h1>
+                                                <p>
+                                                    Neem contact op met
+                                                    bedrijven om toegang tot hen
+                                                    te krijgen.
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )
                                 )}
                             </div>
+                            {loaderData.pendingInvitations.length > 0 && (
+                                <div className="w-full space-y-4">
+                                    <h2 className="text-xl font-semibold">
+                                        Openstaande uitnodigingen
+                                    </h2>
+                                    <div className="grid w-full gap-4 sm:grid-cols-2">
+                                        {loaderData.pendingInvitations.map(
+                                            (invitation) => (
+                                                <PendingInvitationCard
+                                                    key={
+                                                        invitation.invitation_id
+                                                    }
+                                                    principalType="organization"
+                                                    invitation={invitation}
+                                                />
+                                            ),
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Right Column */}
                         <div className="space-y-8">
                             {/* Overview */}
                             <div className="space-y-4">
-                                <h2 className="text-2xl font-semibold tracking-tight">
-                                    Overzicht
-                                </h2>
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-2xl font-semibold tracking-tight">
+                                        Overzicht
+                                    </h2>
+                                    <Button
+                                        asChild
+                                        variant="default"
+                                        className={cn(
+                                            !loaderData.canModify
+                                                ? "invisible"
+                                                : "",
+                                        )}
+                                    >
+                                        <NavLink to="./settings">
+                                            Instellingen
+                                        </NavLink>
+                                    </Button>
+                                </div>
                                 <Card>
                                     <CardContent className="pt-6 space-y-4">
                                         <dl className="space-y-4">
+                                            <div className="space-y-2">
+                                                <dt className="text-muted-foreground">
+                                                    Beschrijving
+                                                </dt>
+                                                <dd className="font-semibold">
+                                                    <p>
+                                                        {loaderData.metadata
+                                                            .data
+                                                            ?.description ??
+                                                            "Geen beschrijving"}
+                                                    </p>
+                                                </dd>
+                                            </div>
                                             <div className="flex items-center justify-between">
                                                 <dt className="text-muted-foreground">
                                                     Aantal bedrijven
@@ -279,16 +374,6 @@ export default function AppIndex() {
                                                 </Select>
                                             </div>
                                         </dl>
-                                        <Button
-                                            variant="ghost"
-                                            className="flex justify-start -mx-3"
-                                            asChild
-                                        >
-                                            <NavLink to="settings">
-                                                <Cog className="mr-2 h-4 w-4" />
-                                                Instellingen
-                                            </NavLink>
-                                        </Button>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -354,4 +439,47 @@ export default function AppIndex() {
             </main>
         </SidebarInset>
     )
+}
+
+export async function action({ request }: Route.ActionArgs) {
+    try {
+        const session = await getSession(request)
+        const formValues = await extractFormValuesFromRequest(
+            request,
+            AccessFormSchema,
+        )
+
+        if (formValues.intent === "accept_farm_invitation") {
+            if (!formValues.invitation_id) {
+                return dataWithError(null, "Ontbrekend uitnodigings id")
+            }
+            await acceptInvitation(
+                fdm,
+                formValues.invitation_id,
+                session.user.id,
+            )
+            return dataWithSuccess(null, {
+                message: "Uitnodiging geaccepteerd! 🎉",
+            })
+        }
+
+        if (formValues.intent === "decline_farm_invitation") {
+            if (!formValues.invitation_id) {
+                return dataWithError(null, "Ontbrekend uitnodigings id")
+            }
+            await declineInvitation(
+                fdm,
+                formValues.invitation_id,
+                session.user.id,
+            )
+            return dataWithSuccess(null, {
+                message: "Uitnodiging geweigerd.",
+            })
+        }
+
+        return dataWithError(null, "Onbekende actie")
+    } catch (error) {
+        console.error(error)
+        return dataWithError(null, "Er is iets misgegaan")
+    }
 }
