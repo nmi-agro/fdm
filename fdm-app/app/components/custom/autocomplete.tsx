@@ -150,7 +150,6 @@ export function AutoComplete<T extends string>({
         if (selectedItem) {
             onSelectedValueChange(selectedItem.value as T)
             setInputValue(selectedItem.label) // Update input to reflect selection
-            prevInputValue.current = selectedItem.label // Prevent re-fetch after selection
             prevInputValue.current = selectedItem.label // Update previous input value to prevent unnecessary fetch
             if (form && name) {
                 form.setValue(name, selectedItem.value) // Update form state
