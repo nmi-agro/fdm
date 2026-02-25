@@ -182,20 +182,26 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 formValues.role,
             )
 
-            let targetPrincipal: any = null;
+            let targetPrincipal: any = null
 
             // Send invitation email
             try {
                 const farm = await getFarm(fdm, principalId, b_id_farm)
                 const inviterName = session.userName
-                const normalizedTarget = formValues.username.toLowerCase().trim()
+                const normalizedTarget = formValues.username
+                    .toLowerCase()
+                    .trim()
                 const isEmailTarget = isEmail(normalizedTarget)
 
-                const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
+                const matchedPrincipals = await lookupPrincipal(
+                    fdm,
+                    normalizedTarget,
+                )
                 targetPrincipal = matchedPrincipals.find(
                     (p) =>
                         p.username.toLowerCase() === normalizedTarget ||
-                        (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
+                        (isEmailTarget &&
+                            p.email?.toLowerCase() === normalizedTarget),
                 )
 
                 const targetEmail = isEmailTarget
@@ -216,7 +222,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     await sendEmail(email)
                 }
             } catch (emailError) {
-                console.error("Error sending farm invitation email:", emailError)
+                console.error(
+                    "Error sending farm invitation email:",
+                    emailError,
+                )
                 if (isInactiveRecipientError(emailError)) {
                     // Only revoke if we resolved a registered principal;
                     // otherwise (email-only invite), keep the pending invitation.
@@ -277,13 +286,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 // Send cancellation notification email; failure is non-fatal as the invitation was already cancelled
                 try {
                     const farm = await getFarm(fdm, principalId, b_id_farm)
-                    const normalizedTarget = formValues.username.toLowerCase().trim()
+                    const normalizedTarget = formValues.username
+                        .toLowerCase()
+                        .trim()
                     const isEmailTarget = isEmail(normalizedTarget)
-                    const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
+                    const matchedPrincipals = await lookupPrincipal(
+                        fdm,
+                        normalizedTarget,
+                    )
                     const targetPrincipal = matchedPrincipals.find(
                         (p) =>
                             p.username.toLowerCase() === normalizedTarget ||
-                            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
+                            (isEmailTarget &&
+                                p.email?.toLowerCase() === normalizedTarget),
                     )
                     const targetEmail = isEmailTarget
                         ? normalizedTarget
@@ -299,7 +314,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         await sendEmail(email)
                     }
                 } catch (emailError) {
-                    console.error("Error sending invitation cancelled email:", emailError)
+                    console.error(
+                        "Error sending invitation cancelled email:",
+                        emailError,
+                    )
                 }
             } else {
                 await revokePrincipalFromFarm(
@@ -310,7 +328,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 )
             }
             return dataWithSuccess(null, {
-                message: `Toegang voor ${formValues.username} ingetrokken.`,
+                message: formValues.invitation_id
+                    ? `Uitnodiging voor ${formValues.username} is geannuleerd`
+                    : `Gebruiker ${formValues.username} is verwijderd`,
             })
         }
 
