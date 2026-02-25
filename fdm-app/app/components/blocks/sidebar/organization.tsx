@@ -6,7 +6,6 @@ import {
     ChevronRight,
     Cog,
     House,
-    Mail,
     Users,
 } from "lucide-react"
 import { useState } from "react"
@@ -103,11 +102,11 @@ export function SidebarOrganization({
     }
 
     return (
-        <>
-            <SidebarGroup>
-                <SidebarGroupLabel>Organisaties</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
+        <SidebarGroup>
+            <SidebarGroupLabel>Organisatie</SidebarGroupLabel>
+            <SidebarGroupContent>
+                <SidebarMenu>
+                    <SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton
                                 asChild
@@ -115,232 +114,198 @@ export function SidebarOrganization({
                             >
                                 <NavLink to={"/organization"}>
                                     <Users />
-                                    <span>Overzicht</span>
+                                    <span>Mijn organisaties</span>
                                 </NavLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        {organization && (
+                            <SidebarMenuButton
+                                asChild
+                                isActive={
+                                    location.pathname === organizationLink
+                                }
+                            >
+                                <NavLink to={organizationLink}>
+                                    <Building />
+                                    <span className="truncate">
+                                        {organizationLinkDisplay}
+                                    </span>
+                                    {organizationRole && (
+                                        <Badge
+                                            key={organizationRole}
+                                            variant="outline"
+                                            className="ml-auto"
+                                        >
+                                            {
+                                                {
+                                                    owner: "Eigenaar",
+                                                    admin: "Admin",
+                                                    member: "Lid",
+                                                    viewer: "Kijker",
+                                                }[organizationRole]
+                                            }
+                                        </Badge>
+                                    )}
+                                </NavLink>
+                            </SidebarMenuButton>
+                        )}
+                    </SidebarMenuItem>
+                    {organization ? (
+                        <Collapsible
+                            asChild
+                            defaultOpen={false}
+                            className="group/collapsible"
+                            onOpenChange={setIsCalendarOpen}
+                        >
+                            <SidebarMenuItem>
+                                <CollapsibleTrigger asChild>
+                                    <SidebarMenuButton
+                                        tooltip={"Kalender"}
+                                        className="flex items-center"
+                                    >
+                                        <Calendar />
+                                        <span>Kalender </span>
+                                        {!isCalendarOpen && (
+                                            <Badge className="ml-1">
+                                                {selectedCalendar === "all"
+                                                    ? "Alle jaren"
+                                                    : selectedCalendar}
+                                            </Badge>
+                                        )}
+                                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                    </SidebarMenuButton>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        {calendarSelection?.map((item) => (
+                                            <SidebarMenuSubItem
+                                                key={item}
+                                                className={
+                                                    selectedCalendar === item
+                                                        ? "bg-accent text-accent-foreground"
+                                                        : ""
+                                                }
+                                            >
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    onClick={() =>
+                                                        setCalendar(item)
+                                                    }
+                                                >
+                                                    <NavLink
+                                                        to={getLinkForYear(
+                                                            location.pathname,
+                                                            item,
+                                                        )}
+                                                        className="flex items-center"
+                                                    >
+                                                        <span>
+                                                            {item === "all"
+                                                                ? "Alle jaren"
+                                                                : item}
+                                                        </span>
+                                                        {selectedCalendar ===
+                                                            item && (
+                                                            <Check className="ml-auto h-4 w-4" />
+                                                        )}
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ))}
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
+                    ) : (
                         <SidebarMenuItem>
                             <SidebarMenuButton
                                 asChild
-                                isActive={location.pathname.includes(
-                                    "/organization/invitations",
-                                )}
+                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
                             >
-                                <NavLink to={"/organization/invitations"}>
-                                    <Mail />
-                                    <span>Uitnodigingen</span>
-                                </NavLink>
+                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
+                                    <Calendar />
+                                    <span>Kalender</span>
+                                </span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-            <SidebarGroup>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            {organization ? (
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={
-                                        location.pathname === organizationLink
-                                    }
-                                >
-                                    <NavLink to={organizationLink}>
-                                        <Building />
-                                        <span className="truncate">
-                                            {organizationLinkDisplay}
-                                        </span>
-                                        {organizationRole && (
-                                            <Badge
-                                                key={organizationRole}
-                                                variant="outline"
-                                                className="ml-auto"
-                                            >
-                                                {
-                                                    {
-                                                        owner: "Eigenaar",
-                                                        admin: "Admin",
-                                                        member: "Lid",
-                                                        viewer: "Kijker",
-                                                    }[organizationRole]
-                                                }
-                                            </Badge>
-                                        )}
-                                    </NavLink>
-                                </SidebarMenuButton>
-                            ) : (
-                                <SidebarMenuButton
-                                    asChild
-                                    className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                                >
-                                    <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                        <Building />
-                                        <span>
-                                            Geen organisatie geselecteerd
-                                        </span>
-                                    </span>
-                                </SidebarMenuButton>
-                            )}
-                        </SidebarMenuItem>
+                    )}
+                    <SidebarMenuItem>
                         {organization ? (
-                            <Collapsible
+                            <SidebarMenuButton
                                 asChild
-                                defaultOpen={false}
-                                className="group/collapsible"
-                                onOpenChange={setIsCalendarOpen}
+                                isActive={activeTab === "settings"}
                             >
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton
-                                            tooltip={"Kalender"}
-                                            className="flex items-center"
-                                        >
-                                            <Calendar />
-                                            <span>Kalender </span>
-                                            {!isCalendarOpen && (
-                                                <Badge className="ml-1">
-                                                    {selectedCalendar === "all"
-                                                        ? "Alle jaren"
-                                                        : selectedCalendar}
-                                                </Badge>
-                                            )}
-                                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {calendarSelection?.map((item) => (
-                                                <SidebarMenuSubItem
-                                                    key={item}
-                                                    className={
-                                                        selectedCalendar ===
-                                                        item
-                                                            ? "bg-accent text-accent-foreground"
-                                                            : ""
-                                                    }
-                                                >
-                                                    <SidebarMenuSubButton
-                                                        asChild
-                                                        onClick={() =>
-                                                            setCalendar(item)
-                                                        }
-                                                    >
-                                                        <NavLink
-                                                            to={getLinkForYear(
-                                                                location.pathname,
-                                                                item,
-                                                            )}
-                                                            className="flex items-center"
-                                                        >
-                                                            <span>
-                                                                {item === "all"
-                                                                    ? "Alle jaren"
-                                                                    : item}
-                                                            </span>
-                                                            {selectedCalendar ===
-                                                                item && (
-                                                                <Check className="ml-auto h-4 w-4" />
-                                                            )}
-                                                        </NavLink>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
+                                <NavLink
+                                    to={`/organization/${organization.slug}/settings`}
+                                >
+                                    <Cog />
+                                    <span>Instellingen</span>
+                                </NavLink>
+                            </SidebarMenuButton>
                         ) : (
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    asChild
-                                    className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                                >
-                                    <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                        <Calendar />
-                                        <span>Kalender</span>
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
+                            >
+                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
+                                    <Cog />
+                                    <span>Instellingen</span>
+                                </span>
+                            </SidebarMenuButton>
                         )}
-                        <SidebarMenuItem>
-                            {organization ? (
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={activeTab === "settings"}
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        {organization ? (
+                            <SidebarMenuButton
+                                asChild
+                                isActive={activeTab === "members"}
+                            >
+                                <NavLink
+                                    to={`/organization/${organization.slug}/members`}
                                 >
-                                    <NavLink
-                                        to={`/organization/${organization.slug}/settings`}
-                                    >
-                                        <Cog />
-                                        <span>Instellingen</span>
-                                    </NavLink>
-                                </SidebarMenuButton>
-                            ) : (
-                                <SidebarMenuButton
-                                    asChild
-                                    className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
+                                    <Users />
+                                    <span>Leden</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        ) : (
+                            <SidebarMenuButton
+                                asChild
+                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
+                            >
+                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
+                                    <Users />
+                                    <span>Leden</span>
+                                </span>
+                            </SidebarMenuButton>
+                        )}
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        {organization ? (
+                            <SidebarMenuButton
+                                asChild
+                                isActive={activeTab === "farms"}
+                            >
+                                <NavLink
+                                    to={`/organization/${organization.slug}/${selectedCalendar}/farms`}
                                 >
-                                    <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                        <Cog />
-                                        <span>Instellingen</span>
-                                    </span>
-                                </SidebarMenuButton>
-                            )}
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            {organization ? (
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={activeTab === "members"}
-                                >
-                                    <NavLink
-                                        to={`/organization/${organization.slug}/members`}
-                                    >
-                                        <Users />
-                                        <span>Leden</span>
-                                    </NavLink>
-                                </SidebarMenuButton>
-                            ) : (
-                                <SidebarMenuButton
-                                    asChild
-                                    className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                                >
-                                    <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                        <Users />
-                                        <span>Leden</span>
-                                    </span>
-                                </SidebarMenuButton>
-                            )}
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            {organization ? (
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={activeTab === "farms"}
-                                >
-                                    <NavLink
-                                        to={`/organization/${organization.slug}/${selectedCalendar}/farms`}
-                                    >
-                                        <House />
-                                        <span>Bedrijven</span>
-                                    </NavLink>
-                                </SidebarMenuButton>
-                            ) : (
-                                <SidebarMenuButton
-                                    asChild
-                                    className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                                >
-                                    <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                        <House />
-                                        <span>Bedrijven</span>
-                                    </span>
-                                </SidebarMenuButton>
-                            )}
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-        </>
+                                    <House />
+                                    <span>Bedrijven</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        ) : (
+                            <SidebarMenuButton
+                                asChild
+                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
+                            >
+                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
+                                    <House />
+                                    <span>Bedrijven</span>
+                                </span>
+                            </SidebarMenuButton>
+                        )}
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroupContent>
+        </SidebarGroup>
     )
 }

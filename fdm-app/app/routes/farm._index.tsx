@@ -1,4 +1,3 @@
-
 import {
     acceptInvitation,
     declineInvitation,
@@ -55,13 +54,7 @@ import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
-
-function getRoleLabel(role: string): string {
-    if (role === "owner") return "Eigenaar"
-    if (role === "advisor") return "Adviseur"
-    if (role === "researcher") return "Onderzoeker"
-    return "Lid"
-}
+import { OrganizationCard } from "../components/blocks/organization/organization-card"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -135,15 +128,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
                     },
                 })
 
-                const member = membersListResponse.members.find(
-                    (member) => member.userId === session.principal_id,
-                )
+                const userRoles = membersListResponse.members
+                    .filter((member) => member.userId === session.principal_id)
+                    .map((member) => member.role)
 
-                const role = member?.role ?? "member"
+                const orderedUserRoles = (
+                    ["owner", "admin", "member"] as const
+                ).filter((r) => userRoles.includes(r))
 
                 return {
                     ...organization,
-                    role: role,
+                    userRoles: orderedUserRoles,
                     metadata: parseMetadata(
                         organization.slug,
                         organization.metadata,
@@ -463,7 +458,9 @@ export default function AppIndex() {
                                         {loaderData.pendingInvitations.map(
                                             (invitation) => (
                                                 <PendingInvitationCard
-                                                    key={invitation.invitation_id}
+                                                    key={
+                                                        invitation.invitation_id
+                                                    }
                                                     invitation={invitation}
                                                 />
                                             ),
@@ -650,65 +647,10 @@ export default function AppIndex() {
                             <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
                                 {loaderData.organizations.map(
                                     (organization) => (
-                                        <Card
+                                        <OrganizationCard
                                             key={organization.id}
-                                            className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md"
-                                        >
-                                            <NavLink
-                                                to={`/organization/${organization.slug}`}
-                                                className="flex h-full flex-col"
-                                            >
-                                                <CardHeader>
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                                                                <House className="h-5 w-5" />
-                                                            </div>
-                                                            <div>
-                                                                <CardTitle className="text-xl">
-                                                                    {
-                                                                        organization.name
-                                                                    }
-                                                                </CardTitle>
-                                                                <div className="mt-1 flex gap-1">
-                                                                    <Badge
-                                                                        variant="secondary"
-                                                                        className="text-[10px] uppercase tracking-wider"
-                                                                    >
-                                                                        {{
-                                                                            owner: "Eigenaar",
-                                                                            admin: "Beheerder",
-                                                                            member: "Lid",
-                                                                        }[
-                                                                            organization
-                                                                                .role
-                                                                        ] ??
-                                                                            "Lid"}
-                                                                    </Badge>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="grow py-4">
-                                                    <p className="grid gap-2 text-sm text-left">
-                                                        {organization.metadata
-                                                            ?.data
-                                                            ?.description ??
-                                                            organization
-                                                                .metadata
-                                                                ?.error ??
-                                                            "Geen info"}
-                                                    </p>
-                                                </CardContent>
-                                                <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
-                                                    <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
-                                                        Selecteer organisatie{" "}
-                                                        <ArrowRight className="ml-2 h-4 w-4" />
-                                                    </span>
-                                                </CardFooter>
-                                            </NavLink>
-                                        </Card>
+                                            organization={organization}
+                                        />
                                     ),
                                 )}
 
