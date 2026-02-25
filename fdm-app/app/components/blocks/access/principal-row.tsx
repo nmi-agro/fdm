@@ -132,26 +132,39 @@ export const PrincipalRow = ({
                         {/* Show spinner during submission */}
                         {fetcher.state !== "idle" ? <Spinner /> : null}
 
-                        <Select
-                            defaultValue={role}
-                            name="role"
-                            onValueChange={handleSelectChange} // Trigger submission on change
-                            // Disable select while submitting
-                            disabled={fetcher.state !== "idle"}
-                        >
-                            <SelectTrigger className="ml-auto w-37.5">
-                                <SelectValue placeholder="Selecteer rol" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="owner">Eigenaar</SelectItem>
-                                <SelectItem value="advisor">
-                                    Adviseur
-                                </SelectItem>
-                                <SelectItem value="researcher">
-                                    Onderzoeker
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        {isPending ? (
+                            <Badge>
+                                {role === "owner"
+                                    ? "Eigenaar"
+                                    : role === "advisor"
+                                      ? "Adviseur"
+                                      : role === "researcher"
+                                        ? "Onderzoeker"
+                                        : "Onbekend"}
+                            </Badge>
+                        ) : (
+                            <Select
+                                defaultValue={role}
+                                name="role"
+                                onValueChange={handleSelectChange}
+                                disabled={fetcher.state !== "idle"}
+                            >
+                                <SelectTrigger className="ml-auto w-37.5">
+                                    <SelectValue placeholder="Selecteer rol" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="owner">
+                                        Eigenaar
+                                    </SelectItem>
+                                    <SelectItem value="advisor">
+                                        Adviseur
+                                    </SelectItem>
+                                    <SelectItem value="researcher">
+                                        Onderzoeker
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
 
                         {/* Button to trigger removal */}
                         <Button

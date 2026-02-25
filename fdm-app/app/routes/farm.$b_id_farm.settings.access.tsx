@@ -8,7 +8,6 @@ import {
     listPrincipalsForFarm,
     lookupPrincipal,
     revokePrincipalFromFarm,
-    updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
 import isEmail from "validator/lib/isEmail"
@@ -31,7 +30,6 @@ import { AccessFormSchema } from "~/lib/schemas/access.schema"
 import {
     renderFarmInvitationEmail,
     renderFarmInvitationCancelledEmail,
-    renderFarmInvitationRoleUpdatedEmail,
     sendEmail,
     isInactiveRecipientError,
 } from "~/lib/email.server"
@@ -233,51 +231,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
             if (!formValues.role) {
                 return handleActionError("missing: role")
             }
-            if (formValues.invitation_id) {
-                // Pending invitation — update the invitation's role
-                await updateRoleOfInvitationForFarm(
-                    fdm,
-                    session.user.id,
-                    formValues.invitation_id,
-                    formValues.role,
-                )
-                // Send role-updated notification email; failure is non-fatal as the role was already updated
-                try {
-                    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
-                    const normalizedTarget = formValues.username.toLowerCase().trim()
-                    const isEmailTarget = isEmail(normalizedTarget)
-                    const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-                    const targetPrincipal = matchedPrincipals.find(
-                        (p) =>
-                            p.username.toLowerCase() === normalizedTarget ||
-                            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-                    )
-                    const targetEmail = isEmailTarget
-                        ? normalizedTarget
-                        : targetPrincipal?.type === "user"
-                          ? targetPrincipal.email
-                          : null
-                    if (targetEmail) {
-                        const email = await renderFarmInvitationRoleUpdatedEmail(
-                            targetEmail,
-                            session.userName,
-                            farm.b_name_farm ?? b_id_farm,
-                            formValues.role,
-                        )
-                        await sendEmail(email)
-                    }
-                } catch (emailError) {
-                    console.error("Error sending role-updated invitation email:", emailError)
-                }
-            } else {
-                await updateRoleOfPrincipalAtFarm(
-                    fdm,
-                    session.user.id,
-                    formValues.username,
-                    b_id_farm,
-                    formValues.role,
-                )
-            }
+            await updateRoleOfPrincipalAtFarm(
+                fdm,
+                session.user.id,
+                formValues.username,
+                b_id_farm,
+                formValues.role,
+            )
             return dataWithSuccess(null, {
                 message: "Rol is bijgewerkt! 🎉",
             })
