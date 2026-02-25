@@ -290,7 +290,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 )
             }
             return dataWithSuccess(null, {
-                message: `Gebruiker ${formValues.username} is verwijderd`,
+                message: formValues.invitation_id
+                    ? `Uitnodiging voor ${formValues.username} is geannuleerd`
+                    : `Gebruiker ${formValues.username} is verwijderd`,
             })
         }
         throw new Error("invalid intent")
