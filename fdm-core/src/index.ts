@@ -65,6 +65,7 @@ export {
 } from "./derogation"
 export {
     addFarm,
+    cancelInvitationForFarm,
     getFarm,
     getFarms,
     grantRoleToFarm,
@@ -76,6 +77,7 @@ export {
     removeFarm,
     revokePrincipalFromFarm,
     updateFarm,
+    updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "./farm"
 export type { FdmType } from "./fdm.d"
