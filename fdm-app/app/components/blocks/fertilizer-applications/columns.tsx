@@ -1,5 +1,5 @@
 import type { FertilizerApplication } from "@nmi-agro/fdm-core"
-import type { ColumnDef } from "@tanstack/react-table"
+import type { CellContext, ColumnDef } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useMemo } from "react"
@@ -158,53 +158,63 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
     {
         id: "modify",
         header: "",
-        cell: ({ row, table }) => {
-            const params = useParams()
-            const fetcher = useFetcher()
-            const returnUrl = (table.options.meta as { returnUrl: string })
-                .returnUrl
-
-            const modifiableAppIds = useMemo(
-                () =>
-                    row.original.applications
-                        .filter((app) => app.canModify)
-                        .map((app) => `${app.b_id}:${app.p_app_id}`)
-                        .join(","),
-                [row.original],
-            )
-
-            return (
-                <Field orientation="horizontal" className="justify-end">
-                    <Spinner
-                        className={cn(
-                            "h-4 w-4",
-                            fetcher.state !== "submitting" && "invisible",
-                        )}
-                    />
-                    <Button asChild>
-                        <NavLink
-                            to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
-                        >
-                            Wijzigen
-                        </NavLink>
-                    </Button>
-                    <fetcher.Form method="POST">
-                        <input
-                            name="appIds"
-                            type="hidden"
-                            value={modifiableAppIds}
-                        />
-                        <Button
-                            name="intent"
-                            variant="destructive"
-                            value="remove_application"
-                            disabled={fetcher.state === "submitting"}
-                        >
-                            Verwijderen
-                        </Button>
-                    </fetcher.Form>
-                </Field>
-            )
-        },
+        cell: (ctx) =>
+            ctx.row.original.applications.some((app) => app.canModify) && (
+                <ModifyCell {...ctx} />
+            ),
     },
 ]
+
+/**
+ * Renders two buttons that let the user edit or remove the applications found in the row record.
+ *
+ * The edit button will navigate to the add/update fertilizer page with the necessary search params.
+ *
+ * The delete button will delete the fertilizer and cause the row to disappear.
+ *
+ * @param param0 all of the React Table cell context
+ * @returns a React node that can be set as the cell contents
+ */
+function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
+    const params = useParams()
+    const fetcher = useFetcher()
+    const returnUrl = (table.options.meta as { returnUrl: string }).returnUrl
+
+    const modifiableAppIds = useMemo(
+        () =>
+            row.original.applications
+                .filter((app) => app.canModify)
+                .map((app) => `${app.b_id}:${app.p_app_id}`)
+                .join(","),
+        [row.original],
+    )
+
+    return (
+        <Field orientation="horizontal" className="justify-end">
+            <Spinner
+                className={cn(
+                    "h-4 w-4",
+                    fetcher.state !== "submitting" && "invisible",
+                )}
+            />
+            <Button asChild>
+                <NavLink
+                    to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
+                >
+                    Wijzigen
+                </NavLink>
+            </Button>
+            <fetcher.Form method="POST">
+                <input name="appIds" type="hidden" value={modifiableAppIds} />
+                <Button
+                    name="intent"
+                    variant="destructive"
+                    value="remove_application"
+                    disabled={fetcher.state === "submitting"}
+                >
+                    Verwijderen
+                </Button>
+            </fetcher.Form>
+        </Field>
+    )
+}
