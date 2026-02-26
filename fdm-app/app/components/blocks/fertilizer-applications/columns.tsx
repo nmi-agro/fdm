@@ -199,7 +199,7 @@ function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
             />
             <Button asChild>
                 <NavLink
-                    to={`/farm/${params.b_id_farm}/${params.calendar}/rotation/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
+                    to={`/farm/${params.b_id_farm}/${params.calendar}/field/fertilizer?appIds=${encodeURIComponent(modifiableAppIds)}&returnUrl=${encodeURIComponent(returnUrl)}`}
                 >
                     Wijzigen
                 </NavLink>
