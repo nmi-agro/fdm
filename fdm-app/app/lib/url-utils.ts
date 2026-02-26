@@ -56,7 +56,8 @@ export function getSearchParams(href: string) {
 
 /**
  * Checks if the given URL-like might be a full URL, and if so, if it is of the
- * origin given. No checks are performed if no protocol or `//` is detected in the URL.
+ * origin given. No origin checks are performed if neither a URI scheme nor a
+ * protocol-relative prefix (`//`) is detected.
  *
  * @param href URL-like
  * @param origin origin, like `example.com` to check if full URL is detected

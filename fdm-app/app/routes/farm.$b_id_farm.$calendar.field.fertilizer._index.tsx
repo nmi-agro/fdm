@@ -281,6 +281,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
               }
             : undefined
 
+        // If selected fields are still missing, throw an exception
+        if (fieldIds.length === 0) {
+            throw data("missing: fieldIds", {
+                status: 400,
+                statusText: "missing: fieldIds",
+            })
+        }
+
         const selectedFields = fields.filter(
             (field) => field.b_id && fieldIds.includes(field.b_id),
         )

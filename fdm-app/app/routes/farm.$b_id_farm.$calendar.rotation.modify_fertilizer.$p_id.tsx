@@ -49,7 +49,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
             ?.split(",")
             .filter((b_id) => b_id.length > 0)
         if (!fieldIds || fieldIds.length === 0) {
-            throw data("missing: fieldIds", 400)
+            throw data("missing: fieldIds", {
+                status: 400,
+                statusText: "missing: fieldIds",
+            })
         }
 
         const originalFertilizer = await getFertilizer(fdm, params.p_id)
