@@ -71,8 +71,15 @@ export function isOfOrigin(href: string, origin: string) {
         // Allow root-relative paths (e.g., /path/to/page)
         if (href.startsWith("/")) return true
 
-        // For everything else, check if it includes a protocol and validate origin
-        return !href.includes("//") || new URL(href).origin === origin
+        // If no URI scheme is present, treat as relative/path-like input
+        const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(href)
+        if (!hasScheme) return true
+
+        // For absolute URLs, only allow same-origin HTTP(S)
+        const parsed = new URL(href)
+        const isHttp =
+            parsed.protocol === "http:" || parsed.protocol === "https:"
+        return isHttp && parsed.origin === origin
     } catch {
         return false
     }

@@ -149,14 +149,18 @@ export default function FertilizerApplicationListDialog() {
         .map((apps) => apps.length)
         .reduce((a, b) => a + b, 0)
 
+    const fieldNameToShow =
+        numFields === 1
+            ? fertilizerApplications.find((apps) => apps.length > 0)?.[0].b_name
+            : undefined
+
     return (
         <Dialog open={true} onOpenChange={() => navigate("..")}>
             <DialogContent className="max-w-4xl transition-transform duration-1000">
                 <DialogHeader>
                     <DialogTitle>
                         {fertilizer.p_name_nl}{" "}
-                        {numFields === 1 &&
-                            ` op ${fertilizerApplications.find((apps) => apps.length > 0)?.[0].b_name}`}
+                        {fieldNameToShow && ` op ${fieldNameToShow}`}
                     </DialogTitle>
                     <DialogDescription>
                         Bekijk en beheer de bemestingen met deze meststof.

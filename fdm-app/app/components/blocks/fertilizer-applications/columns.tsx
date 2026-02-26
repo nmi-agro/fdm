@@ -99,9 +99,7 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="-ms-4">
                             <p className="text-muted-foreground">
-                                {fieldNames.length === 1
-                                    ? "(1 perceel)"
-                                    : `(${fieldNames.length} percelen)`}
+                                {`(${fieldNames.length} percelen)`}
                             </p>
                         </Button>
                     </DropdownMenuTrigger>
@@ -140,7 +138,7 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
                                 application.p_app_method_name ??
                                 application.p_app_method,
                         )
-                        .filter((date) => date !== null),
+                        .filter((methodName) => methodName !== null),
                 ),
             ]
                 .sort()

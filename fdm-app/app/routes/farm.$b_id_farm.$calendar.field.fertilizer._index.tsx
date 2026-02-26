@@ -100,14 +100,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             })
         }
 
-        // Get fieldIds either from appIds or from search params
-        const fieldIds =
-            applicationRefs.length > 0
-                ? [...new Set(applicationRefs.map((ref) => ref.b_id))]
-                : (url.searchParams
-                      .get("fieldIds")
-                      ?.split(",")
-                      .filter(Boolean) ?? [])
+        // Get fieldIds from search params
+        let fieldIds =
+            url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
 
         // Get the session
         const session = await getSession(request)
@@ -141,9 +136,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             session.principal_id,
             b_id_farm,
             timeframe,
-        )
-        const selectedFields = fields.filter(
-            (field) => field.b_id && fieldIds.includes(field.b_id),
         )
 
         const fieldOptions = fields.map((field) => {
@@ -212,6 +204,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     return app
                 }),
             )
+            fieldIds = [...new Set(applicationRefs.map((ref) => ref.b_id))]
 
             const exampleFertilizerApplication: Partial<FertilizerApplication> =
                 {
@@ -287,6 +280,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                   p_app_ids: applicationRefs.map((ref) => ref.p_app_id),
               }
             : undefined
+
+        const selectedFields = fields.filter(
+            (field) => field.b_id && fieldIds.includes(field.b_id),
+        )
 
         // Return user information from loader
         return {
