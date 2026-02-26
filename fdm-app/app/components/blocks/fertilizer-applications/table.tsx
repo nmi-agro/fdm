@@ -69,10 +69,27 @@ export const mappers = {
 
 const keysToSortById: (keyof typeof mappers)[] = ["mapByOrder", "mapByDate"]
 
+/**
+ * Returns 1 if `a` comes after `b`. -1 for vice versa. 0 if equal.
+ *
+ * @param a first date
+ * @param b second date
+ * @returns comparison value
+ */
 function compareDates(a: Date, b: Date) {
     return a.getTime() - b.getTime()
 }
 
+/**
+ * Returns 1 if `a` comes after `b` in lexicographical order. -1 for vice versa. 0 if equal.
+ *
+ * This function can be used with Array.sort(). If the array is an array of strings,
+ * the behavior will be the same as if no sorting function was passed.
+ *
+ * @param a first string
+ * @param b second string
+ * @returns comparison value
+ */
 function compareStrings(a: string, b: string) {
     return a < b ? -1 : a > b ? 1 : 0
 }
@@ -134,6 +151,21 @@ function groupAndOrderFertApps(
     return entries.map((ent) => ent[1])
 }
 
+/**
+ * Returns a table of fertilizer application dates with columns for application date, field name, application date.
+ * Applications may be grouped together if all their properties except which field are the same.
+ * There is also a column with buttons which the user can use to edit and delete the application(s) shown in the row.
+ * @param param0 component props
+ * - `numFields` should be the number of unique fields across all applications.
+ * - `fertilizerApplications` should contain an array of applications where each row is the applications on a single
+ *   field.
+ * - Each application should be provided as an extended fertilizer application object which also includes the `b_id`
+ *   and `b_name` of the field, the `p_app_method_name` for the application method used, and whether the user
+ *   `canModify` the application.
+ * - `returnUrl` should be set to the current page url including the path name and search parameters. It lets the
+ *   user get back to the table once they are done with editing a fertilizer application.
+ * @returns a React node that is the table
+ */
 export function DataTable({
     numFields,
     fertilizerApplications,
