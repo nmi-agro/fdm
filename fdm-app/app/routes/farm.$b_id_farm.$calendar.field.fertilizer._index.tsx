@@ -341,8 +341,6 @@ export default function FarmFieldFertilizerAddIndex() {
     const isModification = !!loaderData.fertilizerApplication?.p_app_ids
     const canReselect = !isModification
 
-    const title = isModification ? "Bemesting wijzigen" : "Bemesting toevoegen"
-
     return (
         <SidebarInset>
             <Header
@@ -361,11 +359,19 @@ export default function FarmFieldFertilizerAddIndex() {
                     Percelen
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem className="hidden md:block">{}</BreadcrumbItem>
+                <BreadcrumbItem className="hidden md:block">
+                    {isModification
+                        ? "Bemesting wijzigen"
+                        : "Bemesting toevoegen"}
+                </BreadcrumbItem>
             </Header>
             <main>
                 <FarmTitle
-                    title={title}
+                    title={
+                        isModification
+                            ? "Bemesting wijzigen"
+                            : "Bemesting toevoegen"
+                    }
                     description={
                         isModification
                             ? "Bemesting wijzigen op 1 of meerdere percelen."
@@ -393,8 +399,7 @@ export default function FarmFieldFertilizerAddIndex() {
                                         Geselecteerde percelen
                                     </CardTitle>
                                     <CardDescription>
-                                        De bemesting wordt toegepast op de
-                                        volgende percelen.
+                                        {`De bemesting wordt ${isModification ? "gewijzigd" : "toegepast"} op de volgende percelen.`}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -524,13 +529,21 @@ export default function FarmFieldFertilizerAddIndex() {
                             </Card>
                             <Card className="flex-1">
                                 <CardHeader>
-                                    <CardTitle>Bemesting toevoegen</CardTitle>
+                                    <CardTitle>
+                                        {isModification
+                                            ? "Bemesting wijzigen"
+                                            : "Bemesting toevoegen"}
+                                    </CardTitle>
                                     <CardDescription>
                                         {loaderData.fieldAmount === 0
                                             ? "Selecteer eerst een of meerdere percelen."
-                                            : loaderData.fieldAmount === 1
-                                              ? "Voeg een nieuwe bemestingstoepassing toe aan het geselecteerde perceel."
-                                              : `Voeg een nieuwe bemestingstoepassing toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
+                                            : isModification
+                                              ? loaderData.fieldAmount === 1
+                                                  ? "Wijzig de bemesting van het geselecteerde perceel."
+                                                  : `Wijzig de bemesting van de ${loaderData.fieldAmount} geselecteerde percelen.`
+                                              : loaderData.fieldAmount === 1
+                                                ? "Voeg een nieuwe bemestingstoepassing toe aan het geselecteerde perceel."
+                                                : `Voeg een nieuwe bemestingstoepassing toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -580,8 +593,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const session = await getSession(request)
         const url = new URL(request.url)
-        const fieldIds =
-            url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
 
         const returnUrlParam = url.searchParams.get("returnUrl")
         const returnUrl =
@@ -631,6 +642,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
             })
         }
 
+        const fieldIds = [
+            ...new Set(
+                url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ??
+                    [],
+            ),
+        ]
         if (!fieldIds || fieldIds.length === 0) {
             return dataWithError(null, "Selecteer eerst een perceel.")
         }
@@ -640,17 +657,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
             FormSchema,
         )
 
-        for (const fieldId of fieldIds) {
-            await addFertilizerApplication(
-                fdm,
-                session.principal_id,
-                fieldId,
-                validatedData.p_id,
-                validatedData.p_app_amount,
-                validatedData.p_app_method,
-                validatedData.p_app_date,
-            )
-        }
+        fdm.transaction((tx) =>
+            Promise.all(
+                fieldIds.map((b_id) =>
+                    addFertilizerApplication(
+                        tx,
+                        session.principal_id,
+                        b_id,
+                        validatedData.p_id,
+                        validatedData.p_app_amount,
+                        validatedData.p_app_method,
+                        validatedData.p_app_date,
+                    ),
+                ),
+            ),
+        )
 
         return redirectWithSuccess(returnUrl, {
             message: `Bemesting succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
