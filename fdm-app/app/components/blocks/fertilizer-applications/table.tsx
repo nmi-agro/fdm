@@ -16,6 +16,7 @@ import {
 import {
     type ApplicationExtended,
     columns,
+    createDateKey,
     type FertAppRecordItem,
 } from "./columns"
 
@@ -61,7 +62,7 @@ export const mappers = {
     mapByField: createMapper((application) => application.b_id),
     mapBySimilar: createMapper(
         (application) =>
-            `${application.p_app_id}#${application.p_app_date.getTime()}#${application.p_app_amount?.toPrecision(4)}`,
+            `${createDateKey(application.p_app_date)}#${application.p_app_amount?.toPrecision(4)}`,
     ),
     mapEach: createMapper((application) => application.p_app_id),
 } as const
@@ -149,10 +150,15 @@ export function DataTable({
 
     const columnVisibility = useMemo(
         () => ({
+            // Only show the field names if there are multiple fields
             b_name: numFields > 1,
+            // Only show the number of applications if a field has multiple applications in a group
             "applications.length": records.some(
-                (app) => app.applications.length > 1,
+                (record) =>
+                    record.applications.length >
+                    new Set(record.applications.map((app) => app.b_id)).size,
             ),
+            // Only show the modify actions column if any of the applications is modifiable
             modify: fertilizerApplications.some((apps) =>
                 apps.some((app) => app.canModify),
             ),
@@ -165,14 +171,14 @@ export function DataTable({
         data: records,
         getCoreRowModel: getCoreRowModel(),
         meta: { returnUrl },
-        initialState: {
+        state: {
             columnVisibility: columnVisibility,
         },
     })
 
     return (
         <Table>
-            <TableHeader className="sticky">
+            <TableHeader className="sticky top-0 z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map((header) => {

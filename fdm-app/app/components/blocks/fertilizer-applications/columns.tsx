@@ -1,6 +1,6 @@
 import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import { format } from "date-fns"
+import { endOfDay, format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { NavLink, useFetcher, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
@@ -38,7 +38,7 @@ function formatDateRange(dates: Date[]) {
     if (dates.length === 0) return ""
     const firstDate = dates[0]
     const lastDate = dates[dates.length - 1]
-    return firstDate.getTime() === lastDate.getTime()
+    return createDateKey(firstDate) === createDateKey(lastDate)
         ? `${format(firstDate, "PP", { locale: nl })}`
         : `${format(firstDate, "PP", { locale: nl })} - ${format(lastDate, "PP", { locale: nl })}`
 }
@@ -58,6 +58,14 @@ function formatNumberRange(numbers: number[], unit = "") {
         Math.abs(lastNumber - firstNumber) < Math.abs(firstNumber) / 100
         ? `${firstNumber} ${unit}`
         : `${firstNumber} - ${lastNumber} ${unit}`
+}
+
+/**
+ * Returns a date string that doesn't contain the time.
+ *
+ * The app interface doesn't really show the time in the day for dates, so we ignore the time this way */
+export function createDateKey(date: Date) {
+    return format(endOfDay(date), "yyyy-MM-dd")
 }
 
 export const columns: ColumnDef<FertAppRecordItem>[] = [
@@ -86,7 +94,7 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
                     ]),
                 ),
             ).sort((a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0))
-            return row.original.applications.length > 1 ? (
+            return fieldNames.length > 1 ? (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="-ms-4">

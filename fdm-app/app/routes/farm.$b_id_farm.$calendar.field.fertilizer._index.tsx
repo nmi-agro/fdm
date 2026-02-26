@@ -657,7 +657,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             FormSchema,
         )
 
-        fdm.transaction((tx) =>
+        await fdm.transaction((tx) =>
             Promise.all(
                 fieldIds.map((b_id) =>
                     addFertilizerApplication(
