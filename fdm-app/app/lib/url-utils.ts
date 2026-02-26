@@ -64,7 +64,8 @@ export function getSearchParams(href: string) {
  */
 export function isOfOrigin(href: string, origin: string) {
     try {
-        return !href.includes("://") || new URL(href).origin === origin
+        if (href.startsWith("/") && !href.startsWith("//")) return true
+        return !href.includes("//") || new URL(href).origin === origin
     } catch {
         return false
     }
