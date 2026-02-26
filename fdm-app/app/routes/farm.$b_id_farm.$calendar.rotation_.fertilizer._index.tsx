@@ -97,11 +97,17 @@ export const meta: MetaFunction = () => {
 
 type PathParams = Route.LoaderArgs["params"]
 interface StrategizedLoaderData {
+    /** List of fields that can be selected by the user */
     fields: (Field & { cultivations?: string[] })[]
+    /** Which fields are selected */
     selectedFieldIds: string[]
+    /** If the user can actually change their selection */
     canReselect: boolean
+    /** List of application ids to modify, if this is a modification */
     appIds: string[] | null
+    /** Fertilizer application to be shown as input placeholders */
     exampleFertilizerApplication?: Partial<FertilizerApplication> | null
+    /** Fertilizer application to use to pre-fill the form */
     fertilizerApplication?: Partial<FertilizerApplication> | null
 }
 function loadByStrategy(
@@ -119,7 +125,7 @@ function loadByStrategy(
                 statusText: "invalid: appIds",
             })
         }
-        return loadByAppIds(principal_id, params, appIdPairs)
+        return loadByAppIds(principal_id, appIdPairs)
     }
 
     // Get cultivationIds from search params
@@ -145,6 +151,21 @@ function loadByStrategy(
     )
 }
 
+/**
+ * Loads the data necessary to render the add new fertilizer application form.
+ *
+ * By default, all the fields will be selected to add an application, but the initial selection
+ * state can be controlled via the fieldIds search param.
+ *
+ * Since the appIds as null, the interface should indicate that new fertilizer applications
+ * are being added.
+ *
+ * @param principal_id
+ * @param params
+ * @param cultivationIds
+ * @param fieldIds
+ * @returns
+ */
 async function loadByCultivationAndFieldIds(
     principal_id: string,
     params: PathParams,
@@ -198,9 +219,25 @@ async function loadByCultivationAndFieldIds(
     }
 }
 
+/**
+ * Loads the data for the case where a set of existing fertilizer applications are being modified.
+ *
+ * appIds will contain the application ids to be submitted as part of the form.
+ *
+ * fertilizerApplication will include the values equal between the applications, or at least similar,
+ * for numerical data types.
+ * exampleFertilizerApplication application will be the first application found.
+ *
+ * Cultivation IDs will be missing. The page should not show any errors about this.
+ * As can be seen from the canReselect value, the user logically can't deselect fields even if they
+ * don't have the cultivation.
+ *
+ * @param principal_id
+ * @param applicationRefs
+ * @returns
+ */
 async function loadByAppIds(
     principal_id: string,
-    _params: PathParams,
     applicationRefs: ReturnType<typeof parseAppIds>,
 ): Promise<StrategizedLoaderData> {
     const fieldIds = [...new Set(applicationRefs.map((ref) => ref.b_id))]
@@ -247,6 +284,7 @@ async function loadByAppIds(
         // Only keep values that are common between the fertilizer applications
         for (const key of keys) {
             for (const app of fertilizerApplications) {
+                // If the value is missing for this application, clear the value on the initial form data
                 if (
                     exampleFertilizerApplication[key] === null ||
                     typeof exampleFertilizerApplication[key] === "undefined" ||
@@ -256,13 +294,25 @@ async function loadByAppIds(
                     delete fertilizerApplication[key]
                     continue
                 }
-                if (
-                    keyTypes[key] === "date"
-                        ? (
-                              exampleFertilizerApplication[key] as Date
-                          ).getTime() !== (app[key] as Date).getTime()
-                        : exampleFertilizerApplication[key] !== app[key]
+
+                if (keyTypes[key] === "number") {
+                    // If the value is too different from the initial app, consider them to be different
+                    // The outcome of this actually depends on the ordering of the applications, but it is fine
+                    // The previous route is supposed to sort the applications, so the outcome should be stable at least
+                    const a = app[key] as number
+                    const b = exampleFertilizerApplication[key] as number
+                    if (a !== b && Math.abs(a - b) > Math.abs(b) / 100) {
+                        delete fertilizerApplication[key]
+                    }
+                } else if (
+                    keyTypes[key] === "date" &&
+                    (exampleFertilizerApplication[key] as Date).getTime() !==
+                        (app[key] as Date).getTime()
                 ) {
+                    // If it is not the same date they are different
+                    delete fertilizerApplication[key]
+                } else if (exampleFertilizerApplication[key] !== app[key]) {
+                    // Any other type of value is compared using !==
                     delete fertilizerApplication[key]
                 }
             }
@@ -286,6 +336,17 @@ async function loadByAppIds(
     }
 }
 
+/**
+ * Collects all the data necessary to render the page
+ *
+ * Part of the data is loaded using different strategies. Strategy to be used is determined according to
+ * the search parameters by `loadByStrategy` which in turn calls `loadByCultivationAndFieldIds` or `loadByAppIds`
+ *
+ * @param param0 route loader arguments
+ * @returns `fertiizerApplication.p_app_ids` will be defined if this is a fertilizer application modification.
+ * `canReselect` will be set to true if the user should be able to change their field selection.
+ * @throws `handleLoaderError` applied to any error that can occur while loading
+ */
 export async function loader({ request, params }: Route.LoaderArgs) {
     try {
         // Get the session
@@ -543,7 +604,7 @@ export default function FarmRotationFertilizerAddIndex() {
                                     <CardDescription>
                                         De bemesting{" "}
                                         {isModification
-                                            ? "is toegepast"
+                                            ? "wordt gewijzigd"
                                             : "wordt toegepast"}{" "}
                                         op de volgende percelen.
                                     </CardDescription>
