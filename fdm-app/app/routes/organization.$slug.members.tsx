@@ -1,10 +1,14 @@
-import type { Invitation, Member, Organization } from "better-auth/plugins"
+import type {
+    Invitation,
+    Member,
+    Organization,
+    OrganizationRole,
+} from "better-auth/plugins"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useRef } from "react"
+import { useEffect, useState } from "react"
 import { Form, useFetcher, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
-import { toast } from "sonner"
 import { z } from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
@@ -25,6 +29,7 @@ import {
     SelectValue,
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
+import { Spinner } from "~/components/ui/spinner"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import {
@@ -34,6 +39,7 @@ import {
 } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.members"
 
 // Meta
@@ -261,30 +267,36 @@ const MemberAction = ({
     }
 }) => {
     const fetcher = useFetcher()
-    const formRef = useRef<HTMLFormElement>(null)
     const disabled = fetcher.state !== "idle"
+    const [role, setRole] = useState(member.role)
 
-    function submitRoleChange() {
-        if (!formRef.current) {
-            console.error("HTML form is not referenced.")
-            return
-        }
-        const formData = new FormData(formRef.current)
-        formData.append("intent", "update_role")
-        fetcher
-            .submit(formData, { method: "post" })
-            .catch((e) => toast.error(e.message))
+    function submitRoleChange(role: OrganizationRole["role"]) {
+        setRole(role)
+        fetcher.submit(
+            {
+                intent: "update_role",
+                memberId: member.id,
+                role,
+            },
+            { method: "post" },
+        )
     }
+
+    useEffect(() => {
+        if (fetcher.data?.error) {
+            setRole(member.role)
+        }
+    }, [fetcher.data, member.role])
+
     return (
-        <Form
-            ref={formRef}
-            method="post"
-            className="flex items-center space-x-4"
-        >
+        <fetcher.Form method="post" className="flex items-center space-x-4">
+            <Spinner
+                className={cn(fetcher.state !== "submitting" && "invisible")}
+            />
             <input type="hidden" name="memberId" value={member.id} />
             <Select
-                defaultValue={member.role}
                 name="role"
+                value={role}
                 onValueChange={submitRoleChange}
                 disabled={disabled}
             >
@@ -307,7 +319,7 @@ const MemberAction = ({
                     Verwijder
                 </Button>
             ) : null}
-        </Form>
+        </fetcher.Form>
     )
 }
 
@@ -551,6 +563,26 @@ export async function action({ request, params }: Route.ActionArgs) {
         }
         throw new Error("invalid intent")
     } catch (error) {
+        if (error) {
+            const errorResponse = error as { body?: { code?: string } }
+            if (errorResponse.body?.code) {
+                const handledMessage = {
+                    YOU_CANNOT_LEAVE_THE_ORGANIZATION_AS_THE_ONLY_OWNER:
+                        "Je kunt de organisatie niet verlaten als er geen andere eigenaren zijn.",
+                    YOU_CANNOT_LEAVE_THE_ORGANIZATION_WITHOUT_AN_OWNER:
+                        "Jouw organisatie moet minimaal één eigenaar hebben.",
+                }[errorResponse.body.code]
+
+                if (handledMessage) {
+                    return dataWithError(
+                        { error: true },
+                        {
+                            message: handledMessage,
+                        },
+                    )
+                }
+            }
+        }
         throw handleActionError(error)
     }
 }
