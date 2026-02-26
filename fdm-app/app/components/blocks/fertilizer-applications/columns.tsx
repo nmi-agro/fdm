@@ -71,6 +71,7 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
             ),
     },
     {
+        id: "applications.length",
         accessorKey: "applications.length",
         header: "Aantal Bemestingen",
     },
@@ -173,7 +174,7 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
             )
 
             return (
-                <Field orientation="horizontal">
+                <Field orientation="horizontal" className="justify-end">
                     <Spinner
                         className={cn(
                             "h-4 w-4",

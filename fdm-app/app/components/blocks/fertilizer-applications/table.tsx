@@ -3,7 +3,7 @@ import {
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { cn } from "@/app/lib/utils"
 import {
     Table,
@@ -13,7 +13,6 @@ import {
     TableHeader,
     TableRow,
 } from "~/components/ui/table"
-import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import {
     type ApplicationExtended,
     columns,
@@ -60,6 +59,10 @@ export const mappers = {
         application.p_app_date.getTime().toString(),
     ),
     mapByField: createMapper((application) => application.b_id),
+    mapBySimilar: createMapper(
+        (application) =>
+            `${application.p_app_id}#${application.p_app_date.getTime()}#${application.p_app_amount?.toPrecision(4)}`,
+    ),
     mapEach: createMapper((application) => application.p_app_id),
 } as const
 
@@ -139,19 +142,9 @@ export function DataTable({
     fertilizerApplications: ApplicationExtended[][]
     returnUrl: string
 }) {
-    const [rowMapper, setRowMapper] =
-        useState<keyof typeof mappers>("mapByDate")
-
-    const numFertilizerApplications = fertilizerApplications
-        .map((apps) => apps.length)
-        .reduce((a, b) => a + b, 0)
-
-    const shouldShowGroupingSelector =
-        numFields > 1 && numFertilizerApplications > 1
-
     const records = useMemo(
-        () => groupAndOrderFertApps(fertilizerApplications, rowMapper),
-        [fertilizerApplications, rowMapper],
+        () => groupAndOrderFertApps(fertilizerApplications, "mapBySimilar"),
+        [fertilizerApplications],
     )
 
     const columnVisibility = useMemo(
@@ -172,84 +165,57 @@ export function DataTable({
         data: records,
         getCoreRowModel: getCoreRowModel(),
         meta: { returnUrl },
-        state: {
+        initialState: {
             columnVisibility: columnVisibility,
         },
     })
 
     return (
-        <>
-            {shouldShowGroupingSelector && (
-                <div className="flex flex-row items-center gap-2">
-                    <p className="text-sm text-muted-foreground">
-                        Groeperen op{" "}
-                    </p>
-                    <Tabs
-                        value={rowMapper}
-                        onValueChange={(value) => {
-                            if (value in mappers)
-                                setRowMapper(value as keyof typeof mappers)
-                        }}
-                    >
-                        <TabsList>
-                            <TabsTrigger value="mapByDate">Datum</TabsTrigger>
-                            <TabsTrigger value="mapByOrder">
-                                Volgorde
-                            </TabsTrigger>
-                            <TabsTrigger value="mapEach">
-                                Niet groeperen
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
-            )}
-            <Table>
-                <TableHeader className="sticky">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                        <TableRow key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => {
-                                return (
-                                    <TableHead
-                                        key={header.id}
-                                        className={cn({
-                                            "sticky right-0":
-                                                header.column.id === "modify",
-                                        })}
-                                    >
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                  header.column.columnDef
-                                                      .header,
-                                                  header.getContext(),
-                                              )}
-                                    </TableHead>
-                                )
-                            })}
-                        </TableRow>
-                    ))}
-                </TableHeader>
-                <TableBody className="text-muted-foreground">
-                    {table.getRowModel().rows.map((row) => (
-                        <TableRow key={row.id}>
-                            {row.getVisibleCells().map((cell) => (
-                                <TableCell
-                                    key={cell.id}
+        <Table>
+            <TableHeader className="sticky">
+                {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => {
+                            return (
+                                <TableHead
+                                    key={header.id}
                                     className={cn({
                                         "sticky right-0":
-                                            cell.column.id === "modify",
+                                            header.column.id === "modify",
                                     })}
                                 >
-                                    {flexRender(
-                                        cell.column.columnDef.cell,
-                                        cell.getContext(),
-                                    )}
-                                </TableCell>
-                            ))}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </>
+                                    {header.isPlaceholder
+                                        ? null
+                                        : flexRender(
+                                              header.column.columnDef.header,
+                                              header.getContext(),
+                                          )}
+                                </TableHead>
+                            )
+                        })}
+                    </TableRow>
+                ))}
+            </TableHeader>
+            <TableBody className="text-muted-foreground">
+                {table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                            <TableCell
+                                key={cell.id}
+                                className={cn({
+                                    "sticky right-0 pe-0":
+                                        cell.column.id === "modify",
+                                })}
+                            >
+                                {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext(),
+                                )}
+                            </TableCell>
+                        ))}
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
     )
 }
