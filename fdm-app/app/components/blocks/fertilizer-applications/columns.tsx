@@ -2,7 +2,6 @@ import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import type { CellContext, ColumnDef } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useMemo } from "react"
 import { NavLink, useFetcher, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
@@ -79,18 +78,14 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
         id: "b_name",
         header: "Perceel",
         cell: ({ row }) => {
-            const fieldNames = useMemo(
-                () =>
-                    Object.entries(
-                        Object.fromEntries(
-                            row.original.applications.map((app) => [
-                                app.b_id,
-                                app.b_name,
-                            ]),
-                        ),
-                    ).sort((a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0)),
-                [row.original],
-            )
+            const fieldNames = Object.entries(
+                Object.fromEntries(
+                    row.original.applications.map((app) => [
+                        app.b_id,
+                        app.b_name,
+                    ]),
+                ),
+            ).sort((a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0))
             return row.original.applications.length > 1 ? (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -180,14 +175,10 @@ function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
     const fetcher = useFetcher()
     const returnUrl = (table.options.meta as { returnUrl: string }).returnUrl
 
-    const modifiableAppIds = useMemo(
-        () =>
-            row.original.applications
-                .filter((app) => app.canModify)
-                .map((app) => `${app.b_id}:${app.p_app_id}`)
-                .join(","),
-        [row.original],
-    )
+    const modifiableAppIds = row.original.applications
+        .filter((app) => app.canModify)
+        .map((app) => `${app.b_id}:${app.p_app_id}`)
+        .join(",")
 
     return (
         <Field orientation="horizontal" className="justify-end">
