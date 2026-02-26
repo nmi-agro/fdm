@@ -48,7 +48,7 @@ function formatDateRange(dates: Date[]) {
  * Stringifies a single number with an unit if the given range is all the same numbers or very close down to roughly 2 decimal places,
  * otherwise stringifies the least and the greatest numbers with a dash in between and the unit at the end.
  *
- * @param dates array of numbers. Nulls and undefined items are not allowed.
+ * @param numbers array of numbers. Nulls and undefined items are not allowed.
  * @returns the formatted string.
  */
 function formatNumberRange(numbers: number[], unit = "") {
@@ -121,7 +121,7 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
                     </DropdownMenuContent>
                 </DropdownMenu>
             ) : (
-                fieldNames[0][1]
+                (fieldNames[0]?.[1] ?? "")
             )
         },
     },
