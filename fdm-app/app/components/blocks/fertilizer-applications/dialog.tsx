@@ -82,7 +82,9 @@ export function FertilizerApplicationListDialog({
                             <EmptyDescription>
                                 {isForRotation
                                     ? "Deze meststof wordt niet langer op dit perceel/deze percelen en gewassen toegepast."
-                                    : "Deze meststof wordt niet langer op dit perceel toegepast."}
+                                    : numFields > 1
+                                      ? "Deze meststof wordt niet langer op deze percelen toegepast."
+                                      : "Deze meststof wordt niet langer op dit perceel toegepast."}
                             </EmptyDescription>
                             <EmptyDescription>
                                 Sluit dit venster om een nieuwe bemesting toe te
