@@ -59,7 +59,7 @@ export function OrganizationSettingsForm({
     const disabled = !canModify || form.formState.isSubmitting
     return (
         <RemixFormProvider {...form}>
-            <Form action={action} method={method}>
+            <Form action={action} method={method} onSubmit={form.handleSubmit}>
                 <fieldset disabled={disabled} className="space-y-4">
                     <Controller
                         name="name"

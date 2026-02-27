@@ -1,5 +1,5 @@
 import { data, useLoaderData } from "react-router"
-import { dataWithError, redirectWithSuccess } from "remix-toast"
+import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
 import { FormSchema } from "~/components/blocks/organization/schema"
@@ -190,7 +190,7 @@ export async function action({ params, request }: Route.ActionArgs) {
             },
         })
 
-        return redirectWithSuccess(`/organization/${formValues.slug}`, {
+        return dataWithSuccess(null, {
             message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
         })
     } catch (error) {
