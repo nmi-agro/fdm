@@ -232,8 +232,8 @@ export async function action({ request }: Route.ActionArgs) {
             return dataWithSuccess(
                 null,
                 formData.appIds.length === 1
-                    ? "Bemesting is verwijderd!"
-                    : "Bemestingen zijn verwijderd!",
+                    ? "Bemesting is verwijderd"
+                    : "Bemestingen zijn verwijderd",
             )
         }
 

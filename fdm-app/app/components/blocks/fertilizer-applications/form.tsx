@@ -275,7 +275,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                                             Number.isFinite(
                                                 exampleFertilizerApplication?.p_app_amount,
                                             )
-                                                ? `Er zijn verschillende waarden ingevuld, bv: ${exampleFertilizerApplication?.p_app_amount} kg/ha`
+                                                ? `Er zijn verschillende waarden ingevuld, bv: ${exampleFertilizerApplication?.p_app_amount} kg / ha`
                                                 : "Bv. 37500 kg / ha"
                                         }
                                         aria-required="true"

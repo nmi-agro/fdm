@@ -80,7 +80,7 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
     {
         id: "applications.length",
         accessorKey: "applications.length",
-        header: "Aantal Bemestingen",
+        header: "Aantal bemestingen",
     },
     {
         id: "b_name",
