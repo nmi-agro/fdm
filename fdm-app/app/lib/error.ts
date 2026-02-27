@@ -177,6 +177,15 @@ export function handleActionError(error: unknown) {
         )
     }
 
+    // Validation: farm must always have at least one owner
+    if (containsErrorMessage(error, "Farm should have at least 1 owner")) {
+        console.warn("Last owner role change blocked:", error)
+        return dataWithWarning(
+            null,
+            "Een bedrijf moet minimaal één eigenaar hebben. Wijs eerst een andere eigenaar aan voordat je deze rol wijzigt.",
+        )
+    }
+
     // Handle 'data' thrown errors
     if (
         typeof error === "object" &&
