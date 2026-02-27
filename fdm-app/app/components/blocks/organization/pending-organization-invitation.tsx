@@ -109,11 +109,6 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                                         name="invitation_id"
                                         value={invitation.id}
                                     />
-                                    <input
-                                        type="hidden"
-                                        name="invitation_id"
-                                        value={invitation.id}
-                                    />
                                     <Button
                                         variant="default"
                                         name="intent"

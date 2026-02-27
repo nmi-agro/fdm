@@ -52,6 +52,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
                     aria-label={
                         row.getIsExpanded() ? "Klap rij in" : "Klap rij uit"
                     }
+                    aria-expanded={row.getIsExpanded()}
                     title={row.getIsExpanded() ? "Klap rij in" : "Klap rij uit"}
                 >
                     <ChevronRight
@@ -63,9 +64,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
                         )}
                     />
                 </button>
-            ) : (
-                ""
-            )
+            ) : null
         },
     },
     {

@@ -35,7 +35,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
@@ -479,7 +479,7 @@ export async function action({ request }: Route.ActionArgs) {
 
         return dataWithError(null, "Onbekende actie")
     } catch (error) {
-        console.error(error)
+        handleActionError(error)
         return dataWithError(null, "Er is iets misgegaan")
     }
 }

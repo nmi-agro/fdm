@@ -1,5 +1,5 @@
 import { data, useLoaderData } from "react-router"
-import { dataWithError, dataWithSuccess } from "remix-toast"
+import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
 import { FormSchema } from "~/components/blocks/organization/schema"
@@ -106,7 +106,7 @@ export default function OrganizationSettingsBlock() {
             <div className="max-w-3xl mx-auto px-4 space-y-8">
                 <FarmTitle
                     title={"Organisatie instellingen"}
-                    description={"Werk de gegevens bij van dit organisatie."}
+                    description={"Werk de gegevens bij van deze organisatie."}
                     action={{ to: "./..", label: "Terug naar dashboard" }}
                 />
                 <Card>
@@ -190,7 +190,7 @@ export async function action({ params, request }: Route.ActionArgs) {
             },
         })
 
-        return dataWithSuccess(null, {
+        return redirectWithSuccess(`/organization/${slug}`, {
             message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
         })
     } catch (error) {

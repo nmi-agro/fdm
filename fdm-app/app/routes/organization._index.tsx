@@ -163,7 +163,7 @@ const FormSchema = z.object({
     ]),
 })
 
-export async function action({ request }: Route.LoaderArgs) {
+export async function action({ request }: Route.ActionArgs) {
     try {
         const formValues = await extractFormValuesFromRequest(
             request,

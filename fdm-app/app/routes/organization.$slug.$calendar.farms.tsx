@@ -30,7 +30,7 @@ export const meta: Route.MetaFunction = () => {
         {
             name: "description",
             content:
-                "Bekijk en beheer de bedrijven waartoe jouw organisatie toagang heeft.",
+                "Bekijk en beheer de bedrijven waartoe jouw organisatie toegang heeft.",
         },
     ]
 }
