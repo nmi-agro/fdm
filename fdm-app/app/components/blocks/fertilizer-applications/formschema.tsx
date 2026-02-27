@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const FormSchema = z.object({
+const fields = {
     p_app_amount: z.preprocess(
         (val) => (typeof val === "string" && val !== "" ? Number(val) : val),
         z
@@ -31,11 +31,34 @@ export const FormSchema = z.object({
                 ? "Keuze van meststof is verplicht"
                 : "Meststof is ongeldig",
     }),
-})
+} as const
+
+export const FormSchema = z.object(fields)
+
+export const FormSchemaPartial = z.object(
+    Object.fromEntries(
+        Object.entries(fields).map(([key, value]) => [
+            key,
+            value.or(z.undefined()),
+        ]),
+    ) as {
+        [k in keyof typeof fields]: z.ZodUnion<
+            [(typeof fields)[k], z.ZodUndefined]
+        >
+    },
+)
 
 export const FormSchemaModify = FormSchema.extend({
     p_app_id: z.string({
-        // TODO: Validate against the options that are available
+        error: (issue) =>
+            issue.input === undefined
+                ? "Bemesting id is verplicht"
+                : "Bemesting id is ongeldig",
+    }),
+})
+
+export const FormSchemaPartialModify = FormSchemaPartial.extend({
+    p_app_id: z.string({
         error: (issue) =>
             issue.input === undefined
                 ? "Bemesting id is verplicht"
@@ -45,4 +68,5 @@ export const FormSchemaModify = FormSchema.extend({
 
 export type FieldFertilizerFormValues = z.infer<typeof FormSchema> & {
     p_app_id?: string | undefined
+    p_app_ids?: string[] | undefined
 }

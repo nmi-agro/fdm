@@ -4,6 +4,8 @@ import type { User } from "better-auth"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import postmark from "postmark"
+import { FarmInvitationCancelledEmail } from "~/components/blocks/email/farm-invitation-cancelled"
+import { FarmInvitationRoleUpdatedEmail } from "~/components/blocks/email/farm-invitation-role-updated"
 import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
 import { InvitationEmail } from "~/components/blocks/email/invitation"
 import { MagicLinkEmail } from "~/components/blocks/email/magic-link"
@@ -105,6 +107,64 @@ export async function renderFarmInvitationEmail(
         Tag: isUnregistered
             ? "invitation-farm-new-user"
             : "invitation-farm",
+    }
+
+    return email
+}
+
+export async function renderFarmInvitationCancelledEmail(
+    targetEmail: string,
+    inviterName: string,
+    farmName: string,
+): Promise<Email> {
+    const emailHtml = await render(
+        FarmInvitationCancelledEmail({
+            farmName,
+            inviterName,
+            targetEmail,
+            appName: serverConfig.name,
+            appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
+        }),
+        { pretty: true },
+    )
+
+    const email: Email = {
+        From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
+        To: targetEmail,
+        Subject: `Je uitnodiging voor bedrijf ${farmName} is ingetrokken`,
+        HtmlBody: emailHtml,
+        Tag: "invitation-farm-cancelled",
+    }
+
+    return email
+}
+
+export async function renderFarmInvitationRoleUpdatedEmail(
+    targetEmail: string,
+    inviterName: string,
+    farmName: string,
+    newRole: string,
+): Promise<Email> {
+    const emailHtml = await render(
+        FarmInvitationRoleUpdatedEmail({
+            farmName,
+            inviterName,
+            targetEmail,
+            newRole,
+            appName: serverConfig.name,
+            appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
+        }),
+        { pretty: true },
+    )
+
+    const email: Email = {
+        From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
+        To: targetEmail,
+        Subject: `Je uitnodiging voor bedrijf ${farmName} is bijgewerkt`,
+        HtmlBody: emailHtml,
+        Tag: "invitation-farm-role-updated",
     }
 
     return email

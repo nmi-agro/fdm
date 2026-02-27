@@ -1,5 +1,6 @@
 import {
     acceptInvitation,
+    cancelInvitationForFarm,
     declineInvitation,
     getFarm,
     grantRoleToFarm,
@@ -28,6 +29,7 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 import {
     renderFarmInvitationEmail,
+    renderFarmInvitationCancelledEmail,
     sendEmail,
     isInactiveRecipientError,
 } from "~/lib/email.server"
@@ -245,14 +247,52 @@ export async function action({ request, params }: ActionFunctionArgs) {
             if (!formValues.username) {
                 return handleActionError("missing: username")
             }
-            await revokePrincipalFromFarm(
-                fdm,
-                session.user.id,
-                formValues.username,
-                b_id_farm,
-            )
+            if (formValues.invitation_id) {
+                // Pending invitation — cancel it
+                await cancelInvitationForFarm(
+                    fdm,
+                    session.user.id,
+                    formValues.invitation_id,
+                )
+                // Send cancellation notification email; failure is non-fatal as the invitation was already cancelled
+                try {
+                    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
+                    const normalizedTarget = formValues.username.toLowerCase().trim()
+                    const isEmailTarget = isEmail(normalizedTarget)
+                    const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
+                    const targetPrincipal = matchedPrincipals.find(
+                        (p) =>
+                            p.username.toLowerCase() === normalizedTarget ||
+                            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
+                    )
+                    const targetEmail = isEmailTarget
+                        ? normalizedTarget
+                        : targetPrincipal?.type === "user"
+                          ? targetPrincipal.email
+                          : null
+                    if (targetEmail) {
+                        const email = await renderFarmInvitationCancelledEmail(
+                            targetEmail,
+                            session.userName,
+                            farm.b_name_farm ?? b_id_farm,
+                        )
+                        await sendEmail(email)
+                    }
+                } catch (emailError) {
+                    console.error("Error sending invitation cancelled email:", emailError)
+                }
+            } else {
+                await revokePrincipalFromFarm(
+                    fdm,
+                    session.user.id,
+                    formValues.username,
+                    b_id_farm,
+                )
+            }
             return dataWithSuccess(null, {
-                message: `Gebruiker ${formValues.username} is verwijderd`,
+                message: formValues.invitation_id
+                    ? `Uitnodiging voor ${formValues.username} is geannuleerd`
+                    : `Gebruiker ${formValues.username} is verwijderd`,
             })
         }
         throw new Error("invalid intent")

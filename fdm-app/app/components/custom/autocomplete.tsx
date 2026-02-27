@@ -30,7 +30,7 @@ type Props<T extends string> = {
     searchParamName?: string // Query parameter name for search term (default: 'identifier')
     excludeValues?: T[] // Optional array of values to filter out
     iconMap?: IconMap // Optional map of icon identifiers to components
-    emptyMessage?: string | ((inputValue: string) => string)
+    emptyMessage?: string | ((inputValue: string) => React.ReactNode)
     placeholder?: string
     // biome-ignore lint/suspicious/noExplicitAny: Using any temporarily due to potential type conflicts with remix-hook-form
     form?: any
@@ -38,6 +38,7 @@ type Props<T extends string> = {
     className?: string
     /** When true, values typed directly (not from dropdown) are accepted as-is (e.g. email addresses) */
     allowValuesOutsideList?: boolean
+    disabled?: boolean
 }
 
 export function AutoComplete<T extends string>({
@@ -53,6 +54,7 @@ export function AutoComplete<T extends string>({
     name,
     className,
     allowValuesOutsideList = false,
+    disabled = false,
 }: Props<T>) {
     const fetcher = useFetcher<LookupItem<T>[]>()
     const [open, setOpen] = useState(false)
@@ -148,6 +150,7 @@ export function AutoComplete<T extends string>({
         if (selectedItem) {
             onSelectedValueChange(selectedItem.value as T)
             setInputValue(selectedItem.label) // Update input to reflect selection
+            prevInputValue.current = selectedItem.label // Update previous input value to prevent unnecessary fetch
             if (form && name) {
                 form.setValue(name, selectedItem.value) // Update form state
             }
@@ -215,6 +218,7 @@ export function AutoComplete<T extends string>({
                                 placeholder={placeholder}
                                 className="w-full"
                                 autoComplete="off" // Prevent browser autocomplete
+                                disabled={disabled}
                             />
                         </CommandPrimitive.Input>
                     </PopoverAnchor>
