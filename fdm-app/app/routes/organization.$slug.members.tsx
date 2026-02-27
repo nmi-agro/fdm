@@ -375,8 +375,14 @@ const InvitationForm = ({
 }: {
     organizationId: Organization["id"]
 }) => {
+    const fetcher = useFetcher()
+    const [email, setEmail] = useState("")
+    useEffect(() => {
+        if (!fetcher.data?.message) setEmail("")
+    }, [fetcher.data])
+
     return (
-        <Form method="post" className="flex space-x-2">
+        <fetcher.Form method="post" className="flex space-x-2">
             <input
                 type="hidden"
                 name="organization_id"
@@ -386,6 +392,10 @@ const InvitationForm = ({
                 type="email"
                 placeholder="Vul een emailadres in"
                 name="email"
+                value={email}
+                onChange={(e) => {
+                    setEmail(e.target.value)
+                }}
             />
             <Select defaultValue="member" name="role">
                 <SelectTrigger className="ml-auto w-27.5">
@@ -402,10 +412,14 @@ const InvitationForm = ({
                 className="shrink-0"
                 name="intent"
                 value="invite_user"
+                disabled={fetcher.state === "submitting"}
             >
                 Uitnodigen
+                <Spinner
+                    className={cn(fetcher.state !== "submitting" && "hidden")}
+                />
             </Button>
-        </Form>
+        </fetcher.Form>
     )
 }
 
