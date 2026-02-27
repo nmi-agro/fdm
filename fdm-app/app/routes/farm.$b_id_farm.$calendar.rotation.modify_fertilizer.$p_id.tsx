@@ -9,23 +9,7 @@ import {
 import { data, useLoaderData, useNavigate } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import z from "zod"
-import { DataTable } from "~/components/blocks/fertilizer-applications/table"
-import { Button } from "~/components/ui/button"
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "~/components/ui/dialog"
-import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyTitle,
-} from "~/components/ui/empty"
+import { FertilizerApplicationListDialog } from "~/components/blocks/fertilizer-applications/dialog"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -137,7 +121,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     }
 }
 
-export default function FertilizerApplicationListDialog() {
+export default function FertilizerApplicationListDialogRoute() {
     const {
         isForRotation,
         numFields,
@@ -148,54 +132,15 @@ export default function FertilizerApplicationListDialog() {
 
     const navigate = useNavigate()
 
-    const numFertilizerApplications = fertilizerApplications
-        .map((apps) => apps.length)
-        .reduce((a, b) => a + b, 0)
-
-    const fieldNameToShow =
-        numFields === 1
-            ? fertilizerApplications.find((apps) => apps.length > 0)?.[0].b_name
-            : undefined
-
     return (
-        <Dialog open={true} onOpenChange={() => navigate("..")}>
-            <DialogContent className="max-w-4xl transition-transform duration-1000">
-                <DialogHeader>
-                    <DialogTitle>
-                        {fertilizer.p_name_nl}{" "}
-                        {fieldNameToShow && ` op ${fieldNameToShow}`}
-                    </DialogTitle>
-                    <DialogDescription>
-                        Bekijk en beheer de bemestingen met deze meststof.
-                    </DialogDescription>
-                </DialogHeader>
-                {numFertilizerApplications > 0 ? (
-                    <DataTable
-                        numFields={numFields}
-                        fertilizerApplications={fertilizerApplications}
-                        returnUrl={returnUrl}
-                    />
-                ) : (
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyTitle>Geen bemestingen gevonden</EmptyTitle>
-                            <EmptyDescription>
-                                {isForRotation
-                                    ? "Het lijkt erop dat deze meststof niet langer op dit perceel/deze percelen en gewassen wordt toegepast."
-                                    : "Het lijkt erop dat deze meststof niet langer op dit perceel wordt toegepast."}
-                            </EmptyDescription>
-                        </EmptyHeader>
-                    </Empty>
-                )}
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline" type="button">
-                            Sluiten
-                        </Button>
-                    </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <FertilizerApplicationListDialog
+            isForRotation={isForRotation}
+            numFields={numFields}
+            fertilizer={fertilizer}
+            fertilizerApplications={fertilizerApplications}
+            returnUrl={returnUrl}
+            onClose={() => navigate("..")}
+        />
     )
 }
 

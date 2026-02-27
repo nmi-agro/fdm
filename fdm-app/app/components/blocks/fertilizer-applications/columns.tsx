@@ -2,8 +2,20 @@ import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import type { CellContext, ColumnDef } from "@tanstack/react-table"
 import { endOfDay, format } from "date-fns"
 import { nl } from "date-fns/locale"
+import { ChevronDown } from "lucide-react"
+import { useState } from "react"
 import { NavLink, useFetcher, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import {
     DropdownMenu,
@@ -11,7 +23,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { Field } from "~/components/ui/field"
 import { ScrollArea } from "~/components/ui/scroll-area"
 import { Spinner } from "~/components/ui/spinner"
 
@@ -94,13 +105,17 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
                     ]),
                 ),
             ).sort((a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0))
-            return fieldNames.length > 1 ? (
+            if (fieldNames.length <= 1) {
+                return fieldNames[0]?.[1] ?? ""
+            }
+            return (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="-ms-4">
-                            <p className="text-muted-foreground">
-                                {`(${fieldNames.length} percelen)`}
-                            </p>
+                            <span className="text-muted-foreground">
+                                {fieldNames.length} percelen
+                            </span>
+                            <ChevronDown className="ml-1 size-3" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
@@ -121,8 +136,6 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
                         </ScrollArea>
                     </DropdownMenuContent>
                 </DropdownMenu>
-            ) : (
-                (fieldNames[0]?.[1] ?? "")
             )
         },
     },
@@ -167,11 +180,11 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
 ]
 
 /**
- * Renders two buttons that let the user edit or remove the applications found in the row record.
+ * Renders buttons that let the user edit or remove the applications found in the row record.
  *
  * The edit button will navigate to the add/update fertilizer page with the necessary search params.
  *
- * The delete button will delete the fertilizer and cause the row to disappear.
+ * The delete button will show a confirmation dialog before deleting the fertilizer application(s).
  *
  * @param param0 all of the React Table cell context
  * @returns a React node that can be set as the cell contents
@@ -180,14 +193,17 @@ function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
     const params = useParams()
     const fetcher = useFetcher()
     const returnUrl = (table.options.meta as { returnUrl: string }).returnUrl
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-    const modifiableAppIds = row.original.applications
-        .filter((app) => app.canModify)
+    const modifiableApps = row.original.applications.filter(
+        (app) => app.canModify,
+    )
+    const modifiableAppIds = modifiableApps
         .map((app) => `${app.b_id}:${app.p_app_id}`)
         .join(",")
 
     return (
-        <Field orientation="horizontal" className="justify-end">
+        <div className="flex items-center justify-end gap-2">
             <Spinner
                 className={cn(
                     "h-4 w-4",
@@ -201,17 +217,46 @@ function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
                     Wijzigen
                 </NavLink>
             </Button>
-            <fetcher.Form method="POST">
-                <input name="appIds" type="hidden" value={modifiableAppIds} />
-                <Button
-                    name="intent"
-                    variant="destructive"
-                    value="remove_application"
-                    disabled={fetcher.state === "submitting"}
-                >
-                    Verwijderen
-                </Button>
-            </fetcher.Form>
-        </Field>
+            <Button
+                variant="destructive"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={fetcher.state === "submitting"}
+            >
+                Verwijderen
+            </Button>
+            <AlertDialog
+                open={showDeleteConfirm}
+                onOpenChange={setShowDeleteConfirm}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {modifiableApps.length === 1
+                                ? "Bemesting verwijderen?"
+                                : `${modifiableApps.length} bemestingen verwijderen?`}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {modifiableApps.length === 1
+                                ? "Weet je zeker dat je deze bemesting wilt verwijderen? Dit kan niet ongedaan worden gemaakt."
+                                : `Weet je zeker dat je deze ${modifiableApps.length} bemestingen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => {
+                                const formData = new FormData()
+                                formData.set("appIds", modifiableAppIds)
+                                formData.set("intent", "remove_application")
+                                fetcher.submit(formData, { method: "POST" })
+                            }}
+                        >
+                            Verwijderen
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     )
 }
