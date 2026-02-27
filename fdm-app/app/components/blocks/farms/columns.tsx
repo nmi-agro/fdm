@@ -1,5 +1,5 @@
 import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
-import type { ColumnDef } from "@tanstack/react-table"
+import type { CellContext, ColumnDef } from "@tanstack/react-table"
 import {
     ArrowUpRightFromSquare,
     ChevronRight,
@@ -8,13 +8,13 @@ import {
     Square,
     Triangle,
 } from "lucide-react"
-import { NavLink, useParams } from "react-router-dom"
+import { NavLink, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "../../ui/button"
+import { Button } from "~/components/ui/button"
 
 export interface FarmExtended {
     type: "farm" | "field"
@@ -73,24 +73,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
         header: ({ column }) => {
             return <DataTableColumnHeader column={column} title="Naam" />
         },
-        cell: ({ row }) => {
-            const params = useParams()
-            const farm = row.original
-
-            return (
-                <NavLink
-                    to={
-                        row.original.type === "field"
-                            ? `/farm/${row.getParentRow()?.original.b_id_farm}/${params.calendar}/field/${row.original.b_id_farm}`
-                            : `/farm/${farm.b_id_farm}`
-                    }
-                    className="group flex items-center hover:underline w-fit"
-                >
-                    {farm.b_name_farm ?? "Onbekend"}
-                    <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </NavLink>
-            )
-        },
+        cell: (ctx) => <FarmNameCell {...ctx} />,
     },
     {
         id: "owner",
@@ -222,3 +205,22 @@ export const columns: ColumnDef<FarmExtended>[] = [
         ),
     },
 ]
+
+function FarmNameCell({ row }: CellContext<FarmExtended, unknown>) {
+    const params = useParams()
+    const farm = row.original
+
+    return (
+        <NavLink
+            to={
+                row.original.type === "field"
+                    ? `/farm/${row.getParentRow()?.original.b_id_farm}/${params.calendar}/field/${row.original.b_id_farm}`
+                    : `/farm/${farm.b_id_farm}`
+            }
+            className="group flex items-center hover:underline w-fit"
+        >
+            {farm.b_name_farm ?? "Onbekend"}
+            <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </NavLink>
+    )
+}
