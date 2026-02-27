@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import type React from "react"
+import { useEffect, useRef, useState } from "react"
 import { useFetcher } from "react-router-dom"
 import { useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
@@ -46,6 +47,15 @@ export const PrincipalRow = ({
 }: PrincipalRowProps) => {
     const fetcher = useFetcher()
 
+    const [selectedRole, setSelectedRole] = useState(role)
+    const prevFetcherState = useRef(fetcher.state)
+    useEffect(() => {
+        if (prevFetcherState.current !== "idle" && fetcher.state === "idle") {
+            setSelectedRole(role)
+        }
+        prevFetcherState.current = fetcher.state
+    }, [fetcher.state, role])
+
     const form = useRemixForm<z.infer<typeof AccessFormSchema>>({
         mode: "onSubmit",
         resolver: zodResolver(AccessFormSchema),
@@ -71,6 +81,8 @@ export const PrincipalRow = ({
 
     // Handler for changing the role via Select dropdown
     const handleSelectChange = async (value: string) => {
+        // Optimistically update displayed role
+        setSelectedRole(value as "owner" | "advisor" | "researcher")
         // Update the form state immediately
         form.setValue("role", value as "owner" | "advisor" | "researcher")
         // Submit the form programmatically using the fetcher
@@ -144,7 +156,7 @@ export const PrincipalRow = ({
                             </Badge>
                         ) : (
                             <Select
-                                defaultValue={role}
+                                value={selectedRole}
                                 name="role"
                                 onValueChange={handleSelectChange}
                                 disabled={fetcher.state !== "idle"}
