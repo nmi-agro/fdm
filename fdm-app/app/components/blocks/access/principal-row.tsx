@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import type React from "react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useFetcher } from "react-router-dom"
 import { useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
@@ -48,12 +48,10 @@ export const PrincipalRow = ({
     const fetcher = useFetcher()
 
     const [selectedRole, setSelectedRole] = useState(role)
-    const prevFetcherState = useRef(fetcher.state)
     useEffect(() => {
-        if (prevFetcherState.current !== "idle" && fetcher.state === "idle") {
+        if (fetcher.state === "idle") {
             setSelectedRole(role)
         }
-        prevFetcherState.current = fetcher.state
     }, [fetcher.state, role])
 
     const form = useRemixForm<z.infer<typeof AccessFormSchema>>({
