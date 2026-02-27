@@ -424,8 +424,10 @@ const InvitationForm = ({
 }
 
 const FormSchema = z.object({
-    email: z.email().optional(),
-    role: z.enum(["owner", "admin", "member"]).optional(),
+    email: z.email({ error: "Ongeldig e-mailadres" }).optional(),
+    role: z
+        .enum(["owner", "admin", "member"], { error: "Ongeldige rol" })
+        .optional(),
     memberId: z.string().optional(),
     invitation_id: z.string().optional(),
     organization_id: z.string().optional(),
@@ -443,11 +445,25 @@ export async function action({ request, params }: Route.ActionArgs) {
             throw handleActionError("not found: organization")
         }
 
-        const formValues = await extractFormValuesFromRequest(
-            request,
-            FormSchema,
-        )
         const session = await getSession(request)
+
+        let formValues: z.infer<typeof FormSchema> | undefined
+        try {
+            formValues = await extractFormValuesFromRequest(request, FormSchema)
+        } catch (e) {
+            const formValuesResponse = (await e) as { data?: string }
+            if (formValuesResponse.data) {
+                const errorData = JSON.parse(formValuesResponse.data) as {
+                    message: string
+                }[]
+                if (Array.isArray(errorData) && errorData.length > 0) {
+                    return dataWithError(null, {
+                        message: errorData[0].message,
+                    })
+                }
+            }
+            throw e
+        }
 
         const organizations = await auth.api.listOrganizations({
             headers: request.headers,
