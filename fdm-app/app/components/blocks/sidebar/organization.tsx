@@ -6,6 +6,7 @@ import {
     ChevronRight,
     Cog,
     House,
+    LayoutGrid,
     Users,
 } from "lucide-react"
 import { useState } from "react"
@@ -29,6 +30,11 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 
 export function SidebarOrganization({
     organization,
@@ -107,18 +113,18 @@ export function SidebarOrganization({
             <SidebarGroupContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname === "/organization"}
+                        >
+                            <NavLink to={"/organization"}>
+                                <LayoutGrid />
+                                <span>Mijn organisaties</span>
+                            </NavLink>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    {organization && (
                         <SidebarMenuItem>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={location.pathname === "/organization"}
-                            >
-                                <NavLink to={"/organization"}>
-                                    <Users />
-                                    <span>Mijn organisaties</span>
-                                </NavLink>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        {organization && (
                             <SidebarMenuButton
                                 asChild
                                 isActive={
@@ -148,8 +154,8 @@ export function SidebarOrganization({
                                     )}
                                 </NavLink>
                             </SidebarMenuButton>
-                        )}
-                    </SidebarMenuItem>
+                        </SidebarMenuItem>
+                    )}
                     {organization ? (
                         <Collapsible
                             asChild
@@ -218,40 +224,56 @@ export function SidebarOrganization({
                         </Collapsible>
                     ) : (
                         <SidebarMenuItem>
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <Calendar />
-                                    <span>Kalender</span>
-                                </span>
-                            </SidebarMenuButton>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <SidebarMenuButton
+                                        asChild
+                                        className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Calendar />
+                                            <span>Kalender</span>
+                                        </span>
+                                    </SidebarMenuButton>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                    Selecteer een organisatie om de kalender te
+                                    gebruiken
+                                </TooltipContent>
+                            </Tooltip>
                         </SidebarMenuItem>
                     )}
                     <SidebarMenuItem>
                         {organization ? (
                             <SidebarMenuButton
                                 asChild
-                                isActive={activeTab === "settings"}
+                                isActive={activeTab === "farms"}
                             >
                                 <NavLink
-                                    to={`/organization/${organization.slug}/settings`}
+                                    to={`/organization/${organization.slug}/${selectedCalendar}/farms`}
                                 >
-                                    <Cog />
-                                    <span>Instellingen</span>
+                                    <House />
+                                    <span>Bedrijven</span>
                                 </NavLink>
                             </SidebarMenuButton>
                         ) : (
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <Cog />
-                                    <span>Instellingen</span>
-                                </span>
-                            </SidebarMenuButton>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <SidebarMenuButton
+                                        asChild
+                                        className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <House />
+                                            <span>Bedrijven</span>
+                                        </span>
+                                    </SidebarMenuButton>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                    Selecteer een organisatie om de bedrijven te
+                                    beheren
+                                </TooltipContent>
+                            </Tooltip>
                         )}
                     </SidebarMenuItem>
                     <SidebarMenuItem>
@@ -268,40 +290,56 @@ export function SidebarOrganization({
                                 </NavLink>
                             </SidebarMenuButton>
                         ) : (
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <Users />
-                                    <span>Leden</span>
-                                </span>
-                            </SidebarMenuButton>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <SidebarMenuButton
+                                        asChild
+                                        className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Users />
+                                            <span>Leden</span>
+                                        </span>
+                                    </SidebarMenuButton>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                    Selecteer een organisatie om de leden te
+                                    beheren
+                                </TooltipContent>
+                            </Tooltip>
                         )}
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         {organization ? (
                             <SidebarMenuButton
                                 asChild
-                                isActive={activeTab === "farms"}
+                                isActive={activeTab === "settings"}
                             >
                                 <NavLink
-                                    to={`/organization/${organization.slug}/${selectedCalendar}/farms`}
+                                    to={`/organization/${organization.slug}/settings`}
                                 >
-                                    <House />
-                                    <span>Bedrijven</span>
+                                    <Cog />
+                                    <span>Instellingen</span>
                                 </NavLink>
                             </SidebarMenuButton>
                         ) : (
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <House />
-                                    <span>Bedrijven</span>
-                                </span>
-                            </SidebarMenuButton>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <SidebarMenuButton
+                                        asChild
+                                        className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Cog />
+                                            <span>Instellingen</span>
+                                        </span>
+                                    </SidebarMenuButton>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                    Selecteer een organisatie om de instellingen
+                                    te beheren
+                                </TooltipContent>
+                            </Tooltip>
                         )}
                     </SidebarMenuItem>
                 </SidebarMenu>
