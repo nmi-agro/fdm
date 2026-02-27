@@ -8,11 +8,12 @@ import {
     getFields,
     listPrincipalsForFarm,
 } from "@nmi-agro/fdm-core"
-import { data, useLoaderData } from "react-router"
+import { data, NavLink, useLoaderData } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { columns, type FarmExtended } from "~/components/blocks/farms/columns"
 import { DataTable } from "~/components/blocks/farms/table"
+import { Button } from "~/components/ui/button"
 import { auth } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -238,24 +239,30 @@ export default function OrganizationFarmsPage() {
                     to: `/organization/${organization.slug}`,
                 }}
             />
-            {data.length ? (
+            {data.length > 0 ? (
                 <FarmContent>
                     <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
                         <DataTable columns={columns} data={data} />
                     </div>
                 </FarmContent>
             ) : (
-                <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
-                    <div className="flex flex-col space-y-2 text-center">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Het lijkt erop dat jouw organisatie tot geen
-                            bedrijven toegang heeft. :(
-                        </h1>
-                        <p>
-                            Neem contact op met bedrijven om toegang tot hen te
-                            krijgen.
-                        </p>
-                    </div>
+                <div className="mx-auto flex h-full w-full items-center flex-col justify-center text-center space-y-6 sm:w-87.5">
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                        Het lijkt erop dat jouw organisatie tot geen bedrijven
+                        toegang heeft. :(
+                    </h1>
+                    <p>
+                        Neem contact op met bedrijven om toegang tot hen te
+                        krijgen.
+                    </p>
+                    <p className="flex flex-col space-y-4 items-center">
+                        Wellicht heeft jouw organisatie uitnodigingen ontvangen.
+                        <Button asChild>
+                            <NavLink to={`/organization/${organization.slug}`}>
+                                Naar dashboard
+                            </NavLink>
+                        </Button>
+                    </p>
                 </div>
             )}
         </main>
