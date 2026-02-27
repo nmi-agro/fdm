@@ -143,24 +143,28 @@ export const columns: ColumnDef<FieldExtended>[] = [
             return (
                 <div className="flex items-start flex-col space-y-2">
                     {fertilizers.map((fertilizer) => (
-                        <Badge
+                        <NavLink
                             key={fertilizer.p_id}
-                            variant="outline"
-                            className="text-muted-foreground gap-1"
+                            to={`./modify_fertilizer/${fertilizer.p_id}?fieldIds=${row.original.b_id}`}
                         >
-                            <span>
-                                {fertilizer.p_type === "manure" ? (
-                                    <Square className="size-3 text-yellow-600 fill-yellow-600" />
-                                ) : fertilizer.p_type === "mineral" ? (
-                                    <Circle className="size-3 text-sky-600 fill-sky-600" />
-                                ) : fertilizer.p_type === "compost" ? (
-                                    <Triangle className="size-3 text-green-600 fill-green-600" />
-                                ) : (
-                                    <Diamond className="size-3 text-gray-600 fill-gray-600" />
-                                )}
-                            </span>
-                            {fertilizer.p_name_nl}
-                        </Badge>
+                            <Badge
+                                variant="outline"
+                                className="gap-1 text-muted-foreground"
+                            >
+                                <span>
+                                    {fertilizer.p_type === "manure" ? (
+                                        <Square className="size-3 text-yellow-600 fill-yellow-600" />
+                                    ) : fertilizer.p_type === "mineral" ? (
+                                        <Circle className="size-3 text-sky-600 fill-sky-600" />
+                                    ) : fertilizer.p_type === "compost" ? (
+                                        <Triangle className="size-3 text-green-600 fill-green-600" />
+                                    ) : (
+                                        <Diamond className="size-3 text-gray-600 fill-gray-600" />
+                                    )}
+                                </span>
+                                {fertilizer.p_name_nl}
+                            </Badge>
+                        </NavLink>
                     ))}
                 </div>
             )
