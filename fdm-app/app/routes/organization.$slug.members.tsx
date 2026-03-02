@@ -7,7 +7,7 @@ import type {
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useEffect, useState } from "react"
-import { Form, useFetcher, useLoaderData } from "react-router"
+import { useFetcher, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { z } from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -324,6 +324,7 @@ const MemberAction = ({
 }
 
 const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
+    const fetcher = useFetcher()
     return (
         <div className="flex items-center justify-between space-x-4">
             <div className="flex items-center space-x-4">
@@ -350,22 +351,29 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
                     })}
                 </p>
             </div>
-            <Form method="post">
+            <fetcher.Form
+                method="post"
+                className="flex flex-row items-center gap-2"
+            >
                 <input
                     type="hidden"
                     name="invitation_id"
                     value={invitation.id}
                 />
                 <input type="hidden" name="email" value={invitation.email} />
+                <Spinner
+                    className={cn(fetcher.state === "idle" && "invisible")}
+                />
                 <Button
                     variant="destructive"
                     className="shrink-0"
                     name="intent"
                     value="cancel_invite"
+                    disabled={fetcher.state !== "idle"}
                 >
                     Annuleer
                 </Button>
-            </Form>
+            </fetcher.Form>
         </div>
     )
 }
@@ -412,12 +420,10 @@ const InvitationForm = ({
                 className="shrink-0"
                 name="intent"
                 value="invite_user"
-                disabled={fetcher.state === "submitting"}
+                disabled={fetcher.state !== "idle"}
             >
                 Uitnodigen
-                <Spinner
-                    className={cn(fetcher.state !== "submitting" && "hidden")}
-                />
+                <Spinner className={cn(fetcher.state === "idle" && "hidden")} />
             </Button>
         </fetcher.Form>
     )
