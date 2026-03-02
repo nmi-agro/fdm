@@ -11,5 +11,7 @@ export const AccessFormSchema = z.object({
         "remove_user",
         "accept_farm_invitation",
         "decline_farm_invitation",
+        "accept_organization_invitation",
+        "decline_organization_invitation",
     ]),
 })

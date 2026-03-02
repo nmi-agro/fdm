@@ -3,13 +3,6 @@ import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
 import { FormSchema } from "~/components/blocks/organization/schema"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -103,27 +96,15 @@ export default function OrganizationSettingsBlock() {
     const loaderData = useLoaderData<typeof loader>()
     return (
         <main className="container">
-            <div className="max-w-3xl mx-auto px-4 space-y-8">
-                <FarmTitle
-                    title={"Organisatie instellingen"}
-                    description={"Werk de gegevens bij van deze organisatie."}
-                    action={{ to: "./..", label: "Terug naar dashboard" }}
-                />
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Organisatiegegevens</CardTitle>
-                        <CardDescription>
-                            Voer de gegevens van je organisatie in.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <OrganizationSettingsForm
-                            organization={loaderData.organization}
-                            canModify={loaderData.organizationEditPermission}
-                        />
-                    </CardContent>
-                </Card>
-            </div>
+            <FarmTitle
+                title={"Organisatie instellingen"}
+                description={"Werk de gegevens bij van deze organisatie."}
+                action={{ to: "./..", label: "Terug naar dashboard" }}
+            />
+            <OrganizationSettingsForm
+                organization={loaderData.organization}
+                canModify={loaderData.organizationEditPermission}
+            />
         </main>
     )
 }

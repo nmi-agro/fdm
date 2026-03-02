@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react"
 import { NavLink, useLoaderData } from "react-router"
-import { redirectWithSuccess } from "remix-toast"
-import z from "zod"
+import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
@@ -15,6 +14,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { AccessFormSchema } from "../lib/schemas/access.schema"
 import type { Route } from "./+types/organization._index"
 
 // Meta
@@ -155,25 +155,20 @@ export default function OrganizationsIndex() {
     )
 }
 
-const FormSchema = z.object({
-    invitation_id: z.string(),
-    intent: z.enum([
-        "accept_organization_invitation",
-        "decline_organization_invitation",
-    ]),
-})
-
 export async function action({ request }: Route.ActionArgs) {
     try {
         const formValues = await extractFormValuesFromRequest(
             request,
-            FormSchema,
+            AccessFormSchema,
         )
 
         // getSession call is important to validate session
         await getSession(request)
 
         if (formValues.intent === "accept_organization_invitation") {
+            if (!formValues.invitation_id) {
+                return dataWithError(null, "Ontbrekend uitnodigings id")
+            }
             await auth.api.acceptInvitation({
                 headers: request.headers,
                 body: { invitationId: formValues.invitation_id },
@@ -183,6 +178,9 @@ export async function action({ request }: Route.ActionArgs) {
             })
         }
         if (formValues.intent === "decline_organization_invitation") {
+            if (!formValues.invitation_id) {
+                return dataWithError(null, "Ontbrekend uitnodigings id")
+            }
             await auth.api.rejectInvitation({
                 headers: request.headers,
                 body: { invitationId: formValues.invitation_id },

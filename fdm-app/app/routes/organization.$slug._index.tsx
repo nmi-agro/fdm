@@ -71,17 +71,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
             throw data("Organisatie niet gevonden.", 404)
         }
 
-        let metadata: { data?: { description?: string }; error?: string } = {
-            data: { description: "Geen beschrijving" },
-        }
-        if (organization.metadata) {
-            try {
-                metadata = JSON.parse(organization.metadata)
-            } catch (e) {
-                metadata = { error: (e as Error).message }
-            }
-        }
-
         const members = await auth.api.listMembers({
             headers: request.headers,
             query: { organizationSlug: params.slug },
@@ -148,7 +137,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
             calendar: calendar,
             slug: params.slug,
             organization: organization,
-            metadata: metadata,
             members: members.members,
             pendingInvitations: pendingInvitations,
             canModify: canModify,
@@ -298,36 +286,17 @@ export default function AppIndex() {
                                     <h2 className="text-2xl font-semibold tracking-tight">
                                         Overzicht
                                     </h2>
-                                    <Button
-                                        asChild
-                                        variant="default"
-                                        className={cn(
-                                            !loaderData.canModify
-                                                ? "invisible"
-                                                : "",
-                                        )}
-                                    >
+                                    <Button asChild variant="default">
                                         <NavLink to="./settings">
-                                            Instellingen
+                                            {loaderData.canModify
+                                                ? "Instellingen"
+                                                : "Organisatie gegevens"}
                                         </NavLink>
                                     </Button>
                                 </div>
                                 <Card>
                                     <CardContent className="pt-6 space-y-4">
                                         <dl className="space-y-4">
-                                            <div className="space-y-2">
-                                                <dt className="text-muted-foreground">
-                                                    Beschrijving
-                                                </dt>
-                                                <dd className="font-semibold">
-                                                    <p>
-                                                        {loaderData.metadata
-                                                            .data
-                                                            ?.description ??
-                                                            "Geen beschrijving"}
-                                                    </p>
-                                                </dd>
-                                            </div>
                                             <div className="flex items-center justify-between">
                                                 <dt className="text-muted-foreground">
                                                     Aantal bedrijven

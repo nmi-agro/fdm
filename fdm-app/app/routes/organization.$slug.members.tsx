@@ -127,12 +127,12 @@ export default function OrganizationIndex() {
 
     return (
         <main className="container">
+            <FarmTitle
+                title={`Leden van ${organization.name}`}
+                description="Beheer de leden met toegang tot deze organisatie."
+                action={{ label: "Terug naar overzicht", to: "./.." }}
+            />
             <div className="max-w-3xl mx-auto px-4">
-                <FarmTitle
-                    title={`Leden van ${organization.name}`}
-                    description={organization.description || ""}
-                    action={{ label: "Terug naar overzicht", to: "./.." }}
-                />
                 <div className="grid lg:grid-cols-1 gap-4">
                     <Card>
                         <CardHeader>

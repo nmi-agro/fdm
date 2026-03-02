@@ -9,6 +9,14 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
 import { FormSchema } from "./schema"
 
 export function OrganizationSettingsForm({
@@ -41,6 +49,15 @@ export function OrganizationSettingsForm({
             .replace(/^-|-$/g, "") // Trim - from start and end
     }
 
+    // Reset the form when the organization changes
+    useEffect(() => {
+        form.reset({
+            name: organization?.name,
+            slug: organization?.slug,
+            description: organization?.metadata?.description,
+        })
+    }, [organization, form.reset])
+
     // Update slug when name changes
     // biome-ignore lint/correctness/useExhaustiveDependencies: convertToSlug changes on every re-render and should not be used as a hook dependency
     useEffect(() => {
@@ -58,62 +75,90 @@ export function OrganizationSettingsForm({
 
     const disabled = !canModify || form.formState.isSubmitting
     return (
-        <RemixFormProvider {...form}>
-            <Form action={action} method={method} onSubmit={form.handleSubmit}>
-                <fieldset disabled={disabled} className="space-y-4">
-                    <Controller
-                        name="name"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                            <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel>Naam organisatie</FieldLabel>
-                                <Input {...field} type="text" required />
-                                {fieldState.invalid && (
-                                    <FieldError errors={[fieldState.error]} />
-                                )}
-                            </Field>
-                        )}
-                    />
-                    <Controller
-                        name="slug"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                            <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel>Organisatie ID</FieldLabel>
-                                <Input {...field} type="text" required />
-                                {fieldState.invalid && (
-                                    <FieldError errors={[fieldState.error]} />
-                                )}
-                            </Field>
-                        )}
-                    />
-                    <Controller
-                        name="description"
-                        control={form.control}
-                        render={({ field, fieldState }) => (
-                            <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel>Beschrijving</FieldLabel>
-                                <Textarea
-                                    placeholder="Een korte toelichting op je organisatie zodat andere gebruikers er meer te weten over komen."
-                                    className="resize-none"
-                                    {...field}
-                                />
-                                {fieldState.invalid && (
-                                    <FieldError errors={[fieldState.error]} />
-                                )}
-                            </Field>
-                        )}
-                    />
-                    <Button
-                        type="submit"
-                        disabled={disabled}
-                        className="m-auto"
+        <Card className="max-w-3xl mx-auto">
+            <CardHeader>
+                <CardTitle>Organisatiegegevens</CardTitle>
+                <CardDescription>
+                    Voer de gegevens van je organisatie in.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <RemixFormProvider {...form}>
+                    <Form
+                        action={action}
+                        method={method}
+                        onSubmit={form.handleSubmit}
                     >
-                        {form.formState.isSubmitting && <Spinner />}
-                        {organization ? "Bijwerken" : "Aanmaken"}
-                    </Button>
-                </fieldset>
-            </Form>
-        </RemixFormProvider>
+                        <fieldset disabled={disabled} className="space-y-4">
+                            <Controller
+                                name="name"
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel>
+                                            Naam organisatie
+                                        </FieldLabel>
+                                        <Input
+                                            {...field}
+                                            type="text"
+                                            required
+                                        />
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name="slug"
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel>Organisatie ID</FieldLabel>
+                                        <Input
+                                            {...field}
+                                            type="text"
+                                            required
+                                        />
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name="description"
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel>Beschrijving</FieldLabel>
+                                        <Textarea
+                                            placeholder="Een korte toelichting op je organisatie zodat andere gebruikers er meer te weten over komen."
+                                            className="resize-none"
+                                            {...field}
+                                        />
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                        </fieldset>
+                    </Form>
+                </RemixFormProvider>
+            </CardContent>
+            <CardFooter className="flex-row justify-end">
+                <Button type="submit" disabled={disabled}>
+                    {form.formState.isSubmitting && <Spinner />}
+                    {organization ? "Bijwerken" : "Aanmaken"}
+                </Button>
+            </CardFooter>
+        </Card>
     )
 }
