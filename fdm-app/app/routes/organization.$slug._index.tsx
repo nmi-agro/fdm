@@ -39,7 +39,6 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
-import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 import type { Route } from "./+types/organization.$slug._index"
 
@@ -239,7 +238,7 @@ export default function AppIndex() {
                                 ) : (
                                     loaderData.pendingInvitations.length ===
                                         0 && (
-                                        <div className="mx-auto flex h-full w-full items-center flex-col justify-center py-6 sm:w-[350px]">
+                                        <div className="mx-auto flex h-full w-full items-center flex-col justify-center py-6 sm:w-87.5">
                                             <div className="flex flex-col space-y-2 text-center">
                                                 <h1 className="text-2xl font-semibold tracking-tight">
                                                     Het lijkt erop dat jouw
@@ -327,7 +326,7 @@ export default function AppIndex() {
                                                         setCalendar(value)
                                                     }
                                                 >
-                                                    <SelectTrigger className="w-[180px]">
+                                                    <SelectTrigger className="w-45">
                                                         <SelectValue placeholder="Selecteer een jaar" />
                                                     </SelectTrigger>
                                                     <SelectContent>
