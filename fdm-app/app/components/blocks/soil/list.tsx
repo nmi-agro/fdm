@@ -22,7 +22,7 @@ export function SoilAnalysesList({
     canModifySoilAnalysis?: Record<string, boolean>
 }) {
     const handleDelete = (a_id: string) => {
-        if (fetcher.state === "submitting") return
+        if (fetcher.state !== "idle") return
 
         fetcher.submit({ a_id }, { method: "DELETE" })
     }
@@ -94,7 +94,7 @@ export function SoilAnalysesList({
                                     <Button
                                         variant="destructive"
                                         disabled={
-                                            fetcher.state === "submitting" ||
+                                            fetcher.state !== "idle" ||
                                             analysis.a_source === "nl-other-nmi"
                                         }
                                         onClick={() => {
@@ -108,7 +108,7 @@ export function SoilAnalysesList({
                                                 : "",
                                         )}
                                     >
-                                        {fetcher.state === "submitting" ? (
+                                        {fetcher.state !== "idle" ? (
                                             <div className="flex items-center space-x-2">
                                                 <Spinner />
                                                 <span>Verwijderen...</span>

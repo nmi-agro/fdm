@@ -617,7 +617,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                     onClick={handleDeleteHarvest}
                                     disabled={
                                         form.formState.isSubmitting ||
-                                        fetcher.state === "submitting"
+                                        fetcher.state !== "idle"
                                     }
                                     className={cn(
                                         "mr-auto",
@@ -626,7 +626,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                             : "",
                                     )}
                                 >
-                                    {fetcher.state === "submitting" ? (
+                                    {fetcher.state !== "idle" ? (
                                         <div className="flex items-center space-x-2">
                                             <Spinner />
                                         </div>
@@ -706,7 +706,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                                 onClick={handleDeleteHarvest}
                                 disabled={
                                     form.formState.isSubmitting ||
-                                    fetcher.state === "submitting"
+                                    fetcher.state !== "idle"
                                 }
                                 className={cn(
                                     "mr-auto",
@@ -716,7 +716,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                                 )}
                             >
                                 {form.formState.isSubmitting ||
-                                fetcher.state === "submitting" ? (
+                                fetcher.state !== "idle" ? (
                                     <div className="flex items-center space-x-2">
                                         <Spinner />
                                     </div>

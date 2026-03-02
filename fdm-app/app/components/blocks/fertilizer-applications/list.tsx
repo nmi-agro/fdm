@@ -90,8 +90,8 @@ export function FertilizerApplicationsList({
                                                 className="p-0 mt-0"
                                                 disabled={
                                                     !editable ||
-                                                    fetcher.state ===
-                                                        "submitting"
+                                                    fetcher.state !==
+                                                        "idle"
                                                 }
                                                 onClick={handleEdit(
                                                     application,
@@ -137,8 +137,8 @@ export function FertilizerApplicationsList({
                                                         variant="destructive"
                                                         size="icon"
                                                         disabled={
-                                                            fetcher.state ===
-                                                            "submitting"
+                                                            fetcher.state !==
+                                                            "idle"
                                                         }
                                                         onClick={() => {
                                                             if (
@@ -154,8 +154,8 @@ export function FertilizerApplicationsList({
                                                             }
                                                         }}
                                                     >
-                                                        {fetcher.state ===
-                                                        "submitting" ? (
+                                                        {fetcher.state !==
+                                                        "idle" ? (
                                                             <Spinner />
                                                         ) : (
                                                             <Trash className="size-4" />

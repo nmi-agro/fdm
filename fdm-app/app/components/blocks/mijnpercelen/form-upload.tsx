@@ -70,7 +70,7 @@ export function MijnPercelenUploadForm({
         formErrors?: string[]
     } | null>()
     const navigation = useNavigation()
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting = navigation.state !== "idle"
 
     // Effect to start the animation
     useEffect(() => {

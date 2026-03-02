@@ -52,7 +52,7 @@ export function FertilizerApplicationCard({
     const b_id_or_b_lu_catalogue = params.b_lu_catalogue || params.b_id
 
     const handleDelete = (p_app_id: string | string[]) => {
-        if (fetcher.state === "submitting") return
+        if (fetcher.state !== "idle") return
 
         fetcher.submit({ p_app_id }, { method: "DELETE" })
     }
