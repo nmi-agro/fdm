@@ -210,14 +210,15 @@ export function FieldsSourceAvailable({
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort()
             }
-            const abortController = new AbortController()
-            abortControllerRef.current = abortController
-            const signal = abortController.signal
 
             if (map) {
                 const zoom = map.getZoom()
 
                 if (zoom && zoom > zoomLevelFields) {
+                    const abortController = new AbortController()
+                    abortControllerRef.current = abortController
+                    const signal = abortController.signal
+
                     const bounds = map.getBounds()
 
                     if (bounds) {
