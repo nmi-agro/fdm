@@ -305,7 +305,8 @@ export default function FarmRotationFertilizerAddIndex() {
         )
     }, [loaderData.selectedFields])
 
-    const isSubmitting = navigation.state !== "idle"
+    const isSubmitting =
+        navigation.state !== "idle" && Boolean(navigation.formData)
 
     const handleSelectionChange = () => {
         const newSearchParams = new URLSearchParams(searchParams)

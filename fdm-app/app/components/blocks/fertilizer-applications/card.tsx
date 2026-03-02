@@ -207,6 +207,7 @@ export function FertilizerApplicationCard({
                     canModifyFertilizerApplication={
                         canModifyFertilizerApplication
                     }
+                    isBusy={fetcher.state !== "idle"}
                 />
             </CardContent>
         </Card>

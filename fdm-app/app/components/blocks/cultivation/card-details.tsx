@@ -141,8 +141,7 @@ export function CultivationDetailsCard({
                                                         !editable ||
                                                         form.formState
                                                             .isSubmitting ||
-                                                        fetcher.state ===
-                                                            "submitting"
+                                                        fetcher.state !== "idle"
                                                     }
                                                 />
                                             </FormControl>
