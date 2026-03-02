@@ -206,6 +206,14 @@ export function FieldsSourceAvailable({
 
     useEffect(() => {
         async function loadData() {
+            // Cancel previous request
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+            }
+            const abortController = new AbortController()
+            abortControllerRef.current = abortController
+            const signal = abortController.signal
+
             if (map) {
                 const zoom = map.getZoom()
 
@@ -213,14 +221,6 @@ export function FieldsSourceAvailable({
                     const bounds = map.getBounds()
 
                     if (bounds) {
-                        // Cancel previous request
-                        if (abortControllerRef.current) {
-                            abortControllerRef.current.abort()
-                        }
-                        const abortController = new AbortController()
-                        abortControllerRef.current = abortController
-                        const signal = abortController.signal
-
                         const [[minX, minY], [maxX, maxY]] = bounds.toArray()
                         const bbox = {
                             minX: 0.9995 * minX,

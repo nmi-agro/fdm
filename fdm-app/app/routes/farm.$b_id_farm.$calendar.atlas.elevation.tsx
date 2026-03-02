@@ -320,7 +320,11 @@ export default function FarmAtlasElevationBlock() {
     }, [])
 
     const updateVisibleTiles = useCallback(async () => {
-        if (!mapRef.current || !indexData) return
+        if (!mapRef.current || !indexData) {
+            setIsUpdating(false)
+            setNetworkStatus("idle")
+            return
+        }
 
         const bounds = mapRef.current.getBounds()
         const zoom = mapRef.current.getZoom()
@@ -338,6 +342,8 @@ export default function FarmAtlasElevationBlock() {
             if (activeTilesLengthRef.current > 0) {
                 setActiveTiles([])
             }
+            setIsUpdating(false)
+            setNetworkStatus("idle")
             return
         }
 
@@ -507,7 +513,7 @@ export default function FarmAtlasElevationBlock() {
                 }
             }
         } finally {
-            if (updateId.current === currentId && !signal.aborted) {
+            if (updateId.current === currentId) {
                 setIsUpdating(false)
             }
             clearTimeout(slowTimer)
