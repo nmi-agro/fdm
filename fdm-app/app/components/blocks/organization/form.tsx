@@ -5,10 +5,6 @@ import { Controller } from "react-hook-form"
 import { Form, type HTMLFormMethod } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
-import { Field, FieldError, FieldLabel } from "~/components/ui/field"
-import { Input } from "~/components/ui/input"
-import { Spinner } from "~/components/ui/spinner"
-import { Textarea } from "~/components/ui/textarea"
 import {
     Card,
     CardContent,
@@ -17,6 +13,10 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
+import { Input } from "~/components/ui/input"
+import { Spinner } from "~/components/ui/spinner"
+import { Textarea } from "~/components/ui/textarea"
 import { FormSchema } from "./schema"
 
 export function OrganizationSettingsForm({
@@ -59,36 +59,33 @@ export function OrganizationSettingsForm({
     }, [organization, form.reset])
 
     // Update slug when name changes
+    const organizationName = form.getValues("name")
+
     // biome-ignore lint/correctness/useExhaustiveDependencies: convertToSlug changes on every re-render and should not be used as a hook dependency
     useEffect(() => {
-        const subscription = form.watch((value, { name }) => {
-            if (!organization?.slug && name === "name") {
-                const slug = convertToSlug(value.name ?? "")
-                form.setValue("slug", slug, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                })
-            }
-        })
-        return () => subscription.unsubscribe()
-    }, [organization?.slug, form.watch, form.setValue])
+        if (!organizationName) return
+        const newSlug = convertToSlug(organizationName)
+        if (form.getValues("slug") !== newSlug) {
+            form.setValue("slug", newSlug)
+        }
+    }, [form.getValues, organizationName])
 
     const disabled = !canModify || form.formState.isSubmitting
     return (
         <Card className="max-w-3xl mx-auto">
-            <CardHeader>
-                <CardTitle>Organisatiegegevens</CardTitle>
-                <CardDescription>
-                    Voer de gegevens van je organisatie in.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <RemixFormProvider {...form}>
-                    <Form
-                        action={action}
-                        method={method}
-                        onSubmit={form.handleSubmit}
-                    >
+            <RemixFormProvider {...form}>
+                <Form
+                    action={action}
+                    method={method}
+                    onSubmit={form.handleSubmit}
+                >
+                    <CardHeader>
+                        <CardTitle>Organisatiegegevens</CardTitle>
+                        <CardDescription>
+                            Voer de gegevens van je organisatie in.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                         <fieldset disabled={disabled} className="space-y-4">
                             <Controller
                                 name="name"
@@ -150,15 +147,15 @@ export function OrganizationSettingsForm({
                                 )}
                             />
                         </fieldset>
-                    </Form>
-                </RemixFormProvider>
-            </CardContent>
-            <CardFooter className="flex-row justify-end">
-                <Button type="submit" disabled={disabled}>
-                    {form.formState.isSubmitting && <Spinner />}
-                    {organization ? "Bijwerken" : "Aanmaken"}
-                </Button>
-            </CardFooter>
+                    </CardContent>
+                    <CardFooter className="flex-row justify-end">
+                        <Button type="submit" disabled={disabled}>
+                            {form.formState.isSubmitting && <Spinner />}
+                            {organization ? "Bijwerken" : "Aanmaken"}
+                        </Button>
+                    </CardFooter>
+                </Form>
+            </RemixFormProvider>
         </Card>
     )
 }
