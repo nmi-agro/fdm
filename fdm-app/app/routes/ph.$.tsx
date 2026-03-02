@@ -41,11 +41,16 @@ const posthogProxy = async (request: Request) => {
     headers.delete("cookie")
     headers.delete("upgrade")
 
+    // Remove content-length for streaming bodies to let fetch handle it correctly
+    if (request.body) {
+        headers.delete("content-length")
+    }
+
     let response: Response
     let timeoutId: ReturnType<typeof setTimeout> | undefined
     try {
         const controller = new AbortController()
-        timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+        timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout
 
         response = await fetch(newUrl, {
             method: request.method,
@@ -56,6 +61,13 @@ const posthogProxy = async (request: Request) => {
             duplex: "half",
         })
     } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+            console.error("PostHog proxy timeout after 60s")
+            return new Response("PostHog proxy timeout", {
+                status: 504,
+                statusText: "Gateway Timeout",
+            })
+        }
         console.error("PostHog proxy error:", error)
         return new Response("Service unavailable", {
             status: 503,
