@@ -193,7 +193,7 @@ export async function checkPermission(
                     allowed: !!permission,
                     duration: Math.round(performance.now() - start),
                 })
-                .catch((err) => {
+                .catch((err: Error) => {
                     console.error("Failed to store audit log:", err)
                 })
 
