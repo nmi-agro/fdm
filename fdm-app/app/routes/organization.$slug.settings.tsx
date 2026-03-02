@@ -7,6 +7,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import type { Route } from "./+types/organization.$slug.settings"
 
 // Meta
@@ -57,28 +58,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         const role = currentUserMember?.role ?? "viewer"
         const organizationEditPermission = role === "owner" || role === "admin"
 
-        function parseMetadata(
-            slug: string,
-            rawMetadata: string | null | undefined,
-        ) {
-            try {
-                return rawMetadata ? JSON.parse(rawMetadata) : {}
-            } catch (e) {
-                throw new Error(
-                    `Failed to parse organization metadata for ${slug}`,
-                    {
-                        cause: e,
-                    },
-                )
-            }
-        }
-
         const organization = {
             ...organizationRaw,
-            metadata: parseMetadata(
-                organizationRaw.slug,
-                organizationRaw.metadata,
-            ),
+            metadata: parseOrganizationMetadata(organizationRaw),
         }
 
         return {

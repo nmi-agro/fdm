@@ -22,6 +22,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "../lib/schemas/access.schema"
 import type { Route } from "./+types/organization._index"
 
@@ -46,20 +47,6 @@ export async function loader({ request }: Route.LoaderArgs) {
             headers: request.headers,
         })
 
-        function parseMetadata(
-            slug: string,
-            rawMetadata: string | null | undefined,
-        ) {
-            try {
-                return { data: rawMetadata ? JSON.parse(rawMetadata) : {} }
-            } catch (e) {
-                console.error(e)
-                return {
-                    error: `Failed to parse organization metadata for ${slug}`,
-                }
-            }
-        }
-
         const organizations = await Promise.all(
             organizationsRaw.map(async (org) => {
                 const members = await auth.api.listMembers({
@@ -75,7 +62,7 @@ export async function loader({ request }: Route.LoaderArgs) {
                 return {
                     ...org,
                     userRoles: orderedUserRoles,
-                    metadata: parseMetadata(org.slug, org.metadata),
+                    metadata: parseOrganizationMetadata(org),
                 }
             }),
         )

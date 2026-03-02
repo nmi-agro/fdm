@@ -31,6 +31,8 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { OrganizationCard } from "~/components/blocks/organization/organization-card"
+import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -48,9 +50,8 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
+import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
-import { OrganizationCard } from "../components/blocks/organization/organization-card"
-import { PendingOrganizationInvitationCard } from "../components/blocks/organization/pending-organization-invitation"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -98,20 +99,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
             session.user.id,
         )
 
-        function parseMetadata(
-            slug: string,
-            rawMetadata: string | null | undefined,
-        ) {
-            try {
-                return { data: rawMetadata ? JSON.parse(rawMetadata) : {} }
-            } catch (e) {
-                console.error(e)
-                return {
-                    error: `Failed to parse organization metadata for ${slug}`,
-                }
-            }
-        }
-
         const rawOrganizations = await auth.api.listOrganizations({
             headers: request.headers,
         })
@@ -135,10 +122,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 return {
                     ...organization,
                     userRoles: orderedUserRoles,
-                    metadata: parseMetadata(
-                        organization.slug,
-                        organization.metadata,
-                    ),
+                    metadata: parseOrganizationMetadata(organization),
                 }
             }),
         )

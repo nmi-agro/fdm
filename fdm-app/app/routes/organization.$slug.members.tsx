@@ -391,8 +391,8 @@ const InvitationForm = ({
     const fetcher = useFetcher()
     const [email, setEmail] = useState("")
     useEffect(() => {
-        if (!fetcher.data?.message) setEmail("")
-    }, [fetcher.data])
+        if (fetcher.state === "idle" && fetcher.data?.ok) setEmail("")
+    }, [fetcher.state, fetcher.data])
 
     return (
         <fetcher.Form method="post" className="flex space-x-2">
@@ -523,9 +523,12 @@ export async function action({ request, params }: Route.ActionArgs) {
                     )
                     await sendEmail(invitationEmail)
                 }
-                return dataWithSuccess(null, {
-                    message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
-                })
+                return dataWithSuccess(
+                    { ok: true },
+                    {
+                        message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
+                    },
+                )
             } catch (sendingError) {
                 if (invitation?.id) {
                     try {

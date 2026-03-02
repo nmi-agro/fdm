@@ -8,17 +8,13 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import type { ParseOrganizationMetadataResult } from "~/lib/organization-helpers"
 
 type OrganizationRole = "owner" | "admin" | "member"
 export interface OrganizationWithRoles {
     slug: string
     name: string | null
-    metadata: {
-        data?: {
-            description?: string
-        }
-        error?: string
-    }
+    metadata: ParseOrganizationMetadataResult
     userRoles: OrganizationRole[]
 }
 
@@ -65,7 +61,7 @@ export function OrganizationCard({
                 <CardContent className="grow py-4">
                     <p className="grid gap-2 text-sm text-left">
                         {organization.metadata?.data?.description ??
-                            organization.metadata?.error ??
+                            organization.metadata?.error?.message ??
                             "Geen info"}
                     </p>
                 </CardContent>

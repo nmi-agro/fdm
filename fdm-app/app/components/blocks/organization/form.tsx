@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { Organization } from "better-auth/plugins"
 import { useEffect } from "react"
 import { Controller } from "react-hook-form"
 import { Form, type HTMLFormMethod } from "react-router"
@@ -17,6 +16,7 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
+import type { ParsedOrganization } from "~/lib/organization-helpers"
 import { FormSchema } from "./schema"
 
 export function OrganizationSettingsForm({
@@ -25,7 +25,7 @@ export function OrganizationSettingsForm({
     method = "POST",
     canModify,
 }: {
-    organization?: Organization
+    organization?: ParsedOrganization
     action?: string
     method?: HTMLFormMethod
     canModify: boolean
@@ -36,7 +36,7 @@ export function OrganizationSettingsForm({
         defaultValues: {
             name: organization?.name,
             slug: organization?.slug,
-            description: organization?.metadata?.description,
+            description: organization?.metadata?.data?.description,
         },
     })
 
@@ -54,7 +54,7 @@ export function OrganizationSettingsForm({
         form.reset({
             name: organization?.name,
             slug: organization?.slug,
-            description: organization?.metadata?.description,
+            description: organization?.metadata.data?.description,
         })
     }, [organization, form.reset])
 
@@ -68,7 +68,7 @@ export function OrganizationSettingsForm({
         if (form.getValues("slug") !== newSlug) {
             form.setValue("slug", newSlug)
         }
-    }, [form.getValues, organizationName])
+    }, [organizationName, form.getValues, form.setValue])
 
     const disabled = !canModify || form.formState.isSubmitting
     return (
