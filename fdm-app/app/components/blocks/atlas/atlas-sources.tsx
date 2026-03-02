@@ -14,6 +14,7 @@ import {
     type SetStateAction,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react"
 import { Source, useMap } from "react-map-gl/maplibre"
@@ -201,6 +202,8 @@ export function FieldsSourceAvailable({
         }
     }, [map, id, redirectToDetailsPage, navigate])
 
+    const abortControllerRef = useRef<AbortController | null>(null)
+
     useEffect(() => {
         async function loadData() {
             if (map) {
@@ -210,6 +213,14 @@ export function FieldsSourceAvailable({
                     const bounds = map.getBounds()
 
                     if (bounds) {
+                        // Cancel previous request
+                        if (abortControllerRef.current) {
+                            abortControllerRef.current.abort()
+                        }
+                        const abortController = new AbortController()
+                        abortControllerRef.current = abortController
+                        const signal = abortController.signal
+
                         const [[minX, minY], [maxX, maxY]] = bounds.toArray()
                         const bbox = {
                             minX: 0.9995 * minX,
@@ -219,6 +230,9 @@ export function FieldsSourceAvailable({
                         }
                         const cultivationCatalogue =
                             await cultivationCataloguePromise
+                        
+                        if (signal.aborted) return
+
                         try {
                             const iter = deserialize(availableFieldsUrl, bbox)
 
@@ -226,6 +240,8 @@ export function FieldsSourceAvailable({
                             const featureClass = generateFeatureClass()
 
                             for await (const feature of iter) {
+                                if (signal.aborted) return
+
                                 const catalogueKey =
                                     feature.properties?.b_lu_catalogue
                                 featureClass.features.push({
@@ -240,10 +256,15 @@ export function FieldsSourceAvailable({
                                 })
                                 i += 1
                             }
-                            setData(featureClass)
+                            
+                            if (!signal.aborted) {
+                                setData(featureClass)
+                            }
                         } catch (error) {
-                            console.error("Failed to deserialize data: ", error)
-                            setData(generateFeatureClass())
+                            if ((error as Error).name !== "AbortError") {
+                                console.error("Failed to deserialize data: ", error)
+                                setData(generateFeatureClass())
+                            }
                         }
                     } else {
                         setData(generateFeatureClass())
@@ -263,6 +284,9 @@ export function FieldsSourceAvailable({
             return () => {
                 map.off("moveend", throttledLoadData)
                 map.off("zoomend", throttledLoadData)
+                if (abortControllerRef.current) {
+                    abortControllerRef.current.abort()
+                }
             }
         }
     }, [map, availableFieldsUrl, zoomLevelFields, cultivationCataloguePromise])

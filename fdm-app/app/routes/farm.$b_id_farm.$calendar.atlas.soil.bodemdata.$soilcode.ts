@@ -1,16 +1,22 @@
-import { data } from "react-router-dom"
+import { data } from "react-router"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.atlas.soil.bodemdata.$soilcode"
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
     // Fetching client-side leads to CORS and CSP errors.
     // CSP issues can be resolved but CORS issues can't be without contacting Bodemdata.
     try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000)
+        const timeoutController = new AbortController()
+        const timeoutId = setTimeout(() => timeoutController.abort(), 5000)
+
+        // Combine the request signal (navigation) with our timeout signal
+        const signal = AbortSignal.any([
+            timeoutController.signal,
+            request.signal,
+        ])
 
         const response = await fetch(
             `https://legenda-bodemkaart.bodemdata.nl/soilmaplegendserver/item/bodemklasse/${encodeURIComponent(params.soilcode)}`,
-            { signal: controller.signal },
+            { signal },
         )
         clearTimeout(timeoutId)
 
@@ -21,6 +27,11 @@ export async function loader({ params }: Route.LoaderArgs) {
         const json = await response.json()
         return data({ success: json.success, data: json.data })
     } catch (error) {
+        if ((error as Error).name === "AbortError") {
+            // If the client aborted the request, we don't need to log an error
+            if (request.signal?.aborted)
+                return new Response(null, { status: 499 })
+        }
         console.error(error)
         return data(
             {
