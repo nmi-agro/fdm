@@ -376,7 +376,8 @@ export default function FarmRotationHarvestAddIndex() {
         )
     }, [loaderData.selectedFields])
 
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting =
+        navigation.state === "submitting" && Boolean(navigation.formData)
 
     const handleSelectionChange = () => {
         const newSearchParams = new URLSearchParams(searchParams)

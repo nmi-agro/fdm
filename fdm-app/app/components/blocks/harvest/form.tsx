@@ -604,7 +604,11 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                             </DialogDescription>
                         </DialogHeader>
                         <FieldSet
-                            disabled={!editable || form.formState.isSubmitting}
+                            disabled={
+                                !editable ||
+                                form.formState.isSubmitting ||
+                                fetcher.state !== "idle"
+                            }
                         >
                             <HarvestFields {...props} form={form} />
                         </FieldSet>
@@ -617,7 +621,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                     onClick={handleDeleteHarvest}
                                     disabled={
                                         form.formState.isSubmitting ||
-                                        fetcher.state === "submitting"
+                                        fetcher.state !== "idle"
                                     }
                                     className={cn(
                                         "mr-auto",
@@ -626,7 +630,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                             : "",
                                     )}
                                 >
-                                    {fetcher.state === "submitting" ? (
+                                    {fetcher.state !== "idle" ? (
                                         <div className="flex items-center space-x-2">
                                             <Spinner />
                                         </div>
@@ -636,7 +640,10 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                 <DialogClose asChild>
                                     <Button
                                         variant="outline"
-                                        disabled={form.formState.isSubmitting}
+                                        disabled={
+                                            form.formState.isSubmitting ||
+                                            fetcher.state !== "idle"
+                                        }
                                     >
                                         Sluiten
                                     </Button>
@@ -644,13 +651,16 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                 <Button
                                     type="submit"
                                     form="formHarvest"
-                                    disabled={form.formState.isSubmitting}
+                                    disabled={
+                                        form.formState.isSubmitting ||
+                                        fetcher.state !== "idle"
+                                    }
                                     className={cn(!editable ? "invisible" : "")}
                                 >
                                     {form.formState.isSubmitting ? (
                                         <div className="flex items-center space-x-2">
                                             <Spinner />
-                                            <span>Opslaan...</span>
+                                            <p>Opslaan...</p>
                                         </div>
                                     ) : isHarvestUpdate ? (
                                         "Bijwerken"
@@ -690,7 +700,11 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                     action={action}
                 >
                     <fieldset
-                        disabled={!editable || form.formState.isSubmitting}
+                        disabled={
+                            !editable ||
+                            form.formState.isSubmitting ||
+                            fetcher.state !== "idle"
+                        }
                         className="space-y-8"
                     >
                         <HarvestFields
@@ -706,7 +720,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                                 onClick={handleDeleteHarvest}
                                 disabled={
                                     form.formState.isSubmitting ||
-                                    fetcher.state === "submitting"
+                                    fetcher.state !== "idle"
                                 }
                                 className={cn(
                                     "mr-auto",
@@ -716,14 +730,21 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                                 )}
                             >
                                 {form.formState.isSubmitting ||
-                                fetcher.state === "submitting" ? (
+                                fetcher.state !== "idle" ? (
                                     <div className="flex items-center space-x-2">
                                         <Spinner />
                                     </div>
                                 ) : null}
                                 Verwijderen
                             </Button>
-                            <Button type="submit" className="ml-auto">
+                            <Button
+                                type="submit"
+                                className="ml-auto"
+                                disabled={
+                                    form.formState.isSubmitting ||
+                                    fetcher.state !== "idle"
+                                }
+                            >
                                 {form.formState.isSubmitting ? (
                                     <div className="flex items-center space-x-2">
                                         <Spinner />

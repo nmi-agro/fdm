@@ -102,7 +102,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     })
     const p_id = form.watch("p_id")
     const selectedFertilizer = options.find((option) => option.value === p_id)
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting = navigation.state !== "idle"
 
     useEffect(() => {
         if (
