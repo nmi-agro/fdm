@@ -52,7 +52,7 @@ export function SoilAnalysisUploadForm() {
     const navigation = useNavigation()
 
     // Determine if the form is currently submitting
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting = navigation.state !== "idle"
 
     useEffect(() => {
         if (isSubmitting) {

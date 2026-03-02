@@ -172,7 +172,7 @@ export default function OrganicCertificationSettings() {
     const navigation = useNavigation()
 
     const isDeleting =
-        navigation.state === "submitting" && navigation.formMethod === "DELETE"
+        navigation.state !== "idle" && navigation.formMethod === "DELETE"
 
     const form = useRemixForm<z.infer<typeof formSchema>>({
         mode: "onTouched",

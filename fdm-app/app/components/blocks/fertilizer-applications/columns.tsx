@@ -207,7 +207,7 @@ function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
             <Spinner
                 className={cn(
                     "h-4 w-4",
-                    fetcher.state !== "submitting" && "invisible",
+                    fetcher.state === "idle" && "invisible",
                 )}
             />
             <Button asChild>
@@ -220,7 +220,7 @@ function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
             <Button
                 variant="destructive"
                 onClick={() => setShowDeleteConfirm(true)}
-                disabled={fetcher.state === "submitting"}
+                disabled={fetcher.state !== "idle"}
             >
                 Verwijderen
             </Button>

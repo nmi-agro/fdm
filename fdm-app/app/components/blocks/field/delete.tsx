@@ -27,7 +27,7 @@ export function FieldDeleteDialog({
     const [open, setOpen] = useState(false)
     const navigation = useNavigation()
     const isDeleting =
-        navigation.state === "submitting" && navigation.formMethod === "DELETE"
+        navigation.state !== "idle" && navigation.formMethod === "DELETE"
 
     const isSubmitting = isParentSubmitting || isDeleting
 

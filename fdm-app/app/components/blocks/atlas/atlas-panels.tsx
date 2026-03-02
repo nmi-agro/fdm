@@ -180,7 +180,7 @@ export function FieldsPanelSelection({
     const { current: map } = useMap()
     const [panel, setPanel] = useState<React.ReactNode | null>(null)
 
-    const isSubmitting = fetcher.state === "submitting"
+    const isSubmitting = fetcher.state !== "idle"
 
     const submitSelectedFields = useCallback(
         async (fields: FeatureCollection) => {
