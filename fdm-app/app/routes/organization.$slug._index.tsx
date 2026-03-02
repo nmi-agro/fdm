@@ -68,7 +68,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         )
 
         if (!organization) {
-            throw data("Organisatie niet gevonden.", 404)
+            throw data("Organisatie niet gevonden.", {
+                status: 404,
+                statusText: "Organisatie niet gevonden.",
+            })
         }
 
         const members = await auth.api.listMembers({

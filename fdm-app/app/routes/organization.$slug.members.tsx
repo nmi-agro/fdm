@@ -7,7 +7,7 @@ import type {
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useEffect, useState } from "react"
-import { useFetcher, useLoaderData } from "react-router"
+import { data, useFetcher, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { z } from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -56,67 +56,72 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-    if (!params.slug) {
-        throw handleLoaderError("not found: organization")
-    }
+    try {
+        const session = await getSession(request)
+        const organizations = await auth.api.listOrganizations({
+            headers: request.headers,
+        })
 
-    const session = await getSession(request)
-    const organizations = await auth.api.listOrganizations({
-        headers: request.headers,
-    })
+        const organization = organizations.find(
+            (org) => org.slug === params.slug,
+        )
 
-    const organization = organizations.find((org) => org.slug === params.slug)
+        if (!organization) {
+            throw data("not found: organization", {
+                status: 404,
+                statusText: "not found: organization",
+            })
+        }
 
-    if (!organization) {
-        throw handleLoaderError("not found: organization")
-    }
-
-    // Get members of organization
-    const membersListResponse = await auth.api.listMembers({
-        headers: request.headers,
-        query: {
-            organizationId: organization.id,
-        },
-    })
-    const members = membersListResponse.members
-
-    // Determine permissions
-    const currentUserMember = members.find(
-        (m) => m.userId === session.principal_id,
-    )
-    const role = currentUserMember?.role || "viewer"
-    const permissions = {
-        canEdit: role === "owner" || role === "admin",
-        canDelete: role === "owner",
-        canInvite: role === "owner" || role === "admin",
-        canUpdateRoleUser: role === "owner" || role === "admin",
-        canRemoveUser: role === "owner" || role === "admin",
-    }
-
-    // Get pending invitations of organization
-    let invitations: Invitation[] = []
-    if (permissions.canInvite) {
-        const invitationsListResponse = await auth.api.listInvitations({
+        // Get members of organization
+        const membersListResponse = await auth.api.listMembers({
             headers: request.headers,
             query: {
                 organizationId: organization.id,
             },
         })
-        invitations = (
-            Array.isArray(invitationsListResponse)
-                ? invitationsListResponse
-                : []
-        ).filter((inv) => inv.status === "pending")
-    }
+        const members = membersListResponse.members
 
-    return {
-        organization: {
-            ...organization,
-            permissions,
-            description: organization.metadata?.description || "",
-        },
-        invitations: invitations,
-        members: members,
+        // Determine permissions
+        const currentUserMember = members.find(
+            (m) => m.userId === session.principal_id,
+        )
+        const role = currentUserMember?.role || "viewer"
+        const permissions = {
+            canEdit: role === "owner" || role === "admin",
+            canDelete: role === "owner",
+            canInvite: role === "owner" || role === "admin",
+            canUpdateRoleUser: role === "owner" || role === "admin",
+            canRemoveUser: role === "owner" || role === "admin",
+        }
+
+        // Get pending invitations of organization
+        let invitations: Invitation[] = []
+        if (permissions.canInvite) {
+            const invitationsListResponse = await auth.api.listInvitations({
+                headers: request.headers,
+                query: {
+                    organizationId: organization.id,
+                },
+            })
+            invitations = (
+                Array.isArray(invitationsListResponse)
+                    ? invitationsListResponse
+                    : []
+            ).filter((inv) => inv.status === "pending")
+        }
+
+        return {
+            organization: {
+                ...organization,
+                permissions,
+                description: organization.metadata?.description || "",
+            },
+            invitations: invitations,
+            members: members,
+        }
+    } catch (e) {
+        throw handleLoaderError(e)
     }
 }
 

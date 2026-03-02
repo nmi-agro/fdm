@@ -719,7 +719,7 @@ export default function AppIndex() {
                                             0 && (
                                             <FarmTitle
                                                 title="Openstaande uitnodigingen naar organisaties"
-                                                description="Je hebt uitnodigingen ontvangen voor toegang tot de volgende bedrijven."
+                                                description="Je hebt uitnodigingen ontvangen voor toegang tot de volgende organisaties."
                                             />
                                         )}
                                         <div className="grid w-full mx-6 p-6 gap-4 sm:grid-cols-2">

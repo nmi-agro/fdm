@@ -111,26 +111,24 @@ export function HeaderOrganization({
                                     ))}
                                 </DropdownMenuContent>
                             ) : null}
-                            {isSettingsRoute ? (
-                                <>
-                                    <BreadcrumbSeparator />
-                                    <BreadcrumbItem>
-                                        Instellingen
-                                    </BreadcrumbItem>
-                                </>
-                            ) : isMembersRoute ? (
-                                <>
-                                    <BreadcrumbSeparator />
-                                    <BreadcrumbItem>Leden</BreadcrumbItem>
-                                </>
-                            ) : isFarmsRoute ? (
-                                <>
-                                    <BreadcrumbSeparator />
-                                    <BreadcrumbItem>Bedrijven</BreadcrumbItem>
-                                </>
-                            ) : null}
                         </DropdownMenu>
                     </BreadcrumbItem>
+                    {isSettingsRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Instellingen</BreadcrumbItem>
+                        </>
+                    ) : isMembersRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Leden</BreadcrumbItem>
+                        </>
+                    ) : isFarmsRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Bedrijven</BreadcrumbItem>
+                        </>
+                    ) : null}
                 </>
             )}
         </>

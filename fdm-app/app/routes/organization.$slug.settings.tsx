@@ -35,7 +35,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         )
 
         if (!organizationRaw) {
-            throw data("Organisatie niet gevonden.", 404)
+            throw data("Organisatie niet gevonden.", {
+                status: 404,
+                statusText: "Organisatie niet gevonden.",
+            })
         }
 
         const members = (
@@ -124,7 +127,10 @@ export async function action({ params, request }: Route.ActionArgs) {
         ).find((org) => org.slug === params.slug)
 
         if (!currentOrganization) {
-            throw data("Organisatie niet gevonden.", 404)
+            throw data("Organisatie niet gevonden.", {
+                status: 404,
+                statusText: "Organisatie niet gevonden.",
+            })
         }
 
         const name = formValues.name

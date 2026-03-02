@@ -250,7 +250,7 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
                             </p>
                         </CardContent>
                         <CardFooter>
-                            <form method="post" className="flex flex-row gap-2">
+                            <Form method="post" className="flex flex-row gap-2">
                                 <input
                                     type="hidden"
                                     name="invitation_id"
@@ -263,7 +263,7 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
                                 >
                                     Terug naar mijn uitnodigingen
                                 </Button>
-                            </form>
+                            </Form>
                         </CardFooter>
                     </Card>
                 </div>
