@@ -180,18 +180,22 @@ export async function checkPermission(
 
         // Store check in audit
         if (strict) {
-            await fdm.insert(authZSchema.audit).values({
-                audit_id: createId(),
-                audit_origin: origin,
-                principal_id: principal_id,
-                target_resource: resource,
-                target_resource_id: resource_id,
-                granting_resource: granting_resource,
-                granting_resource_id: granting_resource_id,
-                action: action,
-                allowed: !!permission,
-                duration: Math.round(performance.now() - start),
-            })
+            fdm.insert(authZSchema.audit)
+                .values({
+                    audit_id: createId(),
+                    audit_origin: origin,
+                    principal_id: principal_id,
+                    target_resource: resource,
+                    target_resource_id: resource_id,
+                    granting_resource: granting_resource,
+                    granting_resource_id: granting_resource_id,
+                    action: action,
+                    allowed: !!permission,
+                    duration: Math.round(performance.now() - start),
+                })
+                .catch((err) => {
+                    console.error("Failed to store audit log:", err)
+                })
 
             if (!permission) {
                 throw new Error("Permission denied")
