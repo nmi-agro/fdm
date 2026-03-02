@@ -325,6 +325,14 @@ export default function FarmAtlasElevationBlock() {
         const bounds = mapRef.current.getBounds()
         const zoom = mapRef.current.getZoom()
 
+        // Cancel previous request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
+        const abortController = new AbortController()
+        abortControllerRef.current = abortController
+        const signal = abortController.signal
+
         // If zoomed out, clear active tiles to save resources (WMS will take over)
         if (zoom < 13) {
             if (activeTilesLengthRef.current > 0) {
@@ -334,14 +342,6 @@ export default function FarmAtlasElevationBlock() {
         }
 
         const currentId = ++updateId.current
-
-        // Cancel previous request
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort()
-        }
-        const abortController = new AbortController()
-        abortControllerRef.current = abortController
-        const signal = abortController.signal
 
         setIsUpdating(true)
         setNetworkStatus("loading")

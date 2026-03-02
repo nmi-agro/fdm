@@ -284,6 +284,7 @@ export function FieldsSourceAvailable({
             return () => {
                 map.off("moveend", throttledLoadData)
                 map.off("zoomend", throttledLoadData)
+                throttledLoadData.cancel()
                 if (abortControllerRef.current) {
                     abortControllerRef.current.abort()
                 }

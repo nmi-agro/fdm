@@ -383,6 +383,11 @@ export default function FarmAtlasSoilBlock() {
     const onToggleSoil = useCallback(() => {
         setShowSoil((prev) => {
             if (prev) {
+                // Cancel previous request
+                if (abortControllerRef.current) {
+                    abortControllerRef.current.abort()
+                    abortControllerRef.current = null
+                }
                 // Clearing selection when switching off
                 setSelectedSoilFeature(null)
                 setPopupInfo(null)

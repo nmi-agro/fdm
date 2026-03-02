@@ -14,18 +14,21 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             request.signal,
         ])
 
-        const response = await fetch(
-            `https://legenda-bodemkaart.bodemdata.nl/soilmaplegendserver/item/bodemklasse/${encodeURIComponent(params.soilcode)}`,
-            { signal },
-        )
-        clearTimeout(timeoutId)
+        try {
+            const response = await fetch(
+                `https://legenda-bodemkaart.bodemdata.nl/soilmaplegendserver/item/bodemklasse/${encodeURIComponent(params.soilcode)}`,
+                { signal },
+            )
 
-        if (!response.ok) {
-            return response
+            if (!response.ok) {
+                return response
+            }
+
+            const json = await response.json()
+            return data({ success: json.success, data: json.data })
+        } finally {
+            clearTimeout(timeoutId)
         }
-
-        const json = await response.json()
-        return data({ success: json.success, data: json.data })
     } catch (error) {
         if ((error as Error).name === "AbortError") {
             // If the client aborted the request, we don't need to log an error
