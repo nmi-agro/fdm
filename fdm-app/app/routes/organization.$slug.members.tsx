@@ -272,11 +272,10 @@ const MemberAction = ({
     }
 }) => {
     const fetcher = useFetcher()
-    const disabled = fetcher.state !== "idle"
+    const disabled = fetcher.state !== "idle" && Boolean(fetcher.formData)
     const [role, setRole] = useState(member.role)
 
     function submitRoleChange(role: OrganizationRole["role"]) {
-        setRole(role)
         fetcher.submit(
             {
                 intent: "update_role",
@@ -288,10 +287,8 @@ const MemberAction = ({
     }
 
     useEffect(() => {
-        if (fetcher.data?.error) {
-            setRole(member.role)
-        }
-    }, [fetcher.data, member.role])
+        setRole(member.role)
+    }, [member.role])
 
     return (
         <fetcher.Form method="post" className="flex items-center space-x-4">
@@ -320,6 +317,7 @@ const MemberAction = ({
                     className="shrink-0"
                     name="intent"
                     value="remove_user"
+                    disabled={disabled}
                 >
                     Verwijder
                 </Button>
@@ -464,14 +462,16 @@ export async function action({ request, params }: Route.ActionArgs) {
         } catch (e) {
             const formValuesResponse = (await e) as { data?: string }
             if (formValuesResponse.data) {
-                const errorData = JSON.parse(formValuesResponse.data) as {
-                    message: string
-                }[]
-                if (Array.isArray(errorData) && errorData.length > 0) {
-                    return dataWithError(null, {
-                        message: errorData[0].message,
-                    })
-                }
+                try {
+                    const errorData = JSON.parse(formValuesResponse.data) as {
+                        message: string
+                    }[]
+                    if (Array.isArray(errorData) && errorData.length > 0) {
+                        return dataWithError(null, {
+                            message: errorData[0].message,
+                        })
+                    }
+                } catch (_jsonParseError) {}
             }
             throw e
         }

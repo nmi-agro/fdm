@@ -54,7 +54,7 @@ export function OrganizationSettingsForm({
         form.reset({
             name: organization?.name,
             slug: organization?.slug,
-            description: organization?.metadata.data?.description,
+            description: organization?.metadata?.data?.description,
         })
     }, [organization, form.reset])
 
