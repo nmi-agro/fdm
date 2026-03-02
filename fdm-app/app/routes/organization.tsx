@@ -1,7 +1,7 @@
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import type { LoaderFunctionArgs } from "react-router"
-import { redirect, useLoaderData } from "react-router"
+import { redirect, useLoaderData, useMatches } from "react-router"
 import { Outlet } from "react-router-dom"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"

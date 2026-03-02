@@ -8,6 +8,7 @@ import {
 import { Square, Users } from "lucide-react"
 import { data, NavLink, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import { cn } from "@/app/lib/utils"
 import {
     FarmCard,
     type FarmWithRoles,
@@ -348,9 +349,22 @@ export default function AppIndex() {
 
                             {/* Settings */}
                             <div className="space-y-4">
-                                <h2 className="text-2xl font-semibold tracking-tight">
-                                    Leden
-                                </h2>
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-2xl font-semibold tracking-tight">
+                                        Leden
+                                    </h2>
+                                    <Button asChild variant="default">
+                                        <NavLink
+                                            to="./members"
+                                            className={cn(
+                                                !loaderData.canModify &&
+                                                    "invisible",
+                                            )}
+                                        >
+                                            Beheer
+                                        </NavLink>
+                                    </Button>
+                                </div>
                                 <Card>
                                     <CardContent className="pt-6">
                                         <div className="space-y-1">

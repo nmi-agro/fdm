@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink, useLocation, useMatches } from "react-router"
 import {
     BreadcrumbItem,
     BreadcrumbLink,
@@ -22,12 +22,24 @@ export function HeaderOrganization({
     const location = useLocation()
     const currentPath = String(location.pathname)
 
-    let page = "overview"
-    if (currentPath.includes("new")) {
-        page = "new"
-    } else if (currentPath.includes("invitation")) {
-        page = "invitation"
-    }
+    const matches = useMatches()
+    const isSettingsRoute = !!matches.find(
+        (match) => match.id === "routes/organization.$slug.settings",
+    )
+    const isMembersRoute = !!matches.find(
+        (match) => match.id === "routes/organization.$slug.members",
+    )
+    const isFarmsRoute = !!matches.find(
+        (match) => match.id === "routes/organization.$slug.$calendar.farms",
+    )
+    const isInvitationRespondRoute = !!matches.find(
+        (match) =>
+            match.id ===
+            "routes/organization.invitations.$invitation_id.respond",
+    )
+    const isNewOrganizationRoute = !!matches.find(
+        (match) => match.id === "routes/organization.new",
+    )
 
     return (
         <>
@@ -36,7 +48,7 @@ export function HeaderOrganization({
                     Organisaties
                 </BreadcrumbLink>
             </BreadcrumbItem>
-            {page === "new" ? (
+            {isNewOrganizationRoute ? (
                 <>
                     <BreadcrumbSeparator className="hidden xl:block" />
                     <BreadcrumbItem>
@@ -45,12 +57,12 @@ export function HeaderOrganization({
                         </BreadcrumbLink>
                     </BreadcrumbItem>
                 </>
-            ) : page === "invitation" ? (
+            ) : isInvitationRespondRoute ? (
                 <>
                     <BreadcrumbSeparator className="hidden xl:block" />
                     <BreadcrumbItem>
                         <BreadcrumbLink href="/invitations">
-                            Uitnodigingen
+                            Uitnodiging
                         </BreadcrumbLink>
                     </BreadcrumbItem>
                 </>
@@ -98,6 +110,24 @@ export function HeaderOrganization({
                                         </DropdownMenuCheckboxItem>
                                     ))}
                                 </DropdownMenuContent>
+                            ) : null}
+                            {isSettingsRoute ? (
+                                <>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        Instellingen
+                                    </BreadcrumbItem>
+                                </>
+                            ) : isMembersRoute ? (
+                                <>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>Leden</BreadcrumbItem>
+                                </>
+                            ) : isFarmsRoute ? (
+                                <>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>Bedrijven</BreadcrumbItem>
+                                </>
                             ) : null}
                         </DropdownMenu>
                     </BreadcrumbItem>

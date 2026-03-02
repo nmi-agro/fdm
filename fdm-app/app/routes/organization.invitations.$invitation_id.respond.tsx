@@ -113,7 +113,13 @@ export default function Respond() {
                     </p>
                     <p className="my-1">
                         Je bent uitgenodigd als{" "}
-                        <i className="font-semibold">{invitation.role}</i>
+                        <i className="font-semibold">
+                            {{
+                                owner: "Eigenaar",
+                                admin: "Beheerder",
+                                member: "Lid",
+                            }[invitation.role] ?? "Lid"}
+                        </i>
                     </p>
                     <p className="my-1">
                         Weet je zeker dat je deze uitnodiging wilt afwijzen?
