@@ -322,7 +322,6 @@ export default function FarmAtlasElevationBlock() {
     const updateVisibleTiles = useCallback(async () => {
         if (!mapRef.current || !indexData) {
             setIsUpdating(false)
-            setNetworkStatus("idle")
             return
         }
 
@@ -333,9 +332,6 @@ export default function FarmAtlasElevationBlock() {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort()
         }
-        const abortController = new AbortController()
-        abortControllerRef.current = abortController
-        const signal = abortController.signal
 
         // If zoomed out, clear active tiles to save resources (WMS will take over)
         if (zoom < 13) {
@@ -346,6 +342,10 @@ export default function FarmAtlasElevationBlock() {
             setNetworkStatus("idle")
             return
         }
+
+        const abortController = new AbortController()
+        abortControllerRef.current = abortController
+        const signal = abortController.signal
 
         const currentId = ++updateId.current
 
