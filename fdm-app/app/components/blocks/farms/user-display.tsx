@@ -15,7 +15,7 @@ export interface DisplayUser {
 }
 
 /**
- * Renders a single user avatar and their if there is one user, or a stack of the user avatars if there are multiple users.
+ * Renders a single user avatar and their name if there is one user, or a stack of the user avatars if there are multiple users.
  *
  * The fallback React node is rendered if there are no users or the users array is missing.
  *
