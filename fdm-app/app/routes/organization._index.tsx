@@ -4,12 +4,20 @@ import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
+import { Button } from "~/components/ui/button"
 import {
     Card,
     CardDescription,
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyTitle,
+} from "~/components/ui/empty"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -87,31 +95,35 @@ export default function OrganizationsIndex() {
 
     return (
         <main>
-            {/* Changed this div to a flex container with justify-between */}
-            <div className="flex items-center justify-between">
-                <FarmTitle
-                    title={"Mijn organisaties"}
-                    description={
-                        "Organisaties stellen je in staat om met anderen samen te werken. Je kunt organisaties aanmaken of lid worden om samen gegevens te beheren."
-                    }
-                    action={{
-                        to: "/organization/new",
-                        label: "Organisatie aanmaken",
-                    }}
-                />
-            </div>
+            <FarmTitle
+                title={"Mijn organisaties"}
+                description={
+                    "Organisaties stellen je in staat om met anderen samen te werken. Je kunt organisaties aanmaken of lid worden om samen gegevens te beheren."
+                }
+                action={{
+                    to: "/organization/new",
+                    label: "Organisatie aanmaken",
+                }}
+            />
             {organizations.length === 0 ? (
-                <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-87.5">
-                    <div className="flex flex-col space-y-2 text-center">
-                        <h1 className="text-2xl font-semibold tracking-tight">
+                <Empty className="border-none">
+                    <EmptyHeader>
+                        <EmptyTitle>
                             Je bent nog geen lid van een organisatie
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
+                        </EmptyTitle>
+                        <EmptyDescription>
                             Vraag bij je contactpersoon om een uitnodiging of
                             maak zelf een organisatie aan.
-                        </p>
-                    </div>
-                </div>
+                        </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                        <Button asChild>
+                            <NavLink to={"/organization/new"}>
+                                Maak een organisatie aan
+                            </NavLink>
+                        </Button>
+                    </EmptyContent>
+                </Empty>
             ) : (
                 <div className="grid gap-4 grid-cols-1 lg:grid-cols-3 p-6">
                     {organizations.map((org) => (

@@ -26,6 +26,12 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyTitle,
+} from "~/components/ui/empty"
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -242,20 +248,20 @@ export default function AppIndex() {
                                 ) : (
                                     loaderData.pendingInvitations.length ===
                                         0 && (
-                                        <div className="mx-auto flex h-full w-full items-center flex-col justify-center py-6 sm:w-87.5">
-                                            <div className="flex flex-col space-y-2 text-center">
-                                                <h1 className="text-2xl font-semibold tracking-tight">
+                                        <Empty className="border-none">
+                                            <EmptyHeader>
+                                                <EmptyTitle>
                                                     Het lijkt erop dat jouw
                                                     organisatie tot geen
                                                     bedrijven toegang heeft. :(
-                                                </h1>
-                                                <p>
+                                                </EmptyTitle>
+                                                <EmptyDescription>
                                                     Neem contact op met
                                                     bedrijven om toegang tot hen
                                                     te krijgen.
-                                                </p>
-                                            </div>
-                                        </div>
+                                                </EmptyDescription>
+                                            </EmptyHeader>
+                                        </Empty>
                                     )
                                 )}
                             </div>
