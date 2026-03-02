@@ -16,7 +16,9 @@ interface RuntimeConfig {
     PUBLIC_POSTHOG_HOST?: string
 }
 
-interface ImportMetaEnv extends RuntimeConfig {}
+interface ImportMetaEnv extends RuntimeConfig {
+    readonly PUBLIC_APP_VERSION?: string
+}
 
 interface ImportMeta {
     readonly env: ImportMetaEnv

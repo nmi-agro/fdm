@@ -16,6 +16,7 @@ if (clientConfig.analytics.sentry) {
     const sentryConfig = clientConfig.analytics.sentry
     Sentry.init({
         dsn: sentryConfig.dsn,
+        release: import.meta.env.PUBLIC_APP_VERSION,
         environment: import.meta.env.NODE_ENV,
         integrations: [
             Sentry.reactRouterTracingIntegration(),

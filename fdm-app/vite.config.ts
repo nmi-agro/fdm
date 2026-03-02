@@ -63,6 +63,11 @@ export default defineConfig((env) => {
                     env,
                 ),
         ].filter(Boolean),
+        define: {
+            "import.meta.env.PUBLIC_APP_VERSION": JSON.stringify(
+                process.env.npm_package_version,
+            ),
+        },
         envPrefix: "PUBLIC_",
         ssr: {
             noExternal: [
