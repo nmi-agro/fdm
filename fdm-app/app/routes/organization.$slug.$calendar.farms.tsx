@@ -55,7 +55,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         const allFarms: FarmExtended[] = await Promise.all(
             farms.map(async (farm) => {
                 const myOrganization = organization
-                async function getOwner() {
+                async function getOwners() {
                     const accessors = (
                         await listPrincipalsForFarm(
                             fdm,
@@ -64,13 +64,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
                         )
                     ).filter((accessor) => accessor.type === "user")
 
-                    return (
-                        accessors.find(
-                            (accessor) => accessor.role === "owner",
-                        ) ??
-                        accessors.find(
-                            (accessor) => accessor.role === "advisor",
-                        )
+                    return accessors.filter(
+                        (accessor) => accessor.role === "owner",
                     )
                 }
 
@@ -206,14 +201,14 @@ export async function loader({ params, request }: Route.LoaderArgs) {
                     }
                 }
 
-                const ownerPromise = getOwner()
+                const ownersPromise = getOwners()
                 const reduceFieldsPromise = reduceFields()
 
                 return {
                     type: "farm",
                     b_id_farm: farm.b_id_farm,
                     b_name_farm: farm.b_name_farm,
-                    owner: await ownerPromise,
+                    owners: await ownersPromise,
                     ...(await reduceFieldsPromise),
                 }
             }),

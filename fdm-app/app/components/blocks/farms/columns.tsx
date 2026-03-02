@@ -12,20 +12,16 @@ import { NavLink, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
+import { type DisplayUser, UserDisplay } from "./user-display"
 
 export interface FarmExtended {
     type: "farm" | "field"
     b_id_farm: string
     b_name_farm: string | null
     b_area: number | null
-    owner?: {
-        displayUserName: string | null
-        image: string | null
-        initials: string | null
-    } | null
+    owners?: DisplayUser[]
     fields?: FarmExtended[]
     fertilizers: Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type">[]
     cultivations: Pick<
@@ -82,33 +78,18 @@ export const columns: ColumnDef<FarmExtended>[] = [
         header: ({ column }) => {
             return <DataTableColumnHeader column={column} title="Eigenaar" />
         },
-        cell: ({ row }) => {
-            const owner = row.original.owner
-            if (row.original.type !== "farm") return
-            return (
-                <div className="flex flex-row items-center text-muted-foreground gap-2">
-                    {owner ? (
-                        <>
-                            <Avatar className="h-6 w-6 rounded-lg">
-                                <AvatarImage
-                                    src={owner.image ?? undefined}
-                                    alt={owner.displayUserName ?? undefined}
-                                />
-                                <AvatarFallback>
-                                    {owner.initials}
-                                </AvatarFallback>
-                            </Avatar>
-                            {owner.displayUserName}
-                        </>
-                    ) : (
+        cell: ({ row }) =>
+            row.original.type === "farm" && (
+                <UserDisplay
+                    users={row.original.owners}
+                    fallback={
                         <>
                             <div className="h-6 w-6 invisible" />
                             Onbekend
                         </>
-                    )}
-                </div>
-            )
-        },
+                    }
+                />
+            ),
     },
     {
         accessorKey: "cultivations",
