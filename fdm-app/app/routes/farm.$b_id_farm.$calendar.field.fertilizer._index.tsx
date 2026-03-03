@@ -324,7 +324,8 @@ export default function FarmFieldFertilizerAddIndex() {
         loaderData.selectedFields.map((f) => f.b_id!),
     )
 
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting =
+        navigation.state !== "idle" && Boolean(navigation.formData)
 
     const handleSelectionChange = () => {
         const newSearchParams = new URLSearchParams(searchParams)

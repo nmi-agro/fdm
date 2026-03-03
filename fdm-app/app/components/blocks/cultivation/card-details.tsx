@@ -82,11 +82,11 @@ export function CultivationDetailsCard({
                             onClick={handleDeleteCultivation}
                             disabled={
                                 form.formState.isSubmitting ||
-                                fetcher.state === "submitting"
+                                fetcher.state !== "idle"
                             }
                         >
                             {form.formState.isSubmitting ||
-                            fetcher.state === "submitting" ? (
+                            fetcher.state !== "idle" ? (
                                 <div className="flex items-center space-x-2">
                                     <Spinner />
                                 </div>
@@ -103,7 +103,7 @@ export function CultivationDetailsCard({
                             disabled={
                                 !editable ||
                                 form.formState.isSubmitting ||
-                                fetcher.state === "submitting"
+                                fetcher.state !== "idle"
                             }
                             className="space-y-4"
                         >
@@ -141,8 +141,7 @@ export function CultivationDetailsCard({
                                                         !editable ||
                                                         form.formState
                                                             .isSubmitting ||
-                                                        fetcher.state ===
-                                                            "submitting"
+                                                        fetcher.state !== "idle"
                                                     }
                                                 />
                                             </FormControl>
@@ -214,11 +213,11 @@ export function CultivationDetailsCard({
                                     type="submit"
                                     disabled={
                                         form.formState.isSubmitting ||
-                                        fetcher.state === "submitting"
+                                        fetcher.state !== "idle"
                                     }
                                 >
                                     {form.formState.isSubmitting ||
-                                    fetcher.state === "submitting" ? (
+                                    fetcher.state !== "idle" ? (
                                         <div className="flex items-center space-x-2">
                                             <Spinner /> <p>Bijwerken...</p>
                                         </div>

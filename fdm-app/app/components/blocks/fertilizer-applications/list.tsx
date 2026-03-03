@@ -3,7 +3,6 @@ import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Circle, Diamond, Square, Trash, Triangle } from "lucide-react"
-import { useFetcher } from "react-router"
 import { Button } from "~/components/ui/button"
 import {
     Empty,
@@ -36,6 +35,7 @@ export function FertilizerApplicationsList({
     canModifyFertilizerApplication = {},
     handleDelete,
     handleEdit,
+    isBusy,
 }: {
     fertilizerApplications: FertilizerApplication[]
     applicationMethodOptions: {
@@ -46,9 +46,8 @@ export function FertilizerApplicationsList({
     canModifyFertilizerApplication?: Record<string, boolean>
     handleDelete: (p_app_id: string | string[]) => void
     handleEdit: (fertilizerApplication: FertilizerApplication) => () => void
+    isBusy: boolean
 }) {
-    const fetcher = useFetcher()
-
     return (
         <div className="space-y-4">
             {fertilizerApplications.length > 0 ? (
@@ -88,11 +87,7 @@ export function FertilizerApplicationsList({
                                             <Button
                                                 variant="link"
                                                 className="p-0 mt-0"
-                                                disabled={
-                                                    !editable ||
-                                                    fetcher.state ===
-                                                        "submitting"
-                                                }
+                                                disabled={!editable || isBusy}
                                                 onClick={handleEdit(
                                                     application,
                                                 )}
@@ -136,10 +131,7 @@ export function FertilizerApplicationsList({
                                                     <Button
                                                         variant="destructive"
                                                         size="icon"
-                                                        disabled={
-                                                            fetcher.state ===
-                                                            "submitting"
-                                                        }
+                                                        disabled={isBusy}
                                                         onClick={() => {
                                                             if (
                                                                 application.p_app_ids
@@ -154,8 +146,7 @@ export function FertilizerApplicationsList({
                                                             }
                                                         }}
                                                     >
-                                                        {fetcher.state ===
-                                                        "submitting" ? (
+                                                        {isBusy ? (
                                                             <Spinner />
                                                         ) : (
                                                             <Trash className="size-4" />

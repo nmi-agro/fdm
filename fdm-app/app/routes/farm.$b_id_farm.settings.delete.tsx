@@ -99,7 +99,7 @@ export default function FarmSettingsDeleteBlock() {
 
     const navigation = useNavigation()
     const isSubmitting =
-        navigation.state === "submitting" &&
+        navigation.state !== "idle" &&
         navigation.formMethod?.toLowerCase() === "delete"
     return (
         <div className="space-y-6">

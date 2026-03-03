@@ -83,14 +83,15 @@ export function handleLoaderError(error: unknown) {
 
     // Permission denied error
     if (
-        error instanceof Error &&
-        error.message ===
-            "Principal does not have permission to perform this action"
+        containsErrorMessage(
+            error,
+            "Principal does not have permission to perform this action",
+        )
     ) {
         console.warn("Permission denied: ", error)
         return data(
             {
-                warning: error.message,
+                warning: error instanceof Error ? error.message : error,
             },
             {
                 status: 403,
@@ -245,9 +246,10 @@ export function handleActionError(error: unknown) {
 
     // Permission denied error
     if (
-        error instanceof Error &&
-        error.message ===
-            "Principal does not have permission to perform this action"
+        containsErrorMessage(
+            error,
+            "Principal does not have permission to perform this action",
+        )
     ) {
         console.warn("Permission denied: ", error)
         return dataWithWarning(
