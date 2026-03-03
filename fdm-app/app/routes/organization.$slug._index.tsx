@@ -293,7 +293,7 @@ export default function AppIndex() {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <h2 className="text-2xl font-semibold tracking-tight">
-                                        Overzicht
+                                        Beschrijving
                                     </h2>
                                     <Button asChild variant="default">
                                         <NavLink to="./settings">
@@ -302,6 +302,11 @@ export default function AppIndex() {
                                                 : "Organisatie gegevens"}
                                         </NavLink>
                                     </Button>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-2xl font-semibold tracking-tight">
+                                        Overzicht
+                                    </h2>
                                 </div>
                                 <Card>
                                     <CardContent className="pt-6 space-y-4">

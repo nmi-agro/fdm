@@ -80,7 +80,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 export default function OrganizationSettingsBlock() {
     const loaderData = useLoaderData<typeof loader>()
     return (
-        <main className="container">
+        <main>
             <FarmTitle
                 title={"Organisatie instellingen"}
                 description={"Werk de gegevens bij van deze organisatie."}

@@ -21,16 +21,10 @@ import {
     DialogTrigger,
 } from "~/components/ui/dialog"
 import { Field } from "~/components/ui/field"
+import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
 
 type Props = {
     invitation: Awaited<ReturnType<typeof auth.api.listUserInvitations>>[number]
-}
-
-function getRoleLabel(role: string): string {
-    if (role === "owner") return "Eigenaar"
-    if (role === "admin") return "Beheerder"
-    if (role === "member") return "Lid"
-    return "Lid"
 }
 
 export function PendingOrganizationInvitationCard({ invitation }: Props) {
@@ -49,15 +43,16 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                             {organizationLabel}
                         </CardTitle>
                         <CardDescription className="text-xs">
-                            Rol: {getRoleLabel(invitation.role)}
+                            Rol: {getOrganizationRoleLabel(invitation.role)}
                         </CardDescription>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="grow py-2 text-sm text-muted-foreground">
                 Je hebt een uitnodiging ontvangen voor toegang tot organisatie{" "}
-                {organizationLabel} als {getRoleLabel(invitation.role)}. Je kunt
-                deze uitnodiging accepteren of weigeren.
+                {organizationLabel} als{" "}
+                {getOrganizationRoleLabel(invitation.role)}. Je kunt deze
+                uitnodiging accepteren of weigeren.
             </CardContent>
             <CardFooter className="flex gap-2 pt-2">
                 <Form method="post" className="flex-1">

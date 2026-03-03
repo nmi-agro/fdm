@@ -25,6 +25,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/organization.invitations.$invitation_id.respond"
+import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
@@ -114,11 +115,7 @@ export default function Respond() {
                     <p className="my-1">
                         Je bent uitgenodigd als{" "}
                         <i className="font-semibold">
-                            {{
-                                owner: "Eigenaar",
-                                admin: "Beheerder",
-                                member: "Lid",
-                            }[invitation.role] ?? "Lid"}
+                            {getOrganizationRoleLabel(invitation.role)}
                         </i>
                     </p>
                     <p className="my-1">

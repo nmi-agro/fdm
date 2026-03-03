@@ -41,6 +41,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.members"
+import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
@@ -131,7 +132,7 @@ export default function OrganizationIndex() {
     const permissions = organization.permissions
 
     return (
-        <main className="container">
+        <main>
             <FarmTitle
                 title={`Leden van ${organization.name}`}
                 description="Beheer de leden met toegang tot deze organisatie."
@@ -246,7 +247,7 @@ const MemberRow = ({
                     </p>
                     {!permissions.canUpdateRoleUser ? (
                         <p className="text-sm text-muted-foreground">
-                            {member.role}
+                            {getOrganizationRoleLabel(member.role)}
                         </p>
                     ) : null}
                 </div>
@@ -341,7 +342,7 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
                         {invitation.email}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                        {invitation.role}
+                        {getOrganizationRoleLabel(invitation.role)}
                     </p>
                 </div>
             </div>

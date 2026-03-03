@@ -8,7 +8,10 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import type { ParseOrganizationMetadataResult } from "~/lib/organization-helpers"
+import {
+    getOrganizationRoleLabel,
+    type ParseOrganizationMetadataResult,
+} from "~/lib/organization-helpers"
 
 type OrganizationRole = "owner" | "admin" | "member"
 export interface OrganizationWithRoles {
@@ -46,11 +49,7 @@ export function OrganizationCard({
                                             variant="secondary"
                                             className="text-[10px] uppercase tracking-wider"
                                         >
-                                            {{
-                                                owner: "Eigenaar",
-                                                admin: "Beheerder",
-                                                member: "Lid",
-                                            }[role] ?? "Lid"}
+                                            {getOrganizationRoleLabel(role)}
                                         </Badge>
                                     ))}
                                 </div>

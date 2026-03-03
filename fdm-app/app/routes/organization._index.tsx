@@ -11,13 +11,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import {
-    Empty,
-    EmptyContent,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyTitle,
-} from "~/components/ui/empty"
+import { Empty, EmptyContent, EmptyHeader } from "~/components/ui/empty"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -92,63 +86,85 @@ export default function OrganizationsIndex() {
                     label: "Organisatie aanmaken",
                 }}
             />
-            {organizations.length === 0 ? (
-                <Empty className="border-none">
+            {organizations.length > 0 || invitations.length > 0 ? (
+                <div className="space-y-10">
+                    {invitations.length > 0 && (
+                        <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                            {invitations.map((invitation) => (
+                                <PendingOrganizationInvitationCard
+                                    key={invitation.id}
+                                    invitation={invitation}
+                                />
+                            ))}
+                            {organizations.length === 0 && (
+                                <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
+                                    <NavLink
+                                        to="/organization/new"
+                                        className="flex h-full flex-col"
+                                    >
+                                        <CardHeader className="grow items-center justify-center text-center">
+                                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                                <Plus className="h-6 w-6" />
+                                            </div>
+                                            <CardTitle>
+                                                Nieuwe organisatie
+                                            </CardTitle>
+                                            <CardDescription>
+                                                Voeg een extra organisatie toe
+                                                aan uw account.
+                                            </CardDescription>
+                                        </CardHeader>
+                                    </NavLink>
+                                </Card>
+                            )}
+                        </div>
+                    )}
+                    {organizations.length > 0 && (
+                        <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                            {organizations.map((organization) => (
+                                <OrganizationCard
+                                    key={organization.id}
+                                    organization={organization}
+                                />
+                            ))}
+                            <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
+                                <NavLink
+                                    to="/organization/new"
+                                    className="flex h-full flex-col"
+                                >
+                                    <CardHeader className="grow items-center justify-center text-center">
+                                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                            <Plus className="h-6 w-6" />
+                                        </div>
+                                        <CardTitle>
+                                            Nieuwe organisatie
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Voeg een extra organisatie toe aan
+                                            uw account.
+                                        </CardDescription>
+                                    </CardHeader>
+                                </NavLink>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <Empty>
                     <EmptyHeader>
-                        <EmptyTitle>
-                            Je bent nog geen lid van een organisatie
-                        </EmptyTitle>
-                        <EmptyDescription>
-                            Vraag bij je contactpersoon om een uitnodiging of
-                            maak zelf een organisatie aan.
-                        </EmptyDescription>
+                        Het lijkt erop dat je nog geen organisatie hebt.
                     </EmptyHeader>
                     <EmptyContent>
                         <Button asChild>
-                            <NavLink to={"/organization/new"}>
-                                Maak een organisatie aan
+                            <NavLink to="/organization/new">
+                                Maak een organisatie
                             </NavLink>
                         </Button>
+                        <p className="text-center text-sm text-muted-foreground">
+                            of kunt u organisaties vragen om u uit te nodigen.
+                        </p>
                     </EmptyContent>
                 </Empty>
-            ) : (
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-3 p-6">
-                    {organizations.map((org) => (
-                        <OrganizationCard key={org.id} organization={org} />
-                    ))}
-                    <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
-                        <NavLink
-                            to="/organization/new"
-                            className="flex h-full flex-col"
-                        >
-                            <CardHeader className="grow items-center justify-center text-center">
-                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                                    <Plus className="h-6 w-6" />
-                                </div>
-                                <CardTitle>Nieuwe organisatie</CardTitle>
-                                <CardDescription>
-                                    Voeg een extra organisatie toe aan uw
-                                    account.
-                                </CardDescription>
-                            </CardHeader>
-                        </NavLink>
-                    </Card>
-                </div>
-            )}
-            {invitations.length > 0 && (
-                <div className="w-full p-6 space-y-4">
-                    <h2 className="text-xl font-semibold">
-                        Openstaande uitnodigingen
-                    </h2>
-                    <div className="grid w-full gap-4 sm:grid-cols-2">
-                        {invitations.map((invitation) => (
-                            <PendingOrganizationInvitationCard
-                                key={invitation.id}
-                                invitation={invitation}
-                            />
-                        ))}
-                    </div>
-                </div>
             )}
         </main>
     )

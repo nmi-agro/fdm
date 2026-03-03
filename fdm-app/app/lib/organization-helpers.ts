@@ -37,3 +37,12 @@ export function parseOrganizationMetadata(organization: Organization): {
         }
     }
 }
+
+export function getOrganizationRoleLabel(role: string) {
+    const map: Record<string, string> = {
+        owner: "Eigenaar",
+        admin: "Beheerder",
+        member: "Lid",
+    }
+    return map[role] ?? map.member
+}

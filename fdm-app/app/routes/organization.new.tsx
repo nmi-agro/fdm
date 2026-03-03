@@ -28,7 +28,7 @@ export async function loader() {
 
 export default function AddOrganizationPage() {
     return (
-        <main className="container">
+        <main>
             <FarmTitle
                 title={"Organisatie aanmaken"}
                 description={
