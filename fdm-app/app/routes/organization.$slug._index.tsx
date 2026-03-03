@@ -180,6 +180,7 @@ export default function AppIndex() {
     const setCalendar = useCalendarStore((store) => store.setCalendar)
     const years = getCalendarSelection()
 
+    const description = loaderData.organization.metadata.data?.description
     return (
         <SidebarInset>
             <main>
@@ -324,10 +325,10 @@ export default function AppIndex() {
                                     <Expandable>
                                         <CardHeader>
                                             <ExpandableContent className="whitespace-pre-line">
-                                                {loaderData.organization
-                                                    .metadata.data
-                                                    ?.description ??
-                                                    "Geen beschrijving"}
+                                                {description &&
+                                                description.length > 0
+                                                    ? description
+                                                    : "Geen beschrijving"}
                                             </ExpandableContent>
                                         </CardHeader>
                                         <CardFooter>
