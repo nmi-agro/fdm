@@ -307,6 +307,17 @@ export default function AppIndex() {
                                     <h2 className="text-2xl font-semibold tracking-tight">
                                         Overzicht
                                     </h2>
+                                    <Button asChild variant="outline">
+                                        <NavLink
+                                            to="./settings"
+                                            className={cn(
+                                                !loaderData.canModify &&
+                                                    "invisible",
+                                            )}
+                                        >
+                                            Instellingen
+                                        </NavLink>
+                                    </Button>
                                 </div>
                                 <Card>
                                     <CardContent className="pt-6 space-y-4">
