@@ -18,9 +18,11 @@ export function NavigationProgress() {
     // Show after 300ms — emit a count metric when it appears
     useEffect(() => {
         if (state !== "idle") {
+            if (startTimeRef.current === null) {
+                startTimeRef.current = Date.now()
+            }
             const timer = setTimeout(() => {
                 setShow(true)
-                startTimeRef.current = Date.now()
                 if (clientConfig.analytics.sentry) {
                     Sentry.metrics.count("navigation_progress.shown", 1)
                 }
@@ -37,10 +39,10 @@ export function NavigationProgress() {
                     duration,
                 )
             }
-            startTimeRef.current = null
         }
         setShow(false)
-    }, [state, show])
+        startTimeRef.current = null
+    }, [state])
 
     return (
         <AnimatePresence>
@@ -63,7 +65,11 @@ export function NavigationProgress() {
                         initial={{ opacity: 0, scale: 0.92, y: "-48%" }}
                         animate={{ opacity: 1, scale: 1, y: "-50%" }}
                         exit={{ opacity: 0, scale: 0.96, y: "-48%" }}
-                        transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 420,
+                            damping: 28,
+                        }}
                     >
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         <p className="text-sm text-muted-foreground">
