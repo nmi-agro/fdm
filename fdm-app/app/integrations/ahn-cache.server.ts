@@ -11,7 +11,6 @@ export async function getAhnIndex(): Promise<FeatureCollection> {
     }
 
     try {
-        console.log("Fetching AHN index from PDOK...")
         const response = await fetch(
             "https://service.pdok.nl/rws/ahn/atom/downloads/dtm_05m/kaartbladindex.json",
             { signal: AbortSignal.timeout(30000) }, // 30 second timeout

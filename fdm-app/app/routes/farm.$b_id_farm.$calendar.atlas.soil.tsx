@@ -184,7 +184,7 @@ export default function FarmAtlasSoilBlock() {
     }, [])
 
     const fetchBodemData = useCallback(
-        async (first_soilcode: string | undefined) => {
+        async (first_soilcode: string | undefined, signal?: AbortSignal) => {
             const placeholderData = {
                 omschrijving: "geen informatie beschikbaar",
             }
@@ -213,6 +213,7 @@ export default function FarmAtlasSoilBlock() {
                 }
                 const response: BodemResponse = await fetch(
                     `/farm/undefined/all/atlas/soil/bodemdata/${encodeURIComponent(first_soilcode)}`,
+                    { signal },
                 ).then((r) => r.json())
                 if (response.success && response.data) {
                     // If Bodemdata has data, cache it by adding to the end of the cache list
@@ -247,6 +248,7 @@ export default function FarmAtlasSoilBlock() {
                     omschrijving: `Error: ${(response as any).error ?? "onbekende error"}`,
                 }
             } catch (e) {
+                if ((e as Error).name === "AbortError") throw e
                 console.error(e)
                 return {
                     omschrijving: `Error: ${(e as any)?.message ?? "onbekende error"}`,
@@ -256,9 +258,27 @@ export default function FarmAtlasSoilBlock() {
         [cachedBodemData],
     )
 
+    const abortControllerRef = useRef<AbortController | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+            }
+        }
+    }, [])
+
     const onMapClick = useCallback(
         async (event: MapLayerMouseEvent) => {
             if (!showSoil || !mapRef.current) return
+
+            // Cancel previous request
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+            }
+            const abortController = new AbortController()
+            abortControllerRef.current = abortController
+            const signal = abortController.signal
 
             // Clear previous popup/selection
             setPopupInfo(null)
@@ -301,10 +321,9 @@ export default function FarmAtlasSoilBlock() {
             const url = `https://service.pdok.nl/bzk/bro-bodemkaart/wms/v1_0?${params.toString()}`
 
             try {
-                const response = await fetch(url)
+                const response = await fetch(url, { signal })
                 if (response.ok) {
                     const data = (await response.json()) as FeatureCollection
-                    console.log(data)
                     if (data.features && data.features.length > 0) {
                         const feature = data.features[0]
                         const props = feature.properties || {}
@@ -333,6 +352,7 @@ export default function FarmAtlasSoilBlock() {
                         // Get additional data from BodemData
                         const bodemData = await fetchBodemData(
                             props.first_soilcode,
+                            signal,
                         )
                         setPopupInfo((popupInfo) => {
                             if (
@@ -352,7 +372,9 @@ export default function FarmAtlasSoilBlock() {
                     }
                 }
             } catch (e) {
-                console.error("Failed to fetch soil info", e)
+                if ((e as Error).name !== "AbortError") {
+                    console.error("Failed to fetch soil info", e)
+                }
             }
         },
         [fetchBodemData, showSoil],
@@ -361,6 +383,11 @@ export default function FarmAtlasSoilBlock() {
     const onToggleSoil = useCallback(() => {
         setShowSoil((prev) => {
             if (prev) {
+                // Cancel previous request
+                if (abortControllerRef.current) {
+                    abortControllerRef.current.abort()
+                    abortControllerRef.current = null
+                }
                 // Clearing selection when switching off
                 setSelectedSoilFeature(null)
                 setPopupInfo(null)
