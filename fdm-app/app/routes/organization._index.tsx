@@ -77,48 +77,11 @@ export default function OrganizationsIndex() {
     return (
         <main>
             <FarmTitle
-                title={"Mijn organisaties"}
-                description={
-                    "Organisaties stellen je in staat om met anderen samen te werken. Je kunt organisaties aanmaken of lid worden om samen gegevens te beheren."
-                }
-                action={{
-                    to: "/organization/new",
-                    label: "Organisatie aanmaken",
-                }}
+                title="Mijn organisaties"
+                description="Organisaties stellen je in staat om met anderen samen te werken. Je kunt organisaties aanmaken of lid worden om samen gegevens te beheren."
             />
             {organizations.length > 0 || invitations.length > 0 ? (
-                <div className="space-y-10">
-                    {invitations.length > 0 && (
-                        <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
-                            {invitations.map((invitation) => (
-                                <PendingOrganizationInvitationCard
-                                    key={invitation.id}
-                                    invitation={invitation}
-                                />
-                            ))}
-                            {organizations.length === 0 && (
-                                <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
-                                    <NavLink
-                                        to="/organization/new"
-                                        className="flex h-full flex-col"
-                                    >
-                                        <CardHeader className="grow items-center justify-center text-center">
-                                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                                                <Plus className="h-6 w-6" />
-                                            </div>
-                                            <CardTitle>
-                                                Nieuwe organisatie
-                                            </CardTitle>
-                                            <CardDescription>
-                                                Voeg een extra organisatie toe
-                                                aan uw account.
-                                            </CardDescription>
-                                        </CardHeader>
-                                    </NavLink>
-                                </Card>
-                            )}
-                        </div>
-                    )}
+                <>
                     {organizations.length > 0 && (
                         <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
                             {organizations.map((organization) => (
@@ -127,6 +90,7 @@ export default function OrganizationsIndex() {
                                     organization={organization}
                                 />
                             ))}
+
                             <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
                                 <NavLink
                                     to="/organization/new"
@@ -148,23 +112,44 @@ export default function OrganizationsIndex() {
                             </Card>
                         </div>
                     )}
-                </div>
+                    {invitations.length > 0 && (
+                        <>
+                            {organizations.length > 0 && (
+                                <FarmTitle
+                                    title="Openstaande uitnodigingen naar organisaties"
+                                    description="Je hebt uitnodigingen ontvangen voor toegang tot de volgende organisaties."
+                                />
+                            )}
+                            <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                                {invitations.map((invitation) => (
+                                    <PendingOrganizationInvitationCard
+                                        key={invitation.id}
+                                        invitation={invitation}
+                                    />
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </>
             ) : (
-                <Empty>
-                    <EmptyHeader>
-                        Het lijkt erop dat je nog geen organisatie hebt.
-                    </EmptyHeader>
-                    <EmptyContent>
-                        <Button asChild>
-                            <NavLink to="/organization/new">
-                                Maak een organisatie
-                            </NavLink>
-                        </Button>
-                        <p className="text-center text-sm text-muted-foreground">
-                            of kunt u organisaties vragen om u uit te nodigen.
-                        </p>
-                    </EmptyContent>
-                </Empty>
+                <div className="mx-auto flex items-center flex-col justify-center space-y-6 sm:w-87.5">
+                    <Empty>
+                        <EmptyHeader>
+                            Het lijkt erop dat je nog geen organisatie hebt.
+                        </EmptyHeader>
+                        <EmptyContent>
+                            <Button asChild>
+                                <NavLink to="/organization/new">
+                                    Maak een organisatie
+                                </NavLink>
+                            </Button>
+                            <p className="text-center text-sm text-muted-foreground">
+                                of kunt u organisaties vragen om u uit te
+                                nodigen.
+                            </p>
+                        </EmptyContent>
+                    </Empty>
+                </div>
             )}
         </main>
     )

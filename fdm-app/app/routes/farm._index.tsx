@@ -730,7 +730,7 @@ export default function AppIndex() {
                                         to: "/organization",
                                     }}
                                 />
-                                <div className="mx-auto flex items-center flex-col justify-center space-y-6 sm:w-87.5">
+                                <div className="mx-auto flex items-center flex-col justify-center space-y-6 sm:w-87.5 mb-6">
                                     <div className="flex flex-col space-y-2 text-center">
                                         <h1 className="text-2xl font-semibold tracking-tight">
                                             Het lijkt erop dat je nog geen
