@@ -42,7 +42,7 @@ export function NavigationProgress() {
         }
         setShow(false)
         startTimeRef.current = null
-    }, [state])
+    }, [state, show])
 
     return (
         <AnimatePresence>
