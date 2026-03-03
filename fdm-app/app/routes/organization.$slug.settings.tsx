@@ -121,48 +121,37 @@ export async function action({ params, request }: Route.ActionArgs) {
 
         // Check if slug is available
         if (currentOrganization.slug !== slug) {
-            try {
-                await auth.api.checkOrganizationSlug({
-                    headers: request.headers,
-                    body: {
-                        slug: slug,
-                    },
-                })
-            } catch (e) {
-                if (
-                    e &&
-                    (e as { body?: { code?: string } }).body?.code ===
-                        "SLUG_IS_TAKEN"
-                ) {
-                    return dataWithError(
-                        null,
-                        "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
-                    )
-                }
-
-                throw e
-            }
-        }
-
-        // Update the organization
-        await auth.api.updateOrganization({
-            headers: request.headers,
-            body: {
-                organizationId: currentOrganization.id,
-                data: {
-                    name,
-                    slug,
-                    metadata: {
-                        description,
+            // Update the organization
+            await auth.api.updateOrganization({
+                headers: request.headers,
+                body: {
+                    organizationId: currentOrganization.id,
+                    data: {
+                        name,
+                        slug,
+                        metadata: {
+                            description,
+                        },
                     },
                 },
-            },
-        })
+            })
+        }
 
         return redirectWithSuccess(`/organization/${slug}`, {
             message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
         })
     } catch (error) {
+        if (
+            error &&
+            (error as { body?: { code?: string } }).body?.code ===
+                "ORGANIZATION_SLUG_ALREADY_TAKEN"
+        ) {
+            return dataWithError(
+                null,
+                "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
+            )
+        }
+
         throw handleActionError(error)
     }
 }

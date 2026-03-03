@@ -50,13 +50,14 @@ export function OrganizationSettingsForm({
     }
 
     // Reset the form when the organization changes
+    // biome-ignore lint/correctness/useExhaustiveDependencies: organization.slug is the key
     useEffect(() => {
         form.reset({
             name: organization?.name,
             slug: organization?.slug,
             description: organization?.metadata?.data?.description,
         })
-    }, [organization, form.reset])
+    }, [form.reset, organization?.slug])
 
     // Update slug when name changes
     const organizationName = form.getValues("name")
@@ -117,7 +118,7 @@ export function OrganizationSettingsForm({
                                         <Input
                                             {...field}
                                             type="text"
-                                            required
+                                            disabled
                                         />
                                         {fieldState.invalid && (
                                             <FieldError

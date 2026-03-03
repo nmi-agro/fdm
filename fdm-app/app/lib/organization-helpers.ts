@@ -22,8 +22,9 @@ export function parseOrganizationMetadata(organization: Organization): {
     data?: OrganizationMetadata
     error?: Error
 } {
+    if (!organization.metadata) return { data: {} }
     try {
-        let parsedMetadata = JSON.parse(organization.metadata)
+        const parsedMetadata = JSON.parse(organization.metadata)
         try {
             parsedMetadata.description = JSON.parse(
                 `"${parsedMetadata.description}"`,

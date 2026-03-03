@@ -67,7 +67,7 @@ export function ExpandableTrigger(props: ExpandableTriggerProps) {
             )}
             onClick={() => setExpanded((prev) => !prev)}
         >
-            {expanded ? "Toon minder" : "Lees werder"}
+            {expanded ? "Toon minder" : "Lees verder"}
         </Button>
     )
 }
@@ -77,6 +77,14 @@ type ExpandableContentProps = HTMLAttributes<HTMLDivElement> & {
     expandedClassName?: string
 }
 export function ExpandableContent(props: ExpandableContentProps) {
+    const {
+        collapsedClassName,
+        expandedClassName,
+        className,
+        children,
+        ...restProps
+    } = props
+
     const { expanded, setIsOverflowing } = useContext(ctx)
     const [isAnimating, setIsAnimating] = useState(true)
     const textRef = useRef<HTMLDivElement>(null)
@@ -102,21 +110,21 @@ export function ExpandableContent(props: ExpandableContentProps) {
         setIsOverflowing(scroll > collapsed + 1)
 
         el.classList.remove("line-clamp-3")
-    }, [props.children])
+    }, [children])
 
     const ellipsis = !expanded && !isAnimating
-    const className = cn(
+    const computedClassName = cn(
         ellipsis ? "overflow-ellipsis line-clamp-3" : "overflow-clip",
-        props.className,
-        expanded ? props.expandedClassName : props.collapsedClassName,
+        className,
+        expanded ? expandedClassName : collapsedClassName,
     )
 
     // If height isn't measured yet show the collapsed variant
     if (fullHeight === null) {
         return (
             <div className="w-full">
-                <div ref={textRef} className={className}>
-                    {props.children}
+                <div ref={textRef} className={computedClassName}>
+                    {children}
                 </div>
             </div>
         )
@@ -137,7 +145,9 @@ export function ExpandableContent(props: ExpandableContentProps) {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
         >
-            <div {...props} ref={textRef} className={className} />
+            <div {...restProps} ref={textRef} className={computedClassName}>
+                {children}
+            </div>
         </motion.div>
     )
 }

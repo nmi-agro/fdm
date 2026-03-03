@@ -220,18 +220,20 @@ type MemberWithUser = Member & {
     }
 }
 
+type OrganizationMemberPermissions = {
+    canEdit: boolean
+    canDelete: boolean
+    canInvite: boolean
+    canUpdateRoleUser: boolean
+    canRemoveUser: boolean
+}
+
 const MemberRow = ({
     member,
     permissions,
 }: {
     member: MemberWithUser
-    permissions: {
-        canEdit: boolean
-        canDelete: boolean
-        canInvite: boolean
-        canUpdateRoleUser: boolean
-        canRemoveUser: boolean
-    }
+    permissions: OrganizationMemberPermissions
 }) => {
     const initials = (member.user.name || "?").charAt(0).toUpperCase()
     return (
@@ -264,13 +266,7 @@ const MemberAction = ({
     permissions,
 }: {
     member: MemberWithUser
-    permissions: {
-        canEdit: boolean
-        canDelete: boolean
-        canInvite: boolean
-        canUpdateRoleUser: boolean
-        canRemoveUser: boolean
-    }
+    permissions: OrganizationMemberPermissions
 }) => {
     const fetcher = useFetcher()
     const disabled = fetcher.state !== "idle" && Boolean(fetcher.formData)

@@ -250,7 +250,7 @@ export default function AppIndex() {
                                     Bedrijven
                                 </h2>
                                 {loaderData.farms.length > 0 ? (
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         {loaderData.farms.map((farm) => (
                                             <FarmCard
                                                 key={farm.b_id_farm}
@@ -283,7 +283,7 @@ export default function AppIndex() {
                                     <h2 className="text-xl font-semibold">
                                         Openstaande uitnodigingen
                                     </h2>
-                                    <div className="grid w-full gap-4 sm:grid-cols-2">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         {loaderData.pendingInvitations.map(
                                             (invitation) => (
                                                 <PendingInvitationCard
@@ -317,14 +317,14 @@ export default function AppIndex() {
                                         )}
                                     >
                                         <NavLink to="./settings">
-                                            Aanpassen
+                                            Instellingen
                                         </NavLink>
                                     </Button>
                                 </div>
                                 <Card>
                                     <Expandable>
                                         <CardHeader>
-                                            <ExpandableContent className="whitespace-pre-line">
+                                            <ExpandableContent className="whitespace-pre-line text-muted-foreground">
                                                 {description &&
                                                 description.length > 0
                                                     ? description

@@ -65,7 +65,7 @@ export async function action({ request }: Route.ActionArgs) {
                 },
             })
         } catch (e) {
-            if ((e as any).body?.code === "SLUG_IS_TAKEN") {
+            if (e && (e as any).body?.code === "SLUG_IS_TAKEN") {
                 return dataWithError(
                     null,
                     "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
