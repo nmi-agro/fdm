@@ -57,7 +57,7 @@ export function OrganizationSettingsForm({
             slug: organization?.slug,
             description: organization?.metadata?.data?.description,
         })
-    }, [form.reset, organization?.slug])
+    }, [form.reset, !!organization, organization?.slug])
 
     // Update slug when name changes
     const organizationName = form.getValues("name")

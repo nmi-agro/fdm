@@ -56,16 +56,24 @@ export async function action({ request }: Route.ActionArgs) {
         const slug = formValues.slug
         const description = formValues.description || ""
 
-        // Check if slug is available
         try {
-            await auth.api.checkOrganizationSlug({
+            // Create the organization
+            await auth.api.createOrganization({
                 headers: request.headers,
                 body: {
-                    slug: slug,
+                    name,
+                    slug,
+                    metadata: {
+                        description,
+                    },
                 },
             })
+
+            return redirectWithSuccess(`/organization/${formValues.slug}`, {
+                message: `Organisatie ${formValues.name} is aangemaakt! 🎉`,
+            })
         } catch (e) {
-            if (e && (e as any).body?.code === "SLUG_IS_TAKEN") {
+            if (e && (e as any).body?.code === "ORGANIZATION_ALREADY_EXISTS") {
                 return dataWithError(
                     null,
                     "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
@@ -74,22 +82,6 @@ export async function action({ request }: Route.ActionArgs) {
 
             throw e
         }
-
-        // Create the organization
-        await auth.api.createOrganization({
-            headers: request.headers,
-            body: {
-                name,
-                slug,
-                metadata: {
-                    description,
-                },
-            },
-        })
-
-        return redirectWithSuccess(`/organization/${formValues.slug}`, {
-            message: `Organisatie ${formValues.name} is aangemaakt! 🎉`,
-        })
     } catch (error) {
         throw handleActionError(error)
     }
