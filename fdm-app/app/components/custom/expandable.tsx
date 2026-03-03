@@ -8,6 +8,7 @@ import {
     type ReactNode,
     type SetStateAction,
     useContext,
+    useEffect,
     useLayoutEffect,
     useRef,
     useState,
@@ -62,7 +63,7 @@ export function ExpandableTrigger(props: ExpandableTriggerProps) {
         <Button
             variant="link"
             className={cn(
-                "-ms-4 transition-opacity duration-300",
+                "-ms-4 transition-opacity duration-300 text-muted-foreground",
                 !isOverflowing && "opacity-0",
             )}
             onClick={() => setExpanded((prev) => !prev)}
@@ -78,6 +79,7 @@ type ExpandableContentProps = HTMLAttributes<HTMLDivElement> & {
 }
 export function ExpandableContent(props: ExpandableContentProps) {
     const { expanded, setIsOverflowing } = useContext(ctx)
+    const [isAnimating, setIsAnimating] = useState(true)
     const textRef = useRef<HTMLDivElement>(null)
 
     const [collapsedHeight, setCollapsedHeight] = useState<number | null>(null)
@@ -103,9 +105,9 @@ export function ExpandableContent(props: ExpandableContentProps) {
         el.classList.remove("line-clamp-3")
     }, [props.children])
 
+    const ellipsis = !expanded && !isAnimating
     const className = cn(
-        !expanded && "line-clamp-3 overflow-ellipsis",
-        expanded && "overflow-clip",
+        ellipsis ? "overflow-ellipsis line-clamp-3" : "overflow-clip",
         props.className,
         expanded ? props.expandedClassName : props.collapsedClassName,
     )
@@ -128,6 +130,10 @@ export function ExpandableContent(props: ExpandableContentProps) {
                 height: expanded
                     ? (fullHeight ?? "auto")
                     : (collapsedHeight ?? "auto"),
+            }}
+            onAnimationStart={() => setIsAnimating(true)}
+            onAnimationComplete={() => {
+                setIsAnimating(false)
             }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
