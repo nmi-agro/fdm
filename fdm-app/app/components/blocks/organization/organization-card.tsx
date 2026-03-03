@@ -58,10 +58,12 @@ export function OrganizationCard({
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="grow text-sm line-clamp-3 whitespace-pre-line overflow-ellipsis">
-                    {description && description.length > 0
-                        ? description
-                        : "Geen beschrijving"}
+                <CardContent className="overflow-hidden">
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                        {description && description.length > 0
+                            ? description
+                            : "Geen beschrijving"}
+                    </p>
                 </CardContent>
                 <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
                     <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
