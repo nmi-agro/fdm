@@ -1,4 +1,6 @@
-import { Bell, Check, X } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+import { nl } from "date-fns/locale"
+import { Bell, Check, Clock, X } from "lucide-react"
 import { Form } from "react-router"
 import type { auth } from "@/app/lib/auth.server"
 import { Button } from "~/components/ui/button"
@@ -30,6 +32,10 @@ type Props = {
 export function PendingOrganizationInvitationCard({ invitation }: Props) {
     const organizationLabel =
         invitation.organizationName ?? invitation.organizationId
+    const expiresText = formatDistanceToNow(invitation.expiresAt, {
+        addSuffix: true,
+        locale: nl,
+    })
 
     return (
         <Card className="flex flex-col">
@@ -53,6 +59,10 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                 {organizationLabel} als{" "}
                 {getOrganizationRoleLabel(invitation.role)}. Je kunt deze
                 uitnodiging accepteren of weigeren.
+                <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground/80">
+                    <Clock className="h-3 w-3" />
+                    <span>Verloopt {expiresText}</span>
+                </div>
             </CardContent>
             <CardFooter className="flex gap-2 pt-2">
                 <Form method="post" className="flex-1">

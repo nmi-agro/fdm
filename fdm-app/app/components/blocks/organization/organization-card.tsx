@@ -26,6 +26,7 @@ export function OrganizationCard({
 }: {
     organization: OrganizationWithRoles
 }) {
+    const description = organization.metadata?.data?.description
     return (
         <Card className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md">
             <NavLink
@@ -57,12 +58,10 @@ export function OrganizationCard({
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="grow py-4">
-                    <p className="grid gap-2 text-sm text-left">
-                        {organization.metadata?.data?.description ??
-                            organization.metadata?.error?.message ??
-                            "Geen info"}
-                    </p>
+                <CardContent className="grow text-sm line-clamp-3 whitespace-pre-line overflow-ellipsis">
+                    {description && description.length > 0
+                        ? description
+                        : "Geen beschrijving"}
                 </CardContent>
                 <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
                     <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
