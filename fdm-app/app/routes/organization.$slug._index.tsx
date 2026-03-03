@@ -43,6 +43,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
+import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
@@ -321,70 +322,74 @@ export default function AppIndex() {
                                 </div>
                                 <Card>
                                     <CardContent className="pt-6 space-y-4">
-                                        <dl className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <dt className="text-muted-foreground">
-                                                    Aantal bedrijven
-                                                </dt>
-                                                <dd className="font-semibold">
+                                        {/* tiles */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Bedrijven
+                                                </p>
+                                                <p className="text-2xl font-bold">
                                                     {loaderData.farms.length}
-                                                </dd>
+                                                </p>
                                             </div>
-                                            <div className="flex items-center justify-between">
-                                                <dt className="text-muted-foreground">
-                                                    Totale oppervlakte
-                                                </dt>
-                                                <dd className="font-semibold">
+                                            <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Oppervlakte
+                                                </p>
+                                                <p className="text-2xl font-bold">
                                                     {Math.round(
                                                         loaderData.totalArea *
                                                             10,
-                                                    ) / 10}{" "}
-                                                    ha
-                                                </dd>
+                                                    ) / 10}
+                                                    <span className="text-sm font-normal text-muted-foreground ml-1">
+                                                        ha
+                                                    </span>
+                                                </p>
                                             </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-muted-foreground">
-                                                    Jaar
-                                                </span>
-                                                <Select
-                                                    value={calendar}
-                                                    onValueChange={(value) =>
-                                                        setCalendar(value)
-                                                    }
-                                                >
-                                                    <SelectTrigger className="w-45">
-                                                        <SelectValue placeholder="Selecteer een jaar" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {years.map((year) => (
-                                                            <SelectItem
-                                                                key={year}
-                                                                value={year}
-                                                            >
-                                                                {year}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <dt className="text-muted-foreground">
-                                                    Beschrijving
-                                                </dt>
-                                                <dd>
-                                                    <Expandable>
-                                                        <ExpandableContent className="whitespace-pre-line">
-                                                            {description &&
-                                                            description.length >
-                                                                0
-                                                                ? description
-                                                                : "Geen beschrijving"}
-                                                        </ExpandableContent>
-                                                        <ExpandableTrigger />
-                                                    </Expandable>
-                                                </dd>
-                                            </div>
-                                        </dl>
+                                        </div>
+                                        <Separator />
+                                        {/* Year selector */}
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm text-muted-foreground">
+                                                Jaar
+                                            </p>
+                                            <Select
+                                                value={calendar}
+                                                onValueChange={(value) =>
+                                                    setCalendar(value)
+                                                }
+                                            >
+                                                <SelectTrigger className="w-40">
+                                                    <SelectValue placeholder="Selecteer een jaar" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {years.map((year) => (
+                                                        <SelectItem
+                                                            key={year}
+                                                            value={year}
+                                                        >
+                                                            {year}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Separator />
+                                        {/* Description */}
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-muted-foreground">
+                                                Beschrijving
+                                            </p>
+                                            <Expandable>
+                                                <ExpandableContent className="whitespace-pre-line text-sm">
+                                                    {description &&
+                                                    description.length > 0
+                                                        ? description
+                                                        : "Geen beschrijving"}
+                                                </ExpandableContent>
+                                                <ExpandableTrigger />
+                                            </Expandable>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
