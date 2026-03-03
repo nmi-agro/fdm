@@ -42,6 +42,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
@@ -52,7 +53,6 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
-import { Separator } from "~/components/ui/separator"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -653,53 +653,17 @@ export default function AppIndex() {
                                 </NavLink>
                             </Card>
                         </div>
-                        <FarmTitle
-                            title="Organisaties"
-                            description="Werk samen met andere gebruikers op bedrijven in een gemakkelijke manier."
-                            action={{
-                                label: "Naar organisaties",
-                                to: "/organization",
-                            }}
-                        />
                         {loaderData.organizations.length > 0 ||
                         loaderData.pendingOrganizationInvitations.length > 0 ? (
-                            <div className="space-y-10">
-                                {loaderData.pendingOrganizationInvitations
-                                    .length > 0 && (
-                                    <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
-                                        {loaderData.pendingOrganizationInvitations.map(
-                                            (invitation) => (
-                                                <PendingOrganizationInvitationCard
-                                                    key={invitation.id}
-                                                    invitation={invitation}
-                                                />
-                                            ),
-                                        )}
-                                        {loaderData.organizations.length ===
-                                            0 && (
-                                            <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
-                                                <NavLink
-                                                    to="/organization/new"
-                                                    className="flex h-full flex-col"
-                                                >
-                                                    <CardHeader className="grow items-center justify-center text-center">
-                                                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                                                            <Plus className="h-6 w-6" />
-                                                        </div>
-                                                        <CardTitle>
-                                                            Nieuwe organisatie
-                                                        </CardTitle>
-                                                        <CardDescription>
-                                                            Voeg een extra
-                                                            organisatie toe aan
-                                                            uw account.
-                                                        </CardDescription>
-                                                    </CardHeader>
-                                                </NavLink>
-                                            </Card>
-                                        )}
-                                    </div>
-                                )}
+                            <>
+                                <FarmTitle
+                                    title="Organisaties"
+                                    description="Werk samen met andere gebruikers op bedrijven in een gemakkelijke manier."
+                                    action={{
+                                        label: "Naar organisaties",
+                                        to: "/organization",
+                                    }}
+                                />
                                 {loaderData.organizations.length > 0 && (
                                     <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
                                         {loaderData.organizations.map(
@@ -710,6 +674,7 @@ export default function AppIndex() {
                                                 />
                                             ),
                                         )}
+
                                         <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
                                             <NavLink
                                                 to="/organization/new"
@@ -732,29 +697,63 @@ export default function AppIndex() {
                                         </Card>
                                     </div>
                                 )}
-                            </div>
+                                {loaderData.pendingOrganizationInvitations
+                                    .length > 0 && (
+                                    <>
+                                        {loaderData.organizations.length >
+                                            0 && (
+                                            <FarmTitle
+                                                title="Openstaande uitnodigingen naar organisaties"
+                                                description="Je hebt uitnodigingen ontvangen voor toegang tot de volgende organisaties."
+                                            />
+                                        )}
+                                        <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                                            {loaderData.pendingOrganizationInvitations.map(
+                                                (invitation) => (
+                                                    <PendingOrganizationInvitationCard
+                                                        key={invitation.id}
+                                                        invitation={invitation}
+                                                    />
+                                                ),
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </>
                         ) : (
-                            <div className="mx-auto flex items-center flex-col justify-center space-y-6 sm:w-87.5">
-                                <div className="flex flex-col space-y-2 text-center">
-                                    <h1 className="text-2xl font-semibold tracking-tight">
-                                        Het lijkt erop dat je nog geen
-                                        organisatie hebt.
-                                    </h1>
+                            <>
+                                <FarmTitle
+                                    title="Organisaties"
+                                    description="Werk samen met andere gebruikers op bedrijven in een gemakkelijke manier."
+                                    action={{
+                                        label: "Naar organisaties",
+                                        to: "/organization",
+                                    }}
+                                />
+                                <div className="mx-auto flex items-center flex-col justify-center space-y-6 sm:w-87.5">
+                                    <div className="flex flex-col space-y-2 text-center">
+                                        <h1 className="text-2xl font-semibold tracking-tight">
+                                            Het lijkt erop dat je nog geen
+                                            organisatie hebt.
+                                        </h1>
+                                    </div>
+                                    <div className="flex flex-col items-center relative">
+                                        <Button asChild>
+                                            <NavLink to="/organization/new">
+                                                Maak een organisatie
+                                            </NavLink>
+                                        </Button>
+                                    </div>
+                                    <p className="text-center text-sm text-muted-foreground">
+                                        of kunt u organisaties vragen om u uit
+                                        te nodigen.
+                                    </p>
                                 </div>
-                                <div className="flex flex-col items-center relative">
-                                    <Button asChild>
-                                        <NavLink to="/organization/new">
-                                            Maak een organisatie
-                                        </NavLink>
-                                    </Button>
-                                </div>
-                                <p className="text-center text-sm text-muted-foreground">
-                                    of kunt u organisaties vragen om u uit te
-                                    nodigen.
-                                </p>
-                            </div>
+                            </>
                         )}
-                        <Separator className="m-6" />
+                        <div className="p-4 md:px-6">
+                            <Separator />
+                        </div>
                         <SupportNote />
                     </>
                 )}
