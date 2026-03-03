@@ -306,40 +306,6 @@ export default function AppIndex() {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <h2 className="text-2xl font-semibold tracking-tight">
-                                        Beschrijving
-                                    </h2>
-                                    <Button
-                                        asChild
-                                        variant="outline"
-                                        className={cn(
-                                            !loaderData.canModify &&
-                                                "invisible",
-                                        )}
-                                    >
-                                        <NavLink to="./settings">
-                                            Instellingen
-                                        </NavLink>
-                                    </Button>
-                                </div>
-                                <Card>
-                                    <Expandable>
-                                        <CardHeader>
-                                            <ExpandableContent className="whitespace-pre-line text-muted-foreground">
-                                                {description &&
-                                                description.length > 0
-                                                    ? description
-                                                    : "Geen beschrijving"}
-                                            </ExpandableContent>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <ExpandableTrigger />
-                                        </CardFooter>
-                                    </Expandable>
-                                </Card>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <h2 className="text-2xl font-semibold tracking-tight">
                                         Overzicht
                                     </h2>
                                 </div>
@@ -390,6 +356,23 @@ export default function AppIndex() {
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <dt className="text-muted-foreground">
+                                                    Beschrijving
+                                                </dt>
+                                                <dd>
+                                                    <Expandable>
+                                                        <ExpandableContent className="whitespace-pre-line">
+                                                            {description &&
+                                                            description.length >
+                                                                0
+                                                                ? description
+                                                                : "Geen beschrijving"}
+                                                        </ExpandableContent>
+                                                        <ExpandableTrigger />
+                                                    </Expandable>
+                                                </dd>
                                             </div>
                                         </dl>
                                     </CardContent>
