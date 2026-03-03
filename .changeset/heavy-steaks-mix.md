@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-app": patch
 ---
 
-In case the page load takes longer than 300ms log this to Sentry including the total duration to identify potential slow pages
+If a page load takes longer than 300 ms, log the total duration to Sentry to identify potentially slow pages.
