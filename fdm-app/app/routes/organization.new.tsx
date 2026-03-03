@@ -36,7 +36,7 @@ export default function AddOrganizationPage() {
                 }
             />
             <div className="max-w-3xl mx-auto px-4">
-                <OrganizationSettingsForm canModify={true} />
+                <OrganizationSettingsForm method="post" canModify={true} />
             </div>
         </main>
     )

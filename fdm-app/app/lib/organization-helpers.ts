@@ -23,10 +23,14 @@ export function parseOrganizationMetadata(organization: Organization): {
     error?: Error
 } {
     try {
+        let parsedMetadata = JSON.parse(organization.metadata)
+        try {
+            parsedMetadata.description = JSON.parse(
+                `"${parsedMetadata.description}"`,
+            )
+        } catch (_triedAndDidNotWork) {}
         return {
-            data: organization.metadata
-                ? JSON.parse(organization.metadata)
-                : {},
+            data: parsedMetadata,
         }
     } catch (e) {
         return {

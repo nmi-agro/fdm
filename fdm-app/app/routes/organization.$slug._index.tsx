@@ -16,12 +16,18 @@ import {
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
+import {
+    Expandable,
+    ExpandableContent,
+    ExpandableTrigger,
+} from "~/components/custom/expandable"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import {
     Card,
     CardContent,
     CardDescription,
+    CardFooter,
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
@@ -45,6 +51,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 import { useCalendarStore } from "~/store/calendar"
 import type { Route } from "./+types/organization.$slug._index"
@@ -69,15 +76,20 @@ export async function loader({ params, request }: Route.LoaderArgs) {
             headers: request.headers,
         })
 
-        const organization = organizations.find(
+        const rawOrganization = organizations.find(
             (org) => org.slug === params.slug,
         )
 
-        if (!organization) {
+        if (!rawOrganization) {
             throw data("Organisatie niet gevonden.", {
                 status: 404,
                 statusText: "Organisatie niet gevonden.",
             })
+        }
+
+        const organization = {
+            ...rawOrganization,
+            metadata: parseOrganizationMetadata(rawOrganization),
         }
 
         const members = await auth.api.listMembers({
@@ -295,14 +307,36 @@ export default function AppIndex() {
                                     <h2 className="text-2xl font-semibold tracking-tight">
                                         Beschrijving
                                     </h2>
-                                    <Button asChild variant="default">
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        className={cn(
+                                            !loaderData.canModify &&
+                                                "invisible",
+                                        )}
+                                    >
                                         <NavLink to="./settings">
-                                            {loaderData.canModify
-                                                ? "Instellingen"
-                                                : "Organisatie gegevens"}
+                                            Aanpassen
                                         </NavLink>
                                     </Button>
                                 </div>
+                                <Card>
+                                    <Expandable>
+                                        <CardHeader>
+                                            <ExpandableContent className="whitespace-pre-line">
+                                                {loaderData.organization
+                                                    .metadata.data
+                                                    ?.description ??
+                                                    "Geen beschrijving"}
+                                            </ExpandableContent>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <ExpandableTrigger />
+                                        </CardFooter>
+                                    </Expandable>
+                                </Card>
+                            </div>
+                            <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <h2 className="text-2xl font-semibold tracking-tight">
                                         Overzicht
@@ -367,7 +401,7 @@ export default function AppIndex() {
                                     <h2 className="text-2xl font-semibold tracking-tight">
                                         Leden
                                     </h2>
-                                    <Button asChild variant="default">
+                                    <Button asChild variant="outline">
                                         <NavLink
                                             to="./members"
                                             className={cn(
