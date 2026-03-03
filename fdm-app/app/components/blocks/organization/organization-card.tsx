@@ -58,7 +58,7 @@ export function OrganizationCard({
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="overflow-hidden">
+                <CardContent className="grow overflow-hidden">
                     <p className="line-clamp-2 text-xs text-muted-foreground">
                         {description && description.length > 0
                             ? description
