@@ -119,23 +119,20 @@ export async function action({ params, request }: Route.ActionArgs) {
         const slug = formValues.slug
         const description = formValues.description || ""
 
-        // Check if slug is available
-        if (currentOrganization.slug !== slug) {
-            // Update the organization
-            await auth.api.updateOrganization({
-                headers: request.headers,
-                body: {
-                    organizationId: currentOrganization.id,
-                    data: {
-                        name,
-                        slug,
-                        metadata: {
-                            description,
-                        },
+        // Update the organization
+        await auth.api.updateOrganization({
+            headers: request.headers,
+            body: {
+                organizationId: currentOrganization.id,
+                data: {
+                    name,
+                    slug,
+                    metadata: {
+                        description,
                     },
                 },
-            })
-        }
+            },
+        })
 
         return redirectWithSuccess(`/organization/${slug}`, {
             message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
