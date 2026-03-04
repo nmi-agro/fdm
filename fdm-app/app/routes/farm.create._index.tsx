@@ -91,7 +91,7 @@ const FormSchema = z
             .trim()
             .regex(/^\d{8}$/, "KvK-nummer moet uit 8 cijfers bestaan")
             .optional()
-            .or(z.literal("")),
+            .or(z.string().trim().length(0)),
         has_derogation: z.coerce.boolean().default(false),
         derogation_start_year: z.preprocess(
             (val) => (val === "" ? undefined : val),
