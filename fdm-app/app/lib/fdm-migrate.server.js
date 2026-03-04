@@ -2,7 +2,7 @@ import {
     runMigration,
     fdmSchema as schema,
     syncCatalogues,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 
@@ -32,7 +32,8 @@ const database =
     (() => {
         throw new Error("POSTGRES_DB environment variable is required")
     })()
-const migrationsFolderPath = "node_modules/@svenvw/fdm-core/dist/db/migrations"
+const migrationsFolderPath =
+    "node_modules/@nmi-agro/fdm-core/dist/db/migrations"
 
 const client = postgres({
     host: host,

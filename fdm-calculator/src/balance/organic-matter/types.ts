@@ -4,7 +4,7 @@ import type {
     FertilizerApplication,
     Field,
     SoilAnalysis,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { Decimal } from "decimal.js"
 
 /**

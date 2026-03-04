@@ -6,12 +6,13 @@ import {
     getFertilizerApplications,
     getFertilizers,
     getFields,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
     NavLink,
+    Outlet,
     redirect,
     useLoaderData,
 } from "react-router"
@@ -63,6 +64,31 @@ export const meta: MetaFunction = () => {
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
+        // This route is a layout to be able to show dialogs on top of the table
+        // An empty layout should be rendered for irrelevant routes
+        const url = new URL(request.url)
+        if (params.b_id_farm && params.calendar) {
+            const base = `/farm/${params.b_id_farm}/${params.calendar}/field`
+
+            const toTest = url.pathname.endsWith("/")
+                ? url.pathname.substring(0, url.pathname.length - 1)
+                : url.pathname
+            if (
+                toTest !== base &&
+                !toTest.startsWith(`${base}/modify_fertilizer`)
+            ) {
+                return {
+                    shouldShowLayout: false,
+                    b_id_farm: params.b_id_farm,
+                    farmOptions: [],
+                    fieldOptions: [],
+                    fieldsExtended: [],
+                    userName: "",
+                    farmWritePermission: false,
+                }
+            }
+        }
+
         // Get the active farm
         const b_id_farm = params.b_id_farm
         if (!b_id_farm) {
@@ -192,6 +218,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Return user information from loader
         return {
+            shouldShowLayout: true,
             b_id_farm: b_id_farm,
             farmOptions: farmOptions,
             fieldOptions: fieldOptions,
@@ -230,6 +257,10 @@ export default function FarmFieldIndex() {
         loaderData.farmOptions.find(
             (farm) => farm.b_id_farm === loaderData.b_id_farm,
         )?.b_name_farm ?? ""
+
+    if (!loaderData.shouldShowLayout) {
+        return <Outlet />
+    }
 
     return (
         <SidebarInset>
@@ -301,6 +332,7 @@ export default function FarmFieldIndex() {
                         </FarmContent>
                     </>
                 )}
+                <Outlet />
             </main>
         </SidebarInset>
     )

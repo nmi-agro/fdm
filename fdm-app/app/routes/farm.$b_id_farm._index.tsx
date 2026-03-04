@@ -1,15 +1,17 @@
 import { cowHead } from "@lucide/lab"
-import { getFarm, getFarms, getFields } from "@svenvw/fdm-core"
+import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
     ArrowRightLeft,
     BookOpenText,
     ChevronUp,
     DownloadIcon,
+    FileStack,
     Home,
     Icon,
     Landmark,
     Loader2,
     MapIcon,
+    PlusIcon,
     ScrollText,
     Shapes,
     Sprout,
@@ -45,6 +47,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
+import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
@@ -96,7 +99,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fields = await getFields(fdm, session.principal_id, b_id_farm)
 
         // Calculate total area for this farm
-        const farmArea = fields.reduce((acc, field) => acc + field.b_area, 0)
+        const farmArea = fields.reduce(
+            (acc, field) => acc + (field.b_area ?? 0),
+            0,
+        )
 
         // Get a list of possible farms of the user
         const farms = await getFarms(fdm, session.principal_id)
@@ -107,6 +113,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })
 
+        // Find unique roles
+        const roles = [...new Set(farm.roles.map((role) => role.role))]
+
         // Return the farm ID and session info
         return {
             b_id_farm: b_id_farm,
@@ -114,7 +123,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fieldsNumber: fields.length,
             farmArea: Math.round(farmArea),
             farmOptions: farmOptions,
-            roles: farm.roles,
+            roles: roles,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -387,6 +396,58 @@ export default function FarmDashboardIndex() {
                                     </Card>
                                 </div>
                             </div>
+
+                            {/* Actions */}
+                            <div className="space-y-4">
+                                <h2 className="text-2xl font-semibold tracking-tight">
+                                    Acties
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <NavLink to={"soil-analysis/bulk"}>
+                                        <Card className="transition-all hover:shadow-md h-full">
+                                            <CardHeader>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="rounded-lg bg-muted p-3">
+                                                        <FileStack className="h-6 w-6 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle>
+                                                            Upload bodemanalyses
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            Upload meerdere
+                                                            pdf's met
+                                                            bodemanalyses en
+                                                            koppel ze aan
+                                                            percelen.
+                                                        </CardDescription>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                        </Card>
+                                    </NavLink>
+                                    <NavLink to={`${calendar}/field/new`}>
+                                        <Card className="transition-all hover:shadow-md h-full">
+                                            <CardHeader>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="rounded-lg bg-muted p-3">
+                                                        <PlusIcon className="h-6 w-6 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle>
+                                                            Nieuwe percelen
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            Voeg nieuwe percelen
+                                                            toe aan dit bedrijf.
+                                                        </CardDescription>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                        </Card>
+                                    </NavLink>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Right Column */}
@@ -397,71 +458,75 @@ export default function FarmDashboardIndex() {
                                     Overzicht
                                 </h2>
                                 <Card>
-                                    <CardContent className="pt-6">
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-muted-foreground">
-                                                    Aantal percelen
-                                                </span>
-                                                <span className="font-semibold">
+                                    <CardContent className="pt-6 space-y-4">
+                                        {/* tiles */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Percelen
+                                                </p>
+                                                <p className="text-2xl font-bold">
                                                     {loaderData.fieldsNumber}
-                                                </span>
+                                                </p>
                                             </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-muted-foreground">
-                                                    Totale oppervlakte
-                                                </span>
-                                                <span className="font-semibold">
-                                                    {loaderData.farmArea} ha
-                                                </span>
+                                            <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Oppervlakte
+                                                </p>
+                                                <p className="text-2xl font-bold">
+                                                    {loaderData.farmArea}
+                                                    <span className="text-sm font-normal text-muted-foreground ml-1">
+                                                        ha
+                                                    </span>
+                                                </p>
                                             </div>
-
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-muted-foreground">
-                                                    Rol
-                                                </span>
-                                                <span className="font-semibold">
-                                                    {loaderData.roles.includes(
-                                                        "owner",
-                                                    )
-                                                        ? "Eigenaar"
-                                                        : loaderData.roles.includes(
-                                                                "advisor",
-                                                            )
-                                                          ? "Adviseur"
-                                                          : loaderData.roles.includes(
-                                                                  "researcher",
-                                                              )
-                                                            ? "Onderzoeker"
-                                                            : loaderData
-                                                                  .roles[0]}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-muted-foreground">
-                                                    Jaar
-                                                </span>
-                                                <Select
-                                                    value={calendar}
-                                                    onValueChange={(value) =>
-                                                        setCalendar(value)
-                                                    }
-                                                >
-                                                    <SelectTrigger className="w-[180px]">
-                                                        <SelectValue placeholder="Select a year" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {years.map((year) => (
-                                                            <SelectItem
-                                                                key={year}
-                                                                value={year}
-                                                            >
-                                                                {year}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
+                                        </div>
+                                        <Separator />
+                                        {/* Role + Year */}
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm text-muted-foreground">
+                                                Rol
+                                            </p>
+                                            <p className="text-sm font-medium">
+                                                {loaderData.roles.includes(
+                                                    "owner",
+                                                )
+                                                    ? "Eigenaar"
+                                                    : loaderData.roles.includes(
+                                                            "advisor",
+                                                        )
+                                                      ? "Adviseur"
+                                                      : loaderData.roles.includes(
+                                                              "researcher",
+                                                          )
+                                                        ? "Onderzoeker"
+                                                        : loaderData.roles[0]}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm text-muted-foreground">
+                                                Jaar
+                                            </p>
+                                            <Select
+                                                value={calendar}
+                                                onValueChange={(value) =>
+                                                    setCalendar(value)
+                                                }
+                                            >
+                                                <SelectTrigger className="w-40">
+                                                    <SelectValue placeholder="Selecteer een jaar" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {years.map((year) => (
+                                                        <SelectItem
+                                                            key={year}
+                                                            value={year}
+                                                        >
+                                                            {year}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </CardContent>
                                 </Card>

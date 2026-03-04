@@ -1,20 +1,26 @@
 import { eq } from "drizzle-orm"
-import { beforeAll, describe, expect, inject, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
 import { createFdmAuth } from "./authentication"
 import { listPrincipalsForResource } from "./authorization"
 import * as schema from "./db/schema"
+import * as authNSchema from "./db/schema-authn"
+import * as authZSchema from "./db/schema-authz"
 import {
     addFarm,
+    cancelInvitationForFarm,
     getFarm,
     getFarms,
     grantRoleToFarm,
     isAllowedToDeleteFarm,
     isAllowedToShareFarm,
+    listPendingInvitationsForFarm,
+    listPendingInvitationsForUser,
     listPrincipalsForFarm,
     removeFarm,
     revokePrincipalFromFarm,
     updateFarm,
+    updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "./farm"
 import type { FdmType } from "./fdm"
@@ -23,6 +29,7 @@ import type { FdmServerType } from "./fdm-server.d"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
 import { addField, getFields } from "./field"
 import { createId } from "./id"
+import { acceptInvitation, declineInvitation } from "./invitation"
 import { getPrincipal } from "./principal"
 
 describe("Farm Functions", () => {
@@ -81,6 +88,12 @@ describe("Farm Functions", () => {
         })
         target_id = target.user.id
 
+        // Mark target's email as verified so acceptInvitation works
+        await fdm
+            .update(authNSchema.user)
+            .set({ emailVerified: true })
+            .where(eq(authNSchema.user.id, target_id))
+
         // Create a test farm
         farmName = "Test Farm"
         farmBusinessId = "123456"
@@ -105,7 +118,13 @@ describe("Farm Functions", () => {
                     b_businessid_farm: farmBusinessId,
                     b_address_farm: farmAddress,
                     b_postalcode_farm: farmPostalCode,
-                    roles: ["owner"],
+                    roles: [
+                        {
+                            principal_id: principal_id,
+                            principal_type: "user",
+                            role: "owner",
+                        },
+                    ],
                 }),
             )
         })
@@ -243,7 +262,7 @@ describe("Farm Functions", () => {
     })
 
     describe("grantRoleToFarm", () => {
-        it("should grant a role to a principal for a given farm", async () => {
+        it("should create an invitation for a principal for a given farm", async () => {
             await grantRoleToFarm(
                 fdm,
                 principal_id,
@@ -252,13 +271,28 @@ describe("Farm Functions", () => {
                 "advisor",
             )
 
+            // Verify invitation was created (not a direct role grant)
+            const invitations = await fdm
+                .select()
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, b_id_farm))
+            const invitation = invitations.find(
+                (i) => i.target_principal_id === target_id,
+            )
+            expect(invitation).toBeDefined()
+            expect(invitation?.role).toBe("advisor")
+            expect(invitation?.status).toBe("pending")
+
+            // Accept the invitation so subsequent tests (updateRole, revoke) work
+            await acceptInvitation(fdm, invitation!.invitation_id, target_id)
+
+            // Now the role should be granted
             const principals = await listPrincipalsForResource(
                 fdm,
                 "farm",
                 b_id_farm,
             )
             const advisor = principals.find((p) => p.principal_id === target_id)
-
             expect(advisor).toEqual(
                 expect.objectContaining({
                     principal_id: target_id,
@@ -314,6 +348,40 @@ describe("Farm Functions", () => {
                     "advisor",
                 ),
             ).rejects.toThrowError("Exception for grantRoleToFarm")
+        })
+
+        it("should throw an error if target is already a member of the farm", async () => {
+            // target_id already has advisor role from the first test
+            await expect(
+                grantRoleToFarm(
+                    fdm,
+                    principal_id,
+                    target_username,
+                    b_id_farm,
+                    "advisor",
+                ),
+            ).rejects.toThrowError("Exception for grantRoleToFarm")
+        })
+
+        it("should create an email-based invitation for an unregistered email", async () => {
+            const unregisteredEmail = "newuser_unregistered@example.com"
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                unregisteredEmail,
+                b_id_farm,
+                "researcher",
+            )
+
+            const invitations = await fdm
+                .select()
+                .from(authZSchema.invitation)
+                .where(
+                    eq(authZSchema.invitation.target_email, unregisteredEmail),
+                )
+            expect(invitations.length).toBeGreaterThanOrEqual(1)
+            expect(invitations[0].status).toBe("pending")
+            expect(invitations[0].role).toBe("researcher")
         })
     })
 
@@ -535,6 +603,73 @@ describe("Farm Functions", () => {
                 "Principal does not have permission to perform this action",
             )
         })
+
+        it("should include organization as a pending principal when org is invited", async () => {
+            // No fdm-core API for org creation — use raw insert (same pattern as authorization.test.ts)
+            const orgId = createId()
+            const orgSlug = `listprincipals-org-${orgId.toLowerCase()}`
+            await fdm.insert(authNSchema.organization).values({
+                id: orgId,
+                name: "ListPrincipals Org",
+                slug: orgSlug,
+                createdAt: new Date(),
+            })
+
+            const orgFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Org Principals Farm",
+                "ORGPRI",
+                "Org Principals Lane",
+                "20001",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                orgSlug,
+                orgFarmId,
+                "advisor",
+            )
+
+            const principals = await listPrincipalsForFarm(
+                fdm,
+                principal_id,
+                orgFarmId,
+            )
+            const orgPrincipal = principals.find((p) => p.id === orgId)
+            expect(orgPrincipal).toBeDefined()
+            expect(orgPrincipal?.type).toBe("organization")
+        })
+
+        it("should include invitation_id and invitation_expires_at for pending principals", async () => {
+            const pendingFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Pending Principals Farm",
+                "PNDPRI",
+                "Pending Lane",
+                "20003",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                pendingFarmId,
+                "advisor",
+            )
+
+            const principals = await listPrincipalsForFarm(
+                fdm,
+                principal_id,
+                pendingFarmId,
+            )
+            const pending = principals.find((p) => p.status === "pending")
+            expect(pending).toBeDefined()
+            expect(pending?.invitation_id).toBeDefined()
+            expect(typeof pending?.invitation_id).toBe("string")
+            expect(pending?.invitation_expires_at).toBeDefined()
+            expect(pending?.invitation_expires_at).toBeInstanceOf(Date)
+        })
     })
 
     describe("isAllowedToShareFarm", () => {
@@ -709,6 +844,13 @@ describe("Farm Functions", () => {
                 testFarmId,
             )
             expect(principals).toEqual([])
+
+            // Verify farm invitations are deleted
+            const farmInvitations = await fdm
+                .select()
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, testFarmId))
+            expect(farmInvitations).toEqual([])
         })
 
         it("should throw an error if the principal does not have write access", async () => {
@@ -758,6 +900,553 @@ describe("Farm Functions", () => {
             ).rejects.toThrowError(
                 "Principal does not have permission to perform this action",
             )
+        })
+    })
+
+    describe("acceptInvitation", () => {
+        let invitationFarmId: string
+        let invitationId: string
+
+        beforeAll(async () => {
+            // Create a fresh farm for invitation tests
+            invitationFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Invitation Test Farm",
+                "INV001",
+                "Invitation Lane",
+                "11111",
+            )
+        })
+
+        it("should accept a pending invitation and grant the role", async () => {
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                invitationFarmId,
+                "researcher",
+            )
+
+            const rows = await fdm
+                .select()
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, invitationFarmId))
+            invitationId = rows[0].invitation_id
+
+            await acceptInvitation(fdm, invitationId, target_id)
+
+            const principals = await listPrincipalsForResource(
+                fdm,
+                "farm",
+                invitationFarmId,
+            )
+            const grantee = principals.find((p) => p.principal_id === target_id)
+            expect(grantee).toBeDefined()
+            expect(grantee?.role).toBe("researcher")
+        })
+
+        it("should throw if invitation is already accepted", async () => {
+            await expect(
+                acceptInvitation(fdm, invitationId, target_id),
+            ).rejects.toThrowError("Exception for acceptInvitation")
+        })
+
+        it("should throw if invitation does not exist", async () => {
+            await expect(
+                acceptInvitation(fdm, createId(), target_id),
+            ).rejects.toThrowError("Exception for acceptInvitation")
+        })
+
+        it("should throw if the user is not the invitation target", async () => {
+            const otherFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Other Farm",
+                "OTH001",
+                "Other Lane",
+                "22222",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                otherFarmId,
+                "advisor",
+            )
+            const rows = await fdm
+                .select()
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, otherFarmId))
+            const otherInvitationId = rows[0].invitation_id
+
+            const wrongUser = await fdmAuth.api.signUpEmail({
+                headers: undefined,
+                body: {
+                    email: "wronguser@example.com",
+                    name: "wronguser",
+                    username: "wronguser",
+                    password: "password",
+                } as any,
+            })
+
+            await expect(
+                acceptInvitation(fdm, otherInvitationId, wrongUser.user.id),
+            ).rejects.toThrowError("Exception for acceptInvitation")
+        })
+    })
+
+    describe("declineInvitation", () => {
+        let declineFarmId: string
+        let declineInvitationId: string
+
+        beforeAll(async () => {
+            declineFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Decline Test Farm",
+                "DEC001",
+                "Decline Lane",
+                "33333",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                declineFarmId,
+                "advisor",
+            )
+            const rows = await fdm
+                .select()
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, declineFarmId))
+            declineInvitationId = rows[0].invitation_id
+        })
+
+        it("should decline a pending invitation", async () => {
+            await declineInvitation(fdm, declineInvitationId, target_id)
+
+            const rows = await fdm
+                .select()
+                .from(authZSchema.invitation)
+                .where(
+                    eq(
+                        authZSchema.invitation.invitation_id,
+                        declineInvitationId,
+                    ),
+                )
+            expect(rows[0].status).toBe("declined")
+        })
+
+        it("should throw if invitation is already declined", async () => {
+            await expect(
+                declineInvitation(fdm, declineInvitationId, target_id),
+            ).rejects.toThrowError("Exception for declineInvitation")
+        })
+
+        it("should throw if the user is not the invitation target", async () => {
+            const anotherFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Another Decline Farm",
+                "DEC002",
+                "Another Decline Lane",
+                "44444",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                anotherFarmId,
+                "advisor",
+            )
+            const rows = await fdm
+                .select()
+                .from(authZSchema.invitation)
+                .where(eq(authZSchema.invitation.resource_id, anotherFarmId))
+            const anotherInvitationId = rows[0].invitation_id
+
+            const otherUser = await fdmAuth.api.signUpEmail({
+                headers: undefined,
+                body: {
+                    email: "otherwronguser@example.com",
+                    name: "otherwronguser",
+                    username: "otherwronguser",
+                    password: "password",
+                } as any,
+            })
+
+            await expect(
+                declineInvitation(fdm, anotherInvitationId, otherUser.user.id),
+            ).rejects.toThrowError("Exception for declineInvitation")
+        })
+    })
+
+    describe("listPendingInvitationsForFarm", () => {
+        let listFarmId: string
+
+        beforeAll(async () => {
+            listFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "List Invitations Farm",
+                "LIST001",
+                "List Lane",
+                "55555",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                listFarmId,
+                "advisor",
+            )
+        })
+
+        it("should return pending invitations for a farm", async () => {
+            const invitations = await listPendingInvitationsForFarm(
+                fdm,
+                principal_id,
+                listFarmId,
+            )
+            expect(invitations.length).toBeGreaterThanOrEqual(1)
+            expect(invitations[0].status).toBe("pending")
+            expect(invitations[0].resource_id).toBe(listFarmId)
+        })
+
+        it("should throw if principal does not have share permission", async () => {
+            const otherId = createId()
+            await expect(
+                listPendingInvitationsForFarm(fdm, otherId, listFarmId),
+            ).rejects.toThrowError(
+                "Principal does not have permission to perform this action",
+            )
+        })
+    })
+
+    describe("cancelInvitationForFarm", () => {
+        let cancelFarmId: string
+        let cancelInvitationId: string
+
+        beforeAll(async () => {
+            cancelFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Cancel Invitation Farm",
+                "CAN001",
+                "Cancel Lane",
+                "77001",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                cancelFarmId,
+                "advisor",
+            )
+            const invitations = await listPendingInvitationsForFarm(
+                fdm,
+                principal_id,
+                cancelFarmId,
+            )
+            cancelInvitationId = invitations[0].invitation_id
+        })
+
+        it("should remove the invitation from pending list after cancellation", async () => {
+            await cancelInvitationForFarm(fdm, principal_id, cancelInvitationId)
+
+            // After cancellation the invitation should no longer appear in pending list
+            const invitations = await listPendingInvitationsForFarm(
+                fdm,
+                principal_id,
+                cancelFarmId,
+            )
+            const found = invitations.find(
+                (i) => i.invitation_id === cancelInvitationId,
+            )
+            expect(found).toBeUndefined()
+        })
+
+        it("should throw if the invitation is already cancelled", async () => {
+            await expect(
+                cancelInvitationForFarm(fdm, principal_id, cancelInvitationId),
+            ).rejects.toThrowError("Exception for cancelInvitationForFarm")
+        })
+
+        it("should throw if the invitation does not exist", async () => {
+            await expect(
+                cancelInvitationForFarm(fdm, principal_id, createId()),
+            ).rejects.toThrowError("Exception for cancelInvitationForFarm")
+        })
+
+        it("should throw if the principal does not have share permission", async () => {
+            const anotherCancelFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Cancel Invitation Farm 2",
+                "CAN002",
+                "Cancel Lane 2",
+                "77002",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                anotherCancelFarmId,
+                "advisor",
+            )
+            const invitations = await listPendingInvitationsForFarm(
+                fdm,
+                principal_id,
+                anotherCancelFarmId,
+            )
+            const invId = invitations[0].invitation_id
+
+            const otherPrincipalId = createId()
+            await expect(
+                cancelInvitationForFarm(fdm, otherPrincipalId, invId),
+            ).rejects.toThrowError(
+                "Principal does not have permission to perform this action",
+            )
+        })
+    })
+
+    describe("updateRoleOfInvitationForFarm", () => {
+        let updateInvFarmId: string
+        let updateInvitationId: string
+
+        beforeEach(async () => {
+            const randomId = Math.random().toString(36).substring(7)
+            updateInvFarmId = await addFarm(
+                fdm,
+                principal_id,
+                `Update Invitation Role Farm ${randomId}`,
+                `UPD${randomId}`,
+                "Update Lane",
+                "88001",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                updateInvFarmId,
+                "advisor",
+            )
+            const invitations = await listPendingInvitationsForFarm(
+                fdm,
+                principal_id,
+                updateInvFarmId,
+            )
+            updateInvitationId = invitations[0].invitation_id
+        })
+
+        it("should update the role on a pending invitation", async () => {
+            await updateRoleOfInvitationForFarm(
+                fdm,
+                principal_id,
+                updateInvitationId,
+                "researcher",
+            )
+
+            // Verify via listPrincipalsForFarm: the pending entry should show the new role
+            const principals = await listPrincipalsForFarm(
+                fdm,
+                principal_id,
+                updateInvFarmId,
+            )
+            const pending = principals.find(
+                (p) =>
+                    p.status === "pending" &&
+                    p.invitation_id === updateInvitationId,
+            )
+            expect(pending).toBeDefined()
+            expect(pending?.role).toBe("researcher")
+        })
+
+        it("should throw if the invitation does not exist", async () => {
+            await expect(
+                updateRoleOfInvitationForFarm(
+                    fdm,
+                    principal_id,
+                    createId(),
+                    "owner",
+                ),
+            ).rejects.toThrowError(
+                "Exception for updateRoleOfInvitationForFarm",
+            )
+        })
+
+        it("should throw if the invitation is not pending", async () => {
+            // Cancel the invitation first so it is no longer pending
+            await cancelInvitationForFarm(fdm, principal_id, updateInvitationId)
+
+            await expect(
+                updateRoleOfInvitationForFarm(
+                    fdm,
+                    principal_id,
+                    updateInvitationId,
+                    "owner",
+                ),
+            ).rejects.toThrowError(
+                "Exception for updateRoleOfInvitationForFarm",
+            )
+        })
+
+        it("should throw if the principal does not have share permission", async () => {
+            const anotherUpdateFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Update Invitation Role Farm 2",
+                "UPD002",
+                "Update Lane 2",
+                "88002",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                target_username,
+                anotherUpdateFarmId,
+                "advisor",
+            )
+            const invitations = await listPendingInvitationsForFarm(
+                fdm,
+                principal_id,
+                anotherUpdateFarmId,
+            )
+            const invId = invitations[0].invitation_id
+
+            const otherPrincipalId = createId()
+            await expect(
+                updateRoleOfInvitationForFarm(
+                    fdm,
+                    otherPrincipalId,
+                    invId,
+                    "researcher",
+                ),
+            ).rejects.toThrowError(
+                "Principal does not have permission to perform this action",
+            )
+        })
+    })
+
+    describe("listPendingInvitationsForUser", () => {
+        let listUserFarmId: string
+        let listUserTarget: { user: { id: string } }
+        let listUserTargetId: string
+
+        beforeAll(async () => {
+            listUserTarget = await fdmAuth.api.signUpEmail({
+                headers: undefined,
+                body: {
+                    email: "listuser@example.com",
+                    name: "listuser",
+                    username: "listuser",
+                    password: "password",
+                } as any,
+            })
+            listUserTargetId = listUserTarget.user.id
+
+            listUserFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "List User Invitations Farm",
+                "LSTU001",
+                "List User Lane",
+                "66666",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                "listuser@example.com",
+                listUserFarmId,
+                "researcher",
+            )
+        })
+
+        it("should return pending invitations for a user by email", async () => {
+            const invitations = await listPendingInvitationsForUser(
+                fdm,
+                listUserTargetId,
+            )
+            expect(invitations.length).toBeGreaterThanOrEqual(1)
+            const inv = invitations.find(
+                (i) => i.resource_id === listUserFarmId,
+            )
+            expect(inv).toBeDefined()
+            expect(inv?.status).toBe("pending")
+        })
+
+        it("should return pending invitations for a user by principal_id", async () => {
+            // target_id has pending invitations from other tests
+            const invitations = await listPendingInvitationsForUser(
+                fdm,
+                target_id,
+            )
+            // Target may have invitations from earlier tests (email-based or principal-based)
+            expect(Array.isArray(invitations)).toBe(true)
+        })
+
+        it("should return empty array if user does not exist or has no invitations", async () => {
+            const nonExistentUserId = createId()
+            const invitations = await listPendingInvitationsForUser(
+                fdm,
+                nonExistentUserId,
+            )
+            expect(invitations).toEqual([])
+        })
+
+        it("should include org_name when invitation targets an organization", async () => {
+            const orgAdminUser = await fdmAuth.api.signUpEmail({
+                headers: undefined,
+                body: {
+                    email: "listuser_orgadmin@example.com",
+                    name: "listuser_orgadmin",
+                    username: "listuser_orgadmin",
+                    password: "password",
+                } as any,
+            })
+
+            const orgId = createId()
+            const orgSlug = `pending-inv-org-${orgId.toLowerCase()}`
+            await fdm.insert(authNSchema.organization).values({
+                id: orgId,
+                name: "Pending Invitations Org",
+                slug: orgSlug,
+                createdAt: new Date(),
+            })
+            await fdm.insert(authNSchema.member).values({
+                id: createId(),
+                organizationId: orgId,
+                userId: orgAdminUser.user.id,
+                role: "owner",
+                createdAt: new Date(),
+            })
+
+            const orgInvFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "List User Org Inv Farm",
+                "LSUORG",
+                "List User Org Lane",
+                "20002",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                orgSlug,
+                orgInvFarmId,
+                "advisor",
+            )
+
+            const invitations = await listPendingInvitationsForUser(
+                fdm,
+                orgAdminUser.user.id,
+            )
+            const orgInv = invitations.find(
+                (i) => i.resource_id === orgInvFarmId,
+            )
+            expect(orgInv).toBeDefined()
+            expect(orgInv?.org_name).toBe("Pending Invitations Org")
         })
     })
 })

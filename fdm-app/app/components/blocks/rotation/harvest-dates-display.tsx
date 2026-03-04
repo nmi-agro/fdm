@@ -1,116 +1,158 @@
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import React from "react"
-import type { RotationExtended } from "./columns"
+import { Link } from "react-router-dom"
+import { useActiveTableFormStore } from "@/app/store/active-table-form"
+import { Button } from "~/components/ui/button"
+import type { FieldRow, RotationExtended } from "./columns"
 
 type HarvestDatesDisplayProps = {
-    cultivation: RotationExtended
+    row: RotationExtended
+}
+
+type HarvestRecord = Record<string, HarvestRecordItem>
+type HarvestRecordItem = {
+    id: string
+    dates: Date[]
+    harvests: FieldRow["harvests"]
+}
+type HarvestRecordDisplayProps = {
+    record: HarvestRecordItem
+}
+
+function mapByOrder(record: HarvestRecord, fieldRow: FieldRow) {
+    fieldRow.harvests.forEach((harvest, i) => {
+        if (!harvest.b_lu_harvest_date) return
+        const key = i
+        record[key] ??= {
+            id: `${harvest.b_lu}_${key}`,
+            dates: [],
+            harvests: [],
+        }
+        record[key].harvests.push(harvest)
+        record[key].dates.push(harvest.b_lu_harvest_date)
+    })
+}
+
+function groupAndOrderHarvests(row: RotationExtended) {
+    const record: HarvestRecord = {}
+
+    if (row.type === "crop") {
+        row.fields.forEach((fieldRow) => {
+            mapByOrder(record, fieldRow)
+        })
+    } else {
+        mapByOrder(record, row)
+    }
+
+    const entries = Object.entries(record).map(
+        ([idx, reduced]) =>
+            [Number.parseFloat(idx), reduced] as [number, typeof reduced],
+    )
+    entries.sort((a, b) => a[0] - b[0])
+    // Harvests with no date get filtered out in the mapping function
+    entries.forEach((ent) => {
+        ent[1].harvests.sort(
+            (a, b) =>
+                (a.b_lu_harvest_date as Date).getTime() -
+                (b.b_lu_harvest_date as Date).getTime(),
+        )
+        ent[1].dates.sort((a, b) => a.getTime() - b.getTime())
+    })
+    return entries.map((ent) => ent[1])
+}
+
+function combineRecords(records: HarvestRecordItem[]): HarvestRecordItem {
+    const timestamps = [
+        ...new Set(
+            records.flatMap((record) =>
+                record.dates.map((date) => date.getTime()),
+            ),
+        ),
+    ]
+    timestamps.sort()
+    return {
+        id: records[0].id,
+        dates: timestamps.map((timestamp) => new Date(timestamp)),
+        harvests: records.flatMap((record) => record.harvests),
+    }
+}
+
+function formatDateRange(dates: Date[]) {
+    if (dates.length === 0) return ""
+    const firstDate = dates[0]
+    const lastDate = dates[dates.length - 1]
+    return firstDate.getTime() === lastDate.getTime()
+        ? `${format(firstDate, "PP", { locale: nl })}`
+        : `${format(firstDate, "PP", { locale: nl })} - ${format(lastDate, "PP", { locale: nl })}`
+}
+function HarvestDatesDisplayButton({
+    record,
+    children,
+}: HarvestRecordDisplayProps & { children: React.ReactNode }) {
+    const setActiveForm = useActiveTableFormStore(
+        (store) => store.setActiveForm,
+    )
+    const formId = `harvest_${record.id}`
+    return (
+        <Button
+            asChild
+            variant="link"
+            className="text-muted-foreground whitespace-nowrap"
+            onClick={() => setActiveForm(formId)}
+        >
+            <Link
+                to={`./modify_harvest?harvestingIds=${encodeURIComponent(record.harvests.map((harvest) => harvest.b_id_harvesting).join(","))}`}
+            >
+                {children}
+            </Link>
+        </Button>
+    )
 }
 
 export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({
-    cultivation,
+    row,
 }) => {
-    const resolved_b_lu_harvest_date =
-        cultivation.type === "field" ? cultivation.b_lu_harvest_date : null
     const formattedHarvestDates = React.useMemo(() => {
-        const b_lu_harvest_date =
-            cultivation.type === "field"
-                ? (resolved_b_lu_harvest_date as Date[])
-                : cultivation.fields.flatMap((field) => field.b_lu_harvest_date)
-        if (b_lu_harvest_date.length === 1) {
+        const harvestsByOrder = groupAndOrderHarvests(row)
+
+        if (harvestsByOrder.length === 1) {
             return (
-                <p className="text-muted-foreground whitespace-nowrap">
-                    {format(b_lu_harvest_date[0], "PP", { locale: nl })}
-                </p>
+                <HarvestDatesDisplayButton record={harvestsByOrder[0]}>
+                    {formatDateRange(harvestsByOrder[0].dates)}
+                </HarvestDatesDisplayButton>
             )
         }
 
-        if (
-            b_lu_harvest_date.length > 1 &&
-            cultivation.b_lu_harvestable === "once"
-        ) {
-            const b_lu_harvest_date_sorted = [...b_lu_harvest_date].sort(
-                (a, b) => a.getTime() - b.getTime(),
-            )
-            const firstDate = b_lu_harvest_date_sorted[0]
-            const lastDate =
-                b_lu_harvest_date_sorted[b_lu_harvest_date_sorted.length - 1]
-
-            return (
-                <p className="text-muted-foreground whitespace-nowrap">
-                    {firstDate.getTime() === lastDate.getTime()
-                        ? `${format(firstDate, "PP", { locale: nl })}`
-                        : `${format(firstDate, "PP", { locale: nl })} - ${format(lastDate, "PP", { locale: nl })}`}
-                </p>
-            )
-        }
-        if (
-            b_lu_harvest_date.length > 1 &&
-            cultivation.b_lu_harvestable === "multiple"
-        ) {
-            const b_lu_harvest_date_per_field =
-                cultivation.type === "field"
-                    ? [resolved_b_lu_harvest_date as Date[]]
-                    : cultivation.fields.map((field) => field.b_lu_harvest_date)
-
-            const harvestsByOrder: Date[][] = []
-            for (const harvestDates of b_lu_harvest_date_per_field) {
-                const harvestDatesSorted = [...harvestDates].sort(
-                    (a, b) => a.getTime() - b.getTime(),
+        if (harvestsByOrder.length > 1) {
+            if (row.b_lu_harvestable === "once") {
+                const combined = combineRecords(harvestsByOrder)
+                return (
+                    <HarvestDatesDisplayButton record={combined}>
+                        {formatDateRange(combined.dates)}
+                    </HarvestDatesDisplayButton>
                 )
-                for (let i = 0; i < harvestDatesSorted.length; i++) {
-                    if (!harvestsByOrder[i]) {
-                        harvestsByOrder[i] = []
-                    }
-                    harvestsByOrder[i].push(harvestDatesSorted[i])
-                }
             }
 
             return (
                 <div className="flex items-start flex-col space-y-2">
-                    {harvestsByOrder.map((harvestDates, idx) => {
-                        // harvestDates are already sorted from the previous loop
-                        const firstDate = harvestDates[0]
-                        const lastDate = harvestDates[harvestDates.length - 1]
-                        if (
-                            harvestDates.length === 1 ||
-                            firstDate.getTime() === lastDate.getTime()
-                        ) {
-                            return (
-                                <p
-                                    key={idx}
-                                    className="text-muted-foreground whitespace-nowrap"
-                                >
-                                    {`${idx + 1}e ${cultivation.b_lu_croprotation === "grass" ? "snede" : "oogst"}:`}
-                                    <br />
-                                    {format(firstDate, "PP", {
-                                        locale: nl,
-                                    })}
-                                </p>
-                            )
-                        }
+                    {harvestsByOrder.map((record, idx) => {
                         return (
-                            <p
-                                key={idx}
-                                className="text-muted-foreground whitespace-nowrap"
+                            <HarvestDatesDisplayButton
+                                key={record.id}
+                                record={record}
                             >
-                                {`${idx + 1}e ${cultivation.b_lu_croprotation === "grass" ? "snede" : "oogst"}:`}
+                                {`${idx + 1}e ${row.b_lu_croprotation === "grass" ? "snede" : "oogst"}:`}
                                 <br />
-                                {`${format(firstDate, "PP", { locale: nl })} - ${format(lastDate, "PP", { locale: nl })}`}
-                            </p>
+                                {formatDateRange(record.dates)}
+                            </HarvestDatesDisplayButton>
                         )
                     })}
                 </div>
             )
         }
         return null // Should not happen
-    }, [
-        cultivation.type,
-        resolved_b_lu_harvest_date,
-        cultivation.fields,
-        cultivation.b_lu_harvestable,
-        cultivation.b_lu_croprotation,
-    ])
+    }, [row, row.type, row.fields, row.b_lu_harvestable, row.b_lu_croprotation])
 
     return formattedHarvestDates
 }

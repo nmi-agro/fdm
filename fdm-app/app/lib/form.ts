@@ -69,7 +69,7 @@ export async function extractFormValuesFromRequest<T extends ZodSchema>(
         const parsedData = schema.safeParse(formObject)
 
         if (!parsedData.success) {
-            const errors = parsedData.error.errors.map((err) => ({
+            const errors = parsedData.error.issues.map((err) => ({
                 path: err.path.join("."),
                 message: err.message,
             }))

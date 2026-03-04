@@ -18,6 +18,7 @@ Sentry.init({
     integrations: [nodeProfilingIntegration()],
     tracesSampleRate: Number(process.env.VITE_SENTRY_TRACE_SAMPLE_RATE),
     profilesSampleRate: Number(process.env.VITE_SENTRY_PROFILE_SAMPLE_RATE),
+    ignoreErrors: [/BodyStreamBuffer was aborted/],
     environment: process.env.NODE_ENV ?? "development",
     release: process.env.npm_package_version,
 })

@@ -1,5 +1,5 @@
-import type { CurrentSoilData } from "@svenvw/fdm-core"
-import { withCalculationCache } from "@svenvw/fdm-core"
+import type { CurrentSoilData } from "@nmi-agro/fdm-core"
+import { withCalculationCache } from "@nmi-agro/fdm-core"
 import pkg from "../package"
 import type {
     NutrientAdvice,

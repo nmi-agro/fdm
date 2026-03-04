@@ -7,7 +7,7 @@ import {
     isDerogationGrantedForYear,
     type PrincipalId,
     type Timeframe,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { NL2025NormsInput } from "./types.d"
 
 /**

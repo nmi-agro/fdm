@@ -1,4 +1,4 @@
-import { calculateDose, getNutrientAdvice } from "@svenvw/fdm-calculator"
+import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
 import {
     addFertilizerApplication,
     checkPermission,
@@ -10,7 +10,7 @@ import {
     getField,
     removeFertilizerApplication,
     updateFertilizerApplication,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,
@@ -272,7 +272,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmFieldsOverviewBlock() {
     const loaderData = useLoaderData<typeof loader>()
     const navigation = useNavigation()
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting = navigation.state !== "idle"
 
     return (
         <div className="grid grid-cols-1 gap-6 2xl:grid-cols-3">

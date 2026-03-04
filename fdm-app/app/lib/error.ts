@@ -83,14 +83,15 @@ export function handleLoaderError(error: unknown) {
 
     // Permission denied error
     if (
-        error instanceof Error &&
-        error.message ===
-            "Principal does not have permission to perform this action"
+        containsErrorMessage(
+            error,
+            "Principal does not have permission to perform this action",
+        )
     ) {
         console.warn("Permission denied: ", error)
         return data(
             {
-                warning: error.message,
+                warning: error instanceof Error ? error.message : error,
             },
             {
                 status: 403,
@@ -148,7 +149,44 @@ export function handleLoaderError(error: unknown) {
     )
 }
 
+/**
+ * Recursively checks whether an error or any error in its cause chain
+ * contains the given substring in its message.
+ */
+function containsErrorMessage(error: unknown, message: string): boolean {
+    if (!(error instanceof Error)) return false
+    if (error.message.includes(message)) return true
+    return containsErrorMessage(error.cause, message)
+}
+
 export function handleActionError(error: unknown) {
+    // Spam prevention: inviter exceeded hourly limit
+    if (containsErrorMessage(error, "Rate limit exceeded")) {
+        console.warn("Invitation rate limit hit:", error)
+        return dataWithWarning(
+            null,
+            "Je hebt te veel uitnodigingen verstuurd in het afgelopen uur. Wacht even en probeer het later opnieuw.",
+        )
+    }
+
+    // Spam prevention: target already has too many pending invitations
+    if (containsErrorMessage(error, "too many pending invitations")) {
+        console.warn("Invitation pending cap hit:", error)
+        return dataWithWarning(
+            null,
+            "Deze persoon heeft al te veel openstaande uitnodigingen. Probeer het later opnieuw.",
+        )
+    }
+
+    // Validation: farm must always have at least one owner
+    if (containsErrorMessage(error, "Farm should have at least 1 owner")) {
+        console.warn("Last owner role change blocked:", error)
+        return dataWithWarning(
+            null,
+            "Een bedrijf moet minimaal één eigenaar hebben. Wijs eerst een andere eigenaar aan voordat je deze rol wijzigt.",
+        )
+    }
+
     // Handle 'data' thrown errors
     if (
         typeof error === "object" &&
@@ -208,9 +246,10 @@ export function handleActionError(error: unknown) {
 
     // Permission denied error
     if (
-        error instanceof Error &&
-        error.message ===
-            "Principal does not have permission to perform this action"
+        containsErrorMessage(
+            error,
+            "Principal does not have permission to perform this action",
+        )
     ) {
         console.warn("Permission denied: ", error)
         return dataWithWarning(

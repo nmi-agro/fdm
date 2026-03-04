@@ -63,6 +63,11 @@ export default defineConfig((env) => {
                     env,
                 ),
         ].filter(Boolean),
+        define: {
+            "import.meta.env.PUBLIC_APP_VERSION": JSON.stringify(
+                process.env.npm_package_version,
+            ),
+        },
         envPrefix: "PUBLIC_",
         ssr: {
             noExternal: [
@@ -77,9 +82,9 @@ export default defineConfig((env) => {
         },
         optimizeDeps: {
             exclude: [
-                "@svenvw/fdm-core",
-                "@svenvw/fdm-data",
-                "@svenvw/fdm-calculator",
+                "@nmi-agro/fdm-core",
+                "@nmi-agro/fdm-data",
+                "@nmi-agro/fdm-calculator",
             ],
         },
     }

@@ -4,7 +4,7 @@ import {
     getField,
     listAvailableAcquiringMethods,
     updateField,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Controller } from "react-hook-form"
 import type { MetaFunction } from "react-router"
@@ -346,7 +346,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 // Form Schema
 const FormSchema = z
     .object({
-        b_name: z.string().min(2, {
+        b_name: z.string().trim().min(2, {
             error: "Naam van perceel moet minimaal 2 karakters bevatten",
         }),
         b_acquiring_method: z.string({

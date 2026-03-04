@@ -10,10 +10,11 @@ import {
     getFields,
     getHarvests,
     updateCultivation,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type MetaFunction,
     NavLink,
+    Outlet,
     redirect,
     useLoaderData,
 } from "react-router"
@@ -39,7 +40,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { cn } from "~/lib/utils"
-import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation._index"
+import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation"
 
 export const meta: MetaFunction = () => {
     return [
@@ -155,30 +156,25 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                     timeframe,
                 )
 
-                const harvests = await Promise.all(
-                    cultivations.flatMap(async (cultivation) => {
-                        const b_lu_harvestable = getHarvestabilityFromCatalogue(
-                            cultivation.b_lu_catalogue,
-                        )
+                const harvests = (
+                    await Promise.all(
+                        cultivations.map(async (cultivation) => {
+                            const b_lu_harvestable =
+                                getHarvestabilityFromCatalogue(
+                                    cultivation.b_lu_catalogue,
+                                )
 
-                        const harvests = await getHarvests(
-                            fdm,
-                            session.principal_id,
-                            cultivation.b_lu,
-                            b_lu_harvestable === "once" ? undefined : timeframe,
-                        )
-
-                        return {
-                            b_lu: cultivation.b_lu,
-                            b_lu_harvest_date: harvests
-                                .filter((harvest) => harvest.b_lu_harvest_date)
-                                .map(
-                                    (harvest) =>
-                                        harvest.b_lu_harvest_date as Date,
-                                ),
-                        }
-                    }),
-                )
+                            return getHarvests(
+                                fdm,
+                                session.principal_id,
+                                cultivation.b_lu,
+                                b_lu_harvestable === "once"
+                                    ? undefined
+                                    : timeframe,
+                            )
+                        }),
+                    )
+                ).flat()
 
                 const fertilizerApplications = await getFertilizerApplications(
                     fdm,
@@ -397,11 +393,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                                 )
                                 .map((cultivation) => cultivation.b_lu_end),
                         ),
-                        b_lu_harvest_date: field.harvests
+                        harvests: field.harvests
                             .filter((harvest: { b_lu: string }) =>
                                 b_lu.includes(harvest.b_lu),
                             )
-                            .flatMap((harvest) => harvest.b_lu_harvest_date),
+                            .map((harvest) => {
+                                return {
+                                    b_lu: harvest.b_lu,
+                                    b_id_harvesting: harvest.b_id_harvesting,
+                                    b_lu_harvest_date:
+                                        harvest.b_lu_harvest_date,
+                                }
+                            }),
                         b_lu_harvestable: b_lu_harvestable,
                         b_lu_variety: Object.fromEntries(
                             Object.entries(
@@ -583,6 +586,7 @@ export default function FarmRotationIndex() {
                     </>
                 )}
             </main>
+            <Outlet />
         </SidebarInset>
     )
 }

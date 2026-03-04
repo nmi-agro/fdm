@@ -4,6 +4,9 @@ import type { User } from "better-auth"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import postmark from "postmark"
+import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
+import { FarmInvitationCancelledEmail } from "~/components/blocks/email/farm-invitation-cancelled"
+import { FarmInvitationRoleUpdatedEmail } from "~/components/blocks/email/farm-invitation-role-updated"
 import { InvitationEmail } from "~/components/blocks/email/invitation"
 import { MagicLinkEmail } from "~/components/blocks/email/magic-link"
 import { WelcomeEmail } from "~/components/blocks/email/welcome"
@@ -27,6 +30,7 @@ export async function renderWelcomeEmail(user: User): Promise<Email> {
             url: serverConfig.url,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
         }),
     )
 
@@ -55,6 +59,7 @@ export async function renderInvitationEmail(
             organizationName: organizationName,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
         }),
         { pretty: true },
     )
@@ -65,6 +70,99 @@ export async function renderInvitationEmail(
         Subject: `${inviter.firstname} ${inviter.surname} heeft je uitgenodigd om lid te worden van ${organizationName}!`,
         HtmlBody: emailHtml,
         Tag: "invitation-organization",
+    }
+
+    return email
+}
+
+export async function renderFarmInvitationEmail(
+    targetEmail: string,
+    inviterName: string,
+    farmName: string,
+    role: string,
+    isUnregistered: boolean,
+): Promise<Email> {
+    const emailHtml = await render(
+        FarmInvitationEmail({
+            farmName,
+            inviterName,
+            targetEmail,
+            role,
+            appName: serverConfig.name,
+            appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
+            isUnregistered,
+        }),
+        { pretty: true },
+    )
+
+    const subjectVerb = isUnregistered
+        ? "nodigt je uit"
+        : "heeft je uitgenodigd"
+    const email: Email = {
+        From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
+        To: targetEmail,
+        Subject: `${inviterName} ${subjectVerb} voor toegang tot bedrijf ${farmName}`,
+        HtmlBody: emailHtml,
+        Tag: isUnregistered ? "invitation-farm-new-user" : "invitation-farm",
+    }
+
+    return email
+}
+
+export async function renderFarmInvitationCancelledEmail(
+    targetEmail: string,
+    inviterName: string,
+    farmName: string,
+): Promise<Email> {
+    const emailHtml = await render(
+        FarmInvitationCancelledEmail({
+            farmName,
+            inviterName,
+            targetEmail,
+            appName: serverConfig.name,
+            appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
+        }),
+        { pretty: true },
+    )
+
+    const email: Email = {
+        From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
+        To: targetEmail,
+        Subject: `Je uitnodiging voor bedrijf ${farmName} is ingetrokken`,
+        HtmlBody: emailHtml,
+        Tag: "invitation-farm-cancelled",
+    }
+
+    return email
+}
+
+export async function renderFarmInvitationRoleUpdatedEmail(
+    targetEmail: string,
+    inviterName: string,
+    farmName: string,
+    newRole: string,
+): Promise<Email> {
+    const emailHtml = await render(
+        FarmInvitationRoleUpdatedEmail({
+            farmName,
+            inviterName,
+            targetEmail,
+            newRole,
+            appName: serverConfig.name,
+            appBaseUrl: serverConfig.url,
+            senderName: serverConfig.mail?.postmark.sender_name,
+        }),
+        { pretty: true },
+    )
+
+    const email: Email = {
+        From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
+        To: targetEmail,
+        Subject: `Je uitnodiging voor bedrijf ${farmName} is bijgewerkt`,
+        HtmlBody: emailHtml,
+        Tag: "invitation-farm-role-updated",
     }
 
     return email
@@ -161,6 +259,10 @@ function getTimeZoneFromUrl(url: string): string | undefined {
 
 export async function sendEmail(email: Email): Promise<void> {
     await client.sendEmail(email)
+}
+
+export function isInactiveRecipientError(e: any) {
+    return e && (e as { code: number }).code === 406
 }
 
 // Helper function to send magic link emails, to be passed to fdm-core

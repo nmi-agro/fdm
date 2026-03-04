@@ -3,7 +3,7 @@ import {
     checkPermission,
     listDerogations,
     removeDerogation,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     type LoaderFunctionArgs,
@@ -83,6 +83,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
         } else {
             // User is turning ON the switch, so add derogation
+            if (year >= 2026) {
+                return dataWithError(
+                    {},
+                    "Derogatie is niet meer beschikbaar vanaf 2026.",
+                )
+            }
             await addDerogation(fdm, session.principal_id, b_id_farm, year)
             return dataWithSuccess({}, `Derogatie voor ${year} toegevoegd.`)
         }

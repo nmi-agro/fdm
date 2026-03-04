@@ -7,7 +7,7 @@ import {
     removeField,
     updateCultivation,
     updateField,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { FeatureCollection } from "geojson"
 import {
     type ActionFunctionArgs,
@@ -117,6 +117,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
         const soilParameterDescription = getSoilParametersDescription()
 
+        // Check if the current soil data is an estimate
+        const isEstimated =
+            currentSoilData.length > 0 &&
+            currentSoilData.every((i) => i.a_source === "nl-other-nmi")
+
         // Get the available cultivations
         let cultivationOptions = []
         const cultivationsCatalogue = await getCultivationsFromCatalogue(
@@ -153,6 +158,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_lu_catalogue: b_lu_catalogue,
             b_lu_start: cultivations[0]?.b_lu_start,
             currentSoilData: currentSoilData,
+            isEstimated: isEstimated,
             soilParameterDescription: soilParameterDescription,
             b_area: field.b_area ?? 0,
             b_bufferstrip: field.b_bufferstrip,
@@ -184,7 +190,9 @@ export default function Index() {
             featureCollection={loaderData.featureCollection}
             mapStyle={loaderData.mapStyle}
             currentSoilData={loaderData.currentSoilData}
+            isEstimated={loaderData.isEstimated}
             soilParameterDescription={loaderData.soilParameterDescription}
+            isFarmCreateWizard={true}
         />
     )
 }

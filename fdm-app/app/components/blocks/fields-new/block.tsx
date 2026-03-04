@@ -1,7 +1,7 @@
 import type {
     CurrentSoilData,
     SoilParameterDescription,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type maplibregl from "maplibre-gl"
 import { NewFieldsAtlas } from "./atlas"
 import { NewFieldsForm } from "./form"
@@ -17,7 +17,9 @@ export function NewFieldsBlock({
     featureCollection,
     mapStyle,
     currentSoilData,
+    isEstimated,
     soilParameterDescription,
+    isFarmCreateWizard,
 }: NewFieldsBlockProps) {
     return (
         <div className="space-y-6">
@@ -43,7 +45,9 @@ export function NewFieldsBlock({
                 <NewFieldSoilAnalysisBlock
                     b_id={b_id}
                     currentSoilData={currentSoilData}
+                    isEstimated={isEstimated}
                     soilParameterDescription={soilParameterDescription}
+                    isFarmCreateWizard={isFarmCreateWizard}
                 />
             </div>
         </div>
@@ -63,5 +67,7 @@ type NewFieldsBlockProps = {
     featureCollection: GeoJSON.FeatureCollection
     mapStyle: string | maplibregl.StyleSpecification
     currentSoilData: CurrentSoilData
+    isEstimated?: boolean
     soilParameterDescription: SoilParameterDescription
+    isFarmCreateWizard?: boolean
 }

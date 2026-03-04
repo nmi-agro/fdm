@@ -2,7 +2,7 @@ import type {
     Cultivation,
     Fertilizer,
     FertilizerApplication,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { getRegion } from "../../2025/value/stikstofgebruiksnorm"
 import type { RegionKey } from "../value/types"

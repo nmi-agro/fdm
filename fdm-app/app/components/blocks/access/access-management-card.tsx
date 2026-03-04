@@ -13,11 +13,14 @@ import { PrincipalRow } from "./principal-row"
 // Ensure this matches the type definition used in InvitationForm and PrincipalRow if needed elsewhere
 type Principal = {
     username: string
-    displayUserName: string
-    image?: string
+    displayUserName: string | null
+    image?: string | null
     initials: string
-    role: "owner" | "advisor" | "researcher"
+    role: string
     type: "user" | "organization"
+    status: "active" | "pending"
+    invitation_id?: string
+    invitation_expires_at?: Date | string
 }
 
 // Define props for the AccessManagementCard
@@ -61,6 +64,11 @@ export const AccessManagementCard = ({
                                 initials={principal.initials}
                                 role={principal.role}
                                 type={principal.type}
+                                status={principal.status}
+                                invitation_id={principal.invitation_id}
+                                invitation_expires_at={
+                                    principal.invitation_expires_at
+                                }
                                 hasSharePermission={hasSharePermission}
                             />
                         ))}

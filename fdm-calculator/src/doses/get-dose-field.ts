@@ -4,7 +4,7 @@ import {
     getFertilizers,
     getField,
     type PrincipalId,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { calculateDose } from "./calculate-dose"
 import type { Dose } from "./d"
 

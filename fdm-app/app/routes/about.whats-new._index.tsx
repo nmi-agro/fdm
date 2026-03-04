@@ -24,6 +24,29 @@ export const meta: MetaFunction = () => {
 
 export const changelogEntries: ChangelogEntry[] = [
     {
+        version: "v0.28.0",
+        date: "4 maart 2026",
+        title: "Meerdere bodemanalyses uploaden, direct bewerken in bouwplantabel en uitnodigingen",
+        description:
+            "U kunt nu meerdere bodemanalyse-PDF's tegelijk uploaden en direct beoordelen voordat u ze koppelt aan een perceel. Oogsten en mestgiften zijn direct in de bouwplantabel te bewerken. Daarnaast kunt u mensen uitnodigen voor een bedrijf, ook als ze nog geen account hebben.",
+        items: [
+            "Meerdere bodemanalyses tegelijk uploaden: Bij het toevoegen van percelen kunt u meerdere PDF's van bodemanalyses tegelijk uploaden. De gegevens worden in een tabel getoond zodat u kunt controleren welke waarden worden ingeladen voordat u ze koppelt aan een perceel. Op de pagina staat nu ook duidelijk vermeld dat de ingeladen waarden schattingen zijn.",
+            "Direct bewerken van oogsten in het bouwplan: U kunt de oogstdatum en oogstparameters nu direct aanpassen vanuit de bouwplantabel, zonder naar een aparte pagina te navigeren.",
+            "Bemestingen bekijken en bewerken via het bouwplan en perceelstabel: Door op een meststof in de bouwplan of perceelstabel te klikken ziet u een overzicht van alle bemestingen met die meststof op het geselecteerde gewas of perceel. U kunt de giften direct vanuit dit overzicht aanpassen.",
+            "Uitnodigingen voor toegang tot bedrijven: Wanneer iemand u toegang geeft tot een bedrijf, ontvangt u voortaan een e-mail met een uitnodiging. U kunt deze uitnodiging zelf accepteren of weigeren via de overzichtspagina. Uitnodigingen zijn 7 dagen geldig. Ook gebruikers die nog geen account hebben kunnen worden uitgenodigd; zij krijgen automatisch toegang zodra zij zich registreren met hetzelfde e-mailadres.",
+            "Uitnodigingen beheren: Als eigenaar of beheerder van een bedrijf kunt u uitstaande uitnodigingen inzien, annuleren of de rol van een uitnodiging aanpassen, rechtstreeks vanuit de instellingenpagina van het bedrijf.",
+            "Bodemanalyses van eerdere jaren: De lijst met bodemanalyses bij een perceel toont nu ook analyses van vóór het geselecteerde jaar, zodat u eerdere metingen niet meer kwijt bent als u een ander jaar selecteert.",
+            "Bodemparameters overzichtelijker ingedeeld: De bodemparameters op de perceelspagina zijn nu gegroepeerd en in een logischere volgorde geplaatst voor een beter overzicht.",
+            "Koolstofvastlegging in Atlas: Op de detailpagina van een perceel in de Atlas is een nieuw blok toegevoegd met informatie over koolstofvastlegging. U ziet de huidige schatting van het koolstofgehalte in de bodem, het maximaal haalbare niveau en cijfers om de waarden in perspectief te plaatsen voor bijvoorbeeld extra mineralisatie en watervasthouden vermogen.",
+            "Verbeterd ontwerp perceeldetails in Atlas: De detailpagina van een perceel in de Atlas is overzichtelijker ingedeeld en werkt nu ook goed op kleinere schermen.",
+            "Terugknop op perceeldetails in Atlas: Er is een zwevende terugknop toegevoegd onderaan de perceeldetailpagina in de Atlas, zodat u eenvoudig terug naar de kaart kunt navigeren.",
+            "Organisatiegegevens bewerken en leden toevoegen: Via de instellingenpagina van uw organisatie kunt u nu de gegevens van uw organisatie bewerken en nieuwe leden uitnodigen.",
+            "Overzicht van bedrijven per organisatie: In het organisatieoverzicht is een nieuwe tabel toegevoegd met alle bedrijven waar uw organisatie toegang toe heeft. De tabel is doorzoekbaar.",
+            "Verbeterd aanmaken van bedrijf: Bij het aanmaken van een nieuw bedrijf vraagt het formulier nu ook naar het KvK-nummer, de beweidingsintentie en de biologische certificering. Aan het begin van het stappenproces staat een toelichting op de te doorlopen stappen. De vraag over derogatie wordt alleen nog getoond voor jaren vóór 2026.",
+            "Laadmelding bij trage paginaovergangen: Als een pagina langer dan 300 milliseconden nodig heeft om te laden, verschijnt er een laadsymbool en wordt de pagina licht vervaagd. Dit voorkomt verwarring over of een actie is geregistreerd.",
+        ],
+    },
+    {
         version: "v0.27.0",
         date: "29 januari 2026",
         title: "Bemestingsplan als pdf, Bodemkaart in Atlas en uitklapbaar bouwplan",

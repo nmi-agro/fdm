@@ -3,7 +3,7 @@ import {
     locationValues,
     proj4,
 } from "@geomatico/maplibre-cog-protocol"
-import { getFields } from "@svenvw/fdm-core"
+import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/turf"
 import type { FeatureCollection, Geometry } from "geojson"
 import throttle from "lodash.throttle"
@@ -302,33 +302,59 @@ export default function FarmAtlasElevationBlock() {
     }, [])
 
     const updateId = useRef(0)
+    const abortControllerRef = useRef<AbortController | null>(null)
 
     // Function to update visible tiles
     const activeTilesLengthRef = useRef(activeTiles.length)
     useEffect(() => {
         activeTilesLengthRef.current = activeTiles.length
     }, [activeTiles])
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+            }
+        }
+    }, [])
+
     const updateVisibleTiles = useCallback(async () => {
-        if (!mapRef.current || !indexData) return
+        if (!mapRef.current || !indexData) {
+            setIsUpdating(false)
+            return
+        }
 
         const bounds = mapRef.current.getBounds()
         const zoom = mapRef.current.getZoom()
+
+        // Cancel previous request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
 
         // If zoomed out, clear active tiles to save resources (WMS will take over)
         if (zoom < 13) {
             if (activeTilesLengthRef.current > 0) {
                 setActiveTiles([])
             }
+            setIsUpdating(false)
+            setNetworkStatus("idle")
             return
         }
 
+        const abortController = new AbortController()
+        abortControllerRef.current = abortController
+        const signal = abortController.signal
+
         const currentId = ++updateId.current
+
         setIsUpdating(true)
         setNetworkStatus("loading")
 
         // Detect slow network
         const slowTimer = setTimeout(() => {
-            if (updateId.current === currentId) {
+            if (updateId.current === currentId && !signal.aborted) {
                 setNetworkStatus("slow")
             }
         }, 2000)
@@ -339,8 +365,9 @@ export default function FarmAtlasElevationBlock() {
         const se = bounds.getSouthEast()
 
         // Convert viewport corners to RD (EPSG:28992)
-        // We catch projection errors if points are outside valid range
         try {
+            if (signal.aborted) return
+
             const rdCoords = [
                 proj4("EPSG:28992").forward([nw.lng, nw.lat]),
                 proj4("EPSG:28992").forward([ne.lng, ne.lat]),
@@ -361,7 +388,7 @@ export default function FarmAtlasElevationBlock() {
 
             // Calculate global min/max for the viewport by sampling
             const samplePoints: { lng: number; lat: number }[] = []
-            const gridSize = 3
+            const gridSize = 2 // Reduced from 3 (9 points instead of 16)
             for (let i = 0; i <= gridSize; i++) {
                 for (let j = 0; j <= gridSize; j++) {
                     const lng = sw.lng + (ne.lng - sw.lng) * (i / gridSize)
@@ -375,8 +402,10 @@ export default function FarmAtlasElevationBlock() {
 
             // Gather values for samples with concurrency limit
             const results: (number | null)[] = []
-            const chunkSize = 4
+            const chunkSize = 2 // Reduced from 4
             for (let i = 0; i < samplePoints.length; i += chunkSize) {
+                if (signal.aborted || updateId.current !== currentId) break
+
                 const chunk = samplePoints.slice(i, i + chunkSize)
                 const chunkResults = await Promise.all(
                     chunk.map(async (p) => {
@@ -428,7 +457,7 @@ export default function FarmAtlasElevationBlock() {
 
             const values = results
 
-            if (updateId.current !== currentId) return
+            if (signal.aborted || updateId.current !== currentId) return
 
             const validValues = values.filter((v) => v !== null) as number[]
             if (validValues.length > 0) {
@@ -477,9 +506,11 @@ export default function FarmAtlasElevationBlock() {
             setActiveTiles(newTiles)
             setNetworkStatus("idle")
         } catch (e) {
-            console.error("Error updating visible tiles:", e)
-            if (updateId.current === currentId) {
-                setNetworkStatus("error")
+            if (!signal.aborted) {
+                console.error("Error updating visible tiles:", e)
+                if (updateId.current === currentId) {
+                    setNetworkStatus("error")
+                }
             }
         } finally {
             if (updateId.current === currentId) {

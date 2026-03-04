@@ -3,6 +3,7 @@ import type {
     Action,
     Permission,
     PrincipalId,
+    PrincipalWithRoles,
     Resource,
     ResourceBead,
     ResourceChain,
@@ -310,8 +311,11 @@ async function getPermission(
  * @param resource_id - The identifier of the specific resource instance.
  * @param principal_id - The identifier of the principal.
  *   If an user id is supplied, the function can also retrieve roles for the user's organizations.
- * @returns A promise that resolves to an array of roles (strings) that the principal has for the given resource.
+ * @returns A promise that resolves to an array with objects for each role that the principal has for the given resource.
  *   Returns an empty array if the principal has no roles for the resource.
+ *   - For example if an organization is found that has access to the resource and the requested user is a member of it,
+ *     an object will be included whose principal_type is "organization", principal_id is the organization id,
+ *     and role is the organization's role for the resource.
  * @throws {Error} If the resource type is invalid or if the database operation fails.
  */
 export async function getRolesOfPrincipalForResource(
@@ -319,7 +323,7 @@ export async function getRolesOfPrincipalForResource(
     resource: Resource,
     resource_id: ResourceId,
     principal_id: PrincipalId,
-): Promise<Role[]> {
+): Promise<PrincipalWithRoles[]> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
             // Validate input
@@ -332,9 +336,22 @@ export async function getRolesOfPrincipalForResource(
                 ? principal_id
                 : [principal_id]
 
-            const result = await tx
+            const result: {
+                principal_id: string
+                role: Role
+                as_organization_member: boolean
+                as_organization: boolean
+            }[] = await tx
                 .select({
                     role: authZSchema.role.role,
+                    principal_id: authZSchema.role.principal_id,
+                    as_organization_member: isNotNull(
+                        authNSchema.member.userId,
+                    ),
+                    as_organization: and(
+                        isNotNull(authNSchema.organization.id),
+                        inArray(authZSchema.role.principal_id, principal_ids),
+                    ),
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -342,6 +359,13 @@ export async function getRolesOfPrincipalForResource(
                     eq(
                         authZSchema.role.principal_id,
                         authNSchema.member.organizationId,
+                    ),
+                )
+                .leftJoin(
+                    authNSchema.organization,
+                    eq(
+                        authZSchema.role.principal_id,
+                        authNSchema.organization.id,
                     ),
                 )
                 .where(
@@ -364,11 +388,29 @@ export async function getRolesOfPrincipalForResource(
                         isNull(authZSchema.role.deleted),
                     ),
                 )
-
-            const roles = result.map((item: { role: string }) => item.role)
-
-            // Make sure no duplicate roles are present
-            return [...new Set(roles)]
+            const deduped = new Map<
+                string,
+                {
+                    principal_id: string
+                    role: Role
+                    principal_type: "user" | "organization"
+                }
+            >()
+            for (const item of result) {
+                const principal_type =
+                    item.as_organization || item.as_organization_member
+                        ? "organization"
+                        : "user"
+                const key = `${principal_type}:${item.principal_id}:${item.role}`
+                if (!deduped.has(key)) {
+                    deduped.set(key, {
+                        principal_id: item.principal_id,
+                        role: item.role,
+                        principal_type,
+                    })
+                }
+            }
+            return [...deduped.values()]
         })
     } catch (err) {
         throw handleError(err, "Exception for getRolesOfPrincipalForResource", {

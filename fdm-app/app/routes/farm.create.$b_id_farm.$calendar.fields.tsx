@@ -1,4 +1,4 @@
-import { getFarm, getFields } from "@svenvw/fdm-core"
+import { getCurrentSoilData, getFarm, getFields } from "@nmi-agro/fdm-core"
 import {
     data,
     type LoaderFunctionArgs,
@@ -74,8 +74,43 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             timeframe,
         )
 
+        // Get soil status for each field
+        const soilStatus: Record<string, "estimated" | "measured" | "missing"> =
+            {}
+
+        await Promise.all(
+            fields.map(async (field) => {
+                const currentSoilData = await getCurrentSoilData(
+                    fdm,
+                    session.principal_id,
+                    field.b_id,
+                    timeframe,
+                )
+
+                if (currentSoilData.length === 0) {
+                    soilStatus[field.b_id] = "missing"
+                } else {
+                    const sources = new Set(
+                        currentSoilData.map((i) => i.a_source),
+                    )
+                    const hasMeasured = Array.from(sources).some(
+                        (s) => s !== "nl-other-nmi",
+                    )
+
+                    if (hasMeasured) {
+                        soilStatus[field.b_id] = "measured"
+                    } else if (sources.has("nl-other-nmi")) {
+                        soilStatus[field.b_id] = "estimated"
+                    } else {
+                        soilStatus[field.b_id] = "missing"
+                    }
+                }
+            }),
+        )
+
         return {
             fields: fields,
+            soilStatus: soilStatus,
             b_id_farm: b_id_farm,
             b_name_farm: farm.b_name_farm,
             calendar: calendar,
@@ -88,7 +123,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // Main
 export default function Index() {
     const loaderData = useLoaderData<typeof loader>()
-    const { fields, b_id_farm, b_name_farm, calendar } = loaderData
+    const { fields, soilStatus, b_id_farm, b_name_farm, calendar } = loaderData
 
     return (
         <SidebarInset>
@@ -126,6 +161,7 @@ export default function Index() {
                         <div className="flex flex-col space-y-0 lg:flex-row lg:space-x-4 lg:space-y-0">
                             <NewFieldsSidebar
                                 fields={fields}
+                                soilStatus={soilStatus}
                                 b_id_farm={b_id_farm}
                                 calendar={calendar}
                                 isFarmCreateWizard={true}

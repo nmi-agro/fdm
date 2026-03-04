@@ -58,7 +58,7 @@ export default function Verify() {
     const { code, redirectTo } = useLoaderData<typeof loader>()
     const actionData = useActionData<typeof action>()
     const navigation = useNavigation()
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting = navigation.state !== "idle"
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onSubmit",

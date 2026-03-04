@@ -1,4 +1,4 @@
-import { getFarm } from "@svenvw/fdm-core"
+import { getFarm } from "@nmi-agro/fdm-core"
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"

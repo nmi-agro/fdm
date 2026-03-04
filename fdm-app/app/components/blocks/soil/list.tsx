@@ -1,7 +1,7 @@
-import type { SoilParameterDescription } from "@svenvw/fdm-core"
+import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
-import { NavLink } from "react-router"
+import { NavLink, type useFetcher } from "react-router"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
@@ -15,14 +15,11 @@ export function SoilAnalysesList({
 }: {
     soilAnalyses: SoilAnalysis[]
     soilParameterDescription: SoilParameterDescription
-    fetcher: {
-        state: string
-        submit: (data: { a_id: string }, options: { method: string }) => void
-    }
+    fetcher: ReturnType<typeof useFetcher>
     canModifySoilAnalysis?: Record<string, boolean>
 }) {
     const handleDelete = (a_id: string) => {
-        if (fetcher.state === "submitting") return
+        if (fetcher.state !== "idle") return
 
         fetcher.submit({ a_id }, { method: "DELETE" })
     }
@@ -39,6 +36,11 @@ export function SoilAnalysesList({
                     )
                     const sourceLabel =
                         sourceOption?.label || analysis.a_source || "Onbekend"
+
+                    const isDeleting =
+                        fetcher.state !== "idle" &&
+                        fetcher.formData?.get("a_id") === analysis.a_id
+
                     return (
                         <div
                             className="grid grid-cols-3 gap-x-3 items-center"
@@ -94,7 +96,7 @@ export function SoilAnalysesList({
                                     <Button
                                         variant="destructive"
                                         disabled={
-                                            fetcher.state === "submitting" ||
+                                            fetcher.state !== "idle" ||
                                             analysis.a_source === "nl-other-nmi"
                                         }
                                         onClick={() => {
@@ -108,7 +110,7 @@ export function SoilAnalysesList({
                                                 : "",
                                         )}
                                     >
-                                        {fetcher.state === "submitting" ? (
+                                        {isDeleting ? (
                                             <div className="flex items-center space-x-2">
                                                 <Spinner />
                                                 <span>Verwijderen...</span>

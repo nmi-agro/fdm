@@ -57,7 +57,11 @@ export type FieldRow = {
     m_cropresidue_ending: [Date, boolean][]
     b_lu_variety: Record<string, number>
     b_lu_croprotation: string
-    b_lu_harvest_date: Date[]
+    harvests: {
+        b_lu: string
+        b_id_harvesting: string
+        b_lu_harvest_date: Date | null
+    }[]
     b_lu_harvestable: "once" | "multiple" | "none"
     calendar: string
     b_lu_start: Date[]
@@ -189,6 +193,16 @@ export const columns: ColumnDef<RotationExtended>[] = [
                 )
             }
             const cultivation = (row.getParentRow() ?? row).original as CropRow
+            const tooltipMessageNumHarvests =
+                cultivation.b_lu_harvestable === "multiple"
+                    ? 0
+                    : (row.original.type === "crop"
+                          ? row.original.fields
+                          : [row.original]
+                      ).reduce(
+                          (sum, fieldRow) => sum + fieldRow.harvests.length,
+                          0,
+                      )
             return cultivation.b_lu_harvestable !== "multiple" ? (
                 <span className="whitespace-nowrap">
                     <Tooltip>
@@ -199,7 +213,11 @@ export const columns: ColumnDef<RotationExtended>[] = [
                             />
                         </TooltipTrigger>
                         <TooltipContent>
-                            U zou in plaats daarvan een oogst moeten toevoegen.
+                            {tooltipMessageNumHarvests > 1
+                                ? "U zou in plaats daarvan de huidige oogsten bijwerken."
+                                : tooltipMessageNumHarvests === 1
+                                  ? "U zou in plaats daarvan de huidige oogst bijwerken."
+                                  : "U zou in plaats daarvan een oogst moeten toevoegen."}
                         </TooltipContent>
                     </Tooltip>
                 </span>
@@ -217,7 +235,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
         enableHiding: true, // Enable hiding for mobile
         cell: ({ row }) => {
             const cultivation = row.original
-            return <HarvestDatesDisplay cultivation={cultivation} />
+            return <HarvestDatesDisplay row={cultivation} />
         },
     },
     {

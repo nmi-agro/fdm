@@ -1,4 +1,4 @@
-import type { SoilAnalysis } from "@svenvw/fdm-core"
+import type { SoilAnalysis } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
 import type { SoilAnalysisPicked as NitrogenSoilAnalysisPicked } from "../nitrogen/types"
 import type { SoilAnalysisPicked as OrganicMatterSoilAnalysisPicked } from "../organic-matter/types"

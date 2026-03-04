@@ -62,7 +62,7 @@ export default function SignIn() {
     }, [])
 
     const isSubmitting =
-        (navigation.state === "submitting" &&
+        (navigation.state !== "idle" &&
             navigation.formAction?.startsWith("/signin/verify")) ||
         isAutoSubmitting
 

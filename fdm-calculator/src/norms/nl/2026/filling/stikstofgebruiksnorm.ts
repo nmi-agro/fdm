@@ -1,4 +1,4 @@
-import { type Cultivation, withCalculationCache } from "@svenvw/fdm-core"
+import { type Cultivation, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
 import { getRegion } from "../../2025/value/stikstofgebruiksnorm"

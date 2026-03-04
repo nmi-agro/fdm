@@ -1,4 +1,4 @@
-import type { Cultivation, Field, SoilAnalysis } from "@svenvw/fdm-core"
+import type { Cultivation, Field, SoilAnalysis } from "@nmi-agro/fdm-core"
 
 /**
  * Represents the collected input for a single cultivation, required for NL 2026 norm calculations.

@@ -1,8 +1,13 @@
-import type { Invitation, Member, Organization } from "better-auth/plugins"
+import type {
+    Invitation,
+    Member,
+    Organization,
+    OrganizationRole,
+} from "better-auth/plugins"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
-import { useLoaderData } from "react-router"
+import { useEffect, useState } from "react"
+import { data, useFetcher, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { z } from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -24,71 +29,100 @@ import {
     SelectValue,
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
+import { Spinner } from "~/components/ui/spinner"
 import { auth, getSession } from "~/lib/auth.server"
-import { renderInvitationEmail, sendEmail } from "~/lib/email.server"
+import { clientConfig } from "~/lib/config"
+import {
+    isInactiveRecipientError,
+    renderInvitationEmail,
+    sendEmail,
+} from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
+import { cn } from "~/lib/utils"
+import type { Route } from "./+types/organization.$slug.members"
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
-    if (!params.slug) {
-        throw handleLoaderError("not found: organization")
-    }
-
-    const session = await getSession(request)
-    const organizations = await auth.api.listOrganizations({
-        headers: request.headers,
-    })
-
-    const organization = organizations.find((org) => org.slug === params.slug)
-
-    if (!organization) {
-        throw handleLoaderError("not found: organization")
-    }
-
-    // Get members of organization
-    const membersListResponse = await auth.api.listMembers({
-        headers: request.headers,
-        query: {
-            organizationId: organization.id,
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Leden - Organisatie | ${clientConfig.name}`,
         },
-    })
-    const members = membersListResponse.members
+        {
+            name: "description",
+            content: "Bekijk en bewerk de leden van jouw organisatie.",
+        },
+    ]
+}
 
-    // Determine permissions
-    const currentUserMember = members.find((m) => m.userId === session.user.id)
-    const role = currentUserMember?.role || "viewer"
-    const permissions = {
-        canEdit: role === "owner" || role === "admin",
-        canDelete: role === "owner",
-        canInvite: role === "owner" || role === "admin",
-        canUpdateRoleUser: role === "owner" || role === "admin",
-        canRemoveUser: role === "owner" || role === "admin",
-    }
+export async function loader({ request, params }: Route.LoaderArgs) {
+    try {
+        const session = await getSession(request)
+        const organizations = await auth.api.listOrganizations({
+            headers: request.headers,
+        })
 
-    // Get pending invitations of organization
-    let invitations: Invitation[] = []
-    if (permissions.canInvite) {
-        const invitationsListResponse = await auth.api.listInvitations({
+        const organization = organizations.find(
+            (org) => org.slug === params.slug,
+        )
+
+        if (!organization) {
+            throw data("not found: organization", {
+                status: 404,
+                statusText: "not found: organization",
+            })
+        }
+
+        // Get members of organization
+        const membersListResponse = await auth.api.listMembers({
             headers: request.headers,
             query: {
                 organizationId: organization.id,
             },
         })
-        invitations = (
-            Array.isArray(invitationsListResponse)
-                ? invitationsListResponse
-                : []
-        ).filter((inv) => inv.status === "pending")
-    }
+        const members = membersListResponse.members
 
-    return {
-        organization: {
-            ...organization,
-            permissions,
-            description: organization.metadata?.description || "",
-        },
-        invitations: invitations,
-        members: members,
+        // Determine permissions
+        const currentUserMember = members.find(
+            (m) => m.userId === session.principal_id,
+        )
+        const role = currentUserMember?.role || "viewer"
+        const permissions = {
+            canEdit: role === "owner" || role === "admin",
+            canDelete: role === "owner",
+            canInvite: role === "owner" || role === "admin",
+            canUpdateRoleUser: role === "owner" || role === "admin",
+            canRemoveUser: role === "owner" || role === "admin",
+        }
+
+        // Get pending invitations of organization
+        let invitations: Invitation[] = []
+        if (permissions.canInvite) {
+            const invitationsListResponse = await auth.api.listInvitations({
+                headers: request.headers,
+                query: {
+                    organizationId: organization.id,
+                },
+            })
+            invitations = (
+                Array.isArray(invitationsListResponse)
+                    ? invitationsListResponse
+                    : []
+            ).filter((inv) => inv.status === "pending")
+        }
+
+        return {
+            organization: {
+                ...organization,
+                permissions,
+                description: organization.metadata?.description || "",
+            },
+            invitations: invitations,
+            members: members,
+        }
+    } catch (e) {
+        throw handleLoaderError(e)
     }
 }
 
@@ -98,15 +132,13 @@ export default function OrganizationIndex() {
     const permissions = organization.permissions
 
     return (
-        <main className="container">
+        <main>
+            <FarmTitle
+                title={`Leden van ${organization.name}`}
+                description="Beheer de leden met toegang tot deze organisatie."
+                action={{ label: "Terug naar overzicht", to: "./.." }}
+            />
             <div className="max-w-3xl mx-auto px-4">
-                {/* Changed this div to a flex container with justify-between */}
-                <div className="mb-8 flex items-center justify-between">
-                    <FarmTitle
-                        title={organization.name}
-                        description={organization.description || ""}
-                    />
-                </div>
                 <div className="grid lg:grid-cols-1 gap-4">
                     <Card>
                         <CardHeader>
@@ -188,18 +220,20 @@ type MemberWithUser = Member & {
     }
 }
 
+type OrganizationMemberPermissions = {
+    canEdit: boolean
+    canDelete: boolean
+    canInvite: boolean
+    canUpdateRoleUser: boolean
+    canRemoveUser: boolean
+}
+
 const MemberRow = ({
     member,
     permissions,
 }: {
     member: MemberWithUser
-    permissions: {
-        canEdit: boolean
-        canDelete: boolean
-        canInvite: boolean
-        canUpdateRoleUser: boolean
-        canRemoveUser: boolean
-    }
+    permissions: OrganizationMemberPermissions
 }) => {
     const initials = (member.user.name || "?").charAt(0).toUpperCase()
     return (
@@ -215,7 +249,7 @@ const MemberRow = ({
                     </p>
                     {!permissions.canUpdateRoleUser ? (
                         <p className="text-sm text-muted-foreground">
-                            {member.role}
+                            {getOrganizationRoleLabel(member.role)}
                         </p>
                     ) : null}
                 </div>
@@ -232,18 +266,39 @@ const MemberAction = ({
     permissions,
 }: {
     member: MemberWithUser
-    permissions: {
-        canEdit: boolean
-        canDelete: boolean
-        canInvite: boolean
-        canUpdateRoleUser: boolean
-        canRemoveUser: boolean
-    }
+    permissions: OrganizationMemberPermissions
 }) => {
+    const fetcher = useFetcher()
+    const disabled = fetcher.state !== "idle" && Boolean(fetcher.formData)
+    const [role, setRole] = useState(member.role)
+
+    function submitRoleChange(role: OrganizationRole["role"]) {
+        fetcher.submit(
+            {
+                intent: "update_role",
+                memberId: member.id,
+                role,
+            },
+            { method: "post" },
+        )
+    }
+
+    useEffect(() => {
+        setRole(member.role)
+    }, [member.role])
+
     return (
-        <form method="post" className="flex items-center space-x-4">
+        <fetcher.Form method="post" className="flex items-center space-x-4">
+            <Spinner
+                className={cn(fetcher.state !== "submitting" && "invisible")}
+            />
             <input type="hidden" name="memberId" value={member.id} />
-            <Select defaultValue={member.role} name="role">
+            <Select
+                name="role"
+                value={role}
+                onValueChange={submitRoleChange}
+                disabled={disabled}
+            >
                 <SelectTrigger className="ml-auto w-27.5">
                     <SelectValue placeholder="Select" />
                 </SelectTrigger>
@@ -259,23 +314,17 @@ const MemberAction = ({
                     className="shrink-0"
                     name="intent"
                     value="remove_user"
+                    disabled={disabled}
                 >
                     Verwijder
                 </Button>
             ) : null}
-            <Button
-                type="submit"
-                className="shrink-0"
-                name="intent"
-                value="update_role"
-            >
-                Bijwerken
-            </Button>
-        </form>
+        </fetcher.Form>
     )
 }
 
 const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
+    const fetcher = useFetcher()
     return (
         <div className="flex items-center justify-between space-x-4">
             <div className="flex items-center space-x-4">
@@ -289,7 +338,7 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
                         {invitation.email}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                        {invitation.role}
+                        {getOrganizationRoleLabel(invitation.role)}
                     </p>
                 </div>
             </div>
@@ -302,22 +351,29 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
                     })}
                 </p>
             </div>
-            <form method="post">
+            <fetcher.Form
+                method="post"
+                className="flex flex-row items-center gap-2"
+            >
                 <input
                     type="hidden"
                     name="invitation_id"
                     value={invitation.id}
                 />
                 <input type="hidden" name="email" value={invitation.email} />
+                <Spinner
+                    className={cn(fetcher.state === "idle" && "invisible")}
+                />
                 <Button
                     variant="destructive"
                     className="shrink-0"
                     name="intent"
                     value="cancel_invite"
+                    disabled={fetcher.state !== "idle"}
                 >
                     Annuleer
                 </Button>
-            </form>
+            </fetcher.Form>
         </div>
     )
 }
@@ -327,8 +383,14 @@ const InvitationForm = ({
 }: {
     organizationId: Organization["id"]
 }) => {
+    const fetcher = useFetcher()
+    const [email, setEmail] = useState("")
+    useEffect(() => {
+        if (fetcher.state === "idle" && fetcher.data?.ok) setEmail("")
+    }, [fetcher.state, fetcher.data])
+
     return (
-        <form method="post" className="flex space-x-2">
+        <fetcher.Form method="post" className="flex space-x-2">
             <input
                 type="hidden"
                 name="organization_id"
@@ -336,8 +398,12 @@ const InvitationForm = ({
             />
             <Input
                 type="email"
-                placeholder="Vul een emailadres in"
+                placeholder="Vul een e-mailadres in"
                 name="email"
+                value={email}
+                onChange={(e) => {
+                    setEmail(e.target.value)
+                }}
             />
             <Select defaultValue="member" name="role">
                 <SelectTrigger className="ml-auto w-27.5">
@@ -354,16 +420,20 @@ const InvitationForm = ({
                 className="shrink-0"
                 name="intent"
                 value="invite_user"
+                disabled={fetcher.state !== "idle"}
             >
                 Uitnodigen
+                <Spinner className={cn(fetcher.state === "idle" && "hidden")} />
             </Button>
-        </form>
+        </fetcher.Form>
     )
 }
 
 const FormSchema = z.object({
-    email: z.email().optional(),
-    role: z.enum(["owner", "admin", "member"]).optional(),
+    email: z.email({ error: "Ongeldig e-mailadres" }).optional(),
+    role: z
+        .enum(["owner", "admin", "member"], { error: "Ongeldige rol" })
+        .optional(),
     memberId: z.string().optional(),
     invitation_id: z.string().optional(),
     organization_id: z.string().optional(),
@@ -375,17 +445,33 @@ const FormSchema = z.object({
     ]),
 })
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params }: Route.ActionArgs) {
     try {
         if (!params.slug) {
             throw handleActionError("not found: organization")
         }
 
-        const formValues = await extractFormValuesFromRequest(
-            request,
-            FormSchema,
-        )
         const session = await getSession(request)
+
+        let formValues: z.infer<typeof FormSchema> | undefined
+        try {
+            formValues = await extractFormValuesFromRequest(request, FormSchema)
+        } catch (e) {
+            const formValuesResponse = (await e) as { data?: string }
+            if (formValuesResponse.data) {
+                try {
+                    const errorData = JSON.parse(formValuesResponse.data) as {
+                        message: string
+                    }[]
+                    if (Array.isArray(errorData) && errorData.length > 0) {
+                        return dataWithError(null, {
+                            message: errorData[0].message,
+                        })
+                    }
+                } catch (_jsonParseError) {}
+            }
+            throw e
+        }
 
         const organizations = await auth.api.listOrganizations({
             headers: request.headers,
@@ -410,30 +496,63 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 return handleActionError("missing: role")
             }
 
-            const invitation = await auth.api.createInvitation({
-                headers: request.headers,
-                body: {
-                    email: formValues.email,
-                    role: formValues.role,
-                    organizationId: organizationId,
-                },
-            })
+            let invitation:
+                | Awaited<ReturnType<typeof auth.api.createInvitation>>
+                | undefined
+            try {
+                invitation = await auth.api.createInvitation({
+                    headers: request.headers,
+                    body: {
+                        email: formValues.email,
+                        role: formValues.role,
+                        organizationId: organizationId,
+                    },
+                })
 
-            // better-auth might not send email by default depending on config.
-            // We'll send it manually using our template.
-            if (invitation?.id) {
-                const invitationEmail = await renderInvitationEmail(
-                    formValues.email,
-                    session.user,
-                    organizationName,
-                    invitation.id,
+                // better-auth might not send email by default depending on config.
+                // We'll send it manually using our template.
+                if (invitation?.id) {
+                    const invitationEmail = await renderInvitationEmail(
+                        formValues.email,
+                        session.user,
+                        organizationName,
+                        invitation.id,
+                    )
+                    await sendEmail(invitationEmail)
+                }
+                return dataWithSuccess(
+                    { ok: true },
+                    {
+                        message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
+                    },
                 )
-                await sendEmail(invitationEmail)
+            } catch (sendingError) {
+                if (invitation?.id) {
+                    try {
+                        await auth.api.cancelInvitation({
+                            headers: request.headers,
+                            body: {
+                                invitationId: invitation.id,
+                            },
+                        })
+                    } catch (cancellationError) {
+                        handleActionError(cancellationError)
+                    }
+                }
+                if (isInactiveRecipientError(sendingError)) {
+                    console.error(
+                        `Attempted to send organization invitation to inactive email: ${formValues.email}`,
+                    )
+                    return dataWithError(null, {
+                        message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
+                    })
+                }
+                handleActionError(sendingError)
+                return dataWithError(null, {
+                    message:
+                        "Er is iets fout gegaan. Neem contact op met de ondersteuning voor hulp.",
+                })
             }
-
-            return dataWithSuccess(null, {
-                message: `Gebruiker ${formValues.email} is uitgenodigd! 🎉`,
-            })
         }
         if (formValues.intent === "update_role") {
             if (!formValues.memberId) {
@@ -485,6 +604,26 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
         throw new Error("invalid intent")
     } catch (error) {
+        if (error) {
+            const errorResponse = error as { body?: { code?: string } }
+            if (errorResponse.body?.code) {
+                const handledMessage = {
+                    YOU_CANNOT_LEAVE_THE_ORGANIZATION_AS_THE_ONLY_OWNER:
+                        "Je kunt de organisatie niet verlaten als er geen andere eigenaren zijn.",
+                    YOU_CANNOT_LEAVE_THE_ORGANIZATION_WITHOUT_AN_OWNER:
+                        "Jouw organisatie moet minimaal één eigenaar hebben.",
+                }[errorResponse.body.code]
+
+                if (handledMessage) {
+                    return dataWithError(
+                        { error: true },
+                        {
+                            message: handledMessage,
+                        },
+                    )
+                }
+            }
+        }
         throw handleActionError(error)
     }
 }

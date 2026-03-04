@@ -22,6 +22,12 @@ export type PrincipalId =
     | authZSchema.roleTypeSelect["principal_id"]
     | authZSchema.roleTypeSelect["principal_id"][]
 
+export type PrincipalWithRoles = {
+    principal_id: string
+    role: Role
+    principal_type: "user" | "organization"
+}
+
 export type ResourceId = authZSchema.roleTypeSelect["resource_id"]
 
 export interface ResourceBead {

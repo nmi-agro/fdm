@@ -7,6 +7,7 @@ import { generateFromEmail } from "unique-username-generator"
 import * as authNSchema from "./db/schema-authn"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
+import { autoAcceptInvitationsForNewUser } from "./invitation"
 
 export type BetterAuth = FdmAuth
 
@@ -223,6 +224,43 @@ export function createFdmAuth(
                                     ),
                                 })
                                 .where(eq(authNSchema.user.id, user.id))
+                        }
+
+                        // Auto-accept pending invitations if email is already verified (e.g. social login)
+                        if (user.emailVerified) {
+                            try {
+                                await autoAcceptInvitationsForNewUser(
+                                    fdm,
+                                    user.email,
+                                    user.id,
+                                )
+                            } catch (err) {
+                                console.warn(
+                                    "autoAcceptInvitationsForNewUser failed for user",
+                                    user.id,
+                                    err,
+                                )
+                            }
+                        }
+                    },
+                },
+                update: {
+                    after: async (user) => {
+                        // Auto-accept pending invitations when email becomes verified
+                        if (user.emailVerified) {
+                            try {
+                                await autoAcceptInvitationsForNewUser(
+                                    fdm,
+                                    user.email,
+                                    user.id,
+                                )
+                            } catch (err) {
+                                console.warn(
+                                    "autoAcceptInvitationsForNewUser failed for user",
+                                    user.id,
+                                    err,
+                                )
+                            }
                         }
                     },
                 },

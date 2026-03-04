@@ -38,7 +38,7 @@ import type {
 } from "react-router"
 import { Form, redirect, useSearchParams } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import { redirectWithSuccess } from "remix-toast"
+import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
 import {
     Accordion,
@@ -67,6 +67,7 @@ import { Spinner } from "~/components/ui/spinner"
 import { auth } from "~/lib/auth.server"
 import { signIn } from "~/lib/auth-client"
 import { clientConfig } from "~/lib/config"
+import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { modifySearchParams } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
@@ -1578,7 +1579,7 @@ export default function SignIn() {
                                     </li>
                                     <li>
                                         <a
-                                            href="https://github.com/SvenVw/fdm"
+                                            href="https://github.com/nmi-agro/fdm"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="hover:text-primary flex items-center gap-2"
@@ -1669,7 +1670,19 @@ export async function action({ request }: ActionFunctionArgs) {
             `Een aanmeldcode is verstuurd naar ${email}.`,
         )
     } catch (error) {
-        console.error("Error sending magic link") // Don't log full error details
+        if (isInactiveRecipientError(error)) {
+            console.error(
+                `Attempted to send magic link to inactive email: ${email}`,
+            )
+            return dataWithError(null, {
+                message: `We kunnen geen e-mails naar ${formValues.email} sturen omdat het als inactief is gemarkeerd. Neem contact op met de ondersteuning voor hulp.`,
+            })
+        }
+
         handleActionError(error)
+        return dataWithError(null, {
+            message:
+                "Er is iets fout gegaan. Neem contact op met de ondersteuning voor hulp.",
+        })
     }
 }

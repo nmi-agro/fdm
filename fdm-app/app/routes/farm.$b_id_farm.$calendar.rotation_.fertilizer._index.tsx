@@ -6,7 +6,7 @@ import {
     getFertilizerParametersDescription,
     getFertilizers,
     getFields,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { AlertTriangle, Info } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
@@ -305,7 +305,8 @@ export default function FarmRotationFertilizerAddIndex() {
         )
     }, [loaderData.selectedFields])
 
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting =
+        navigation.state !== "idle" && Boolean(navigation.formData)
 
     const handleSelectionChange = () => {
         const newSearchParams = new URLSearchParams(searchParams)

@@ -9,7 +9,7 @@ import type {
     NitrogenSupplyFixationNumeric,
     NitrogenSupplyMineralizationNumeric,
     NitrogenSupplyNumeric,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import type React from "react"

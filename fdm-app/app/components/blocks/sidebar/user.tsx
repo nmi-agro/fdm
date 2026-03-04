@@ -1,5 +1,6 @@
 import {
     BadgeCheck,
+    Building,
     ChevronsUpDown,
     Cookie,
     Languages,
@@ -123,6 +124,13 @@ export function SidebarUser({
                                     </span>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <NavLink to="/organization">
+                                    <Building className="mr-2 h-4 w-4" />
+                                    Organisaties
+                                </NavLink>
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
                                 <DropdownMenuItem

@@ -8,7 +8,7 @@ import {
     getHarvests,
     getParametersForHarvestCat,
     removeHarvest,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { AlertTriangle, Info } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
@@ -376,7 +376,8 @@ export default function FarmRotationHarvestAddIndex() {
         )
     }, [loaderData.selectedFields])
 
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting =
+        navigation.state === "submitting" && Boolean(navigation.formData)
 
     const handleSelectionChange = () => {
         const newSearchParams = new URLSearchParams(searchParams)
@@ -928,6 +929,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
             request,
             FormSchema,
         )
+        if (!formValues.b_lu_harvest_date) {
+            const errors = [
+                {
+                    path: "b_lu_harvest_date",
+                    message: "Selecteer een oogstdatum",
+                },
+            ]
+
+            throw new Error(JSON.stringify(errors))
+        }
 
         for (const fieldId of fieldIds) {
             const cultivationsForField = await getCultivations(

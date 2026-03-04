@@ -11,7 +11,9 @@ export const FormSchema = z
                         ? "Selecteer een oogstdatum"
                         : "Selecteer een geldige oogstdatum",
             })
+            .nullable()
             .transform((val, ctx) => {
+                if (val === null) return val
                 const date = new Date(val)
                 if (Number.isNaN(date.getTime())) {
                     ctx.addIssue({

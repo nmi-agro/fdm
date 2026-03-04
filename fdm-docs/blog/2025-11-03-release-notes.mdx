@@ -6,11 +6,11 @@ tags: [release, fdm-app, fdm-calculator, fdm-core, fdm-data, fdm-docs]
 date: 2025-11-03
 ---
 
-This post outlines the October 2025 updates of the FDM libraries: `@svenvw/fdm-app`, `@svenvw/fdm-calculator`, `@svenvw/fdm-core`, and `@svenvw/fdm-data`. This release introduces a wide range of improvements across the application, calculation engine, and data management, focusing on enhanced user experience, improved performance, and expanded functionality.
+This post outlines the October 2025 updates of the FDM libraries: `@nmi-agro/fdm-app`, `@nmi-agro/fdm-calculator`, `@nmi-agro/fdm-core`, and `@nmi-agro/fdm-data`. This release introduces a wide range of improvements across the application, calculation engine, and data management, focusing on enhanced user experience, improved performance, and expanded functionality.
 
 {/* truncate */}
 
-### FDM Application Enhancements (`@svenvw/fdm-app`)
+### FDM Application Enhancements (`@nmi-agro/fdm-app`)
 
 *   **Fertilizer Management:**
     *   Users can now edit previously created fertilizer applications, both for individual fields or a given cultivation type.
@@ -36,7 +36,7 @@ This post outlines the October 2025 updates of the FDM libraries: `@svenvw/fdm-a
     *   The atlas no longer redirects the users to an invalid route when they don't have any farms.
     *   Fixed link in header of fertilizers.
 
-### FDM Calculator Upgrades (`@svenvw/fdm-calculator`)
+### FDM Calculator Upgrades (`@nmi-agro/fdm-calculator`)
 
 *   **Nitrogen Balance:**
     *   The nitrogen balance can now be calculated per field instead of only per farm.
@@ -49,7 +49,7 @@ This post outlines the October 2025 updates of the FDM libraries: `@svenvw/fdm-a
 *   **Performance:**
     *   Added cached versions of main calculator functions for `balance` and `norms` to enable caching.
 
-### FDM Core Developments (`@svenvw/fdm-core`)
+### FDM Core Developments (`@nmi-agro/fdm-core`)
 
 *   **Cultivation:**
     *   Adds `b_lu_start_default` and `b_date_harvest_default` to cultivations catalogue as the default start and harvest dates of a cultivation.
@@ -68,14 +68,14 @@ This post outlines the October 2025 updates of the FDM libraries: `@svenvw/fdm-a
 *   **Performance:**
     *   Add new db schema `fdm-calculator` to cache calculation results and store calculation errors. The decorator function `withCalculationCache` enables adds the functionality to add caching to calculator functions.
 
-### FDM Data Updates (`@svenvw/fdm-data`)
+### FDM Data Updates (`@nmi-agro/fdm-data`)
 
 *   **Cultivation Catalogue:**
     *   Adds `b_lu_start_default` and `b_date_harvest_default` to BRP catalogue.
 *   **Fertilizer Catalogue:**
     *   Add `p_type_rvo` to `baat` catalogue.
 
-### FDM Docs (`@svenvw/fdm-docs`)
+### FDM Docs (`@nmi-agro/fdm-docs`)
 
 *   Update and extend the documentation for 2025 Dutch Fertilizer Application Norms, e.g. explaining how filling is calculated.
 

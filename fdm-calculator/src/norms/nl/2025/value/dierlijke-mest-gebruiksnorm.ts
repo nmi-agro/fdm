@@ -1,4 +1,4 @@
-import { type Field, withCalculationCache } from "@svenvw/fdm-core"
+import { type Field, withCalculationCache } from "@nmi-agro/fdm-core"
 import pkg from "../../../../package"
 import { getGeoTiffValue } from "../../../../shared/geotiff"
 import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"

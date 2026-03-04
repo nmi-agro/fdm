@@ -56,7 +56,8 @@ export function getSearchParams(href: string) {
 
 /**
  * Checks if the given URL-like might be a full URL, and if so, if it is of the
- * origin given. No checks are performed if no protocol in the URL is detected.
+ * origin given. No origin checks are performed if neither a URI scheme nor a
+ * protocol-relative prefix (`//`) is detected.
  *
  * @param href URL-like
  * @param origin origin, like `example.com` to check if full URL is detected
@@ -64,7 +65,22 @@ export function getSearchParams(href: string) {
  */
 export function isOfOrigin(href: string, origin: string) {
     try {
-        return !href.includes("://") || new URL(href).origin === origin
+        // Explicitly reject protocol-relative URLs (e.g., //example.com)
+        // These can be exploited for open redirects when used in browser contexts
+        if (href.startsWith("//")) return false
+
+        // Allow root-relative paths (e.g., /path/to/page)
+        if (href.startsWith("/")) return true
+
+        // If no URI scheme is present, treat as relative/path-like input
+        const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(href)
+        if (!hasScheme) return true
+
+        // For absolute URLs, only allow same-origin HTTP(S)
+        const parsed = new URL(href)
+        const isHttp =
+            parsed.protocol === "http:" || parsed.protocol === "https:"
+        return isHttp && parsed.origin === origin
     } catch {
         return false
     }

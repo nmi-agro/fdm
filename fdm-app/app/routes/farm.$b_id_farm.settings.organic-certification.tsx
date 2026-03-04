@@ -4,7 +4,7 @@ import {
     checkPermission,
     listOrganicCertifications,
     removeOrganicCertification,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ScrollText, Trash2 } from "lucide-react"
@@ -172,7 +172,7 @@ export default function OrganicCertificationSettings() {
     const navigation = useNavigation()
 
     const isDeleting =
-        navigation.state === "submitting" && navigation.formMethod === "DELETE"
+        navigation.state !== "idle" && navigation.formMethod === "DELETE"
 
     const form = useRemixForm<z.infer<typeof formSchema>>({
         mode: "onTouched",

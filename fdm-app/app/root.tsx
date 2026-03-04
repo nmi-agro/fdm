@@ -19,6 +19,7 @@ import { getToast } from "remix-toast"
 import { toast as notify } from "sonner"
 import { Banner } from "~/components/custom/banner"
 import { ErrorBlock } from "~/components/custom/error"
+import { NavigationProgress } from "~/components/custom/navigation-progress"
 import { Toaster } from "~/components/ui/sonner"
 import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
@@ -91,7 +92,7 @@ export function Layout() {
         if (posthogConfig) {
             try {
                 posthog.init(posthogConfig.key, {
-                    api_host: "/ph",
+                    api_host: "/ingest",
                     ui_host: posthogConfig.host,
                     person_profiles: "always",
                     loaded: () => {},
@@ -152,6 +153,7 @@ export function Layout() {
             </head>
             <body>
                 <Outlet />
+                <NavigationProgress />
                 <Banner />
                 <Toaster />
                 <ErrorBoundary error={null} params={{}} />

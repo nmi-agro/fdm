@@ -6,7 +6,7 @@ tags: [release, fdm-core, fdm-calculator, fdm-data]
 date: 2025-06-26
 ---
 
-This post outlines the recent updates to the FDM libraries: `@svenvw/fdm-core`, `@svenvw/fdm-calculator`, and `@svenvw/fdm-data`. This release focuses on expanding our fertilizer data ecosystem, refining the nitrogen balance calculations with ammonia emission tracking, and improving the overall developer experience.
+This post outlines the recent updates to the FDM libraries: `@nmi-agro/fdm-core`, `@nmi-agro/fdm-calculator`, and `@nmi-agro/fdm-data`. This release focuses on expanding our fertilizer data ecosystem, refining the nitrogen balance calculations with ammonia emission tracking, and improving the overall developer experience.
 
 {/* truncate */}
 
@@ -14,49 +14,49 @@ This post outlines the recent updates to the FDM libraries: `@svenvw/fdm-core`, 
 
 This release significantly enhances fertilizer management by introducing a new data catalogue and expanding the available parameters, providing users with more comprehensive and flexible data.
 
-*   **Introduction of the `baat` Fertilizer Catalogue (`@svenvw/fdm-data`, `@svenvw/fdm-core`):**
-    *   A new fertilizer catalogue, `baat`, has been added to `@svenvw/fdm-data`. This catalogue provides an alternative and supplementary source of standardized fertilizer data, giving users more options to choose from.
-    *   To support this, `@svenvw/fdm-core` now includes functionality to sync the `baat` catalogue, ensuring that the data is readily available within the FDM ecosystem.
+*   **Introduction of the `baat` Fertilizer Catalogue (`@nmi-agro/fdm-data`, `@nmi-agro/fdm-core`):**
+    *   A new fertilizer catalogue, `baat`, has been added to `@nmi-agro/fdm-data`. This catalogue provides an alternative and supplementary source of standardized fertilizer data, giving users more options to choose from.
+    *   To support this, `@nmi-agro/fdm-core` now includes functionality to sync the `baat` catalogue, ensuring that the data is readily available within the FDM ecosystem.
 
-*   **Expanded Fertilizer Parameters (`@svenvw/fdm-core`, `@svenvw/fdm-data`):**
-    *   To allow for more precise nutrient management, the `fertilizerCatalogue` in `@svenvw/fdm-core` and the SRM catalogue in `@svenvw/fdm-data` have been updated to include `p_no3_rt` (nitrate content) and `p_nh4_rt` (ammonium content).
-    *   A new parameter, `p_ef_nh3`, has been added to the `fertilizerCatalogue` in `@svenvw/fdm-core` to represent the ammonia emission factor of a fertilizer, which is crucial for the new emission calculation features.
+*   **Expanded Fertilizer Parameters (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`):**
+    *   To allow for more precise nutrient management, the `fertilizerCatalogue` in `@nmi-agro/fdm-core` and the SRM catalogue in `@nmi-agro/fdm-data` have been updated to include `p_no3_rt` (nitrate content) and `p_nh4_rt` (ammonium content).
+    *   A new parameter, `p_ef_nh3`, has been added to the `fertilizerCatalogue` in `@nmi-agro/fdm-core` to represent the ammonia emission factor of a fertilizer, which is crucial for the new emission calculation features.
 
-*   **Flexible Application Methods (`@svenvw/fdm-core`, `@svenvw/fdm-data`):**
-    *   The `fertilizerCatalogue` in `@svenvw/fdm-core` now includes the `p_app_method_options` parameter, which defines the possible application methods for a given fertilizer.
-    *   This is complemented by the addition of `p_app_method_options` to the Fertilizer Catalogue in `@svenvw/fdm-data`.
-    *   For developers, the `ApplicationMethods` union type is now exported from `@svenvw/fdm-data`, simplifying the implementation of fertilizer application logic.
+*   **Flexible Application Methods (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`):**
+    *   The `fertilizerCatalogue` in `@nmi-agro/fdm-core` now includes the `p_app_method_options` parameter, which defines the possible application methods for a given fertilizer.
+    *   This is complemented by the addition of `p_app_method_options` to the Fertilizer Catalogue in `@nmi-agro/fdm-data`.
+    *   For developers, the `ApplicationMethods` union type is now exported from `@nmi-agro/fdm-data`, simplifying the implementation of fertilizer application logic.
 
 ### Advanced Nitrogen Balance and Emissions Tracking
 
 We have made significant strides in our nitrogen balance module, with a new focus on environmental impact through emissions tracking.
 
-*   **Ammonia Emission Calculation (`@svenvw/fdm-calculator`):**
-    *   The nitrogen balance calculation in `@svenvw/fdm-calculator` has been enhanced to include the calculation of ammonia emissions. This provides a more complete picture of the farm's nitrogen cycle and its environmental footprint.
+*   **Ammonia Emission Calculation (`@nmi-agro/fdm-calculator`):**
+    *   The nitrogen balance calculation in `@nmi-agro/fdm-calculator` has been enhanced to include the calculation of ammonia emissions. This provides a more complete picture of the farm's nitrogen cycle and its environmental footprint.
     *   This is a critical feature for agronomists looking to improve nutrient use efficiency and for developers building sustainability-focused tools.
 
-*   **Expanded `calculateDose` Output (`@svenvw/fdm-calculator`):**
+*   **Expanded `calculateDose` Output (`@nmi-agro/fdm-calculator`):**
     *   The `calculateDose` function now provides a more detailed output. In addition to the existing nutrients, the calculation now includes doses for the macronutrients Calcium (`Ca`) and Sodium (`Na`), as well as the micronutrients Copper (`Cu`), Zinc (`Zn`), Cobalt (`Co`), Manganese (`Mn`), Molybdenum (`Mo`), and Boron (`B`). This allows for more granular analysis and planning of fertilizer applications. The output also includes the doses of individual applications.
 
 ### Improved Developer Experience and Tooling
 
 This release includes several updates aimed at making the FDM libraries easier to use for developers.
 
-*   **Expanded Parameter Descriptions (`@svenvw/fdm-core`):**
-    *   A new utility function, `getFertilizerParametersDescription`, has been added to `@svenvw/fdm-core`. This function provides detailed information about fertilizer parameters, improving the transparency and usability of the library.
+*   **Expanded Parameter Descriptions (`@nmi-agro/fdm-core`):**
+    *   A new utility function, `getFertilizerParametersDescription`, has been added to `@nmi-agro/fdm-core`. This function provides detailed information about fertilizer parameters, improving the transparency and usability of the library.
 
-*   **Crop Rotation Data (`@svenvw/fdm-core`):**
+*   **Crop Rotation Data (`@nmi-agro/fdm-core`):**
     *   The `getCultivation` and `getCultivations` functions now include `b_lu_croprotation` in their output, providing easier access to crop rotation information.
 
 ### Bug Fixes and Maintenance
 
-*   **`p_cr_rt` Typo (`@svenvw/fdm-core`):** A typo in the `p_cr_rt` parameter in the `addFertilizerToCatalogue` function has been corrected.
-*   **`syncCatalogue` Bug (`@svenvw/fdm-core`):** A bug in the `syncCatalogue` function has been fixed. Previously, when an item's hash had changed, its other properties were not being updated correctly.
-*   **Unit Conversion Fix (`@svenvw/fdm-calculator`):** An issue with unit conversion in the calculation of N supply by other fertilizers has been resolved.
-*   **Documentation Updates (`@svenvw/fdm-docs`):**
+*   **`p_cr_rt` Typo (`@nmi-agro/fdm-core`):** A typo in the `p_cr_rt` parameter in the `addFertilizerToCatalogue` function has been corrected.
+*   **`syncCatalogue` Bug (`@nmi-agro/fdm-core`):** A bug in the `syncCatalogue` function has been fixed. Previously, when an item's hash had changed, its other properties were not being updated correctly.
+*   **Unit Conversion Fix (`@nmi-agro/fdm-calculator`):** An issue with unit conversion in the calculation of N supply by other fertilizers has been resolved.
+*   **Documentation Updates (`@nmi-agro/fdm-docs`):**
     *   The documentation for database tables has been updated to align with the latest definitions in `fdm-core`.
     *   New documentation has been added to explain the ammonia-emission calculation in the nitrogen-balance section.
-*   **Dependency Updates (`@svenvw/fdm-docs`):** The `@svenvw/fdm-docs` package has been updated to use React 19.
+*   **Dependency Updates (`@nmi-agro/fdm-docs`):** The `@nmi-agro/fdm-docs` package has been updated to use React 19.
 
 ---
 

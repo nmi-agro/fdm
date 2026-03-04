@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { updateUserProfile } from "@svenvw/fdm-core"
+import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { Cookie } from "lucide-react"
 import type {
     ActionFunctionArgs,
@@ -52,6 +52,7 @@ const FormSchema = z.object({
             error: (issue) =>
                 issue.input === undefined ? "Vul je voornaam in" : undefined,
         })
+        .trim()
         .min(1, {
             error: "Vul je voornaam in",
         }),
@@ -60,6 +61,7 @@ const FormSchema = z.object({
             error: (issue) =>
                 issue.input === undefined ? "Vul je achternaam in" : undefined,
         })
+        .trim()
         .min(1, {
             error: "Vul je achternaam in",
         }),
