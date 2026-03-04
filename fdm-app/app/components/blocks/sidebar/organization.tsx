@@ -159,7 +159,7 @@ export function SidebarOrganization({
                     {organization ? (
                         <Collapsible
                             asChild
-                            defaultOpen={false}
+                            open={isCalendarOpen}
                             className="group/collapsible"
                             onOpenChange={setIsCalendarOpen}
                         >
