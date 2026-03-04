@@ -52,7 +52,7 @@ export type CultivationDetailsFormSchemaType = z.infer<
 >
 
 export const CultivationAddFormSchema = z.object({
-    b_lu_catalogue: z.string().min(1, "Gewas is verplicht."),
+    b_lu_catalogue: z.string().trim().min(1, "Gewas is verplicht."),
     b_lu_start: z.preprocess(
         (val) => (typeof val === "string" ? new Date(val) : val),
         z.date({

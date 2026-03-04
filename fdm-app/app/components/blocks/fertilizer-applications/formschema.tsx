@@ -14,7 +14,7 @@ const fields = {
                 error: "Hoeveelheid moet positief zijn",
             }),
     ),
-    p_app_method: z.string().min(1, "Toepassingsmethode is verplicht"),
+    p_app_method: z.string().trim().min(1, "Toepassingsmethode is verplicht"),
     p_app_date: z.preprocess(
         (val) => (typeof val === "string" ? new Date(val) : val),
         z.date({

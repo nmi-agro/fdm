@@ -8,6 +8,7 @@ const FormSchema = z.object({
                     ? "Naam van perceel is verplicht"
                     : undefined,
         })
+        .trim()
         .min(3, {
             error: "Naam van perceel moet minimaal 3 karakters bevatten",
         }),
