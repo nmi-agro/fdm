@@ -221,7 +221,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     if (formValues.intent === "do_nothing") {
-        return redirect("/organization/invitations")
+        return redirect("/organization")
     }
 
     throw new Error("invalid intent")
@@ -258,7 +258,7 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
                                     name="intent"
                                     value="do_nothing"
                                 >
-                                    Terug naar mijn uitnodigingen
+                                    Terug naar mijn organisaties
                                 </Button>
                             </Form>
                         </CardFooter>

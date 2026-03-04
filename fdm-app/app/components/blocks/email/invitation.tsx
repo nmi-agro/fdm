@@ -83,7 +83,7 @@ export const InvitationEmail = ({
             </Section>
             <Section className="mt-8 mb-8 text-center">
                 <Link href={`${baseUrl}/organization`}>
-                    of bekijk je uitnodigingen
+                    of bekijk je organisaties
                 </Link>
             </Section>
             <Text className="text-black text-[14px] leading-6">
