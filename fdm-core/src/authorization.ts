@@ -3,6 +3,7 @@ import type {
     Action,
     Permission,
     PrincipalId,
+    PrincipalWithRoles,
     Resource,
     ResourceBead,
     ResourceChain,
@@ -322,13 +323,7 @@ export async function getRolesOfPrincipalForResource(
     resource: Resource,
     resource_id: ResourceId,
     principal_id: PrincipalId,
-): Promise<
-    {
-        principal_id: string
-        role: Role
-        principal_type: "user" | "organization"
-    }[]
-> {
+): Promise<PrincipalWithRoles[]> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
             // Validate input
