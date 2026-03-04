@@ -398,7 +398,7 @@ const InvitationForm = ({
             />
             <Input
                 type="email"
-                placeholder="Vul een emailadres in"
+                placeholder="Vul een e-mailadres in"
                 name="email"
                 value={email}
                 onChange={(e) => {

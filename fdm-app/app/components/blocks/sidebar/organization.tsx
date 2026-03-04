@@ -145,7 +145,7 @@ export function SidebarOrganization({
                                             {
                                                 {
                                                     owner: "Eigenaar",
-                                                    admin: "Admin",
+                                                    admin: "Beheerder",
                                                     member: "Lid",
                                                     viewer: "Kijker",
                                                 }[organizationRole]

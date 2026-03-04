@@ -105,7 +105,7 @@ export default function OrganizationsIndex() {
                                         </CardTitle>
                                         <CardDescription>
                                             Voeg een extra organisatie toe aan
-                                            uw account.
+                                            je account.
                                         </CardDescription>
                                     </CardHeader>
                                 </NavLink>
@@ -144,7 +144,7 @@ export default function OrganizationsIndex() {
                                 </NavLink>
                             </Button>
                             <p className="text-center text-sm text-muted-foreground">
-                                of kunt u organisaties vragen om u uit te
+                                of je kunt organisaties vragen om je uit te
                                 nodigen.
                             </p>
                         </EmptyContent>
@@ -167,7 +167,7 @@ export async function action({ request }: Route.ActionArgs) {
 
         if (formValues.intent === "accept_organization_invitation") {
             if (!formValues.invitation_id) {
-                return dataWithError(null, "Ontbrekend uitnodigings id")
+                return dataWithError(null, "Ontbrekend uitnodigings-ID")
             }
             await auth.api.acceptInvitation({
                 headers: request.headers,
@@ -179,7 +179,7 @@ export async function action({ request }: Route.ActionArgs) {
         }
         if (formValues.intent === "decline_organization_invitation") {
             if (!formValues.invitation_id) {
-                return dataWithError(null, "Ontbrekend uitnodigings id")
+                return dataWithError(null, "Ontbrekend uitnodigings-ID")
             }
             await auth.api.rejectInvitation({
                 headers: request.headers,

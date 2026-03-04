@@ -31,7 +31,7 @@ export const FormSchema = z.object({
         .string({
             error: (issue) =>
                 issue.input === undefined
-                    ? "ID de organisatie is verplicht"
+                    ? "ID van de organisatie is verplicht"
                     : undefined,
         })
         .refine(isValidSlug, {

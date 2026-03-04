@@ -264,9 +264,9 @@ export default function AppIndex() {
                                         <Empty className="border-none">
                                             <EmptyHeader>
                                                 <EmptyTitle>
-                                                    Het lijkt erop dat jouw
-                                                    organisatie tot geen
-                                                    bedrijven toegang heeft. :(
+                                                    Het lijkt erop dat je
+                                                    organisatie geen toegang
+                                                    heeft tot bedrijven. :(
                                                 </EmptyTitle>
                                                 <EmptyDescription>
                                                     Neem contact op met

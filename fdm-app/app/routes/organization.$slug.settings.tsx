@@ -82,7 +82,7 @@ export default function OrganizationSettingsBlock() {
     return (
         <main>
             <FarmTitle
-                title={"Organisatie instellingen"}
+                title={"Organisatie-instellingen"}
                 description={"Werk de gegevens bij van deze organisatie."}
                 action={{ to: "./..", label: "Terug naar dashboard" }}
             />
