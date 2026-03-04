@@ -92,7 +92,7 @@ export function Layout() {
         if (posthogConfig) {
             try {
                 posthog.init(posthogConfig.key, {
-                    api_host: "/ph",
+                    api_host: "/ingest",
                     ui_host: posthogConfig.host,
                     person_profiles: "always",
                     loaded: () => {},
