@@ -76,6 +76,7 @@ const FormSchema = z
                         ? "Naam van bedrijf is verplicht"
                         : undefined,
             })
+            .trim()
             .min(3, {
                 error: "Naam van bedrijf moet minimaal 3 karakters bevatten",
             }),
@@ -87,9 +88,10 @@ const FormSchema = z
         }),
         b_businessid_farm: z
             .string()
+            .trim()
             .regex(/^\d{8}$/, "KvK-nummer moet uit 8 cijfers bestaan")
             .optional()
-            .or(z.literal("")),
+            .or(z.string().trim().length(0)),
         has_derogation: z.coerce.boolean().default(false),
         derogation_start_year: z.preprocess(
             (val) => (val === "" ? undefined : val),

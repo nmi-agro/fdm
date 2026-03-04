@@ -24,6 +24,7 @@ export const FormSchema = z.object({
                     ? "Naam van de organisatie is verplicht"
                     : undefined,
         })
+        .trim()
         .min(3, {
             error: "Naam van de organisatie moet minimaal 3 karakters bevatten",
         }),
@@ -34,6 +35,7 @@ export const FormSchema = z.object({
                     ? "ID van de organisatie is verplicht"
                     : undefined,
         })
+        .trim()
         .refine(isValidSlug, {
             error: "ID moet minimaal 3 karakters bevatten, enkel kleine letters, cijfers of '-'",
         }),

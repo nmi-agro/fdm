@@ -9,6 +9,7 @@ export const FormSchema = z
                         ? "Naam is verplicht"
                         : "Ongeldige waarde",
             })
+            .trim()
             .min(1, {
                 error: "Geef een naam op voor deze meststof",
             }),
