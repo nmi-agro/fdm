@@ -1,13 +1,4 @@
-import {
-    ArrowLeft,
-    ArrowUpRightFromSquare,
-    Cookie,
-    Languages,
-    Mail,
-    Sparkles,
-    User,
-    Users,
-} from "lucide-react"
+import { ArrowLeft, Cookie, Languages, Sparkles, User } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { clientConfig } from "@/app/lib/config"
 import { Button } from "~/components/ui/button"
@@ -73,52 +64,6 @@ export function SidebarPlatform() {
                             <SidebarMenuButton onClick={openCookieSettings}>
                                 <Cookie />
                                 <span>Cookies</span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-            <SidebarGroup>
-                <SidebarGroupLabel>Organisaties</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={
-                                    location.pathname.includes(
-                                        "/organization",
-                                    ) &&
-                                    !location.pathname.includes(
-                                        "/organization/invitations",
-                                    )
-                                }
-                            >
-                                <NavLink
-                                    to={"/organization"}
-                                    className="group/sidebar-button"
-                                >
-                                    <Users />
-                                    <span>Overzicht</span>
-                                    <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-muted-foreground opacity-0 group-hover/sidebar-button:opacity-100 transition-opacity" />
-                                </NavLink>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={location.pathname.includes(
-                                    "/organization/invitations",
-                                )}
-                            >
-                                <NavLink
-                                    to={"/organization/invitations"}
-                                    className="group/sidebar-button"
-                                >
-                                    <Mail />
-                                    <span>Uitnodigingen</span>
-                                    <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-muted-foreground opacity-0 group-hover/sidebar-button:opacity-100 transition-opacity" />
-                                </NavLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
