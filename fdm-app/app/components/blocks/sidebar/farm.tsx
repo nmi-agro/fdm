@@ -170,7 +170,7 @@ export function SidebarFarm({
                         {isFarmSelected ? (
                             <Collapsible
                                 asChild
-                                defaultOpen={false}
+                                open={isCalendarOpen}
                                 className="group/collapsible"
                                 onOpenChange={setIsCalendarOpen}
                             >
