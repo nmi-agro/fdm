@@ -5,6 +5,7 @@ import type {
 import { FileUp, Info, Keyboard } from "lucide-react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
+import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -14,7 +15,6 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import { Badge } from "~/components/ui/badge"
 
 export function NewFieldSoilAnalysisBlock({
     b_id,

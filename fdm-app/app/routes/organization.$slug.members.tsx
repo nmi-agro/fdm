@@ -39,9 +39,9 @@ import {
 } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
 import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.members"
-import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
 
 // Meta
 export const meta: Route.MetaFunction = () => {

@@ -119,7 +119,7 @@ export function DatePicker({
                     value={inputValue}
                     aria-required={required ? "true" : "false"}
                     aria-invalid={fieldState.invalid}
-                    placeholder={ placeholder ?? "Kies een datum" }
+                    placeholder={placeholder ?? "Kies een datum"}
                     className="bg-background pr-10"
                     onChange={handleInputChange}
                     onBlur={handleInputBlur}

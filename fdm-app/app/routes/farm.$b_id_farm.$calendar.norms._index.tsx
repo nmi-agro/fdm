@@ -455,8 +455,8 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
                     Op dit moment kunnen we alleen nog de gebruiksnormen voor
                     2025 en 2026 berekenen en weergeven.
                 </p>
-                <NavLink to={`/farm/${loaderData.b_id_farm}/2025/norms`}>
-                    <Button>Ga naar 2025</Button>
+                <NavLink to={`/farm/${loaderData.b_id_farm}/2026/norms`}>
+                    <Button>Ga naar 2026</Button>
                 </NavLink>
             </div>
         </div>

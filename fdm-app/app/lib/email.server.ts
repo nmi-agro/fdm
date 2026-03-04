@@ -4,9 +4,9 @@ import type { User } from "better-auth"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import postmark from "postmark"
+import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
 import { FarmInvitationCancelledEmail } from "~/components/blocks/email/farm-invitation-cancelled"
 import { FarmInvitationRoleUpdatedEmail } from "~/components/blocks/email/farm-invitation-role-updated"
-import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
 import { InvitationEmail } from "~/components/blocks/email/invitation"
 import { MagicLinkEmail } from "~/components/blocks/email/magic-link"
 import { WelcomeEmail } from "~/components/blocks/email/welcome"
@@ -104,9 +104,7 @@ export async function renderFarmInvitationEmail(
         To: targetEmail,
         Subject: `${inviterName} ${subjectVerb} voor toegang tot bedrijf ${farmName}`,
         HtmlBody: emailHtml,
-        Tag: isUnregistered
-            ? "invitation-farm-new-user"
-            : "invitation-farm",
+        Tag: isUnregistered ? "invitation-farm-new-user" : "invitation-farm",
     }
 
     return email

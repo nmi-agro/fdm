@@ -19,7 +19,7 @@ export function matchAnalysesToFields(
         let matchReason: "geometry" | "name" | "both" | undefined
 
         // Geometry matching
-        if (analysis.location && analysis.location.coordinates) {
+        if (analysis.location?.coordinates) {
             const [lon, lat] = analysis.location.coordinates
             if (typeof lon === "number" && typeof lat === "number") {
                 const fieldMatch = fields.find((field) => {
@@ -31,7 +31,10 @@ export function matchAnalysesToFields(
                             field.geometry as any,
                         )
                     } catch (e) {
-                        console.warn(`Matching failed for field ${field.b_name}:`, e)
+                        console.warn(
+                            `Matching failed for field ${field.b_name}:`,
+                            e,
+                        )
                         return false
                     }
                 })
@@ -43,14 +46,11 @@ export function matchAnalysesToFields(
         }
 
         // Fallback: Name matching (b_fieldname vs field name)
-        const analysisName = (analysis.b_name || "")
-            .toLowerCase()
-            .trim()
+        const analysisName = (analysis.b_name || "").toLowerCase().trim()
 
         if (analysisName) {
             const fieldMatch = fields.find(
-                (field) =>
-                    field.b_name.toLowerCase().trim() === analysisName,
+                (field) => field.b_name.toLowerCase().trim() === analysisName,
             )
 
             if (fieldMatch) {

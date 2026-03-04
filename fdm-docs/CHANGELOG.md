@@ -1,5 +1,15 @@
 # fdm-docs
 
+## 0.10.0
+
+### Minor Changes
+
+- [#470](https://github.com/nmi-agro/fdm/pull/470) [`70f85ae`](https://github.com/nmi-agro/fdm/commit/70f85aee2792d004e001bf4e71718042b548036c) Thanks [@SvenVw](https://github.com/SvenVw)! - Add invitations to the page about Authorization
+
+### Patch Changes
+
+- [#474](https://github.com/nmi-agro/fdm/pull/474) [`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate organization from `SvenVw` to `nmi-agro`
+
 ## 0.9.1
 
 ### Patch Changes

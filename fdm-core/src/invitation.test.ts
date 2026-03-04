@@ -10,12 +10,12 @@ import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.d"
 import { createId } from "./id"
 import {
-    MAX_INVITATIONS_PER_INVITER_PER_HOUR,
-    MAX_INVITATIONS_PENDING_PER_TARGET,
     acceptInvitation,
     autoAcceptInvitationsForNewUser,
     declineInvitation,
     listPendingInvitationsForPrincipal,
+    MAX_INVITATIONS_PENDING_PER_TARGET,
+    MAX_INVITATIONS_PER_INVITER_PER_HOUR,
 } from "./invitation"
 
 describe("autoAcceptInvitationsForNewUser", () => {
@@ -556,7 +556,7 @@ describe("declineInvitation", () => {
         )
         expect(
             afterDecline.find(
-                (i) => i.invitation_id === invitation!.invitation_id,
+                (i) => i.invitation_id === invitation?.invitation_id,
             ),
         ).toBeUndefined()
     })
@@ -711,11 +711,7 @@ describe("declineInvitation", () => {
         expect(invitation).toBeDefined()
 
         await expect(
-            declineInvitation(
-                fdm,
-                invitation!.invitation_id,
-                wrongUser.user.id,
-            ),
+            declineInvitation(fdm, invitation!.invitation_id, wrongUser.user.id),
         ).rejects.toThrowError("Exception for declineInvitation")
     })
 })

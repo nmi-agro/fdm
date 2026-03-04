@@ -8,7 +8,6 @@ import {
     revokePrincipalFromFarm,
     updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
-import isEmail from "validator/lib/isEmail"
 import {
     type ActionFunctionArgs,
     data,
@@ -18,6 +17,7 @@ import {
     useLoaderData,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import isEmail from "validator/lib/isEmail"
 import { AccessInfoCard } from "~/components/blocks/access/access-info-card"
 import { AccessManagementCard } from "~/components/blocks/access/access-management-card"
 import { Button } from "~/components/ui/button"
@@ -26,10 +26,10 @@ import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import {
-    renderFarmInvitationEmail,
-    renderFarmInvitationCancelledEmail,
-    sendEmail,
     isInactiveRecipientError,
+    renderFarmInvitationCancelledEmail,
+    renderFarmInvitationEmail,
+    sendEmail,
 } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"

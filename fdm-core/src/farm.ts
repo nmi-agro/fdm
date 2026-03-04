@@ -9,9 +9,9 @@ import {
     updateRole,
 } from "./authorization"
 import type { PrincipalId, PrincipalWithRoles, Role } from "./authorization.d"
+import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
-import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
 import { removeField } from "./field"

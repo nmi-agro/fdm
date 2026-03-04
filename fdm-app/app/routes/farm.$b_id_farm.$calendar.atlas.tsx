@@ -4,7 +4,6 @@ import {
     type MetaFunction,
     Outlet,
     useLoaderData,
-    useLocation,
 } from "react-router"
 import { ClientOnly } from "remix-utils/client-only"
 import { HeaderAtlas } from "~/components/blocks/header/atlas"

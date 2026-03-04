@@ -1,5 +1,20 @@
 # fdm-calculator
 
+## 0.12.0
+
+### Minor Changes
+
+- [#465](https://github.com/nmi-agro/fdm/pull/465) [`8dcc0ae`](https://github.com/nmi-agro/fdm/commit/8dcc0aeb951a12941737f1416961cea36c24c318) Thanks [@SvenVw](https://github.com/SvenVw)! - Add calculateNlvSupplyBySom to calculate the change in NLV by a change in SOM
+
+- [#465](https://github.com/nmi-agro/fdm/pull/465) [`1df6896`](https://github.com/nmi-agro/fdm/commit/1df6896be4082d79ff817799beffa2dc6121b563) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the function calculateWaterSupplyBySom to calculate the change in water holding capacity for a topsoil based on change in SOM
+
+### Patch Changes
+
+- [#474](https://github.com/nmi-agro/fdm/pull/474) [`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate organization from `SvenVw` to `nmi-agro`
+
+- Updated dependencies [[`ecd4d21`](https://github.com/nmi-agro/fdm/commit/ecd4d2184de555cbace8d031d0b63d121de9971f), [`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45), [`4fe42b1`](https://github.com/nmi-agro/fdm/commit/4fe42b1b0345c20ccb4b6697174259dd3ccbef6b), [`1ac14fe`](https://github.com/nmi-agro/fdm/commit/1ac14fed4dca7a830f5d51c498976c0d17e53868)]:
+  - @nmi-agro/fdm-core@0.30.0
+
 ## 0.11.1
 
 ### Patch Changes

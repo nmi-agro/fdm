@@ -10,7 +10,6 @@ import {
     revokePrincipalFromFarm,
     updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
-import isEmail from "validator/lib/isEmail"
 import {
     type ActionFunctionArgs,
     data,
@@ -19,20 +18,21 @@ import {
     useLoaderData,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import isEmail from "validator/lib/isEmail"
 import { AccessInfoCard } from "~/components/blocks/access/access-info-card"
 import { AccessManagementCard } from "~/components/blocks/access/access-management-card"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
+import {
+    isInactiveRecipientError,
+    renderFarmInvitationCancelledEmail,
+    renderFarmInvitationEmail,
+    sendEmail,
+} from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
-import {
-    renderFarmInvitationEmail,
-    renderFarmInvitationCancelledEmail,
-    sendEmail,
-    isInactiveRecipientError,
-} from "~/lib/email.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -139,19 +139,25 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
 
             // Send invitation email
-            let targetPrincipal: any = null;
+            let targetPrincipal: any = null
             try {
                 const farm = await getFarm(fdm, session.principal_id, b_id_farm)
                 const inviterName = session.userName
-                const normalizedTarget = formValues.username.toLowerCase().trim()
+                const normalizedTarget = formValues.username
+                    .toLowerCase()
+                    .trim()
                 const isEmailTarget = isEmail(normalizedTarget)
 
                 // Try to find the principal to get their email if they are registered
-                const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
+                const matchedPrincipals = await lookupPrincipal(
+                    fdm,
+                    normalizedTarget,
+                )
                 targetPrincipal = matchedPrincipals.find(
                     (p) =>
                         p.username.toLowerCase() === normalizedTarget ||
-                        (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
+                        (isEmailTarget &&
+                            p.email?.toLowerCase() === normalizedTarget),
                 )
 
                 const targetEmail = isEmailTarget
@@ -172,7 +178,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     await sendEmail(email)
                 }
             } catch (emailError) {
-                console.error("Error sending farm invitation email:", emailError)
+                console.error(
+                    "Error sending farm invitation email:",
+                    emailError,
+                )
                 if (isInactiveRecipientError(emailError)) {
                     // Only revoke if we resolved a registered principal;
                     // otherwise (email-only invite), keep the pending invitation.
@@ -256,14 +265,24 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 )
                 // Send cancellation notification email; failure is non-fatal as the invitation was already cancelled
                 try {
-                    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
-                    const normalizedTarget = formValues.username.toLowerCase().trim()
+                    const farm = await getFarm(
+                        fdm,
+                        session.principal_id,
+                        b_id_farm,
+                    )
+                    const normalizedTarget = formValues.username
+                        .toLowerCase()
+                        .trim()
                     const isEmailTarget = isEmail(normalizedTarget)
-                    const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
+                    const matchedPrincipals = await lookupPrincipal(
+                        fdm,
+                        normalizedTarget,
+                    )
                     const targetPrincipal = matchedPrincipals.find(
                         (p) =>
                             p.username.toLowerCase() === normalizedTarget ||
-                            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
+                            (isEmailTarget &&
+                                p.email?.toLowerCase() === normalizedTarget),
                     )
                     const targetEmail = isEmailTarget
                         ? normalizedTarget
@@ -279,7 +298,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         await sendEmail(email)
                     }
                 } catch (emailError) {
-                    console.error("Error sending invitation cancelled email:", emailError)
+                    console.error(
+                        "Error sending invitation cancelled email:",
+                        emailError,
+                    )
                 }
             } else {
                 await revokePrincipalFromFarm(

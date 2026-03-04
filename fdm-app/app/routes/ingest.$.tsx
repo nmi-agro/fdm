@@ -18,7 +18,7 @@ const posthogProxy = async (request: Request) => {
     const ASSET_HOST = API_HOST?.replace(/^([a-z]{2})\./, "$1-assets.")
 
     const url = new URL(request.url)
-    const hostname = url.pathname.startsWith("/ph/static/")
+    const hostname = url.pathname.startsWith("/ingest/static/")
         ? ASSET_HOST
         : API_HOST
 
@@ -26,7 +26,7 @@ const posthogProxy = async (request: Request) => {
     newUrl.protocol = "https"
     newUrl.hostname = hostname
     newUrl.port = "443"
-    newUrl.pathname = newUrl.pathname.replace(/^\/ph/, "")
+    newUrl.pathname = newUrl.pathname.replace(/^\/ingest/, "")
 
     const headers = new Headers(request.headers)
     headers.set("host", hostname)

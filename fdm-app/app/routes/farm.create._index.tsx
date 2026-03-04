@@ -11,11 +11,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Controller, type Resolver } from "react-hook-form"
-import type {
-    ActionFunctionArgs,
-    LoaderFunctionArgs,
-    MetaFunction,
-} from "react-router"
+import type { ActionFunctionArgs, MetaFunction } from "react-router"
 import { Form, useLoaderData } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
@@ -76,6 +72,7 @@ const FormSchema = z
                         ? "Naam van bedrijf is verplicht"
                         : undefined,
             })
+            .trim()
             .min(3, {
                 error: "Naam van bedrijf moet minimaal 3 karakters bevatten",
             }),
@@ -87,9 +84,10 @@ const FormSchema = z
         }),
         b_businessid_farm: z
             .string()
+            .trim()
             .regex(/^\d{8}$/, "KvK-nummer moet uit 8 cijfers bestaan")
             .optional()
-            .or(z.literal("")),
+            .or(z.string().trim().length(0)),
         has_derogation: z.coerce.boolean().default(false),
         derogation_start_year: z.preprocess(
             (val) => (val === "" ? undefined : val),

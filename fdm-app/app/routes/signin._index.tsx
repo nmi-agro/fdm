@@ -67,11 +67,11 @@ import { Spinner } from "~/components/ui/spinner"
 import { auth } from "~/lib/auth.server"
 import { signIn } from "~/lib/auth-client"
 import { clientConfig } from "~/lib/config"
+import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { modifySearchParams } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
 import { extractFormValuesFromRequest } from "../lib/form"
-import { isInactiveRecipientError } from "~/lib/email.server"
 
 export const meta: MetaFunction = () => {
     const title = `${clientConfig.name}: Bemestingsadvies, Doelsturing & Perceelsdata`

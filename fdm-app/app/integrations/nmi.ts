@@ -1,9 +1,9 @@
 import centroid from "@turf/centroid"
+import { fileTypeFromBuffer } from "file-type"
 import type { Feature, Geometry, Polygon } from "geojson"
+import proj4 from "proj4"
 import { z } from "zod"
 import { serverConfig } from "~/lib/config.server"
-import { fileTypeFromBuffer } from "file-type"
-import proj4 from "proj4"
 
 const MAX_PDF_SIZE = 5 * 1024 * 1024
 

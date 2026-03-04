@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, FileStack, Info } from "lucide-react"
+import { ArrowLeft, CheckCircle2, Info } from "lucide-react"
 import { useMemo } from "react"
 import { NavLink, useLocation } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
@@ -12,7 +12,6 @@ import {
     CardHeader,
     CardTitle,
 } from "../../ui/card"
-import { Badge } from "../../ui/badge"
 
 export function NewFieldsSidebar({
     fields,
@@ -72,7 +71,8 @@ export function NewFieldsSidebar({
                         <div className="space-y-1">
                             <p>Percelen</p>
                             <p className="text-xs font-normal text-muted-foreground">
-                                {measuredCount} van {fields.length} met bodemanalyse
+                                {measuredCount} van {fields.length} met
+                                bodemanalyse
                             </p>
                         </div>
                         <FieldFilterToggle />

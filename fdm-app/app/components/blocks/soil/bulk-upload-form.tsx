@@ -1,5 +1,6 @@
+import { FileText, FileUp, Trash2, Upload, X } from "lucide-react"
 import { useState } from "react"
-import { FileText, Upload, Trash2, X, FileUp } from "lucide-react"
+import { toast } from "sonner"
 import { Dropzone } from "~/components/custom/dropzone"
 import { Button } from "~/components/ui/button"
 import {
@@ -9,11 +10,10 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import { Spinner } from "~/components/ui/spinner"
-import { ScrollArea } from "~/components/ui/scroll-area"
-import { cn } from "~/lib/utils"
 import { Progress } from "~/components/ui/progress"
-import { toast } from "sonner"
+import { ScrollArea } from "~/components/ui/scroll-area"
+import { Spinner } from "~/components/ui/spinner"
+import { cn } from "~/lib/utils"
 import type { ProcessedAnalysis } from "./bulk-upload-review"
 
 export function BulkSoilAnalysisUploadForm({
