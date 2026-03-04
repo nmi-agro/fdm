@@ -1,4 +1,3 @@
-
 import {
     acceptInvitation,
     declineInvitation,
@@ -8,15 +7,14 @@ import {
 import {
     ArrowRight,
     Check,
-    House,
     Layers,
     LifeBuoy,
     MapIcon,
     Mountain,
     Plus,
     PlusCircle,
-
 } from "lucide-react"
+import { useMemo } from "react"
 import {
     type ActionFunctionArgs,
     type LoaderFunctionArgs,
@@ -25,11 +23,16 @@ import {
     useLoaderData,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import {
+    FarmCard,
+    type FarmWithRoles,
+} from "~/components/blocks/farm/farm-card"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { Badge } from "~/components/ui/badge"
+import { OrganizationCard } from "~/components/blocks/organization/organization-card"
+import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -39,22 +42,17 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { getSession } from "~/lib/auth.server"
+import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
+import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
-
-function getRoleLabel(role: string): string {
-    if (role === "owner") return "Eigenaar"
-    if (role === "advisor") return "Adviseur"
-    if (role === "researcher") return "Onderzoeker"
-    return "Lid"
-}
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -102,13 +100,102 @@ export async function loader({ request }: LoaderFunctionArgs) {
             session.user.id,
         )
 
+        const rawOrganizations = await auth.api.listOrganizations({
+            headers: request.headers,
+        })
+        const organizations = await Promise.all(
+            rawOrganizations.map(async (organization) => {
+                const membersListResponse = await auth.api.listMembers({
+                    headers: request.headers,
+                    query: {
+                        organizationId: organization.id,
+                    },
+                })
+
+                const userRoles = membersListResponse.members
+                    .filter((member) => member.userId === session.principal_id)
+                    .map((member) => member.role)
+
+                const orderedUserRoles = (
+                    ["owner", "admin", "member"] as const
+                ).filter((r) => userRoles.includes(r))
+
+                return {
+                    ...organization,
+                    userRoles: orderedUserRoles,
+                    metadata: parseOrganizationMetadata(organization),
+                }
+            }),
+        )
+
+        const pendingOrganizationInvitations =
+            await auth.api.listUserInvitations({
+                headers: request.headers,
+            })
+
         // Return user information from loader
         return {
-            farms: farms,
+            farms: farms.map((farm) => {
+                const allOrganizationRoles = farm.roles.filter(
+                    (role) => role.principal_type === "organization",
+                )
+
+                // Find the organization with the most significant role
+                const roleHierarchy = [
+                    "owner",
+                    "advisor",
+                    "researcher",
+                ] as const
+                allOrganizationRoles.sort(
+                    (role1, role2) =>
+                        roleHierarchy.indexOf(role1.role) -
+                        roleHierarchy.indexOf(role2.role),
+                )
+                const organization = allOrganizationRoles
+                    .map((role) =>
+                        organizations.find(
+                            (organization) =>
+                                organization.id === role.principal_id,
+                        ),
+                    )
+                    .find((organization) => organization)
+
+                // Collect the user roles
+                const userRoles = [
+                    ...new Set(
+                        farm.roles
+                            .filter((role) => role.principal_type === "user")
+                            .map((role) => role.role),
+                    ),
+                ]
+                // Collect the roles for the chosen most significant organization
+                const organizationRoles = organization
+                    ? [
+                          ...new Set(
+                              farm.roles
+                                  .filter(
+                                      (role) =>
+                                          role.principal_type ===
+                                              "organization" &&
+                                          role.principal_id === organization.id,
+                                  )
+                                  .map((role) => role.role),
+                          ),
+                      ]
+                    : []
+                return {
+                    ...farm,
+                    userRoles: userRoles,
+                    organizationRoles: organizationRoles,
+                    organization: organization,
+                } satisfies FarmWithRoles
+            }),
             farmOptions: farmOptions,
+            organizations: organizations,
             calendar: calendar,
             username: session.userName,
             pendingInvitations: pendingInvitations,
+            pendingOrganizationInvitations: pendingOrganizationInvitations,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -146,6 +233,32 @@ export async function action({ request }: ActionFunctionArgs) {
                 formValues.invitation_id,
                 session.user.id,
             )
+            return dataWithSuccess(null, {
+                message: "Uitnodiging geweigerd.",
+            })
+        }
+
+        if (formValues.intent === "accept_organization_invitation") {
+            if (!formValues.invitation_id) {
+                return dataWithError(null, "Ontbrekend uitnodigings id")
+            }
+            await auth.api.acceptInvitation({
+                headers: request.headers,
+                body: { invitationId: formValues.invitation_id },
+            })
+            return dataWithSuccess(null, {
+                message: "Uitnodiging geaccepteerd! 🎉",
+            })
+        }
+
+        if (formValues.intent === "decline_organization_invitation") {
+            if (!formValues.invitation_id) {
+                return dataWithError(null, "Ontbrekend uitnodigings id")
+            }
+            await auth.api.rejectInvitation({
+                headers: request.headers,
+                body: { invitationId: formValues.invitation_id },
+            })
             return dataWithSuccess(null, {
                 message: "Uitnodiging geweigerd.",
             })
@@ -189,6 +302,20 @@ function SupportNote() {
 export default function AppIndex() {
     const loaderData = useLoaderData<typeof loader>()
     const greeting = getTimeBasedGreeting()
+
+    const [userFarms, organizationFarms] = useMemo(() => {
+        const userFarms = loaderData.farms
+            .filter((farm) => farm.userRoles.length > 0)
+            .map((farm) => ({
+                ...farm,
+                organization: undefined,
+                organizationRoles: undefined,
+            }))
+        const organizationFarms = loaderData.farms.filter(
+            (farm) => farm.organization,
+        )
+        return [userFarms, organizationFarms]
+    }, [loaderData])
 
     return (
         <SidebarInset>
@@ -345,7 +472,9 @@ export default function AppIndex() {
                                         {loaderData.pendingInvitations.map(
                                             (invitation) => (
                                                 <PendingInvitationCard
-                                                    key={invitation.invitation_id}
+                                                    key={
+                                                        invitation.invitation_id
+                                                    }
                                                     invitation={invitation}
                                                 />
                                             ),
@@ -370,83 +499,8 @@ export default function AppIndex() {
                             }}
                         />
                         <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
-                            {loaderData.farms.map((farm) => (
-                                <Card
-                                    key={farm.b_id_farm}
-                                    className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md"
-                                >
-                                    <NavLink
-                                        to={`/farm/${farm.b_id_farm}`}
-                                        className="flex h-full flex-col"
-                                    >
-                                        <CardHeader>
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                                                        <House className="h-5 w-5" />
-                                                    </div>
-                                                    <div>
-                                                        <CardTitle className="text-xl">
-                                                            {farm.b_name_farm}
-                                                        </CardTitle>
-                                                        <div className="mt-1 flex gap-1">
-                                                            {farm.roles.map(
-                                                                (role) => (
-                                                                    <Badge
-                                                                        key={
-                                                                            role
-                                                                        }
-                                                                        variant="secondary"
-                                                                        className="text-[10px] uppercase tracking-wider"
-                                                                    >
-                                                                        {getRoleLabel(role)}
-                                                                    </Badge>
-                                                                ),
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="grow py-4">
-                                            <dl className="grid gap-2 text-sm text-left">
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        Adres
-                                                    </dt>
-                                                    <dd className="font-medium text-right">
-                                                        {farm.b_address_farm ||
-                                                            "Onbekend"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        Postcode
-                                                    </dt>
-                                                    <dd className="font-medium text-right">
-                                                        {farm.b_postalcode_farm ||
-                                                            "Onbekend"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        KvK
-                                                    </dt>
-                                                    <dd className="font-medium text-right">
-                                                        {farm.b_businessid_farm ||
-                                                            "Onbekend"}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </CardContent>
-                                        <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
-                                            <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
-                                                Selecteer bedrijf{" "}
-                                                <ArrowRight className="ml-2 h-4 w-4" />
-                                            </span>
-                                        </CardFooter>
-                                    </NavLink>
-                                </Card>
+                            {userFarms.map((farm) => (
+                                <FarmCard key={farm.b_id_farm} farm={farm} />
                             ))}
 
                             <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
@@ -484,6 +538,26 @@ export default function AppIndex() {
                                             />
                                         ),
                                     )}
+                                </div>
+                            </>
+                        )}
+
+                        {organizationFarms.length > 0 && (
+                            <>
+                                <FarmTitle
+                                    title="Bedrijven van uw organisaties"
+                                    description={
+                                        "Selecteer een bedrijf van je organisaties voor beheer en analyses."
+                                    }
+                                />
+
+                                <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                                    {organizationFarms.map((farm) => (
+                                        <FarmCard
+                                            key={farm.b_id_farm}
+                                            farm={farm}
+                                        />
+                                    ))}
                                 </div>
                             </>
                         )}
@@ -550,7 +624,6 @@ export default function AppIndex() {
                                     </CardFooter>
                                 </NavLink>
                             </Card>
-
                             <Card className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md">
                                 <NavLink
                                     to={`/farm/undefined/${loaderData.calendar}/atlas/soil`}
@@ -579,6 +652,107 @@ export default function AppIndex() {
                                     </CardFooter>
                                 </NavLink>
                             </Card>
+                        </div>
+                        {loaderData.organizations.length > 0 ||
+                        loaderData.pendingOrganizationInvitations.length > 0 ? (
+                            <>
+                                <FarmTitle
+                                    title="Organisaties"
+                                    description="Werk samen met andere gebruikers op bedrijven in een gemakkelijke manier."
+                                    action={{
+                                        label: "Naar organisaties",
+                                        to: "/organization",
+                                    }}
+                                />
+                                {loaderData.organizations.length > 0 && (
+                                    <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                                        {loaderData.organizations.map(
+                                            (organization) => (
+                                                <OrganizationCard
+                                                    key={organization.id}
+                                                    organization={organization}
+                                                />
+                                            ),
+                                        )}
+
+                                        <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
+                                            <NavLink
+                                                to="/organization/new"
+                                                className="flex h-full flex-col"
+                                            >
+                                                <CardHeader className="grow items-center justify-center text-center">
+                                                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                                        <Plus className="h-6 w-6" />
+                                                    </div>
+                                                    <CardTitle>
+                                                        Nieuwe organisatie
+                                                    </CardTitle>
+                                                    <CardDescription>
+                                                        Voeg een extra
+                                                        organisatie toe aan uw
+                                                        account.
+                                                    </CardDescription>
+                                                </CardHeader>
+                                            </NavLink>
+                                        </Card>
+                                    </div>
+                                )}
+                                {loaderData.pendingOrganizationInvitations
+                                    .length > 0 && (
+                                    <>
+                                        {loaderData.organizations.length >
+                                            0 && (
+                                            <FarmTitle
+                                                title="Openstaande uitnodigingen naar organisaties"
+                                                description="Je hebt uitnodigingen ontvangen voor toegang tot de volgende organisaties."
+                                            />
+                                        )}
+                                        <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                                            {loaderData.pendingOrganizationInvitations.map(
+                                                (invitation) => (
+                                                    <PendingOrganizationInvitationCard
+                                                        key={invitation.id}
+                                                        invitation={invitation}
+                                                    />
+                                                ),
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <FarmTitle
+                                    title="Organisaties"
+                                    description="Werk samen met andere gebruikers op bedrijven in een gemakkelijke manier."
+                                    action={{
+                                        label: "Naar organisaties",
+                                        to: "/organization",
+                                    }}
+                                />
+                                <div className="mx-auto flex items-center flex-col justify-center space-y-6 sm:w-87.5 mb-6">
+                                    <div className="flex flex-col space-y-2 text-center">
+                                        <h1 className="text-2xl font-semibold tracking-tight">
+                                            Het lijkt erop dat je nog geen
+                                            organisatie hebt.
+                                        </h1>
+                                    </div>
+                                    <div className="flex flex-col items-center relative">
+                                        <Button asChild>
+                                            <NavLink to="/organization/new">
+                                                Maak een organisatie
+                                            </NavLink>
+                                        </Button>
+                                    </div>
+                                    <p className="text-center text-sm text-muted-foreground">
+                                        of kunt u organisaties vragen om u uit
+                                        te nodigen.
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                        <div className="p-4 md:px-6">
+                            <Separator />
                         </div>
                         <SupportNote />
                     </>

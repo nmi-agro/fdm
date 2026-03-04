@@ -677,7 +677,13 @@ describe("Authorization Functions", () => {
                 farm_id,
                 principal_id,
             )
-            expect(roles).toEqual(["owner"])
+            expect(roles).toEqual([
+                {
+                    principal_id: principal_id,
+                    role: "owner",
+                    principal_type: "user",
+                },
+            ])
         })
 
         // it("should get inherited roles", async () => {
@@ -772,7 +778,13 @@ describe("Authorization Functions", () => {
                 farm_id,
                 organization_member_id,
             )
-            expect(roles).toEqual(["researcher"])
+            expect(roles).toEqual([
+                {
+                    principal_id: organization_id,
+                    principal_type: "organization",
+                    role: "researcher",
+                },
+            ])
         })
 
         it("should get all roles", async () => {
@@ -792,8 +804,64 @@ describe("Authorization Functions", () => {
                 organization_member_id,
             )
             expect(roles.length).toBe(2)
-            expect(roles).toContain("owner")
-            expect(roles).toContain("researcher")
+            expect(roles).toContainEqual({
+                principal_id: organization_id,
+                principal_type: "organization",
+                role: "owner",
+            })
+            expect(roles).toContainEqual({
+                principal_id: organization_member_id,
+                principal_type: "user",
+                role: "researcher",
+            })
+        })
+
+        it("should get organization's roles as organization roles", async () => {
+            await grantRole(fdm, "farm", "researcher", farm_id, organization_id)
+
+            const roles = await getRolesOfPrincipalForResource(
+                fdm,
+                "farm",
+                farm_id,
+                organization_id,
+            )
+            expect(roles).toEqual([
+                {
+                    principal_id: organization_id,
+                    principal_type: "organization",
+                    role: "researcher",
+                },
+            ])
+        })
+
+        it("should get role principal type properly for organization with no members", async () => {
+            // Create an organization without any members
+            const orgId = createId()
+            await fdm.insert(authNSchema.organization).values({
+                id: orgId,
+                name: "Test Organization No Members",
+                slug: `test-org-no-member-${createId(8).toLowerCase()}`,
+                createdAt: new Date(),
+            })
+
+            // Grant the organization a role on the farm
+            await grantRole(fdm, "farm", "advisor", farm_id, orgId)
+
+            // Get roles for the organization
+            const roles = await getRolesOfPrincipalForResource(
+                fdm,
+                "farm",
+                farm_id,
+                orgId,
+            )
+
+            // Should return one role with principal_type "organization"
+            expect(roles).toHaveLength(1)
+            expect(roles[0]).toEqual({
+                principal_id: orgId,
+                role: "advisor",
+                principal_type: "organization",
+            })
         })
 
         it("should throw error with invalid resource", async () => {

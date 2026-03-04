@@ -82,8 +82,8 @@ export const InvitationEmail = ({
                 </table>
             </Section>
             <Section className="mt-8 mb-8 text-center">
-                <Link href={`${baseUrl}/organization/invitations`}>
-                    of bekijk je uitnodigingen
+                <Link href={`${baseUrl}/organization`}>
+                    of bekijk je organisaties
                 </Link>
             </Section>
             <Text className="text-black text-[14px] leading-6">

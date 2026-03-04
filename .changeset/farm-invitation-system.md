@@ -1,5 +1,5 @@
 ---
-"@svenvw/fdm-core": minor
+"@nmi-agro/fdm-core": minor
 ---
 
 Instead of directly granting roles, `grantRoleToFarm` now creates a pending invitation (7-day expiry) that must be accepted by the target principal. The invitation system has been refactored to be resource-agnostic, so any resource type (farm, field, etc.) can be shared via invitations.

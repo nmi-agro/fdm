@@ -8,7 +8,7 @@ import {
     revokePrincipal,
     updateRole,
 } from "./authorization"
-import type { PrincipalId, Role } from "./authorization.d"
+import type { PrincipalId, PrincipalWithRoles, Role } from "./authorization.d"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import * as schema from "./db/schema"
@@ -103,7 +103,7 @@ export async function getFarm(
     b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
     b_id_principal: PrincipalId
     b_id_principal_owner: PrincipalId
-    roles: Role[]
+    roles: PrincipalWithRoles[]
 }> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
@@ -178,7 +178,11 @@ export async function getFarms(
         b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
         b_address_farm: schema.farmsTypeSelect["b_address_farm"]
         b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
-        roles: Role[]
+        roles: {
+            principal_id: string
+            principal_type: "user" | "organization"
+            role: Role
+        }[]
     }[]
 > {
     try {
@@ -964,7 +968,9 @@ export async function cancelInvitationForFarm(
                         eq(authZSchema.invitation.status, "pending"),
                     ),
                 )
-                .returning({ invitation_id: authZSchema.invitation.invitation_id })
+                .returning({
+                    invitation_id: authZSchema.invitation.invitation_id,
+                })
 
             if (result.length === 0) {
                 throw new Error("Invitation is no longer pending")
@@ -1011,7 +1017,9 @@ export async function updateRoleOfInvitationForFarm(
                         eq(authZSchema.invitation.status, "pending"),
                     ),
                 )
-                .returning({ invitation_id: authZSchema.invitation.invitation_id })
+                .returning({
+                    invitation_id: authZSchema.invitation.invitation_id,
+                })
 
             if (result.length === 0) {
                 throw new Error("Invitation is no longer pending")

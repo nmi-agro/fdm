@@ -43,13 +43,15 @@ export function SidebarFarm({
 }: {
     farm: Awaited<ReturnType<typeof getFarm>> | undefined
 }) {
-    function getSuperiorRole(allRoles: ("owner" | "advisor" | "researcher")[]) {
+    function getSuperiorRole(
+        allRoles: { role: "owner" | "advisor" | "researcher" }[],
+    ) {
         if (allRoles.length > 0) {
             const ordering = ["owner", "advisor", "researcher"] as const
             const sorted = [...allRoles].sort(
-                (a, b) => ordering.indexOf(a) - ordering.indexOf(b),
+                (a, b) => ordering.indexOf(a.role) - ordering.indexOf(b.role),
             )
-            return sorted[0]
+            return sorted[0].role
         }
         return null
     }

@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import {
     type ActionFunctionArgs,
     data,
+    Form,
     isRouteErrorResponse,
     type LoaderFunctionArgs,
     redirect,
@@ -21,8 +22,23 @@ import {
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { auth, getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import type { Route } from "../+types/root"
+import type { Route } from "./+types/organization.invitations.$invitation_id.respond"
+import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Uitnodiging - Organisatie | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk jouw uitnodiging.",
+        },
+    ]
+}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
     await getSession(request)
@@ -98,14 +114,16 @@ export default function Respond() {
                     </p>
                     <p className="my-1">
                         Je bent uitgenodigd als{" "}
-                        <i className="font-semibold">{invitation.role}</i>
+                        <i className="font-semibold">
+                            {getOrganizationRoleLabel(invitation.role)}
+                        </i>
                     </p>
                     <p className="my-1">
                         Weet je zeker dat je deze uitnodiging wilt afwijzen?
                     </p>
                 </CardContent>
                 <CardFooter>
-                    <form method="post" className="flex flex-row gap-2">
+                    <Form method="post" className="flex flex-row gap-2">
                         <input
                             type="hidden"
                             name="invitation_id"
@@ -125,7 +143,7 @@ export default function Respond() {
                         >
                             Nee, terug naar Mijn Uitnodigingen
                         </Button>
-                    </form>
+                    </Form>
                 </CardFooter>
             </Card>
         </div>
@@ -203,7 +221,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     if (formValues.intent === "do_nothing") {
-        return redirect("/organization/invitations")
+        return redirect("/organization")
     }
 
     throw new Error("invalid intent")
@@ -229,7 +247,7 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
                             </p>
                         </CardContent>
                         <CardFooter>
-                            <form method="post" className="flex flex-row gap-2">
+                            <Form method="post" className="flex flex-row gap-2">
                                 <input
                                     type="hidden"
                                     name="invitation_id"
@@ -240,9 +258,9 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
                                     name="intent"
                                     value="do_nothing"
                                 >
-                                    Terug naar mijn uitnodigingen
+                                    Terug naar mijn organisaties
                                 </Button>
-                            </form>
+                            </Form>
                         </CardFooter>
                     </Card>
                 </div>
