@@ -1,5 +1,11 @@
 # fdm-data
 
+## 0.19.2
+
+### Patch Changes
+
+- [#474](https://github.com/nmi-agro/fdm/pull/474) [`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate organization from `SvenVw` to `nmi-agro`
+
 ## 0.19.1
 
 ### Patch Changes

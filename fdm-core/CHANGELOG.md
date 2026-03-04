@@ -1,5 +1,33 @@
 # Changelog fdm-core
 
+## 0.30.0
+
+### Minor Changes
+
+- [#470](https://github.com/nmi-agro/fdm/pull/470) [`ecd4d21`](https://github.com/nmi-agro/fdm/commit/ecd4d2184de555cbace8d031d0b63d121de9971f) Thanks [@SvenVw](https://github.com/SvenVw)! - Instead of directly granting roles, `grantRoleToFarm` now creates a pending invitation (7-day expiry) that must be accepted by the target principal. The invitation system has been refactored to be resource-agnostic, so any resource type (farm, field, etc.) can be shared via invitations.
+
+  **New generic functions (work for any resource):**
+  - `createInvitation` — creates a pending invitation for a resource
+  - `acceptInvitation` — accepts a pending invitation and grants the role
+  - `declineInvitation` — declines a pending invitation
+  - `listPendingInvitationsForPrincipal` — lists pending invitations for a principal across all resources
+  - `autoAcceptInvitationsForNewUser` — auto-accepts email-based invitations on email verification
+
+  **Farm-specific functions:**
+  - `listPendingInvitationsForFarm` — lists active invitations for a farm (requires share permission)
+  - `listPendingInvitationsForUser` — lists pending farm invitations for the current user, enriched with farm name and org name
+
+- [#477](https://github.com/nmi-agro/fdm/pull/477) [`4fe42b1`](https://github.com/nmi-agro/fdm/commit/4fe42b1b0345c20ccb4b6697174259dd3ccbef6b) Thanks [@SvenVw](https://github.com/SvenVw)! - Add function `cancelInvitationForFarm` and `updateRoleOfInvitationForFarm` to enable managing invitations
+
+- [#426](https://github.com/nmi-agro/fdm/pull/426) [`1ac14fe`](https://github.com/nmi-agro/fdm/commit/1ac14fed4dca7a830f5d51c498976c0d17e53868) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Farm roles are now provided as a list of objects with keys `role`, `principal_id`, and `principal_type` ("user" or "organization") in order to provide more context to the user.
+
+### Patch Changes
+
+- [#474](https://github.com/nmi-agro/fdm/pull/474) [`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate organization from `SvenVw` to `nmi-agro`
+
+- Updated dependencies [[`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45)]:
+  - @nmi-agro/fdm-data@0.19.2
+
 ## 0.29.0
 
 ### Minor Changes
