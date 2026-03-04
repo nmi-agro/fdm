@@ -169,12 +169,14 @@ export function CultivationHistoryCard({
                                                                 : "text-foreground/80",
                                                         )}
                                                     >
-                                                        {cultivation.b_lu_name ?? "Onbekend gewas"}
+                                                        {cultivation.b_lu_name ??
+                                                            "Onbekend gewas"}
                                                     </p>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
-                                                        {cultivation.b_lu_name ?? "Onbekend gewas"}
+                                                        {cultivation.b_lu_name ??
+                                                            "Onbekend gewas"}
                                                     </p>
                                                 </TooltipContent>
                                             </Tooltip>

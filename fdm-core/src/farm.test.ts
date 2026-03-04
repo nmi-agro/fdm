@@ -3,9 +3,9 @@ import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
 import { createFdmAuth } from "./authentication"
 import { listPrincipalsForResource } from "./authorization"
+import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
-import * as schema from "./db/schema"
 import {
     addFarm,
     cancelInvitationForFarm,
@@ -27,9 +27,9 @@ import type { FdmType } from "./fdm"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.d"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
-import { acceptInvitation, declineInvitation } from "./invitation"
 import { addField, getFields } from "./field"
 import { createId } from "./id"
+import { acceptInvitation, declineInvitation } from "./invitation"
 import { getPrincipal } from "./principal"
 
 describe("Farm Functions", () => {
@@ -275,9 +275,7 @@ describe("Farm Functions", () => {
             const invitations = await fdm
                 .select()
                 .from(authZSchema.invitation)
-                .where(
-                    eq(authZSchema.invitation.resource_id, b_id_farm),
-                )
+                .where(eq(authZSchema.invitation.resource_id, b_id_farm))
             const invitation = invitations.find(
                 (i) => i.target_principal_id === target_id,
             )
@@ -286,7 +284,7 @@ describe("Farm Functions", () => {
             expect(invitation?.status).toBe("pending")
 
             // Accept the invitation so subsequent tests (updateRole, revoke) work
-            await acceptInvitation(fdm, invitation!.invitation_id, target_id)
+            await acceptInvitation(fdm, invitation?.invitation_id, target_id)
 
             // Now the role should be granted
             const principals = await listPrincipalsForResource(
@@ -617,10 +615,27 @@ describe("Farm Functions", () => {
                 createdAt: new Date(),
             })
 
-            const orgFarmId = await addFarm(fdm, principal_id, "Org Principals Farm", "ORGPRI", "Org Principals Lane", "20001")
-            await grantRoleToFarm(fdm, principal_id, orgSlug, orgFarmId, "advisor")
+            const orgFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "Org Principals Farm",
+                "ORGPRI",
+                "Org Principals Lane",
+                "20001",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                orgSlug,
+                orgFarmId,
+                "advisor",
+            )
 
-            const principals = await listPrincipalsForFarm(fdm, principal_id, orgFarmId)
+            const principals = await listPrincipalsForFarm(
+                fdm,
+                principal_id,
+                orgFarmId,
+            )
             const orgPrincipal = principals.find((p) => p.id === orgId)
             expect(orgPrincipal).toBeDefined()
             expect(orgPrincipal?.type).toBe("organization")
@@ -916,9 +931,7 @@ describe("Farm Functions", () => {
             const rows = await fdm
                 .select()
                 .from(authZSchema.invitation)
-                .where(
-                    eq(authZSchema.invitation.resource_id, invitationFarmId),
-                )
+                .where(eq(authZSchema.invitation.resource_id, invitationFarmId))
             invitationId = rows[0].invitation_id
 
             await acceptInvitation(fdm, invitationId, target_id)
@@ -1105,7 +1118,9 @@ describe("Farm Functions", () => {
             const otherId = createId()
             await expect(
                 listPendingInvitationsForFarm(fdm, otherId, listFarmId),
-            ).rejects.toThrowError("Principal does not have permission to perform this action")
+            ).rejects.toThrowError(
+                "Principal does not have permission to perform this action",
+            )
         })
     })
 
@@ -1138,11 +1153,7 @@ describe("Farm Functions", () => {
         })
 
         it("should remove the invitation from pending list after cancellation", async () => {
-            await cancelInvitationForFarm(
-                fdm,
-                principal_id,
-                cancelInvitationId,
-            )
+            await cancelInvitationForFarm(fdm, principal_id, cancelInvitationId)
 
             // After cancellation the invitation should no longer appear in pending list
             const invitations = await listPendingInvitationsForFarm(
@@ -1158,11 +1169,7 @@ describe("Farm Functions", () => {
 
         it("should throw if the invitation is already cancelled", async () => {
             await expect(
-                cancelInvitationForFarm(
-                    fdm,
-                    principal_id,
-                    cancelInvitationId,
-                ),
+                cancelInvitationForFarm(fdm, principal_id, cancelInvitationId),
             ).rejects.toThrowError("Exception for cancelInvitationForFarm")
         })
 
@@ -1271,11 +1278,7 @@ describe("Farm Functions", () => {
 
         it("should throw if the invitation is not pending", async () => {
             // Cancel the invitation first so it is no longer pending
-            await cancelInvitationForFarm(
-                fdm,
-                principal_id,
-                updateInvitationId,
-            )
+            await cancelInvitationForFarm(fdm, principal_id, updateInvitationId)
 
             await expect(
                 updateRoleOfInvitationForFarm(
@@ -1366,7 +1369,9 @@ describe("Farm Functions", () => {
                 listUserTargetId,
             )
             expect(invitations.length).toBeGreaterThanOrEqual(1)
-            const inv = invitations.find((i) => i.resource_id === listUserFarmId)
+            const inv = invitations.find(
+                (i) => i.resource_id === listUserFarmId,
+            )
             expect(inv).toBeDefined()
             expect(inv?.status).toBe("pending")
         })
@@ -1417,11 +1422,29 @@ describe("Farm Functions", () => {
                 createdAt: new Date(),
             })
 
-            const orgInvFarmId = await addFarm(fdm, principal_id, "List User Org Inv Farm", "LSUORG", "List User Org Lane", "20002")
-            await grantRoleToFarm(fdm, principal_id, orgSlug, orgInvFarmId, "advisor")
+            const orgInvFarmId = await addFarm(
+                fdm,
+                principal_id,
+                "List User Org Inv Farm",
+                "LSUORG",
+                "List User Org Lane",
+                "20002",
+            )
+            await grantRoleToFarm(
+                fdm,
+                principal_id,
+                orgSlug,
+                orgInvFarmId,
+                "advisor",
+            )
 
-            const invitations = await listPendingInvitationsForUser(fdm, orgAdminUser.user.id)
-            const orgInv = invitations.find((i) => i.resource_id === orgInvFarmId)
+            const invitations = await listPendingInvitationsForUser(
+                fdm,
+                orgAdminUser.user.id,
+            )
+            const orgInv = invitations.find(
+                (i) => i.resource_id === orgInvFarmId,
+            )
             expect(orgInv).toBeDefined()
             expect(orgInv?.org_name).toBe("Pending Invitations Org")
         })

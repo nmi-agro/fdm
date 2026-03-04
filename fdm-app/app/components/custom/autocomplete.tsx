@@ -70,7 +70,9 @@ export function AutoComplete<T extends string>({
     // Falls back to selectedValue for free-form entries (when allowValuesOutsideList is true).
     const selectedLabel = useMemo(() => {
         const selectedItem = items.find((item) => item.value === selectedValue)
-        return selectedItem?.label ?? (allowValuesOutsideList ? selectedValue : "")
+        return (
+            selectedItem?.label ?? (allowValuesOutsideList ? selectedValue : "")
+        )
     }, [selectedValue, items, allowValuesOutsideList])
 
     // Effect to fetch data when input value changes (debounced)

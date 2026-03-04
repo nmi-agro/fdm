@@ -16,7 +16,7 @@
         "b_manage_start": {
             "description": "Date on which field is started to be managed for farm",
             "type": "string",
-            "pattern":" ^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$"
+            "pattern": " ^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$"
         },
         "b_manage_end": {
             "description": "Last date on which field is managed for farm",

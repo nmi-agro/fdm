@@ -10,12 +10,12 @@ import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.d"
 import { createId } from "./id"
 import {
-    MAX_INVITATIONS_PER_INVITER_PER_HOUR,
-    MAX_INVITATIONS_PENDING_PER_TARGET,
     acceptInvitation,
     autoAcceptInvitationsForNewUser,
     declineInvitation,
     listPendingInvitationsForPrincipal,
+    MAX_INVITATIONS_PENDING_PER_TARGET,
+    MAX_INVITATIONS_PER_INVITER_PER_HOUR,
 } from "./invitation"
 
 describe("autoAcceptInvitationsForNewUser", () => {
@@ -321,7 +321,7 @@ describe("acceptInvitation", () => {
         const invitation = pending.find((i) => i.resource_id === farmId)
         expect(invitation).toBeDefined()
 
-        await acceptInvitation(fdm, invitation!.invitation_id, target.user.id)
+        await acceptInvitation(fdm, invitation?.invitation_id, target.user.id)
 
         const principals = await listPrincipalsForResource(fdm, "farm", farmId)
         expect(
@@ -373,10 +373,10 @@ describe("acceptInvitation", () => {
             target.user.id,
         )
         const invitation = pending.find((i) => i.resource_id === farmId)
-        await acceptInvitation(fdm, invitation!.invitation_id, target.user.id)
+        await acceptInvitation(fdm, invitation?.invitation_id, target.user.id)
 
         await expect(
-            acceptInvitation(fdm, invitation!.invitation_id, target.user.id),
+            acceptInvitation(fdm, invitation?.invitation_id, target.user.id),
         ).rejects.toThrowError("Exception for acceptInvitation")
     })
 
@@ -412,7 +412,7 @@ describe("acceptInvitation", () => {
         expect(invitation).toBeDefined()
 
         await expect(
-            acceptInvitation(fdm, invitation!.invitation_id, wrongUser.user.id),
+            acceptInvitation(fdm, invitation?.invitation_id, wrongUser.user.id),
         ).rejects.toThrowError("Exception for acceptInvitation")
     })
 
@@ -547,7 +547,7 @@ describe("declineInvitation", () => {
         const invitation = pending.find((i) => i.resource_id === farmId)
         expect(invitation).toBeDefined()
 
-        await declineInvitation(fdm, invitation!.invitation_id, target.user.id)
+        await declineInvitation(fdm, invitation?.invitation_id, target.user.id)
 
         // Invitation should now be declined — listPendingInvitationsForPrincipal no longer returns it
         const afterDecline = await listPendingInvitationsForPrincipal(
@@ -556,7 +556,7 @@ describe("declineInvitation", () => {
         )
         expect(
             afterDecline.find(
-                (i) => i.invitation_id === invitation!.invitation_id,
+                (i) => i.invitation_id === invitation?.invitation_id,
             ),
         ).toBeUndefined()
     })
@@ -607,10 +607,10 @@ describe("declineInvitation", () => {
             target.user.id,
         )
         const invitation = pending.find((i) => i.resource_id === farmId)
-        await declineInvitation(fdm, invitation!.invitation_id, target.user.id)
+        await declineInvitation(fdm, invitation?.invitation_id, target.user.id)
 
         await expect(
-            declineInvitation(fdm, invitation!.invitation_id, target.user.id),
+            declineInvitation(fdm, invitation?.invitation_id, target.user.id),
         ).rejects.toThrowError("Exception for declineInvitation")
     })
 
@@ -713,7 +713,7 @@ describe("declineInvitation", () => {
         await expect(
             declineInvitation(
                 fdm,
-                invitation!.invitation_id,
+                invitation?.invitation_id,
                 wrongUser.user.id,
             ),
         ).rejects.toThrowError("Exception for declineInvitation")

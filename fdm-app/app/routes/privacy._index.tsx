@@ -1,7 +1,7 @@
 import { ArrowLeft } from "lucide-react"
+import ReactMarkdown from "react-markdown"
 import type { MetaFunction } from "react-router"
 import { Link, useLoaderData } from "react-router"
-import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Button } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"

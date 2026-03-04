@@ -24,8 +24,8 @@ import { Separator } from "~/components/ui/separator"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import type { Route } from "./+types/organization.invitations.$invitation_id.respond"
 import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
+import type { Route } from "./+types/organization.invitations.$invitation_id.respond"
 
 // Meta
 export const meta: Route.MetaFunction = () => {

@@ -86,7 +86,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             if (year >= 2026) {
                 return dataWithError(
                     {},
-                    `Derogatie is niet meer beschikbaar vanaf 2026.`,
+                    "Derogatie is niet meer beschikbaar vanaf 2026.",
                 )
             }
             await addDerogation(fdm, session.principal_id, b_id_farm, year)

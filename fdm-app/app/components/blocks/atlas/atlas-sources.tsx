@@ -231,7 +231,7 @@ export function FieldsSourceAvailable({
                         }
                         const cultivationCatalogue =
                             await cultivationCataloguePromise
-                        
+
                         if (signal.aborted) return
 
                         try {
@@ -257,13 +257,16 @@ export function FieldsSourceAvailable({
                                 })
                                 i += 1
                             }
-                            
+
                             if (!signal.aborted) {
                                 setData(featureClass)
                             }
                         } catch (error) {
                             if ((error as Error).name !== "AbortError") {
-                                console.error("Failed to deserialize data: ", error)
+                                console.error(
+                                    "Failed to deserialize data: ",
+                                    error,
+                                )
                                 setData(generateFeatureClass())
                             }
                         }

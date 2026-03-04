@@ -66,7 +66,9 @@ export const AccessManagementCard = ({
                                 type={principal.type}
                                 status={principal.status}
                                 invitation_id={principal.invitation_id}
-                                invitation_expires_at={principal.invitation_expires_at}
+                                invitation_expires_at={
+                                    principal.invitation_expires_at
+                                }
                                 hasSharePermission={hasSharePermission}
                             />
                         ))}
