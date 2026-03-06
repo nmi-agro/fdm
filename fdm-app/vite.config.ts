@@ -73,7 +73,10 @@ export default defineConfig((env) => {
             noExternal: [
                 "posthog-js",
                 "posthog-js/react",
-                "@geomatico/maplibre-cog-protocol",
+                /@deck\.gl/,
+                /@luma\.gl/,
+                /@developmentseed/,
+                "geotiff",
             ],
         },
         build: {

@@ -1,25 +1,15 @@
-import {
-    cogProtocol,
-    locationValues,
-    proj4,
-} from "@geomatico/maplibre-cog-protocol"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/turf"
 import type { FeatureCollection, Geometry } from "geojson"
+import { fromUrl, Pool } from "geotiff"
 import throttle from "lodash.throttle"
 import maplibregl from "maplibre-gl"
+import proj4 from "proj4"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
-    Fragment,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from "react"
-import {
-    Layer,
     Map as MapGL,
     type MapLayerMouseEvent,
+    Layer as MapLibreLayer,
     type MapRef,
     Source,
     type ViewState,
@@ -37,6 +27,8 @@ import { ElevationLegend } from "~/components/blocks/atlas/atlas-legend"
 import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { COGElevationLayer } from "~/components/blocks/atlas/cog-elevation-layer"
+import { DeckGLOverlay } from "~/components/blocks/atlas/deckgl-overlay"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -49,9 +41,6 @@ proj4.defs(
     "EPSG:28992",
     "+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.2369,50.0087,465.658,-0.406857330322398,0.350732676542563,-1.8703473836068,4.0812 +units=m +no_defs",
 )
-
-// Register the COG protocol
-maplibregl.addProtocol("cog", cogProtocol)
 
 // Helper: Simple Point in Polygon for RD coordinates (Ray Casting)
 function isPointInPolygon(point: [number, number], vs: [number, number][]) {
@@ -71,23 +60,72 @@ function isPointInPolygon(point: [number, number], vs: [number, number][]) {
 }
 
 // Helper: Check if polygon intersects polygon (simple AABB check for index speed)
-// For now, we just check if any point of tile is in view or view in tile
-// Simpler: Convert Viewport to RD Polygon, check intersection with Tile Polygon (also RD).
 function polygonIntersectsPolygon(
     poly1: [number, number][],
     poly2: [number, number][],
 ) {
-    // Simplified: Check if any point of poly1 is in poly2 OR any point of poly2 is in poly1
-    // This is not 100% robust for crossing polygons but good enough for tiles
     for (const p of poly1) if (isPointInPolygon(p, poly2)) return true
     for (const p of poly2) if (isPointInPolygon(p, poly1)) return true
     return false
 }
 
+// GeoTIFF Pool for workers
+const pool = new Pool()
+
+// Helper: Get value from COG at location
+async function getLocationValue(
+    url: string,
+    lng: number,
+    lat: number,
+): Promise<number | null> {
+    try {
+        // Convert to RD
+        const [x, y] = proj4("EPSG:28992").forward([lng, lat])
+
+        // Read COG
+        const tiff = await fromUrl(url, { pool })
+        const image = await tiff.getImage()
+        const bbox = image.getBoundingBox() // [minX, minY, maxX, maxY]
+        const width = image.getWidth()
+        const height = image.getHeight()
+
+        // Check bounds (RD)
+        if (x < bbox[0] || x > bbox[2] || y < bbox[1] || y > bbox[3])
+            return null
+
+        // Calculate pixel coordinates
+        // Assuming bbox is [minX, minY, maxX, maxY] and image is top-down (standard)
+        // Resolution
+        const resX = (bbox[2] - bbox[0]) / width
+        const resY = (bbox[3] - bbox[1]) / height
+
+        const px = Math.floor((x - bbox[0]) / resX)
+        const py = Math.floor((bbox[3] - y) / resY)
+
+        if (px < 0 || px >= width || py < 0 || py >= height) return null
+
+        // Read single pixel
+        const rasters = await image.readRasters({
+            window: [px, py, px + 1, py + 1],
+        })
+        if (!rasters || !rasters[0]) return null
+
+        // Handle different raster types (TypedArray)
+        const value = (rasters[0] as any)[0]
+
+        // Filter nodata (usually very small or very large, or -9999)
+        if (value < -100 || value > 1000) return null
+
+        return value
+    } catch (e) {
+        // console.warn("Error reading COG:", e)
+        return null
+    }
+}
+
 interface ActiveTile {
     id: string
     url: string
-    cogUrl: string | null
 }
 
 // Meta
@@ -127,8 +165,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     properties: {
                         b_id: field.b_id,
                         b_name: field.b_name,
-                        b_area: Math.round(field.b_area * 10) / 10,
-                        b_lu_name: field.b_lu_name,
+                        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+                        b_lu_name: (field as any).b_lu_name,
                         b_id_source: field.b_id_source,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {
@@ -430,20 +468,11 @@ export default function FarmAtlasElevationBlock() {
                                     feature.properties.href ||
                                     feature.properties.download_url
                                 if (url) {
-                                    // Requesting location value
-                                    const vals = await locationValues(url, {
-                                        longitude: p.lng,
-                                        latitude: p.lat,
-                                    })
-                                    if (
-                                        vals &&
-                                        vals.length > 0 &&
-                                        !Number.isNaN(vals[0]) &&
-                                        vals[0] > -100 &&
-                                        vals[0] < 1000
-                                    ) {
-                                        return vals[0]
-                                    }
+                                    return await getLocationValue(
+                                        url,
+                                        p.lng,
+                                        p.lat,
+                                    )
                                 }
                             }
                         } catch {
@@ -482,9 +511,6 @@ export default function FarmAtlasElevationBlock() {
             setLegendMin(min)
             setLegendMax(max)
 
-            // Format for color scale
-            const colorParam = `#color:BrewerSpectral11,${min},${max},-c`
-
             const newTiles: ActiveTile[] = []
             for (const feature of visibleFeatures) {
                 if (!feature.properties) continue
@@ -499,7 +525,6 @@ export default function FarmAtlasElevationBlock() {
                 newTiles.push({
                     id,
                     url,
-                    cogUrl: `cog://${url}${colorParam}`,
                 })
             }
 
@@ -583,16 +608,9 @@ export default function FarmAtlasElevationBlock() {
                             feature.properties.href ||
                             feature.properties.download_url
                         if (url) {
-                            const values = await locationValues(url, {
-                                longitude: lng,
-                                latitude: lat,
-                            })
-                            if (
-                                values &&
-                                values.length > 0 &&
-                                !Number.isNaN(values[0])
-                            ) {
-                                setHoverElevation(values[0])
+                            const value = await getLocationValue(url, lng, lat)
+                            if (value !== null && !Number.isNaN(value)) {
+                                setHoverElevation(value)
                                 return
                             }
                         }
@@ -604,6 +622,28 @@ export default function FarmAtlasElevationBlock() {
             }, 200),
         [],
     )
+
+    // Create DeckGL Layers
+    const layers = useMemo(() => {
+        if (!showElevation || viewState.zoom < 13) return []
+
+        return activeTiles.map(
+            (tile) =>
+                new COGElevationLayer({
+                    id: `ahn-cog-${tile.id}`,
+                    geotiff: tile.url,
+                    min: legendMin,
+                    max: legendMax,
+                    // Proj4 projection is handled by Deck.gl if needed or assuming Web Mercator/Auto
+                    // For EPSG:28992 COGs, we might need to specify coordinate system if deck.gl doesn't auto-detect
+                    // However, COGLayer usually handles it via geotiff.js
+                    opacity: 1,
+                    // Color map support varies.
+                    // If deck.gl-geotiff supports 'colormap' or similar prop in the future, add it here.
+                    // Currently rendering as is (likely grayscale or black/white depending on value range)
+                }),
+        )
+    }, [activeTiles, showElevation, viewState.zoom, legendMin, legendMax])
 
     return (
         <div className="relative h-full w-full">
@@ -619,6 +659,8 @@ export default function FarmAtlasElevationBlock() {
                 onLoad={throttledUpdate}
                 onMouseMove={showElevation ? handleMouseMove : undefined}
             >
+                <DeckGLOverlay layers={layers} interleaved={true} />
+
                 <Controls
                     onViewportChange={({ longitude, latitude, zoom }) =>
                         setViewState((currentViewState) => ({
@@ -648,7 +690,7 @@ export default function FarmAtlasElevationBlock() {
                         maxzoom={13}
                         attribution="&copy; <a href='https://www.pdok.nl/'>PDOK</a>, <a href='https://www.ahn.nl/'>AHN</a>"
                     >
-                        <Layer
+                        <MapLibreLayer
                             id="ahn-wms-layer"
                             type="raster"
                             paint={{ "raster-opacity": 0.8 }}
@@ -657,46 +699,18 @@ export default function FarmAtlasElevationBlock() {
                     </Source>
                 )}
 
-                {/* Render Active Tiles (Zoom >= 13) */}
-                {showElevation &&
-                    activeTiles.map((tile) => (
-                        <Fragment key={tile.id}>
-                            <Source
-                                id={`ahn-cog-${tile.id}`}
-                                type="raster"
-                                url={tile.cogUrl!}
-                                tileSize={256}
-                                bounds={[3.3, 50.7, 7.2, 53.7]}
-                                minzoom={0}
-                                maxzoom={24}
-                                attribution="&copy; <a href='https://www.pdok.nl/'>PDOK</a>, <a href='https://www.ahn.nl/'>AHN</a>"
-                            >
-                                <Layer
-                                    id={`ahn-layer-${tile.id}`}
-                                    type="raster"
-                                    paint={{ "raster-opacity": 1 }}
-                                    beforeId={
-                                        fields
-                                            ? "fieldsSavedOutline"
-                                            : undefined
-                                    }
-                                />
-                            </Source>
-                        </Fragment>
-                    ))}
-
                 {/* Fields Overlay (Saved Fields) */}
                 {fields && (
                     <Source id={fieldsSavedId} type="geojson" data={fields}>
                         {/* Outline Layer - Visual */}
-                        <Layer
+                        <MapLibreLayer
                             {...({
                                 ...fieldsSavedOutlineStyle,
                                 layout: layerLayout,
                             } as any)}
                         />
                         {/* Fill Layer - Invisible but Clickable/Hoverable */}
-                        <Layer
+                        <MapLibreLayer
                             {...({
                                 ...fieldsSavedStyle,
                                 layout: layerLayout,
