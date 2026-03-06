@@ -5,7 +5,6 @@ import * as authNSchema from "./db/schema-authn"
 import type { FdmType } from "./fdm"
 import { createFdmServer } from "./fdm-server"
 import { createId } from "./id"
-import { createOrganization } from "./organization"
 import { getPrincipal, identifyPrincipal, lookupPrincipal } from "./principal"
 
 describe("Principals", () => {
@@ -54,13 +53,26 @@ describe("Principals", () => {
 
         organizationSlug = "test-org"
         organizationName = "Test Organization"
-        organization_id = await createOrganization(
-            fdm,
-            user_id,
-            organizationName,
-            organizationSlug,
-            "Test description",
-        )
+        organization_id = createId()
+
+        await fdm.insert(authNSchema.organization).values({
+            id: organization_id,
+            name: organizationName,
+            slug: organizationSlug,
+            createdAt: new Date(),
+            metadata: JSON.stringify({
+                description: "Test organization",
+                isVerified: false,
+            }),
+        })
+
+        await fdm.insert(authNSchema.member).values({
+            id: createId(),
+            organizationId: organization_id,
+            userId: user_id,
+            role: "owner",
+            createdAt: new Date(),
+        })
     })
 
     describe("getPrincipal", () => {
@@ -206,13 +218,18 @@ describe("Principals", () => {
             //Create an organization with the same slug as a username. This should never happen
             //in real world scenario, however, this unit test should demonstrate expected behaviour
             const conflictingSlug = userName
-            const conflictingOrganization_id = await createOrganization(
-                fdm,
-                user_id,
-                "Conflicting Organization",
-                conflictingSlug,
-                "Test description",
-            )
+            const conflictingOrganization_id = createId()
+
+            await fdm.insert(authNSchema.organization).values({
+                id: conflictingOrganization_id,
+                name: "Conflicting Organization",
+                slug: conflictingSlug,
+                createdAt: new Date(),
+                metadata: JSON.stringify({
+                    description: "Test description",
+                    isVerified: false,
+                }),
+            })
 
             const principalDetails = await identifyPrincipal(
                 fdm,
@@ -348,13 +365,18 @@ describe("Principals", () => {
 
         it("should prioritize email match of user over slug match of organization", async () => {
             // Create an organization with slug same as one of the user email
-            const conflicting_organization_id = await createOrganization(
-                fdm,
-                user_id,
-                "Conflicting Organization",
-                userEmail,
-                "Test description",
-            )
+            const conflicting_organization_id = createId()
+
+            await fdm.insert(authNSchema.organization).values({
+                id: conflicting_organization_id,
+                name: "Conflicting Organization",
+                slug: userEmail,
+                createdAt: new Date(),
+                metadata: JSON.stringify({
+                    description: "Test description",
+                    isVerified: false,
+                }),
+            })
 
             const identifier = userEmail
             const results = await lookupPrincipal(fdm, identifier)

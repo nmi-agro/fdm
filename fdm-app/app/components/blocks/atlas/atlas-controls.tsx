@@ -1,4 +1,4 @@
-import { Layers, Mountain } from "lucide-react"
+import { Layers, Mountain, PanelsRightBottom } from "lucide-react"
 import type { ControlPosition, Map as MapLibreMap } from "maplibre-gl"
 import { useEffect } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -21,6 +21,8 @@ type ControlsProps = {
     onToggleFields?: () => void
     showElevation?: boolean
     onToggleElevation?: () => void
+    showSoil?: boolean
+    onToggleSoil?: () => void
 }
 
 export function Controls(props: ControlsProps) {
@@ -42,6 +44,12 @@ export function Controls(props: ControlsProps) {
                 <ElevationControl
                     showElevation={props.showElevation}
                     onToggle={props.onToggleElevation}
+                />
+            )}
+            {props.showSoil !== undefined && props.onToggleSoil && (
+                <SoilControl
+                    showSoil={props.showSoil}
+                    onToggle={props.onToggleSoil}
                 />
             )}
             <GeolocateControl
@@ -152,7 +160,7 @@ function FieldsControl({
                 onToggle,
                 labelActive: "Verberg percelen",
                 labelInactive: "Toon percelen",
-                Icon: Layers,
+                Icon: PanelsRightBottom,
             }),
         CONTROL_OPTIONS,
     )
@@ -163,7 +171,7 @@ function FieldsControl({
             onToggle,
             labelActive: "Verberg percelen",
             labelInactive: "Toon percelen",
-            Icon: Layers,
+            Icon: PanelsRightBottom,
         })
     }, [control, showFields, onToggle])
 
@@ -198,6 +206,38 @@ function ElevationControl({
             Icon: Mountain,
         })
     }, [control, showElevation, onToggle])
+
+    return null
+}
+
+function SoilControl({
+    showSoil,
+    onToggle,
+}: {
+    showSoil: boolean
+    onToggle: () => void
+}) {
+    const control = useControl<CustomControl>(
+        () =>
+            new CustomControl({
+                active: showSoil,
+                onToggle,
+                labelActive: "Verberg bodemkaart",
+                labelInactive: "Toon bodemkaart",
+                Icon: Layers,
+            }),
+        CONTROL_OPTIONS,
+    )
+
+    useEffect(() => {
+        control.updateProps({
+            active: showSoil,
+            onToggle,
+            labelActive: "Verberg bodemkaart",
+            labelInactive: "Toon bodemkaart",
+            Icon: Layers,
+        })
+    }, [control, showSoil, onToggle])
 
     return null
 }

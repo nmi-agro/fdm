@@ -2,9 +2,15 @@ import { z } from "zod"
 
 export const CultivationDetailsFormSchema = z
     .object({
-        b_lu_start: z.coerce.date({
-            required_error: "Zaaidatum is verplicht.",
-        }),
+        b_lu_start: z.preprocess(
+            (val) => (typeof val === "string" ? new Date(val) : val),
+            z.date({
+                error: (issue) =>
+                    issue.input === undefined
+                        ? "Zaaidatum is verplicht."
+                        : undefined,
+            }),
+        ),
         b_lu_end: z
             .preprocess((value) => {
                 if (typeof value === "string") {
@@ -12,7 +18,7 @@ export const CultivationDetailsFormSchema = z
                 }
                 return value
             }, z.coerce.date().optional().nullable())
-            .default(null),
+            .prefault(null),
         m_cropresidue: z.preprocess((value) => {
             if (typeof value === "string") {
                 if (value.toLowerCase() === "false") return false
@@ -36,8 +42,8 @@ export const CultivationDetailsFormSchema = z
             return true
         },
         {
-            message: "Einddatum moet na de zaaidatum liggen.",
             path: ["b_lu_end"],
+            error: "Einddatum moet na de zaaidatum liggen.",
         },
     )
 
@@ -46,10 +52,16 @@ export type CultivationDetailsFormSchemaType = z.infer<
 >
 
 export const CultivationAddFormSchema = z.object({
-    b_lu_catalogue: z.string().min(1, "Gewas is verplicht."),
-    b_lu_start: z.coerce.date({
-        required_error: "Zaaidatum is verplicht.",
-    }),
+    b_lu_catalogue: z.string().trim().min(1, "Gewas is verplicht."),
+    b_lu_start: z.preprocess(
+        (val) => (typeof val === "string" ? new Date(val) : val),
+        z.date({
+            error: (issue) =>
+                issue.input === undefined
+                    ? "Zaaidatum is verplicht."
+                    : undefined,
+        }),
+    ),
     b_lu_end: z.preprocess((value) => {
         if (typeof value === "string") {
             if (value.toLowerCase() === "null") return null

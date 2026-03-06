@@ -1,9 +1,5 @@
-import {
-    collectInputForNitrogenBalance,
-    getNitrogenBalance,
-    type NitrogenBalanceFieldResultNumeric,
-} from "@svenvw/fdm-calculator"
-import { getFarm, getFields } from "@svenvw/fdm-core"
+import type { NitrogenBalanceFieldResultNumeric } from "@nmi-agro/fdm-calculator"
+import { getFarm, getFields } from "@nmi-agro/fdm-core"
 import {
     ArrowDown,
     ArrowRight,
@@ -22,9 +18,9 @@ import {
     NavLink,
     useLoaderData,
 } from "react-router"
+import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
-import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import {
     Card,
     CardContent,
@@ -37,12 +33,12 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
+import { getNitrogenBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { useFieldFilterStore } from "~/store/field-filter"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -87,18 +83,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fields = await getFields(fdm, session.principal_id, b_id_farm)
 
         const asyncData = (async () => {
-            // Collect input data for nutrient balance calculation
-            const nitrogenBalanceInput = await collectInputForNitrogenBalance(
+            const nitrogenBalanceResult = await getNitrogenBalanceForFarm({
                 fdm,
-                session.principal_id,
+                principal_id: session.principal_id,
                 b_id_farm,
                 timeframe,
-            )
-
-            const nitrogenBalanceResult = await getNitrogenBalance(
-                fdm,
-                nitrogenBalanceInput,
-            )
+            })
 
             if (nitrogenBalanceResult.hasErrors) {
                 reportError(
@@ -160,7 +150,6 @@ function FarmBalanceNitrogenOverview({
     asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
     const { nitrogenBalanceResult } = use(asyncData)
-    const { showProductiveOnly } = useFieldFilterStore()
 
     const resolvedNitrogenBalanceResult = nitrogenBalanceResult
 
@@ -206,9 +195,8 @@ function FarmBalanceNitrogenOverview({
     const fieldsMap = new Map(fields.map((f) => [f.b_id, f]))
     const filteredFields = resolvedNitrogenBalanceResult.fields.filter(
         (fieldResult: NitrogenBalanceFieldResultNumeric) => {
-            if (!showProductiveOnly) return true
             const fieldData = fieldsMap.get(fieldResult.b_id)
-            return fieldData ? fieldData.b_isproductive === true : false
+            return fieldData ? !fieldData.b_bufferstrip : false
         },
     )
 
@@ -342,7 +330,7 @@ function FarmBalanceNitrogenOverview({
                     <CardHeader>
                         <CardTitle className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <p>Percelen</p>
-                            <FieldFilterToggle />
+                            <BufferStripInfo />
                         </CardTitle>
                         <CardDescription />
                     </CardHeader>

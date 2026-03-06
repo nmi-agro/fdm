@@ -22,7 +22,9 @@ export function HeaderAction({
                     "pointer-events-none": disabled,
                 })}
             >
-                <Button disabled={disabled}>{label}</Button>
+                <Button disabled={disabled} size="sm">
+                    {label}
+                </Button>
             </NavLink>
         </div>
     )

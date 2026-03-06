@@ -1,4 +1,4 @@
-import type { FertilizerApplication } from "@svenvw/fdm-core"
+import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type {
     CultivationDetail,
@@ -165,7 +165,8 @@ function determineMineralAmmoniaEmissionFactor(
     const b = p_no3_rt.times(p_s_rt).times(new Decimal(-4.308e-5))
     const c = p_nh4_rt.pow(2).times(2.498e-4)
 
-    return a.add(b).add(c)
+    const emissionPercentage = a.add(b).add(c)
+    return emissionPercentage.dividedBy(100)
 }
 
 /**

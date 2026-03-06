@@ -6,11 +6,11 @@ tags: [release, fdm-core, fdm-calculator, fdm-data]
 date: 2025-05-27
 ---
 
-This post outlines the recent updates to the FDM libraries: `@svenvw/fdm-core`, `@svenvw/fdm-calculator`, and `@svenvw/fdm-data`. These changes introduce new functionalities and refinements aimed at improving data granularity, enhancing analytical capabilities, and streamlining data management processes for users and developers.
+This post outlines the recent updates to the FDM libraries: `@nmi-agro/fdm-core`, `@nmi-agro/fdm-calculator`, and `@nmi-agro/fdm-data`. These changes introduce new functionalities and refinements aimed at improving data granularity, enhancing analytical capabilities, and streamlining data management processes for users and developers.
 
 {/* truncate */}
 
-### Comprehensive Soil Data Enhancements (`@svenvw/fdm-core`)
+### Comprehensive Soil Data Enhancements (`@nmi-agro/fdm-core`)
 
 This release significantly expands the capabilities for managing and interpreting soil analysis data, allowing for a more nuanced understanding of soil characteristics:
 
@@ -24,24 +24,24 @@ This release significantly expands the capabilities for managing and interpretin
 
 ### Advancements in Cultivation, Harvest, and Catalogue Management
 
-Updates to cultivation and harvest functionalities in `@svenvw/fdm-core` and related catalogue data in `@svenvw/fdm-data` provide greater detail for agronomic planning and analysis:
+Updates to cultivation and harvest functionalities in `@nmi-agro/fdm-core` and related catalogue data in `@nmi-agro/fdm-data` provide greater detail for agronomic planning and analysis:
 
-*   **Enriched Cultivation Catalogue (`@svenvw/fdm-core`, `@svenvw/fdm-data`):** The cultivation catalogue now includes several new default parameters, enhancing the information available for each crop:
+*   **Enriched Cultivation Catalogue (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`):** The cultivation catalogue now includes several new default parameters, enhancing the information available for each crop:
     *   `b_n_fixation`: Estimated nitrogen fixation by the cultivation (kg N / ha), important for nitrogen balancing.
     *   `b_lu_n_residue`: Default nitrogen content (g N / kg) of crop residues, aiding in nutrient cycling calculations.
     *   `b_lu_hi` (Harvest Index): The fraction of total crop biomass that is commercially valuable, crucial for yield and residue estimations.
     *   `b_lu_n_harvestable`: Default nitrogen content (g N / kg) of the harvestable parts of the crop, used for calculating nutrient removal.
     *   `b_lu_yield`: Default average dry matter yield (kg / ha), useful for planning and benchmarking.
     *   `b_lu_croprotation`: Specifies the crop's category within a rotation sequence (e.g., cereals, grassland, maize, etc.).
-    *   These new parameters have also been integrated into the BRP (Basisregistratie Percelen) dataset within `@svenvw/fdm-data` to ensure data consistency.
-*   **Crop Residue Tracking (`@svenvw/fdm-core`):** The `cultivationEnding` process now includes an `m_cropresidue` parameter, allowing users to explicitly state whether crop residues are left on the field or removed. This is vital for accurate soil organic matter modeling and nutrient management.
-*   **Refined Harvest Data Structure (`@svenvw/fdm-core`):**
+    *   These new parameters have also been integrated into the BRP (Basisregistratie Percelen) dataset within `@nmi-agro/fdm-data` to ensure data consistency.
+*   **Crop Residue Tracking (`@nmi-agro/fdm-core`):** The `cultivationEnding` process now includes an `m_cropresidue` parameter, allowing users to explicitly state whether crop residues are left on the field or removed. This is vital for accurate soil organic matter modeling and nutrient management.
+*   **Refined Harvest Data Structure (`@nmi-agro/fdm-core`):**
     *   To simplify data relationships, each `Harvest` event is now limited to a single `Harvestable` entity.
     *   The TypeScript types `Harvestable`, `Harvest`, and `HarvestableAnalysis` are now exported for easier use by developers.
-*   **Cultivation Type Exports (`@svenvw/fdm-core`):** The `Cultivation`, `CultivationPlan`, and `CultivationCatalogue` TypeScript types are now exported.
-*   **Standardized Source Input (`@svenvw/fdm-core`):** The `a_source` parameter (e.g., for soil analysis or fertilizer) has been changed to a list of predefined options, promoting data consistency and simplifying input.
+*   **Cultivation Type Exports (`@nmi-agro/fdm-core`):** The `Cultivation`, `CultivationPlan`, and `CultivationCatalogue` TypeScript types are now exported.
+*   **Standardized Source Input (`@nmi-agro/fdm-core`):** The `a_source` parameter (e.g., for soil analysis or fertilizer) has been changed to a list of predefined options, promoting data consistency and simplifying input.
 
-### Streamlined Organization and Access Control (`@svenvw/fdm-core`)
+### Streamlined Organization and Access Control (`@nmi-agro/fdm-core`)
 
 To address the need for more robust multi-user and multi-organizational capabilities, especially since `better-auth` does not natively provide server-side organization management functions, a comprehensive suite of tools has been added:
 
@@ -60,7 +60,7 @@ To address the need for more robust multi-user and multi-organizational capabili
     *   A function lookup for users and organizations has been added for easier referencing.
     *   The `getFarm` and `getFarms` responses now include the roles the requesting principal (user or organization) holds on the farm, which can be used to tailor UI elements or enforce permissions.
 
-### Farm and Field Data Refinements (`@svenvw/fdm-core`)
+### Farm and Field Data Refinements (`@nmi-agro/fdm-core`)
 
 Minor but useful improvements have been made to field data attributes:
 
@@ -68,9 +68,9 @@ Minor but useful improvements have been made to field data attributes:
 *   **Consistent Area Values:** The `b_area` (field area in hectares) returned by `getField` and `getFields` is now consistently rounded to two decimal places.
 *   **Field Type Export:** The `Field` TypeScript type is now exported for developer convenience.
 
-### Nitrogen Balance Calculation Engine (`@svenvw/fdm-calculator`)
+### Nitrogen Balance Calculation Engine (`@nmi-agro/fdm-calculator`)
 
-The `@svenvw/fdm-calculator` package sees the introduction of its foundational nitrogen balance module:
+The `@nmi-agro/fdm-calculator` package sees the introduction of its foundational nitrogen balance module:
 
 *   **Farm-Level Nitrogen Balance:** The `calculateNitrogenBalance` function provides the core logic for calculating the nitrogen balance at the farm level, a key indicator for nutrient use efficiency and environmental performance.
 *   **Automated Data Collection:** To support the balance calculation, the `collectInputForNitrogenBalance` function has been developed. It gathers all necessary input data from an FDM instance, simplifying the process of running the balance.
@@ -78,10 +78,10 @@ The `@svenvw/fdm-calculator` package sees the introduction of its foundational n
 
 ### Other Notable Changes
 
-*   **Type Renaming for Clarity (`@svenvw/fdm-core`):** For improved readability and semantic accuracy, `getFertilizerType` and `GetFertilizerApplicationsType` have been renamed to `Fertilizer` and `FertilizerApplication`, respectively.
+*   **Type Renaming for Clarity (`@nmi-agro/fdm-core`):** For improved readability and semantic accuracy, `getFertilizerType` and `GetFertilizerApplicationsType` have been renamed to `Fertilizer` and `FertilizerApplication`, respectively.
 *   **Dependency Alignments:**
-    *   `@svenvw/fdm-core` now specifies its dependency on `@svenvw/fdm-data@0.13.0`.
-    *   `@svenvw/fdm-calculator` is updated to depend on `@svenvw/fdm-core@0.20.0`.
+    *   `@nmi-agro/fdm-core` now specifies its dependency on `@nmi-agro/fdm-data@0.13.0`.
+    *   `@nmi-agro/fdm-calculator` is updated to depend on `@nmi-agro/fdm-core@0.20.0`.
 
 ---
 

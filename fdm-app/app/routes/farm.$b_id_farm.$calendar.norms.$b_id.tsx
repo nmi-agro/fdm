@@ -1,15 +1,15 @@
-import type { GebruiksnormResult, NormFilling } from "@svenvw/fdm-calculator"
+import type { GebruiksnormResult, NormFilling } from "@nmi-agro/fdm-calculator"
 import {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import {
     getFarm,
     getFarms,
     getFertilizerApplications,
     getField,
     getFields,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { AlertTriangle } from "lucide-react"

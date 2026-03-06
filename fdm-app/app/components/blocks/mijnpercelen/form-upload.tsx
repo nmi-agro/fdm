@@ -14,7 +14,6 @@ import { toast as notify } from "sonner"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import {
     Accordion,
     AccordionContent,
@@ -36,6 +35,7 @@ import {
     FormItem,
     FormMessage,
 } from "~/components/ui/form"
+import { Spinner } from "~/components/ui/spinner"
 
 import { MijnPercelenUploadAnimation } from "./upload-animation"
 
@@ -70,7 +70,7 @@ export function MijnPercelenUploadForm({
         formErrors?: string[]
     } | null>()
     const navigation = useNavigation()
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting = navigation.state !== "idle"
 
     // Effect to start the animation
     useEffect(() => {
@@ -386,7 +386,7 @@ export function MijnPercelenUploadForm({
                                             >
                                                 {isSubmitting ? (
                                                     <div className="flex items-center space-x-2">
-                                                        <LoadingSpinner />
+                                                        <Spinner />
                                                         <span>Uploaden...</span>
                                                     </div>
                                                 ) : (
@@ -460,7 +460,7 @@ export const FormSchema = z.object({
                     (file) => file.size > 0 && file.size <= fileSizeLimit,
                 ),
             {
-                message: "Een of meerdere bestanden zijn ongeldig of te groot.",
+                error: "Een of meerdere bestanden zijn ongeldig of te groot.",
             },
         )
         .refine(
@@ -476,8 +476,7 @@ export const FormSchema = z.object({
                 )
             },
             {
-                message:
-                    "Een of meerdere bestanden hebben een ongeldig bestandstype.",
+                error: "Een of meerdere bestanden hebben een ongeldig bestandstype.",
             },
         )
         .refine(
@@ -490,8 +489,7 @@ export const FormSchema = z.object({
                 )
             },
             {
-                message:
-                    "Zorg ervoor dat u een .shp, .shx, .dbf, en .prj bestand selecteert.",
+                error: "Zorg ervoor dat u een .shp, .shx, .dbf, en .prj bestand selecteert.",
             },
         ),
 })

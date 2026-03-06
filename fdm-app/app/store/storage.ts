@@ -1,8 +1,8 @@
 import type { StateStorage } from "zustand/middleware"
 
-const createSSRStorage = (): StateStorage => {
+const createSSRStorage = (name: keyof Window): StateStorage => {
     if (typeof window !== "undefined") {
-        return localStorage
+        return window[name]
     }
 
     // Return a no-op storage for SSR
@@ -13,4 +13,5 @@ const createSSRStorage = (): StateStorage => {
     }
 }
 
-export const ssrSafeJSONStorage = createSSRStorage()
+export const ssrSafeJSONStorage = createSSRStorage("localStorage")
+export const ssrSafeSessionJSONStorage = createSSRStorage("sessionStorage")

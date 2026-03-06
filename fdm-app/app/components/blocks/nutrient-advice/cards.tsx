@@ -1,5 +1,5 @@
-import type { Dose } from "@svenvw/fdm-calculator"
-import type { Fertilizer, FertilizerApplication } from "@svenvw/fdm-core"
+import type { Dose } from "@nmi-agro/fdm-calculator"
+import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronDown, ChevronUp, TriangleAlert } from "lucide-react"

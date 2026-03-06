@@ -23,7 +23,6 @@ import type {
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
-import { determineIfFieldIsProductive } from "./field"
 import {
     addHarvest,
     getDefaultsForHarvestParameters,
@@ -706,7 +705,7 @@ export async function getCultivations(
  *       b_id: string;        // Unique ID of the field
  *       b_name: string;      // Name of the field
  *       b_area: number;      // Area of the field
- *       b_isproductive: boolean; // Whether the field is productive
+ *       b_bufferstrip: boolean; // Whether the field is a bufferstrip
  *       fertilizer_applications: [
  *         {
  *           p_id_catalogue: string; // Fertilizer catalogue ID
@@ -786,6 +785,7 @@ export async function getCultivationPlan(
                 b_name: schema.fields.b_name,
                 b_area: sql<number>`ROUND((ST_Area(b_geometry::geography)/10000)::NUMERIC, 2)::FLOAT`,
                 b_perimeter: sql<number>`ROUND((ST_Length(ST_ExteriorRing(b_geometry)::geography))::NUMERIC, 2)::FLOAT`,
+                b_bufferstrip: schema.fields.b_bufferstrip,
                 b_lu_start: schema.cultivationStarting.b_lu_start,
                 b_lu_end: schema.cultivationEnding.b_lu_end,
                 m_cropresidue: schema.cultivationEnding.m_cropresidue,
@@ -957,11 +957,7 @@ export async function getCultivationPlan(
                         b_id: curr.b_id,
                         b_area: curr.b_area,
                         b_name: curr.b_name,
-                        b_isproductive: determineIfFieldIsProductive(
-                            curr.b_area,
-                            curr.b_perimeter,
-                            curr.b_name,
-                        ),
+                        b_bufferstrip: curr.b_bufferstrip,
                         fertilizer_applications: [],
                         harvests: [],
                     }

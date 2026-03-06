@@ -1,7 +1,6 @@
 interface RuntimeConfig {
     PUBLIC_FDM_URL?: string
     PUBLIC_FDM_NAME?: string
-    PUBLIC_FDM_PRIVACY_URL?: string
     PUBLIC_FDM_DATASETS_URL?: string
     PUBLIC_MAP_PROVIDER?: "maptiler" | "osm"
     PUBLIC_MAPTILER_API_KEY?: string
@@ -17,7 +16,9 @@ interface RuntimeConfig {
     PUBLIC_POSTHOG_HOST?: string
 }
 
-interface ImportMetaEnv extends RuntimeConfig {}
+interface ImportMetaEnv extends RuntimeConfig {
+    readonly PUBLIC_APP_VERSION?: string
+}
 
 interface ImportMeta {
     readonly env: ImportMetaEnv

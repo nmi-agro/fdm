@@ -6,11 +6,13 @@ import {
     getDefaultDatesOfCultivation,
     getFarm,
     getFields,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
+import { simplify } from "@turf/turf"
 import type {
     Feature,
     FeatureCollection,
     GeoJsonProperties,
+    Geometry,
     Polygon,
 } from "geojson"
 import maplibregl from "maplibre-gl"
@@ -148,7 +150,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         b_lu_name: cultivation,
                         b_id_source: field.b_id_source,
                     },
-                    geometry: field.b_geometry,
+                    geometry: simplify(field.b_geometry as Geometry, {
+                        tolerance: 0.00001,
+                        highQuality: true,
+                    }),
                 }
                 return feature
             }),

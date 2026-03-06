@@ -1,10 +1,10 @@
-import type { Dose } from "@svenvw/fdm-calculator"
-import type { FertilizerApplication } from "@svenvw/fdm-core"
+import type { Dose } from "@nmi-agro/fdm-calculator"
+import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import { ArrowDownToLine, Gauge, Leaf, Sprout } from "lucide-react"
 import { useNavigation } from "react-router"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent, CardFooter } from "~/components/ui/card"
+import { Spinner } from "~/components/ui/spinner"
 import type { NutrientDescription } from "./types"
 
 /**
@@ -47,7 +47,7 @@ export function NutrientKPICardForTotalApplications({
                             {navigation.state !== "loading" ? (
                                 numberOfFertilizerApplications
                             ) : (
-                                <LoadingSpinner />
+                                <Spinner />
                             )}
                         </p>
                         {navigation.state !== "loading" ? (
@@ -133,7 +133,7 @@ export function NutrientKPICardForNutrientDeficit({
                             {navigation.state !== "loading" ? (
                                 deficitNutrients.length
                             ) : (
-                                <LoadingSpinner />
+                                <Spinner />
                             )}
                         </p>
                         <div className="flex flex-wrap gap-1 mt-1">
@@ -247,7 +247,7 @@ export function NutrientKPICardForNutrientExcess({
                             {navigation.state !== "loading" ? (
                                 excessNutrients.length
                             ) : (
-                                <LoadingSpinner />
+                                <Spinner />
                             )}
                         </p>
                         <div className="flex flex-wrap gap-1 mt-1">

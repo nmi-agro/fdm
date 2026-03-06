@@ -6,7 +6,6 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -23,6 +22,7 @@ import {
     FormMessage,
 } from "~/components/ui/form"
 import { Progress } from "~/components/ui/progress"
+import { Spinner } from "~/components/ui/spinner"
 
 type UploadStatus = "idle" | "uploading" | "success" | "error"
 
@@ -52,7 +52,7 @@ export function SoilAnalysisUploadForm() {
     const navigation = useNavigation()
 
     // Determine if the form is currently submitting
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting = navigation.state !== "idle"
 
     useEffect(() => {
         if (isSubmitting) {
@@ -208,7 +208,7 @@ export function SoilAnalysisUploadForm() {
                                         >
                                             {isSubmitting ? (
                                                 <div className="flex items-center space-x-2">
-                                                    <LoadingSpinner />
+                                                    <Spinner />
                                                     <span>Uploaden...</span>
                                                 </div>
                                             ) : (
@@ -257,12 +257,12 @@ export const FormSchema = z.object({
     soilAnalysisFile: z
         .instanceof(File)
         .refine((file) => ["application/pdf"].includes(file.type), {
-            message: "Ongeldig bestandstype",
+            error: "Ongeldig bestandstype",
         })
         .refine((file) => file.size > 0, {
-            message: "Bestand is ongeldig",
+            error: "Bestand is ongeldig",
         })
         .refine((file) => file.size <= fileSizeLimit, {
-            message: "Bestand mag niet groter zijn dan 5MB",
+            error: "Bestand mag niet groter zijn dan 5MB",
         }),
 })

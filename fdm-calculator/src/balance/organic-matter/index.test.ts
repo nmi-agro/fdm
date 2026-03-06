@@ -1,6 +1,5 @@
 import Decimal from "decimal.js"
 import { describe, expect, it, vi } from "vitest"
-import { convertOrganicMatterBalanceToNumeric } from "../shared/conversion"
 import * as shared from "../shared/soil"
 import * as degradation from "./degradation"
 import {
@@ -9,11 +8,9 @@ import {
 } from "./index"
 import * as supply from "./supply"
 import type {
-    CultivationDetail,
-    FertilizerDetail,
     FieldInput,
-    OrganicMatterBalanceField,
-    OrganicMatterBalanceFieldResult,
+    OrganicMatterBalanceFieldNumeric,
+    OrganicMatterBalanceFieldResultNumeric,
     OrganicMatterBalanceInput,
 } from "./types"
 
@@ -29,12 +26,11 @@ describe("Organic Matter Balance Calculation", () => {
     const mockField: FieldInput["field"] = {
         b_id: "field1",
         b_area: 10,
+        b_bufferstrip: false,
     } as FieldInput["field"]
     const mockCultivations: FieldInput["cultivations"] = []
     const mockFertilizerApplications: FieldInput["fertilizerApplications"] = []
     const mockSoilAnalyses: FieldInput["soilAnalyses"] = []
-    const mockCultivationDetailsMap = new Map<string, CultivationDetail>()
-    const mockFertilizerDetailsMap = new Map<string, FertilizerDetail>()
 
     describe("calculateOrganicMatterBalanceField", () => {
         it("should calculate balance as supply - degradation", () => {
@@ -49,147 +45,147 @@ describe("Organic Matter Balance Calculation", () => {
             })
             vi.spyOn(shared, "combineSoilAnalyses").mockReturnValue({} as any)
 
-            const result = calculateOrganicMatterBalanceField(
-                mockField,
-                mockCultivations,
-                mockFertilizerApplications,
-                mockSoilAnalyses,
-                mockFertilizerDetailsMap,
-                mockCultivationDetailsMap,
+            const result = calculateOrganicMatterBalanceField({
+                fieldInput: {
+                    field: mockField,
+                    cultivations: mockCultivations,
+                    fertilizerApplications: mockFertilizerApplications,
+                    soilAnalyses: mockSoilAnalyses,
+                },
+                fertilizerDetails: [],
+                cultivationDetails: [],
                 timeFrame,
-            )
+            })
 
-            expect(result.balance?.balance.toNumber()).toBe(300)
-            expect(result.balance?.supply.total.toNumber()).toBe(500)
-            expect(result.balance?.degradation.total.toNumber()).toBe(-200)
+            expect(result.balance).toBe(300)
+            expect(result.supply.total).toBe(500)
+            expect(result.degradation.total).toBe(-200)
         })
 
-        it("should return an error message if a sub-calculation fails", () => {
-            vi.spyOn(supply, "calculateOrganicMatterSupply").mockImplementation(
-                () => {
-                    throw new Error("Supply calculation failed")
+        it("should return zero balance for buffer strips", () => {
+            const result = calculateOrganicMatterBalanceField({
+                fieldInput: {
+                    field: { ...mockField, b_bufferstrip: true },
+                    cultivations: mockCultivations,
+                    fertilizerApplications: mockFertilizerApplications,
+                    soilAnalyses: mockSoilAnalyses,
                 },
-            )
-            vi.spyOn(shared, "combineSoilAnalyses").mockReturnValue({} as any)
-
-            const result = calculateOrganicMatterBalanceField(
-                mockField,
-                mockCultivations,
-                mockFertilizerApplications,
-                mockSoilAnalyses,
-                mockFertilizerDetailsMap,
-                mockCultivationDetailsMap,
+                fertilizerDetails: [],
+                cultivationDetails: [],
                 timeFrame,
-            )
+            })
 
-            expect(result.errorMessage).toBe("Supply calculation failed")
-            expect(result.balance).toBeUndefined()
+            expect(result.balance).toBe(0)
+            expect(result.supply.total).toBe(0)
+            expect(result.degradation.total).toBe(0)
         })
     })
 
     describe("calculateOrganicMatterBalancesFieldToFarm", () => {
         it("should aggregate field results to a weighted farm average", () => {
-            const results: OrganicMatterBalanceFieldResult[] = [
+            const results: OrganicMatterBalanceFieldResultNumeric[] = [
                 {
                     b_id: "field1",
                     b_area: 10,
+                    b_bufferstrip: false,
                     balance: {
-                        supply: { total: new Decimal(500) },
-                        degradation: { total: new Decimal(-200) },
-                        balance: new Decimal(300),
-                    } as OrganicMatterBalanceField,
+                        supply: { total: 500 },
+                        degradation: { total: -200 },
+                        balance: 300,
+                    } as OrganicMatterBalanceFieldNumeric,
                 },
                 {
                     b_id: "field2",
                     b_area: 5,
+                    b_bufferstrip: false,
                     balance: {
-                        supply: { total: new Decimal(400) },
-                        degradation: { total: new Decimal(-300) },
-                        balance: new Decimal(100),
-                    } as OrganicMatterBalanceField,
+                        supply: { total: 400 },
+                        degradation: { total: -300 },
+                        balance: 100,
+                    } as OrganicMatterBalanceFieldNumeric,
                 },
-            ]
-            const fields: FieldInput[] = [
-                { field: { b_id: "field1", b_area: 10 } } as FieldInput,
-                { field: { b_id: "field2", b_area: 5 } } as FieldInput,
             ]
 
             const farmBalance = calculateOrganicMatterBalancesFieldToFarm(
                 results,
-                fields,
                 false,
                 [],
             )
 
-            // Total Supply = (500*10 + 400*5) / (10+5) = 7000 / 15 = 466.67
-            // Total Degradation = (200*10 + 300*5) / (10+5) = 3500 / 15 = 233.33
-            // Total Balance = 466.67 - 233.33 = 233.34
-            expect(farmBalance.supply.toNumber()).toBeCloseTo(466.67, 2)
-            expect(farmBalance.degradation.toNumber()).toBeCloseTo(-233.33, 2)
-            expect(farmBalance.balance.toNumber()).toBeCloseTo(233.33, 2)
+            // Total Supply = (500*10 + 400*5) / (10+5) = 7000 / 15 = 466.67 -> 467
+            // Total Degradation = ((-200)*10 + (-300)*5) / (10+5) = -3500 / 15 = -233.33 -> -233
+            // Total Balance = 466.67 + (-233.33) = 233.34 -> 233 (supply + degradation, since degradation is negative)
+            expect(farmBalance.supply).toBe(467)
+            expect(farmBalance.degradation).toBe(-233)
+            expect(farmBalance.balance).toBe(233)
         })
 
         it("should handle cases with calculation errors", () => {
-            const results: OrganicMatterBalanceFieldResult[] = [
+            const results: OrganicMatterBalanceFieldResultNumeric[] = [
                 {
                     b_id: "field1",
                     b_area: 10,
+                    b_bufferstrip: false,
                     balance: {
-                        balance: new Decimal(300),
-                        supply: { total: new Decimal(500) },
-                        degradation: { total: new Decimal(-200) },
-                    } as OrganicMatterBalanceField,
+                        balance: 300,
+                        supply: { total: 500 },
+                        degradation: { total: -200 },
+                    } as OrganicMatterBalanceFieldNumeric,
                 },
-                { b_id: "field2", b_area: 5, errorMessage: "Failed" },
-            ]
-            const fields: FieldInput[] = [
-                { field: { b_id: "field1", b_area: 10 } } as FieldInput,
-                { field: { b_id: "field2", b_area: 5 } } as FieldInput,
+                {
+                    b_id: "field2",
+                    b_area: 5,
+                    errorMessage: "Failed",
+                    b_bufferstrip: false,
+                },
             ]
             const farmBalance = calculateOrganicMatterBalancesFieldToFarm(
                 results,
-                fields,
                 true,
                 ["Error"],
             )
             expect(farmBalance.hasErrors).toBe(true)
             expect(farmBalance.fieldErrorMessages).toEqual(["Error"])
             // Check that only the successful field is aggregated
-            expect(farmBalance.supply.toNumber()).toBeCloseTo(500)
-            expect(farmBalance.degradation.toNumber()).toBeCloseTo(-200)
-            expect(farmBalance.balance.toNumber()).toBeCloseTo(300)
+            expect(farmBalance.supply).toBeCloseTo(500)
+            expect(farmBalance.degradation).toBeCloseTo(-200)
+            expect(farmBalance.balance).toBeCloseTo(300)
         })
-    })
 
-    describe("convertOrganicMatterBalanceToNumeric", () => {
-        it("should convert all Decimal types to numbers", () => {
-            const farmBalanceDecimal = {
-                balance: new Decimal(233.333),
-                supply: new Decimal(466.666),
-                degradation: new Decimal(-233.333),
-                fields: [
-                    {
-                        b_id: "field1",
-                        b_area: 10,
-                        balance: {
-                            balance: new Decimal(300),
-                            supply: {},
-                            degradation: {},
-                        },
-                    },
-                ],
-                hasErrors: false,
-                fieldErrorMessages: [],
-            } as any
+        it("should ignore buffer strips in farm-level aggregation", () => {
+            const results: OrganicMatterBalanceFieldResultNumeric[] = [
+                {
+                    b_id: "field1",
+                    b_area: 10,
+                    b_bufferstrip: false,
+                    balance: {
+                        supply: { total: 500 },
+                        degradation: { total: -200 },
+                        balance: 300,
+                    } as OrganicMatterBalanceFieldNumeric,
+                },
+                {
+                    b_id: "buffer1",
+                    b_area: 100,
+                    b_bufferstrip: true,
+                    balance: {
+                        supply: { total: 0 },
+                        degradation: { total: 0 },
+                        balance: 0,
+                    } as OrganicMatterBalanceFieldNumeric,
+                },
+            ]
 
-            const numericResult =
-                convertOrganicMatterBalanceToNumeric(farmBalanceDecimal)
+            const farmBalance = calculateOrganicMatterBalancesFieldToFarm(
+                results,
+                false,
+                [],
+            )
 
-            expect(typeof numericResult.balance).toBe("number")
-            expect(typeof numericResult.supply).toBe("number")
-            expect(typeof numericResult.degradation).toBe("number")
-            expect(typeof numericResult.fields[0].balance).toBe("object")
-            expect(numericResult.balance).toBe(233) // .round()
+            // Should match field1 values exactly
+            expect(farmBalance.supply).toBe(500)
+            expect(farmBalance.degradation).toBe(-200)
+            expect(farmBalance.balance).toBe(300)
         })
     })
 })

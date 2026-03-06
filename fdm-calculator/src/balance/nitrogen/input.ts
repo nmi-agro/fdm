@@ -3,7 +3,7 @@ import type {
     fdmSchema,
     PrincipalId,
     Timeframe,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     getCultivations,
     getCultivationsFromCatalogue,
@@ -13,7 +13,9 @@ import {
     getFields,
     getHarvests,
     getSoilAnalyses,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
+import { getFdmPublicDataUrl } from "../../shared/public-data-url"
+import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 import type { NitrogenBalanceInput } from "./types"
 
 /**
@@ -58,6 +60,17 @@ export async function collectInputForNitrogenBalance(
                     timeframe,
                 )
             }
+
+            // Set the link to location of FDM public data
+            const fdmPublicDataUrl = getFdmPublicDataUrl()
+
+            // Fetch all deposition data in a single, batched request to avoid requesting the GeoTIIF for every field
+            const depositionByField =
+                await calculateAllFieldsNitrogenSupplyByDeposition(
+                    farmFields,
+                    timeframe,
+                    fdmPublicDataUrl,
+                )
 
             // Collect the details per field
             const fields = await Promise.all(
@@ -113,6 +126,7 @@ export async function collectInputForNitrogenBalance(
                         harvests: harvestsFiltered,
                         fertilizerApplications: fertilizerApplications,
                         soilAnalyses: soilAnalyses,
+                        depositionSupply: depositionByField.get(field.b_id),
                     }
                 }),
             )

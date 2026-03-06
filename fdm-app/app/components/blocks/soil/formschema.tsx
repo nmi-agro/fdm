@@ -4,21 +4,31 @@ export const FormSchema = z
     .object({
         a_source: z
             .string({
-                invalid_type_error: "Laboratorium is ongeldig",
-                required_error: "Kies een laboratorium",
+                error: (issue) =>
+                    issue.input === undefined
+                        ? "Kies een laboratorium"
+                        : "Laboratorium is ongeldig",
             })
             .refine((value) => value.toLowerCase() !== "nl-other-nmi", {
-                message: "Bron mag niet 'NMI BodemSchat' zijn.",
+                error: "Bron mag niet 'NMI BodemSchat' zijn.",
             }),
-        b_sampling_date: z.coerce.date({
-            invalid_type_error: "Datum is ongeldig",
-            required_error: "Vul een datum in",
-        }),
+        b_sampling_date: z.preprocess(
+            (val) => (typeof val === "string" ? new Date(val) : val),
+            z.date({
+                error: (issue) =>
+                    issue.input === undefined
+                        ? "Vul een datum in"
+                        : "Datum is ongeldig",
+            }),
+        ),
         a_depth_upper: z.preprocess(
             (val) => (val === "" ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Waarde moet een getal zijn",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Waarde moet een getal zijn",
                 })
                 .gte(0, "Waarde moet groter of gelijk aan 0 zijn")
                 .lte(200, "Waarde moet kleiner of gelijk aan 200 zijn")
@@ -26,8 +36,10 @@ export const FormSchema = z
         ),
         a_depth_lower: z.coerce
             .number({
-                invalid_type_error: "Waarde moet een getal zijn",
-                required_error: "Vul in tot hoe diep is bemonsterd",
+                error: (issue) =>
+                    issue.input === undefined
+                        ? "Vul in tot hoe diep is bemonsterd"
+                        : "Waarde moet een getal zijn",
             })
             .gte(1, "Waarde moet groter of gelijk aan 1 zijn")
             .lte(200, "Waarde moet kleiner of gelijk aan 200 zijn"),
@@ -318,8 +330,7 @@ export const FormSchema = z
             return true
         },
         {
-            message:
-                "Bovenkant van bemonsterde laag moet minder diep zijn dan onderkant",
             path: ["a_depth_upper"],
+            error: "Bovenkant van bemonsterde laag moet minder diep zijn dan onderkant",
         },
     )

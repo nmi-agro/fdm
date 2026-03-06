@@ -54,6 +54,14 @@ export async function addSoilAnalysis(
             "addSoilAnalysis",
         )
 
+        // Validate depth values are numbers
+        if (Number.isNaN(a_depth_lower)) {
+            throw new Error("a_depth_lower must be a valid number")
+        }
+        if (Number.isNaN(a_depth_upper)) {
+            throw new Error("a_depth_upper must be a valid number")
+        }
+
         // Validate if a_depth_lower is beneath a_depth_upper
         if (a_depth_lower && a_depth_lower <= a_depth_upper) {
             throw new Error("a_depth_lower must be greater than a_depth_upper")

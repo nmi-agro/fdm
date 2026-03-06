@@ -4,29 +4,41 @@ export const FormSchema = z
     .object({
         p_name_nl: z
             .string({
-                required_error: "Naam is verplicht",
-                invalid_type_error: "Ongeldige waarde",
+                error: (issue) =>
+                    issue.input === undefined
+                        ? "Naam is verplicht"
+                        : "Ongeldige waarde",
             })
-            .min(1, { message: "Geef een naam op voor deze meststof" }),
+            .trim()
+            .min(1, {
+                error: "Geef een naam op voor deze meststof",
+            }),
         p_name_en: z.string().optional(),
         p_description: z.string().optional(),
         p_type_rvo: z
             .string({
-                required_error: "RVO mestcode is verplicht",
-                invalid_type_error: "Ongeldige waarde",
+                error: (issue) =>
+                    issue.input === undefined
+                        ? "RVO mestcode is verplicht"
+                        : "Ongeldige waarde",
             })
-            .min(1, { message: "RVO mestcode mag niet leeg zijn" }),
+            .min(1, {
+                error: "RVO mestcode mag niet leeg zijn",
+            }),
         p_dm: z.preprocess(
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000, {
-                    message: "Waarde mag niet groter zijn dan 1000",
+                    error: "Waarde mag niet groter zijn dan 1000",
                 })
                 .optional(),
         ),
@@ -34,13 +46,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0.00016, {
-                    message: "Waarde mag niet kleiner dan 0.00016 zijn",
+                    error: "Waarde mag niet kleiner dan 0.00016 zijn",
                 })
                 .max(17.31, {
-                    message: "Waarde mag niet groter zijn dan 17.31",
+                    error: "Waarde mag niet groter zijn dan 17.31",
                 })
                 .optional(),
         ),
@@ -48,13 +63,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000, {
-                    message: "Waarde mag niet groter zijn dan 1000",
+                    error: "Waarde mag niet groter zijn dan 1000",
                 })
                 .optional(),
         ),
@@ -74,13 +92,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000, {
-                    message: "Waarde mag niet groter zijn dan 1000",
+                    error: "Waarde mag niet groter zijn dan 1000",
                 })
                 .optional(),
         ),
@@ -108,13 +129,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000, {
-                    message: "Waarde mag niet groter zijn dan 1000",
+                    error: "Waarde mag niet groter zijn dan 1000",
                 })
                 .optional(),
         ),
@@ -130,13 +154,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1, {
-                    message: "Waarde mag niet groter zijn dan 1",
+                    error: "Waarde mag niet groter zijn dan 1",
                 })
                 .optional(),
         ),
@@ -144,13 +171,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000, {
-                    message: "Waarde mag niet groter zijn dan 1000",
+                    error: "Waarde mag niet groter zijn dan 1000",
                 })
                 .optional(),
         ),
@@ -158,13 +188,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000, {
-                    message: "Waarde mag niet groter zijn dan 1000",
+                    error: "Waarde mag niet groter zijn dan 1000",
                 })
                 .optional(),
         ),
@@ -172,13 +205,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(4583, {
-                    message: "Waarde mag niet groter zijn dan 4583",
+                    error: "Waarde mag niet groter zijn dan 4583",
                 })
                 .optional(),
         ),
@@ -186,13 +222,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(2409.2, {
-                    message: "Waarde mag niet groter zijn dan 2409.2",
+                    error: "Waarde mag niet groter zijn dan 2409.2",
                 })
                 .optional(),
         ),
@@ -200,13 +239,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1659, {
-                    message: "Waarde mag niet groter zijn dan 1659",
+                    error: "Waarde mag niet groter zijn dan 1659",
                 })
                 .optional(),
         ),
@@ -214,13 +256,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1399.2, {
-                    message: "Waarde mag niet groter zijn dan 1399.2",
+                    error: "Waarde mag niet groter zijn dan 1399.2",
                 })
                 .optional(),
         ),
@@ -232,13 +277,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(2497.2, {
-                    message: "Waarde mag niet groter zijn dan 2497.2",
+                    error: "Waarde mag niet groter zijn dan 2497.2",
                 })
                 .optional(),
         ),
@@ -250,13 +298,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000000, {
-                    message: "Waarde mag niet groter zijn dan 1000000",
+                    error: "Waarde mag niet groter zijn dan 1000000",
                 })
                 .optional(),
         ),
@@ -264,13 +315,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000000, {
-                    message: "Waarde mag niet groter zijn dan 1000000",
+                    error: "Waarde mag niet groter zijn dan 1000000",
                 })
                 .optional(),
         ),
@@ -278,13 +332,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(2695900, {
-                    message: "Waarde mag niet groter zijn dan 2695900",
+                    error: "Waarde mag niet groter zijn dan 2695900",
                 })
                 .optional(),
         ),
@@ -296,13 +353,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000000, {
-                    message: "Waarde mag niet groter zijn dan 1000000",
+                    error: "Waarde mag niet groter zijn dan 1000000",
                 })
                 .optional(),
         ),
@@ -310,13 +370,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000000, {
-                    message: "Waarde mag niet groter zijn dan 1000000",
+                    error: "Waarde mag niet groter zijn dan 1000000",
                 })
                 .optional(),
         ),
@@ -332,13 +395,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000000, {
-                    message: "Waarde mag niet groter zijn dan 1000000",
+                    error: "Waarde mag niet groter zijn dan 1000000",
                 })
                 .optional(),
         ),
@@ -346,13 +412,16 @@ export const FormSchema = z
             (val) => (val === "" || val === null ? undefined : val),
             z.coerce
                 .number({
-                    invalid_type_error: "Ongeldige waarde",
+                    error: (issue) =>
+                        issue.input === undefined
+                            ? undefined
+                            : "Ongeldige waarde",
                 })
                 .min(0, {
-                    message: "Waarde mag niet negatief zijn",
+                    error: "Waarde mag niet negatief zijn",
                 })
                 .max(1000000, {
-                    message: "Waarde mag niet groter zijn dan 1000000",
+                    error: "Waarde mag niet groter zijn dan 1000000",
                 })
                 .optional(),
         ),
@@ -386,11 +455,14 @@ export const FormSchema = z
         ),
         p_app_method_options: z
             .array(z.string(), {
-                required_error: "Selecteer minimaal 1 methode",
+                error: (issue) =>
+                    issue.input === undefined
+                        ? "Selecteer minimaal 1 methode"
+                        : undefined,
             })
-            .default([])
+            .prefault([])
             .refine((value) => value.some((item) => item), {
-                message: "Selecteer minimaal 1 methode",
+                error: "Selecteer minimaal 1 methode",
             }),
     })
     .refine(
@@ -401,9 +473,8 @@ export const FormSchema = z
             return true
         },
         {
-            message:
-                "N-werkingscoëfficiënt is verplicht als meststof stikstofbevat",
             path: ["p_n_wc"],
+            error: "N-werkingscoëfficiënt is verplicht als meststof stikstofbevat",
         },
     )
     .refine(
@@ -425,8 +496,7 @@ export const FormSchema = z
             return true
         },
         {
-            message:
-                "De som van nitraat en ammonium kan niet groter zijn dan het totale stikstofgehalte",
             path: ["p_n_rt"],
+            error: "De som van nitraat en ammonium kan niet groter zijn dan het totale stikstofgehalte",
         },
     )

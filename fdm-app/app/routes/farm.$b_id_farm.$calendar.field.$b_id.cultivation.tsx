@@ -6,7 +6,7 @@ import {
     getField,
     getHarvests,
     removeCultivation,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,
@@ -161,7 +161,7 @@ export default function FarmFieldsOverviewBlock() {
 
     return (
         <div className="space-y-6">
-            <div className="grid xl:grid-cols-2 gap-4">
+            <div className="grid 2xl:grid-cols-2 gap-4">
                 <CultivationListCard
                     cultivationsCatalogueOptions={
                         loaderData.cultivationsCatalogueOptions

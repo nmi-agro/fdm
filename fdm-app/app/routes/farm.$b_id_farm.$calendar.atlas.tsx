@@ -1,10 +1,9 @@
-import { getFarm, getFarms } from "@svenvw/fdm-core"
+import { getFarm, getFarms } from "@nmi-agro/fdm-core"
 import {
     type LoaderFunctionArgs,
     type MetaFunction,
     Outlet,
     useLoaderData,
-    useLocation,
 } from "react-router"
 import { ClientOnly } from "remix-utils/client-only"
 import { HeaderAtlas } from "~/components/blocks/header/atlas"
@@ -88,29 +87,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmContentBlock() {
     const loaderData = useLoaderData<typeof loader>()
-    const location = useLocation()
-
-    // Get the current layer
-    const pathname = location.pathname
-
-    // Add back to map button when visiting the field details page
-    const isFieldDetailsPage =
-        pathname.includes("/atlas/fields/") &&
-        pathname.split("/atlas/fields/")[1]?.includes(",")
-    let headerAction:
-        | { to: string; label: string; disabled: boolean }
-        | undefined
-    if (isFieldDetailsPage) {
-        headerAction = {
-            to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/atlas/fields`,
-            label: "Terug",
-            disabled: false,
-        }
-    }
 
     return (
         <SidebarInset>
-            <Header action={headerAction}>
+            <Header action={undefined}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

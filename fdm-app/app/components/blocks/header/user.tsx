@@ -7,11 +7,11 @@ import {
 export function HeaderUser({ name }: { name: string }) {
     return (
         <>
-            <BreadcrumbItem className="hidden md:block">
+            <BreadcrumbItem className="hidden xl:block">
                 <BreadcrumbLink href="/user">Account</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem className="hidden md:block">
+            <BreadcrumbSeparator className="hidden xl:block" />
+            <BreadcrumbItem>
                 <BreadcrumbLink href="/user">{name}</BreadcrumbLink>
             </BreadcrumbItem>
         </>

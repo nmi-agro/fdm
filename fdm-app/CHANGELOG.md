@@ -1,5 +1,191 @@
 # Changelog fdm-app
 
+## 0.28.0
+
+### Minor Changes
+
+- [#426](https://github.com/nmi-agro/fdm/pull/426) [`4b120a4`](https://github.com/nmi-agro/fdm/commit/4b120a454bf5af0acddc8491ab5892458aa2a1ea) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can now edit the details of their organizations and add members in dedicated, easy-to-find pages.
+
+- [#449](https://github.com/nmi-agro/fdm/pull/449) [`e77460f`](https://github.com/nmi-agro/fdm/commit/e77460f3dfaa4c789d4a08912772d14584f64fae) Thanks [@SvenVw](https://github.com/SvenVw)! - Add grouping and improve ordering of soil parameters for a field
+
+- [#470](https://github.com/nmi-agro/fdm/pull/470) [`ecd4d21`](https://github.com/nmi-agro/fdm/commit/ecd4d2184de555cbace8d031d0b63d121de9971f) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the possibility for users to accept or reject an invitation to a farm, instead of having it automatically. This makes it also possible to invite non-registered users to get access to a farm after signing up.
+  - Overview page shows pending farm invitations with accept/decline actions
+  - Invitation email sent when a user is invited to a farm
+  - Farm access settings page handles accept/decline invitation intents
+
+- [#456](https://github.com/nmi-agro/fdm/pull/456) [`ec81834`](https://github.com/nmi-agro/fdm/commit/ec8183409633b7b0b6eb6c0225b89ac0baa7f2a5) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can edit the harvest date and parameters directly from the cell in the rotation table.
+
+- [#449](https://github.com/nmi-agro/fdm/pull/449) [`d1b44c4`](https://github.com/nmi-agro/fdm/commit/d1b44c49500f9dcad1e9b94141837d5bdafa9738) Thanks [@SvenVw](https://github.com/SvenVw)! - In the list of soil analyses show also analyses from before the selected year
+
+- [#450](https://github.com/nmi-agro/fdm/pull/450) [`cf58f14`](https://github.com/nmi-agro/fdm/commit/cf58f148871a107084f101c0e8cb270c0cd3aede) Thanks [@SvenVw](https://github.com/SvenVw)! - Improve farm create form by only showing derogation question before 2026, adding KvK number, grazing intention and organic certification
+
+- [#449](https://github.com/nmi-agro/fdm/pull/449) [`ffc6279`](https://github.com/nmi-agro/fdm/commit/ffc6279ff4ab00e29bb6ec22ea7510428e3568bd) Thanks [@SvenVw](https://github.com/SvenVw)! - Make it at the new fields page more clear that soil parameters are estimates and multiple pdf's can be uploaded
+
+- [#449](https://github.com/nmi-agro/fdm/pull/449) [`0ccf8f0`](https://github.com/nmi-agro/fdm/commit/0ccf8f05c7e55f38bec3355987cb84e5adf5be1b) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the ability to upload multiple soil analyses as pdf, review them in a table and connect to a field
+
+- [#475](https://github.com/nmi-agro/fdm/pull/475) [`b6f7cd5`](https://github.com/nmi-agro/fdm/commit/b6f7cd52502ed5fa1e5fd4241011f1e4066f0006) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can click the fertilizer badges on the rotation table to see a table of applications of this fertilizer onto the clicked cultivation or field. They can edit the applications directly from this table.
+
+- [#465](https://github.com/nmi-agro/fdm/pull/465) [`4cf7ec0`](https://github.com/nmi-agro/fdm/commit/4cf7ec09278cee2e718ad330e6d6aabc53ce409e) Thanks [@SvenVw](https://github.com/SvenVw)! - Add a card to field details at Atlas with more information about carbon sequestration, including current state, potential maximal state and relatable figures of how much carbon can be stored
+
+- [#488](https://github.com/nmi-agro/fdm/pull/488) [`fbbc0a3`](https://github.com/nmi-agro/fdm/commit/fbbc0a31f31bcbabb6c311a163e18100df67fd33) Thanks [@SvenVw](https://github.com/SvenVw)! - If a page load takes longer than 300 ms, show a loading spinner and blur the page to prevent double-clicking the navigation action.
+
+- [#465](https://github.com/nmi-agro/fdm/pull/465) [`4041e97`](https://github.com/nmi-agro/fdm/commit/4041e97ec65bbfda79e6c6cc329797a8a320d134) Thanks [@SvenVw](https://github.com/SvenVw)! - Improve design of field details page in Atlas, to better show the information and make it more responsive on various screen sizes
+
+- [#426](https://github.com/nmi-agro/fdm/pull/426) [`4b120a4`](https://github.com/nmi-agro/fdm/commit/4b120a454bf5af0acddc8491ab5892458aa2a1ea) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can now view the farms that their organization has access to in a searchable table
+
+- [#466](https://github.com/nmi-agro/fdm/pull/466) [`f88fd50`](https://github.com/nmi-agro/fdm/commit/f88fd5051ddc29f902b4465476dfa2c9b3ce962b) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - While logging in or sending an organization invitation, if an email can't be sent due to an inactive recipient error from the Postmark API, the user will see a toast with a message that is specific to this error.
+
+- [#477](https://github.com/nmi-agro/fdm/pull/477) [`4fe42b1`](https://github.com/nmi-agro/fdm/commit/4fe42b1b0345c20ccb4b6697174259dd3ccbef6b) Thanks [@SvenVw](https://github.com/SvenVw)! - In the access list of farms make it clear that if a user is invited they can enable managing invitations
+
+- [#465](https://github.com/nmi-agro/fdm/pull/465) [`4041e97`](https://github.com/nmi-agro/fdm/commit/4041e97ec65bbfda79e6c6cc329797a8a320d134) Thanks [@SvenVw](https://github.com/SvenVw)! - Add floating button at field details page to go back easier to the map
+
+- [#450](https://github.com/nmi-agro/fdm/pull/450) [`af6fabb`](https://github.com/nmi-agro/fdm/commit/af6fabb669654e3c9081b3a2b822b0070ef19a36) Thanks [@SvenVw](https://github.com/SvenVw)! - Add information box at first of farm create wizard to explain the steps in the farm create wizard
+
+### Patch Changes
+
+- [#457](https://github.com/nmi-agro/fdm/pull/457) [`f155e75`](https://github.com/nmi-agro/fdm/commit/f155e752f406efe48980d664a2a3471dc7b681b2) Thanks [@SvenVw](https://github.com/SvenVw)! - Enhanced the farm selection screen with a modernized UI, clearer feature breakdowns for new users, and a dedicated Atlas section for existing farms. Improved sidebar navigation by adding "muted" states for unavailable features and clarifying the distinction between the farm list and farm overview.
+
+- [#482](https://github.com/nmi-agro/fdm/pull/482) [`ba7cf33`](https://github.com/nmi-agro/fdm/commit/ba7cf33f7577173cf2a8e348929332f8565b48cb) Thanks [@SvenVw](https://github.com/SvenVw)! - Show a toast with explanation when the user tries to update the role of the last owner of a farm instead of throwing an exception
+
+- [#485](https://github.com/nmi-agro/fdm/pull/485) [`bf4448c`](https://github.com/nmi-agro/fdm/commit/bf4448c38a2b53e2b6d0bff93bb742f9972dccc3) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix AggregateError and improve Atlas stability by implementing AbortController for network requests and reducing elevation API calls from O(viewport pixels) to 9 requests per pan/zoom by sampling a 3×3 grid of points across the visible area
+
+- [#473](https://github.com/nmi-agro/fdm/pull/473) [`86e3298`](https://github.com/nmi-agro/fdm/commit/86e3298f83fd2c22c2849c5d98342f6d395f1a0b) Thanks [@SvenVw](https://github.com/SvenVw)! - Standardize email templates with a shared layout, improved styling, and footers
+
+- [#486](https://github.com/nmi-agro/fdm/pull/486) [`e1abff7`](https://github.com/nmi-agro/fdm/commit/e1abff76488227609de8c2efb4ac09111bc5c499) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix systemic double-click bug in actions by ensuring buttons and forms remain disabled during both the "submitting" and "loading" (revalidation) phases by checking for `state !== "idle"`.
+
+- [#483](https://github.com/nmi-agro/fdm/pull/483) [`f9c6674`](https://github.com/nmi-agro/fdm/commit/f9c6674ad8c1b47499bcd0ff44ce807e5bfdde81) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixes that version is passed to Sentry
+
+- [#474](https://github.com/nmi-agro/fdm/pull/474) [`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate organization from `SvenVw` to `nmi-agro`
+
+- [#488](https://github.com/nmi-agro/fdm/pull/488) [`fbbc0a3`](https://github.com/nmi-agro/fdm/commit/fbbc0a31f31bcbabb6c311a163e18100df67fd33) Thanks [@SvenVw](https://github.com/SvenVw)! - If a page load takes longer than 300 ms, log the total duration to Sentry to identify potentially slow pages.
+
+- [#486](https://github.com/nmi-agro/fdm/pull/486) [`e1abff7`](https://github.com/nmi-agro/fdm/commit/e1abff76488227609de8c2efb4ac09111bc5c499) Thanks [@SvenVw](https://github.com/SvenVw)! - Improve error handling robustness in `handleActionError` to correctly identify permission denied errors even when wrapped, preventing unnecessary 500 error pages
+
+- [#452](https://github.com/nmi-agro/fdm/pull/452) [`bc0e278`](https://github.com/nmi-agro/fdm/commit/bc0e2783b95ca411be43c263a169d4efd70f9897) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate the shadcn/ui components to use the unified radix-ui package instead of the individual ones
+
+- [#450](https://github.com/nmi-agro/fdm/pull/450) [`d0cc5e3`](https://github.com/nmi-agro/fdm/commit/d0cc5e39798f058781f3bafc424f71c8eaafe0c9) Thanks [@SvenVw](https://github.com/SvenVw)! - On overview page of farms always show the KvK number and make the text format consistent
+
+- [#484](https://github.com/nmi-agro/fdm/pull/484) [`2e0b3d0`](https://github.com/nmi-agro/fdm/commit/2e0b3d0e87084c877600760199cbe7245243ec58) Thanks [@SvenVw](https://github.com/SvenVw)! - Increased PostHog proxy timeout to 60 seconds and improved reliability for large payloads by correctly handling content-length headers during streaming
+
+- [#488](https://github.com/nmi-agro/fdm/pull/488) [`a1a30e7`](https://github.com/nmi-agro/fdm/commit/a1a30e75632c56d5e3b5e33f7ed361e23b2f6664) Thanks [@SvenVw](https://github.com/SvenVw)! - Suppress logging `BodyStreamBuffer was aborted` to Sentry, as this is caused by users navigating to another page while the current page is still loading.
+
+- Updated dependencies [[`ecd4d21`](https://github.com/nmi-agro/fdm/commit/ecd4d2184de555cbace8d031d0b63d121de9971f), [`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45), [`4fe42b1`](https://github.com/nmi-agro/fdm/commit/4fe42b1b0345c20ccb4b6697174259dd3ccbef6b), [`1ac14fe`](https://github.com/nmi-agro/fdm/commit/1ac14fed4dca7a830f5d51c498976c0d17e53868), [`8dcc0ae`](https://github.com/nmi-agro/fdm/commit/8dcc0aeb951a12941737f1416961cea36c24c318), [`1df6896`](https://github.com/nmi-agro/fdm/commit/1df6896be4082d79ff817799beffa2dc6121b563)]:
+  - @nmi-agro/fdm-core@0.30.0
+  - @nmi-agro/fdm-calculator@0.12.0
+  - @nmi-agro/fdm-data@0.19.2
+
+## 0.27.4
+
+### Patch Changes
+
+- [#469](https://github.com/nmi-agro/fdm/pull/469) [`b9f30b6`](https://github.com/nmi-agro/fdm/commit/b9f30b65b9e3b9375e0e6f17c9ad3f1bbaaab7da) Thanks [@SvenVw](https://github.com/SvenVw)! - Make privacy policy available under '/privacy' instead of redirecting to external domain
+
+## 0.27.3
+
+### Patch Changes
+
+- [#445](https://github.com/nmi-agro/fdm/pull/445) [`f30565a`](https://github.com/nmi-agro/fdm/commit/f30565ada2349775c159fa23ba58545159e9c15a) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix calculator version placeholder in `fdm-app` build. This ensures the calculation cache key correctly reflects the calculator version in production, where `fdm-app` consumes source files directly.
+
+## 0.27.2
+
+### Patch Changes
+
+- [#448](https://github.com/nmi-agro/fdm/pull/448) [`5e5ebf4`](https://github.com/nmi-agro/fdm/commit/5e5ebf4bf169516d1c2fce9ef14c9a4a77bc3e12) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix FormDataParseError when uploading files by converting LazyFile to File in uploadHandlers.
+
+## 0.27.1
+
+### Patch Changes
+
+- [#442](https://github.com/nmi-agro/fdm/pull/442) [`cc2f9c6`](https://github.com/nmi-agro/fdm/commit/cc2f9c6af3b08980c064ad70b0b03abbb545afa0) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix forwarding headers to reverse proxy for posthog
+
+## 0.27.0
+
+### Minor Changes
+
+- [#427](https://github.com/nmi-agro/fdm/pull/427) [`5566687`](https://github.com/nmi-agro/fdm/commit/556668727b17377ad77ddc090c50fdccdfe67c65) Thanks [@SvenVw](https://github.com/SvenVw)! - Integrated the BRO "Bodemkaart" (Soil Map) into the Atlas
+
+- [#410](https://github.com/nmi-agro/fdm/pull/410) [`44ec6d8`](https://github.com/nmi-agro/fdm/commit/44ec6d8bd3afc5b7874c5111fab16033e756a9a1) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can now add multiple fields at once on the atlas also through the fields table.
+
+- [#425](https://github.com/nmi-agro/fdm/pull/425) [`94fc2c5`](https://github.com/nmi-agro/fdm/commit/94fc2c562fa456b803e475c304b62ed5c9fd92cf) Thanks [@SvenVw](https://github.com/SvenVw)! - Adds that the user can download a pdf, "Bemestingsplan", for a farm that gives on farm-level an overview of norms, advices, used fertilizers and on field-level,the norms, advices, soil status and planned fertilizer applications.
+
+- [#377](https://github.com/nmi-agro/fdm/pull/377) [`6bee78e`](https://github.com/nmi-agro/fdm/commit/6bee78e79d936d796c35d4d70a499bcdc6965af3) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added expandable rows to the crop rotation table. When a cultivation row is expanded, fields with the cultivation appear on their own rows below, only showing data that is relevant to the cultivation type. Users can select fields and cultivation types in a mixed manner. The field selection will be passed to the harvest or fertilizer addition wizard, so the user no longer needs to deselect fields that they don't want if they have selected the correct fields on the table already.
+
+- [#422](https://github.com/nmi-agro/fdm/pull/422) [`6839005`](https://github.com/nmi-agro/fdm/commit/683900597cebf1b7fb330caf0188bef597032486) Thanks [@SvenVw](https://github.com/SvenVw)! - Users can now indicate if a field is a buffer strip. Fields marked as buffer strips are excluded from nitrogen and organic matter balances at the farm level, and their nutrient advice and norms are automatically adjusted to zero. The UI now displays informative messages when calculations are skipped for these fields.
+
+- [#430](https://github.com/nmi-agro/fdm/pull/430) [`661f3e2`](https://github.com/nmi-agro/fdm/commit/661f3e2d4a6bf242cc3574538de816912bca9b2f) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Improve the user experience when they come back to the field and rotation tables, by storing their filters in the session storage.
+
+### Patch Changes
+
+- [#418](https://github.com/nmi-agro/fdm/pull/418) [`5f3eec2`](https://github.com/nmi-agro/fdm/commit/5f3eec2ce1efc080717ee7dc69136938cadf9fff) Thanks [@SvenVw](https://github.com/SvenVw)! - Add "Copy to Clipboard" button to Cultivation History card to allow users to export data to Excel as TSV.
+
+- [#405](https://github.com/nmi-agro/fdm/pull/405) [`cd223e2`](https://github.com/nmi-agro/fdm/commit/cd223e22d18996578bb4813da0e3695630d6d9c7) Thanks [@SvenVw](https://github.com/SvenVw)! - Added accessibility improvements to Cookie Banner and error pages. Replaced all instances of LoadingSpinner with the standardized shadcn Spinner component.
+
+- [#414](https://github.com/nmi-agro/fdm/pull/414) [`316d3c7`](https://github.com/nmi-agro/fdm/commit/316d3c7c497fbe5fe31099b796b4e6efebe78e6b) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - While adding a harvest on the crop rotation table, the harvest date is now validated against the latest sowing date and the earliest cultivation ending date before submitting the form.
+
+- [#433](https://github.com/nmi-agro/fdm/pull/433) [`e775778`](https://github.com/nmi-agro/fdm/commit/e775778c065b12658600492c86e070c40f94b6a4) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate to zod v4
+
+- [#431](https://github.com/nmi-agro/fdm/pull/431) [`aa13654`](https://github.com/nmi-agro/fdm/commit/aa13654cb3919581fb9a6b4001310a323d4f4f6d) Thanks [@SvenVw](https://github.com/SvenVw)! - Significant UI/UX and mobile responsiveness improvements across the application:
+  - Field Overview: Refactored to use a responsive Card layout and simplified labels for better mobile fit.
+  - Header: Optimized for small screens with flexible height, truncated labels, and streamlined breadcrumbs.
+  - Sidebar: Reduced width and internal spacing on medium screens to reclaim horizontal space for content.
+  - Fertilizer Dashboard: Redesigned with a stacked layout for better readability on laptops and added robust text truncation.
+  - Layout: Improved global padding and adjusted breakpoints (xl/2xl) to ensure a polished look across mobile, tablet, and desktop.
+
+- [#403](https://github.com/nmi-agro/fdm/pull/403) [`36643d3`](https://github.com/nmi-agro/fdm/commit/36643d321c303d2b71b20aa51535167a49a9269e) Thanks [@SvenVw](https://github.com/SvenVw)! - Use Better-Auth functions for organizations instead of fdm-core functions
+
+- Updated dependencies [[`4687738`](https://github.com/nmi-agro/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be), [`ae0468c`](https://github.com/nmi-agro/fdm/commit/ae0468c9b37f1326634bff24bd667ec5003d4bed), [`c316515`](https://github.com/nmi-agro/fdm/commit/c3165156c249931f56a97fa4a0b82493a5e25c9b), [`da3e50a`](https://github.com/nmi-agro/fdm/commit/da3e50a571483c576dd88abecd3e70ca0b9f22ba), [`bcd3a32`](https://github.com/nmi-agro/fdm/commit/bcd3a3289c9a13ffc36ea108e502661496164bf7), [`01d7174`](https://github.com/nmi-agro/fdm/commit/01d7174bef42f2fc8e71b4bb25eee045687e8c56), [`6f7f271`](https://github.com/nmi-agro/fdm/commit/6f7f27183f66bcc329720af5dcc17f250d74cbcf), [`4687738`](https://github.com/nmi-agro/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be), [`75553c4`](https://github.com/nmi-agro/fdm/commit/75553c41830c8519788a68560d9403192790d051), [`4687738`](https://github.com/nmi-agro/fdm/commit/4687738e3b8ef35d071ae16b218d567a3cfbf3be), [`6f7f271`](https://github.com/nmi-agro/fdm/commit/6f7f27183f66bcc329720af5dcc17f250d74cbcf)]:
+  - @nmi-agro/fdm-calculator@0.11.0
+  - @nmi-agro/fdm-core@0.29.0
+
+## 0.26.7
+
+### Patch Changes
+
+- e5f322f: Fix incorrect norms in fertilizer dashboard by using the selected calendar year.
+
+## 0.26.6
+
+### Patch Changes
+
+- e7a369b: Fix a crash in the fertilizer metrics dashboard when no active cultivation is present for a field. Added an empty state with a call to action to add a cultivation.
+- 4a32710: Improve design of empty state at cultivations page of field
+- Updated dependencies [bc23b79]
+- Updated dependencies [3053340]
+- Updated dependencies [005de6d]
+  - @nmi-agro/fdm-calculator@0.10.1
+
+## 0.26.5
+
+### Patch Changes
+
+- 5c2b843: Patch for CVE-2026-21884, CVE-2026-22029 and CVE-2026-22030
+
+## 0.26.4
+
+### Patch Changes
+
+- e367ca6: Update dependencies of fdm-app to patch for CVE-2025-15284
+
+## 0.26.3
+
+### Patch Changes
+
+- 7f69925: Synchronize DatePicker components with available calendar years by deriving boundaries from central calendar configuration, ensuring "next year" selection is supported.
+
+## 0.26.2
+
+### Patch Changes
+
+- 2a30b7b: Fixed mobile elevation map stability by correcting the cache endpoint path, implementing robust `localStorage` error handling, and adding a "fallback-to-stale" strategy for offline resilience.
+
+## 0.26.1
+
+### Patch Changes
+
+- 36b1b99: Fix TypeError when `updatePanel` attempts to access `map.getLayer(layer)` before the map is fully initialized
+- 1274a32: Optimize Elevation Atlas stability and performance: implement chunked sampling concurrency, server-side AHN index caching, geometry simplification and WMS layer zoom constraints
+- 067c0de: Fix AggregateError in Elevation Atlas by implementing chunked concurrency for sampling requests to avoid exceeding HTTP/1.1 connection limits
+
 ## 0.26.0
 
 ### Minor Changes
@@ -30,9 +216,9 @@
 - Updated dependencies [2c5de99]
 - Updated dependencies [6d28fd7]
 - Updated dependencies [67612d7]
-  - @svenvw/fdm-core@0.28.0
-  - @svenvw/fdm-calculator@0.10.0
-  - @svenvw/fdm-data@0.19.1
+  - @nmi-agro/fdm-core@0.28.0
+  - @nmi-agro/fdm-calculator@0.10.0
+  - @nmi-agro/fdm-data@0.19.1
 
 ## 0.25.4
 
@@ -112,18 +298,18 @@
 - Updated dependencies [f51b412]
 - Updated dependencies [b24d2d1]
 - Updated dependencies [92fdf21]
-  - @svenvw/fdm-core@0.27.0
-  - @svenvw/fdm-calculator@0.9.0
-  - @svenvw/fdm-data@0.19.0
+  - @nmi-agro/fdm-core@0.27.0
+  - @nmi-agro/fdm-calculator@0.9.0
+  - @nmi-agro/fdm-data@0.19.0
 
 ## 0.24.2
 
 ### Patch Changes
 
 - Updated dependencies [ed53b86]
-  - @svenvw/fdm-data@0.18.1
-  - @svenvw/fdm-core@0.26.1
-  - @svenvw/fdm-calculator@0.8.0
+  - @nmi-agro/fdm-data@0.18.1
+  - @nmi-agro/fdm-core@0.26.1
+  - @nmi-agro/fdm-calculator@0.8.0
 
 ## 0.24.1
 
@@ -177,9 +363,9 @@
 - Updated dependencies [8b2bf8c]
 - Updated dependencies [6bcb528]
 - Updated dependencies [91d4103]
-  - @svenvw/fdm-data@0.18.0
-  - @svenvw/fdm-calculator@0.8.0
-  - @svenvw/fdm-core@0.26.0
+  - @nmi-agro/fdm-data@0.18.0
+  - @nmi-agro/fdm-calculator@0.8.0
+  - @nmi-agro/fdm-core@0.26.0
 
 ## 0.23.2
 
@@ -196,9 +382,9 @@
 - Updated dependencies [e715493]
 - Updated dependencies [e4ce36a]
 - Updated dependencies [12565b2]
-  - @svenvw/fdm-calculator@0.7.1
-  - @svenvw/fdm-data@0.17.1
-  - @svenvw/fdm-core@0.25.1
+  - @nmi-agro/fdm-calculator@0.7.1
+  - @nmi-agro/fdm-data@0.17.1
+  - @nmi-agro/fdm-core@0.25.1
 
 ## 0.23.0
 
@@ -235,9 +421,9 @@
 - Updated dependencies [8cc6e4a]
 - Updated dependencies [5cf76d4]
 - Updated dependencies [86e16c2]
-  - @svenvw/fdm-calculator@0.7.0
-  - @svenvw/fdm-core@0.25.0
-  - @svenvw/fdm-data@0.17.0
+  - @nmi-agro/fdm-calculator@0.7.0
+  - @nmi-agro/fdm-core@0.25.0
+  - @nmi-agro/fdm-data@0.17.0
 
 ## 0.22.4
 
@@ -248,8 +434,8 @@
 - cd4cc8a: Fields are sorted by descending area instead of alphabetical name.
 - Updated dependencies [787fa53]
 - Updated dependencies [cd4cc8a]
-  - @svenvw/fdm-core@0.24.2
-  - @svenvw/fdm-calculator@0.6.1
+  - @nmi-agro/fdm-core@0.24.2
+  - @nmi-agro/fdm-calculator@0.6.1
 
 ## 0.22.3
 
@@ -259,8 +445,8 @@
 - bedd5a4: Increase streamTimeout from 10 seconds to 30 seconds to enable longer running calculations
 - Updated dependencies [e964a18]
 - Updated dependencies [0c29661]
-  - @svenvw/fdm-core@0.24.1
-  - @svenvw/fdm-calculator@0.6.0
+  - @nmi-agro/fdm-core@0.24.1
+  - @nmi-agro/fdm-calculator@0.6.0
 
 ## 0.22.2
 
@@ -310,9 +496,9 @@
 - Updated dependencies [34b6e57]
 - Updated dependencies [12dbc4c]
 - Updated dependencies [34ce6df]
-  - @svenvw/fdm-core@0.24.0
-  - @svenvw/fdm-data@0.16.0
-  - @svenvw/fdm-calculator@0.6.0
+  - @nmi-agro/fdm-core@0.24.0
+  - @nmi-agro/fdm-data@0.16.0
+  - @nmi-agro/fdm-calculator@0.6.0
 
 ## 0.21.0
 
@@ -349,9 +535,9 @@
 - Updated dependencies [51722cc]
 - Updated dependencies [f19238b]
 - Updated dependencies [2ac1471]
-  - @svenvw/fdm-core@0.23.0
-  - @svenvw/fdm-calculator@0.5.0
-  - @svenvw/fdm-data@0.15.0
+  - @nmi-agro/fdm-core@0.23.0
+  - @nmi-agro/fdm-calculator@0.5.0
+  - @nmi-agro/fdm-data@0.15.0
 
 ## 0.20.4
 
@@ -380,9 +566,9 @@
 - Updated dependencies [ffd1b3e]
 - Updated dependencies [7c36ecc]
 - Updated dependencies [3e73281]
-  - @svenvw/fdm-data@0.14.1
-  - @svenvw/fdm-calculator@0.4.1
-  - @svenvw/fdm-core@0.22.1
+  - @nmi-agro/fdm-data@0.14.1
+  - @nmi-agro/fdm-calculator@0.4.1
+  - @nmi-agro/fdm-core@0.22.1
 
 ## 0.20.0
 
@@ -421,9 +607,9 @@
 - Updated dependencies [2c6251c]
 - Updated dependencies [75693e4]
 - Updated dependencies [a898e30]
-  - @svenvw/fdm-core@0.22.0
-  - @svenvw/fdm-calculator@0.4.0
-  - @svenvw/fdm-data@0.14.0
+  - @nmi-agro/fdm-core@0.22.0
+  - @nmi-agro/fdm-calculator@0.4.0
+  - @nmi-agro/fdm-data@0.14.0
 
 ## 0.19.6
 
@@ -431,7 +617,7 @@
 
 - f2b1fc6: Fixes redirects at harvest details page
 - Updated dependencies [94a82f6]
-  - @svenvw/fdm-calculator@0.3.3
+  - @nmi-agro/fdm-calculator@0.3.3
 
 ## 0.19.5
 
@@ -476,8 +662,8 @@
 - 3f5fd9a: Clear value for p_app_amount on fertilizer application form after successful submission
 - ad75270: Fix exception when clicking on a field to add a new field
 - Updated dependencies [8cb4399]
-  - @svenvw/fdm-core@0.21.1
-  - @svenvw/fdm-calculator@0.3.2
+  - @nmi-agro/fdm-core@0.21.1
+  - @nmi-agro/fdm-calculator@0.3.2
 
 ## 0.19.0
 
@@ -496,8 +682,8 @@
 - Updated dependencies [7b447f6]
 - Updated dependencies [7b447f6]
 - Updated dependencies [842aac4]
-  - @svenvw/fdm-core@0.21.0
-  - @svenvw/fdm-calculator@0.3.1
+  - @nmi-agro/fdm-core@0.21.0
+  - @nmi-agro/fdm-calculator@0.3.1
 
 ## 0.18.2
 
@@ -570,8 +756,8 @@
 - Updated dependencies [ec0494c]
 - Updated dependencies [6676992]
 - Updated dependencies [4027c9a]
-  - @svenvw/fdm-core@0.20.0
-  - @svenvw/fdm-calculator@0.3.0
+  - @nmi-agro/fdm-core@0.20.0
+  - @nmi-agro/fdm-calculator@0.3.0
 
 ## 0.17.2
 
@@ -586,8 +772,8 @@
 
 - 516784b: Fixes client side configuration by providing at build stage
 - Updated dependencies [eed1780]
-  - @svenvw/fdm-core@0.19.0
-  - @svenvw/fdm-calculator@0.2.6
+  - @nmi-agro/fdm-core@0.19.0
+  - @nmi-agro/fdm-calculator@0.2.6
 
 ## 0.17.0
 
@@ -636,8 +822,8 @@
 - Updated dependencies [0944ef1]
 - Updated dependencies [175ea6a]
 - Updated dependencies [9f4d818]
-  - @svenvw/fdm-core@0.18.0
-  - @svenvw/fdm-calculator@0.2.5
+  - @nmi-agro/fdm-core@0.18.0
+  - @nmi-agro/fdm-calculator@0.2.5
 
 ## 0.16.0
 
@@ -657,8 +843,8 @@
 - d20d1db: Improve and standardize the handling of avatar initials
 - a13b971: Fix CSP setting for requesting field geometries from Google Cloud Storage
 - Updated dependencies [9bfd0a8]
-  - @svenvw/fdm-core@0.17.0
-  - @svenvw/fdm-calculator@0.2.4
+  - @nmi-agro/fdm-core@0.17.0
+  - @nmi-agro/fdm-calculator@0.2.4
 
 ## 0.15.0
 
@@ -671,8 +857,8 @@
 ### Patch Changes
 
 - Updated dependencies [e134cfc]
-  - @svenvw/fdm-core@0.16.0
-  - @svenvw/fdm-calculator@0.2.3
+  - @nmi-agro/fdm-core@0.16.0
+  - @nmi-agro/fdm-calculator@0.2.3
 
 ## 0.14.0
 
@@ -690,8 +876,8 @@
 - Updated dependencies [f056396]
 - Updated dependencies [cdb1d02]
 - Updated dependencies [9a6e329]
-  - @svenvw/fdm-core@0.15.0
-  - @svenvw/fdm-calculator@0.2.2
+  - @nmi-agro/fdm-core@0.15.0
+  - @nmi-agro/fdm-calculator@0.2.2
 
 ## 0.13.1
 
@@ -699,8 +885,8 @@
 
 - 98e20ac: List other `fdm` packages as `dependencies` instead `peerDependencies` to prevent not needed major version bumps
 - Updated dependencies [98e20ac]
-  - @svenvw/fdm-calculator@0.2.1
-  - @svenvw/fdm-data@0.10.3
+  - @nmi-agro/fdm-calculator@0.2.1
+  - @nmi-agro/fdm-data@0.10.3
 
 ## 0.13.0
 
@@ -730,9 +916,9 @@
 - Updated dependencies [e312060]
 - Updated dependencies [972bac8]
 - Updated dependencies [7387530]
-  - @svenvw/fdm-core@0.14.0
-  - @svenvw/fdm-calculator@1.0.0
-  - @svenvw/fdm-data@1.0.0
+  - @nmi-agro/fdm-core@0.14.0
+  - @nmi-agro/fdm-calculator@1.0.0
+  - @nmi-agro/fdm-data@1.0.0
 
 ## 0.12.0
 
@@ -748,9 +934,9 @@
 - Updated dependencies [9830186]
 - Updated dependencies [06619e7]
 - Updated dependencies [da00990]
-  - @svenvw/fdm-core@0.13.0
-  - @svenvw/fdm-calculator@1.0.0
-  - @svenvw/fdm-data@1.0.0
+  - @nmi-agro/fdm-core@0.13.0
+  - @nmi-agro/fdm-calculator@1.0.0
+  - @nmi-agro/fdm-data@1.0.0
 
 ## 0.11.2
 
@@ -796,9 +982,9 @@
 - Updated dependencies [aede4a7]
 - Updated dependencies [9e6f2d7]
 - Updated dependencies [644a159]
-  - @svenvw/fdm-calculator@1.0.0
-  - @svenvw/fdm-core@0.12.0
-  - @svenvw/fdm-data@1.0.0
+  - @nmi-agro/fdm-calculator@1.0.0
+  - @nmi-agro/fdm-core@0.12.0
+  - @nmi-agro/fdm-data@1.0.0
 
 ## 0.10.1
 
@@ -824,8 +1010,8 @@
 - 15a52e1: Fix clicking in log out button
 - Updated dependencies [bc52f62]
 - Updated dependencies [9b53632]
-  - @svenvw/fdm-core@0.11.3
-  - @svenvw/fdm-data@0.9.0
+  - @nmi-agro/fdm-core@0.11.3
+  - @nmi-agro/fdm-data@0.9.0
 
 ## 0.9.0
 
@@ -845,8 +1031,8 @@
 - Updated dependencies [c584d5a]
 - Updated dependencies [f7d7a50]
 - Updated dependencies [073b92e]
-  - @svenvw/fdm-core@0.11.0
-  - @svenvw/fdm-data@1.0.0
+  - @nmi-agro/fdm-core@0.11.0
+  - @nmi-agro/fdm-data@1.0.0
 
 ## 0.8.2
 
@@ -854,8 +1040,8 @@
 
 - Replace ESLint with Biome and format the code accordingly
 - Updated dependencies
-  - @svenvw/fdm-core@0.10.2
-  - @svenvw/fdm-data@0.8.2
+  - @nmi-agro/fdm-core@0.10.2
+  - @nmi-agro/fdm-data@0.8.2
 
 ## 0.8.1
 
@@ -863,8 +1049,8 @@
 
 - Use the same version for `vite`, `typescript` and `dotenvx` across packages and update those to the latest version
 - Updated dependencies
-  - @svenvw/fdm-core@0.10.1
-  - @svenvw/fdm-data@0.8.1
+  - @nmi-agro/fdm-core@0.10.1
+  - @nmi-agro/fdm-data@0.8.1
 
 ## 0.8.0
 
@@ -891,8 +1077,8 @@
 - Updated dependencies [520a074]
 - Updated dependencies [2171b68]
 - Updated dependencies [2171b68]
-  - @svenvw/fdm-core@0.10.0
-  - @svenvw/fdm-data@1.0.0
+  - @nmi-agro/fdm-core@0.10.0
+  - @nmi-agro/fdm-data@1.0.0
 
 ## 0.7.0
 
@@ -914,8 +1100,8 @@
 - Updated dependencies [71cbba3]
 - Updated dependencies [5d0e1f7]
 - Updated dependencies [315710b]
-  - @svenvw/fdm-core@0.9.0
-  - @svenvw/fdm-data@1.0.0
+  - @nmi-agro/fdm-core@0.9.0
+  - @nmi-agro/fdm-data@1.0.0
 
 ## 0.5.0
 
@@ -928,8 +1114,8 @@
 - 83c589b: Upgrade `drizzle-orm` to v0.38.2 and `drizzle-kit` to v0.30.1
 - Updated dependencies [83c589b]
 - Updated dependencies [6a3e6db]
-  - @svenvw/fdm-core@0.8.0
-  - @svenvw/fdm-data@0.6.0
+  - @nmi-agro/fdm-core@0.8.0
+  - @nmi-agro/fdm-data@0.6.0
 
 ## 0.4.0
 
@@ -949,8 +1135,8 @@
 - Updated dependencies [61da12f]
 - Updated dependencies [5be0abc]
 - Updated dependencies [4189f5d]
-  - @svenvw/fdm-core@0.7.0
-  - @svenvw/fdm-data@1.0.0
+  - @nmi-agro/fdm-core@0.7.0
+  - @nmi-agro/fdm-data@1.0.0
 
 ## 0.3.1
 
@@ -982,8 +1168,8 @@
 - Updated dependencies [b1dea77]
 - Updated dependencies [d39b097]
 - Updated dependencies [49aa60c]
-  - @svenvw/fdm-data@1.0.0
-  - @svenvw/fdm-core@0.6.0
+  - @nmi-agro/fdm-data@1.0.0
+  - @nmi-agro/fdm-core@0.6.0
 
 ## 0.1.0
 

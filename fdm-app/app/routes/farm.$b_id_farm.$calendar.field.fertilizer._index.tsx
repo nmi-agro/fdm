@@ -1,10 +1,13 @@
 import {
     addFertilizerApplication,
+    type FertilizerApplication,
     getFarms,
+    getFertilizerApplication,
     getFertilizerParametersDescription,
     getFertilizers,
     getFields,
-} from "@svenvw/fdm-core"
+    updateFertilizerApplication,
+} from "@nmi-agro/fdm-core"
 import { Info } from "lucide-react"
 import { useState } from "react"
 import {
@@ -24,10 +27,12 @@ import { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
-import { FormSchema } from "~/components/blocks/fertilizer-applications/formschema"
+import {
+    FormSchema,
+    FormSchemaPartialModify,
+} from "~/components/blocks/fertilizer-applications/formschema"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
@@ -51,12 +56,15 @@ import {
 } from "~/components/ui/dialog"
 import { Label } from "~/components/ui/label"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { Spinner } from "~/components/ui/spinner"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { parseAppIds } from "~/lib/fertilizer-application-helpers"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { isOfOrigin } from "~/lib/url-utils"
 
 export const meta: MetaFunction = () => {
     return [
@@ -79,9 +87,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             })
         }
 
-        // Get fieldIds from search params
         const url = new URL(request.url)
-        const fieldIds =
+
+        // Get appIds from search params
+        const applicationRefs = parseAppIds(
+            url.searchParams.get("appIds") ?? "",
+        )
+        if (url.searchParams.has("appIds") && applicationRefs.length === 0) {
+            throw data("invalid: appIds", {
+                status: 400,
+                statusText: "invalid: appIds",
+            })
+        }
+
+        // Get fieldIds from search params
+        let fieldIds =
             url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
 
         // Get the session
@@ -116,9 +136,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             session.principal_id,
             b_id_farm,
             timeframe,
-        )
-        const selectedFields = fields.filter(
-            (field) => field.b_id && fieldIds.includes(field.b_id),
         )
 
         const fieldOptions = fields.map((field) => {
@@ -164,6 +181,118 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })
 
+        // Get the necessary date to render the modify fertilizer form
+        let loaderExampleFertilizerApplication:
+            | Partial<z.infer<typeof FormSchemaPartialModify>>
+            | undefined
+        let fertilizerApplication:
+            | Partial<z.infer<typeof FormSchemaPartialModify>>
+            | undefined
+        if (applicationRefs.length > 0) {
+            const fertilizerApplications = await Promise.all(
+                applicationRefs.map(async ({ p_app_id }) => {
+                    const app = await getFertilizerApplication(
+                        fdm,
+                        session.principal_id,
+                        p_app_id,
+                    )
+
+                    if (!app) {
+                        throw new Error(`Application ${p_app_id} not found`)
+                    }
+
+                    return app
+                }),
+            )
+            fieldIds = [...new Set(applicationRefs.map((ref) => ref.b_id))]
+
+            const exampleFertilizerApplication: Partial<FertilizerApplication> =
+                {
+                    ...fertilizerApplications[0],
+                }
+
+            // These keys are shown on the form
+            const keyTypes = {
+                p_id: "string",
+                p_app_date: "date",
+                p_app_method: "string",
+                p_app_amount: "number",
+            } as const
+            const keys = Object.keys(keyTypes) as (keyof typeof keyTypes)[]
+
+            // Select the values that can be shown on the form
+            fertilizerApplication = Object.fromEntries(
+                keys.map((key) => [key, exampleFertilizerApplication[key]]),
+            )
+
+            // Only keep values that are common between the fertilizer applications
+            for (const key of keys) {
+                for (const app of fertilizerApplications) {
+                    // If the value is missing for this application, clear the value on the initial form data
+                    if (
+                        exampleFertilizerApplication[key] === null ||
+                        typeof exampleFertilizerApplication[key] ===
+                            "undefined" ||
+                        app[key] === null ||
+                        typeof app[key] === "undefined"
+                    ) {
+                        delete fertilizerApplication[key]
+                        continue
+                    }
+
+                    if (keyTypes[key] === "number") {
+                        // If the value is too different from the initial app, consider them to be different
+                        // The outcome of this actually depends on the ordering of the applications, but it is fine
+                        // The previous route is supposed to sort the applications, so the outcome should be stable at least
+                        const a = app[key] as number
+                        const b = exampleFertilizerApplication[key] as number
+                        if (a !== b && Math.abs(a - b) > Math.abs(b) / 100) {
+                            delete fertilizerApplication[key]
+                        }
+                    } else if (
+                        keyTypes[key] === "date" &&
+                        (
+                            exampleFertilizerApplication[key] as Date
+                        ).getTime() !== (app[key] as Date).getTime()
+                    ) {
+                        // If it is not the same date they are different
+                        delete fertilizerApplication[key]
+                    } else if (exampleFertilizerApplication[key] !== app[key]) {
+                        // Any other type of value is compared using !==
+                        delete fertilizerApplication[key]
+                    }
+                }
+            }
+
+            // If the fertilizer types are different, assume the application methods are different too
+            if (!fertilizerApplication.p_id) {
+                delete fertilizerApplication.p_app_method
+                // Also, no specific placeholder should be shown
+                delete exampleFertilizerApplication.p_app_amount
+            }
+
+            loaderExampleFertilizerApplication = exampleFertilizerApplication
+        }
+
+        const loaderFertilizerApplication = fertilizerApplication
+            ? {
+                  ...fertilizerApplication,
+                  p_app_ids: applicationRefs.map((ref) => ref.p_app_id),
+              }
+            : undefined
+
+        // If selected fields are still missing, throw an exception
+        if (fieldIds.length === 0) {
+            throw data("missing: fieldIds", {
+                status: 400,
+                statusText: "missing: fieldIds",
+            })
+        }
+
+        const selectedFields = fields.filter(
+            (field) => field.b_id && fieldIds.includes(field.b_id),
+        )
+
         // Return user information from loader
         return {
             b_id_farm: b_id_farm,
@@ -177,6 +306,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_area: Math.round(field.b_area * 10) / 10,
             })),
             fieldOptions: fieldOptions,
+            fertilizerApplication: loaderFertilizerApplication,
+            exampleFertilizerApplication: loaderExampleFertilizerApplication,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -193,7 +324,8 @@ export default function FarmFieldFertilizerAddIndex() {
         loaderData.selectedFields.map((f) => f.b_id!),
     )
 
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting =
+        navigation.state !== "idle" && Boolean(navigation.formData)
 
     const handleSelectionChange = () => {
         const newSearchParams = new URLSearchParams(searchParams)
@@ -212,6 +344,9 @@ export default function FarmFieldFertilizerAddIndex() {
         )
     }
 
+    const isModification = !!loaderData.fertilizerApplication?.p_app_ids
+    const canReselect = !isModification
+
     return (
         <SidebarInset>
             <Header
@@ -225,54 +360,70 @@ export default function FarmFieldFertilizerAddIndex() {
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}
                 />
-                <BreadcrumbSeparator />
+                <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="hidden md:block">
                     Percelen
                 </BreadcrumbItem>
-                <BreadcrumbSeparator />
+                <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="hidden md:block">
-                    Bemesting toevoegen
+                    {isModification
+                        ? "Bemesting wijzigen"
+                        : "Bemesting toevoegen"}
                 </BreadcrumbItem>
             </Header>
             <main>
                 <FarmTitle
-                    title="Bemesting toevoegen"
-                    description="Kies 1 of meerdere percelen om een bemesting toe te voegen"
+                    title={
+                        isModification
+                            ? "Bemesting wijzigen"
+                            : "Bemesting toevoegen"
+                    }
+                    description={
+                        isModification
+                            ? "Bemesting wijzigen op 1 of meerdere percelen."
+                            : "Kies 1 of meerdere percelen om een bemesting toe te voegen"
+                    }
                 />
                 <div className="relative">
                     {isSubmitting && (
                         <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                             <div className="flex items-center text-sm text-muted-foreground">
-                                <LoadingSpinner className="mr-2" />
-                                <span>Bemesting wordt toegevoegd...</span>
+                                <Spinner className="mr-2" />
+                                <span>
+                                    {isModification
+                                        ? "Bemesting wordt gewijzigd..."
+                                        : "Bemesting wordt toegevoegd..."}
+                                </span>
                             </div>
                         </div>
                     )}
                     <FarmContent>
-                        <div className="flex flex-col space-y-8 pb-10 md:flex-row md:space-x-12 md:space-y-0">
-                            <Card className="md:w-1/3">
+                        <div className="flex flex-col xl:flex-row gap-6 pb-10">
+                            <Card className="w-full xl:w-64 h-fit shrink-0">
                                 <CardHeader>
                                     <CardTitle>
                                         Geselecteerde percelen
                                     </CardTitle>
                                     <CardDescription>
-                                        De bemesting wordt toegepast op de
-                                        volgende percelen.
+                                        {`De bemesting wordt ${isModification ? "gewijzigd" : "toegepast"} op de volgende percelen.`}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     {loaderData.selectedFields.length > 0 ? (
-                                        <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+                                        <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
                                             {loaderData.selectedFields.map(
                                                 (field) => (
                                                     <div
                                                         key={field.b_id}
-                                                        className="flex items-center justify-between rounded-md border p-3"
+                                                        className="flex items-center justify-between rounded-md border p-3 gap-2"
                                                     >
-                                                        <p className="text-sm font-medium">
+                                                        <p className="text-sm font-medium truncate min-w-0">
                                                             {field.b_name}
                                                         </p>
-                                                        <Badge variant="secondary">
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="shrink-0"
+                                                        >
                                                             {field.b_area} ha
                                                         </Badge>
                                                     </div>
@@ -306,14 +457,16 @@ export default function FarmFieldFertilizerAddIndex() {
                                 </CardContent>
                                 <CardFooter>
                                     <Dialog open={open} onOpenChange={setOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="secondary"
-                                                className="w-full"
-                                            >
-                                                Wijzig selectie
-                                            </Button>
-                                        </DialogTrigger>
+                                        {canReselect && (
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="secondary"
+                                                    className="w-full"
+                                                >
+                                                    Wijzig selectie
+                                                </Button>
+                                            </DialogTrigger>
+                                        )}
                                         <DialogContent className="sm:max-w-[425px]">
                                             <DialogHeader>
                                                 <DialogTitle>
@@ -382,13 +535,21 @@ export default function FarmFieldFertilizerAddIndex() {
                             </Card>
                             <Card className="flex-1">
                                 <CardHeader>
-                                    <CardTitle>Bemesting toevoegen</CardTitle>
+                                    <CardTitle>
+                                        {isModification
+                                            ? "Bemesting wijzigen"
+                                            : "Bemesting toevoegen"}
+                                    </CardTitle>
                                     <CardDescription>
                                         {loaderData.fieldAmount === 0
                                             ? "Selecteer eerst een of meerdere percelen."
-                                            : loaderData.fieldAmount === 1
-                                              ? "Voeg een nieuwe bemestingstoepassing toe aan het geselecteerde perceel."
-                                              : `Voeg een nieuwe bemestingstoepassing toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
+                                            : isModification
+                                              ? loaderData.fieldAmount === 1
+                                                  ? "Wijzig de bemesting van het geselecteerde perceel."
+                                                  : `Wijzig de bemesting van de ${loaderData.fieldAmount} geselecteerde percelen.`
+                                              : loaderData.fieldAmount === 1
+                                                ? "Voeg een nieuwe bemestingstoepassing toe aan het geselecteerde perceel."
+                                                : `Voeg een nieuwe bemestingstoepassing toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -403,6 +564,12 @@ export default function FarmFieldFertilizerAddIndex() {
                                             b_id_or_b_lu_catalogue={
                                                 searchParams.get("fieldIds") ||
                                                 ""
+                                            }
+                                            fertilizerApplication={
+                                                loaderData.fertilizerApplication
+                                            }
+                                            exampleFertilizerApplication={
+                                                loaderData.exampleFertilizerApplication
                                             }
                                         />
                                     ) : (
@@ -432,9 +599,61 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const session = await getSession(request)
         const url = new URL(request.url)
-        const fieldIds =
-            url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
 
+        const returnUrlParam = url.searchParams.get("returnUrl")
+        const returnUrl =
+            returnUrlParam && isOfOrigin(returnUrlParam, url.origin)
+                ? returnUrlParam
+                : url.searchParams.has("create")
+                  ? `/farm/create/${b_id_farm}/${calendar}/rotation`
+                  : `/farm/${b_id_farm}/${calendar}/rotation`
+
+        if (url.searchParams.has("appIds")) {
+            const validatedData = await extractFormValuesFromRequest(
+                request,
+                FormSchemaPartialModify,
+            )
+
+            const p_app_ids = validatedData.p_app_id.split(",").filter(Boolean)
+            await fdm.transaction((tx) =>
+                Promise.all(
+                    p_app_ids.map(async (p_app_id) => {
+                        const original = await getFertilizerApplication(
+                            tx,
+                            session.principal_id,
+                            p_app_id,
+                        )
+
+                        if (!original) {
+                            throw new Error(
+                                `Application ${p_app_id} not found.`,
+                            )
+                        }
+
+                        return updateFertilizerApplication(
+                            tx,
+                            session.principal_id,
+                            p_app_id,
+                            validatedData.p_id ?? original.p_id,
+                            validatedData.p_app_amount ?? original.p_app_amount,
+                            validatedData.p_app_method ?? original.p_app_method,
+                            validatedData.p_app_date ?? original.p_app_date,
+                        )
+                    }),
+                ),
+            )
+
+            return redirectWithSuccess(returnUrl, {
+                message: `${p_app_ids.length} ${p_app_ids.length === 1 ? "bemesting is" : "bemestingen zijn"} succesvol bijgewerkt.`,
+            })
+        }
+
+        const fieldIds = [
+            ...new Set(
+                url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ??
+                    [],
+            ),
+        ]
         if (!fieldIds || fieldIds.length === 0) {
             return dataWithError(null, "Selecteer eerst een perceel.")
         }
@@ -444,19 +663,23 @@ export async function action({ request, params }: ActionFunctionArgs) {
             FormSchema,
         )
 
-        for (const fieldId of fieldIds) {
-            await addFertilizerApplication(
-                fdm,
-                session.principal_id,
-                fieldId,
-                validatedData.p_id,
-                validatedData.p_app_amount,
-                validatedData.p_app_method,
-                validatedData.p_app_date,
-            )
-        }
+        await fdm.transaction((tx) =>
+            Promise.all(
+                fieldIds.map((b_id) =>
+                    addFertilizerApplication(
+                        tx,
+                        session.principal_id,
+                        b_id,
+                        validatedData.p_id,
+                        validatedData.p_app_amount,
+                        validatedData.p_app_method,
+                        validatedData.p_app_date,
+                    ),
+                ),
+            ),
+        )
 
-        return redirectWithSuccess(`/farm/${b_id_farm}/${calendar}/field`, {
+        return redirectWithSuccess(returnUrl, {
             message: `Bemesting succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
         })
     } catch (error) {

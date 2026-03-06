@@ -7,7 +7,7 @@ interface CultivationField {
     b_id: string
     b_name: string
     b_area: number
-    b_isproductive: boolean
+    b_bufferstrip: boolean
 }
 
 interface CultivationPlanItem {

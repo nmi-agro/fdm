@@ -1,8 +1,11 @@
-import type { Timeframe } from "@svenvw/fdm-core"
+import type { Timeframe } from "@nmi-agro/fdm-core"
 import type { Params } from "react-router"
 
 const yearStart = 2020
 const yearEnd = new Date().getFullYear() + 1
+
+export const startMonth = new Date(yearStart, 0)
+export const endMonth = new Date(yearEnd, 11)
 
 export function getCalendar(params: Params): string {
     const calendar = params.calendar as string

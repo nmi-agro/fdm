@@ -1,4 +1,4 @@
-import { withCalculationCache } from "@svenvw/fdm-core"
+import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
 import type { FosfaatGebruiksnormResult } from "../../types"
@@ -133,6 +133,15 @@ function getFosfaatKlasse(
 export async function calculateNL2025FosfaatGebruiksNorm(
     input: NL2025NormsInput,
 ): Promise<FosfaatGebruiksnormResult> {
+    const field = input.field
+    // Check for buffer strip
+    if (field.b_bufferstrip) {
+        return {
+            normValue: 0,
+            normSource: "Bufferstrook: geen plaatsingsruimte",
+        }
+    }
+
     const cultivations = input.cultivations
     const a_p_cc = input.soilAnalysis.a_p_cc
     const a_p_al = input.soilAnalysis.a_p_al

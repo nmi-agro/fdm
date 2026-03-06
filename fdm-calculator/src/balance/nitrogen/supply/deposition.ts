@@ -1,7 +1,8 @@
+import type { Field, Timeframe } from "@nmi-agro/fdm-core"
 import { differenceInCalendarDays } from "date-fns"
 import Decimal from "decimal.js"
 import { getGeoTiffValue } from "../../../shared/geotiff"
-import type { FieldInput, NitrogenBalanceInput, NitrogenSupply } from "../types"
+import type { NitrogenSupply } from "../types"
 
 /**
  * Calculates the nitrogen deposition for a batch of fields from a GeoTIFF file.
@@ -16,8 +17,8 @@ import type { FieldInput, NitrogenBalanceInput, NitrogenSupply } from "../types"
  *          the calculated nitrogen deposition supply for that field.
  */
 export async function calculateAllFieldsNitrogenSupplyByDeposition(
-    fields: FieldInput[],
-    timeFrame: NitrogenBalanceInput["timeFrame"],
+    fields: Field[],
+    timeFrame: Timeframe,
     fdmPublicDataUrl: string,
 ): Promise<Map<string, NitrogenSupply["deposition"]>> {
     if (fields.length === 0) {
@@ -34,20 +35,25 @@ export async function calculateAllFieldsNitrogenSupplyByDeposition(
     // Step 1: Create an array of promises to calculate deposition for each field concurrently.
     const depositionPromises = fields.map(async (field) => {
         // Compute per-field effective timeframe (intersection with field existence)
-        const fStart = field.field.b_start ?? timeFrame.start
-        const fEnd = field.field.b_end ?? timeFrame.end
-        const effectiveStart = new Date(
-            Math.max(fStart.getTime(), timeFrame.start.getTime()),
-        )
-        const effectiveEnd = new Date(
-            Math.min(fEnd.getTime(), timeFrame.end.getTime()),
-        )
-        const days = differenceInCalendarDays(effectiveEnd, effectiveStart)
-        const fraction =
-            days >= 0 ? new Decimal(days).add(1).dividedBy(365) : new Decimal(0)
+        let fraction = new Decimal(1)
+        if (timeFrame.start && timeFrame.end) {
+            const fStart = field.b_start ?? timeFrame.start
+            const fEnd = field.b_end ?? timeFrame.end
+            const effectiveStart = new Date(
+                Math.max(fStart.getTime(), timeFrame.start.getTime()),
+            )
+            const effectiveEnd = new Date(
+                Math.min(fEnd.getTime(), timeFrame.end.getTime()),
+            )
+            const days = differenceInCalendarDays(effectiveEnd, effectiveStart)
+            fraction =
+                days >= 0
+                    ? new Decimal(days).add(1).dividedBy(365)
+                    : new Decimal(0)
+        }
 
         // Get the deposition value from the GeoTIFF using the new getTiffValue function.
-        const [longitude, latitude] = field.field.b_centroid
+        const [longitude, latitude] = field.b_centroid
         const value = await getGeoTiffValue(url, longitude, latitude)
 
         let depositionValue = new Decimal(0)
@@ -56,7 +62,7 @@ export async function calculateAllFieldsNitrogenSupplyByDeposition(
         }
 
         return {
-            fieldId: field.field.b_id,
+            fieldId: field.b_id,
             deposition: { total: depositionValue },
         }
     })

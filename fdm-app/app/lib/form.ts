@@ -22,7 +22,7 @@ export async function extractFormValuesFromRequest<T extends ZodSchema>(
         const formData = await request.formData()
         const formObject = Object.fromEntries(formData) as Record<
             string,
-            FormDataEntryValue | unknown[] | null
+            FormDataEntryValue | unknown[] | null | boolean | undefined
         >
 
         // Trim all values and remove quotation marks
@@ -46,8 +46,17 @@ export async function extractFormValuesFromRequest<T extends ZodSchema>(
                     formObject[key] = value.replace(/['"]+/g, "").trim()
                 }
 
+                const cleanedValue = formObject[key]
+
+                // Parse boolean values
+                if (cleanedValue === "true" || cleanedValue === "on") {
+                    formObject[key] = true
+                } else if (cleanedValue === "false") {
+                    formObject[key] = false
+                }
+
                 // Parse null values at formData
-                if (value === "null") {
+                if (value === "null" || cleanedValue === "null") {
                     formObject[key] = null
                 }
 
@@ -60,7 +69,7 @@ export async function extractFormValuesFromRequest<T extends ZodSchema>(
         const parsedData = schema.safeParse(formObject)
 
         if (!parsedData.success) {
-            const errors = parsedData.error.errors.map((err) => ({
+            const errors = parsedData.error.issues.map((err) => ({
                 path: err.path.join("."),
                 message: err.message,
             }))

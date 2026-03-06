@@ -1,4 +1,4 @@
-import type { Fertilizer, FertilizerApplication } from "@svenvw/fdm-core"
+import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
 import { calculateDose } from "./calculate-dose"
 

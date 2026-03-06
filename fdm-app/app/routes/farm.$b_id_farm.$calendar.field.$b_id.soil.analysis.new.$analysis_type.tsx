@@ -1,4 +1,4 @@
-import { addSoilAnalysis, getField } from "@svenvw/fdm-core"
+import { addSoilAnalysis, getField } from "@nmi-agro/fdm-core"
 import { ArrowLeft } from "lucide-react"
 import {
     type ActionFunctionArgs,
@@ -146,7 +146,7 @@ export default function FarmFieldSoilOverviewBlock() {
  *
  * his function creates a new soil analysis based on the provided form data.
  * It validates the data, retrieves the necessary IDs from the route parameters,
- * and uses the `addSoilAnalysis` function from `@svenvw/fdm-core` to perform the creation.
+ * and uses the `addSoilAnalysis` function from `@nmi-agro/fdm-core` to perform the creation.
  *
  * @param params - The route parameters, including `b_id` and `b_id_farm`.
  * @returns A redirect response after successful creation.

@@ -1,12 +1,4 @@
-import {
-    ArrowLeft,
-    Cookie,
-    Languages,
-    Mail,
-    Sparkles,
-    User,
-    Users,
-} from "lucide-react"
+import { ArrowLeft, Cookie, Languages, Sparkles, User } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { clientConfig } from "@/app/lib/config"
 import { Button } from "~/components/ui/button"
@@ -72,44 +64,6 @@ export function SidebarPlatform() {
                             <SidebarMenuButton onClick={openCookieSettings}>
                                 <Cookie />
                                 <span>Cookies</span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-            <SidebarGroup>
-                <SidebarGroupLabel>Organisaties</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={
-                                    location.pathname.includes(
-                                        "/organization",
-                                    ) &&
-                                    !location.pathname.includes(
-                                        "/organization/invitations",
-                                    )
-                                }
-                            >
-                                <NavLink to={"/organization"}>
-                                    <Users />
-                                    <span>Overzicht</span>
-                                </NavLink>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={location.pathname.includes(
-                                    "/organization/invitations",
-                                )}
-                            >
-                                <NavLink to={"/organization/invitations"}>
-                                    <Mail />
-                                    <span>Uitnodigingen</span>
-                                </NavLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>

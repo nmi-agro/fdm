@@ -38,7 +38,7 @@ export interface CultivationPlan {
         b_id: schema.fieldsTypeSelect["b_id"]
         b_area: number
         b_name: schema.fieldsTypeSelect["b_name"]
-        b_isproductive: boolean
+        b_bufferstrip: schema.fieldsTypeSelect["b_bufferstrip"]
         fertilizer_applications: Array<{
             p_id_catalogue: schema.fertilizersCatalogueTypeSelect["p_id_catalogue"]
             p_name_nl: schema.fertilizersCatalogueTypeSelect["p_name_nl"]

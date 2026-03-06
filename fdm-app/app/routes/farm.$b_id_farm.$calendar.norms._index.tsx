@@ -5,12 +5,12 @@ import type {
     InputAggregateNormFillingsToFarmLevel,
     InputAggregateNormsToFarmLevel,
     NormFilling,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
-} from "@svenvw/fdm-calculator"
-import { getFarm, getFarms, getFields } from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-calculator"
+import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import { AlertTriangle } from "lucide-react"
 import { Suspense, use } from "react"
 import {
@@ -409,7 +409,7 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
         const filteredFieldNorms = fieldNorms.filter((fieldNorm) => {
             if (!showProductiveOnly) return true
             const fieldData = fieldsMap.get(fieldNorm.b_id)
-            return fieldData ? fieldData.b_isproductive === true : false
+            return fieldData ? fieldData.b_bufferstrip === false : true
         })
 
         return (
@@ -455,8 +455,8 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
                     Op dit moment kunnen we alleen nog de gebruiksnormen voor
                     2025 en 2026 berekenen en weergeven.
                 </p>
-                <NavLink to={`/farm/${loaderData.b_id_farm}/2025/norms`}>
-                    <Button>Ga naar 2025</Button>
+                <NavLink to={`/farm/${loaderData.b_id_farm}/2026/norms`}>
+                    <Button>Ga naar 2026</Button>
                 </NavLink>
             </div>
         </div>

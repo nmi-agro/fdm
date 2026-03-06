@@ -3,7 +3,7 @@ import {
     getFertilizersCatalogue,
     hashCultivation,
     hashFertilizer,
-} from "@svenvw/fdm-data"
+} from "@nmi-agro/fdm-data"
 import { and, eq } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"

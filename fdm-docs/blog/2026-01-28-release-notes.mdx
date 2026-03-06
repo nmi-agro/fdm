@@ -1,0 +1,60 @@
+---
+slug: release-january-2026
+title: January 2026 Release
+authors: [svenverweij]
+tags: [release, fdm-app, fdm-calculator, fdm-core, fdm-data]
+date: 2026-01-29
+---
+
+The January 2026 release includes buffer strip support, updated grassland regulation logic, and the new "Bemestingsplan" PDF export. Key changes also include the integration of the BRO Soil Map and a refactor of the balance calculation engine to support field-level caching.
+
+{/* truncate */}
+
+### Compliance and Buffer Strips
+
+To  expand our support for Dutch regulations, we have implemented explicit support for buffer strips across the calculator and application.
+
+*   **Buffer Strip Designation:** Users can now explicitly mark fields as buffer strips.
+    *   **Data Model:** The derived `b_isproductive` parameter has been replaced with a stored `b_bufferstrip` parameter.
+    *   **Migration:** For existing fields, `b_bufferstrip` has been initialized based on previous logic.
+*   **Calculation Logic:**
+    *   **Farm Balances:** Fields designated as buffer strips are excluded from farm-level Nitrogen and Organic Matter balance calculations.
+    *   **Norms and Advice:** The calculator sets nitrogen usage norms and nutrient advice to zero for buffer strips.
+    *   **UI Updates:** The application displays messages when calculations are omitted for these fields.
+*   **Grassland Regulations:** Logic for nitrogen reduction (*korting*) regarding grassland renewal and destruction has been implemented for the 2025 and 2026 seasons.
+
+### Reporting and Data Export
+
+*   **Bemestingsplan PDF:** A new PDF export provides an overview of norms, advice, and fertilizer usage at both the farm and field levels.
+*   **Export cultivation history:** A "Copy to Clipboard" button has been added to the Cultivation History view, enabling data export in CSV/TSV format.
+*   **Crop Rotation Table:**
+    *   **Expandable Rows:** The table now supports expandable rows, showing specific fields associated with each cultivation.
+    *   **Workflow Integration:** Field selections in the rotation table are carried over to the harvest and fertilizer addition wizards.
+*   **Session Persistence:** Filters applied to the field and rotation tables are now stored in session storage.
+
+### Atlas
+
+*   **Soil Map Integration:** The BRO "Bodemkaart" (Soil Map) is now integrated into the Atlas.
+*   **Bulk Addition:** The Atlas now supports adding multiple fields simultaneously through the fields table interface for existing farms.
+
+### UI/UX and Mobile Improvements
+
+Several core components have been refactored to improve responsiveness and accessibility.
+
+*   **Responsive Layouts:** The Field Overview, Header, Sidebar, and Fertilizer Dashboard have been updated for smaller screens and mobile devices.
+*   **Component Standardization:** `LoadingSpinner` instances have been replaced with the standardized shadcn `Spinner` component.
+*   **Accessibility:** Updates have been made to the Cookie Banner and error pages.
+*   **Input Validation:** Harvest dates are now validated against sowing and cultivation dates before submission.
+
+### Technical Improvements
+
+*   **Calculation Performance:** Nitrogen and Organic Matter balance calculations have been refactored to use a bottom-up approach (Field -> Farm). This enables per-field caching, improving performance for farms with many fields.
+*   **Security and Authentication:**
+    *   **Organization Management:** Organization-related functions have been migrated to use `better-auth` server-side capabilities.
+    *   **Cache Privacy:** The `withCalculationCache` function now supports redacting sensitive keys in the cache.
+*   **Type Safety:** The `FdmAuth` type definition has been updated to correctly include plugin configurations and settings.
+*   **Documentation:** Documentation for 2025 nitrogen usage norms has been updated to include rules for grassland renewal and destruction.
+
+---
+
+For a detailed list of changes, please refer to the package-specific changelogs for [fdm-app](https://github.com/nmi-agro/fdm/blob/main/fdm-app/CHANGELOG.md), [fdm-calculator](https://github.com/nmi-agro/fdm/blob/main/fdm-calculator/CHANGELOG.md), [fdm-core](https://github.com/nmi-agro/fdm/blob/main/fdm-core/CHANGELOG.md), and [fdm-data](https://github.com/nmi-agro/fdm/blob/main/fdm-data/CHANGELOG.md). Feedback and contributions are welcome on our GitHub repository.

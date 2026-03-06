@@ -65,6 +65,8 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
                 b_lu_end: new Date("2023-12-31"),
                 b_lu_catalogue: "3",
                 m_cropresidue: false,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "grass",
             },
         ]
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
@@ -90,6 +92,8 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
                 b_lu_end: new Date("2023-12-31"),
                 b_lu_catalogue: "1",
                 m_cropresidue: false,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "grass",
             },
         ]
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
@@ -119,6 +123,8 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
                 b_lu_end: new Date("2023-12-31"),
                 b_lu_catalogue: "1",
                 m_cropresidue: false,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "grass",
             },
         ]
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
@@ -148,6 +154,8 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
                 b_lu_end: new Date("2023-05-14"),
                 b_lu_catalogue: "1",
                 m_cropresidue: false,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "grass",
             },
         ]
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
@@ -177,6 +185,8 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
                 b_lu_end: null,
                 b_lu_catalogue: "1",
                 m_cropresidue: false,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "grass",
             },
         ]
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
@@ -206,6 +216,8 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
                 b_lu_end: new Date("2023-12-31"),
                 b_lu_catalogue: "1",
                 m_cropresidue: false,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "grass",
             },
         ]
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
@@ -235,6 +247,8 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
                 b_lu_end: new Date("2024-12-31"),
                 b_lu_catalogue: "1",
                 m_cropresidue: false,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "grass",
             },
         ]
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {

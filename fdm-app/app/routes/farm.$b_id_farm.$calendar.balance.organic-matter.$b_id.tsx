@@ -1,8 +1,4 @@
-import {
-    collectInputForOrganicMatterBalance,
-    getOrganicMatterBalance,
-} from "@svenvw/fdm-calculator"
-import { getFarm, getField } from "@svenvw/fdm-core"
+import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
     ArrowDownToLine,
     ArrowRightLeft,
@@ -19,6 +15,7 @@ import {
     useLoaderData,
     useLocation,
 } from "react-router"
+import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-warning"
 import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
 import OrganicMatterBalanceDetails from "~/components/blocks/balance/organic-matter-details"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
@@ -31,6 +28,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { getOrganicMatterBalanceForField } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -69,20 +67,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
         const field = await getField(fdm, session.principal_id, b_id)
 
-        const organicMatterBalancePromise = collectInputForOrganicMatterBalance(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            timeframe,
-            b_id,
-        ).then(async (input) => {
-            const organicMatterBalanceResult = await getOrganicMatterBalance(
+        const organicMatterBalancePromise = (async () => {
+            const result = await getOrganicMatterBalanceForField({
                 fdm,
-                input,
-            )
-            let fieldResult = organicMatterBalanceResult.fields.find(
-                (field: { b_id: string }) => field.b_id === b_id,
-            )
+                principal_id: session.principal_id,
+                b_id_farm,
+                b_id,
+                timeframe,
+            })
+            let { fieldResult, fieldInput } = result
 
             if (!fieldResult) {
                 throw new Error(
@@ -106,16 +99,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 )
                 fieldResult = { ...fieldResult, errorId }
             }
-            const inputForField = input.fields.find(
-                (field: { field: { b_id: string } }) =>
-                    field.field.b_id === b_id,
-            )
 
             return {
                 fieldResult: fieldResult,
-                fieldInput: inputForField,
+                fieldInput: fieldInput,
             }
-        })
+        })()
 
         return {
             organicMatterBalanceResult: organicMatterBalancePromise,
@@ -151,6 +140,10 @@ function OrganicMatterBalance({
     const location = useLocation()
     const page = location.pathname
     const calendar = useCalendarStore((state) => state.calendar)
+
+    if (field.b_bufferstrip) {
+        return <BufferStripWarning b_id={field.b_id} />
+    }
 
     if (fieldResult.errorMessage) {
         return (

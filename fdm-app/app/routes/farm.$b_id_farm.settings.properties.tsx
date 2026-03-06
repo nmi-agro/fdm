@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { checkPermission, getFarm, updateFarm } from "@svenvw/fdm-core"
+import { checkPermission, getFarm, updateFarm } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Form } from "react-hook-form"
 import {
@@ -13,7 +13,6 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithSuccess } from "remix-toast"
 import validator from "validator"
 import { z } from "zod"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Button } from "~/components/ui/button"
 import {
     FormControl,
@@ -25,6 +24,7 @@ import {
 } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
+import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -267,7 +267,7 @@ Wageningen"
                                 ),
                             )}
                         >
-                            {form.formState.isSubmitting && <LoadingSpinner />}
+                            {form.formState.isSubmitting && <Spinner />}
                             Bijwerken
                         </Button>
                     </div>
@@ -326,15 +326,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 // Form Schema
 const FormSchema = z.object({
-    b_name_farm: z.string().min(3, {
-        message: "Naam van bedrijf moet minimaal 3 karakters bevatten",
+    b_name_farm: z.string().trim().min(3, {
+        error: "Naam van bedrijf moet minimaal 3 karakters bevatten",
     }),
     b_businessid_farm: z.string().optional(),
     b_address_farm: z.string().optional(),
     b_postalcode_farm: z
         .string()
+        .trim()
         .optional()
         .refine((value) => !value || isPostalCode(value, "NL"), {
-            message: "Ongeldige postcode",
+            error: "Ongeldige postcode",
         }),
 })

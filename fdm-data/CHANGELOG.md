@@ -1,5 +1,11 @@
 # fdm-data
 
+## 0.19.2
+
+### Patch Changes
+
+- [#474](https://github.com/nmi-agro/fdm/pull/474) [`5579ab3`](https://github.com/nmi-agro/fdm/commit/5579ab3674d963e194aa8295b706266f591cbb45) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate organization from `SvenVw` to `nmi-agro`
+
 ## 0.19.1
 
 ### Patch Changes
@@ -83,7 +89,7 @@
 
 - 093784b: Add `p_no3_rt` and `p_nh4_rt` to SRM catalogue.
 - e37b6f0: Add `p_app_method_options` as parameter of Fertilizer Catalogue
-- 7f95233: Expose the `ApplicationMethods` union type in the `@svenvw/fdm-data` package
+- 7f95233: Expose the `ApplicationMethods` union type in the `@nmi-agro/fdm-data` package
 - a898e30: Add `baat` as new catalogue for fertilizers
 
 ## 0.13.1
@@ -140,7 +146,7 @@
 - Updated dependencies [6a01698]
 - Updated dependencies [972bac8]
 - Updated dependencies [7387530]
-  - @svenvw/fdm-core@0.14.0
+  - @nmi-agro/fdm-core@0.14.0
 
 ## 0.10.1
 
@@ -148,7 +154,7 @@
 
 - Updated dependencies [9830186]
 - Updated dependencies [06619e7]
-  - @svenvw/fdm-core@0.13.0
+  - @nmi-agro/fdm-core@0.13.0
 
 ## 0.10.0
 
@@ -171,7 +177,7 @@
 - Updated dependencies [aede4a7]
 - Updated dependencies [9e6f2d7]
 - Updated dependencies [644a159]
-  - @svenvw/fdm-core@0.12.0
+  - @nmi-agro/fdm-core@0.12.0
 
 ## 0.9.0
 
@@ -189,7 +195,7 @@
 - Updated dependencies [c584d5a]
 - Updated dependencies [f7d7a50]
 - Updated dependencies [073b92e]
-  - @svenvw/fdm-core@0.11.0
+  - @nmi-agro/fdm-core@0.11.0
 
 ## 0.8.2
 
@@ -197,7 +203,7 @@
 
 - Replace ESLint with Biome and format the code accordingly
 - Updated dependencies
-  - @svenvw/fdm-core@0.10.2
+  - @nmi-agro/fdm-core@0.10.2
 
 ## 0.8.1
 
@@ -205,7 +211,7 @@
 
 - Use the same version for `vite`, `typescript` and `dotenvx` across packages and update those to the latest version
 - Updated dependencies
-  - @svenvw/fdm-core@0.10.1
+  - @nmi-agro/fdm-core@0.10.1
 
 ## 0.8.0
 
@@ -214,7 +220,7 @@
 - Updated dependencies [520a074]
 - Updated dependencies [2171b68]
 - Updated dependencies [2171b68]
-  - @svenvw/fdm-core@0.10.0
+  - @nmi-agro/fdm-core@0.10.0
 
 ## 0.7.0
 
@@ -224,7 +230,7 @@
 - Updated dependencies [71cbba3]
 - Updated dependencies [5d0e1f7]
 - Updated dependencies [315710b]
-  - @svenvw/fdm-core@0.9.0
+  - @nmi-agro/fdm-core@0.9.0
 
 ## 0.6.0
 
@@ -232,7 +238,7 @@
 
 - Updated dependencies [83c589b]
 - Updated dependencies [6a3e6db]
-  - @svenvw/fdm-core@0.8.0
+  - @nmi-agro/fdm-core@0.8.0
 
 ## 0.5.0
 
@@ -248,7 +254,7 @@
 - Updated dependencies [61da12f]
 - Updated dependencies [5be0abc]
 - Updated dependencies [4189f5d]
-  - @svenvw/fdm-core@0.7.0
+  - @nmi-agro/fdm-core@0.7.0
 
 ## 0.4.0
 
@@ -266,7 +272,7 @@
 - Updated dependencies [c316d5c]
 - Updated dependencies [b1dea77]
 - Updated dependencies [49aa60c]
-  - @svenvw/fdm-core@0.6.0
+  - @nmi-agro/fdm-core@0.6.0
 
 ## 0.3.0
 
@@ -276,7 +282,7 @@
 - Updated dependencies [f9050b0]
 - Updated dependencies
 - Updated dependencies [7aff5c6]
-  - @svenvw/fdm-core@0.5.0
+  - @nmi-agro/fdm-core@0.5.0
 
 ## 0.2.0
 
@@ -289,7 +295,7 @@
 - 08ac0ed: Add workflow for prereleases
 - Updated dependencies
 - Updated dependencies [a2ee857]
-  - @svenvw/fdm-core@0.4.0
+  - @nmi-agro/fdm-core@0.4.0
 
 ## 0.1.1
 

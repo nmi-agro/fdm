@@ -87,7 +87,10 @@ export default function User() {
                     <CardContent className="space-y-4">
                         <div className="flex items-center space-x-4">
                             <Avatar className="h-12 w-12">
-                                <AvatarImage src={user.image} alt={user.name} />
+                                <AvatarImage
+                                    src={user.image ?? undefined}
+                                    alt={user.name}
+                                />
                                 <AvatarFallback>
                                     {avatarInitials}
                                 </AvatarFallback>

@@ -4,8 +4,8 @@
  * @remarks
  *
  * Created by Nutriënten Management Instituut (www.nmi-agro.nl)
- * Source code available at https://github.com/SvenVw/fdm
- * In case you find a bug, please report at https://github.com/SvenVw/fdm/issues
+ * Source code available at https://github.com/nmi-agro/fdm
+ * In case you find a bug, please report at https://github.com/nmi-agro/fdm/issues
  *
  * @public
  * @packageDocumentation

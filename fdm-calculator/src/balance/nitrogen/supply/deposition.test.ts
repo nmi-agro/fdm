@@ -1,3 +1,5 @@
+import type { Field } from "@nmi-agro/fdm-core"
+import Decimal from "decimal.js"
 import { describe, expect, it } from "vitest"
 import { getFdmPublicDataUrl } from "../../../shared/public-data-url"
 import type { FieldInput, NitrogenBalanceInput } from "../types"
@@ -14,11 +16,13 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
                 b_id: "test_field_1",
                 b_start: new Date("2025-01-01"),
                 b_end: new Date("2025-12-31"),
+                b_bufferstrip: false,
             },
             cultivations: [],
             harvests: [],
             soilAnalyses: [],
             fertilizerApplications: [],
+            depositionSupply: { total: new Decimal(0) },
         }
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
             start: new Date("2025-01-01"),
@@ -26,7 +30,7 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
         }
 
         const resultMap = await calculateAllFieldsNitrogenSupplyByDeposition(
-            [field],
+            [field.field as unknown as Field],
             timeFrame,
             fdmPublicDataUrl,
         )
@@ -44,11 +48,13 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
                 b_id: "test_field_1",
                 b_start: new Date("2023-01-01"),
                 b_end: new Date("2023-12-31"),
+                b_bufferstrip: false,
             },
             cultivations: [],
             harvests: [],
             soilAnalyses: [],
             fertilizerApplications: [],
+            depositionSupply: { total: new Decimal(0) },
         }
 
         // Test with a full year
@@ -57,7 +63,7 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
             end: new Date("2024-01-01"),
         }
         let resultMap = await calculateAllFieldsNitrogenSupplyByDeposition(
-            [field],
+            [field.field as unknown as Field],
             timeFrame,
             fdmPublicDataUrl,
         )
@@ -71,7 +77,7 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
             end: new Date("2023-07-01"),
         }
         resultMap = await calculateAllFieldsNitrogenSupplyByDeposition(
-            [field],
+            [field.field as unknown as Field],
             timeFrame,
             fdmPublicDataUrl,
         )
@@ -88,11 +94,13 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
                 b_id: "test_field_1",
                 b_start: new Date("2023-01-01"),
                 b_end: new Date("2023-12-31"),
+                b_bufferstrip: false,
             },
             cultivations: [],
             harvests: [],
             soilAnalyses: [],
             fertilizerApplications: [],
+            depositionSupply: { total: new Decimal(0) },
         }
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
             start: new Date("2023-01-01"),
@@ -100,7 +108,7 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
         }
 
         const resultMap = await calculateAllFieldsNitrogenSupplyByDeposition(
-            [field],
+            [field.field as unknown as Field],
             timeFrame,
             fdmPublicDataUrl,
         )
@@ -119,11 +127,13 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
                     b_id: "field_1",
                     b_start: new Date("2025-01-01"),
                     b_end: new Date("2025-12-31"),
+                    b_bufferstrip: false,
                 },
                 cultivations: [],
                 harvests: [],
                 soilAnalyses: [],
                 fertilizerApplications: [],
+                depositionSupply: { total: new Decimal(0) },
             },
             {
                 field: {
@@ -132,11 +142,13 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
                     b_id: "field_2",
                     b_start: new Date("2025-01-01"),
                     b_end: new Date("2025-12-31"),
+                    b_bufferstrip: false,
                 },
                 cultivations: [],
                 harvests: [],
                 soilAnalyses: [],
                 fertilizerApplications: [],
+                depositionSupply: { total: new Decimal(0) },
             },
         ]
         const timeFrame: NitrogenBalanceInput["timeFrame"] = {
@@ -145,7 +157,7 @@ describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {
         }
 
         const resultMap = await calculateAllFieldsNitrogenSupplyByDeposition(
-            fields,
+            fields.map((f) => f.field as unknown as Field),
             timeFrame,
             fdmPublicDataUrl,
         )

@@ -1,5 +1,5 @@
-import type { CurrentSoilData } from "@svenvw/fdm-core"
-import { withCalculationCache } from "@svenvw/fdm-core"
+import type { CurrentSoilData } from "@nmi-agro/fdm-core"
+import { withCalculationCache } from "@nmi-agro/fdm-core"
 import pkg from "../package"
 import type {
     NutrientAdvice,
@@ -21,8 +21,31 @@ export async function requestNutrientAdvice({
     b_centroid,
     currentSoilData,
     nmiApiKey,
+    b_bufferstrip,
 }: NutrientAdviceInputs): Promise<NutrientAdvice> {
     try {
+        if (b_bufferstrip) {
+            return {
+                d_n_req: 0,
+                d_n_norm: 0,
+                d_n_norm_man: 0,
+                d_p_norm: 0,
+                d_p_req: 0,
+                d_k_req: 0,
+                d_c_req: 0,
+                d_ca_req: 0,
+                d_s_req: 0,
+                d_mg_req: 0,
+                d_cu_req: 0,
+                d_zn_req: 0,
+                d_co_req: 0,
+                d_mn_req: 0,
+                d_mo_req: 0,
+                d_na_req: 0,
+                d_b_req: 0,
+            }
+        }
+
         if (!nmiApiKey) {
             throw new Error("NMI API key not provided")
         }
@@ -105,4 +128,5 @@ export const getNutrientAdvice = withCalculationCache(
     requestNutrientAdvice,
     "requestNutrientAdvice",
     pkg.calculatorVersion,
+    ["nmiApiKey"],
 )

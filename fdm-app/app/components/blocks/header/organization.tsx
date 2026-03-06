@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink, useLocation, useMatches } from "react-router"
 import {
     BreadcrumbItem,
     BreadcrumbLink,
@@ -22,52 +22,67 @@ export function HeaderOrganization({
     const location = useLocation()
     const currentPath = String(location.pathname)
 
-    let page = "overview"
-    if (currentPath.includes("new")) {
-        page = "new"
-    } else if (currentPath.includes("invitation")) {
-        page = "invitation"
-    }
+    const matches = useMatches()
+    const isSettingsRoute = !!matches.find(
+        (match) => match.id === "routes/organization.$slug.settings",
+    )
+    const isMembersRoute = !!matches.find(
+        (match) => match.id === "routes/organization.$slug.members",
+    )
+    const isFarmsRoute = !!matches.find(
+        (match) => match.id === "routes/organization.$slug.$calendar.farms",
+    )
+    const isInvitationRespondRoute = !!matches.find(
+        (match) =>
+            match.id ===
+            "routes/organization.invitations.$invitation_id.respond",
+    )
+    const isNewOrganizationRoute = !!matches.find(
+        (match) => match.id === "routes/organization.new",
+    )
 
     return (
         <>
-            <BreadcrumbItem className="hidden md:block">
+            <BreadcrumbItem className="hidden xl:block">
                 <BreadcrumbLink href="/organization">
                     Organisaties
                 </BreadcrumbLink>
             </BreadcrumbItem>
-            {page === "new" ? (
+            {isNewOrganizationRoute ? (
                 <>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="hidden xl:block" />
                     <BreadcrumbItem>
                         <BreadcrumbLink href="/organization/new">
                             Nieuwe organisatie
                         </BreadcrumbLink>
                     </BreadcrumbItem>
                 </>
-            ) : page === "invitation" ? (
+            ) : isInvitationRespondRoute ? (
                 <>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="hidden xl:block" />
                     <BreadcrumbItem>
                         <BreadcrumbLink href="/invitations">
-                            Uitnodigingen
+                            Uitnodiging
                         </BreadcrumbLink>
                     </BreadcrumbItem>
                 </>
             ) : (
                 <>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="hidden xl:block" />
                     <BreadcrumbItem>
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="flex items-center gap-1">
-                                {selectedOrganizationSlug && organizationOptions
-                                    ? (organizationOptions.find(
-                                          (option) =>
-                                              option.slug ===
-                                              selectedOrganizationSlug,
-                                      )?.name ?? "Unknown organization")
-                                    : "Kies een organisatie"}
-                                <ChevronDown className="text-muted-foreground h-4 w-4" />
+                            <DropdownMenuTrigger className="flex items-center gap-1 max-w-[120px] sm:max-w-[200px] md:max-w-none outline-none">
+                                <span className="truncate">
+                                    {selectedOrganizationSlug &&
+                                    organizationOptions
+                                        ? (organizationOptions.find(
+                                              (option) =>
+                                                  option.slug ===
+                                                  selectedOrganizationSlug,
+                                          )?.name ?? "Unknown organization")
+                                        : "Kies een organisatie"}
+                                </span>
+                                <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
                             </DropdownMenuTrigger>
                             {organizationOptions &&
                             organizationOptions.length > 0 ? (
@@ -98,6 +113,22 @@ export function HeaderOrganization({
                             ) : null}
                         </DropdownMenu>
                     </BreadcrumbItem>
+                    {isSettingsRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Instellingen</BreadcrumbItem>
+                        </>
+                    ) : isMembersRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Leden</BreadcrumbItem>
+                        </>
+                    ) : isFarmsRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Bedrijven</BreadcrumbItem>
+                        </>
+                    ) : null}
                 </>
             )}
         </>

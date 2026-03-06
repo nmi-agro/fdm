@@ -1,4 +1,4 @@
-import type { CurrentSoilData } from "@svenvw/fdm-core"
+import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 import {
     afterAll,
     afterEach,
@@ -154,5 +154,22 @@ describe("requestNutrientAdvice", () => {
             "Request to NMI API failed",
         )
         expect(fetch).toHaveBeenCalledTimes(1)
+    })
+
+    it("should return zero advice for buffer strips without calling NMI API", async () => {
+        const inputs: NutrientAdviceInputs = {
+            b_lu_catalogue: "nl_2014",
+            b_centroid: [4.3, 52.4],
+            currentSoilData: mockCurrentSoilData,
+            nmiApiKey: "mock-api-key",
+            b_bufferstrip: true,
+        }
+
+        const result = await requestNutrientAdvice(inputs)
+
+        expect(fetch).not.toHaveBeenCalled()
+        expect(result.d_n_req).toBe(0)
+        expect(result.d_p_req).toBe(0)
+        expect(result.d_k_req).toBe(0)
     })
 })

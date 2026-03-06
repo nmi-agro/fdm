@@ -28,24 +28,26 @@ export function HeaderField({
 
     return (
         <>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem className="hidden md:block">
+            <BreadcrumbSeparator className="hidden xl:block" />
+            <BreadcrumbItem className="hidden xl:block">
                 <BreadcrumbLink href={`/farm/${b_id_farm}/${calendar}/field`}>
                     Perceel
                 </BreadcrumbLink>
             </BreadcrumbItem>
             {fieldOptions.length > 0 ? (
                 <>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="hidden xl:block" />
                     <BreadcrumbItem>
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="flex items-center gap-1">
-                                {b_id && fieldOptions
-                                    ? (fieldOptions.find(
-                                          (option) => option.b_id === b_id,
-                                      )?.b_name ?? "Unknown field")
-                                    : "Kies een perceel"}
-                                <ChevronDown className="text-muted-foreground h-4 w-4" />
+                            <DropdownMenuTrigger className="flex items-center gap-1 max-w-[120px] sm:max-w-[200px] md:max-w-none outline-none">
+                                <span className="truncate">
+                                    {b_id && fieldOptions
+                                        ? (fieldOptions.find(
+                                              (option) => option.b_id === b_id,
+                                          )?.b_name ?? "Unknown field")
+                                        : "Kies een perceel"}
+                                </span>
+                                <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                                 {fieldOptions.map((option) => (

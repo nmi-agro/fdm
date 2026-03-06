@@ -26,6 +26,8 @@ describe("calculateNitrogenRemoval", () => {
                 m_cropresidue: true,
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = [
@@ -77,6 +79,8 @@ describe("calculateNitrogenRemoval", () => {
                 m_cropresidue: false,
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = []

@@ -1,10 +1,10 @@
-import { createFsFileStorage } from "@remix-run/file-storage/fs"
-import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import {
     addSoilAnalysis,
     getField,
     getSoilParametersDescription,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
+import { createFsFileStorage } from "@remix-run/file-storage/fs"
+import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { fileTypeFromBuffer } from "file-type"
 import {
     type ActionFunctionArgs,
@@ -140,7 +140,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 const storageKey = crypto.randomUUID()
                 await fileStorage.set(storageKey, file)
 
-                return fileStorage.get(storageKey)
+                const storedFile = await fileStorage.get(storageKey)
+                if (
+                    storedFile &&
+                    "toFile" in storedFile &&
+                    typeof storedFile.toFile === "function"
+                ) {
+                    return (
+                        storedFile as unknown as { toFile: () => File }
+                    ).toFile()
+                }
+                return storedFile
             }
             throw new Error("Invalid file type (mime check)")
         }

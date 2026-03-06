@@ -9,7 +9,7 @@ import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.d"
 import {
     addField,
-    determineIfFieldIsProductive,
+    determineIfFieldIsBuffer,
     getField,
     getFields,
     listAvailableAcquiringMethods,
@@ -106,7 +106,7 @@ describe("Farm Data Model", () => {
             expect(field.b_centroid[1]).toBeTypeOf("number")
             expect(field.b_area).toBeGreaterThan(0)
             expect(field.b_perimeter).toBeGreaterThan(0)
-            expect(field.b_isproductive).toBe(true)
+            expect(field.b_bufferstrip).toBe(false)
             expect(field.b_start).toEqual(AcquireDate)
             expect(field.b_end).toEqual(discardingDate)
             expect(field.b_acquiring_method).toBe(AcquiringMethod)
@@ -238,7 +238,7 @@ describe("Farm Data Model", () => {
                 )
                 for (const field of fields) {
                     expect(field.b_perimeter).toBeGreaterThan(0)
-                    expect(field.b_isproductive).toBe(true)
+                    expect(field.b_bufferstrip).toBe(false)
                 }
             })
 
@@ -379,7 +379,7 @@ describe("Farm Data Model", () => {
                 expect(fields1.length).toBe(1)
                 expect(fields1[0].b_name).toBe(field2Name)
                 expect(fields1[0].b_perimeter).toBeGreaterThan(0)
-                expect(fields1[0].b_isproductive).toBe(true)
+                expect(fields1[0].b_bufferstrip).toBe(false)
 
                 // Test with a timeframe that includes both Field 1 and Field 2
                 const timeframe2 = {
@@ -398,7 +398,7 @@ describe("Farm Data Model", () => {
                 )
                 for (const field of fields2) {
                     expect(field.b_perimeter).toBeGreaterThan(0)
-                    expect(field.b_isproductive).toBe(true)
+                    expect(field.b_bufferstrip).toBe(false)
                 }
 
                 // Test with a timeframe that includes field 2 and field 3
@@ -419,7 +419,7 @@ describe("Farm Data Model", () => {
                 )
                 for (const field of fields3) {
                     expect(field.b_perimeter).toBeGreaterThan(0)
-                    expect(field.b_isproductive).toBe(true)
+                    expect(field.b_bufferstrip).toBe(false)
                 }
                 //Test with only start date
                 const fields4 = await getFields(fdm, principal_id, b_id_farm, {
@@ -437,7 +437,7 @@ describe("Farm Data Model", () => {
                 )
                 for (const field of fields4) {
                     expect(field.b_perimeter).toBeGreaterThan(0)
-                    expect(field.b_isproductive).toBe(true)
+                    expect(field.b_bufferstrip).toBe(false)
                 }
                 //Test with only end date
                 const fields5 = await getFields(fdm, principal_id, b_id_farm, {
@@ -450,7 +450,7 @@ describe("Farm Data Model", () => {
                 )
                 for (const field of fields5) {
                     expect(field.b_perimeter).toBeGreaterThan(0)
-                    expect(field.b_isproductive).toBe(true)
+                    expect(field.b_bufferstrip).toBe(false)
                 }
             })
         })
@@ -721,7 +721,7 @@ describe("Farm Data Model", () => {
             expect(field.b_name).toBe(fieldName)
             expect(field.b_perimeter).toBeGreaterThan(0)
             expect(field.b_perimeter).toBeGreaterThan(4000000)
-            expect(field.b_isproductive).toBe(true)
+            expect(field.b_bufferstrip).toBe(false)
         })
     })
 
@@ -960,47 +960,31 @@ describe("Farm Data Model", () => {
         })
     })
 
-    describe("determineIfFieldIsProductive", () => {
-        it("should determine if a field is productive by checking name", async () => {
-            const b_isproductive = determineIfFieldIsProductive(
-                1.0,
-                100.0,
-                "Bufferstrip",
-            )
-            expect(b_isproductive).toBe(false)
+    describe("determineIfFieldIsBuffer", () => {
+        it("should determine if a field is buffer by checking name", async () => {
+            const isBuffer = determineIfFieldIsBuffer(1.0, 100.0, "Bufferstrip")
+            expect(isBuffer).toBe(true)
         })
-        it("should determine if a field is productive by checking shape", async () => {
-            const b_isproductive = determineIfFieldIsProductive(
-                1.0,
-                10000.0,
-                "Field",
-            )
-            expect(b_isproductive).toBe(false)
+        it("should determine if a field is buffer by checking shape", async () => {
+            const isBuffer = determineIfFieldIsBuffer(1.0, 10000.0, "Field")
+            expect(isBuffer).toBe(true)
         })
 
-        it("should determine if a field is productive by checking shape (area is large enough)", async () => {
-            const b_isproductive = determineIfFieldIsProductive(
-                2.5,
-                10000.0,
-                "Field",
-            )
-            expect(b_isproductive).toBe(true)
+        it("should determine if a field is productive (not buffer) by checking shape (area is large enough)", async () => {
+            const isBuffer = determineIfFieldIsBuffer(2.5, 10000.0, "Field")
+            expect(isBuffer).toBe(false)
         })
-        it("should determine if a field is productive by checking shape and name", async () => {
-            const b_isproductive = determineIfFieldIsProductive(
+        it("should determine if a field is buffer by checking shape and name", async () => {
+            const isBuffer = determineIfFieldIsBuffer(
                 1.0,
                 1000.0,
                 "Bufferstrip",
             )
-            expect(b_isproductive).toBe(false)
+            expect(isBuffer).toBe(true)
         })
-        it("should determine if a field is productive by checking shape and name (productive)", async () => {
-            const b_isproductive = determineIfFieldIsProductive(
-                10.0,
-                100.0,
-                "Field",
-            )
-            expect(b_isproductive).toBe(true)
+        it("should determine if a field is buffer by checking shape and name (productive)", async () => {
+            const isBuffer = determineIfFieldIsBuffer(10.0, 100.0, "Field")
+            expect(isBuffer).toBe(false)
         })
     })
 

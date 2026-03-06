@@ -1,2 +1,5 @@
 .turbo
 /node_modules
+.agents/
+.gemini/
+gemini.md

@@ -7,7 +7,6 @@ import {
     getFilteredRowModel,
     getSortedRowModel,
     type Row,
-    type RowSelectionState,
     type SortingState,
     useReactTable,
     type VisibilityState,
@@ -16,6 +15,8 @@ import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, useParams } from "react-router-dom"
+import { useFieldFilterStore } from "@/app/store/field-filter"
+import { useFieldSelectionStore } from "@/app/store/field-selection"
 import { Button } from "~/components/ui/button"
 import {
     DropdownMenu,
@@ -56,15 +57,33 @@ export function DataTable<TData extends FieldExtended, TValue>({
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-    const [globalFilter, setGlobalFilter] = useState("")
     const isMobile = useIsMobile()
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
         isMobile
             ? { a_som_loi: false, b_soiltype_agr: false, b_area: false }
             : {},
     )
-    const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+    const fieldIds = useFieldSelectionStore((state) => state.fieldIds)
+    const setFieldIds = useFieldSelectionStore((state) => state.setFieldIds)
+    const syncFarm = useFieldSelectionStore((state) => state.syncFarm)
     const lastSelectedRowIndex = useRef<number | null>(null)
+    const fieldFilter = useFieldFilterStore()
+
+    const rowSelection = useMemo(
+        () => Object.fromEntries(fieldIds.map((id) => [id, true])),
+        [fieldIds],
+    )
+
+    const params = useParams()
+    const b_id_farm = params.b_id_farm
+    const calendar = params.calendar
+
+    useEffect(() => {
+        if (b_id_farm) {
+            syncFarm(b_id_farm)
+            fieldFilter.syncFarm(b_id_farm)
+        }
+    }, [b_id_farm, syncFarm, fieldFilter.syncFarm])
 
     useEffect(() => {
         setColumnVisibility(
@@ -73,10 +92,6 @@ export function DataTable<TData extends FieldExtended, TValue>({
                 : {},
         )
     }, [isMobile])
-
-    const params = useParams()
-    const b_id_farm = params.b_id_farm
-    const calendar = params.calendar
 
     const handleRowClick = (
         row: Row<TData>,
@@ -103,13 +118,11 @@ export function DataTable<TData extends FieldExtended, TValue>({
             const rowsToSelect = table
                 .getRowModel()
                 .rows.slice(start, end + 1)
-                .map((r) => r.id)
+                .map((r) => r.original.b_id) // Use b_id directly
 
-            const newRowSelection = { ...rowSelection }
-            rowsToSelect.forEach((id) => {
-                newRowSelection[id] = true
-            })
-            setRowSelection(newRowSelection)
+            const newFieldIds = new Set(fieldIds)
+            rowsToSelect.forEach((id) => newFieldIds.add(id))
+            setFieldIds(Array.from(newFieldIds))
         } else {
             row.toggleSelected()
         }
@@ -123,8 +136,9 @@ export function DataTable<TData extends FieldExtended, TValue>({
         }))
     }, [data])
 
-    const fuzzyFilter: FilterFn<TData> = (row, _columnId, filterValue) => {
-        const result = fuzzysort.go(filterValue, [
+    const fuzzyFilter: FilterFn<TData> = (row, _columnId, { searchTerms }) => {
+        if (searchTerms === "") return true
+        const result = fuzzysort.go(searchTerms, [
             (row.original as any).searchTarget,
         ])
         return result.length > 0
@@ -133,20 +147,32 @@ export function DataTable<TData extends FieldExtended, TValue>({
     const table = useReactTable({
         data: memoizedData,
         columns,
+        getRowId: (row) => row.b_id,
         getCoreRowModel: getCoreRowModel(),
         onSortingChange: setSorting,
         getSortedRowModel: getSortedRowModel(),
         onColumnFiltersChange: setColumnFilters,
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
-        onGlobalFilterChange: setGlobalFilter,
-        onRowSelectionChange: setRowSelection,
+        onGlobalFilterChange: (fn) => {
+            const result = typeof fn === "function" ? fn(fieldFilter) : fn
+            // Ensure we are dealing with the store object structure before updating
+            const newSearchTerms =
+                typeof result === "string" ? result : result?.searchTerms
+            if ((newSearchTerms ?? "") !== fieldFilter.searchTerms) {
+                fieldFilter.setSearchTerms(newSearchTerms ?? "")
+            }
+        },
+        onRowSelectionChange: (fn) => {
+            const selection = typeof fn === "function" ? fn(rowSelection) : fn
+            setFieldIds(Object.keys(selection).filter((k) => selection[k]))
+        },
         globalFilterFn: fuzzyFilter,
         state: {
             sorting,
             columnFilters,
             columnVisibility,
-            globalFilter,
+            globalFilter: fieldFilter,
             rowSelection,
         },
     })
@@ -170,8 +196,10 @@ export function DataTable<TData extends FieldExtended, TValue>({
             <div className="sticky top-0 z-10 bg-background py-4 flex flex-col sm:flex-row gap-2 items-center">
                 <Input
                     placeholder="Zoek op naam, gewas of meststof"
-                    value={globalFilter ?? ""}
-                    onChange={(event) => setGlobalFilter(event.target.value)}
+                    value={fieldFilter.searchTerms ?? ""}
+                    onChange={(event) =>
+                        fieldFilter.setSearchTerms(event.target.value)
+                    }
                     className="w-full sm:w-auto sm:flex-grow"
                 />
                 <div className="flex w-full items-center justify-start sm:justify-end gap-2 sm:w-auto flex-wrap">

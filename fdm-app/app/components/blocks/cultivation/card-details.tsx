@@ -1,10 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { Cultivation } from "@svenvw/fdm-core"
+import type { Cultivation } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { DatePicker } from "~/components/custom/date-picker"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
@@ -22,6 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
+import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 import {
     CultivationDetailsFormSchema,
@@ -82,13 +82,13 @@ export function CultivationDetailsCard({
                             onClick={handleDeleteCultivation}
                             disabled={
                                 form.formState.isSubmitting ||
-                                fetcher.state === "submitting"
+                                fetcher.state !== "idle"
                             }
                         >
                             {form.formState.isSubmitting ||
-                            fetcher.state === "submitting" ? (
+                            fetcher.state !== "idle" ? (
                                 <div className="flex items-center space-x-2">
-                                    <LoadingSpinner />
+                                    <Spinner />
                                 </div>
                             ) : null}
                             Verwijderen
@@ -103,7 +103,7 @@ export function CultivationDetailsCard({
                             disabled={
                                 !editable ||
                                 form.formState.isSubmitting ||
-                                fetcher.state === "submitting"
+                                fetcher.state !== "idle"
                             }
                             className="space-y-4"
                         >
@@ -141,8 +141,7 @@ export function CultivationDetailsCard({
                                                         !editable ||
                                                         form.formState
                                                             .isSubmitting ||
-                                                        fetcher.state ===
-                                                            "submitting"
+                                                        fetcher.state !== "idle"
                                                     }
                                                 />
                                             </FormControl>
@@ -214,14 +213,13 @@ export function CultivationDetailsCard({
                                     type="submit"
                                     disabled={
                                         form.formState.isSubmitting ||
-                                        fetcher.state === "submitting"
+                                        fetcher.state !== "idle"
                                     }
                                 >
                                     {form.formState.isSubmitting ||
-                                    fetcher.state === "submitting" ? (
+                                    fetcher.state !== "idle" ? (
                                         <div className="flex items-center space-x-2">
-                                            <LoadingSpinner />{" "}
-                                            <p>Bijwerken...</p>
+                                            <Spinner /> <p>Bijwerken...</p>
                                         </div>
                                     ) : (
                                         "Bijwerken"

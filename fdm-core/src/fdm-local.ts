@@ -25,7 +25,7 @@ export function createFdmLocal(
 
 export async function migrateFdmLocal(
     fdm: FdmLocalType,
-    migrationsFolderPath = "node_modules/@svenvw/fdm-core/dist/db/migrations",
+    migrationsFolderPath = "node_modules/@nmi-agro/fdm-core/dist/db/migrations",
 ): Promise<void> {
     try {
         // Run migration

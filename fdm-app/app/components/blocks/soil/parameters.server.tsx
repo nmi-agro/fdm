@@ -1,4 +1,4 @@
-import { getSoilParametersDescription } from "@svenvw/fdm-core"
+import { getSoilParametersDescription } from "@nmi-agro/fdm-core"
 
 export function getSoilParametersForSoilAnalysisType(
     soilAnalysisType: "standard" | "all" | "nmin" | "derogation",

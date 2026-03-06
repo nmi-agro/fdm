@@ -1,4 +1,4 @@
-import { getFarm, isAllowedToDeleteFarm, removeFarm } from "@svenvw/fdm-core"
+import { getFarm, isAllowedToDeleteFarm, removeFarm } from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,
@@ -77,7 +77,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_id_farm,
         )
         // Add temporary workaround (until implemented in fdm-core) so that advisors are not able to delete a farm
-        if (canDeleteFarm && farm.roles.includes("advisor")) {
+        if (
+            canDeleteFarm &&
+            farm.roles.find((role) => role.role === "advisor")
+        ) {
             canDeleteFarm = false
         }
 
@@ -96,7 +99,7 @@ export default function FarmSettingsDeleteBlock() {
 
     const navigation = useNavigation()
     const isSubmitting =
-        navigation.state === "submitting" &&
+        navigation.state !== "idle" &&
         navigation.formMethod?.toLowerCase() === "delete"
     return (
         <div className="space-y-6">
@@ -136,7 +139,7 @@ export default function FarmSettingsDeleteBlock() {
  * Handles the deletion of a farm.
  *
  * This action function retrieves the farm ID from the request parameters,
- * validates its presence, and then calls the `removeFarm` function from `@svenvw/fdm-core`
+ * validates its presence, and then calls the `removeFarm` function from `@nmi-agro/fdm-core`
  * to delete the specified farm and all its associated data.
  *
  * Upon successful deletion, the user is redirected to the farm overview page.
@@ -167,7 +170,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
             b_id_farm,
         )
         // Temporary workaround: advisors may not delete farms
-        if (canDeleteFarm && farm.roles.includes("advisor")) {
+        if (
+            canDeleteFarm &&
+            farm.roles.find((role) => role.role === "advisor")
+        ) {
             canDeleteFarm = false
         }
         if (!canDeleteFarm) {

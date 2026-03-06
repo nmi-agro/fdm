@@ -2,7 +2,7 @@ import {
     type Fertilizer,
     type FertilizerApplication,
     withCalculationCache,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
 import type { NormFilling } from "../../types"

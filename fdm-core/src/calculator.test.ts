@@ -275,4 +275,92 @@ describe("withCalculationCache", () => {
             .where(eq(calculationCache.calculation_hash, expectedHash))
         expect(cached).toHaveLength(0) // Should NOT cache the result if cache read failed
     })
+
+    it("should redact sensitive keys from cache key and storage", async () => {
+        const calculate = vi.fn(
+            async (inputs: { data: string; apiKey: string }) => {
+                return `result for ${inputs.data}`
+            },
+        )
+        const calculatorVersion = "1.0.0"
+        const input = { data: "public data", apiKey: "secret-key" }
+        const getCalculation = withCalculationCache(
+            calculate,
+            "calculateWithSecrets",
+            calculatorVersion,
+            ["apiKey"],
+        )
+
+        // Call the function
+        await expect(getCalculation(fdm, input)).resolves.toBe(
+            "result for public data",
+        )
+
+        // Verify original function received full input including secret
+        expect(calculate).toHaveBeenCalledWith(input)
+
+        // Expected input for cache (with REDACTED secret)
+        const expectedCacheInput = { data: "public data", apiKey: "REDACTED" }
+        const expectedHash = generateCalculationHash(
+            "calculateWithSecrets",
+            calculatorVersion,
+            expectedCacheInput,
+        )
+
+        // Verify cache entry exists with the redacted hash
+        const cached = await fdm
+            .select()
+            .from(calculationCache)
+            .where(eq(calculationCache.calculation_hash, expectedHash))
+        expect(cached).toHaveLength(1)
+        expect(cached[0].result).toBe("result for public data")
+
+        // Verify stored input in DB is redacted
+        // Note: The input column type in DB might be JSON, drizzle handles it.
+        const storedInput = cached[0].input as any
+        expect(storedInput.apiKey).toBe("REDACTED")
+        expect(storedInput.data).toBe("public data")
+    })
+
+    it("should redact nested sensitive keys from cache key and storage", async () => {
+        const calculate = vi.fn(
+            async (inputs: { data: { apiKey: string; value: string } }) => {
+                return `result for ${inputs.data.value}`
+            },
+        )
+        const calculatorVersion = "1.0.0"
+        const input = { data: { apiKey: "nested-secret", value: "public" } }
+        const getCalculation = withCalculationCache(
+            calculate,
+            "calculateWithNestedSecrets",
+            calculatorVersion,
+            ["apiKey"],
+        )
+
+        await expect(getCalculation(fdm, input)).resolves.toBe(
+            "result for public",
+        )
+
+        // Verify original function received full input
+        expect(calculate).toHaveBeenCalledWith(input)
+
+        // Expected input for cache (with nested REDACTED secret)
+        const expectedCacheInput = {
+            data: { apiKey: "REDACTED", value: "public" },
+        }
+        const expectedHash = generateCalculationHash(
+            "calculateWithNestedSecrets",
+            calculatorVersion,
+            expectedCacheInput,
+        )
+
+        const cached = await fdm
+            .select()
+            .from(calculationCache)
+            .where(eq(calculationCache.calculation_hash, expectedHash))
+        expect(cached).toHaveLength(1)
+
+        const storedInput = cached[0].input as any
+        expect(storedInput.data.apiKey).toBe("REDACTED")
+    })
 })

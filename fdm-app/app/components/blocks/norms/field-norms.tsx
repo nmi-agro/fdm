@@ -1,7 +1,7 @@
 import type {
     NormFilling as GebruiksnormFillingResult,
     GebruiksnormResult,
-} from "@svenvw/fdm-calculator"
+} from "@nmi-agro/fdm-calculator"
 import { NavLink } from "react-router-dom"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import {

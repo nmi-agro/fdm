@@ -24,7 +24,7 @@ export function HeaderFarm({
 
     return (
         <>
-            <BreadcrumbItem className="hidden md:block">
+            <BreadcrumbItem className="hidden xl:block">
                 {b_id_farm ? (
                     <BreadcrumbLink href={`/farm/${b_id_farm}`}>
                         Bedrijf
@@ -33,17 +33,20 @@ export function HeaderFarm({
                     "Bedrijf"
                 )}
             </BreadcrumbItem>
-            <BreadcrumbSeparator />
+            <BreadcrumbSeparator className="hidden xl:block" />
             <BreadcrumbItem>
                 <DropdownMenu>
-                    <DropdownMenuTrigger className="flex items-center gap-1">
-                        {b_id_farm && farmOptions
-                            ? (farmOptions.find(
-                                  (option) => option.b_id_farm === b_id_farm,
-                              )?.b_name_farm ?? "Geen bedrijf geselecteerd")
-                            : "Kies een bedrijf"}
+                    <DropdownMenuTrigger className="flex items-center gap-1 max-w-30 sm:max-w-50 md:max-w-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                        <span className="truncate">
+                            {b_id_farm && farmOptions
+                                ? (farmOptions.find(
+                                      (option) =>
+                                          option.b_id_farm === b_id_farm,
+                                  )?.b_name_farm ?? "Geen bedrijf geselecteerd")
+                                : "Kies een bedrijf"}
+                        </span>
                         {farmOptions && farmOptions.length > 0 ? (
-                            <ChevronDown className="text-muted-foreground h-4 w-4" />
+                            <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
                         ) : null}
                     </DropdownMenuTrigger>
                     {farmOptions && farmOptions.length > 0 ? (

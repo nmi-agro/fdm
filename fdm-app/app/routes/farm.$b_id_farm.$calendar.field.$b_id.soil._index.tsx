@@ -5,7 +5,7 @@ import {
     getSoilAnalyses,
     getSoilParametersDescription,
     removeSoilAnalysis,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { Plus } from "lucide-react"
 import {
     type ActionFunctionArgs,
@@ -83,7 +83,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fdm,
             session.principal_id,
             b_id,
-            timeframe,
+            {
+                start: null,
+                end: timeframe.end,
+            },
         )
 
         // Get current soil data

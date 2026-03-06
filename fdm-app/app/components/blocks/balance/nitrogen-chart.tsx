@@ -1,8 +1,8 @@
 import type {
-    collectInputForNitrogenBalance,
-    getNitrogenBalance,
-    NitrogenBalanceFieldResultNumeric,
-} from "@svenvw/fdm-calculator"
+    FieldInput as FdmFieldInput,
+    NitrogenBalanceFieldNumeric,
+    NitrogenBalanceNumeric,
+} from "@nmi-agro/fdm-calculator"
 import { format } from "date-fns/format"
 import { useId, useMemo, useState } from "react"
 import { nl } from "react-day-picker/locale"
@@ -16,9 +16,9 @@ import {
     ChartTooltip,
 } from "~/components/ui/chart"
 
-type FieldInput = Awaited<ReturnType<typeof collectInputForNitrogenBalance>>
-type FarmBalanceData = Awaited<ReturnType<typeof getNitrogenBalance>>
-type FieldBalanceData = NitrogenBalanceFieldResultNumeric
+type FieldInput = FdmFieldInput
+type FarmBalanceData = NitrogenBalanceNumeric
+type FieldBalanceData = NitrogenBalanceFieldNumeric
 
 type ApplicationChartConfigItem = {
     label: string
@@ -206,7 +206,7 @@ function buildChartDataAndLegend({
                       label: label,
                       unit: unit,
                       detail: [
-                          application.p_name_nl,
+                          application.p_name_nl ?? "Naam onbekend",
                           format(application.p_app_date, "PP", {
                               locale: nl,
                           }),
@@ -243,14 +243,16 @@ function buildChartDataAndLegend({
             if (!styles[styleId]) {
                 styles[styleId] = {
                     ...styles[""],
-                    color: getCultivationColor(cultivation.b_lu_croprotation),
+                    color: getCultivationColor(
+                        cultivation.b_lu_croprotation ?? undefined,
+                    ),
                 }
             }
             chartData[dataKey] = Math.abs(cultivationResult.value)
             ;(chartConfig as ExtendedChartConfig)[dataKey] = {
                 label: label,
                 unit: unit,
-                detail: [cultivation.b_lu_name],
+                detail: [cultivation.b_lu_name ?? "Naam onbekend"],
                 styleId: styleId,
             }
             bar.push(dataKey)
@@ -330,10 +332,16 @@ function buildChartDataAndLegend({
                       styleId: "removalHarvest",
                       detail: cultivationDetails
                           ? [
-                                cultivationDetails.b_lu_name,
-                                format(harvestDetails.b_lu_harvest_date, "PP", {
-                                    locale: nl,
-                                }),
+                                cultivationDetails.b_lu_name ?? "Naam onbekend",
+                                harvestDetails.b_lu_harvest_date
+                                    ? format(
+                                          harvestDetails.b_lu_harvest_date,
+                                          "PP",
+                                          {
+                                              locale: nl,
+                                          },
+                                      )
+                                    : "Datum onbekend",
                             ]
                           : [],
                   }

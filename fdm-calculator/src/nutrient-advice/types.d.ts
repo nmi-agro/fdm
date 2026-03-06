@@ -1,4 +1,4 @@
-import type { CurrentSoilData } from "@svenvw/fdm-core"
+import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 
 /**
  * Represents the nutrient advice for a given year, as returned by the NMI API.
@@ -84,4 +84,6 @@ export type NutrientAdviceInputs = {
     currentSoilData: CurrentSoilData
     /** NMI API key for authentication */
     nmiApiKey: string | undefined
+    /** Indicates if the field is a buffer strip */
+    b_bufferstrip?: boolean
 }

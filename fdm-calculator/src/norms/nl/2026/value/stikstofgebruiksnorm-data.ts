@@ -584,28 +584,13 @@ export const nitrogenStandardsData = [
         type: "akkerbouw",
         is_winterteelt: true,
         is_vanggewas: false,
-        sub_types: [
-            {
-                omschrijving: "derogatie",
-                norms: {
-                    klei: { standard: 160, nv_area: 128 },
-                    zand_nwc: { standard: 140, nv_area: 112 },
-                    zand_zuid: { standard: 112, nv_area: 90 },
-                    loess: { standard: 112, nv_area: 90 },
-                    veen: { standard: 150, nv_area: 120 },
-                },
-            },
-            {
-                omschrijving: "non-derogatie",
-                norms: {
-                    klei: { standard: 185, nv_area: 148 },
-                    zand_nwc: { standard: 140, nv_area: 112 },
-                    zand_zuid: { standard: 112, nv_area: 90 },
-                    loess: { standard: 112, nv_area: 90 },
-                    veen: { standard: 150, nv_area: 120 },
-                },
-            },
-        ],
+        norms: {
+            klei: { standard: 185, nv_area: 148 },
+            zand_nwc: { standard: 140, nv_area: 112 },
+            zand_zuid: { standard: 112, nv_area: 90 },
+            loess: { standard: 112, nv_area: 90 },
+            veen: { standard: 150, nv_area: 120 },
+        },
     },
     {
         cultivation_rvo_table2: "Akkerbouwgewassen, Luzerne",

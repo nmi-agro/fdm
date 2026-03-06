@@ -164,6 +164,7 @@ export function withCalculationCache<T_Input extends object, T_Output>(
     calculationFunction: (inputs: T_Input) => T_Output | Promise<T_Output>,
     calculationFunctionName: string,
     calculatorVersion: string,
+    sensitiveKeys: string[] = [],
 ) {
     return async (fdm: FdmType, input: T_Input) => {
         if (!calculationFunctionName) {
@@ -178,11 +179,40 @@ export function withCalculationCache<T_Input extends object, T_Output>(
             )
         }
 
+        // Sanitize input if sensitive keys are provided
+        let inputForCache = input
+        if (sensitiveKeys.length > 0) {
+            const redact = (obj: unknown): unknown => {
+                if (typeof obj !== "object" || obj === null) {
+                    return obj
+                }
+                if (Array.isArray(obj)) {
+                    return obj.map(redact)
+                }
+                // Check if it's a plain object or similar to avoid breaking classes/Dates if they shouldn't be touched
+                // Ideally input is a plain object for hashing/json.
+                if (obj instanceof Date) {
+                    return obj
+                }
+
+                const newObj = { ...(obj as object) } as Record<string, unknown>
+                for (const key of Object.keys(newObj)) {
+                    if (sensitiveKeys.includes(key)) {
+                        newObj[key] = "REDACTED"
+                    } else {
+                        newObj[key] = redact(newObj[key])
+                    }
+                }
+                return newObj
+            }
+            inputForCache = redact(input) as T_Input
+        }
+
         // Generate a unique hash for the current calculation based on function name, version, and input.
         const calculationHash = generateCalculationHash(
             calculationFunctionName,
             calculatorVersion,
-            input,
+            inputForCache,
         )
 
         let cachedResult: T_Output | null = null
@@ -230,7 +260,7 @@ export function withCalculationCache<T_Input extends object, T_Output>(
                         calculationHash,
                         calculationFunctionName,
                         calculatorVersion,
-                        input,
+                        inputForCache,
                         result,
                     )
                 } catch (e: unknown) {
@@ -263,7 +293,7 @@ export function withCalculationCache<T_Input extends object, T_Output>(
                     fdm,
                     calculationFunctionName,
                     calculatorVersion,
-                    input,
+                    inputForCache,
                     errorMessage,
                     stackTrace,
                 )

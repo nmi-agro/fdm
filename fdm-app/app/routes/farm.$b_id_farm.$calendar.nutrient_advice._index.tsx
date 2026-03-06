@@ -1,4 +1,4 @@
-import { checkPermission, getCultivations, getFields } from "@svenvw/fdm-core"
+import { checkPermission, getCultivations, getFields } from "@nmi-agro/fdm-core"
 import { BookOpenText } from "lucide-react"
 import {
     type LoaderFunctionArgs,

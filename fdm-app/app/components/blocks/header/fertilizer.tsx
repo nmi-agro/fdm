@@ -26,8 +26,8 @@ export function HeaderFertilizer({
 
     return (
         <>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem className="hidden md:block">
+            <BreadcrumbSeparator className="hidden xl:block" />
+            <BreadcrumbItem className="hidden xl:block">
                 <BreadcrumbLink href={`/farm/${b_id_farm}/fertilizers`}>
                     Meststoffen
                 </BreadcrumbLink>
@@ -37,13 +37,15 @@ export function HeaderFertilizer({
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="flex items-center gap-1">
-                                {p_id && fertilizerOptions
-                                    ? (fertilizerOptions.find(
-                                          (option) => option.p_id === p_id,
-                                      )?.p_name_nl ?? "Unknown field")
-                                    : "Kies een meststof"}
-                                <ChevronDown className="text-muted-foreground h-4 w-4" />
+                            <DropdownMenuTrigger className="flex items-center gap-1 max-w-30 sm:max-w-50 md:max-w-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                <span className="truncate">
+                                    {p_id && fertilizerOptions
+                                        ? (fertilizerOptions.find(
+                                              (option) => option.p_id === p_id,
+                                          )?.p_name_nl ?? "Unknown field")
+                                        : "Kies een meststof"}
+                                </span>
+                                <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                                 {fertilizerOptions.map((option) => (

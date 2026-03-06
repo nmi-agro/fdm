@@ -190,3 +190,22 @@
     display: none;
 }
 
+/* MapLibre Popup Close Button Fix */
+.maplibregl-popup-close-button {
+    font-size: 24px;
+    padding: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-foreground);
+    border-radius: 0 0.5rem 0 0.5rem;
+}
+.maplibregl-popup-close-button:hover {
+    background-color: var(--color-muted);
+}
+.maplibregl-popup-content {
+    border-radius: 0.5rem;
+    padding: 0;
+}

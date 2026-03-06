@@ -1,6 +1,4 @@
-import { getFarm, getFields } from "@svenvw/fdm-core"
-import { ArrowLeft } from "lucide-react"
-import { useMemo } from "react"
+import { getCurrentSoilData, getFarm, getFields } from "@nmi-agro/fdm-core"
 import {
     data,
     type LoaderFunctionArgs,
@@ -9,18 +7,10 @@ import {
     Outlet,
     useLoaderData,
 } from "react-router"
+import { NewFieldsSidebar } from "~/components/blocks/fields-new/sidebar"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
-import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
-import { SidebarPage } from "~/components/custom/sidebar-page"
 import { Button } from "~/components/ui/button"
-import {
-    Card,
-    CardContent,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
@@ -29,7 +19,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
-import { useFieldFilterStore } from "~/store/field-filter"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -85,8 +74,43 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             timeframe,
         )
 
+        // Get soil status for each field
+        const soilStatus: Record<string, "estimated" | "measured" | "missing"> =
+            {}
+
+        await Promise.all(
+            fields.map(async (field) => {
+                const currentSoilData = await getCurrentSoilData(
+                    fdm,
+                    session.principal_id,
+                    field.b_id,
+                    timeframe,
+                )
+
+                if (currentSoilData.length === 0) {
+                    soilStatus[field.b_id] = "missing"
+                } else {
+                    const sources = new Set(
+                        currentSoilData.map((i) => i.a_source),
+                    )
+                    const hasMeasured = Array.from(sources).some(
+                        (s) => s !== "nl-other-nmi",
+                    )
+
+                    if (hasMeasured) {
+                        soilStatus[field.b_id] = "measured"
+                    } else if (sources.has("nl-other-nmi")) {
+                        soilStatus[field.b_id] = "estimated"
+                    } else {
+                        soilStatus[field.b_id] = "missing"
+                    }
+                }
+            }),
+        )
+
         return {
             fields: fields,
+            soilStatus: soilStatus,
             b_id_farm: b_id_farm,
             b_name_farm: farm.b_name_farm,
             calendar: calendar,
@@ -99,24 +123,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // Main
 export default function Index() {
     const loaderData = useLoaderData<typeof loader>()
-    const { fields, b_id_farm, b_name_farm, calendar } = loaderData
-    const { showProductiveOnly } = useFieldFilterStore()
-
-    // Create the sidenav
-    const sidebarPageItems = useMemo(
-        () =>
-            fields
-                .filter((field) =>
-                    showProductiveOnly ? field.b_isproductive : true,
-                )
-                .slice()
-                .sort((a, b) => b.b_area - a.b_area) // Sort by area in descending order
-                .map((field) => ({
-                    title: field.b_name,
-                    to: `/farm/create/${b_id_farm}/${calendar}/fields/${field.b_id}`,
-                })),
-        [fields, showProductiveOnly, b_id_farm, calendar],
-    )
+    const { fields, soilStatus, b_id_farm, b_name_farm, calendar } = loaderData
 
     return (
         <SidebarInset>
@@ -138,15 +145,12 @@ export default function Index() {
 
                         <div className="ml-auto">
                             <NavLink
-                                to={`/farm/create/${b_id_farm}/${calendar}/cultivations`}
+                                to={`/farm/create/${b_id_farm}/${calendar}/rotation`}
                                 className={cn("ml-auto", {
-                                    "pointer-events-none":
-                                        sidebarPageItems.length === 0,
+                                    "pointer-events-none": fields.length === 0,
                                 })}
                             >
-                                <Button
-                                    disabled={sidebarPageItems.length === 0}
-                                >
+                                <Button disabled={fields.length === 0}>
                                     Doorgaan
                                 </Button>
                             </NavLink>
@@ -155,30 +159,13 @@ export default function Index() {
                     <Separator className="my-6" />
                     <div className="space-y-6 pb-0">
                         <div className="flex flex-col space-y-0 lg:flex-row lg:space-x-4 lg:space-y-0">
-                            <aside className="lg:w-1/5 gap-0">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                            <p>Percelen</p>
-                                            <FieldFilterToggle />
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <SidebarPage items={sidebarPageItems} />
-                                    </CardContent>
-                                    <CardFooter className="flex flex-col items-center space-y-2 relative">
-                                        {/* <Separator /> */}
-                                        <Button variant={"link"} asChild>
-                                            <NavLink
-                                                to={`/farm/create/${b_id_farm}/${calendar}/atlas`}
-                                            >
-                                                <ArrowLeft />
-                                                Terug naar kaart
-                                            </NavLink>
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            </aside>
+                            <NewFieldsSidebar
+                                fields={fields}
+                                soilStatus={soilStatus}
+                                b_id_farm={b_id_farm}
+                                calendar={calendar}
+                                isFarmCreateWizard={true}
+                            />
                             <div className="flex-1">
                                 <Outlet />
                             </div>

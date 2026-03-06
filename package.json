@@ -1,9 +1,9 @@
 {
-    "name": "@svenvw/fdm-source",
+    "name": "@nmi-agro/fdm-source",
     "version": "0.0.0",
     "description": "Monorepo for fdm",
-    "homepage": "https://github.com/SvenVw/fdm",
-    "bugs": "https://github.com/SvenVw/fdm/issues/new",
+    "homepage": "https://github.com/nmi-agro/fdm",
+    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
     "type": "module",
     "private": true,
     "workspaces": [
@@ -15,23 +15,23 @@
         "fdm-rvo"
     ],
     "scripts": {
-        "test": "turbo run test-coverage --filter=@svenvw/fdm-core --filter=@svenvw/fdm-calculator",
+        "test": "turbo run test-coverage --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-calculator",
         "build": "turbo run build",
         "build-docs": "turbo run build-docs",
         "watch": "turbo run watch",
         "changeset": "changeset",
-        "prerelease": "turbo build --filter=@svenvw/fdm-core --filter=@svenvw/fdm-data --filter=@svenvw/fdm-calculator && changeset publish ",
+        "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator && changeset publish ",
         "format-and-lint": "biome check .",
         "format-and-lint:fix": "biome check . --write",
         "format-and-lint:fix-unsafe": "biome check . --write --unsafe"
     },
     "devDependencies": {
-        "@biomejs/biome": "^2.3.10",
+        "@biomejs/biome": "^2.4.5",
         "@changesets/changelog-github": "^0.5.2",
-        "@changesets/cli": "^2.29.8",
-        "turbo": "^2.6.3"
+        "@changesets/cli": "^2.30.0",
+        "turbo": "^2.8.13"
     },
-    "packageManager": "pnpm@10.26.0",
+    "packageManager": "pnpm@10.30.3",
     "pnpm": {
         "packageExtensions": {
             "vite-plugin-dts": {
@@ -57,7 +57,8 @@
             "@tailwindcss/oxide",
             "core-js",
             "core-js-pure",
-            "esbuild"
+            "esbuild",
+            "protobufjs"
         ]
     }
 }

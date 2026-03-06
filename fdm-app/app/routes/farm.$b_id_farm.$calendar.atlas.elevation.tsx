@@ -3,8 +3,9 @@ import {
     locationValues,
     proj4,
 } from "@geomatico/maplibre-cog-protocol"
-import { getFields } from "@svenvw/fdm-core"
-import type { FeatureCollection } from "geojson"
+import { getFields } from "@nmi-agro/fdm-core"
+import { simplify } from "@turf/turf"
+import type { FeatureCollection, Geometry } from "geojson"
 import throttle from "lodash.throttle"
 import maplibregl from "maplibre-gl"
 import {
@@ -87,7 +88,6 @@ interface ActiveTile {
     id: string
     url: string
     cogUrl: string | null
-    cogUrlHillshade: string | null
 }
 
 // Meta
@@ -131,7 +131,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         b_lu_name: field.b_lu_name,
                         b_id_source: field.b_id_source,
                     },
-                    geometry: field.b_geometry,
+                    geometry: simplify(field.b_geometry as Geometry, {
+                        tolerance: 0.00001,
+                        highQuality: true,
+                    }),
                 }
                 return feature
             })
@@ -187,13 +190,13 @@ export default function FarmAtlasElevationBlock() {
     const initialViewState = getViewState(fields)
     const [viewState, setViewState] = useState<ViewState>(() => {
         if (typeof window !== "undefined") {
-            const savedViewState = sessionStorage.getItem("mapViewState")
-            if (savedViewState) {
-                try {
+            try {
+                const savedViewState = sessionStorage.getItem("mapViewState")
+                if (savedViewState) {
                     return JSON.parse(savedViewState)
-                } catch {
-                    sessionStorage.removeItem("mapViewState")
                 }
+            } catch {
+                // ignore storage errors (e.g., private mode)
             }
         }
         return initialViewState as ViewState
@@ -203,14 +206,17 @@ export default function FarmAtlasElevationBlock() {
         setViewState(event.viewState)
     }, [])
 
-    // Save viewState
-    const isFirstRender = useRef(true)
     useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false
-            return
+        if (typeof window !== "undefined") {
+            try {
+                sessionStorage.setItem(
+                    "mapViewState",
+                    JSON.stringify(viewState),
+                )
+            } catch {
+                // ignore storage errors (e.g., private mode)
+            }
         }
-        sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
     }, [viewState])
 
     // Fetch COG Index once
@@ -218,33 +224,43 @@ export default function FarmAtlasElevationBlock() {
         async function fetchIndex() {
             const cacheKey = "ahn_kaartbladindex_v1"
             setNetworkStatus("loading")
+
+            // Try cache first
             try {
-                // Try cache
                 if (typeof localStorage !== "undefined") {
                     const cached = localStorage.getItem(cacheKey)
                     if (cached) {
-                        try {
-                            const { timestamp, data } = JSON.parse(cached)
-                            // Cache for 7 days
-                            if (
-                                Date.now() - timestamp <
-                                7 * 24 * 60 * 60 * 1000
-                            ) {
-                                setIndexData(data)
-                                setNetworkStatus("idle")
-                                return
-                            }
-                        } catch {
-                            localStorage.removeItem(cacheKey)
+                        const { timestamp, data } = JSON.parse(cached)
+                        // Cache for 24 hours and ensure data is valid
+                        if (
+                            data?.features?.length > 0 &&
+                            Date.now() - timestamp < 24 * 60 * 60 * 1000
+                        ) {
+                            setIndexData(data)
+                            setNetworkStatus("idle")
+                            return
                         }
                     }
                 }
+            } catch (e) {
+                console.warn("Cache lookup failed, proceeding to fetch:", e)
+                try {
+                    if (typeof localStorage !== "undefined") {
+                        localStorage.removeItem(cacheKey)
+                    }
+                } catch {}
+            }
 
-                const response = await fetch(
-                    "https://service.pdok.nl/rws/ahn/atom/downloads/dtm_05m/kaartbladindex.json",
-                )
+            // Fetch from our server-side cache
+            try {
+                const response = await fetch("/atlas/ahn-index")
+
                 if (!response.ok) throw new Error("Failed to fetch COG index")
                 const data = (await response.json()) as FeatureCollection
+                if (!data.features || data.features.length === 0) {
+                    throw new Error("Empty AHN index received")
+                }
+
                 setIndexData(data)
                 setNetworkStatus("idle")
 
@@ -260,6 +276,25 @@ export default function FarmAtlasElevationBlock() {
                 }
             } catch (e) {
                 console.error("Error fetching COG index:", e)
+
+                // Final fallback: Use expired cache if network failed but we have something
+                if (typeof localStorage !== "undefined") {
+                    try {
+                        const cached = localStorage.getItem(cacheKey)
+                        if (cached) {
+                            const { data } = JSON.parse(cached)
+                            if (data?.features?.length > 0) {
+                                console.warn(
+                                    "Network failed, using expired cache as fallback",
+                                )
+                                setIndexData(data)
+                                setNetworkStatus("idle")
+                                return
+                            }
+                        }
+                    } catch {}
+                }
+
                 setNetworkStatus("error")
             }
         }
@@ -267,29 +302,59 @@ export default function FarmAtlasElevationBlock() {
     }, [])
 
     const updateId = useRef(0)
+    const abortControllerRef = useRef<AbortController | null>(null)
 
     // Function to update visible tiles
+    const activeTilesLengthRef = useRef(activeTiles.length)
+    useEffect(() => {
+        activeTilesLengthRef.current = activeTiles.length
+    }, [activeTiles])
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+            }
+        }
+    }, [])
+
     const updateVisibleTiles = useCallback(async () => {
-        if (!mapRef.current || !indexData) return
+        if (!mapRef.current || !indexData) {
+            setIsUpdating(false)
+            return
+        }
 
         const bounds = mapRef.current.getBounds()
         const zoom = mapRef.current.getZoom()
 
+        // Cancel previous request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
+
         // If zoomed out, clear active tiles to save resources (WMS will take over)
         if (zoom < 13) {
-            if (activeTiles.length > 0) {
+            if (activeTilesLengthRef.current > 0) {
                 setActiveTiles([])
             }
+            setIsUpdating(false)
+            setNetworkStatus("idle")
             return
         }
 
+        const abortController = new AbortController()
+        abortControllerRef.current = abortController
+        const signal = abortController.signal
+
         const currentId = ++updateId.current
+
         setIsUpdating(true)
         setNetworkStatus("loading")
 
         // Detect slow network
         const slowTimer = setTimeout(() => {
-            if (updateId.current === currentId) {
+            if (updateId.current === currentId && !signal.aborted) {
                 setNetworkStatus("slow")
             }
         }, 2000)
@@ -300,8 +365,9 @@ export default function FarmAtlasElevationBlock() {
         const se = bounds.getSouthEast()
 
         // Convert viewport corners to RD (EPSG:28992)
-        // We catch projection errors if points are outside valid range
         try {
+            if (signal.aborted) return
+
             const rdCoords = [
                 proj4("EPSG:28992").forward([nw.lng, nw.lat]),
                 proj4("EPSG:28992").forward([ne.lng, ne.lat]),
@@ -310,7 +376,7 @@ export default function FarmAtlasElevationBlock() {
             ] as [number, number][]
 
             // Find intersecting tiles
-            // Optimization: limit to e.g. 24 tiles to avoid overload
+            // Optimization: limit to 12 tiles to avoid overload
             const visibleFeatures = indexData.features
                 .filter((f) => {
                     if (!f.geometry || f.geometry.type !== "Polygon")
@@ -318,11 +384,11 @@ export default function FarmAtlasElevationBlock() {
                     const ring = (f.geometry as any).coordinates[0]
                     return polygonIntersectsPolygon(rdCoords, ring)
                 })
-                .slice(0, 24)
+                .slice(0, 12)
 
             // Calculate global min/max for the viewport by sampling
             const samplePoints: { lng: number; lat: number }[] = []
-            const gridSize = 3
+            const gridSize = 2 // Reduced from 3 (9 points instead of 16)
             for (let i = 0; i <= gridSize; i++) {
                 for (let j = 0; j <= gridSize; j++) {
                     const lng = sw.lng + (ne.lng - sw.lng) * (i / gridSize)
@@ -334,51 +400,64 @@ export default function FarmAtlasElevationBlock() {
             let min = 1000
             let max = -1000
 
-            // Gather values for samples
-            const values = await Promise.all(
-                samplePoints.map(async (p) => {
-                    try {
-                        const rdP = proj4("EPSG:28992").forward([
-                            p.lng,
-                            p.lat,
-                        ]) as [number, number]
-                        // Find which tile contains this point
-                        const feature = visibleFeatures.find((f) => {
-                            if (!f.geometry || f.geometry.type !== "Polygon")
-                                return false
-                            const ring = (f.geometry as any).coordinates[0]
-                            return isPointInPolygon(rdP, ring)
-                        })
-                        if (feature?.properties) {
-                            const url =
-                                feature.properties.url ||
-                                feature.properties.href ||
-                                feature.properties.download_url
-                            if (url) {
-                                // Requesting location value
-                                const vals = await locationValues(url, {
-                                    longitude: p.lng,
-                                    latitude: p.lat,
-                                })
+            // Gather values for samples with concurrency limit
+            const results: (number | null)[] = []
+            const chunkSize = 2 // Reduced from 4
+            for (let i = 0; i < samplePoints.length; i += chunkSize) {
+                if (signal.aborted || updateId.current !== currentId) break
+
+                const chunk = samplePoints.slice(i, i + chunkSize)
+                const chunkResults = await Promise.all(
+                    chunk.map(async (p) => {
+                        try {
+                            const rdP = proj4("EPSG:28992").forward([
+                                p.lng,
+                                p.lat,
+                            ]) as [number, number]
+                            // Find which tile contains this point
+                            const feature = visibleFeatures.find((f) => {
                                 if (
-                                    vals &&
-                                    vals.length > 0 &&
-                                    !Number.isNaN(vals[0]) &&
-                                    vals[0] > -100 &&
-                                    vals[0] < 1000
-                                ) {
-                                    return vals[0]
+                                    !f.geometry ||
+                                    f.geometry.type !== "Polygon"
+                                )
+                                    return false
+                                const ring = (f.geometry as any).coordinates[0]
+                                return isPointInPolygon(rdP, ring)
+                            })
+                            if (feature?.properties) {
+                                const url =
+                                    feature.properties.url ||
+                                    feature.properties.href ||
+                                    feature.properties.download_url
+                                if (url) {
+                                    // Requesting location value
+                                    const vals = await locationValues(url, {
+                                        longitude: p.lng,
+                                        latitude: p.lat,
+                                    })
+                                    if (
+                                        vals &&
+                                        vals.length > 0 &&
+                                        !Number.isNaN(vals[0]) &&
+                                        vals[0] > -100 &&
+                                        vals[0] < 1000
+                                    ) {
+                                        return vals[0]
+                                    }
                                 }
                             }
+                        } catch {
+                            // Ignore errors for individual points
                         }
-                    } catch {
-                        // Ignore errors for individual points
-                    }
-                    return null
-                }),
-            )
+                        return null
+                    }),
+                )
+                results.push(...chunkResults)
+            }
 
-            if (updateId.current !== currentId) return
+            const values = results
+
+            if (signal.aborted || updateId.current !== currentId) return
 
             const validValues = values.filter((v) => v !== null) as number[]
             if (validValues.length > 0) {
@@ -421,16 +500,17 @@ export default function FarmAtlasElevationBlock() {
                     id,
                     url,
                     cogUrl: `cog://${url}${colorParam}`,
-                    cogUrlHillshade: `cog://${url}#dem`,
                 })
             }
 
             setActiveTiles(newTiles)
             setNetworkStatus("idle")
         } catch (e) {
-            console.error("Error updating visible tiles:", e)
-            if (updateId.current === currentId) {
-                setNetworkStatus("error")
+            if (!signal.aborted) {
+                console.error("Error updating visible tiles:", e)
+                if (updateId.current === currentId) {
+                    setNetworkStatus("error")
+                }
             }
         } finally {
             if (updateId.current === currentId) {
@@ -438,7 +518,7 @@ export default function FarmAtlasElevationBlock() {
             }
             clearTimeout(slowTimer)
         }
-    }, [indexData, activeTiles])
+    }, [indexData])
 
     // Throttle updates
     const updateRef = useRef(updateVisibleTiles)
@@ -557,7 +637,7 @@ export default function FarmAtlasElevationBlock() {
                 <MapTilerAttribution />
 
                 {/* WMS Overview Layer (Zoom < 13) */}
-                {showElevation && (
+                {showElevation && viewState.zoom < 13 && (
                     <Source
                         id="ahn-wms"
                         type="raster"
@@ -565,6 +645,7 @@ export default function FarmAtlasElevationBlock() {
                             "https://service.pdok.nl/rws/ahn/wms/v1_0?service=WMS&request=GetMap&layers=dtm_05m&styles=&format=image/png&transparent=true&version=1.3.0&width=256&height=256&crs=EPSG:3857&bbox={bbox-epsg-3857}",
                         ]}
                         tileSize={256}
+                        maxzoom={13}
                         attribution="&copy; <a href='https://www.pdok.nl/'>PDOK</a>, <a href='https://www.ahn.nl/'>AHN</a>"
                     >
                         <Layer
@@ -594,31 +675,6 @@ export default function FarmAtlasElevationBlock() {
                                     id={`ahn-layer-${tile.id}`}
                                     type="raster"
                                     paint={{ "raster-opacity": 1 }}
-                                    beforeId={
-                                        fields
-                                            ? "fieldsSavedOutline"
-                                            : undefined
-                                    }
-                                />
-                            </Source>
-                            <Source
-                                id={`ahn-dem-${tile.id}`}
-                                type="raster-dem"
-                                url={tile.cogUrlHillshade!}
-                                tileSize={256}
-                                bounds={[3.3, 50.7, 7.2, 53.7]}
-                                minzoom={0}
-                                maxzoom={16}
-                            >
-                                <Layer
-                                    id={`ahn-hillshade-${tile.id}`}
-                                    type="hillshade"
-                                    paint={{
-                                        "hillshade-exaggeration": 0.3,
-                                        "hillshade-shadow-color": "#000000",
-                                        "hillshade-highlight-color": "#ffffff",
-                                        "hillshade-accent-color": "#000000",
-                                    }}
                                     beforeId={
                                         fields
                                             ? "fieldsSavedOutline"

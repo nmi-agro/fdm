@@ -53,6 +53,7 @@ export async function addField(
     b_start: schema.fieldAcquiringTypeInsert["b_start"],
     b_acquiring_method: schema.fieldAcquiringTypeInsert["b_acquiring_method"],
     b_end?: schema.fieldDiscardingTypeInsert["b_end"],
+    b_bufferstrip?: schema.fieldsTypeInsert["b_bufferstrip"],
 ): Promise<schema.fieldsTypeInsert["b_id"]> {
     try {
         await checkPermission(
@@ -74,6 +75,7 @@ export async function addField(
                 b_name: b_name,
                 b_id_source: b_id_source,
                 b_geometry: b_geometry,
+                b_bufferstrip: b_bufferstrip ?? false,
             }
             await tx.insert(schema.fields).values(fieldData)
 
@@ -111,6 +113,34 @@ export async function addField(
             }
             await tx.insert(schema.fieldDiscarding).values(fieldDiscardingData)
 
+            // If buffer status is not provided try to determine
+            if (b_bufferstrip === undefined) {
+                const field = await tx
+                    .select({
+                        b_id: schema.fields.b_id,
+                        b_name: schema.fields.b_name,
+                        b_geometry: schema.fields.b_geometry,
+                        b_area: sql<number>`ROUND((ST_Area(b_geometry::geography)/10000)::NUMERIC, 2)::FLOAT`,
+                        b_perimeter: sql<number>`ROUND((ST_Length(ST_ExteriorRing(b_geometry)::geography))::NUMERIC, 2)::FLOAT`,
+                    })
+                    .from(schema.fields)
+                    .where(eq(schema.fields.b_id, b_id))
+                    .limit(1)
+
+                if (field.length > 0) {
+                    const isBuffer = determineIfFieldIsBuffer(
+                        field[0].b_area,
+                        field[0].b_perimeter,
+                        field[0].b_name,
+                    )
+
+                    await tx
+                        .update(schema.fields)
+                        .set({ b_bufferstrip: isBuffer })
+                        .where(eq(schema.fields.b_id, b_id))
+                }
+            }
+
             return b_id
         })
     } catch (err) {
@@ -122,6 +152,7 @@ export async function addField(
             b_start,
             b_acquiring_method,
             b_end,
+            b_bufferstrip,
         })
     }
 }
@@ -163,6 +194,7 @@ export async function getField(
                 b_id_farm: schema.fieldAcquiring.b_id_farm,
                 b_id_source: schema.fields.b_id_source,
                 b_geometry: schema.fields.b_geometry,
+                b_bufferstrip: schema.fields.b_bufferstrip,
                 b_centroid_x: sql<number>`ST_X(ST_Centroid(b_geometry))`,
                 b_centroid_y: sql<number>`ST_Y(ST_Centroid(b_geometry))`,
                 b_area: sql<number>`ROUND((ST_Area(b_geometry::geography)/10000)::NUMERIC, 2)::FLOAT`,
@@ -187,11 +219,6 @@ export async function getField(
         field[0].b_centroid = [field[0].b_centroid_x, field[0].b_centroid_y]
         field[0].b_centroid_x = undefined
         field[0].b_centroid_y = undefined
-        field[0].b_isproductive = determineIfFieldIsProductive(
-            field[0].b_area,
-            field[0].b_perimeter,
-            field[0].b_name,
-        )
 
         return field[0]
     } catch (err) {
@@ -276,6 +303,7 @@ export async function getFields(
                 b_id_farm: schema.fieldAcquiring.b_id_farm,
                 b_id_source: schema.fields.b_id_source,
                 b_geometry: schema.fields.b_geometry,
+                b_bufferstrip: schema.fields.b_bufferstrip,
                 b_centroid_x: sql<number>`ST_X(ST_Centroid(b_geometry))`,
                 b_centroid_y: sql<number>`ST_Y(ST_Centroid(b_geometry))`,
                 b_area: sql<number>`ROUND((ST_Area(b_geometry::geography)/10000)::NUMERIC, 2)::FLOAT`,
@@ -301,11 +329,6 @@ export async function getFields(
             field.b_centroid = [field.b_centroid_x, field.b_centroid_y]
             field.b_centroid_x = undefined
             field.b_centroid_y = undefined
-            field.b_isproductive = determineIfFieldIsProductive(
-                field.b_area,
-                field.b_perimeter,
-                field.b_name,
-            )
         }
 
         return fields
@@ -344,6 +367,7 @@ export async function updateField(
     b_start?: schema.fieldAcquiringTypeInsert["b_start"],
     b_acquiring_method?: schema.fieldAcquiringTypeInsert["b_acquiring_method"],
     b_end?: schema.fieldDiscardingTypeInsert["b_end"],
+    b_bufferstrip?: schema.fieldsTypeInsert["b_bufferstrip"],
 ): Promise<Field> {
     return await fdm.transaction(async (tx: FdmType) => {
         try {
@@ -367,6 +391,9 @@ export async function updateField(
             }
             if (b_geometry !== undefined) {
                 setFields.b_geometry = b_geometry
+            }
+            if (b_bufferstrip !== undefined) {
+                setFields.b_bufferstrip = b_bufferstrip
             }
             setFields.updated = updated
 
@@ -409,6 +436,7 @@ export async function updateField(
                     b_id_farm: schema.fieldAcquiring.b_id_farm,
                     b_id_source: schema.fields.b_id_source,
                     b_geometry: schema.fields.b_geometry,
+                    b_bufferstrip: schema.fields.b_bufferstrip,
                     b_start: schema.fieldAcquiring.b_start,
                     b_acquiring_method:
                         schema.fieldAcquiring.b_acquiring_method,
@@ -427,11 +455,12 @@ export async function updateField(
                 )
                 .where(eq(schema.fields.b_id, b_id))
                 .limit(1)
-            const field = result[0]
+            const field = result[0] as unknown as Field
 
             // Check if acquiring date is before discarding date
             if (
                 field.b_end &&
+                field.b_start &&
                 field.b_start.getTime() >= field.b_end.getTime()
             ) {
                 throw new Error("Acquiring date must be before discarding date")
@@ -652,34 +681,38 @@ export function listAvailableAcquiringMethods(): {
 }
 
 /**
- * Determines if a field is considered productive based on its area, perimeter, and name.
+ * Determines if a field is considered a buffer based on its area, perimeter, and name.
  *
- * This function uses two heuristics to differentiate between productive fields and non-productive areas like buffer strips:
- * 1. Shape-based: A field is classified as non-productive if its area is less than 2.5 hectares and the ratio of its perimeter
+ * This function uses two heuristics to differentiate between productive fields and buffer strips:
+ * 1. Shape-based: A field is classified as buffer if its area is less than 2.5 hectares and the ratio of its perimeter
  *    to the square root of its area (in square meters) is greater than or equal to a predefined constant (20).
- * 2. Name-based: A field is classified as non-productive if its name contains "buffer" (case-insensitive).
+ * 2. Name-based: A field is classified as buffer if its name contains "buffer" (case-insensitive).
  *
- * A field is considered productive only if both checks pass.
+ * A field is considered buffer only if one of the checks pass.
  *
  * @param b_area The area of the field in hectares.
  * @param b_perimeter The perimeter of the field in meters.
  * @param b_name The name of the field.
- * @returns `true` if the field is determined to be productive, `false` otherwise.
+ * @returns `true` if the field is determined to be buffer, `false` otherwise.
  * @alpha
  */
-export function determineIfFieldIsProductive(
+export function determineIfFieldIsBuffer(
     b_area: number,
     b_perimeter: number,
     b_name: schema.fieldsTypeSelect["b_name"],
 ) {
+    if (!b_area || b_area <= 0 || !b_perimeter || b_perimeter <= 0) {
+        return (b_name ?? "").toLowerCase().includes("buffer")
+    }
+
     // Sven found that a ratio for a field with Perimeter (m) / SQRT(Area (m^2)) usually differentiates buffferstrips from "normal"  fields when the ratio is larger than 20 and area smaller than 2.5 ha
     const BUFFERSTROKEN_CONSTANT = 20
-    const productiveAssumedByShape =
-        b_perimeter / Math.sqrt(b_area * 10000) < BUFFERSTROKEN_CONSTANT ||
-        b_area >= 2.5
+    const bufferAssumedByShape =
+        b_perimeter / Math.sqrt(b_area * 10000) >= BUFFERSTROKEN_CONSTANT &&
+        b_area < 2.5
 
     // Check if name contains 'buffer'
-    const productiveAssumedByName = !b_name.toLowerCase().includes("buffer")
+    const bufferAssumedByName = (b_name ?? "").toLowerCase().includes("buffer")
 
-    return productiveAssumedByShape && productiveAssumedByName
+    return bufferAssumedByShape || bufferAssumedByName
 }

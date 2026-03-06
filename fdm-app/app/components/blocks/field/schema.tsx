@@ -3,22 +3,33 @@ import { z } from "zod"
 const FormSchema = z.object({
     b_name: z
         .string({
-            required_error: "Naam van perceel is verplicht",
+            error: (issue) =>
+                issue.input === undefined
+                    ? "Naam van perceel is verplicht"
+                    : undefined,
         })
+        .trim()
         .min(3, {
-            message: "Naam van perceel moet minimaal 3 karakters bevatten",
+            error: "Naam van perceel moet minimaal 3 karakters bevatten",
         }),
     b_lu_catalogue: z.string({
-        required_error: "Hoofdgewas is verplicht",
+        error: (issue) =>
+            issue.input === undefined ? "Hoofdgewas is verplicht" : undefined,
     }),
     b_id_source: z
         .string({
-            required_error: "ID van bron is verplicht",
+            error: (issue) =>
+                issue.input === undefined
+                    ? "ID van bron is verplicht"
+                    : undefined,
         })
         .optional(),
     b_geometry: z
         .string({
-            required_error: "Geometrie van perceel is verplicht",
+            error: (issue) =>
+                issue.input === undefined
+                    ? "Geometrie van perceel is verplicht"
+                    : undefined,
         })
         .optional(),
 })

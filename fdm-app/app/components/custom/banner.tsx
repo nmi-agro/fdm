@@ -120,15 +120,19 @@ export function Banner() {
                                 <h1 className="text-lg font-medium">
                                     {`Cookies op ${clientConfig.name}`}
                                 </h1>
-                                <div className="flex gap-2">
-                                    <Cookie className="h-[1.2rem] w-[1.2rem]" />
+                                <div className="flex gap-2 items-center">
+                                    <Cookie className="h-5 w-5" />
                                     {(consentGiven === "yes" ||
                                         consentGiven === "no") && (
-                                        <X
-                                            aria-label="Sluiten"
-                                            className="h-[1.2rem] w-[1.2rem] cursor-pointer"
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
                                             onClick={handleCloseBanner}
-                                        />
+                                            aria-label="Sluiten"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
                                     )}
                                 </div>
                             </div>
@@ -152,7 +156,7 @@ export function Banner() {
                                     </span>
                                     <br />
                                     <a
-                                        href={clientConfig.privacy_url}
+                                        href="/privacy"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         aria-label="Naar privacybeleid (opent in nieuw tabblad)"

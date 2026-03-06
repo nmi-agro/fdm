@@ -1,4 +1,8 @@
-import type { Fertilizer, FertilizerApplication, Field } from "@svenvw/fdm-core"
+import type {
+    Fertilizer,
+    FertilizerApplication,
+    Field,
+} from "@nmi-agro/fdm-core"
 import { NutrientCard } from "./cards"
 import {
     NutrientKPICardForNutrientDeficit,

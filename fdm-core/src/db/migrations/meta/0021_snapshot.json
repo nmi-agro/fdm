@@ -1,0 +1,3623 @@
+{
+    "id": "68820e10-7b74-4632-9d86-500508549bb8",
+    "prevId": "1eb64507-01b4-41c6-8583-c114db99b60f",
+    "version": "7",
+    "dialect": "postgresql",
+    "tables": {
+        "fdm.cultivation_catalogue_selecting": {
+            "name": "cultivation_catalogue_selecting",
+            "schema": "fdm",
+            "columns": {
+                "b_id_farm": {
+                    "name": "b_id_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu_source": {
+                    "name": "b_lu_source",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "cultivation_catalogue_selecting_b_id_farm_farms_b_id_farm_fk": {
+                    "name": "cultivation_catalogue_selecting_b_id_farm_farms_b_id_farm_fk",
+                    "tableFrom": "cultivation_catalogue_selecting",
+                    "tableTo": "farms",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_farm"],
+                    "columnsTo": ["b_id_farm"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.cultivation_ending": {
+            "name": "cultivation_ending",
+            "schema": "fdm",
+            "columns": {
+                "b_lu": {
+                    "name": "b_lu",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu_end": {
+                    "name": "b_lu_end",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "m_cropresidue": {
+                    "name": "m_cropresidue",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "cultivation_ending_b_lu_cultivations_b_lu_fk": {
+                    "name": "cultivation_ending_b_lu_cultivations_b_lu_fk",
+                    "tableFrom": "cultivation_ending",
+                    "tableTo": "cultivations",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_lu"],
+                    "columnsTo": ["b_lu"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.cultivation_harvesting": {
+            "name": "cultivation_harvesting",
+            "schema": "fdm",
+            "columns": {
+                "b_id_harvesting": {
+                    "name": "b_id_harvesting",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_id_harvestable": {
+                    "name": "b_id_harvestable",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu": {
+                    "name": "b_lu",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu_harvest_date": {
+                    "name": "b_lu_harvest_date",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "cultivation_harvesting_b_id_harvestable_harvestables_b_id_harvestable_fk": {
+                    "name": "cultivation_harvesting_b_id_harvestable_harvestables_b_id_harvestable_fk",
+                    "tableFrom": "cultivation_harvesting",
+                    "tableTo": "harvestables",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_harvestable"],
+                    "columnsTo": ["b_id_harvestable"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "cultivation_harvesting_b_lu_cultivations_b_lu_fk": {
+                    "name": "cultivation_harvesting_b_lu_cultivations_b_lu_fk",
+                    "tableFrom": "cultivation_harvesting",
+                    "tableTo": "cultivations",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_lu"],
+                    "columnsTo": ["b_lu"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.cultivation_starting": {
+            "name": "cultivation_starting",
+            "schema": "fdm",
+            "columns": {
+                "b_id": {
+                    "name": "b_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu": {
+                    "name": "b_lu",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu_start": {
+                    "name": "b_lu_start",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_sowing_amount": {
+                    "name": "b_sowing_amount",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_sowing_method": {
+                    "name": "b_sowing_method",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "cultivation_starting_b_id_fields_b_id_fk": {
+                    "name": "cultivation_starting_b_id_fields_b_id_fk",
+                    "tableFrom": "cultivation_starting",
+                    "tableTo": "fields",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id"],
+                    "columnsTo": ["b_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "cultivation_starting_b_lu_cultivations_b_lu_fk": {
+                    "name": "cultivation_starting_b_lu_cultivations_b_lu_fk",
+                    "tableFrom": "cultivation_starting",
+                    "tableTo": "cultivations",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_lu"],
+                    "columnsTo": ["b_lu"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.cultivations": {
+            "name": "cultivations",
+            "schema": "fdm",
+            "columns": {
+                "b_lu": {
+                    "name": "b_lu",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_lu_catalogue": {
+                    "name": "b_lu_catalogue",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu_variety": {
+                    "name": "b_lu_variety",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "b_lu_idx": {
+                    "name": "b_lu_idx",
+                    "columns": [
+                        {
+                            "expression": "b_lu",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "cultivations_b_lu_catalogue_cultivations_catalogue_b_lu_catalogue_fk": {
+                    "name": "cultivations_b_lu_catalogue_cultivations_catalogue_b_lu_catalogue_fk",
+                    "tableFrom": "cultivations",
+                    "tableTo": "cultivations_catalogue",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_lu_catalogue"],
+                    "columnsTo": ["b_lu_catalogue"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.cultivations_catalogue": {
+            "name": "cultivations_catalogue",
+            "schema": "fdm",
+            "columns": {
+                "b_lu_catalogue": {
+                    "name": "b_lu_catalogue",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_lu_source": {
+                    "name": "b_lu_source",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu_name": {
+                    "name": "b_lu_name",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu_name_en": {
+                    "name": "b_lu_name_en",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_harvestable": {
+                    "name": "b_lu_harvestable",
+                    "type": "b_lu_harvestable",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_lu_harvestcat": {
+                    "name": "b_lu_harvestcat",
+                    "type": "b_lu_harvestcat",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_hcat3": {
+                    "name": "b_lu_hcat3",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_hcat3_name": {
+                    "name": "b_lu_hcat3_name",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_croprotation": {
+                    "name": "b_lu_croprotation",
+                    "type": "b_lu_croprotation",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_yield": {
+                    "name": "b_lu_yield",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_dm": {
+                    "name": "b_lu_dm",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_hi": {
+                    "name": "b_lu_hi",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_n_harvestable": {
+                    "name": "b_lu_n_harvestable",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_n_residue": {
+                    "name": "b_lu_n_residue",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_n_fixation": {
+                    "name": "b_n_fixation",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_eom": {
+                    "name": "b_lu_eom",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_eom_residues": {
+                    "name": "b_lu_eom_residues",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_rest_oravib": {
+                    "name": "b_lu_rest_oravib",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_variety_options": {
+                    "name": "b_lu_variety_options",
+                    "type": "text[]",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_start_default": {
+                    "name": "b_lu_start_default",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_date_harvest_default": {
+                    "name": "b_date_harvest_default",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "hash": {
+                    "name": "hash",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "b_lu_catalogue_idx": {
+                    "name": "b_lu_catalogue_idx",
+                    "columns": [
+                        {
+                            "expression": "b_lu_catalogue",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {
+                "b_lu_start_default_format": {
+                    "name": "b_lu_start_default_format",
+                    "value": "b_lu_start_default IS NULL OR b_lu_start_default ~ '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'"
+                },
+                "b_date_harvest_default_format": {
+                    "name": "b_date_harvest_default_format",
+                    "value": "b_date_harvest_default IS NULL OR b_date_harvest_default ~ '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "fdm.derogation_applying": {
+            "name": "derogation_applying",
+            "schema": "fdm",
+            "columns": {
+                "b_id_farm": {
+                    "name": "b_id_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_id_derogation": {
+                    "name": "b_id_derogation",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "derogation_one_per_farm_per": {
+                    "name": "derogation_one_per_farm_per",
+                    "columns": [
+                        {
+                            "expression": "b_id_derogation",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "derogation_applying_b_id_farm_farms_b_id_farm_fk": {
+                    "name": "derogation_applying_b_id_farm_farms_b_id_farm_fk",
+                    "tableFrom": "derogation_applying",
+                    "tableTo": "farms",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_farm"],
+                    "columnsTo": ["b_id_farm"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "derogation_applying_b_id_derogation_derogations_b_id_derogation_fk": {
+                    "name": "derogation_applying_b_id_derogation_derogations_b_id_derogation_fk",
+                    "tableFrom": "derogation_applying",
+                    "tableTo": "derogations",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_derogation"],
+                    "columnsTo": ["b_id_derogation"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.derogations": {
+            "name": "derogations",
+            "schema": "fdm",
+            "columns": {
+                "b_id_derogation": {
+                    "name": "b_id_derogation",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_derogation_year": {
+                    "name": "b_derogation_year",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.farms": {
+            "name": "farms",
+            "schema": "fdm",
+            "columns": {
+                "b_id_farm": {
+                    "name": "b_id_farm",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_name_farm": {
+                    "name": "b_name_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_businessid_farm": {
+                    "name": "b_businessid_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_address_farm": {
+                    "name": "b_address_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_postalcode_farm": {
+                    "name": "b_postalcode_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "b_id_farm_idx": {
+                    "name": "b_id_farm_idx",
+                    "columns": [
+                        {
+                            "expression": "b_id_farm",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.fertilizer_acquiring": {
+            "name": "fertilizer_acquiring",
+            "schema": "fdm",
+            "columns": {
+                "b_id_farm": {
+                    "name": "b_id_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_id": {
+                    "name": "p_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_acquiring_amount": {
+                    "name": "p_acquiring_amount",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_acquiring_date": {
+                    "name": "p_acquiring_date",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "fertilizer_acquiring_b_id_farm_farms_b_id_farm_fk": {
+                    "name": "fertilizer_acquiring_b_id_farm_farms_b_id_farm_fk",
+                    "tableFrom": "fertilizer_acquiring",
+                    "tableTo": "farms",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_farm"],
+                    "columnsTo": ["b_id_farm"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "fertilizer_acquiring_p_id_fertilizers_p_id_fk": {
+                    "name": "fertilizer_acquiring_p_id_fertilizers_p_id_fk",
+                    "tableFrom": "fertilizer_acquiring",
+                    "tableTo": "fertilizers",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["p_id"],
+                    "columnsTo": ["p_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.fertilizer_applying": {
+            "name": "fertilizer_applying",
+            "schema": "fdm",
+            "columns": {
+                "p_app_id": {
+                    "name": "p_app_id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_id": {
+                    "name": "b_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_id": {
+                    "name": "p_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_app_amount": {
+                    "name": "p_app_amount",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_app_method": {
+                    "name": "p_app_method",
+                    "type": "p_app_method",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_app_date": {
+                    "name": "p_app_date",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "p_app_idx": {
+                    "name": "p_app_idx",
+                    "columns": [
+                        {
+                            "expression": "p_app_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "fertilizer_applying_b_id_fields_b_id_fk": {
+                    "name": "fertilizer_applying_b_id_fields_b_id_fk",
+                    "tableFrom": "fertilizer_applying",
+                    "tableTo": "fields",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id"],
+                    "columnsTo": ["b_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "fertilizer_applying_p_id_fertilizers_p_id_fk": {
+                    "name": "fertilizer_applying_p_id_fertilizers_p_id_fk",
+                    "tableFrom": "fertilizer_applying",
+                    "tableTo": "fertilizers",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["p_id"],
+                    "columnsTo": ["p_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.fertilizer_catalogue_enabling": {
+            "name": "fertilizer_catalogue_enabling",
+            "schema": "fdm",
+            "columns": {
+                "b_id_farm": {
+                    "name": "b_id_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_source": {
+                    "name": "p_source",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "fertilizer_catalogue_enabling_b_id_farm_farms_b_id_farm_fk": {
+                    "name": "fertilizer_catalogue_enabling_b_id_farm_farms_b_id_farm_fk",
+                    "tableFrom": "fertilizer_catalogue_enabling",
+                    "tableTo": "farms",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_farm"],
+                    "columnsTo": ["b_id_farm"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.fertilizer_picking": {
+            "name": "fertilizer_picking",
+            "schema": "fdm",
+            "columns": {
+                "p_id": {
+                    "name": "p_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_id_catalogue": {
+                    "name": "p_id_catalogue",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_picking_date": {
+                    "name": "p_picking_date",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "fertilizer_picking_p_id_fertilizers_p_id_fk": {
+                    "name": "fertilizer_picking_p_id_fertilizers_p_id_fk",
+                    "tableFrom": "fertilizer_picking",
+                    "tableTo": "fertilizers",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["p_id"],
+                    "columnsTo": ["p_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "fertilizer_picking_p_id_catalogue_fertilizers_catalogue_p_id_catalogue_fk": {
+                    "name": "fertilizer_picking_p_id_catalogue_fertilizers_catalogue_p_id_catalogue_fk",
+                    "tableFrom": "fertilizer_picking",
+                    "tableTo": "fertilizers_catalogue",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["p_id_catalogue"],
+                    "columnsTo": ["p_id_catalogue"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.fertilizers": {
+            "name": "fertilizers",
+            "schema": "fdm",
+            "columns": {
+                "p_id": {
+                    "name": "p_id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "p_id_idx": {
+                    "name": "p_id_idx",
+                    "columns": [
+                        {
+                            "expression": "p_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.fertilizers_catalogue": {
+            "name": "fertilizers_catalogue",
+            "schema": "fdm",
+            "columns": {
+                "p_id_catalogue": {
+                    "name": "p_id_catalogue",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "p_source": {
+                    "name": "p_source",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_name_nl": {
+                    "name": "p_name_nl",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "p_name_en": {
+                    "name": "p_name_en",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_description": {
+                    "name": "p_description",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_app_method_options": {
+                    "name": "p_app_method_options",
+                    "type": "p_app_method[]",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_dm": {
+                    "name": "p_dm",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_density": {
+                    "name": "p_density",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_om": {
+                    "name": "p_om",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_a": {
+                    "name": "p_a",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_hc": {
+                    "name": "p_hc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_eom": {
+                    "name": "p_eom",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_eoc": {
+                    "name": "p_eoc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_c_rt": {
+                    "name": "p_c_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_c_of": {
+                    "name": "p_c_of",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_c_if": {
+                    "name": "p_c_if",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_c_fr": {
+                    "name": "p_c_fr",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_cn_of": {
+                    "name": "p_cn_of",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_n_rt": {
+                    "name": "p_n_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_n_if": {
+                    "name": "p_n_if",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_n_of": {
+                    "name": "p_n_of",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_n_wc": {
+                    "name": "p_n_wc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_no3_rt": {
+                    "name": "p_no3_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_nh4_rt": {
+                    "name": "p_nh4_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_p_rt": {
+                    "name": "p_p_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_k_rt": {
+                    "name": "p_k_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_mg_rt": {
+                    "name": "p_mg_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_ca_rt": {
+                    "name": "p_ca_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_ne": {
+                    "name": "p_ne",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_s_rt": {
+                    "name": "p_s_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_s_wc": {
+                    "name": "p_s_wc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_cu_rt": {
+                    "name": "p_cu_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_zn_rt": {
+                    "name": "p_zn_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_na_rt": {
+                    "name": "p_na_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_si_rt": {
+                    "name": "p_si_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_b_rt": {
+                    "name": "p_b_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_mn_rt": {
+                    "name": "p_mn_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_ni_rt": {
+                    "name": "p_ni_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_fe_rt": {
+                    "name": "p_fe_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_mo_rt": {
+                    "name": "p_mo_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_co_rt": {
+                    "name": "p_co_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_as_rt": {
+                    "name": "p_as_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_cd_rt": {
+                    "name": "p_cd_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_cr_rt": {
+                    "name": "p_cr_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_cr_vi": {
+                    "name": "p_cr_vi",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_pb_rt": {
+                    "name": "p_pb_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_hg_rt": {
+                    "name": "p_hg_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_cl_rt": {
+                    "name": "p_cl_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_ef_nh3": {
+                    "name": "p_ef_nh3",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_type_manure": {
+                    "name": "p_type_manure",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_type_mineral": {
+                    "name": "p_type_mineral",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_type_compost": {
+                    "name": "p_type_compost",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "p_type_rvo": {
+                    "name": "p_type_rvo",
+                    "type": "p_type_rvo",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "hash": {
+                    "name": "hash",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "p_id_catalogue_idx": {
+                    "name": "p_id_catalogue_idx",
+                    "columns": [
+                        {
+                            "expression": "p_id_catalogue",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.field_acquiring": {
+            "name": "field_acquiring",
+            "schema": "fdm",
+            "columns": {
+                "b_id": {
+                    "name": "b_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_id_farm": {
+                    "name": "b_id_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_start": {
+                    "name": "b_start",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_acquiring_method": {
+                    "name": "b_acquiring_method",
+                    "type": "b_acquiring_method",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'unknown'"
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "field_acquiring_b_id_fields_b_id_fk": {
+                    "name": "field_acquiring_b_id_fields_b_id_fk",
+                    "tableFrom": "field_acquiring",
+                    "tableTo": "fields",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id"],
+                    "columnsTo": ["b_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "field_acquiring_b_id_farm_farms_b_id_farm_fk": {
+                    "name": "field_acquiring_b_id_farm_farms_b_id_farm_fk",
+                    "tableFrom": "field_acquiring",
+                    "tableTo": "farms",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_farm"],
+                    "columnsTo": ["b_id_farm"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.field_discarding": {
+            "name": "field_discarding",
+            "schema": "fdm",
+            "columns": {
+                "b_id": {
+                    "name": "b_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_end": {
+                    "name": "b_end",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "field_discarding_b_id_fields_b_id_fk": {
+                    "name": "field_discarding_b_id_fields_b_id_fk",
+                    "tableFrom": "field_discarding",
+                    "tableTo": "fields",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id"],
+                    "columnsTo": ["b_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.fields": {
+            "name": "fields",
+            "schema": "fdm",
+            "columns": {
+                "b_id": {
+                    "name": "b_id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_name": {
+                    "name": "b_name",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_geometry": {
+                    "name": "b_geometry",
+                    "type": "geometry(Polygon,4326)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_id_source": {
+                    "name": "b_id_source",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_bufferstrip": {
+                    "name": "b_bufferstrip",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "b_id_idx": {
+                    "name": "b_id_idx",
+                    "columns": [
+                        {
+                            "expression": "b_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "b_geom_idx": {
+                    "name": "b_geom_idx",
+                    "columns": [
+                        {
+                            "expression": "b_geometry",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "gist",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.harvestable_analyses": {
+            "name": "harvestable_analyses",
+            "schema": "fdm",
+            "columns": {
+                "b_id_harvestable_analysis": {
+                    "name": "b_id_harvestable_analysis",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_lu_yield": {
+                    "name": "b_lu_yield",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_yield_fresh": {
+                    "name": "b_lu_yield_fresh",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_yield_bruto": {
+                    "name": "b_lu_yield_bruto",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_tarra": {
+                    "name": "b_lu_tarra",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_dm": {
+                    "name": "b_lu_dm",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_moist": {
+                    "name": "b_lu_moist",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_uww": {
+                    "name": "b_lu_uww",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_cp": {
+                    "name": "b_lu_cp",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_n_harvestable": {
+                    "name": "b_lu_n_harvestable",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_n_residue": {
+                    "name": "b_lu_n_residue",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_p_harvestable": {
+                    "name": "b_lu_p_harvestable",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_p_residue": {
+                    "name": "b_lu_p_residue",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_k_harvestable": {
+                    "name": "b_lu_k_harvestable",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_lu_k_residue": {
+                    "name": "b_lu_k_residue",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "b_id_harvestable_analyses_idx": {
+                    "name": "b_id_harvestable_analyses_idx",
+                    "columns": [
+                        {
+                            "expression": "b_id_harvestable_analysis",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.harvestable_sampling": {
+            "name": "harvestable_sampling",
+            "schema": "fdm",
+            "columns": {
+                "b_id_harvestable": {
+                    "name": "b_id_harvestable",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_id_harvestable_analysis": {
+                    "name": "b_id_harvestable_analysis",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_sampling_date": {
+                    "name": "b_sampling_date",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "harvestable_sampling_b_id_harvestable_harvestables_b_id_harvestable_fk": {
+                    "name": "harvestable_sampling_b_id_harvestable_harvestables_b_id_harvestable_fk",
+                    "tableFrom": "harvestable_sampling",
+                    "tableTo": "harvestables",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_harvestable"],
+                    "columnsTo": ["b_id_harvestable"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "harvestable_sampling_b_id_harvestable_analysis_harvestable_analyses_b_id_harvestable_analysis_fk": {
+                    "name": "harvestable_sampling_b_id_harvestable_analysis_harvestable_analyses_b_id_harvestable_analysis_fk",
+                    "tableFrom": "harvestable_sampling",
+                    "tableTo": "harvestable_analyses",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_harvestable_analysis"],
+                    "columnsTo": ["b_id_harvestable_analysis"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.harvestables": {
+            "name": "harvestables",
+            "schema": "fdm",
+            "columns": {
+                "b_id_harvestable": {
+                    "name": "b_id_harvestable",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "b_id_harvestable_idx": {
+                    "name": "b_id_harvestable_idx",
+                    "columns": [
+                        {
+                            "expression": "b_id_harvestable",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.intending_grazing": {
+            "name": "intending_grazing",
+            "schema": "fdm",
+            "columns": {
+                "b_id_farm": {
+                    "name": "b_id_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_grazing_intention": {
+                    "name": "b_grazing_intention",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_grazing_intention_year": {
+                    "name": "b_grazing_intention_year",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "intending_grazing_b_id_farm_farms_b_id_farm_fk": {
+                    "name": "intending_grazing_b_id_farm_farms_b_id_farm_fk",
+                    "tableFrom": "intending_grazing",
+                    "tableTo": "farms",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_farm"],
+                    "columnsTo": ["b_id_farm"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {
+                "intending_grazing_b_id_farm_b_grazing_intention_year_pk": {
+                    "name": "intending_grazing_b_id_farm_b_grazing_intention_year_pk",
+                    "columns": ["b_id_farm", "b_grazing_intention_year"]
+                }
+            },
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.organic_certifications": {
+            "name": "organic_certifications",
+            "schema": "fdm",
+            "columns": {
+                "b_id_organic": {
+                    "name": "b_id_organic",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_organic_traces": {
+                    "name": "b_organic_traces",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_organic_skal": {
+                    "name": "b_organic_skal",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_organic_issued": {
+                    "name": "b_organic_issued",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_organic_expires": {
+                    "name": "b_organic_expires",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.organic_certifications_holding": {
+            "name": "organic_certifications_holding",
+            "schema": "fdm",
+            "columns": {
+                "b_id_farm": {
+                    "name": "b_id_farm",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "b_id_organic": {
+                    "name": "b_id_organic",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "organic_one_farm_per_cert": {
+                    "name": "organic_one_farm_per_cert",
+                    "columns": [
+                        {
+                            "expression": "b_id_organic",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "organic_certifications_holding_b_id_farm_farms_b_id_farm_fk": {
+                    "name": "organic_certifications_holding_b_id_farm_farms_b_id_farm_fk",
+                    "tableFrom": "organic_certifications_holding",
+                    "tableTo": "farms",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_farm"],
+                    "columnsTo": ["b_id_farm"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "organic_certifications_holding_b_id_organic_organic_certifications_b_id_organic_fk": {
+                    "name": "organic_certifications_holding_b_id_organic_organic_certifications_b_id_organic_fk",
+                    "tableFrom": "organic_certifications_holding",
+                    "tableTo": "organic_certifications",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id_organic"],
+                    "columnsTo": ["b_id_organic"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.soil_analysis": {
+            "name": "soil_analysis",
+            "schema": "fdm",
+            "columns": {
+                "a_id": {
+                    "name": "a_id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "a_date": {
+                    "name": "a_date",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_source": {
+                    "name": "a_source",
+                    "type": "a_source",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "default": "'other'"
+                },
+                "a_al_ox": {
+                    "name": "a_al_ox",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_c_of": {
+                    "name": "a_c_of",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_ca_co": {
+                    "name": "a_ca_co",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_ca_co_po": {
+                    "name": "a_ca_co_po",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_caco3_if": {
+                    "name": "a_caco3_if",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_cec_co": {
+                    "name": "a_cec_co",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_clay_mi": {
+                    "name": "a_clay_mi",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_cn_fr": {
+                    "name": "a_cn_fr",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_com_fr": {
+                    "name": "a_com_fr",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_cu_cc": {
+                    "name": "a_cu_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_density_sa": {
+                    "name": "a_density_sa",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_fe_ox": {
+                    "name": "a_fe_ox",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_k_cc": {
+                    "name": "a_k_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_k_co": {
+                    "name": "a_k_co",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_k_co_po": {
+                    "name": "a_k_co_po",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_mg_cc": {
+                    "name": "a_mg_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_mg_co": {
+                    "name": "a_mg_co",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_mg_co_po": {
+                    "name": "a_mg_co_po",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_n_pmn": {
+                    "name": "a_n_pmn",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_n_rt": {
+                    "name": "a_n_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_nh4_cc": {
+                    "name": "a_nh4_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_nmin_cc": {
+                    "name": "a_nmin_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_no3_cc": {
+                    "name": "a_no3_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_p_al": {
+                    "name": "a_p_al",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_p_cc": {
+                    "name": "a_p_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_p_ox": {
+                    "name": "a_p_ox",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_p_rt": {
+                    "name": "a_p_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_p_sg": {
+                    "name": "a_p_sg",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_p_wa": {
+                    "name": "a_p_wa",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_ph_cc": {
+                    "name": "a_ph_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_s_rt": {
+                    "name": "a_s_rt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_sand_mi": {
+                    "name": "a_sand_mi",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_silt_mi": {
+                    "name": "a_silt_mi",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_som_loi": {
+                    "name": "a_som_loi",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "a_zn_cc": {
+                    "name": "a_zn_cc",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_gwl_class": {
+                    "name": "b_gwl_class",
+                    "type": "b_gwl_class",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_soiltype_agr": {
+                    "name": "b_soiltype_agr",
+                    "type": "b_soiltype_agr",
+                    "typeSchema": "fdm",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm.soil_sampling": {
+            "name": "soil_sampling",
+            "schema": "fdm",
+            "columns": {
+                "b_id_sampling": {
+                    "name": "b_id_sampling",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "b_id": {
+                    "name": "b_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "a_id": {
+                    "name": "a_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "a_depth_upper": {
+                    "name": "a_depth_upper",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 0
+                },
+                "a_depth_lower": {
+                    "name": "a_depth_lower",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_sampling_date": {
+                    "name": "b_sampling_date",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "b_sampling_geometry": {
+                    "name": "b_sampling_geometry",
+                    "type": "geometry(MultiPoint,4326)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated": {
+                    "name": "updated",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "soil_sampling_b_id_fields_b_id_fk": {
+                    "name": "soil_sampling_b_id_fields_b_id_fk",
+                    "tableFrom": "soil_sampling",
+                    "tableTo": "fields",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["b_id"],
+                    "columnsTo": ["b_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "soil_sampling_a_id_soil_analysis_a_id_fk": {
+                    "name": "soil_sampling_a_id_soil_analysis_a_id_fk",
+                    "tableFrom": "soil_sampling",
+                    "tableTo": "soil_analysis",
+                    "schemaTo": "fdm",
+                    "columnsFrom": ["a_id"],
+                    "columnsTo": ["a_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authn.account": {
+            "name": "account",
+            "schema": "fdm-authn",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "account_id": {
+                    "name": "account_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "provider_id": {
+                    "name": "provider_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "access_token": {
+                    "name": "access_token",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "refresh_token": {
+                    "name": "refresh_token",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "id_token": {
+                    "name": "id_token",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "access_token_expires_at": {
+                    "name": "access_token_expires_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "refresh_token_expires_at": {
+                    "name": "refresh_token_expires_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "scope": {
+                    "name": "scope",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "password": {
+                    "name": "password",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {
+                "account_userId_idx": {
+                    "name": "account_userId_idx",
+                    "columns": [
+                        {
+                            "expression": "user_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "account_user_id_user_id_fk": {
+                    "name": "account_user_id_user_id_fk",
+                    "tableFrom": "account",
+                    "tableTo": "user",
+                    "schemaTo": "fdm-authn",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authn.invitation": {
+            "name": "invitation",
+            "schema": "fdm-authn",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "organization_id": {
+                    "name": "organization_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "email": {
+                    "name": "email",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "role": {
+                    "name": "role",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'pending'"
+                },
+                "expires_at": {
+                    "name": "expires_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "inviter_id": {
+                    "name": "inviter_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {
+                "invitation_organizationId_idx": {
+                    "name": "invitation_organizationId_idx",
+                    "columns": [
+                        {
+                            "expression": "organization_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "invitation_email_idx": {
+                    "name": "invitation_email_idx",
+                    "columns": [
+                        {
+                            "expression": "email",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "invitation_organization_id_organization_id_fk": {
+                    "name": "invitation_organization_id_organization_id_fk",
+                    "tableFrom": "invitation",
+                    "tableTo": "organization",
+                    "schemaTo": "fdm-authn",
+                    "columnsFrom": ["organization_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                },
+                "invitation_inviter_id_user_id_fk": {
+                    "name": "invitation_inviter_id_user_id_fk",
+                    "tableFrom": "invitation",
+                    "tableTo": "user",
+                    "schemaTo": "fdm-authn",
+                    "columnsFrom": ["inviter_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authn.member": {
+            "name": "member",
+            "schema": "fdm-authn",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "organization_id": {
+                    "name": "organization_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "role": {
+                    "name": "role",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'member'"
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {
+                "member_organizationId_idx": {
+                    "name": "member_organizationId_idx",
+                    "columns": [
+                        {
+                            "expression": "organization_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "member_userId_idx": {
+                    "name": "member_userId_idx",
+                    "columns": [
+                        {
+                            "expression": "user_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "member_organization_id_organization_id_fk": {
+                    "name": "member_organization_id_organization_id_fk",
+                    "tableFrom": "member",
+                    "tableTo": "organization",
+                    "schemaTo": "fdm-authn",
+                    "columnsFrom": ["organization_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                },
+                "member_user_id_user_id_fk": {
+                    "name": "member_user_id_user_id_fk",
+                    "tableFrom": "member",
+                    "tableTo": "user",
+                    "schemaTo": "fdm-authn",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authn.organization": {
+            "name": "organization",
+            "schema": "fdm-authn",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "name": {
+                    "name": "name",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "slug": {
+                    "name": "slug",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "logo": {
+                    "name": "logo",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "metadata": {
+                    "name": "metadata",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "organization_slug_uidx": {
+                    "name": "organization_slug_uidx",
+                    "columns": [
+                        {
+                            "expression": "slug",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "organization_slug_unique": {
+                    "name": "organization_slug_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["slug"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authn.rate_limit": {
+            "name": "rate_limit",
+            "schema": "fdm-authn",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "key": {
+                    "name": "key",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "count": {
+                    "name": "count",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "last_request": {
+                    "name": "last_request",
+                    "type": "bigint",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authn.session": {
+            "name": "session",
+            "schema": "fdm-authn",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "expires_at": {
+                    "name": "expires_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "token": {
+                    "name": "token",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "ip_address": {
+                    "name": "ip_address",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "user_agent": {
+                    "name": "user_agent",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "active_organization_id": {
+                    "name": "active_organization_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "session_userId_idx": {
+                    "name": "session_userId_idx",
+                    "columns": [
+                        {
+                            "expression": "user_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "session_user_id_user_id_fk": {
+                    "name": "session_user_id_user_id_fk",
+                    "tableFrom": "session",
+                    "tableTo": "user",
+                    "schemaTo": "fdm-authn",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "session_token_unique": {
+                    "name": "session_token_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["token"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authn.user": {
+            "name": "user",
+            "schema": "fdm-authn",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "name": {
+                    "name": "name",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "email": {
+                    "name": "email",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "email_verified": {
+                    "name": "email_verified",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": false
+                },
+                "image": {
+                    "name": "image",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "username": {
+                    "name": "username",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "display_username": {
+                    "name": "display_username",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "firstname": {
+                    "name": "firstname",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "surname": {
+                    "name": "surname",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "lang": {
+                    "name": "lang",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'nl-NL'"
+                },
+                "farm_active": {
+                    "name": "farm_active",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "user_email_unique": {
+                    "name": "user_email_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["email"]
+                },
+                "user_username_unique": {
+                    "name": "user_username_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["username"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authn.verification": {
+            "name": "verification",
+            "schema": "fdm-authn",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "identifier": {
+                    "name": "identifier",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "value": {
+                    "name": "value",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "expires_at": {
+                    "name": "expires_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "verification_identifier_idx": {
+                    "name": "verification_identifier_idx",
+                    "columns": [
+                        {
+                            "expression": "identifier",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authz.audit": {
+            "name": "audit",
+            "schema": "fdm-authz",
+            "columns": {
+                "audit_id": {
+                    "name": "audit_id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "audit_timestamp": {
+                    "name": "audit_timestamp",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "audit_origin": {
+                    "name": "audit_origin",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "principal_id": {
+                    "name": "principal_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "target_resource": {
+                    "name": "target_resource",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "target_resource_id": {
+                    "name": "target_resource_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "granting_resource": {
+                    "name": "granting_resource",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "granting_resource_id": {
+                    "name": "granting_resource_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "action": {
+                    "name": "action",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "allowed": {
+                    "name": "allowed",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "duration": {
+                    "name": "duration",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-authz.role": {
+            "name": "role",
+            "schema": "fdm-authz",
+            "columns": {
+                "role_id": {
+                    "name": "role_id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "resource": {
+                    "name": "resource",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "resource_id": {
+                    "name": "resource_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "principal_id": {
+                    "name": "principal_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "role": {
+                    "name": "role",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created": {
+                    "name": "created",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "deleted": {
+                    "name": "deleted",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {
+                "role_idx": {
+                    "name": "role_idx",
+                    "columns": [
+                        {
+                            "expression": "resource",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "resource_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "principal_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "role",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "deleted",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-calculator.calculation_cache": {
+            "name": "calculation_cache",
+            "schema": "fdm-calculator",
+            "columns": {
+                "calculation_hash": {
+                    "name": "calculation_hash",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "calculation_function": {
+                    "name": "calculation_function",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "calculator_version": {
+                    "name": "calculator_version",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "input": {
+                    "name": "input",
+                    "type": "jsonb",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "result": {
+                    "name": "result",
+                    "type": "jsonb",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "fdm-calculator.calculation_errors": {
+            "name": "calculation_errors",
+            "schema": "fdm-calculator",
+            "columns": {
+                "calculation_error_id": {
+                    "name": "calculation_error_id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "calculation_function": {
+                    "name": "calculation_function",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "calculator_version": {
+                    "name": "calculator_version",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "input": {
+                    "name": "input",
+                    "type": "jsonb",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "error_message": {
+                    "name": "error_message",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "stack_trace": {
+                    "name": "stack_trace",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        }
+    },
+    "enums": {
+        "fdm.b_acquiring_method": {
+            "name": "b_acquiring_method",
+            "schema": "fdm",
+            "values": [
+                "nl_01",
+                "nl_02",
+                "nl_03",
+                "nl_04",
+                "nl_07",
+                "nl_09",
+                "nl_10",
+                "nl_11",
+                "nl_12",
+                "nl_13",
+                "nl_61",
+                "nl_63",
+                "unknown"
+            ]
+        },
+        "fdm.p_app_method": {
+            "name": "p_app_method",
+            "schema": "fdm",
+            "values": [
+                "slotted coulter",
+                "incorporation",
+                "incorporation 2 tracks",
+                "injection",
+                "shallow injection",
+                "spraying",
+                "broadcasting",
+                "spoke wheel",
+                "pocket placement",
+                "narrowband"
+            ]
+        },
+        "fdm.b_gwl_class": {
+            "name": "b_gwl_class",
+            "schema": "fdm",
+            "values": [
+                "I",
+                "Ia",
+                "Ic",
+                "II",
+                "IIa",
+                "IIb",
+                "IIc",
+                "III",
+                "IIIa",
+                "IIIb",
+                "IV",
+                "IVu",
+                "IVc",
+                "V",
+                "Va",
+                "Vao",
+                "Vad",
+                "Vb",
+                "Vbo",
+                "Vbd",
+                "sV",
+                "sVb",
+                "VI",
+                "VIo",
+                "VId",
+                "VII",
+                "VIIo",
+                "VIId",
+                "VIII",
+                "VIIIo",
+                "VIIId"
+            ]
+        },
+        "fdm.b_lu_harvestcat": {
+            "name": "b_lu_harvestcat",
+            "schema": "fdm",
+            "values": [
+                "HC010",
+                "HC020",
+                "HC031",
+                "HC040",
+                "HC041",
+                "HC042",
+                "HC050"
+            ]
+        },
+        "fdm.b_lu_harvestable": {
+            "name": "b_lu_harvestable",
+            "schema": "fdm",
+            "values": ["none", "once", "multiple"]
+        },
+        "fdm.b_lu_croprotation": {
+            "name": "b_lu_croprotation",
+            "schema": "fdm",
+            "values": [
+                "other",
+                "clover",
+                "nature",
+                "potato",
+                "grass",
+                "rapeseed",
+                "starch",
+                "maize",
+                "cereal",
+                "sugarbeet",
+                "alfalfa",
+                "catchcrop"
+            ]
+        },
+        "fdm.a_source": {
+            "name": "a_source",
+            "schema": "fdm",
+            "values": [
+                "nl-rva-l122",
+                "nl-rva-l136",
+                "nl-rva-l264",
+                "nl-rva-l320",
+                "nl-rva-l335",
+                "nl-rva-l610",
+                "nl-rva-l648",
+                "nl-rva-l697",
+                "nl-other-nmi",
+                "other"
+            ]
+        },
+        "fdm.b_soiltype_agr": {
+            "name": "b_soiltype_agr",
+            "schema": "fdm",
+            "values": [
+                "moerige_klei",
+                "rivierklei",
+                "dekzand",
+                "zeeklei",
+                "dalgrond",
+                "veen",
+                "loess",
+                "duinzand",
+                "maasklei"
+            ]
+        },
+        "fdm.p_type_rvo": {
+            "name": "p_type_rvo",
+            "schema": "fdm",
+            "values": [
+                "10",
+                "11",
+                "12",
+                "13",
+                "14",
+                "17",
+                "18",
+                "19",
+                "23",
+                "30",
+                "31",
+                "32",
+                "33",
+                "35",
+                "39",
+                "40",
+                "41",
+                "42",
+                "43",
+                "46",
+                "50",
+                "56",
+                "60",
+                "61",
+                "75",
+                "76",
+                "80",
+                "81",
+                "90",
+                "91",
+                "92",
+                "25",
+                "26",
+                "27",
+                "95",
+                "96",
+                "97",
+                "98",
+                "99",
+                "100",
+                "101",
+                "102",
+                "103",
+                "104",
+                "105",
+                "106",
+                "107",
+                "108",
+                "109",
+                "110",
+                "111",
+                "112",
+                "113",
+                "114",
+                "115",
+                "116",
+                "117",
+                "120"
+            ]
+        }
+    },
+    "schemas": {
+        "fdm": "fdm",
+        "fdm-authn": "fdm-authn",
+        "fdm-authz": "fdm-authz",
+        "fdm-calculator": "fdm-calculator"
+    },
+    "sequences": {},
+    "roles": {},
+    "policies": {},
+    "views": {},
+    "_meta": {
+        "columns": {},
+        "schemas": {},
+        "tables": {}
+    }
+}

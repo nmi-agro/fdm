@@ -7,7 +7,6 @@ import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import {
@@ -18,6 +17,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
 export function FieldsPanelHover({
@@ -39,7 +39,7 @@ export function FieldsPanelHover({
                 // Set message about zoom level
                 const zoom = map.getZoom()
                 if (zoom && zoom > zoomLevelFields) {
-                    if (!map.getLayer(layer)) return
+                    if (!map.getStyle() || !map.getLayer(layer)) return
 
                     const features = map.queryRenderedFeatures(evt.point, {
                         layers: [layer],
@@ -180,7 +180,7 @@ export function FieldsPanelSelection({
     const { current: map } = useMap()
     const [panel, setPanel] = useState<React.ReactNode | null>(null)
 
-    const isSubmitting = fetcher.state === "submitting"
+    const isSubmitting = fetcher.state !== "idle"
 
     const submitSelectedFields = useCallback(
         async (fields: FeatureCollection) => {
@@ -296,7 +296,7 @@ export function FieldsPanelSelection({
                                 >
                                     {isSubmitting ? (
                                         <div className="flex items-center space-x-2">
-                                            <LoadingSpinner />
+                                            <Spinner />
                                             <span>
                                                 Opslaan van geselecteerde
                                                 percelen...

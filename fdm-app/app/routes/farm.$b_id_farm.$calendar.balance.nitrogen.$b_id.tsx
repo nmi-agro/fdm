@@ -1,8 +1,8 @@
 import {
+    calculateNitrogenBalance,
     collectInputForNitrogenBalance,
-    getNitrogenBalance,
-} from "@svenvw/fdm-calculator"
-import { getFarm, getField } from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-calculator"
+import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
     ArrowDown,
     ArrowRight,
@@ -21,6 +21,7 @@ import {
     useLoaderData,
     useLocation,
 } from "react-router"
+import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-warning"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import NitrogenBalanceDetails from "~/components/blocks/balance/nitrogen-details"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
@@ -99,7 +100,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             timeframe,
             b_id,
         ).then(async (input) => {
-            const nitrogenBalanceResult = await getNitrogenBalance(fdm, input)
+            const nitrogenBalanceResult = await calculateNitrogenBalance(
+                fdm,
+                input,
+            )
             let fieldResult = nitrogenBalanceResult.fields.find(
                 (field: { b_id: string }) => field.b_id === b_id,
             )
@@ -188,6 +192,10 @@ function NitrogenBalance({
     const location = useLocation()
     const page = location.pathname
     const calendar = useCalendarStore((state) => state.calendar)
+
+    if (field.b_bufferstrip) {
+        return <BufferStripWarning b_id={field.b_id} />
+    }
 
     if (fieldResult.errorMessage) {
         return (

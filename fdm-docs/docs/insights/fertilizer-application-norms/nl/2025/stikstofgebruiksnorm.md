@@ -57,13 +57,39 @@ If there is no winter crop, a **catch crop (`vanggewas`)** must be sown. The sow
 * **10 kg N/ha Reduction**: Sown between **October 15th and October 31st**.
 * **20 kg N/ha Reduction**: No valid catch crop, sown on or after **November 1st**, or destroyed before **February 1st**.
 
+---
+
+## Grassland Renewal and Destruction Reductions
+
+In 2025, specific nitrogen usage norm reductions (`kortingen`) apply when grassland is renewed or destroyed (scheuren). These reductions account for the nitrogen released during the decomposition of the sod.
+
+### 1. Grassland Renewal (Gras-na-Gras)
+
+When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. This is only allowed within specific periods:
+
+* **Sand and Loess Soils**: June 1st – August 31st.
+* **Clay and Peat Soils**:
+  * **Derogation Farm + NV-Area**: June 1st – August 31st.
+  * **Derogation Farm + Non-NV-Area**: June 1st – September 15th.
+  * **Non-Derogation Farm**: February 1st – September 15th.
+
+### 2. Grassland Destruction (Gras-naar-Bouwland)
+
+When grassland is replaced by Maize or specific Potato types, a reduction of **65 kg N/ha** applies.
+
+* **Eligible Crops**: Maize, Consumption Potatoes, and Factory Potatoes.
+* **Excluded Crops**: **Seed Potatoes (`Pootaardappelen`)** do not trigger this reduction.
+* **Allowed Periods**:
+  * **Sand and Loess Soils**: February 1st – May 10th.
+  * **Clay and Peat Soils**:
+    * **NV-Area**: February 1st – March 15th.
+    * **Non-NV-Area**: February 1st – May 31st.
+
 ### How the FDM Calculator Implements These Rules
 
-This logic is part of the `calculateNitrogenUsageNorm` function:
+The `fdm-calculator` automatically detects grassland renewal and destruction events by analyzing the sequence of cultivations. It verifies the soil type, location (NV-gebied), and farm derogation status to apply the correct reduction.
 
-1. **Check for Winter Crop**: The calculator checks if the current year's main crop is a winter crop.
-2. **Check for Catch Crop**: If not, it checks the previous year's cultivation data for a catch crop.
-3. **Apply Reduction**: The sowing date determines the reduction, which is applied to the current year's norm.
+If a renewal or destruction action is performed **outside** the legally allowed periods, the calculator will provide a descriptive error message to ensure compliance.
 
 ---
 

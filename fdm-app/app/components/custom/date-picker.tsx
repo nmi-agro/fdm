@@ -21,6 +21,8 @@ import {
     PopoverTrigger,
 } from "~/components/ui/popover"
 
+import { endMonth } from "~/lib/calendar"
+
 function parseDateString(dateString: string): Date | undefined {
     if (!dateString) {
         return undefined
@@ -187,7 +189,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
                                         setIsInputValid(true) // Set valid on calendar select
                                     }}
                                     startMonth={new Date(1970, 0)}
-                                    endMonth={new Date(2030, 11)}
+                                    endMonth={endMonth}
                                     locale={nl}
                                     className="rounded-lg border shadow-sm"
                                 />

@@ -1,4 +1,4 @@
-import { getField, removeField } from "@svenvw/fdm-core"
+import { getField, removeField } from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,
@@ -139,7 +139,7 @@ export default function FieldDeletePage() {
  * Handles the deletion of a field.
  *
  * This action function retrieves the farm and field IDs from the request parameters,
- * validates their presence, and then calls the `removeField` function from `@svenvw/fdm-core`
+ * validates their presence, and then calls the `removeField` function from `@nmi-agro/fdm-core`
  * to delete the specified field and all its associated data.
  *
  * Upon successful deletion, the user is redirected to the fields overview page.

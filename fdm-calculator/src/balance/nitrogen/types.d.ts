@@ -6,7 +6,7 @@ import type {
     Field,
     Harvest,
     SoilAnalysis,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { Decimal } from "decimal.js"
 
 /**
@@ -93,6 +93,17 @@ export type NitrogenSupplyFixation = {
 }
 
 /**
+ * Represents the nitrogen supply derived from atmospheric deposition.
+ * All values are in kilograms of nitrogen per hectare (kg N / ha).
+ */
+export type NitrogenSupplyDeposition = {
+    /**
+     * The total amount of nitrogen deposited on the field.
+     */
+    total: Decimal
+}
+
+/**
  * Represents the amount of nitrogen supply derived from soil mineralization.
  * All values are in kilograms of nitrogen per hectare (kg N / ha).
  */
@@ -127,7 +138,7 @@ export type NitrogenSupply = {
     /**
      * The amount of nitrogen supplied through atmospheric deposition.
      */
-    deposition: { total: Decimal }
+    deposition: NitrogenSupplyDeposition
     /**
      * The amount of nitrogen supplied through mineralization of organic matter in the soil during a cultivation
      */
@@ -458,10 +469,19 @@ export type SoilAnalysisPicked = Pick<
  * Represents the structure of fields with related entities for nitrogen balance calculation
  */
 export type FieldInput = {
-    field: Pick<Field, "b_id" | "b_centroid" | "b_area" | "b_start" | "b_end">
+    field: Pick<
+        Field,
+        "b_id" | "b_centroid" | "b_area" | "b_start" | "b_end" | "b_bufferstrip"
+    >
     cultivations: Pick<
         Cultivation,
-        "b_lu" | "b_lu_start" | "b_lu_end" | "b_lu_catalogue" | "m_cropresidue"
+        | "b_lu"
+        | "b_lu_start"
+        | "b_lu_end"
+        | "b_lu_catalogue"
+        | "m_cropresidue"
+        | "b_lu_name"
+        | "b_lu_croprotation"
     >[]
     harvests: Harvest[]
     soilAnalyses: Pick<
@@ -477,6 +497,7 @@ export type FieldInput = {
         | "b_gwl_class"
     >[]
     fertilizerApplications: FertilizerApplication[]
+    depositionSupply: NitrogenSupplyDeposition
 }
 
 /**
@@ -509,10 +530,23 @@ export type FertilizerDetail = Pick<
 >
 
 /**
- * Represents the overall input structure required for nitrogen balance calculation.
+ * Represents the overall input structure required for nitrogen balance calculation for an entire farm.
  */
 export type NitrogenBalanceInput = {
     fields: FieldInput[]
+    fertilizerDetails: FertilizerDetail[]
+    cultivationDetails: CultivationDetail[]
+    timeFrame: {
+        start: Date
+        end: Date
+    }
+}
+
+/**
+ * Represents the input structure required for nitrogen balance calculation for a single field.
+ */
+export type NitrogenBalanceFieldInput = {
+    fieldInput: FieldInput
     fertilizerDetails: FertilizerDetail[]
     cultivationDetails: CultivationDetail[]
     timeFrame: {
@@ -639,6 +673,7 @@ export type NitrogenBalanceFieldNumeric = {
 export type NitrogenBalanceFieldResultNumeric = {
     b_id: string
     b_area: number
+    b_bufferstrip: boolean
     balance?: NitrogenBalanceFieldNumeric
     errorMessage?: string
 }

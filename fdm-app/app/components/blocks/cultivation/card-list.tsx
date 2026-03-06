@@ -1,4 +1,13 @@
+import { Sprout } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "~/components/ui/empty"
 import { CultivationAddFormDialog } from "./form-add"
 import { CultivationList } from "./list"
 import type { Cultivation, CultivationOption } from "./types"
@@ -40,21 +49,28 @@ export function CultivationListCard({
                         harvests={harvests}
                     />
                 ) : (
-                    <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6">
-                        <div className="flex flex-col space-y-2 text-center">
-                            <h1 className="text-2xl font-semibold tracking-tight">
+                    <Empty className="border-none">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Sprout />
+                            </EmptyMedia>
+                            <EmptyTitle>
                                 Dit perceel heeft nog geen gewas voor dit jaar
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
+                            </EmptyTitle>
+                            <EmptyDescription>
                                 Voeg een gewas toe voor dit perceel om gegevens
                                 zoals, zaai- en oogstdatum en opbrengst bij te
                                 houden.
-                            </p>
-                            <CultivationAddFormDialog
-                                options={cultivationsCatalogueOptions}
-                            />
-                        </div>
-                    </div>
+                            </EmptyDescription>
+                        </EmptyHeader>
+                        {editable && (
+                            <EmptyContent>
+                                <CultivationAddFormDialog
+                                    options={cultivationsCatalogueOptions}
+                                />
+                            </EmptyContent>
+                        )}
+                    </Empty>
                 )}
             </CardContent>
         </Card>

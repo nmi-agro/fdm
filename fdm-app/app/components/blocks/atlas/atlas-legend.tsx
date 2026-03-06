@@ -1,5 +1,5 @@
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Card, CardContent } from "~/components/ui/card"
+import { Spinner } from "~/components/ui/spinner"
 
 interface ElevationLegendProps {
     min?: number
@@ -28,7 +28,7 @@ export function ElevationLegend({
                         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Hoogte (AHN4)
                         </h4>
-                        {loading && <LoadingSpinner className="h-3 w-3" />}
+                        {loading && <Spinner className="h-3 w-3" />}
                     </div>
 
                     {networkStatus === "slow" && (

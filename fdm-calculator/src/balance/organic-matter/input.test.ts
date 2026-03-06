@@ -1,9 +1,9 @@
-import * as fdmCore from "@svenvw/fdm-core"
+import * as fdmCore from "@nmi-agro/fdm-core"
 import { describe, expect, it, vi } from "vitest"
 import { collectInputForOrganicMatterBalance } from "./input"
 
-vi.mock("@svenvw/fdm-core", async () => {
-    const original = await vi.importActual("@svenvw/fdm-core")
+vi.mock("@nmi-agro/fdm-core", async () => {
+    const original = await vi.importActual("@nmi-agro/fdm-core")
     return {
         ...original,
         getFields: vi.fn(),

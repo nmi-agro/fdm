@@ -6,7 +6,7 @@ tags: [release, fdm-app, fdm-calculator, fdm-core, fdm-data, fdm-docs]
 date: 2025-08-15
 ---
 
-This post outlines the August 2025 updates of the FDM libraries: `@svenvw/fdm-app`, `@svenvw/fdm-calculator`, `@svenvw/fdm-core`, `@svenvw/fdm-data`, and `@svenvw/fdm-docs`. This release introduces a wide range of improvements, including a redesigned user interface for the FDM application, more accurate nitrogen balance calculations, and new data management capabilities.
+This post outlines the August 2025 updates of the FDM libraries: `@nmi-agro/fdm-app`, `@nmi-agro/fdm-calculator`, `@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`, and `@nmi-agro/fdm-docs`. This release introduces a wide range of improvements, including a redesigned user interface for the FDM application, more accurate nitrogen balance calculations, and new data management capabilities.
 
 {/* truncate */}
 
@@ -35,32 +35,32 @@ The FDM application has been redesigned to provide a more intuitive and user-fri
 
 ### Nitrogen Balance Refinements
 
-A key focus of this release has been to improve the nitrogen balance calculations in `@svenvw/fdm-calculator`. These changes provide a more accurate and transparent model for nitrogen management.
+A key focus of this release has been to improve the nitrogen balance calculations in `@nmi-agro/fdm-calculator`. These changes provide a more accurate and transparent model for nitrogen management.
 
-*   **Terminology Update: "Emission" replaces "Volatilization" (`@svenvw/fdm-calculator`):**
+*   **Terminology Update: "Emission" replaces "Volatilization" (`@nmi-agro/fdm-calculator`):**
     *   We have replaced the term "volatilization" with "emission" throughout the nitrogen balance calculations and documentation. This change in terminology is more than just a semantic update; it's a strategic refactoring that allows us to include other sources of nitrogen loss in the future, such as nitrate leaching. This will provide a more comprehensive and accurate picture of the nitrogen cycle.
-*   **Mineralization Calculation Update (`@svenvw/fdm-calculator`):**
+*   **Mineralization Calculation Update (`@nmi-agro/fdm-calculator`):**
     *   The calculation for nitrogen mineralization has been updated to use default values instead of the MINIP model. This change simplifies the calculation and aligns it with common agricultural practices. The documentation has been updated to reflect this change.
-*   **Exported Functions (`@svenvw/fdm-calculator`):**
+*   **Exported Functions (`@nmi-agro/fdm-calculator`):**
     *   The functions `getRegion`, `isFieldInNVGebied`, `isFieldInGWGBGebie` and `isFieldInNatura2000Gebied` have been exported. This will make it easier for developers to use these functions in their own applications.
 
 ### Data Management Enhancements
 
-*   **Cultivation Varieties (`@svenvw/fdm-core`, `@svenvw/fdm-data`, `@svenvw/fdm-app`):**
+*   **Cultivation Varieties (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`, `@nmi-agro/fdm-app`):**
     *   `b_lu_variety` has been added to `cultivations` for selecting the variety of a cultivation.
     *   `b_lu_variety_options` has been added to list the possible varieties of a cultivation.
     *   A `CultivationDetailsCard` component has been added that will allow users to select a variety for a cultivation.
-*   **New BRP 2025 Crops (`@svenvw/fdm-data`):**
+*   **New BRP 2025 Crops (`@nmi-agro/fdm-data`):**
     *   The new BRP 2025 crops have been added to the `brp` cultivation dataset.
-*   **New `b_lu_rest_oravib` Property (`@svenvw/fdm-data`, `@svenvw/fdm-app`):**
+*   **New `b_lu_rest_oravib` Property (`@nmi-agro/fdm-data`, `@nmi-agro/fdm-app`):**
     *   The `b_lu_rest_oravib` property has been added to the BRP cultivation dataset. This boolean parameter specifies if the cultivation is classified as 'rustgewas'.
     *   The `b_lu_rest_oravib` parameter has been added to the `cultivationCatalogue`.
 
 ### Technical Improvements
 
-*   **Sentry Migration (`@svenvw/fdm-app`):**
+*   **Sentry Migration (`@nmi-agro/fdm-app`):**
     *   Sentry has been migrated to `@sentry/react-router`. This is an important update for error tracking and performance monitoring.
-*   **Environment Variable Update (`@svenvw/fdm-app`):**
+*   **Environment Variable Update (`@nmi-agro/fdm-app`):**
     *   The environment variable `FDM_PUBLIC_DATA` has been replaced with `PUBLIC_FDM_DATASETS_URL`.
 
 ---

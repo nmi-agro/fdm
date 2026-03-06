@@ -1,4 +1,3 @@
-import { getOrganizationsForUser } from "@svenvw/fdm-core"
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import type { LoaderFunctionArgs } from "react-router"
@@ -6,7 +5,7 @@ import { redirect, useLoaderData } from "react-router"
 import { Outlet } from "react-router-dom"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"
-import { SidebarPlatform } from "~/components/blocks/sidebar/platform"
+import { SidebarOrganization } from "~/components/blocks/sidebar/organization"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
@@ -16,10 +15,9 @@ import {
     SidebarInset,
     SidebarProvider,
 } from "~/components/ui/sidebar"
-import { checkSession, getSession } from "~/lib/auth.server"
+import { auth, checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
-import { fdm } from "~/lib/fdm.server"
 
 /**
  * Retrieves the session from the HTTP request and returns user information if available.
@@ -43,10 +41,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
         const selectedOrganizationSlug = params.slug
 
-        const organizations = await getOrganizationsForUser(
-            fdm,
-            session.user.id,
+        const organizations = await auth.api.listOrganizations({
+            headers: request.headers,
+        })
+
+        const selectedOrganization = organizations.find(
+            (organization) => organization.slug === params.slug,
         )
+
+        let selectedOrganizationRoles: Awaited<
+            ReturnType<typeof auth.api.listMembers>
+        >["members"][number]["role"][] = []
+        if (selectedOrganization) {
+            const membersListResponse = await auth.api.listMembers({
+                headers: request.headers,
+                query: {
+                    organizationId: selectedOrganization.id,
+                },
+            })
+
+            const member = membersListResponse.members.find(
+                (member) => member.userId === session.principal_id,
+            )
+
+            if (member) {
+                selectedOrganizationRoles = [member.role]
+            }
+        }
 
         // Return user information from loader
         return {
@@ -54,6 +75,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             userName: session.userName,
             initials: session.initials,
             selectedOrganizationSlug: selectedOrganizationSlug,
+            selectedOrganizationRoles: selectedOrganizationRoles,
             organizations: organizations,
         }
     } catch (error) {
@@ -77,6 +99,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function App() {
     const loaderData = useLoaderData<typeof loader>()
 
+    const organization = loaderData.organizations.find(
+        (org) => org.slug === loaderData.selectedOrganizationSlug,
+    )
+
     // Identify user if PostHog is configured
     useEffect(() => {
         if (clientConfig.analytics.posthog && loaderData.user) {
@@ -93,7 +119,10 @@ export default function App() {
             <Sidebar>
                 <SidebarTitle />
                 <SidebarContent>
-                    <SidebarPlatform />
+                    <SidebarOrganization
+                        organization={organization}
+                        roles={loaderData.selectedOrganizationRoles}
+                    />
                 </SidebarContent>
                 <SidebarSupport
                     name={loaderData.userName}

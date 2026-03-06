@@ -2,11 +2,13 @@ import pkg from "./package"
 export const fdmCalculator = pkg
 export {
     calculateNitrogenBalance,
-    getNitrogenBalance,
+    calculateNitrogenBalanceField,
+    getNitrogenBalanceField,
 } from "./balance/nitrogen/index"
 export { collectInputForNitrogenBalance } from "./balance/nitrogen/input"
 export type {
     FieldInput,
+    NitrogenBalanceFieldInput,
     NitrogenBalanceFieldNumeric,
     NitrogenBalanceFieldResultNumeric,
     NitrogenBalanceInput,
@@ -14,6 +16,7 @@ export type {
     NitrogenEmissionAmmoniaFertilizersNumeric,
     NitrogenEmissionAmmoniaNumeric,
     NitrogenEmissionAmmoniaResiduesNumeric,
+    NitrogenEmissionNumeric,
     NitrogenRemovalHarvestsNumeric,
     NitrogenRemovalNumeric,
     NitrogenRemovalResiduesNumeric,
@@ -24,7 +27,8 @@ export type {
 } from "./balance/nitrogen/types"
 export {
     calculateOrganicMatterBalance,
-    getOrganicMatterBalance,
+    calculateOrganicMatterBalanceField,
+    getOrganicMatterBalanceField,
 } from "./balance/organic-matter/index"
 export { collectInputForOrganicMatterBalance } from "./balance/organic-matter/input"
 export type {
@@ -52,6 +56,10 @@ export type {
     InputAggregateNormsToFarmLevel,
 } from "./norms/farm"
 export {
+    aggregateNormFillingsToFarmLevel,
+    aggregateNormsToFarmLevel,
+} from "./norms/farm"
+export {
     isFieldInGWGBGebied,
     isFieldInNatura2000Gebied,
 } from "./norms/nl/2025/value/dierlijke-mest-gebruiksnorm"
@@ -73,3 +81,7 @@ export type {
     NutrientAdviceInputs,
     NutrientAdviceResponse,
 } from "./nutrient-advice/types"
+export type { NlvSupplyBySomParams } from "./other/nlv-supply-by-som"
+export { calculateNlvSupplyBySom } from "./other/nlv-supply-by-som"
+export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
+export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"

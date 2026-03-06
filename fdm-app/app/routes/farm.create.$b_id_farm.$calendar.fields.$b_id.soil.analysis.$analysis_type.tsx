@@ -1,4 +1,4 @@
-import { addSoilAnalysis, getField } from "@svenvw/fdm-core"
+import { addSoilAnalysis, getField } from "@nmi-agro/fdm-core"
 import { ArrowLeft } from "lucide-react"
 import {
     type ActionFunctionArgs,
@@ -139,7 +139,7 @@ export default function FarmFieldSoilOverviewBlock() {
  *
  * This function creates a new soil analysis based on the provided form data.
  * It validates the data, retrieves the necessary IDs from the route parameters,
- * and uses the `addSoilAnalysis` function from `@svenvw/fdm-core` to perform the creation.
+ * and uses the `addSoilAnalysis` function from `@nmi-agro/fdm-core` to perform the creation.
  *
  * @param request - The HTTP request object.
  * @param params - The route parameters, including `b_id` and `b_id_farm`.
@@ -188,7 +188,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
             formValues,
         )
 
-        return redirectWithSuccess("../", {
+        const url = new URL(request.url)
+
+        // Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route
+        return redirectWithSuccess(`../${url.search}`, {
             message: "Bodemanalyse is toegevoegd! 🎉",
         })
     } catch (error) {

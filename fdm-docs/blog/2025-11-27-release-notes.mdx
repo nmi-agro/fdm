@@ -10,7 +10,7 @@ This November release marks a major expansion of the Farm Data Model (FDM) capab
 
 {/* truncate */}
 
-### FDM Application Enhancements (`@svenvw/fdm-app`)
+### FDM Application Enhancements (`@nmi-agro/fdm-app`)
 
 *   **New Module: Organic Matter Balance:**
     *   We have launched a dedicated **Organic Matter Balance** app. This tool allows farmers and advisors to monitor the effective organic matter (EOM) supply from crops, residues, and fertilizers, ensuring long-term soil health strategy.
@@ -32,14 +32,14 @@ This November release marks a major expansion of the Farm Data Model (FDM) capab
     *   Upgraded to **Node.js v24**.
     *   Optimized Vite build configuration for better performance.
 
-### FDM Calculator Upgrades (`@svenvw/fdm-calculator`)
+### FDM Calculator Upgrades (`@nmi-agro/fdm-calculator`)
 
 *   **New Calculations:**
     *   **Organic Matter:** Added `calculateOrganicMatterBalance` and `getOrganicMatterBalance` to power the new app module.
     *   **Nitrate Leaching:** Implemented the logic to calculate nitrate leaching, enriching the nitrogen balance model.
     *   **Emission Split:** The nitrogen balance output now formally separates ammonia and nitrate emissions.
 
-### FDM Core Developments (`@svenvw/fdm-core`)
+### FDM Core Developments (`@nmi-agro/fdm-core`)
 
 *   **Harvest Logic:**
     *   **Default Values:** Added `getDefaultsForHarvestParameters` to fetch smart defaults for new harvests.
@@ -50,14 +50,14 @@ This November release marks a major expansion of the Farm Data Model (FDM) capab
 *   **Auth & Permissions:**
     *   Fixed an issue where organization members did not correctly inherit roles on a farm.
 
-### FDM Data Updates (`@svenvw/fdm-data`)
+### FDM Data Updates (`@nmi-agro/fdm-data`)
 
 *   **Catalogue Enrichment (BRP):**
     *   **Organic Matter:** Populated `b_lu_eom` and `b_lu_eom_residue` with default values.
     *   **Harvest Defaults:** Added `b_lu_dm` (dry matter content) and `b_lu_harvestcat` defaults to BRP entries.
     *   **Corrections:** Fixed `nl_6794` (groene braak) to be correctly marked as non-harvestable. Improved default yield values for nature categories.
 
-### FDM Docs (`@svenvw/fdm-docs`)
+### FDM Docs (`@nmi-agro/fdm-docs`)
 
 *   **Revamped Structure:** We have completely overhauled the documentation structure. Beyond technical API references, we have added more in-depth explanations of core concepts and calculation methodologies.
 *   **New Content:**

@@ -106,6 +106,22 @@ export const Dropzone = ({
         else if (inputRef.current) inputRef.current.value = ""
     }
 
+    const syncFilesToInput = (filesToSync: File[]) => {
+        if (!inputRef.current) return
+        try {
+            const container = new DataTransfer()
+            for (const f of filesToSync) {
+                if (f instanceof File) {
+                    container.items.add(f)
+                }
+            }
+            inputRef.current.files = container.files
+        } catch (err) {
+            // Fallback or silent ignore if DataTransfer is restricted
+            console.warn("Could not sync files to hidden input:", err)
+        }
+    }
+
     const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
         e.preventDefault()
     }
@@ -156,13 +172,7 @@ export const Dropzone = ({
                 inputFiles = await handleFilesSet(files, validNewFiles)
             }
 
-            if (inputRef.current?.files) {
-                const container = new DataTransfer()
-                inputFiles.forEach((f) => {
-                    container.items.add(f)
-                })
-                inputRef.current.files = container.files
-            }
+            syncFilesToInput(inputFiles)
         }
     }
 
@@ -176,14 +186,14 @@ export const Dropzone = ({
 
             const finalFiles = await handleFilesSet(files, validNewFiles)
 
-            if (inputRef.current) {
-                const container = new DataTransfer()
-                finalFiles.forEach((f) => {
-                    container.items.add(f)
-                })
-                inputRef.current.files = container.files
+            syncFilesToInput(finalFiles)
+
+            try {
+                e.dataTransfer.clearData()
+            } catch (err) {
+                // clearData may throw in some browsers after drop
+                console.warn("Could not clear dataTransfer:", err)
             }
-            e.dataTransfer.clearData()
         }
     }
 

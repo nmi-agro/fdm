@@ -1,4 +1,4 @@
-import { NavLink } from "react-router"
+import { NavLink, useLocation } from "react-router"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -9,6 +9,8 @@ import {
 } from "~/components/ui/card"
 
 export function SoilAnalysisFormSelection() {
+    const location = useLocation()
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card className="w-auto">
@@ -20,7 +22,9 @@ export function SoilAnalysisFormSelection() {
                 </CardHeader>
                 <CardFooter className="flex justify-between">
                     <Button asChild>
-                        <NavLink to={"./upload"}>Kies</NavLink>
+                        <NavLink to={`./upload${location.search}`}>
+                            Kies
+                        </NavLink>
                     </Button>
                 </CardFooter>
             </Card>
@@ -33,7 +37,9 @@ export function SoilAnalysisFormSelection() {
                 </CardHeader>
                 <CardFooter className="flex justify-between">
                     <Button asChild>
-                        <NavLink to={"./standard"}>Kies</NavLink>
+                        <NavLink to={`./standard${location.search}`}>
+                            Kies
+                        </NavLink>
                     </Button>
                 </CardFooter>
             </Card>
@@ -46,7 +52,7 @@ export function SoilAnalysisFormSelection() {
                 </CardHeader>
                 <CardFooter className="flex justify-between">
                     <Button asChild>
-                        <NavLink to={"./nmin"}>Kies</NavLink>
+                        <NavLink to={`./nmin${location.search}`}>Kies</NavLink>
                     </Button>
                 </CardFooter>
             </Card>
@@ -59,7 +65,9 @@ export function SoilAnalysisFormSelection() {
                 </CardHeader>
                 <CardFooter className="flex justify-between">
                     <Button asChild>
-                        <NavLink to={"./derogation"}>Kies</NavLink>
+                        <NavLink to={`./derogation${location.search}`}>
+                            Kies
+                        </NavLink>
                     </Button>
                 </CardFooter>
             </Card>
@@ -72,7 +80,7 @@ export function SoilAnalysisFormSelection() {
                 </CardHeader>
                 <CardFooter className="flex justify-between">
                     <Button asChild>
-                        <NavLink to={"./all"}>Kies</NavLink>
+                        <NavLink to={`./all${location.search}`}>Kies</NavLink>
                     </Button>
                 </CardFooter>
             </Card>

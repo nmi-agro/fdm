@@ -32,22 +32,28 @@ export const formSchema = z
             .trim()
             .optional()
             .refine((val) => !val || isValidTracesNumber(val), {
-                message: "Ongeldig TRACES-nummer",
+                error: "Ongeldig TRACES-nummer",
             }),
         b_organic_skal: z
             .string()
             .trim()
             .optional()
             .refine((val) => !val || isValidSkalNumber(val), {
-                message: "Ongeldig SKAL-nummer",
+                error: "Ongeldig SKAL-nummer",
             }),
-        b_organic_issued: z.coerce.date({
-            required_error: "Startdatum is verplicht",
-            invalid_type_error: "Ongeldige datum",
-        }),
+        b_organic_issued: z.preprocess(
+            (val) => (typeof val === "string" ? new Date(val) : val),
+            z.date({
+                error: (issue) =>
+                    issue.input === undefined
+                        ? "Startdatum is verplicht"
+                        : "Ongeldige datum",
+            }),
+        ),
         b_organic_expires: z.coerce
             .date({
-                invalid_type_error: "Ongeldige datum",
+                error: (issue) =>
+                    issue.input === undefined ? undefined : "Ongeldige datum",
             })
             .optional(),
     })
@@ -62,11 +68,11 @@ export const formSchema = z
             return true
         },
         {
-            message: "Startdatum kan niet na einddatum liggen",
             path: ["b_organic_issued"],
+            error: "Startdatum kan niet na einddatum liggen",
         },
     )
     .refine((data) => !!(data.b_organic_traces || data.b_organic_skal), {
-        message: "Vul een TRACES- of SKAL-nummer in",
         path: ["b_organic_traces"],
+        error: "Vul een TRACES- of SKAL-nummer in",
     })

@@ -41,6 +41,8 @@ describe("calculateNitrogenEmissionViaNitrate", () => {
                 b_lu_start: null,
                 b_lu_end: null,
                 m_cropresidue: null,
+                b_lu_name: "Grassland",
+                b_lu_croprotation: "grass",
             },
         ]
         const soilAnalysis: SoilAnalysisPicked = {
@@ -72,6 +74,8 @@ describe("calculateNitrogenEmissionViaNitrate", () => {
                 b_lu_start: null,
                 b_lu_end: null,
                 m_cropresidue: null,
+                b_lu_name: "Maize",
+                b_lu_croprotation: "maize",
             },
         ]
         const soilAnalysis: SoilAnalysisPicked = {
@@ -103,6 +107,8 @@ describe("calculateNitrogenEmissionViaNitrate", () => {
                 b_lu_start: null,
                 b_lu_end: null,
                 m_cropresidue: null,
+                b_lu_name: "Other",
+                b_lu_croprotation: "other",
             },
         ]
         const soilAnalysis: SoilAnalysisPicked = {
@@ -135,6 +141,8 @@ describe("calculateNitrogenEmissionViaNitrate", () => {
                 b_lu_start: null,
                 b_lu_end: null,
                 m_cropresidue: null,
+                b_lu_name: "Grassland",
+                b_lu_croprotation: "grass",
             },
         ]
         const soilAnalysis: SoilAnalysisPicked = {
@@ -166,6 +174,8 @@ describe("calculateNitrogenEmissionViaNitrate", () => {
                 b_lu_start: null,
                 b_lu_end: null,
                 m_cropresidue: null,
+                b_lu_name: "Grassland",
+                b_lu_croprotation: "grass",
             },
             {
                 b_lu_catalogue: "nl_1019",
@@ -173,6 +183,8 @@ describe("calculateNitrogenEmissionViaNitrate", () => {
                 b_lu_start: null,
                 b_lu_end: null,
                 m_cropresidue: null,
+                b_lu_name: "Maize",
+                b_lu_croprotation: "maize",
             },
         ]
         const soilAnalysis: SoilAnalysisPicked = {

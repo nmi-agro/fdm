@@ -1,6 +1,25 @@
+import type { FdmType } from "@nmi-agro/fdm-core"
+import Decimal from "decimal.js"
 import { describe, expect, it } from "vitest"
-import { calculateNitrogenBalance } from "."
-import type { NitrogenBalanceInput } from "./types"
+import {
+    calculateNitrogenBalance,
+    calculateNitrogenBalancesFieldToFarm,
+} from "."
+import type {
+    NitrogenBalanceFieldResultNumeric,
+    NitrogenBalanceInput,
+} from "./types"
+
+// Mock FdmType
+const mockFdm = {
+    select: () => mockFdm,
+    from: () => mockFdm,
+    where: () => mockFdm,
+    limit: () => mockFdm,
+    execute: async () => [], // Simulate cache miss
+    insert: () => mockFdm,
+    values: async () => undefined,
+} as unknown as FdmType
 
 describe("calculateNitrogenBalance", () => {
     it("should calculate nitrogen balance correctly with mock input", async () => {
@@ -13,6 +32,7 @@ describe("calculateNitrogenBalance", () => {
                         b_area: 100,
                         b_start: new Date("2023-01-01"),
                         b_end: new Date("2023-12-31"),
+                        b_bufferstrip: false,
                     },
                     cultivations: [
                         {
@@ -21,6 +41,8 @@ describe("calculateNitrogenBalance", () => {
                             m_cropresidue: true,
                             b_lu_start: new Date("2023-01-01"),
                             b_lu_end: new Date("2023-12-31"),
+                            b_lu_name: "Cultivation 1",
+                            b_lu_croprotation: "cereal",
                         },
                     ],
                     harvests: [
@@ -76,6 +98,9 @@ describe("calculateNitrogenBalance", () => {
                             p_app_date: new Date("2025-03-15"),
                         },
                     ],
+                    depositionSupply: {
+                        total: new Decimal(0),
+                    },
                 },
             ],
             fertilizerDetails: [
@@ -106,7 +131,10 @@ describe("calculateNitrogenBalance", () => {
             },
         }
 
-        const result = await calculateNitrogenBalance(mockNitrogenBalanceInput)
+        const result = await calculateNitrogenBalance(
+            mockFdm,
+            mockNitrogenBalanceInput,
+        )
 
         function assertValidFertilizerBreakdown(
             obj: { total: number } & Record<
@@ -151,11 +179,15 @@ describe("calculateNitrogenBalance", () => {
                         b_area: 100,
                         b_start: new Date("2023-01-01"),
                         b_end: new Date("2023-12-31"),
+                        b_bufferstrip: false,
                     },
                     cultivations: [],
                     harvests: [],
                     soilAnalyses: [],
                     fertilizerApplications: [],
+                    depositionSupply: {
+                        total: new Decimal(0),
+                    },
                 },
             ],
             fertilizerDetails: [],
@@ -166,9 +198,135 @@ describe("calculateNitrogenBalance", () => {
             },
         }
 
-        const result = await calculateNitrogenBalance(mockNitrogenBalanceInput)
+        const result = await calculateNitrogenBalance(
+            mockFdm,
+            mockNitrogenBalanceInput,
+        )
 
         expect(result.hasErrors).toBe(true)
         expect(result.fieldErrorMessages.length).toBeGreaterThan(0)
+    })
+
+    it("should return zero balance for buffer strips", async () => {
+        const mockNitrogenBalanceInput: NitrogenBalanceInput = {
+            fields: [
+                {
+                    field: {
+                        b_id: "field1",
+                        b_centroid: [5.0, 52.0],
+                        b_area: 100,
+                        b_start: new Date("2023-01-01"),
+                        b_end: new Date("2023-12-31"),
+                        b_bufferstrip: true,
+                    },
+                    cultivations: [],
+                    harvests: [],
+                    soilAnalyses: [],
+                    fertilizerApplications: [],
+                    depositionSupply: {
+                        total: new Decimal(0),
+                    },
+                },
+            ],
+            fertilizerDetails: [],
+            cultivationDetails: [],
+            timeFrame: {
+                start: new Date("2023-01-01"),
+                end: new Date("2023-12-31"),
+            },
+        }
+
+        const result = await calculateNitrogenBalance(
+            mockFdm,
+            mockNitrogenBalanceInput,
+        )
+
+        expect(result.hasErrors).toBe(false)
+        expect(result.fieldErrorMessages.length).toBe(0)
+        expect(result.balance).toBe(0)
+        expect(result.supply.total).toBe(0)
+        expect(result.removal.total).toBe(0)
+        expect(result.emission.total).toBe(0)
+    })
+
+    it("should ignore buffer strips in farm-level aggregation", () => {
+        const results: NitrogenBalanceFieldResultNumeric[] = [
+            {
+                b_id: "field1",
+                b_area: 10,
+                b_bufferstrip: false,
+                balance: {
+                    balance: 100,
+                    supply: {
+                        total: 100,
+                        deposition: { total: 0 },
+                        fixation: { total: 0 },
+                        mineralisation: { total: 0 },
+                        fertilizers: {
+                            total: 0,
+                            mineral: { total: 0 },
+                            manure: { total: 0 },
+                            compost: { total: 0 },
+                            other: { total: 0 },
+                        },
+                    } as any,
+                    removal: {
+                        total: 0,
+                        harvests: { total: 0 },
+                        residues: { total: 0 },
+                    } as any,
+                    target: 0,
+                    emission: {
+                        total: 0,
+                        ammonia: {
+                            total: 0,
+                            fertilizers: {
+                                total: 0,
+                                mineral: { total: 0 },
+                                manure: { total: 0 },
+                                compost: { total: 0 },
+                                other: { total: 0 },
+                            },
+                            residues: { total: 0 },
+                        },
+                        nitrate: { total: 0 },
+                    } as any,
+                } as any,
+            },
+            {
+                b_id: "buffer1",
+                b_area: 100,
+                b_bufferstrip: true,
+                balance: {
+                    balance: 0,
+                    supply: {
+                        total: 0,
+                        deposition: { total: 0 },
+                        fixation: { total: 0 },
+                        mineralisation: { total: 0 },
+                        fertilizers: {
+                            total: 0,
+                            mineral: { total: 0 },
+                            manure: { total: 0 },
+                            compost: { total: 0 },
+                            other: { total: 0 },
+                        },
+                    } as any,
+                    removal: { total: 0 } as any,
+                    target: 0,
+                    emission: { total: 0 } as any,
+                } as any,
+            },
+        ]
+
+        const farmBalance = calculateNitrogenBalancesFieldToFarm(
+            results,
+            false,
+            [],
+        )
+
+        // Should match field1 values exactly
+        expect(farmBalance.balance).toBe(100)
+        expect(farmBalance.supply.total).toBe(100)
     })
 })

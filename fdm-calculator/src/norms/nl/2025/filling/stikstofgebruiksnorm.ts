@@ -1,6 +1,7 @@
-import { type Cultivation, withCalculationCache } from "@svenvw/fdm-core"
+import { type Cultivation, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
+import { nonBouwlandCodes } from "../../constant"
 import type { NormFilling } from "../../types"
 import { getRegion } from "../value/stikstofgebruiksnorm"
 import type { RegionKey } from "../value/types"
@@ -116,8 +117,6 @@ export function isBouwland(
     cultivations: Cultivation[],
     p_app_date: Date,
 ): boolean {
-    const nonBouwlandCodes = ["nl_265", "nl_266", "nl_331", "nl_332", "nl_335"]
-
     const activeCultivation = cultivations.find((c) => {
         if (!c.b_lu_start) return false // Ensure b_lu_start exists
         const startDate = new Date(c.b_lu_start)

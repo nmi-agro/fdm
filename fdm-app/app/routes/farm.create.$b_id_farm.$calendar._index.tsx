@@ -1,5 +1,5 @@
-import { getFarm } from "@svenvw/fdm-core"
-import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
+import { getFarm } from "@nmi-agro/fdm-core"
+import { Map as MapIcon, UploadCloud } from "lucide-react"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { data, NavLink, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"

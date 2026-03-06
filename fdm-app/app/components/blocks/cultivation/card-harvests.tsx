@@ -1,4 +1,4 @@
-import type { Harvest, HarvestParameters } from "@svenvw/fdm-core"
+import type { Harvest, HarvestParameters } from "@nmi-agro/fdm-core"
 import { NavLink } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { HarvestsList } from "~/components/blocks/harvest/list"

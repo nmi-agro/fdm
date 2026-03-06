@@ -1,4 +1,4 @@
-import { withCalculationCache } from "@svenvw/fdm-core"
+import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
 import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
@@ -6,6 +6,7 @@ import {
     getRegion,
     isFieldInNVGebied,
 } from "../../2025/value/stikstofgebruiksnorm"
+import { nonBouwlandCodes } from "../../constant"
 import type { GebruiksnormResult } from "../../types"
 import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 import type {
@@ -56,6 +57,7 @@ import type {
 function getNormsForCultivation(
     selectedStandard: NitrogenStandard,
     b_lu_end: Date,
+    b_lu_start: Date | null | undefined,
     subTypeOmschrijving?: string,
 ): NormsByRegion | undefined {
     if (selectedStandard.sub_types) {
@@ -74,25 +76,114 @@ function getNormsForCultivation(
 
         // 2. Fallback to time-based logic for temporary grasslands if no omschrijving match
         const endDate = new Date(b_lu_end)
-        matchingSubType = selectedStandard.sub_types.find((sub) => {
+        endDate.setHours(12, 0, 0, 0) // Avoid timezone issues at midnight
+        const startDate = b_lu_start
+            ? new Date(b_lu_start)
+            : new Date(endDate.getFullYear(), 0, 1)
+        startDate.setHours(12, 0, 0, 0)
+
+        // Find all matching sub-types
+        const potentialMatches = selectedStandard.sub_types.filter((sub) => {
             if (sub.period_start_month && sub.period_end_month) {
                 const startPeriod = new Date(
                     endDate.getFullYear(),
                     sub.period_start_month - 1,
                     sub.period_start_day || 1,
+                    12,
+                    0,
+                    0,
+                    0,
                 )
                 const endPeriod = new Date(
                     endDate.getFullYear(),
                     sub.period_end_month - 1,
                     sub.period_end_day || 1,
+                    12,
+                    0,
+                    0,
+                    0,
                 )
+
+                // Handle periods that might wrap (though none currently do in the data)
                 if (sub.period_start_month > sub.period_end_month) {
                     endPeriod.setFullYear(endDate.getFullYear() + 1)
                 }
-                return endDate >= startPeriod && endDate <= endPeriod
+
+                // Special handling for "vanaf" (Late sowing or summer/autumn teelten)
+                // For "vanaf" periods, the crop must start on or after the startPeriod.
+                const isVanaf =
+                    sub.period_start_month && sub.period_start_month > 1
+
+                if (isVanaf) {
+                    // If it's a "tot minstens" period (implied by end month < 12), it must also last until endPeriod.
+                    if (sub.period_end_month && sub.period_end_month < 12) {
+                        return startDate >= startPeriod && endDate >= endPeriod
+                    }
+                    // For "vanaf X" (without "tot minstens", e.g. "vanaf 15 oktober"), we only check if it starts on or after X.
+                    return startDate >= startPeriod
+                }
+
+                // Standard "van 1 januari tot minstens X" logic:
+                // Crop must be present from startPeriod (or earlier) to at least endPeriod.
+                return startDate <= startPeriod && endDate >= endPeriod
             }
             return false
         })
+
+        // Select the best match
+        // Prefer the one with the *earliest* period_start (most specific start requirement)
+        // If tied, prefer the one with the *latest* period_end (longest mandated duration = typically higher norm)
+        if (potentialMatches.length > 0) {
+            potentialMatches.sort((a, b) => {
+                const aStart =
+                    (a.period_start_month || 0) * 100 +
+                    (a.period_start_day || 0)
+                const bStart =
+                    (b.period_start_month || 0) * 100 +
+                    (b.period_start_day || 0)
+                if (aStart !== bStart) {
+                    return aStart - bStart
+                }
+                const aEnd =
+                    (a.period_end_month || 0) * 100 + (a.period_end_day || 0)
+                const bEnd =
+                    (b.period_end_month || 0) * 100 + (b.period_end_day || 0)
+                return bEnd - aEnd
+            })
+            matchingSubType = potentialMatches[0]
+        }
+
+        // If no match found using the stricter "minstens" logic, fallback to the original bucket logic
+        // to prevent "undefined" regressions for edge cases, but with timezone fix.
+        if (!matchingSubType) {
+            matchingSubType = selectedStandard.sub_types.find((sub) => {
+                if (sub.period_start_month && sub.period_end_month) {
+                    const startPeriod = new Date(
+                        endDate.getFullYear(),
+                        sub.period_start_month - 1,
+                        sub.period_start_day || 1,
+                        12,
+                        0,
+                        0,
+                        0,
+                    )
+                    const endPeriod = new Date(
+                        endDate.getFullYear(),
+                        sub.period_end_month - 1,
+                        sub.period_end_day || 1,
+                        12,
+                        0,
+                        0,
+                        0,
+                    )
+                    if (sub.period_start_month > sub.period_end_month) {
+                        endPeriod.setFullYear(endDate.getFullYear() + 1)
+                    }
+                    return endDate >= startPeriod && endDate <= endPeriod
+                }
+                return false
+            })
+        }
 
         return matchingSubType?.norms
     }
@@ -136,6 +227,12 @@ function determineSubTypeOmschrijving(
         // Fallback for potatoes is 'overig' if a variety is present but not in a specific list
         return standard.sub_types?.find((s) => s.omschrijving === "overig")
             ?.omschrijving
+    }
+
+    // Maize logic based on derogation status
+    if (standard.cultivation_rvo_table2 === "Akkerbouwgewassen, mais") {
+        // In 2026 derogation is no longer possible, so we always return "non-derogatie"
+        return "non-derogatie"
     }
 
     // Luzerne logic based on cultivation history
@@ -259,7 +356,7 @@ function calculateKorting(
 
     const sandyOrLoessRegions: RegionKey[] = ["zand_nwc", "zand_zuid", "loess"]
 
-    // Check if field is outside regions with korting
+    // Check if field is outside regions with korting (2026: ONLY Sand/Loess)
     if (!sandyOrLoessRegions.includes(region)) {
         return {
             amount: new Decimal(0),
@@ -267,16 +364,108 @@ function calculateKorting(
         }
     }
 
+    // Sort cultivations by start date
+    const sortedCultivations = [...cultivations].sort((a, b) => {
+        if (!a.b_lu_start || !b.b_lu_start) return 0
+        return a.b_lu_start.getTime() - b.b_lu_start.getTime()
+    })
+
+    // Find the transition from Grassland to Next Crop in 2026
+    for (let i = 0; i < sortedCultivations.length - 1; i++) {
+        const prevCult = sortedCultivations[i]
+        const currCult = sortedCultivations[i + 1]
+
+        if (!prevCult.b_lu_end || !currCult.b_lu_start) continue
+
+        // Check if transition happens in 2026
+        if (prevCult.b_lu_end.getFullYear() !== currentYear) continue
+
+        const prevStandard = nitrogenStandardsData.find((ns) =>
+            ns.b_lu_catalogue_match.includes(prevCult.b_lu_catalogue),
+        )
+        const currStandard = nitrogenStandardsData.find((ns) =>
+            ns.b_lu_catalogue_match.includes(currCult.b_lu_catalogue),
+        )
+
+        const isPrevGrass = nonBouwlandCodes.includes(prevCult.b_lu_catalogue)
+        const isCurrGrass = nonBouwlandCodes.includes(currCult.b_lu_catalogue)
+
+        // 1. Grassland Renewal (Gras-na-Gras) -> 50 kg N/ha korting
+        // Only applies on Sand/Loess (already checked above)
+        if (isPrevGrass && isCurrGrass) {
+            const renewalDate = prevCult.b_lu_end
+            // Sand/Loess: June 1 - August 31
+            if (
+                renewalDate >= new Date(currentYear, 5, 1) && // June 1
+                renewalDate <= new Date(currentYear, 7, 31) // Aug 31
+            ) {
+                return {
+                    amount: new Decimal(50),
+                    description: ". Korting: 50kg N/ha: graslandvernieuwing",
+                }
+            }
+            // Error if date is invalid for renewal
+            throw new Error(
+                "Graslandvernieuwing op zand- en lössgrond is alleen toegestaan tussen 1 juni en 31 augustus.",
+            )
+        }
+
+        // 2. Grassland Destruction (Gras-naar-Bouwland) -> 65 kg N/ha korting
+        const isMaize = currStandard?.cultivation_rvo_table2.includes("mais")
+        const isPotato = currStandard?.type === "aardappel"
+        const isSeedPotato =
+            currStandard?.cultivation_rvo_table2.includes("pootaardappelen") ||
+            currCult.b_lu_catalogue === "nl_2015" ||
+            currCult.b_lu_catalogue === "nl_2016" ||
+            currStandard?.cultivation_rvo_table2.includes("uitgroeiteelt")
+
+        if (isPrevGrass && (isMaize || (isPotato && !isSeedPotato))) {
+            // Check Exclusion: Was previous grass a Catch Crop?
+            // "Infer from sowing date (late previous year)"
+            // If sown in autumn of previous year (e.g. >= Aug 1), it's a catch crop.
+            // Also check is_vanggewas property if true.
+            const isCatchCrop =
+                prevStandard?.is_vanggewas ||
+                (prevCult.b_lu_start &&
+                    prevCult.b_lu_start.getFullYear() === previousYear &&
+                    prevCult.b_lu_start.getMonth() >= 7) // August or later
+
+            if (isCatchCrop) {
+                // No korting allowed if it was a catch crop
+                continue
+            }
+
+            const destructionDate = prevCult.b_lu_end
+            // Sand/Loess: Feb 1 - May 10
+            if (
+                destructionDate >= new Date(currentYear, 1, 1) && // Feb 1
+                destructionDate <= new Date(currentYear, 4, 10) // May 10
+            ) {
+                return {
+                    amount: new Decimal(65),
+                    description: ". Korting: 65kg N/ha: graslandvernietiging",
+                }
+            }
+            // Error if date is invalid for destruction
+            throw new Error(
+                "Graslandvernietiging op zand- en lössgrond is alleen toegestaan tussen 1 februari en 10 mei.",
+            )
+        }
+    }
+
     // Determine hoofdteelt for the current year (2026)
-    const hoofdteelt2026 = determineNLHoofdteelt(
-        cultivations.filter(
-            (c) => c.b_lu_start && c.b_lu_start.getFullYear() === currentYear,
-        ),
-        2026,
-    )
+    const hoofdteelt2026 = determineNLHoofdteelt(cultivations, 2026)
     const hoofdteelt2026Standard = nitrogenStandardsData.find((ns) =>
         ns.b_lu_catalogue_match.includes(hoofdteelt2026),
     )
+
+    // Grasland is exlcuded from korting
+    if (nonBouwlandCodes.includes(hoofdteelt2026)) {
+        return {
+            amount: new Decimal(0),
+            description: ".",
+        }
+    }
 
     // Check for winterteelt exception (hoofdteelt of 2026 is winterteelt, sown in late 2025)
     if (hoofdteelt2026Standard?.is_winterteelt) {
@@ -461,6 +650,14 @@ export async function calculateNL2026StikstofGebruiksNorm(
     const field = input.field
     const cultivations = input.cultivations
 
+    // Check for buffer strip
+    if (field.b_bufferstrip) {
+        return {
+            normValue: 0,
+            normSource: "Bufferstrook: geen plaatsingsruimte",
+        }
+    }
+
     // Determine hoofdteelt
     const b_lu_catalogue = determineNLHoofdteelt(cultivations, 2026)
     let cultivation = cultivations.find(
@@ -532,6 +729,7 @@ export async function calculateNL2026StikstofGebruiksNorm(
     const applicableNorms = getNormsForCultivation(
         selectedStandard,
         cultivation.b_lu_end ?? new Date("2026-12-31"),
+        cultivation.b_lu_start,
         subTypeOmschrijving,
     )
 

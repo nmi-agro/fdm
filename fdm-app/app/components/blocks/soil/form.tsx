@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { SoilParameterDescription } from "@svenvw/fdm-core"
+import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -7,7 +7,6 @@ import type { z } from "zod"
 import { FormSchema } from "@/app/components/blocks/soil/formschema"
 import type { SoilAnalysis } from "@/app/components/blocks/soil/types"
 import { DatePicker } from "~/components/custom/date-picker"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Button } from "~/components/ui/button"
 import {
     FormControl,
@@ -25,6 +24,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
+import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
 export function SoilAnalysisForm(props: {
@@ -236,7 +236,7 @@ export function SoilAnalysisForm(props: {
                             <Button type="submit">
                                 {form.formState.isSubmitting ? (
                                     <div className="flex items-center space-x-2">
-                                        <LoadingSpinner />
+                                        <Spinner />
                                         <span>Opslaan...</span>
                                     </div>
                                 ) : (

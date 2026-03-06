@@ -1,7 +1,7 @@
 export interface ServerConfig {
     name: string
     url: string
-    privacy_url: string
+    privacy_url: string | undefined
     datasets_url: string
     auth: {
         fdm_session_secret: string
@@ -65,7 +65,6 @@ export interface ClientConfig {
     logo: string
     logomark: string
     url: string
-    privacy_url: string
     datasets_url: string
     analytics: {
         sentry?: {

@@ -4,7 +4,7 @@ The `fdm-app` is a React application providing a user-friendly interface for vis
 
 > [!IMPORTANT]  
 > `fdm-app` is currently in alpha state. It includes features such as interactive data visualization, streamlined data management, user authentication and authorization, and organization management.
-> See our [roadmap](https://github.com/SvenVw/fdm/milestones) for planned milestones.
+> See our [roadmap](https://github.com/nmi-agro/fdm/milestones) for planned milestones.
 
 ## Key Features
 
@@ -21,7 +21,7 @@ The `fdm-app` is a React application providing a user-friendly interface for vis
 2. **Installation:**
 
 ```bash
-   pnpm add @svenvw/fdm-app
+   pnpm add @nmi-agro/fdm-app
 ```
 
 3.  **Configuration:**

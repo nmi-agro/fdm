@@ -1,4 +1,4 @@
-import { calculateDose, getNutrientAdvice } from "@svenvw/fdm-calculator"
+import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
 import {
     addFertilizerApplication,
     checkPermission,
@@ -10,7 +10,7 @@ import {
     getField,
     removeFertilizerApplication,
     updateFertilizerApplication,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import {
     type ActionFunctionArgs,
     data,
@@ -37,7 +37,7 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import {
-    getNitrogenBalanceforField,
+    getNitrogenBalanceForField,
     getNorms,
 } from "../integrations/calculator"
 
@@ -179,16 +179,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_centroid: b_centroid,
                 currentSoilData: currentSoilData,
                 nmiApiKey: nmiApiKey,
+                b_bufferstrip: field.b_bufferstrip,
             })
         }
 
         const fertilizerApplicationMetricsData = {
-            norms: getNorms({
-                fdm,
-                principal_id,
-                b_id,
-            }),
-            nitrogenBalance: getNitrogenBalanceforField({
+            norms:
+                calendar === "2025" || calendar === "2026"
+                    ? getNorms({
+                          fdm,
+                          principal_id,
+                          b_id,
+                          calendar,
+                      })
+                    : Promise.resolve(null),
+            nitrogenBalance: getNitrogenBalanceForField({
                 fdm,
                 principal_id,
                 b_id_farm,
@@ -199,6 +204,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             dose: dose.dose,
             b_id: b_id,
             b_id_farm: b_id_farm,
+            b_bufferstrip: field.b_bufferstrip,
             calendar: calendar,
             cultivations,
             activeCultivation,
@@ -268,38 +274,34 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmFieldsOverviewBlock() {
     const loaderData = useLoaderData<typeof loader>()
     const navigation = useNavigation()
-    const isSubmitting = navigation.state === "submitting"
+    const isSubmitting = navigation.state !== "idle"
 
     return (
-        <div className="container mx-auto py-8 px-4">
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                <div className="md:col-span-1 lg:col-span-1">
-                    <FertilizerApplicationCard
-                        fertilizerApplications={
-                            loaderData.fertilizerApplications
-                        }
-                        applicationMethodOptions={
-                            loaderData.applicationMethodOptions
-                        }
-                        fertilizers={loaderData.fertilizers}
-                        fertilizerOptions={loaderData.fertilizerOptions}
-                        dose={loaderData.dose}
-                        canCreateFertilizerApplication={
-                            loaderData.fieldWritePermission
-                        }
-                        canModifyFertilizerApplication={
-                            loaderData.fertilizerApplicationWritePermissions
-                        }
-                    />
-                </div>
-                <div className="md:col-span-1 lg:col-span-2">
-                    <FertilizerApplicationMetricsCard
-                        fertilizerApplicationMetricsData={
-                            loaderData.fertilizerApplicationMetricsData
-                        }
-                        isSubmitting={isSubmitting}
-                    />
-                </div>
+        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-3">
+            <div className="2xl:col-span-1">
+                <FertilizerApplicationCard
+                    fertilizerApplications={loaderData.fertilizerApplications}
+                    applicationMethodOptions={
+                        loaderData.applicationMethodOptions
+                    }
+                    fertilizers={loaderData.fertilizers}
+                    fertilizerOptions={loaderData.fertilizerOptions}
+                    dose={loaderData.dose}
+                    canCreateFertilizerApplication={
+                        loaderData.fieldWritePermission
+                    }
+                    canModifyFertilizerApplication={
+                        loaderData.fertilizerApplicationWritePermissions
+                    }
+                />
+            </div>
+            <div className="2xl:col-span-2 min-w-0">
+                <FertilizerApplicationMetricsCard
+                    fertilizerApplicationMetricsData={
+                        loaderData.fertilizerApplicationMetricsData
+                    }
+                    isSubmitting={isSubmitting}
+                />
             </div>
         </div>
     )

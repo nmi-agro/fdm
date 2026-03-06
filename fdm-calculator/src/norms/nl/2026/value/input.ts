@@ -6,7 +6,7 @@ import {
     getGrazingIntention,
     type PrincipalId,
     type Timeframe,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { NL2026NormsInput } from "./types.d"
 
 /**

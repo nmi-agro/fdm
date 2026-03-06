@@ -1,6 +1,11 @@
-import { getField } from "@svenvw/fdm-core"
+import { getField } from "@nmi-agro/fdm-core"
 import { ArrowLeft } from "lucide-react"
-import { data, type LoaderFunctionArgs, NavLink } from "react-router"
+import {
+    data,
+    type LoaderFunctionArgs,
+    NavLink,
+    useLocation,
+} from "react-router"
 import { SoilAnalysisFormSelection } from "~/components/blocks/soil/form-selection"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
@@ -65,6 +70,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * This component allows the user to choose the type of soil analysis form to fill.
  */
 export default function FarmFieldSoilOverviewBlock() {
+    const location = useLocation()
+
     return (
         <div className="space-y-6">
             <div className="space-y-4">
@@ -75,7 +82,8 @@ export default function FarmFieldSoilOverviewBlock() {
                     </p>
                 </div>
                 <Button asChild>
-                    <NavLink to="../">
+                    {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
+                    <NavLink to={`../${location.search}`}>
                         <ArrowLeft />
                         Terug
                     </NavLink>

@@ -25,6 +25,12 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 
 export function SidebarApps() {
     const farmId = useFarmStore((state) => state.farmId)
@@ -43,18 +49,22 @@ export function SidebarApps() {
     let atlasLink: string | undefined
     let atlasFieldsLink: string | undefined
     let atlasElevationLink: string | undefined
+    let atlasSoilLink: string | undefined
     if (isCreateFarmWizard) {
         atlasLink = undefined
         atlasFieldsLink = undefined
         atlasElevationLink = undefined
+        atlasSoilLink = undefined
     } else if (farmId) {
         atlasLink = `/farm/${farmId}/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/${farmId}/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/${farmId}/${selectedCalendar}/atlas/elevation`
+        atlasSoilLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil`
     } else {
         atlasLink = `/farm/undefined/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/undefined/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/undefined/${selectedCalendar}/atlas/elevation`
+        atlasSoilLink = `/farm/undefined/${selectedCalendar}/atlas/soil`
     }
 
     let nitrogenBalanceLink: string | undefined
@@ -93,186 +103,242 @@ export function SidebarApps() {
         omBalanceLink = undefined
     }
     return (
-        <SidebarGroup>
-            <SidebarGroupLabel>Apps</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <SidebarMenu>
-                    <Collapsible
-                        defaultOpen={location.pathname.includes("/atlas")}
-                        className="group/collapsible"
-                    >
-                        <SidebarMenuItem>
-                            {atlasLink ? (
-                                <CollapsibleTrigger asChild>
-                                    <SidebarMenuButton
-                                        isActive={location.pathname.includes(
-                                            "/atlas",
-                                        )}
-                                    >
-                                        <MapIcon />
-                                        <span>Atlas</span>
-                                        <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                                        <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
-                                    </SidebarMenuButton>
-                                </CollapsibleTrigger>
-                            ) : (
-                                <SidebarMenuButton
-                                    isActive={false}
-                                    className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                                >
-                                    <MapIcon className="cursor-default text-muted-foreground" />
-                                    <span className="cursor-default text-muted-foreground">
-                                        Atlas
-                                    </span>
-                                </SidebarMenuButton>
-                            )}
-                            <CollapsibleContent>
-                                <SidebarMenuSub>
-                                    <SidebarMenuSubItem>
-                                        {atlasFieldsLink ? (
-                                            <SidebarMenuSubButton
-                                                asChild
-                                                isActive={location.pathname.includes(
-                                                    atlasFieldsLink,
-                                                )}
+        <TooltipProvider>
+            <SidebarGroup>
+                <SidebarGroupLabel>Apps</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <Collapsible
+                            defaultOpen={location.pathname.includes("/atlas")}
+                            className="group/collapsible"
+                        >
+                            <SidebarMenuItem>
+                                {atlasLink ? (
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuButton
+                                            isActive={location.pathname.includes(
+                                                "/atlas",
+                                            )}
+                                        >
+                                            <MapIcon />
+                                            <span>Atlas</span>
+                                            <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
+                                            <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
+                                        </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                ) : (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <SidebarMenuButton
+                                                isActive={false}
+                                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
                                             >
-                                                <NavLink to={atlasFieldsLink}>
-                                                    <span>Gewaspercelen</span>
-                                                </NavLink>
-                                            </SidebarMenuSubButton>
-                                        ) : null}
-                                    </SidebarMenuSubItem>
-                                    <SidebarMenuSubItem>
-                                        {atlasElevationLink ? (
-                                            <SidebarMenuSubButton
-                                                asChild
-                                                isActive={location.pathname.includes(
-                                                    atlasElevationLink,
-                                                )}
-                                            >
-                                                <NavLink
-                                                    to={atlasElevationLink}
-                                                >
-                                                    <span>Hoogtekaart</span>
-                                                </NavLink>
-                                            </SidebarMenuSubButton>
-                                        ) : null}
-                                    </SidebarMenuSubItem>
-                                </SidebarMenuSub>
-                            </CollapsibleContent>
-                        </SidebarMenuItem>
-                    </Collapsible>
-                    <Collapsible
-                        defaultOpen={!!nitrogenBalanceLink}
-                        className="group/collapsible"
-                    >
-                        <SidebarMenuItem>
-                            {nitrogenBalanceLink ? (
-                                <CollapsibleTrigger asChild>
-                                    <SidebarMenuButton>
-                                        <ArrowRightLeft />
-                                        <span>Balans</span>
-                                        <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                                        <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
-                                    </SidebarMenuButton>
-                                </CollapsibleTrigger>
-                            ) : (
-                                <SidebarMenuButton
-                                    isActive={false}
-                                    className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                                >
-                                    <ArrowRightLeft className="cursor-default text-muted-foreground" />
-                                    <span className="cursor-default text-muted-foreground">
-                                        Balans
-                                    </span>
-                                </SidebarMenuButton>
-                            )}
-                            <CollapsibleContent>
-                                <SidebarMenuSub>
-                                    <SidebarMenuSubItem>
-                                        {nitrogenBalanceLink ? (
-                                            <SidebarMenuSubButton
-                                                asChild
-                                                isActive={location.pathname.includes(
-                                                    nitrogenBalanceLink,
-                                                )}
-                                            >
-                                                <NavLink
-                                                    to={nitrogenBalanceLink}
-                                                >
-                                                    <span>Stikstof</span>
-                                                </NavLink>
-                                            </SidebarMenuSubButton>
-                                        ) : null}
-                                    </SidebarMenuSubItem>
-                                    <SidebarMenuSubItem>
-                                        {omBalanceLink ? (
-                                            <SidebarMenuSubButton
-                                                asChild
-                                                isActive={location.pathname.includes(
-                                                    omBalanceLink,
-                                                )}
-                                            >
-                                                <NavLink to={omBalanceLink}>
-                                                    <span>Organische stof</span>
-                                                </NavLink>
-                                            </SidebarMenuSubButton>
-                                        ) : null}
-                                    </SidebarMenuSubItem>
-                                </SidebarMenuSub>
-                            </CollapsibleContent>
-                        </SidebarMenuItem>
-                    </Collapsible>
-                    <SidebarMenuItem>
-                        {nutrientAdviceLink ? (
-                            <SidebarMenuButton
-                                asChild
-                                isActive={location.pathname.includes(
-                                    nutrientAdviceLink,
+                                                <MapIcon className="text-muted-foreground" />
+                                                <span className="text-muted-foreground">
+                                                    Atlas
+                                                </span>
+                                            </SidebarMenuButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                            Atlas is niet beschikbaar tijdens
+                                            het aanmaken van een bedrijf
+                                        </TooltipContent>
+                                    </Tooltip>
                                 )}
-                            >
-                                <NavLink to={nutrientAdviceLink}>
-                                    <BookOpenText />
-                                    <span>Bemestingsadvies</span>
-                                </NavLink>
-                            </SidebarMenuButton>
-                        ) : (
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <BookOpenText />
-                                    <span>Bemestingsadvies</span>
-                                </span>
-                            </SidebarMenuButton>
-                        )}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        {normsLink ? (
-                            <SidebarMenuButton
-                                asChild
-                                isActive={location.pathname.includes(normsLink)}
-                            >
-                                <NavLink to={normsLink}>
-                                    <Landmark />
-                                    <span>Gebruiksruimte</span>
-                                </NavLink>
-                            </SidebarMenuButton>
-                        ) : (
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <Landmark />
-                                    <span>Gebruiksruimte</span>
-                                </span>
-                            </SidebarMenuButton>
-                        )}
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarGroupContent>
-        </SidebarGroup>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        <SidebarMenuSubItem>
+                                            {atlasFieldsLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={location.pathname.includes(
+                                                        atlasFieldsLink,
+                                                    )}
+                                                >
+                                                    <NavLink
+                                                        to={atlasFieldsLink}
+                                                    >
+                                                        <span>
+                                                            Gewaspercelen
+                                                        </span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            {atlasElevationLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={location.pathname.includes(
+                                                        atlasElevationLink,
+                                                    )}
+                                                >
+                                                    <NavLink
+                                                        to={atlasElevationLink}
+                                                    >
+                                                        <span>Hoogtekaart</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            {atlasSoilLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={location.pathname.includes(
+                                                        atlasSoilLink,
+                                                    )}
+                                                >
+                                                    <NavLink to={atlasSoilLink}>
+                                                        <span>Bodemkaart</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
+                        <Collapsible
+                            defaultOpen={!!nitrogenBalanceLink}
+                            className="group/collapsible"
+                        >
+                            <SidebarMenuItem>
+                                {nitrogenBalanceLink ? (
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuButton>
+                                            <ArrowRightLeft />
+                                            <span>Balans</span>
+                                            <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
+                                            <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
+                                        </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                ) : (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <SidebarMenuButton
+                                                isActive={false}
+                                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                            >
+                                                <ArrowRightLeft className="text-muted-foreground" />
+                                                <span className="text-muted-foreground">
+                                                    Balans
+                                                </span>
+                                            </SidebarMenuButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                            Selecteer een bedrijf om de balansen
+                                            te raadplegen
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        <SidebarMenuSubItem>
+                                            {nitrogenBalanceLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={location.pathname.includes(
+                                                        nitrogenBalanceLink,
+                                                    )}
+                                                >
+                                                    <NavLink
+                                                        to={nitrogenBalanceLink}
+                                                    >
+                                                        <span>Stikstof</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            {omBalanceLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={location.pathname.includes(
+                                                        omBalanceLink,
+                                                    )}
+                                                >
+                                                    <NavLink to={omBalanceLink}>
+                                                        <span>
+                                                            Organische stof
+                                                        </span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
+                        <SidebarMenuItem>
+                            {nutrientAdviceLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={location.pathname.includes(
+                                        nutrientAdviceLink,
+                                    )}
+                                >
+                                    <NavLink to={nutrientAdviceLink}>
+                                        <BookOpenText />
+                                        <span>Bemestingsadvies</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            isActive={false}
+                                            className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                        >
+                                            <BookOpenText className="text-muted-foreground" />
+                                            <span className="text-muted-foreground">
+                                                Bemestingsadvies
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf voor
+                                        bemestingsadvies
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            {normsLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={location.pathname.includes(
+                                        normsLink,
+                                    )}
+                                >
+                                    <NavLink to={normsLink}>
+                                        <Landmark />
+                                        <span>Gebruiksruimte</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            isActive={false}
+                                            className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                        >
+                                            <Landmark className="text-muted-foreground" />
+                                            <span className="text-muted-foreground">
+                                                Gebruiksruimte
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om de
+                                        gebruiksruimte te berekenen
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+        </TooltipProvider>
     )
 }

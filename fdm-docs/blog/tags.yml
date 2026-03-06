@@ -5,27 +5,27 @@ release:
 
 fdm-core:
   label: fdm-core
-  description: Posts related to the core FDM library (@svenvw/fdm-core).
+  description: Posts related to the core FDM library (@nmi-agro/fdm-core).
   permalink: /fdm-core
 
 fdm-data:
   label: fdm-data
-  description: Posts related to the FDM data handling library (@svenvw/fdm-data).
+  description: Posts related to the FDM data handling library (@nmi-agro/fdm-data).
   permalink: /fdm-data
 
 fdm-calculator:
   label: fdm-calculator
-  description: Posts related to the FDM calculation engine (@svenvw/fdm-calculator).
+  description: Posts related to the FDM calculation engine (@nmi-agro/fdm-calculator).
   permalink: /fdm-calculator
 
 fdm-docs:
   label: fdm-docs
-  description: Posts related to the FDM documentation website (@svenvw/fdm-docs).
+  description: Posts related to the FDM documentation website (@nmi-agro/fdm-docs).
   permalink: /fdm-docs
 
 fdm-app:
   label: fdm-app
-  description: Posts related to the React web application to interact with FDM (@svenvw/fdm-app).
+  description: Posts related to the React web application to interact with FDM (@nmi-agro/fdm-app).
   permalink: /fdm-app
 
 fdm-rvo:

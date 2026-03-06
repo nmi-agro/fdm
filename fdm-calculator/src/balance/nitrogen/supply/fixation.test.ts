@@ -25,6 +25,8 @@ describe("calculateNitrogenFixation", () => {
                 m_cropresidue: false,
                 b_lu_start: null,
                 b_lu_end: null,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
 
@@ -62,6 +64,8 @@ describe("calculateNitrogenFixation", () => {
                 m_cropresidue: true,
                 b_lu_start: null,
                 b_lu_end: null,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
             {
                 b_lu: "cultivation2",
@@ -69,6 +73,8 @@ describe("calculateNitrogenFixation", () => {
                 m_cropresidue: false,
                 b_lu_start: null,
                 b_lu_end: null,
+                b_lu_name: "Cultivation 2",
+                b_lu_croprotation: "other",
             },
         ]
 
@@ -119,6 +125,8 @@ describe("calculateNitrogenFixation", () => {
                 m_cropresidue: true,
                 b_lu_start: null,
                 b_lu_end: null,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
             {
                 b_lu: "cultivation2",
@@ -126,6 +134,8 @@ describe("calculateNitrogenFixation", () => {
                 m_cropresidue: false,
                 b_lu_start: null,
                 b_lu_end: null,
+                b_lu_name: "Cultivation 2",
+                b_lu_croprotation: "other",
             },
         ]
 
@@ -176,6 +186,8 @@ describe("calculateNitrogenFixation", () => {
                 m_cropresidue: true,
                 b_lu_start: null,
                 b_lu_end: null,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
 

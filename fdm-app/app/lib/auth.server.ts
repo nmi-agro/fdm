@@ -2,7 +2,7 @@ import {
     createDisplayUsername,
     createFdmAuth,
     type FdmAuth,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { GenericEndpointContext, Session } from "better-auth"
 import { redirect } from "react-router"
 import { fdm } from "~/lib/fdm.server"
@@ -32,12 +32,9 @@ if (serverConfig.mail) {
             ...auth.options.databaseHooks?.user,
             create: {
                 ...auth.options.databaseHooks?.user?.create,
-                after: async (
-                    user: ExtendedUser,
-                    context?: GenericEndpointContext,
-                ) => {
+                after: async (user: any, _context?: GenericEndpointContext) => {
                     if (originalUserCreateAfter) {
-                        await originalUserCreateAfter(user, context)
+                        await originalUserCreateAfter(user)
                     }
                     try {
                         const email = await renderWelcomeEmail(user)
@@ -75,10 +72,11 @@ export async function getSession(request: Request): Promise<FdmSession> {
     }
 
     // Determine userName
-    let displayUserName = user.displayUsername
-    if (!displayUserName) {
-        displayUserName = createDisplayUsername(user.firstname, user.surname)
-    }
+    const displayUserName =
+        user.displayUsername ||
+        createDisplayUsername(user.firstname, user.surname) ||
+        user.name ||
+        user.email
 
     // Expand session
     const sessionWithUserName = {

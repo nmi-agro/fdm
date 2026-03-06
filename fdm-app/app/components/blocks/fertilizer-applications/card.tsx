@@ -1,6 +1,6 @@
-import type { Dose } from "@svenvw/fdm-calculator"
-import type { Fertilizer } from "@svenvw/fdm-core"
-import type { ApplicationMethods } from "@svenvw/fdm-data"
+import type { Dose } from "@nmi-agro/fdm-calculator"
+import type { Fertilizer } from "@nmi-agro/fdm-core"
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useFetcher, useLocation, useNavigation, useParams } from "react-router"
@@ -52,7 +52,7 @@ export function FertilizerApplicationCard({
     const b_id_or_b_lu_catalogue = params.b_lu_catalogue || params.b_id
 
     const handleDelete = (p_app_id: string | string[]) => {
-        if (fetcher.state === "submitting") return
+        if (fetcher.state !== "idle") return
 
         fetcher.submit({ p_app_id }, { method: "DELETE" })
     }
@@ -207,6 +207,7 @@ export function FertilizerApplicationCard({
                     canModifyFertilizerApplication={
                         canModifyFertilizerApplication
                     }
+                    isBusy={fetcher.state !== "idle"}
                 />
             </CardContent>
         </Card>

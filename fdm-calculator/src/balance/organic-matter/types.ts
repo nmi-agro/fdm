@@ -4,7 +4,7 @@ import type {
     FertilizerApplication,
     Field,
     SoilAnalysis,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { Decimal } from "decimal.js"
 
 /**
@@ -153,6 +153,8 @@ export type OrganicMatterBalanceFieldResult = {
     b_id: string
     /** The area of the field in hectares. */
     b_area: number
+    /** Whether the field is a buffer strip */
+    b_bufferstrip: boolean
     /** The detailed organic matter balance for the field. Undefined if an error occurred. */
     balance?: OrganicMatterBalanceField
     /** An error message if the calculation for this field failed. */
@@ -193,7 +195,10 @@ export type SoilAnalysisPicked = Pick<
  */
 export type FieldInput = {
     /** The core details of the field. */
-    field: Pick<Field, "b_id" | "b_centroid" | "b_area" | "b_start" | "b_end">
+    field: Pick<
+        Field,
+        "b_id" | "b_centroid" | "b_area" | "b_start" | "b_end" | "b_bufferstrip"
+    >
     /** The list of cultivations that took place on the field. */
     cultivations: Pick<
         Cultivation,
@@ -248,6 +253,24 @@ export type OrganicMatterBalanceInput = {
     /** A list of all available cultivation details from the farm's catalogue. */
     cultivationDetails: CultivationDetail[]
     /** The start and end date of the calculation period. */
+    timeFrame: {
+        start: Date
+        end: Date
+    }
+}
+
+/**
+ * Represents the necessary input data for a single field for the organic matter balance calculation.
+ * This includes the field-specific data as well as the shared catalogue details.
+ */
+export type OrganicMatterBalanceFieldInput = {
+    /** The input data for the specific field. */
+    fieldInput: FieldInput
+    /** A list of all available fertilizer details from the farm's catalogue. */
+    fertilizerDetails: FertilizerDetail[]
+    /** A list of all available cultivation details from the farm's catalogue. */
+    cultivationDetails: CultivationDetail[]
+    /** The calculation period. */
     timeFrame: {
         start: Date
         end: Date
@@ -310,9 +333,15 @@ export type OrganicMatterBalanceFieldNumeric = {
 
 /** Numeric version of `OrganicMatterBalanceFieldResult`. */
 export type OrganicMatterBalanceFieldResultNumeric = {
+    /** The unique identifier of the field. */
     b_id: string
+    /** The area of the field in hectares. */
     b_area: number
+    /** Whether the field is a buffer strip */
+    b_bufferstrip: boolean
+    /** The detailed organic matter balance for the field. Undefined if an error occurred. */
     balance?: OrganicMatterBalanceFieldNumeric
+    /** An error message if the calculation for this field failed. */
     errorMessage?: string
 }
 

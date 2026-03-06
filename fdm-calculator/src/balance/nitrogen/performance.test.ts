@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest"
+import type { FdmType } from "@nmi-agro/fdm-core"
+import Decimal from "decimal.js"
+import { describe, expect, it, vi } from "vitest"
 import { calculateNitrogenBalance } from "./index"
 import type {
     CultivationDetail,
@@ -6,6 +8,20 @@ import type {
     FieldInput,
     NitrogenBalanceInput,
 } from "./types"
+
+// Mock FdmType
+const mockFdm = {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    // biome-ignore lint/suspicious/noThenProperty: Simulate cache miss
+    then: vi.fn((resolve) =>
+        resolve ? Promise.resolve(resolve([])) : Promise.resolve([]),
+    ),
+    insert: vi.fn().mockReturnThis(),
+    values: vi.fn().mockResolvedValue(undefined),
+} as unknown as FdmType
 
 /**
  * Utility function to generate mock data for performance testing.
@@ -72,6 +88,7 @@ function generateMockData(numberOfFields: number): NitrogenBalanceInput {
             b_area: Math.floor(Math.random() * 50 + 10), // Random area between 10 and 60
             b_start: fieldStart,
             b_end: fieldEnd,
+            b_bufferstrip: false,
         }
 
         const cultivations: FieldInput["cultivations"] = [
@@ -81,6 +98,8 @@ function generateMockData(numberOfFields: number): NitrogenBalanceInput {
                 m_cropresidue: false,
                 b_lu_start: new Date(2023, 3, 1),
                 b_lu_end: new Date(2023, 8, 1),
+                b_lu_name: "Mock Cultivation",
+                b_lu_croprotation: "maize",
             },
         ]
 
@@ -147,6 +166,9 @@ function generateMockData(numberOfFields: number): NitrogenBalanceInput {
             harvests,
             soilAnalyses,
             fertilizerApplications,
+            depositionSupply: {
+                total: new Decimal(0),
+            },
         })
     }
 
@@ -179,7 +201,7 @@ describe("Nitrogen Balance Performance", () => {
         // Measure execution time
         const startTime = process.hrtime.bigint()
 
-        const result = await calculateNitrogenBalance(mockInput)
+        const result = await calculateNitrogenBalance(mockFdm, mockInput)
 
         const endTime = process.hrtime.bigint()
         const durationMs = Number(endTime - startTime) / 1_000_000
@@ -190,8 +212,10 @@ describe("Nitrogen Balance Performance", () => {
 
         expect(result).toBeDefined()
         expect(result.fields.length).toBe(numberOfFields)
-        // Add more specific assertions if needed, e.g., checking total balance values
-        // expect(result.balance).toBeCloseTo(...)
+        expect(typeof result.balance).toBe("number")
+        expect(typeof result.supply.total).toBe("number")
+        expect(typeof result.emission.total).toBe("number")
+        expect(typeof result.removal.total).toBe("number")
 
         // Assert that the calculation completed within the desired timeout
         expect(durationMs).toBeLessThan(30000) // 30 seconds

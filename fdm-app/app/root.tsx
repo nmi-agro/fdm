@@ -19,6 +19,7 @@ import { getToast } from "remix-toast"
 import { toast as notify } from "sonner"
 import { Banner } from "~/components/custom/banner"
 import { ErrorBlock } from "~/components/custom/error"
+import { NavigationProgress } from "~/components/custom/navigation-progress"
 import { Toaster } from "~/components/ui/sonner"
 import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
@@ -48,7 +49,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const runtimeEnv = {
             PUBLIC_FDM_URL: process.env.PUBLIC_FDM_URL,
             PUBLIC_FDM_NAME: process.env.PUBLIC_FDM_NAME,
-            PUBLIC_FDM_PRIVACY_URL: process.env.PUBLIC_FDM_PRIVACY_URL,
             PUBLIC_FDM_DATASETS_URL: process.env.PUBLIC_FDM_DATASETS_URL,
             PUBLIC_MAP_PROVIDER: process.env.PUBLIC_MAP_PROVIDER,
             PUBLIC_MAPTILER_API_KEY: process.env.PUBLIC_MAPTILER_API_KEY,
@@ -92,7 +92,7 @@ export function Layout() {
         if (posthogConfig) {
             try {
                 posthog.init(posthogConfig.key, {
-                    api_host: "/ph",
+                    api_host: "/ingest",
                     ui_host: posthogConfig.host,
                     person_profiles: "always",
                     loaded: () => {},
@@ -153,6 +153,7 @@ export function Layout() {
             </head>
             <body>
                 <Outlet />
+                <NavigationProgress />
                 <Banner />
                 <Toaster />
                 <ErrorBoundary error={null} params={{}} />

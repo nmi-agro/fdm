@@ -7,8 +7,8 @@ import type { z } from "zod"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Button } from "~/components/ui/button"
+import { Spinner } from "~/components/ui/spinner"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -62,7 +62,7 @@ export default function SignIn() {
     }, [])
 
     const isSubmitting =
-        (navigation.state === "submitting" &&
+        (navigation.state !== "idle" &&
             navigation.formAction?.startsWith("/signin/verify")) ||
         isAutoSubmitting
 
@@ -121,7 +121,7 @@ export default function SignIn() {
                     >
                         {isSubmitting ? (
                             <div className="flex items-center space-x-2">
-                                <LoadingSpinner />
+                                <Spinner />
                                 <span>Verifiëren...</span>
                             </div>
                         ) : (

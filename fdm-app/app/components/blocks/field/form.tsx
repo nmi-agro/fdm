@@ -5,7 +5,6 @@ import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
 import { Combobox } from "~/components/custom/combobox"
-import { LoadingSpinner } from "~/components/custom/loadingspinner"
 import { Button } from "~/components/ui/button"
 import {
     Dialog,
@@ -24,6 +23,7 @@ import {
     FormMessage,
 } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
+import { Spinner } from "~/components/ui/spinner"
 import { FormSchema } from "./schema"
 
 interface FieldDetailsDialogProps {
@@ -131,7 +131,7 @@ export default function FieldDetailsDialog({
                                 >
                                     {form.formState.isSubmitting ? (
                                         <div className="flex items-center space-x-2">
-                                            <LoadingSpinner />
+                                            <Spinner />
                                             <span>Opslaan...</span>
                                         </div>
                                     ) : (

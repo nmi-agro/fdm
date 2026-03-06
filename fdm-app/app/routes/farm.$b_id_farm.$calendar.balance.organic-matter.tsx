@@ -1,4 +1,4 @@
-import { getFarm, getFarms, getFields } from "@svenvw/fdm-core"
+import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
     data,
     type LoaderFunctionArgs,
@@ -93,16 +93,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_id_farm,
             timeframe,
         )
-        const fieldOptions = fields.map((field) => {
-            if (!field?.b_id || !field?.b_name) {
-                throw new Error("Invalid field data structure")
-            }
-            return {
-                b_id: field.b_id,
-                b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
-            }
-        })
+        const fieldOptions = fields
+            .filter((field) => !field.b_bufferstrip)
+            .map((field) => {
+                if (!field?.b_id || !field?.b_name) {
+                    throw new Error("Invalid field data structure")
+                }
+                return {
+                    b_id: field.b_id,
+                    b_name: field.b_name,
+                    b_area: Math.round(field.b_area * 10) / 10,
+                }
+            })
 
         // Return user information from loader
         return {

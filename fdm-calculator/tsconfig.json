@@ -22,8 +22,8 @@
         "noFallthroughCasesInSwitch": true,
         "baseUrl": ".",
         "paths": {
-            "@svenvw/fdm-core": ["../fdm-core/src/index.ts"],
-            "@svenvw/fdm-data": ["../fdm-data/src/index.ts"]
+            "@nmi-agro/fdm-core": ["../fdm-core/src/index.ts"],
+            "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"]
         }
     },
     "include": ["src", "src/**/*.test.ts"]

@@ -3,13 +3,13 @@ import type {
     CurrentSoilData,
     FdmType,
     Field,
-} from "@svenvw/fdm-core"
-import * as fdmCore from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
+import * as fdmCore from "@nmi-agro/fdm-core"
 import { describe, expect, it, vi } from "vitest"
 import { collectNL2025InputForNorms } from "./input"
 
-vi.mock("@svenvw/fdm-core", async () => {
-    const actual = await vi.importActual("@svenvw/fdm-core")
+vi.mock("@nmi-agro/fdm-core", async () => {
+    const actual = await vi.importActual("@nmi-agro/fdm-core")
     return {
         ...actual,
         getField: vi.fn(),

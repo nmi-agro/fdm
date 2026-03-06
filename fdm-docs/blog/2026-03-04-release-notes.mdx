@@ -1,0 +1,90 @@
+---
+slug: release-february-2026
+title: February 2026 Release
+authors: [svenverweij]
+tags: [release, fdm-app, fdm-core, fdm-calculator, fdm-docs]
+date: 2026-03-04
+---
+
+The February 2026 release brings three major workflow improvements: uploading and reviewing multiple soil analyses in one go, editing harvest data and fertilizer applications directly from the rotation table, and a new invitation system that allows non-registered users to be invited to a farm before they sign up. The release also adds a carbon sequestration card to the Atlas and two new SOM-based calculator functions.
+
+{/* truncate */}
+
+### Farm Access and Invitations
+
+This release introduces a formal invitation system for granting access to farms, replacing the previous approach of directly assigning roles.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+*   **Invitation-based role granting:** `grantRoleToFarm` now creates a pending invitation with a 7-day expiry window instead of immediately granting access. The target principal must accept before gaining any permissions.
+*   **Generic invitation API:** The invitation system has been designed to be resource-agnostic. New functions cover the full lifecycle:
+    *   `createInvitation` — creates a pending invitation for any resource type
+    *   `acceptInvitation` — accepts a pending invitation and applies the role
+    *   `declineInvitation` — declines a pending invitation
+    *   `listPendingInvitationsForPrincipal` — lists all pending invitations for a principal across resources
+    *   `autoAcceptInvitationsForNewUser` — automatically accepts email-based invitations when a new user verifies their email address
+*   **Farm-specific helpers:** `listPendingInvitationsForFarm` (requires share permission) and `listPendingInvitationsForUser` return pending farm invitations enriched with farm and organization names.
+*   **Invitation management:** `cancelInvitationForFarm` and `updateRoleOfInvitationForFarm` allow the inviting party to cancel or adjust an outstanding invitation.
+*   **Enriched role representation:** Farm roles are now returned as a list of objects containing `role`, `principal_id`, and `principal_type` (`"user"` or `"organization"`), providing more context where role information is displayed.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   The farm overview page now surfaces pending invitations with accept and decline actions.
+*   An invitation email is sent to the recipient when they are invited to a farm.
+*   The farm access settings page handles the accept and decline intents, and the access list now makes it clear when invitation management is available.
+*   Non-registered users can be invited ahead of sign-up; upon email verification, outstanding invitations are automatically accepted.
+
+### Organization Management
+
+*   **Edit organization:** Dedicated pages allow users to update their organization's details and add new members in one place.
+*   **Farm overview per organization:** A searchable table now shows all farms accessible to an organization, making it straightforward to get an overview across large portfolios.
+
+### Soil Data Management
+
+*   **Bulk PDF upload for soil analyses:** Users can upload multiple soil analysis PDFs at once, review the parsed results in a table, and connect them to the relevant field — all in a single workflow on the new fields page.
+*   **Clarified estimates:** The new fields page now makes it explicit that imported soil parameters are estimates derived from the PDF, and that multiple files can be uploaded in one session.
+*   **Grouped soil parameters:** Soil parameters on the field detail page are now grouped and ordered to improve readability.
+*   **Historical analyses:** The soil analysis list for a field now also shows analyses recorded before the currently selected year, avoiding the situation where relevant historical data was not visible.
+
+### Rotation Table Enhancements
+
+*   **Inline harvest editing:** Harvest dates and harvest parameters can now be edited directly from the cell in the rotation table, without navigating to a separate page.
+*   **Fertilizer application drill-down:** Fertilizer badges in the rotation table are now clickable. Clicking a badge opens a table of all applications of that fertilizer for the selected cultivation or field, and those applications can be edited in place.
+
+### Atlas Enhancements
+
+*   **Carbon sequestration card:** A new card on the field details page in Atlas shows the current estimated soil organic carbon state, the potential maximum, and reference figures that put the values in perspective.
+*   **Improved field details layout:** The field details page has been redesigned for better information hierarchy and improved responsiveness across screen sizes.
+*   **Floating back-to-map button:** A floating button on the field details page makes it easier to return to the map without scrolling back to the top.
+*   **Map performance:** Elevation data requests in the Atlas have been reduced from a large number of per-pixel queries to 9 requests per pan/zoom by sampling a 3×3 grid of points across the visible viewport. These 9 values are used to calculate the min/max elevation range for the colour legend. Combined with AbortController cancelling in-flight requests on navigation, this results in faster map loads and fewer stale-data artefacts.
+
+### Farm Create Wizard
+
+*   **Onboarding context:** An information box at the start of the farm create wizard explains what the steps involve before users begin.
+*   **Additional farm fields:** The create form now captures KvK number, grazing intention, and organic certification status, bringing the data model in line with reporting requirements.
+*   **Derogation question scoping:** The derogation question is only shown when creating farms for seasons before 2026, reflecting the end of the derogation scheme.
+
+### FDM Calculator: SOM-Based Functions
+
+Two new functions have been added to quantify the agronomic value of changes in soil organic matter (SOM):
+
+*   **`calculateNlvSupplyBySom`** — calculates the change in nitrogen-leverend vermogen (NLV) resulting from a given change in SOM content.
+*   **`calculateWaterSupplyBySom`** — calculates the change in topsoil water holding capacity resulting from a given change in SOM content.
+
+These functions complement the existing organic matter balance capabilities and can be used to evaluate the practical impact of SOM management decisions on nitrogen supply and water retention.
+
+### Documentation
+
+*   The Authorization page in the FDM documentation now describes the invitation system, including how invitations are created, accepted, and managed.
+
+### Technical Improvements
+
+*   **Navigation feedback:** If a page transition takes longer than 300 ms, a loading spinner is shown and the page is blurred to prevent unintended double-clicks on navigation actions.
+*   **Email templates:** All transactional email templates now share a common layout, ensuring consistent styling and footers.
+*   **Error handling:**Permission-denied errors are now correctly identified even when wrapped in other error types, preventing unnecessary 500 error pages.
+*   **Postmark inactive recipients:** When an email cannot be sent because the recipient address is inactive in Postmark, the user now sees a specific, actionable toast message instead of a generic error.
+*   **UI components:** The shadcn/ui components have been migrated to the unified `@radix-ui` package.
+
+---
+
+For a detailed list of changes, please refer to the package-specific changelogs for [fdm-app](https://github.com/nmi-agro/fdm/blob/main/fdm-app/CHANGELOG.md), [fdm-calculator](https://github.com/nmi-agro/fdm/blob/main/fdm-calculator/CHANGELOG.md), [fdm-core](https://github.com/nmi-agro/fdm/blob/main/fdm-core/CHANGELOG.md), and [fdm-docs](https://github.com/nmi-agro/fdm/blob/main/fdm-docs/CHANGELOG.md). Feedback and contributions are welcome on our GitHub repository.

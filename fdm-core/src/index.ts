@@ -5,8 +5,8 @@
  * The `fdm` defines the {@link fdmLocal} and {@link fdmServer} class to store, retrieve and update the Farm Data Model
  *
  * Created by Nutriënten Management Instituut (www.nmi-agro.nl)
- * Source code available at https://github.com/SvenVw/fdm
- * In case you find a bug, please report at https://github.com/SvenVw/fdm/issues
+ * Source code available at https://github.com/nmi-agro/fdm
+ * In case you find a bug, please report at https://github.com/nmi-agro/fdm/issues
  *
  * @public
  * @packageDocumentation
@@ -15,13 +15,13 @@
 /** {@inheritDoc fdmServer} */
 import * as fdmSchema from "./db/schema"
 export { fdmSchema }
+export type { FdmAuth } from "./authentication"
 // export { createFdmLocal } from './fdm-local'
 export {
     createDisplayUsername,
     createFdmAuth,
     updateUserProfile,
 } from "./authentication"
-export type { FdmAuth } from "./authentication.d"
 export { checkPermission } from "./authorization"
 export type { PrincipalId } from "./authorization.d"
 export {
@@ -57,6 +57,10 @@ export type {
     CultivationCatalogue,
     CultivationPlan,
 } from "./cultivation.d"
+export type {
+    invitationTypeInsert,
+    invitationTypeSelect,
+} from "./db/schema-authz"
 export {
     addDerogation,
     isDerogationGrantedForYear,
@@ -65,15 +69,19 @@ export {
 } from "./derogation"
 export {
     addFarm,
+    cancelInvitationForFarm,
     getFarm,
     getFarms,
     grantRoleToFarm,
     isAllowedToDeleteFarm,
     isAllowedToShareFarm,
+    listPendingInvitationsForFarm,
+    listPendingInvitationsForUser,
     listPrincipalsForFarm,
     removeFarm,
     revokePrincipalFromFarm,
     updateFarm,
+    updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "./farm"
 export type { FdmType } from "./fdm.d"
@@ -138,6 +146,15 @@ export type {
     HarvestParameters,
     HarvestParametersDefault,
 } from "./harvest.d"
+export {
+    acceptInvitation,
+    autoAcceptInvitationsForNewUser,
+    createInvitation,
+    declineInvitation,
+    listPendingInvitationsForPrincipal,
+    MAX_INVITATIONS_PENDING_PER_TARGET,
+    MAX_INVITATIONS_PER_INVITER_PER_HOUR,
+} from "./invitation"
 export { runMigration } from "./migrate"
 export {
     addOrganicCertification,
@@ -149,24 +166,6 @@ export {
     removeOrganicCertification,
 } from "./organic"
 export type { OrganicCertification } from "./organic.d"
-export {
-    acceptInvitation,
-    cancelPendingInvitation,
-    checkOrganizationSlugForAvailability,
-    createOrganization,
-    deleteOrganization,
-    getOrganization,
-    getOrganizationsForUser,
-    getPendingInvitation,
-    getPendingInvitationsForOrganization,
-    getPendingInvitationsForUser,
-    getUsersInOrganization,
-    inviteUserToOrganization,
-    rejectInvitation,
-    removeUserFromOrganization,
-    updateOrganization,
-    updateRoleOfUserAtOrganization,
-} from "./organization"
 export { lookupPrincipal } from "./principal"
 export {
     addSoilAnalysis,

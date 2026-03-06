@@ -1,9 +1,10 @@
-import type { getFarm } from "@svenvw/fdm-core"
+import type { getFarm } from "@nmi-agro/fdm-core"
 import {
     Calendar,
     Check,
     ChevronRight,
     House,
+    LayoutGrid,
     Shapes,
     Sprout,
     Square,
@@ -30,19 +31,27 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 
 export function SidebarFarm({
     farm,
 }: {
     farm: Awaited<ReturnType<typeof getFarm>> | undefined
 }) {
-    function getSuperiorRole(allRoles: ("owner" | "advisor" | "researcher")[]) {
+    function getSuperiorRole(
+        allRoles: { role: "owner" | "advisor" | "researcher" }[],
+    ) {
         if (allRoles.length > 0) {
             const ordering = ["owner", "advisor", "researcher"] as const
             const sorted = [...allRoles].sort(
-                (a, b) => ordering.indexOf(a) - ordering.indexOf(b),
+                (a, b) => ordering.indexOf(a.role) - ordering.indexOf(b.role),
             )
-            return sorted[0]
+            return sorted[0].role
         }
         return null
     }
@@ -61,19 +70,12 @@ export function SidebarFarm({
         location.pathname.includes("farm/create") ||
         searchParams.get("returnUrl")?.includes("farm/create")
     const farmRole = farm ? getSuperiorRole(farm.roles) : null
-    // Set the farm link
-    let farmLink: string
-    let farmLinkDisplay: string
-    if (isCreateFarmWizard) {
-        farmLink = "/farm"
-        farmLinkDisplay = "Terug naar bedrijven"
-    } else if (farmId && farmId !== "undefined") {
-        farmLink = `/farm/${farmId}`
-        farmLinkDisplay = farm?.b_name_farm ? farm.b_name_farm : "Bedrijf"
-    } else {
-        farmLink = "/farm"
-        farmLinkDisplay = "Overzicht bedrijven"
-    }
+
+    const isFarmOverview =
+        location.pathname === "/farm" || location.pathname === "/farm/"
+
+    const isFarmSelected =
+        farmId && farmId !== "undefined" && !isCreateFarmWizard
 
     let fieldsLink: string | undefined
     if (isCreateFarmWizard) {
@@ -101,214 +103,268 @@ export function SidebarFarm({
     }
 
     return (
-        <SidebarGroup>
-            <SidebarGroupLabel>Bedrijf</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={
-                                location.pathname === farmLink ||
-                                location.pathname.includes(
-                                    `/farm/${farmId}/settings`,
-                                )
-                            }
-                        >
-                            <NavLink to={farmLink}>
-                                <House />
-                                <span className="truncate">
-                                    {farmLinkDisplay}
-                                </span>
-                                {farmRole && (
-                                    <Badge
-                                        key={farmRole}
-                                        variant="outline"
-                                        className="ml-auto"
-                                    >
-                                        {farmRole === "owner"
-                                            ? "Eigenaar"
-                                            : farmRole === "advisor"
-                                              ? "Adviseur"
-                                              : farmRole === "researcher"
-                                                ? "Onderzoeker"
-                                                : "Onbekend"}
-                                    </Badge>
-                                )}
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    {/* Conditionally render the Kalender item */}
-                    {farmId && !isCreateFarmWizard ? (
-                        <Collapsible
-                            asChild
-                            defaultOpen={false}
-                            className="group/collapsible"
-                            onOpenChange={setIsCalendarOpen}
-                        >
-                            <SidebarMenuItem>
-                                <CollapsibleTrigger asChild>
-                                    <SidebarMenuButton
-                                        tooltip={"Kalender"}
-                                        className="flex items-center"
-                                    >
-                                        <Calendar />
-                                        <span>Kalender </span>
-                                        {!isCalendarOpen && (
-                                            <Badge className="ml-1">
-                                                {selectedCalendar === "all"
-                                                    ? "Alle jaren"
-                                                    : selectedCalendar}
-                                            </Badge>
-                                        )}
-                                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                    </SidebarMenuButton>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <SidebarMenuSub>
-                                        {calendarSelection?.map((item) => {
-                                            // Construct the new URL with the selected calendar
-                                            const newUrl =
-                                                location.pathname.replace(
-                                                    /\/(\d{4}|all)/,
-                                                    `/${item}`,
-                                                )
-                                            return (
-                                                <SidebarMenuSubItem
-                                                    key={item}
-                                                    className={
-                                                        selectedCalendar ===
-                                                        item
-                                                            ? "bg-accent text-accent-foreground"
-                                                            : ""
-                                                    }
-                                                >
-                                                    <SidebarMenuSubButton
-                                                        asChild
-                                                        onClick={() =>
-                                                            setCalendar(item)
-                                                        }
-                                                    >
-                                                        <NavLink
-                                                            to={newUrl}
-                                                            className="flex items-center"
-                                                        >
-                                                            <span>
-                                                                {item === "all"
-                                                                    ? "Alle jaren"
-                                                                    : item}
-                                                            </span>
-                                                            {selectedCalendar ===
-                                                                item && (
-                                                                <Check className="ml-auto h-4 w-4" />
-                                                            )}
-                                                        </NavLink>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            )
-                                        })}
-                                    </SidebarMenuSub>
-                                </CollapsibleContent>
-                            </SidebarMenuItem>
-                        </Collapsible>
-                    ) : (
+        <TooltipProvider>
+            <SidebarGroup>
+                <SidebarGroupLabel>Bedrijf</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton
                                 asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
+                                isActive={isFarmOverview || isCreateFarmWizard}
+                                tooltip="Mijn bedrijven"
                             >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <Calendar />
-                                    <span>Kalender</span>
-                                </span>
+                                <NavLink to="/farm">
+                                    <LayoutGrid />
+                                    <span>
+                                        {isCreateFarmWizard
+                                            ? "Terug naar bedrijven"
+                                            : "Mijn bedrijven"}
+                                    </span>
+                                </NavLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                    )}
-                    <SidebarMenuItem>
-                        {fieldsLink ? (
-                            <SidebarMenuButton
-                                asChild
-                                isActive={location.pathname.includes(
-                                    fieldsLink,
-                                )}
-                            >
-                                <NavLink to={fieldsLink}>
-                                    <Square />
-                                    <span>Percelen</span>
-                                </NavLink>
-                            </SidebarMenuButton>
-                        ) : (
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <Square />
-                                    <span>Percelen</span>
-                                </span>
-                            </SidebarMenuButton>
-                        )}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        {rotationLink ? (
-                            <SidebarMenuButton
-                                asChild
-                                isActive={location.pathname.includes(
-                                    rotationLink,
-                                )}
-                            >
-                                <NavLink to={rotationLink}>
-                                    <Sprout />
-                                    <span>Bouwplan</span>
-                                </NavLink>
-                            </SidebarMenuButton>
-                        ) : (
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <Sprout />
-                                    <span>Bouwplan</span>
-                                </span>
-                            </SidebarMenuButton>
-                        )}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        {fertilizersLink ? (
-                            <SidebarMenuButton
-                                asChild
-                                isActive={location.pathname.includes(
-                                    fertilizersLink,
-                                )}
-                            >
-                                <NavLink to={fertilizersLink}>
-                                    <Shapes />
-                                    <span>Meststoffen</span>
-                                </NavLink>
-                            </SidebarMenuButton>
-                        ) : (
-                            <SidebarMenuButton
-                                asChild
-                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
-                            >
-                                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
-                                    <Shapes />
-                                    <span>Meststoffen</span>
-                                </span>
-                            </SidebarMenuButton>
-                        )}
-                    </SidebarMenuItem>
-                    {/* <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <NavLink to="./stable">
-                                        <PawPrint />
-                                        <span>Stal & dieren</span>
+
+                        {isFarmSelected && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={
+                                        location.pathname ===
+                                            `/farm/${farmId}` ||
+                                        location.pathname.includes(
+                                            `/farm/${farmId}/settings`,
+                                        )
+                                    }
+                                    tooltip={
+                                        farm?.b_name_farm ?? "Bedrijfsoverzicht"
+                                    }
+                                >
+                                    <NavLink to={`/farm/${farmId}`}>
+                                        <House />
+                                        <span className="truncate font-medium">
+                                            {farm?.b_name_farm ?? "Overzicht"}
+                                        </span>
+                                        {farmRole && (
+                                            <Badge
+                                                key={farmRole}
+                                                variant="outline"
+                                                className="ml-auto text-[10px]"
+                                            >
+                                                {farmRole === "owner"
+                                                    ? "Eigenaar"
+                                                    : farmRole === "advisor"
+                                                      ? "Adviseur"
+                                                      : farmRole ===
+                                                          "researcher"
+                                                        ? "Onderzoeker"
+                                                        : "Lid"}
+                                            </Badge>
+                                        )}
                                     </NavLink>
                                 </SidebarMenuButton>
-                            </SidebarMenuItem> */}
-                </SidebarMenu>
-            </SidebarGroupContent>
-        </SidebarGroup>
+                            </SidebarMenuItem>
+                        )}
+
+                        {/* Conditionally render the Kalender item */}
+                        {isFarmSelected ? (
+                            <Collapsible
+                                asChild
+                                open={isCalendarOpen}
+                                className="group/collapsible"
+                                onOpenChange={setIsCalendarOpen}
+                            >
+                                <SidebarMenuItem>
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuButton
+                                            tooltip={"Kalender"}
+                                            className="flex items-center"
+                                        >
+                                            <Calendar />
+                                            <span>Kalender </span>
+                                            {!isCalendarOpen && (
+                                                <Badge className="ml-1">
+                                                    {selectedCalendar === "all"
+                                                        ? "Alle jaren"
+                                                        : selectedCalendar}
+                                                </Badge>
+                                            )}
+                                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                        </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <SidebarMenuSub>
+                                            {calendarSelection?.map((item) => {
+                                                // Construct the new URL with the selected calendar
+                                                const newUrl =
+                                                    location.pathname.replace(
+                                                        /\/(\d{4}|all)/,
+                                                        `/${item}`,
+                                                    )
+                                                return (
+                                                    <SidebarMenuSubItem
+                                                        key={item}
+                                                        className={
+                                                            selectedCalendar ===
+                                                            item
+                                                                ? "bg-accent text-accent-foreground"
+                                                                : ""
+                                                        }
+                                                    >
+                                                        <SidebarMenuSubButton
+                                                            asChild
+                                                            onClick={() =>
+                                                                setCalendar(
+                                                                    item,
+                                                                )
+                                                            }
+                                                        >
+                                                            <NavLink
+                                                                to={newUrl}
+                                                                className="flex items-center"
+                                                            >
+                                                                <span>
+                                                                    {item ===
+                                                                    "all"
+                                                                        ? "Alle jaren"
+                                                                        : item}
+                                                                </span>
+                                                                {selectedCalendar ===
+                                                                    item && (
+                                                                    <Check className="ml-auto h-4 w-4" />
+                                                                )}
+                                                            </NavLink>
+                                                        </SidebarMenuSubButton>
+                                                    </SidebarMenuSubItem>
+                                                )
+                                            })}
+                                        </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                </SidebarMenuItem>
+                            </Collapsible>
+                        ) : (
+                            <SidebarMenuItem>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            asChild
+                                            className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Calendar />
+                                                <span>Kalender</span>
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om de kalender te
+                                        gebruiken
+                                    </TooltipContent>
+                                </Tooltip>
+                            </SidebarMenuItem>
+                        )}
+                        <SidebarMenuItem>
+                            {fieldsLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={location.pathname.includes(
+                                        fieldsLink,
+                                    )}
+                                >
+                                    <NavLink to={fieldsLink}>
+                                        <Square />
+                                        <span>Percelen</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            asChild
+                                            className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Square />
+                                                <span>Percelen</span>
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om uw percelen te
+                                        beheren
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            {rotationLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={location.pathname.includes(
+                                        rotationLink,
+                                    )}
+                                >
+                                    <NavLink to={rotationLink}>
+                                        <Sprout />
+                                        <span>Bouwplan</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            asChild
+                                            className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Sprout />
+                                                <span>Bouwplan</span>
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om het bouwplan te
+                                        beheren
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            {fertilizersLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={location.pathname.includes(
+                                        fertilizersLink,
+                                    )}
+                                >
+                                    <NavLink to={fertilizersLink}>
+                                        <Shapes />
+                                        <span>Meststoffen</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            asChild
+                                            className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Shapes />
+                                                <span>Meststoffen</span>
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om meststoffen te
+                                        beheren
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+        </TooltipProvider>
     )
 }

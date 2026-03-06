@@ -1,12 +1,8 @@
-import {
-    acceptInvitation,
-    getPendingInvitation,
-    rejectInvitation,
-} from "@svenvw/fdm-core"
 import { useEffect } from "react"
 import {
     type ActionFunctionArgs,
     data,
+    Form,
     isRouteErrorResponse,
     type LoaderFunctionArgs,
     redirect,
@@ -14,7 +10,7 @@ import {
     useSearchParams,
     useSubmit,
 } from "react-router"
-import { redirectWithSuccess } from "remix-toast"
+import { dataWithError, redirectWithSuccess } from "remix-toast"
 import z from "zod"
 import { Button } from "~/components/ui/button"
 import {
@@ -25,45 +21,55 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import { getSession } from "~/lib/auth.server"
-import { fdm } from "~/lib/fdm.server"
+import { auth, getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import type { Route } from "../+types/root"
+import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
+import type { Route } from "./+types/organization.invitations.$invitation_id.respond"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Uitnodiging - Organisatie | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk jouw uitnodiging.",
+        },
+    ]
+}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
     await getSession(request)
 
     // Check for valid invitation id
-    if (!params.invitation_id) {
-        throw failBadRequest("Bad Request: invitation id missing")
+    const invitationId = params.invitation_id
+    if (!invitationId) {
+        throw data("Invitation not found", {
+            status: 404,
+            statusText: "Invitation not found",
+        })
+    }
+    const invitation = await auth.api.getInvitation({
+        query: {
+            id: invitationId,
+        },
+        headers: request.headers,
+    })
+
+    if (!invitation) {
+        throw data("Uitnodiging niet gevonden", {
+            status: 404,
+            statusText: "Invitation not found",
+        })
     }
 
-    // Check for valid invitation
-    try {
-        const invitation = await getPendingInvitation(fdm, params.invitation_id)
-
-        return {
-            invitationId: invitation.invitation_id,
-            inviterFirstName: invitation.inviter_firstname,
-            inviterSurname: invitation.inviter_surname,
-            organizationSlug: invitation.organization_slug,
-            organizationName: invitation.organization_name,
-            role: invitation.role,
-        }
-    } catch (_e) {
-        throw data("Invitation not found", 404)
-    }
+    return invitation
 }
 
 export default function Respond() {
-    const {
-        invitationId,
-        inviterFirstName,
-        inviterSurname,
-        organizationSlug,
-        organizationName,
-        role,
-    } = useLoaderData()
+    const invitation = useLoaderData<typeof loader>()
 
     const [searchParams] = useSearchParams()
     const intentRaw = searchParams.get("intent")
@@ -75,22 +81,20 @@ export default function Respond() {
         if (intent && intent === "accept") {
             submit(
                 {
-                    invitation_id: invitationId,
                     intent: "accept",
-                    organization_slug: organizationSlug,
                 },
                 { method: "POST" },
             )
         }
-    }, [intent, submit, invitationId, organizationSlug])
+    }, [intent, submit])
 
-    if (intent !== "accept" && intent !== "reject") {
-        throw failBadRequest(`Invalid intent: ${intent}`)
+    if (intent !== "accept" && intent !== "reject" && intent !== "do_nothing") {
+        throw new Error(`Invalid intent: ${intent}`)
     }
 
     if (intent === "accept") {
         return (
-            <h1 className="font-semibold mt-[200px] text-3xl text-center text-primary">
+            <h1 className="font-semibold mt-50 text-3xl text-center text-primary">
                 Uitnodiging wordt geaccepteerd...
             </h1>
         )
@@ -105,23 +109,25 @@ export default function Respond() {
                 <CardContent>
                     <Separator />
                     <p className="my-1">
-                        {`${inviterFirstName} ${inviterSurname} heeft je uitgenodigd om lid te worden van de organisatie `}
-                        <span className="font-semibold">{`${organizationName}.`}</span>
+                        {`${invitation.inviterEmail} heeft je uitgenodigd om lid te worden van de organisatie `}
+                        <span className="font-semibold">{`${invitation.organizationName}.`}</span>
                     </p>
                     <p className="my-1">
                         Je bent uitgenodigd als{" "}
-                        <i className="font-semibold">{role}</i>
+                        <i className="font-semibold">
+                            {getOrganizationRoleLabel(invitation.role)}
+                        </i>
                     </p>
                     <p className="my-1">
                         Weet je zeker dat je deze uitnodiging wilt afwijzen?
                     </p>
                 </CardContent>
                 <CardFooter>
-                    <form method="post" className="flex flex-row gap-2">
+                    <Form method="post" className="flex flex-row gap-2">
                         <input
                             type="hidden"
                             name="invitation_id"
-                            value={invitationId}
+                            value={invitation.id}
                         />
                         <Button
                             variant="destructive"
@@ -137,7 +143,7 @@ export default function Respond() {
                         >
                             Nee, terug naar Mijn Uitnodigingen
                         </Button>
-                    </form>
+                    </Form>
                 </CardFooter>
             </Card>
         </div>
@@ -145,41 +151,67 @@ export default function Respond() {
 }
 
 const FormSchema = z.object({
-    invitation_id: z.string(),
     intent: z.enum(["accept", "reject", "do_nothing"]),
-    organization_slug: z.string().optional(),
 })
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
     const formValues = await extractFormValuesFromRequest(request, FormSchema)
 
-    const session = await getSession(request)
+    await getSession(request)
+
+    const invitationId = params.invitation_id
+    if (!invitationId) {
+        throw data("Invitation not found", {
+            status: 404,
+            statusText: "Invitation not found",
+        })
+    }
+    const invitation = await auth.api.getInvitation({
+        query: {
+            id: invitationId,
+        },
+        headers: request.headers,
+    })
+
+    if (!invitation) {
+        throw dataWithError("Invitation not found", {
+            message: "Uitnodiging niet gevonden",
+        })
+    }
 
     if (formValues.intent === "accept") {
         try {
-            await acceptInvitation(
-                fdm,
-                formValues.invitation_id,
-                session.user.id,
-            )
-        } catch (_) {
-            throw data("Invitation not found", 404)
+            await auth.api.acceptInvitation({
+                headers: request.headers,
+                body: { invitationId: invitationId },
+            })
+        } catch (error) {
+            console.error("Failed to accept invitation:", error)
+            throw data("Failed to accept invitation", { status: 400 })
         }
-        return redirectWithSuccess(
-            `/organization/${formValues.organization_slug}`,
-            {
-                message: "Uitnodiging geaccepteerd! 🎉",
+
+        const organization = await auth.api.getFullOrganization({
+            query: {
+                organizationId: invitation.organizationId,
             },
-        )
+            headers: request.headers,
+        })
+        if (!organization) {
+            throw data("Organization not found", 404)
+        }
+        const organizationSlug = organization.slug
+
+        return redirectWithSuccess(`/organization/${organizationSlug}`, {
+            message: "Uitnodiging geaccepteerd! 🎉",
+        })
     }
 
     if (formValues.intent === "reject") {
         try {
-            await rejectInvitation(
-                fdm,
-                formValues.invitation_id,
-                session.user.id,
-            )
+            await auth.api.rejectInvitation({
+                headers: request.headers,
+                body: { invitationId: invitationId },
+            })
         } catch (_) {
             throw data("Invitation not found", 404)
         }
@@ -189,7 +221,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     if (formValues.intent === "do_nothing") {
-        return redirect("/organization/invitations")
+        return redirect("/organization")
     }
 
     throw new Error("invalid intent")
@@ -215,7 +247,7 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
                             </p>
                         </CardContent>
                         <CardFooter>
-                            <form method="post" className="flex flex-row gap-2">
+                            <Form method="post" className="flex flex-row gap-2">
                                 <input
                                     type="hidden"
                                     name="invitation_id"
@@ -226,9 +258,9 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
                                     name="intent"
                                     value="do_nothing"
                                 >
-                                    Terug naar mijn uitnodigingen
+                                    Terug naar mijn organisaties
                                 </Button>
-                            </form>
+                            </Form>
                         </CardFooter>
                     </Card>
                 </div>
@@ -237,13 +269,4 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
     }
 
     throw error
-}
-
-function failBadRequest(message: string) {
-    // Not 400 because 400 currently hits the Not Found error page
-    return fail(message, 500)
-}
-
-function fail(message: string, status: number) {
-    return data(message, { statusText: message, status: status })
 }

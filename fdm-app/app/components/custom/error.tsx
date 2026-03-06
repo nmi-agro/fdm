@@ -1,6 +1,6 @@
 import { ArrowLeft, Copy, Home } from "lucide-react"
 import { useEffect, useState } from "react"
-import { NavLink } from "react-router"
+import { NavLink, useNavigate } from "react-router"
 import { Button } from "~/components/ui/button"
 
 /**
@@ -32,6 +32,7 @@ export function ErrorBlock({
     timestamp: string
 }) {
     const [isCopied, setIsCopied] = useState(false)
+    const navigate = useNavigate()
 
     useEffect(() => {
         if (isCopied) {
@@ -77,11 +78,17 @@ export function ErrorBlock({
 
             {status === 404 ? (
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <Button asChild>
-                        <NavLink to="/">
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Terug naar
-                            vorige pagina
-                        </NavLink>
+                    <Button
+                        onClick={() => {
+                            if (window.history.length > 1) {
+                                navigate(-1)
+                            } else {
+                                navigate("/")
+                            }
+                        }}
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Terug naar vorige
+                        pagina
                     </Button>
                     <Button variant="outline" asChild>
                         <NavLink to="/">

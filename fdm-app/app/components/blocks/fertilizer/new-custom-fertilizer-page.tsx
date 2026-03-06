@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type {
     Fertilizer,
     FertilizerParameterDescriptionItem,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import { useRemixForm } from "remix-hook-form"
 import type { z } from "zod"

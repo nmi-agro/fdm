@@ -3,8 +3,9 @@ import z from "zod"
 export const FormSchema = z.object({
     code: z
         .string({
-            required_error: "Vul de verificatiecode in",
+            error: "Vul de verificatiecode in",
         })
+        .trim()
         .min(8, {
             message: "De code moet uit 8 tekens bestaan",
         })

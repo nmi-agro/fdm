@@ -39,6 +39,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 m_cropresidue: false, // No residue left
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = []
@@ -63,6 +65,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 m_cropresidue: true,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = [
@@ -113,6 +117,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 m_cropresidue: true,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = [
@@ -180,6 +186,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 m_cropresidue: true,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = [] // No harvest data
@@ -202,6 +210,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 m_cropresidue: true,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = []
@@ -226,6 +236,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 m_cropresidue: null, // null residue handling
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = []
@@ -250,6 +262,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 m_cropresidue: true,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
             },
         ]
         const harvests: FieldInput["harvests"] = [
@@ -282,6 +296,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 m_cropresidue: true,
+                b_lu_name: "test",
+                b_lu_croprotation: null,
             },
         ]
         const harvests: FieldInput["harvests"] = []

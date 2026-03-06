@@ -1,4 +1,4 @@
-import * as ProgressPrimitive from "@radix-ui/react-progress"
+import { Progress as ProgressPrimitive } from "radix-ui"
 import * as React from "react"
 
 import { cn } from "~/lib/utils"
@@ -22,7 +22,7 @@ const Progress = React.forwardRef<
                 "h-full w-full flex-1 bg-primary transition-all",
                 colorBar && `bg-${colorBar}`,
             )}
-            style={{ width: `${value || 0}%` }}
+            style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
         />
     </ProgressPrimitive.Root>
 ))
