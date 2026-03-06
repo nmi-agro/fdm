@@ -11,7 +11,12 @@
         "strict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "noFallthroughCasesInSwitch": true
+        "noFallthroughCasesInSwitch": true,
+        "baseUrl": ".",
+        "paths": {
+            "@nmi-agro/fdm-core": ["../fdm-core/src/index.ts"],
+            "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"]
+        }
     },
     "include": ["src/**/*", "vitest.config.ts"]
 }

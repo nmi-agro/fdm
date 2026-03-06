@@ -586,7 +586,7 @@ importers:
         specifier: workspace:*
         version: link:../fdm-core
       '@nmi-agro/rvo-connector':
-        specifier: latest
+        specifier: ^2.1.1
         version: 2.1.1
       '@turf/area':
         specifier: ^7.3.4
