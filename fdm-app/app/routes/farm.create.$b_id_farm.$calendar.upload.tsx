@@ -22,7 +22,7 @@ import { MijnPercelenUploadForm } from "@/app/components/blocks/mijnpercelen/for
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi"
+import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"

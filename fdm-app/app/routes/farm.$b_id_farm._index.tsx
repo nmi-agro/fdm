@@ -2,6 +2,7 @@ import { cowHead } from "@lucide/lab"
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
     ArrowRightLeft,
+    ArrowDownToLine,
     BookOpenText,
     ChevronUp,
     DownloadIcon,
@@ -11,6 +12,7 @@ import {
     Landmark,
     Loader2,
     MapIcon,
+    MapPin,
     PlusIcon,
     ScrollText,
     Shapes,
@@ -18,6 +20,7 @@ import {
     Square,
     Trash2,
     UserRoundCheck,
+    CloudDownload,
 } from "lucide-react"
 import { useState } from "react"
 import {
@@ -55,6 +58,8 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
+import { getRvoCredentials } from "../integrations/rvo"
+import { cn } from "~/lib/utils"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -116,6 +121,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Find unique roles
         const roles = [...new Set(farm.roles.map((role) => role.role))]
 
+        const farmWritePermission = await checkPermission(
+            fdm,
+            "farm",
+            "write",
+            b_id_farm,
+            session.principal_id,
+            new URL(request.url).pathname,
+            false,
+        )
+
+        const rvoCredentials = getRvoCredentials()
+        const isRvoConfigured = rvoCredentials !== undefined
+
         // Return the farm ID and session info
         return {
             b_id_farm: b_id_farm,
@@ -124,6 +142,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             farmArea: Math.round(farmArea),
             farmOptions: farmOptions,
             roles: roles,
+            farmWritePermission,
+            isRvoConfigured,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -446,6 +466,71 @@ export default function FarmDashboardIndex() {
                                             </CardHeader>
                                         </Card>
                                     </NavLink>
+                                </div>
+                            </div>
+
+                            {/* Acties */}
+                            <div className="space-y-4">
+                                <h2 className="text-2xl font-semibold tracking-tight">
+                                    Acties
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <NavLink
+                                        to={`${calendar}/field/new`}
+                                        className={cn(
+                                            !loaderData.farmWritePermission &&
+                                                "pointer-events-none opacity-50",
+                                        )}
+                                    >
+                                        <Card className="transition-all hover:shadow-md h-full">
+                                            <CardHeader>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="rounded-lg bg-muted p-3">
+                                                        <MapPin className="h-6 w-6 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle>
+                                                            Nieuw perceel
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            Teken of selecteer
+                                                            een perceel op de
+                                                            kaart.
+                                                        </CardDescription>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                        </Card>
+                                    </NavLink>
+                                    {loaderData.isRvoConfigured && (
+                                        <NavLink
+                                            to={`${calendar}/rvo`}
+                                            className={cn(
+                                                !loaderData.farmWritePermission &&
+                                                    "pointer-events-none opacity-50",
+                                            )}
+                                        >
+                                            <Card className="transition-all hover:shadow-md h-full">
+                                                <CardHeader>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="rounded-lg bg-muted p-3">
+                                                            <CloudDownload className="h-6 w-6 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <CardTitle>
+                                                                Ophalen bij RVO
+                                                            </CardTitle>
+                                                            <CardDescription>
+                                                                Importeer
+                                                                percelen vanuit
+                                                                RVO.
+                                                            </CardDescription>
+                                                        </div>
+                                                    </div>
+                                                </CardHeader>
+                                            </Card>
+                                        </NavLink>
+                                    )}
                                 </div>
                             </div>
                         </div>

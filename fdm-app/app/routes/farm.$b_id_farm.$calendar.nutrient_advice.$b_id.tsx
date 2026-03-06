@@ -30,7 +30,7 @@ import { clientConfig } from "~/lib/config"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getNmiApiKey } from "../integrations/nmi"
+import { getNmiApiKey } from "../integrations/nmi.server"
 
 // Meta
 export const meta: MetaFunction = () => {
