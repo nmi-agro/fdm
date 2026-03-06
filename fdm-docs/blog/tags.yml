@@ -30,7 +30,7 @@ fdm-app:
 
 fdm-rvo:
   label: fdm-rvo
-  description: Posts related to the RVO Synchronization Logic for FDM (@svenvw/fdm-rvo).
+  description: Posts related to the RVO Synchronization Logic for FDM (@nmi-agro/fdm-rvo).
   permalink: /fdm-rvo
 
 update:

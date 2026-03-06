@@ -26,9 +26,9 @@ import {
     RvoImportReviewStatus,
     type UserChoiceMap,
     type ImportReviewAction,
-} from "@svenvw/fdm-rvo/types"
-import { getItemId } from "@svenvw/fdm-rvo/utils"
-import { processRvoImport } from "@svenvw/fdm-rvo"
+} from "@nmi-agro/fdm-rvo/types"
+import { getItemId } from "@nmi-agro/fdm-rvo/utils"
+import { processRvoImport } from "@nmi-agro/fdm-rvo"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
 import { getFields, getFarm, getFarms } from "@svenvw/fdm-core"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"

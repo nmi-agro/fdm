@@ -1,5 +1,5 @@
 /**
- * # @svenvw/fdm-rvo: RVO Field Synchronization Logic
+ * # @nmi-agro/fdm-rvo: RVO Field Synchronization Logic
  *
  * This package provides the core logic for synchronizing agricultural field data with the
  * RVO (Rijksdienst voor Ondernemend Nederland) webservices. It wraps the

@@ -1,10 +1,10 @@
 {
-  "entryPoints": ["src/index.ts"],
-  "out": "docs",
-  "readme": "README.md",
-  "name": "@svenvw/fdm-rvo",
-  "excludePrivate": true,
-  "excludeProtected": true,
-  "hideGenerator": true,
-  "plugin": ["typedoc-plugin-missing-exports"]
+    "entryPoints": ["src/index.ts"],
+    "out": "docs",
+    "readme": "README.md",
+    "name": "@nmi-agro/fdm-rvo",
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "hideGenerator": true,
+    "plugin": ["typedoc-plugin-missing-exports"]
 }

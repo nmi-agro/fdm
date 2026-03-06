@@ -8,8 +8,8 @@ import type {
     RvoImportReviewItem,
     ImportReviewAction,
     UserChoiceMap,
-} from "@svenvw/fdm-rvo/types"
-import { getItemId } from "@svenvw/fdm-rvo/utils"
+} from "@nmi-agro/fdm-rvo/types"
+import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import {
     Table,
     TableBody,
@@ -205,7 +205,8 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                             <Tooltip>
                                 <TooltipTrigger>Gelijk</TooltipTrigger>
                                 <TooltipContent>
-                                    Perceel komt in {clientConfig.name} en bij RVO volledig overeen.
+                                    Perceel komt in {clientConfig.name} en bij
+                                    RVO volledig overeen.
                                 </TooltipContent>
                             </Tooltip>
                         </Badge>
@@ -249,7 +250,9 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                             className="bg-orange-50 text-orange-700 border-orange-200"
                         >
                             <Tooltip>
-                                <TooltipTrigger>Niet meer actief</TooltipTrigger>
+                                <TooltipTrigger>
+                                    Niet meer actief
+                                </TooltipTrigger>
                                 <TooltipContent>
                                     Perceel is in {clientConfig.name} nog
                                     actief, maar komt niet meer voor bij RVO.

@@ -1,4 +1,4 @@
-# @svenvw/fdm-rvo
+# @nmi-agro/fdm-rvo
 
 ## RVO Synchronization Logic for FDM
 
@@ -18,7 +18,7 @@ This package provides the core logic for synchronizing agricultural field data w
 ### Installation
 
 ```bash
-pnpm add @svenvw/fdm-rvo
+pnpm add @nmi-agro/fdm-rvo
 # Or if in a monorepo, ensure it's linked as a workspace dependency
 ```
 
@@ -40,7 +40,7 @@ RVO_ENVIRONMENT=production # or acceptance
 
 ```typescript
 // In your React Router v7 component (client-side)
-import { createRvoClient, generateAuthUrl, exchangeToken } from '@svenvw/fdm-rvo';
+import { createRvoClient, generateAuthUrl, exchangeToken } from '@nmi-agro/fdm-rvo';
 // Assuming you have a way to securely access server config on the client,
 // or that these are provided as build-time env vars (e.g., VITE_RVO_CLIENT_ID)
 import { serverConfig } from '~/lib/config.client'; // Example client-side config
@@ -80,7 +80,7 @@ const handleRvoCallback = async (code: string, state: string) => {
 
 ```typescript
 // In your React Router v7 component (client-side), after getting accessToken
-import { fetchRvoFields, compareFields } from '@svenvw/fdm-rvo';
+import { fetchRvoFields, compareFields } from '@nmi-agro/fdm-rvo';
 // Assuming you have an API endpoint to fetch local fields
 const fetchLocalFieldsApi = async (farmId: string, principalId: string) => {
   const response = await fetch(`/api/farm/${farmId}/fields?principalId=${principalId}`);
