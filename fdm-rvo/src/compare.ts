@@ -3,7 +3,11 @@ import intersect from "@turf/intersect"
 import union from "@turf/union"
 import area from "@turf/area"
 import { feature, featureCollection } from "@turf/helpers"
-import type { Field, Cultivation, CultivationCatalogue } from "@svenvw/fdm-core"
+import type {
+    Field,
+    Cultivation,
+    CultivationCatalogue,
+} from "@nmi-agro/fdm-core"
 import {
     type RvoField,
     RvoImportReviewStatus,

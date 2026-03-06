@@ -14,7 +14,7 @@
  * -   **Field Data Fetching**: Retrieves agricultural field data from RVO, with GeoJSON
  *     parsing and validation against `RvoFieldSchema`.
  * -   **Field RVO Import Review Engine**:
- *     -   Compares local FDM fields (`@svenvw/fdm-core`'s `Field` type) against RVO fields.
+ *     -   Compares local FDM fields (`@nmi-agro/fdm-core`'s `Field` type) against RVO fields.
  *     -   Utilizes a two-tier matching strategy: ID-based matching followed by spatial
  *         (IoU) matching.
  *     -   Detects and categorizes fields as `MATCH`, `NEW_REMOTE` (in RVO but not local),

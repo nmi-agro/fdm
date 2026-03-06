@@ -31,7 +31,7 @@ export async function fetchRvoFields(
     // The raw response is expected to be a GeoJSON FeatureCollection.
     // We access the 'features' array to iterate over individual fields.
     // Safe casting is handled by the subsequent Zod validation.
-    const features = (fieldsRaw as any).features 
+    const features = (fieldsRaw as any).features
 
     if (Array.isArray(features)) {
         // Define a schema for an array of fields and parse the data.
@@ -41,5 +41,5 @@ export async function fetchRvoFields(
     }
 
     // Return empty array if the response format is unexpected or contains no features.
-    return [] 
+    return []
 }

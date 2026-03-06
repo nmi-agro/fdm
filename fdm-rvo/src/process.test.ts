@@ -7,11 +7,11 @@ import {
     addCultivation,
     removeCultivation,
     getDefaultDatesOfCultivation,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { RvoImportReviewStatus, type RvoImportReviewItem } from "./types"
 
 // Mock fdm-core
-vi.mock("@svenvw/fdm-core", () => ({
+vi.mock("@nmi-agro/fdm-core", () => ({
     addField: vi.fn(),
     updateField: vi.fn(),
     removeField: vi.fn(),

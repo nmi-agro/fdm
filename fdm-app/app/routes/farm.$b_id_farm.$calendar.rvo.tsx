@@ -30,7 +30,7 @@ import {
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { processRvoImport } from "@nmi-agro/fdm-rvo"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
-import { getFields, getFarm, getFarms } from "@svenvw/fdm-core"
+import { getFields, getFarm, getFarms } from "@nmi-agro/fdm-core"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import {
@@ -61,7 +61,7 @@ import {
     addSoilAnalysis,
     getCultivations,
     getCultivationsFromCatalogue,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
 import { clientConfig } from "../lib/config"
 

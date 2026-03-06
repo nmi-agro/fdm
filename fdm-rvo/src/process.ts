@@ -6,7 +6,7 @@ import {
     removeCultivation,
     getDefaultDatesOfCultivation,
     type FdmType,
-} from "@svenvw/fdm-core"
+} from "@nmi-agro/fdm-core"
 import type { RvoImportReviewItem, UserChoiceMap } from "./types"
 import { getItemId } from "./utils"
 

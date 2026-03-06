@@ -26,7 +26,7 @@ import type {
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { processRvoImport } from "@nmi-agro/fdm-rvo"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
-import { type Cultivation, type Field, getFarm } from "@svenvw/fdm-core"
+import { type Cultivation, type Field, getFarm } from "@nmi-agro/fdm-core"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { AlertTriangle, Loader2 } from "lucide-react"
@@ -47,7 +47,10 @@ import {
     getNmiApiKey,
     getSoilParameterEstimates,
 } from "~/integrations/nmi.server"
-import { addSoilAnalysis, getCultivationsFromCatalogue } from "@svenvw/fdm-core"
+import {
+    addSoilAnalysis,
+    getCultivationsFromCatalogue,
+} from "@nmi-agro/fdm-core"
 import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
 
 export const meta: MetaFunction = ({ params }) => {
