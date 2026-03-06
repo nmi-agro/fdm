@@ -80,6 +80,7 @@ function findActiveCultivation(
 ): Cultivation | undefined {
     const referenceDate = new Date(`${calendar}-05-15`).getTime()
     return cultivations.find((c) => {
+        if (!c.b_lu_start) return false
         const start = c.b_lu_start.getTime()
         const end = c.b_lu_end ? c.b_lu_end.getTime() : Number.POSITIVE_INFINITY
         return start <= referenceDate && end >= referenceDate
@@ -267,7 +268,9 @@ export function compareFields(
             const localStart =
                 local.b_start instanceof Date
                     ? local.b_start
-                    : new Date(local.b_start)
+                    : local.b_start
+                      ? new Date(local.b_start)
+                      : new Date(0)
             const importYearStart = new Date(calendar, 0, 1) // Jan 1st of import year
             const isStartedBeforeYear = localStart < importYearStart
 
