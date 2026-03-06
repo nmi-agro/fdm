@@ -1,4 +1,5 @@
 import { RvoClient } from "@nmi-agro/rvo-connector"
+import fs from "node:fs"
 
 /**
  * Creates and configures an instance of the RVO Client.
@@ -20,6 +21,17 @@ export const createRvoClient = (
     pkioPrivateKey: string,
     environment: "acceptance" | "production" = "production",
 ) => {
+    let privateKey = pkioPrivateKey
+    if (
+        pkioPrivateKey.startsWith("/") ||
+        pkioPrivateKey.startsWith("./") ||
+        pkioPrivateKey.includes(":")
+    ) {
+        if (fs.existsSync(pkioPrivateKey)) {
+            privateKey = fs.readFileSync(pkioPrivateKey, "utf8")
+        }
+    }
+
     return new RvoClient({
         clientId,
         clientName,
@@ -27,7 +39,7 @@ export const createRvoClient = (
         tvs: {
             clientId,
             redirectUri,
-            pkioPrivateKey,
+            pkioPrivateKey: privateKey,
         },
     })
 }
