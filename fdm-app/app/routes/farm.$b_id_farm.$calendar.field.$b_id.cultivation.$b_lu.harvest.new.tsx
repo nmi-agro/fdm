@@ -69,6 +69,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             cultivation.b_lu_catalogue,
             cultivationsCatalogue,
         )
+        const b_date_harvest_default =
+            cultivationsCatalogue.find(
+                (item) => item.b_lu_catalogue === cultivation.b_lu_catalogue,
+            )?.b_date_harvest_default ?? null
 
         return {
             b_id_farm,
@@ -76,6 +80,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             cultivation,
             harvestParameters,
             defaultHarvestParameters,
+            b_date_harvest_default,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -89,6 +94,7 @@ export default function HarvestNewBlock() {
         <HarvestFormDialog
             harvestParameters={loaderData.harvestParameters}
             b_lu_harvest_date={undefined}
+            b_date_harvest_default={loaderData.b_date_harvest_default}
             b_lu_yield={loaderData.defaultHarvestParameters.b_lu_yield}
             b_lu_yield_fresh={
                 loaderData.defaultHarvestParameters.b_lu_yield_fresh

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
 import { Controller } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import type { UseRemixFormReturn } from "remix-hook-form"
 import type { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { DatePicker } from "~/components/custom/date-picker-v2"
@@ -34,6 +35,7 @@ import {
 } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
+import { useCalendarStore } from "~/store/calendar"
 import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
 
@@ -42,6 +44,7 @@ type HarvestFormDialogProps = {
     exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
     example_b_lu_harvest_date?: Date | null
     b_lu_harvest_date: Date | string | null | undefined // Changed to allow Date or string
+    b_date_harvest_default?: string | null // MM-dd format from cultivation catalogue
     b_lu_yield: number | undefined
     b_lu_yield_fresh: number | undefined
     b_lu_yield_bruto: number | undefined
@@ -62,6 +65,7 @@ type HarvestFormDialogProps = {
 function useHarvestRemixForm({
     harvestParameters,
     b_lu_harvest_date,
+    b_date_harvest_default,
     b_lu_yield,
     b_lu_yield_fresh,
     b_lu_yield_bruto,
@@ -77,6 +81,37 @@ function useHarvestRemixForm({
     example_b_lu_harvest_date,
     handleConfirmation,
 }: HarvestFormDialogProps) {
+    const { calendar } = useCalendarStore()
+    const currentYear = new Date().getFullYear()
+    const parsedCalendar = calendar ? Number(calendar) : Number.NaN
+    const calendarYear = Number.isNaN(parsedCalendar)
+        ? currentYear
+        : parsedCalendar
+
+    // Compute default harvest date from catalogue's MM-dd + calendar year
+    // Only apply when creating a new harvest (no existing date) and not in current year
+    function getDefaultHarvestDate(): Date | undefined {
+        if (b_lu_harvest_date) {
+            return new Date(b_lu_harvest_date)
+        }
+        if (example_b_lu_harvest_date) {
+            // Bulk edit: leave empty
+            return undefined
+        }
+        if (calendarYear === currentYear) {
+            // Current year: leave empty (calendar opens at today)
+            return undefined
+        }
+        if (b_date_harvest_default) {
+            // Parse MM-dd and combine with calendar year
+            const [month, day] = b_date_harvest_default.split("-").map(Number)
+            if (month && day) {
+                return new Date(calendarYear, month - 1, day)
+            }
+        }
+        return undefined
+    }
+
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onSubmit",
         resolver: async (values, bypass, options) => {
@@ -115,9 +150,7 @@ function useHarvestRemixForm({
             return validation
         },
         defaultValues: {
-            b_lu_harvest_date: b_lu_harvest_date
-                ? new Date(b_lu_harvest_date)
-                : undefined,
+            b_lu_harvest_date: getDefaultHarvestDate(),
             b_lu_yield: harvestParameters.includes("b_lu_yield")
                 ? b_lu_yield
                 : undefined,
@@ -151,6 +184,22 @@ function useHarvestRemixForm({
         },
     })
 
+    // When the calendar store is populated after initial render, re-evaluate the
+    // default harvest date, but only if the user has not already entered a value.
+    useEffect(() => {
+        const currentValue = form.getValues("b_lu_harvest_date")
+        const { isDirty } = form.getFieldState("b_lu_harvest_date")
+        if (
+            !b_lu_harvest_date &&
+            !example_b_lu_harvest_date &&
+            !currentValue &&
+            !isDirty
+        ) {
+            form.setValue("b_lu_harvest_date", getDefaultHarvestDate())
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [calendar])
+
     return form
 }
 
@@ -162,7 +211,7 @@ function HarvestFields({
     example_b_lu_harvest_date,
     b_lu_harvest_date,
 }: HarvestFormDialogProps & {
-    form: ReturnType<typeof useHarvestRemixForm>
+    form: UseRemixFormReturn<z.infer<typeof FormSchema>>
     className: React.ComponentProps<typeof FieldGroup>["className"]
 }) {
     const formatted_b_lu_harvest_date = example_b_lu_harvest_date

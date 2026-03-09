@@ -9,6 +9,8 @@ import type { Navigation } from "react-router"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
+import { useCalendarStore } from "~/store/calendar"
+import { getContextualDate } from "~/lib/calendar"
 import { Combobox } from "~/components/custom/combobox"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -78,6 +80,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const formId = useId()
+    const { calendar } = useCalendarStore()
     const form = useRemixForm<FieldFertilizerFormValues>({
         mode: "onTouched",
         resolver: zodResolver(
@@ -94,7 +97,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 ? fertilizerApplication.p_app_date
                 : exampleFertilizerApplication
                   ? undefined
-                  : new Date(),
+                  : getContextualDate(calendar, 3, 1),
         },
         submitConfig: {
             method: fertilizerApplication ? "PUT" : "POST",
@@ -113,6 +116,24 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         }
     }, [p_id, fertilizerApplication, form.setValue])
 
+    useEffect(() => {
+        const currentValue = form.getValues("p_app_date")
+        const { isDirty } = form.getFieldState("p_app_date")
+        if (
+            !fertilizerApplication?.p_app_date &&
+            !exampleFertilizerApplication &&
+            !currentValue &&
+            !isDirty
+        ) {
+            form.setValue("p_app_date", getContextualDate(calendar, 3, 1))
+        }
+    }, [
+        calendar,
+        exampleFertilizerApplication,
+        fertilizerApplication?.p_app_date,
+        form.setValue,
+    ])
+
     const fieldFertilizerFormStore = useFieldFertilizerFormStore()
 
     useEffect(() => {
@@ -120,6 +141,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
             const savedFormValues = fieldFertilizerFormStore.load(
                 b_id_farm,
                 b_id_or_b_lu_catalogue,
+                calendar,
             )
             if (savedFormValues) {
                 for (const [k, v] of Object.entries(savedFormValues)) {
@@ -137,6 +159,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         b_id_or_b_lu_catalogue,
         form.setValue,
         fieldFertilizerFormStore.load,
+        calendar,
     ])
 
     useEffect(() => {
@@ -156,13 +179,18 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
 
     useEffect(() => {
         if (form.formState.isSubmitSuccessful) {
-            fieldFertilizerFormStore.delete(b_id_farm, b_id_or_b_lu_catalogue)
+            fieldFertilizerFormStore.delete(
+                b_id_farm,
+                b_id_or_b_lu_catalogue,
+                calendar,
+            )
         }
     }, [
         form.formState.isSubmitSuccessful,
         b_id_farm,
         b_id_or_b_lu_catalogue,
         fieldFertilizerFormStore.delete,
+        calendar,
     ])
 
     function handleManageFertilizers(_e: MouseEvent<HTMLButtonElement>) {
@@ -171,6 +199,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 b_id_farm,
                 b_id_or_b_lu_catalogue,
                 form.getValues(),
+                calendar,
             )
         }
         navigate(

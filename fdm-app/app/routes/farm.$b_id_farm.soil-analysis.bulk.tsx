@@ -30,6 +30,8 @@ import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
+export const handle = { hideNavigationProgress: true }
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
         const b_id_farm = params.b_id_farm
