@@ -39,6 +39,31 @@ export function getTimeframe(params: Params): Timeframe {
     return timeframe
 }
 
+/**
+ * Returns a context-aware default date based on the active cultivation calendar year.
+ *
+ * - If the calendar year matches the current real-world year, returns today's date.
+ * - Otherwise, returns a fixed date (defaultMonth/defaultDay) within the calendar year.
+ *
+ * @param calendar - Active calendar year as a string (e.g. "2023"), or undefined.
+ * @param defaultMonth - 1-indexed month for the fallback date (e.g. 3 for March).
+ * @param defaultDay - Day of the month for the fallback date (e.g. 1 for the 1st).
+ */
+export function getContextualDate(
+    calendar: string | undefined,
+    defaultMonth: number,
+    defaultDay: number,
+): Date {
+    const currentYear = new Date().getFullYear()
+    const calendarYear = calendar ? Number(calendar) : currentYear
+
+    if (calendarYear === currentYear) {
+        return new Date()
+    }
+
+    return new Date(calendarYear, defaultMonth - 1, defaultDay)
+}
+
 export function getCalendarSelection(): string[] {
     // Create array of years from 2020 to next year
     const years = []

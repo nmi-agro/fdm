@@ -22,14 +22,14 @@ import {
 } from "~/components/ui/popover"
 
 import { endMonth } from "~/lib/calendar"
+import { useCalendarStore } from "~/store/calendar"
 
-function parseDateString(dateString: string): Date | undefined {
+function parseDateString(dateString: string, referenceDate: Date): Date | undefined {
     if (!dateString) {
         return undefined
     }
 
     // Attempt to parse using chrono-node (Dutch)
-    const referenceDate = new Date()
     const parsedDate = chrono.nl.parseDate(dateString, referenceDate)
     if (parsedDate) {
         return parsedDate
@@ -70,11 +70,15 @@ export function DatePicker<TFieldValues extends FieldValues>({
     description,
     disabled = false,
 }: DatePickerProps<TFieldValues>) {
+    const { calendar } = useCalendarStore()
+    const calendarYear = calendar ? Number(calendar) : new Date().getFullYear()
+    const referenceDate = new Date(calendarYear, 0, 1)
+
     const [open, setOpen] = React.useState(false)
     const [date, setDate] = React.useState<Date | undefined>(
         form.getValues(name),
     )
-    const [month, setMonth] = React.useState<Date>(date || new Date()) // Initialize month to current date if 'date' is undefined
+    const [month, setMonth] = React.useState<Date>(date || referenceDate)
     const [value, setValue] = React.useState(formatDate(date))
     const [isInputValid, setIsInputValid] = React.useState(true)
 
@@ -91,7 +95,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
         } else if (date !== undefined) {
             // If formDate is undefined or invalid, and date was previously defined
             setDate(undefined)
-            setMonth(new Date()) // Reset month to current month
+            setMonth(referenceDate) // Reset month to calendar context month
             setValue("") // Clear input value
             setIsInputValid(true)
         }
@@ -130,7 +134,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
                                         return
                                     }
 
-                                    const newDate = parseDateString(text)
+                                    const newDate = parseDateString(text, referenceDate)
                                     if (newDate && isValidDate(newDate)) {
                                         setDate(newDate)
                                         setMonth(newDate)

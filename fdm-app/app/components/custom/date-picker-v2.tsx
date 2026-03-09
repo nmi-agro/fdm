@@ -26,6 +26,7 @@ import {
     PopoverTrigger,
 } from "~/components/ui/popover"
 import { endMonth } from "~/lib/calendar"
+import { useCalendarStore } from "~/store/calendar"
 import { cn } from "~/lib/utils"
 
 type DatePickerProps = {
@@ -49,30 +50,37 @@ export function DatePicker({
     required,
     className,
 }: DatePickerProps) {
+    const { calendar } = useCalendarStore()
+    const calendarYear = calendar ? Number(calendar) : new Date().getFullYear()
+    const referenceDate = new Date(calendarYear, 0, 1)
+
     const [open, setOpen] = useState(false)
     const initialDate =
-        (field.value && parseDateText(field.value)) || defaultValue
+        (field.value && parseDateText(field.value, referenceDate)) ||
+        defaultValue
     const [inputValue, setInputValue] = useState(
         initialDate ? formatDate(initialDate) : "",
     )
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(
         initialDate || undefined,
     )
-    const [month, setMonth] = useState<Date | undefined>(selectedDate)
+    const [month, setMonth] = useState<Date | undefined>(
+        selectedDate ?? referenceDate,
+    )
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: onChange is stable across renders for react-hook-form controllers
     useEffect(() => {
         if (field.value && field.value instanceof Date) {
             field.onChange(field.value.toISOString())
         } else if (field.value) {
-            const date = parseDateText(field.value)
+            const date = parseDateText(field.value, referenceDate)
             setSelectedDate(date || undefined)
             setInputValue(date ? formatDate(date) : "")
-            setMonth(date || undefined)
+            setMonth(date || referenceDate)
         } else {
             setInputValue("")
             setSelectedDate(undefined)
-            setMonth(undefined)
+            setMonth(referenceDate)
         }
     }, [field.value])
 
@@ -87,7 +95,7 @@ export function DatePicker({
     }
 
     const handleInputBlur = () => {
-        const date = parseDateText(inputValue)
+        const date = parseDateText(inputValue, referenceDate)
         if (date) {
             setSelectedDate(date)
             setMonth(date)
@@ -177,7 +185,7 @@ function formatDate(date: Date | undefined) {
     return format(date, "PPP", { locale: nl })
 }
 
-function parseDateText(date: string | Date | undefined): Date | undefined {
+function parseDateText(date: string | Date | undefined, referenceDate?: Date): Date | undefined {
     if (date instanceof Date) {
         return date
     }
@@ -192,8 +200,8 @@ function parseDateText(date: string | Date | undefined): Date | undefined {
     }
 
     // Fallback to chrono-node for localized strings
-    const referenceDate = new Date()
-    const parsedDate = chrono.nl.parseDate(date, referenceDate)
+    const ref = referenceDate ?? new Date()
+    const parsedDate = chrono.nl.parseDate(date, ref)
     if (!parsedDate) {
         return undefined
     }

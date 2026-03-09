@@ -9,6 +9,8 @@ import type { Navigation } from "react-router"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
+import { useCalendarStore } from "~/store/calendar"
+import { getContextualDate } from "~/lib/calendar"
 import { Combobox } from "~/components/custom/combobox"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -78,6 +80,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const formId = useId()
+    const { calendar } = useCalendarStore()
     const form = useRemixForm<FieldFertilizerFormValues>({
         mode: "onTouched",
         resolver: zodResolver(
@@ -94,7 +97,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 ? fertilizerApplication.p_app_date
                 : exampleFertilizerApplication
                   ? undefined
-                  : new Date(),
+                  : getContextualDate(calendar, 3, 1),
         },
         submitConfig: {
             method: fertilizerApplication ? "PUT" : "POST",
