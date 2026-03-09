@@ -1,5 +1,24 @@
 # Changelog fdm-app
 
+## 0.28.1
+
+### Patch Changes
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`ad1ebbf`](https://github.com/nmi-agro/fdm/commit/ad1ebbf3ba26a3d827d35d9c09f3d982c91bb492) Thanks [@SvenVw](https://github.com/SvenVw)! - Do not show the NavigationProgress for pages with their own loaders, like uploading files
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`4b9ebd1`](https://github.com/nmi-agro/fdm/commit/4b9ebd1f89952699c646e871731f716dc9afdefa) Thanks [@SvenVw](https://github.com/SvenVw)! - Increase navigation progress time from 300 to 500ms
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`8cc8c2e`](https://github.com/nmi-agro/fdm/commit/8cc8c2ea614f2b4351672d2dd000947cb4411660) Thanks [@SvenVw](https://github.com/SvenVw)! - Improve DatePickers and Forms to use contextual default dates based on the selected calendar year. Forms now default to domain-specific dates (e.g., March 1st for fertilizer and cultivation-specific harvest defaults in non-current years), and DatePickers now resolve partial text entries (like "15 april") to the active calendar year instead of the current real-world year.
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`06fafd1`](https://github.com/nmi-agro/fdm/commit/06fafd1e67f0997f8da31ced50af3416c2dc3aab) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix that link for going back for fertilizer application modification goes back to rotation
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`bb6703b`](https://github.com/nmi-agro/fdm/commit/bb6703bff65281a967c544880631a15e215903fa) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix that going to Fertilizers page does not reset the selected calendar year to current year
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`c6dfd07`](https://github.com/nmi-agro/fdm/commit/c6dfd076c87daf5fab8ee4ba37aac08c1e858893) Thanks [@SvenVw](https://github.com/SvenVw)! - At the Sentry metric for NavigationProgress include a tag for the page
+
+- Updated dependencies [[`65ebf42`](https://github.com/nmi-agro/fdm/commit/65ebf420afd0e0d6d45dbf804a02947f6ecabc02)]:
+  - @nmi-agro/fdm-calculator@0.12.1
+
 ## 0.28.0
 
 ### Minor Changes
