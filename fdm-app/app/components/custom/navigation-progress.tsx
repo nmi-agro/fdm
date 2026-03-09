@@ -6,7 +6,7 @@ import { useNavigation } from "react-router"
 import { clientConfig } from "~/lib/config"
 
 /**
- * Shows a blurred overlay with a loading card when navigation takes longer than 300ms.
+ * Shows a blurred overlay with a loading card when navigation takes longer than 500ms.
  * Fast navigations never trigger the indicator.
  * Tracks show frequency and duration as Sentry metrics.
  */
@@ -15,7 +15,7 @@ export function NavigationProgress() {
     const [show, setShow] = useState(false)
     const startTimeRef = useRef<number | null>(null)
 
-    // Show after 300ms — emit a count metric when it appears
+    // Show after 500ms — emit a count metric when it appears
     useEffect(() => {
         if (state !== "idle") {
             if (startTimeRef.current === null) {
@@ -26,7 +26,7 @@ export function NavigationProgress() {
                 if (clientConfig.analytics.sentry) {
                     Sentry.metrics.count("navigation_progress.shown", 1)
                 }
-            }, 300)
+            }, 500)
             return () => clearTimeout(timer)
         }
 
