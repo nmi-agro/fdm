@@ -116,6 +116,20 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         }
     }, [p_id, fertilizerApplication, form.setValue])
 
+    useEffect(() => {
+        if (
+            !fertilizerApplication?.p_app_date &&
+            !exampleFertilizerApplication
+        ) {
+            form.setValue("p_app_date", getContextualDate(calendar, 3, 1))
+        }
+    }, [
+        calendar,
+        exampleFertilizerApplication,
+        fertilizerApplication?.p_app_date,
+        form.setValue,
+    ])
+
     const fieldFertilizerFormStore = useFieldFertilizerFormStore()
 
     useEffect(() => {
