@@ -123,6 +123,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
             const savedFormValues = fieldFertilizerFormStore.load(
                 b_id_farm,
                 b_id_or_b_lu_catalogue,
+                calendar,
             )
             if (savedFormValues) {
                 for (const [k, v] of Object.entries(savedFormValues)) {
@@ -159,7 +160,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
 
     useEffect(() => {
         if (form.formState.isSubmitSuccessful) {
-            fieldFertilizerFormStore.delete(b_id_farm, b_id_or_b_lu_catalogue)
+            fieldFertilizerFormStore.delete(b_id_farm, b_id_or_b_lu_catalogue, calendar)
         }
     }, [
         form.formState.isSubmitSuccessful,
@@ -174,6 +175,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 b_id_farm,
                 b_id_or_b_lu_catalogue,
                 form.getValues(),
+                calendar,
             )
         }
         navigate(
