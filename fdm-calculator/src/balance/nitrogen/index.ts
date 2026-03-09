@@ -488,10 +488,10 @@ export function calculateNitrogenBalancesFieldToFarm(
             : ammoniaByFertilizerType[fertilizerType].dividedBy(totalFarmArea)
     }
 
-    // Calculate the average balance at farm level (Supply + Removal + Emission)
+    // Calculate the average balance at farm level (Supply + Removal + Ammonia Emission)
     const avgFarmBalance = avgFarmSupply
         .add(avgFarmRemoval)
-        .add(avgFarmEmission)
+        .add(avgFarmEmissionAmmonia)
 
     // Return the farm with average balances per hectare
     const farmWithBalance = {
