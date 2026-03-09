@@ -326,6 +326,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const harvestParameters = getParametersForHarvestCat(
             targetCultivation.b_lu_harvestcat,
         )
+        const b_date_harvest_default =
+            cultivationCatalogueData.find(
+                (item) =>
+                    item.b_lu_catalogue === targetCultivation.b_lu_catalogue,
+            )?.b_date_harvest_default ?? null
 
         // Return user information from loader
         return {
@@ -352,6 +357,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             harvestParameters: harvestParameters,
             b_lu_start: b_lu_start,
             b_lu_end: b_lu_end,
+            b_date_harvest_default: b_date_harvest_default,
             create: url.searchParams.has("create"),
         }
     } catch (error) {
@@ -719,6 +725,9 @@ export default function FarmRotationHarvestAddIndex() {
                                             b_lu_harvest_date={
                                                 loaderData.harvestApplication
                                                     .b_lu_harvest_date
+                                            }
+                                            b_date_harvest_default={
+                                                loaderData.b_date_harvest_default
                                             }
                                             b_lu_yield={
                                                 loaderData.harvestableAnalysis

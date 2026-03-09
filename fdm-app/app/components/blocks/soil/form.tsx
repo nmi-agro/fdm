@@ -26,6 +26,8 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
+import { getContextualDate } from "~/lib/calendar"
+import { useCalendarStore } from "~/store/calendar"
 
 export function SoilAnalysisForm(props: {
     soilAnalysis: SoilAnalysis | undefined
@@ -35,6 +37,7 @@ export function SoilAnalysisForm(props: {
 }) {
     const { soilAnalysis, soilParameterDescription, editable = true } = props
 
+    const { calendar } = useCalendarStore()
     const defaultValues: {
         [key: string]: string | number | Date | undefined | null
     } = {}
@@ -48,6 +51,10 @@ export function SoilAnalysisForm(props: {
             (x.type === "text" || x.type === "numeric")
         ) {
             defaultValue = ""
+        }
+
+        if (defaultValue === undefined && x.type === "date" && !soilAnalysis) {
+            defaultValue = getContextualDate(calendar, 2, 1)
         }
 
         defaultValues[x.parameter] = defaultValue

@@ -29,6 +29,8 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
+export const handle = { hideNavigationProgress: true }
+
 // Meta
 export const meta: MetaFunction = () => {
     return [

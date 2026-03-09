@@ -106,7 +106,9 @@ export default function App() {
     const setCalendar = useCalendarStore((state) => state.setCalendar)
 
     useEffect(() => {
-        setCalendar(initialCalendar)
+        if (initialCalendar !== undefined) {
+            setCalendar(initialCalendar)
+        }
     }, [initialCalendar, setCalendar])
 
     // Identify user if PostHog is configured

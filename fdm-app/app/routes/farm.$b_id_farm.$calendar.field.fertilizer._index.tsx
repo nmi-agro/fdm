@@ -89,6 +89,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         const url = new URL(request.url)
 
+        // Determine where to return after saving/cancelling
+        const returnUrlParam = url.searchParams.get("returnUrl")
+        const returnUrl =
+            returnUrlParam && isOfOrigin(returnUrlParam, url.origin)
+                ? returnUrlParam
+                : `/farm/${b_id_farm}/${params.calendar}/field`
+
         // Get appIds from search params
         const applicationRefs = parseAppIds(
             url.searchParams.get("appIds") ?? "",
@@ -308,6 +315,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fieldOptions: fieldOptions,
             fertilizerApplication: loaderFertilizerApplication,
             exampleFertilizerApplication: loaderExampleFertilizerApplication,
+            returnUrl: returnUrl,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -351,8 +359,10 @@ export default function FarmFieldFertilizerAddIndex() {
         <SidebarInset>
             <Header
                 action={{
-                    to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field`,
-                    label: "Terug naar percelen",
+                    to: loaderData.returnUrl,
+                    label: loaderData.returnUrl.includes("/rotation")
+                        ? "Terug naar bouwplan"
+                        : "Terug naar percelen",
                     disabled: false,
                 }}
             >

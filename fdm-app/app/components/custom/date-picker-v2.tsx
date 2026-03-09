@@ -26,6 +26,7 @@ import {
     PopoverTrigger,
 } from "~/components/ui/popover"
 import { endMonth } from "~/lib/calendar"
+import { useCalendarStore } from "~/store/calendar"
 import { cn } from "~/lib/utils"
 
 type DatePickerProps = {
@@ -49,30 +50,37 @@ export function DatePicker({
     required,
     className,
 }: DatePickerProps) {
+    const { calendar } = useCalendarStore()
+    const calendarYear = calendar ? Number(calendar) : new Date().getFullYear()
+    const referenceDate = new Date(calendarYear, 0, 1)
+
     const [open, setOpen] = useState(false)
     const initialDate =
-        (field.value && parseDateText(field.value)) || defaultValue
+        (field.value && parseDateText(field.value, calendarYear)) ||
+        defaultValue
     const [inputValue, setInputValue] = useState(
         initialDate ? formatDate(initialDate) : "",
     )
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(
         initialDate || undefined,
     )
-    const [month, setMonth] = useState<Date | undefined>(selectedDate)
+    const [month, setMonth] = useState<Date | undefined>(
+        selectedDate ?? referenceDate,
+    )
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: onChange is stable across renders for react-hook-form controllers
     useEffect(() => {
         if (field.value && field.value instanceof Date) {
             field.onChange(field.value.toISOString())
         } else if (field.value) {
-            const date = parseDateText(field.value)
+            const date = parseDateText(field.value, calendarYear)
             setSelectedDate(date || undefined)
             setInputValue(date ? formatDate(date) : "")
-            setMonth(date || undefined)
+            setMonth(date || referenceDate)
         } else {
             setInputValue("")
             setSelectedDate(undefined)
-            setMonth(undefined)
+            setMonth(referenceDate)
         }
     }, [field.value])
 
@@ -87,7 +95,7 @@ export function DatePicker({
     }
 
     const handleInputBlur = () => {
-        const date = parseDateText(inputValue)
+        const date = parseDateText(inputValue, calendarYear)
         if (date) {
             setSelectedDate(date)
             setMonth(date)
@@ -177,7 +185,7 @@ function formatDate(date: Date | undefined) {
     return format(date, "PPP", { locale: nl })
 }
 
-function parseDateText(date: string | Date | undefined): Date | undefined {
+function parseDateText(date: string | Date | undefined, calendarYear?: number): Date | undefined {
     if (date instanceof Date) {
         return date
     }
@@ -185,18 +193,68 @@ function parseDateText(date: string | Date | undefined): Date | undefined {
         return undefined
     }
 
-    // Attempt to parse as ISO string first
-    const isoDate = new Date(date)
-    if (!Number.isNaN(isoDate.getTime())) {
-        return isoDate
+    const currentYear = new Date().getFullYear()
+    const targetYear = calendarYear ?? currentYear
+
+    // Only treat as ISO string when it matches YYYY-MM-DD... to avoid JS's lenient Date parsing
+    // (e.g. new Date("1-4-2025") returns January 4th — American order — before Dutch pre-processor runs).
+    if (/^\d{4}-\d{2}-\d{2}/.test(date)) {
+        const isoDate = new Date(date)
+        if (!Number.isNaN(isoDate.getTime())) {
+            return isoDate
+        }
     }
 
-    // Fallback to chrono-node for localized strings
-    const referenceDate = new Date()
-    const parsedDate = chrono.nl.parseDate(date, referenceDate)
-    if (!parsedDate) {
+    // Dutch numeric format: DD-MM, DD-MM-YY, DD-MM-YYYY (e.g. "1-4", "1-4-25", "01-04-2025")
+    // Processed before chrono-node because chrono-node uses American MM-DD order for numeric dates.
+    const dutchNumeric = parseDutchNumericDate(date, targetYear)
+    if (dutchNumeric) {
+        return dutchNumeric
+    }
+
+    // Chrono-node always uses actual today as reference so relative terms ("gisteren", "vandaag")
+    // resolve to the correct real-world date.
+    const results = chrono.nl.parse(date, new Date())
+    if (!results?.length) {
         return undefined
+    }
+    const result = results[0]
+    const parsedDate = result.start.date()
+
+    // When a specific date was mentioned (month or day explicit) but no year was stated,
+    // override the year with the active calendar year. Skip for pure relative terms like
+    // "gisteren" where neither month nor day is explicit.
+    if (
+        targetYear !== currentYear &&
+        !result.start.isCertain("year") &&
+        (result.start.isCertain("month") || result.start.isCertain("day"))
+    ) {
+        parsedDate.setFullYear(targetYear)
     }
 
     return parsedDate
+}
+
+// Parses Dutch numeric date format DD-MM, DD-MM-YY or DD-MM-YYYY.
+// Returns undefined when the input doesn't match or produces an invalid date.
+function parseDutchNumericDate(text: string, targetYear: number): Date | undefined {
+    const match = text.trim().match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?$/)
+    if (!match) {
+        return undefined
+    }
+    const day = Number(match[1])
+    const month = Number(match[2])
+    if (day < 1 || day > 31 || month < 1 || month > 12) {
+        return undefined
+    }
+    let year = targetYear
+    if (match[3]) {
+        const y = Number(match[3])
+        year = match[3].length <= 2 ? 2000 + y : y
+    }
+    const result = new Date(year, month - 1, day)
+    if (Number.isNaN(result.getTime()) || result.getMonth() !== month - 1) {
+        return undefined
+    }
+    return result
 }
