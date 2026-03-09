@@ -185,16 +185,17 @@ function useHarvestRemixForm({
     })
 
     // When the calendar store is populated after initial render, re-evaluate the
-    // default harvest date and reset the form so the catalogue default is applied.
+    // default harvest date, but only if the user has not already entered a value.
     useEffect(() => {
-        if (!b_lu_harvest_date && !example_b_lu_harvest_date) {
-            form.reset(
-                {
-                    ...form.getValues(),
-                    b_lu_harvest_date: getDefaultHarvestDate(),
-                },
-                { keepErrors: false },
-            )
+        const currentValue = form.getValues("b_lu_harvest_date")
+        const { isDirty } = form.getFieldState("b_lu_harvest_date")
+        if (
+            !b_lu_harvest_date &&
+            !example_b_lu_harvest_date &&
+            !currentValue &&
+            !isDirty
+        ) {
+            form.setValue("b_lu_harvest_date", getDefaultHarvestDate())
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [calendar])

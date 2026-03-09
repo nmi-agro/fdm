@@ -117,9 +117,13 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     }, [p_id, fertilizerApplication, form.setValue])
 
     useEffect(() => {
+        const currentValue = form.getValues("p_app_date")
+        const { isDirty } = form.getFieldState("p_app_date")
         if (
             !fertilizerApplication?.p_app_date &&
-            !exampleFertilizerApplication
+            !exampleFertilizerApplication &&
+            !currentValue &&
+            !isDirty
         ) {
             form.setValue("p_app_date", getContextualDate(calendar, 3, 1))
         }
