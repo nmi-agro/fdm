@@ -2,22 +2,32 @@ import * as Sentry from "@sentry/react-router"
 import { AnimatePresence, motion } from "framer-motion"
 import { Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { useNavigation } from "react-router"
+import { useMatches, useNavigation } from "react-router"
 import { clientConfig } from "~/lib/config"
 
 /**
  * Shows a blurred overlay with a loading card when navigation takes longer than 500ms.
  * Fast navigations never trigger the indicator.
  * Tracks show frequency and duration as Sentry metrics.
+ *
+ * Routes can opt out by exporting `export const handle = { hideNavigationProgress: true }`.
  */
 export function NavigationProgress() {
     const { state } = useNavigation()
+    const matches = useMatches()
+    const hideProgress = matches.some(
+        (m) =>
+            m.handle !== null &&
+            typeof m.handle === "object" &&
+            (m.handle as Record<string, unknown>).hideNavigationProgress ===
+                true,
+    )
     const [show, setShow] = useState(false)
     const startTimeRef = useRef<number | null>(null)
 
     // Show after 500ms — emit a count metric when it appears
     useEffect(() => {
-        if (state !== "idle") {
+        if (state !== "idle" && !hideProgress) {
             if (startTimeRef.current === null) {
                 startTimeRef.current = Date.now()
             }
