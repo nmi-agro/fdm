@@ -141,6 +141,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         b_id_or_b_lu_catalogue,
         form.setValue,
         fieldFertilizerFormStore.load,
+        calendar,
     ])
 
     useEffect(() => {
@@ -160,13 +161,18 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
 
     useEffect(() => {
         if (form.formState.isSubmitSuccessful) {
-            fieldFertilizerFormStore.delete(b_id_farm, b_id_or_b_lu_catalogue, calendar)
+            fieldFertilizerFormStore.delete(
+                b_id_farm,
+                b_id_or_b_lu_catalogue,
+                calendar,
+            )
         }
     }, [
         form.formState.isSubmitSuccessful,
         b_id_farm,
         b_id_or_b_lu_catalogue,
         fieldFertilizerFormStore.delete,
+        calendar,
     ])
 
     function handleManageFertilizers(_e: MouseEvent<HTMLButtonElement>) {
