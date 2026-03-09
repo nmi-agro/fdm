@@ -55,7 +55,10 @@ export function getContextualDate(
     defaultDay: number,
 ): Date {
     const currentYear = new Date().getFullYear()
-    const calendarYear = calendar ? Number(calendar) : currentYear
+    const parsedYear = calendar ? Number(calendar) : currentYear
+    const calendarYear = Number.isInteger(parsedYear)
+        ? parsedYear
+        : currentYear
 
     if (calendarYear === currentYear) {
         return new Date()

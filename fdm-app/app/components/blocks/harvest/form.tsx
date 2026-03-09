@@ -83,7 +83,10 @@ function useHarvestRemixForm({
 }: HarvestFormDialogProps) {
     const { calendar } = useCalendarStore()
     const currentYear = new Date().getFullYear()
-    const calendarYear = calendar ? Number(calendar) : currentYear
+    const parsedCalendar = calendar ? Number(calendar) : Number.NaN
+    const calendarYear = Number.isNaN(parsedCalendar)
+        ? currentYear
+        : parsedCalendar
 
     // Compute default harvest date from catalogue's MM-dd + calendar year
     // Only apply when creating a new harvest (no existing date) and not in current year
@@ -194,7 +197,7 @@ function HarvestFields({
 }: HarvestFormDialogProps & {
     form: UseRemixFormReturn<z.infer<typeof FormSchema>>
     className: React.ComponentProps<typeof FieldGroup>["className"]
-}){
+}) {
     const formatted_b_lu_harvest_date = example_b_lu_harvest_date
         ? format(new Date(example_b_lu_harvest_date), "PP", { locale: nl })
         : undefined
