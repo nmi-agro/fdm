@@ -1,5 +1,11 @@
 # fdm-calculator
 
+## 0.12.1
+
+### Patch Changes
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`9d5050a`](https://github.com/nmi-agro/fdm/commit/9d5050aef5f70636be638d2f1a4027ccd22f4189) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixes for farm nitrogen balance to exclude nitrate leaching
+
 ## 0.12.0
 
 ### Minor Changes
