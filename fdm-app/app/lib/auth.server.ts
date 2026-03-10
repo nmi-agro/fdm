@@ -19,7 +19,7 @@ export const auth: FdmAuth = createFdmAuth(
     serverConfig.auth.google,
     serverConfig.auth.microsoft,
     sendMagicLinkEmailToUser,
-    true,
+    false,
     sendWelcomeEmailToUser,
 )
 
