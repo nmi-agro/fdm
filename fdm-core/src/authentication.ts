@@ -48,13 +48,7 @@ export function createFdmAuth(
         googleAuth = {
             clientId: google?.clientId,
             clientSecret: google?.clientSecret,
-            mapProfileToUser: async (profile: {
-                name: string
-                email: string
-                picture: string
-                given_name: string
-                family_name: string
-            }) => {
+            mapProfileToUser: async (profile) => {
                 return {
                     name: profile.name,
                     email: profile.email,
@@ -77,11 +71,7 @@ export function createFdmAuth(
             clientId: microsoft.clientId,
             clientSecret: microsoft.clientSecret,
             tenantId: "common",
-            mapProfileToUser: async (profile: {
-                name: string | undefined
-                email: string
-                picture: string
-            }) => {
+            mapProfileToUser: async (profile) => {
                 const { firstname, surname } = splitFullName(profile.name)
                 return {
                     name: profile.name,
@@ -157,9 +147,10 @@ export function createFdmAuth(
                             data: {
                                 ...organization,
                                 metadata: {
-                                    isVerified: false,
                                     description: "",
                                     ...(organization.metadata || {}),
+                                    // isVerified is forced to be false and cannot be overridden
+                                    isVerified: false,
                                 },
                             },
                         }
