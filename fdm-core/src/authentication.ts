@@ -1,3 +1,4 @@
+import type { GoogleOptions, MicrosoftOptions, User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
 import { magicLink, organization, username } from "better-auth/plugins"
@@ -25,6 +26,7 @@ export type BetterAuth = FdmAuth
  * @param microsoft Optional configuration for Microsoft authentication. If provided, users can sign up and sign in with their Microsoft accounts.
  * @param sendMagicLinkEmail Optional function to send magic link emails. If provided, the magic link plugin will use this function to send emails.
  * @param emailAndPassword Optional boolean indicating whether to enable email and password authentication. Defaults to false.
+ * @param sendWelcomeEmail Optional function to send welcome emails. If provided, after an user is created, this function will be called to send a welcome email to them.
  * @returns The configured authentication instance.
  * @throws {Error} If required environment variables are missing or if role assignment fails.
  */
@@ -38,9 +40,10 @@ export function createFdmAuth(
         code: string,
     ) => Promise<void>,
     emailAndPassword?: boolean,
+    sendWelcomeEmail?: (user: User) => Promise<void>,
 ) {
     // Setup social auth providers
-    let googleAuth
+    let googleAuth: GoogleOptions | undefined
     if (google) {
         googleAuth = {
             clientId: google?.clientId,
@@ -68,7 +71,7 @@ export function createFdmAuth(
         }
     }
 
-    let microsoftAuth
+    let microsoftAuth: MicrosoftOptions | undefined
     if (microsoft) {
         microsoftAuth = {
             clientId: microsoft.clientId,
@@ -148,9 +151,8 @@ export function createFdmAuth(
         plugins: [
             username(),
             organization({
-                organizationCreation: {
-                    disabled: false, // Set to true to disable organization creation
-                    beforeCreate: async ({ organization }) => {
+                organizationHooks: {
+                    beforeCreateOrganization: async ({ organization }) => {
                         return {
                             data: {
                                 ...organization,
@@ -163,6 +165,7 @@ export function createFdmAuth(
                         }
                     },
                 },
+                allowUserToCreateOrganization: true,
             }),
             magicLink({
                 expiresIn: 60 * 15,
@@ -242,6 +245,8 @@ export function createFdmAuth(
                                 )
                             }
                         }
+
+                        if (sendWelcomeEmail) await sendWelcomeEmail(user)
                     },
                 },
                 update: {

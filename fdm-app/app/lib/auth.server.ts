@@ -3,15 +3,14 @@ import {
     createFdmAuth,
     type FdmAuth,
 } from "@nmi-agro/fdm-core"
-import type { GenericEndpointContext, Session } from "better-auth"
+import type { Session } from "better-auth"
 import { redirect } from "react-router"
 import { fdm } from "~/lib/fdm.server"
 import type { ExtendedUser } from "~/types/extended-user"
 import { serverConfig } from "./config.server"
 import {
-    renderWelcomeEmail,
-    sendEmail,
     sendMagicLinkEmailToUser,
+    sendWelcomeEmailToUser,
 } from "./email.server"
 
 // Initialize better-auth instance for FDM
@@ -20,33 +19,9 @@ export const auth: FdmAuth = createFdmAuth(
     serverConfig.auth.google,
     serverConfig.auth.microsoft,
     sendMagicLinkEmailToUser,
+    true,
+    sendWelcomeEmailToUser,
 )
-
-// Extend database hooks with sending a welcome email after sign up
-if (serverConfig.mail) {
-    const originalUserCreateAfter =
-        auth.options.databaseHooks?.user?.create?.after
-    auth.options.databaseHooks = {
-        ...auth.options.databaseHooks,
-        user: {
-            ...auth.options.databaseHooks?.user,
-            create: {
-                ...auth.options.databaseHooks?.user?.create,
-                after: async (user: any, _context?: GenericEndpointContext) => {
-                    if (originalUserCreateAfter) {
-                        await originalUserCreateAfter(user)
-                    }
-                    try {
-                        const email = await renderWelcomeEmail(user)
-                        await sendEmail(email)
-                    } catch (error) {
-                        console.error("Error sending welcome email:", error)
-                    }
-                },
-            },
-        },
-    }
-}
 
 // Get the session
 export async function getSession(request: Request): Promise<FdmSession> {
