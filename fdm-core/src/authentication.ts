@@ -246,7 +246,17 @@ export function createFdmAuth(
                             }
                         }
 
-                        if (sendWelcomeEmail) await sendWelcomeEmail(user)
+                        if (sendWelcomeEmail) {
+                            try {
+                                await sendWelcomeEmail(user)
+                            } catch (err) {
+                                console.warn(
+                                    "sendWelcomeEmail failed for user",
+                                    user.id,
+                                    err,
+                                )
+                            }
+                        }
                     },
                 },
                 update: {
