@@ -198,26 +198,37 @@ export function createFdmAuth(
         databaseHooks: {
             user: {
                 create: {
-                    after: async (user) => {
+                    after: async (incomingUser) => {
                         // Check if username is created after signup, otherwise add an username (typically when signed up with magic link)
-                        const userName = await fdm
+                        const dbUsernames = await fdm
                             .select({
                                 username: authNSchema.user.username,
                             })
                             .from(authNSchema.user)
-                            .where(eq(authNSchema.user.id, user.id))
+                            .where(eq(authNSchema.user.id, incomingUser.id))
                             .limit(1)
 
-                        if (userName.length > 0 && !userName[0].username) {
+                        let username: string | undefined =
+                            dbUsernames.length > 0
+                                ? dbUsernames[0].username
+                                : undefined
+
+                        if (!username || username.trim().length === 0) {
+                            username = await createUsername(
+                                fdm,
+                                incomingUser.email,
+                            )
                             await fdm
                                 .update(authNSchema.user)
                                 .set({
-                                    username: await createUsername(
-                                        fdm,
-                                        user.email,
-                                    ),
+                                    username: username,
                                 })
-                                .where(eq(authNSchema.user.id, user.id))
+                                .where(eq(authNSchema.user.id, incomingUser.id))
+                        }
+
+                        const user = {
+                            ...incomingUser,
+                            name: username,
                         }
 
                         // Auto-accept pending invitations if email is already verified (e.g. social login)
