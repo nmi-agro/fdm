@@ -117,7 +117,7 @@ export default function BulkSoilAnalysisUploadWizardPage() {
             <Header
                 action={{
                     to: `/farm/create/${b_id_farm}/${calendar}/fields/${b_id}`,
-                    label: "Terug naar percelen",
+                    label: "Terug naar perceel",
                     disabled: false,
                 }}
             >
