@@ -257,6 +257,74 @@ describe("calculateNitrogenRemovalByHarvests", () => {
         })
     })
 
+    it("should preserve zero yield and nitrogen in harvest analysis", () => {
+        const cultivations: FieldInput["cultivations"] = [
+            {
+                b_lu: "cultivation1",
+                b_lu_catalogue: "catalogue1",
+                m_cropresidue: true,
+                b_lu_start: null,
+                b_lu_end: null,
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
+            },
+        ]
+        const harvests: FieldInput["harvests"] = [
+            {
+                b_id_harvesting: "harvest1",
+                b_lu: "cultivation1",
+                b_lu_harvest_date: new Date(),
+                harvestable: {
+                    b_id_harvestable: "harvestable1",
+                    harvestable_analyses: [
+                        {
+                            b_id_harvestable_analysis: "",
+                            b_lu_yield: 0, // Explicit zero
+                            b_lu_yield_fresh: null,
+                            b_lu_yield_bruto: null,
+                            b_lu_tarra: null,
+                            b_lu_dm: null,
+                            b_lu_moist: null,
+                            b_lu_uww: null,
+                            b_lu_cp: null,
+                            b_lu_n_harvestable: 0, // Explicit zero
+                            b_lu_n_residue: null,
+                            b_lu_p_harvestable: null,
+                            b_lu_p_residue: null,
+                            b_lu_k_harvestable: null,
+                            b_lu_k_residue: null,
+                        },
+                    ],
+                },
+            },
+        ]
+        const cultivationDetailsMap: Map<string, CultivationDetail> = new Map([
+            [
+                "catalogue1",
+                {
+                    b_lu_catalogue: "catalogue1",
+                    b_lu_croprotation: "cereal",
+                    b_lu_yield: 1000,
+                    b_lu_n_harvestable: 20,
+                    b_lu_hi: 0.4,
+                    b_lu_n_residue: 2,
+                    b_n_fixation: 0,
+                },
+            ],
+        ])
+
+        const result = calculateNitrogenRemovalByHarvests(
+            cultivations,
+            harvests,
+            cultivationDetailsMap,
+        )
+
+        expect(result).toEqual({
+            total: new Decimal(0),
+            harvests: [{ id: "harvest1", value: new Decimal("-0") }],
+        })
+    })
+
     it("should throw an error if a harvest has no corresponding cultivation", () => {
         const cultivations: FieldInput["cultivations"] = []
         const harvests: FieldInput["harvests"] = [

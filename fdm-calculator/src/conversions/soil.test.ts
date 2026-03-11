@@ -15,6 +15,11 @@ describe("Soil Conversions", () => {
 
         it("should handle null input", () => {
             expect(calculateOrganicCarbon(null)).toBeNull()
+            expect(calculateOrganicCarbon(undefined)).toBeNull()
+        })
+
+        it("should handle zero input", () => {
+            expect(calculateOrganicCarbon(0)).toBe(0.1) // 0 is valid, clamped to min 0.1
         })
 
         it("should clamp values within the valid range", () => {
@@ -31,6 +36,11 @@ describe("Soil Conversions", () => {
 
         it("should handle null input", () => {
             expect(calculateOrganicMatter(null)).toBeNull()
+            expect(calculateOrganicMatter(undefined)).toBeNull()
+        })
+
+        it("should handle zero input", () => {
+            expect(calculateOrganicMatter(0)).toBe(0.5) // 0 is valid, clamped to min 0.5
         })
 
         it("should clamp values within the valid range", () => {
@@ -47,7 +57,13 @@ describe("Soil Conversions", () => {
 
         it("should handle null input for either parameter", () => {
             expect(calculateCarbonNitrogenRatio(null, 2000)).toBeNull()
+            expect(calculateCarbonNitrogenRatio(undefined, 2000)).toBeNull()
             expect(calculateCarbonNitrogenRatio(10, null)).toBeNull()
+            expect(calculateCarbonNitrogenRatio(10, undefined)).toBeNull()
+        })
+
+        it("should handle zero input for a_c_of", () => {
+            expect(calculateCarbonNitrogenRatio(0, 1000)).toBe(5) // 0 is valid for a_c_of, clamped to min 5
         })
 
         it("should clamp values within the valid range", () => {
@@ -76,7 +92,13 @@ describe("Soil Conversions", () => {
 
         it("should handle null input for either parameter", () => {
             expect(calculateBulkDensity(null, "dekzand")).toBeNull()
+            expect(calculateBulkDensity(undefined, "dekzand")).toBeNull()
             expect(calculateBulkDensity(10, null)).toBeNull()
+            expect(calculateBulkDensity(10, undefined)).toBeNull()
+        })
+
+        it("should handle zero input for a_som_loi", () => {
+            expect(calculateBulkDensity(0, "dekzand")).toBeCloseTo(1.5, 1) // 0 is valid for a_som_loi
         })
 
         it("should clamp values within the valid range", () => {

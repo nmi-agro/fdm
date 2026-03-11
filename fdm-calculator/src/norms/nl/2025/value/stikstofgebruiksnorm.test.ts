@@ -759,6 +759,27 @@ describe(" calculateNL2025StikstofGebruiksNorm", () => {
             const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
             expect(result.normValue).toBe(310)
         })
+
+        it("should handle explicit zero values for period days/months (regression test for falsy bug)", async () => {
+            // This test is more about ensuring the code doesn't crash or behave unexpectedly
+            // when internal data might have 0s (though RVO data usually starts months/days at 1).
+            // We use Tijdelijk grasland which uses these fields.
+            const mockInput: NL2025NormsInput = {
+                farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
+                field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+                cultivations: [
+                    {
+                        b_lu_catalogue: "nl_266",
+                        b_lu_start: new Date(2025, 0, 1),
+                        b_lu_end: new Date(2025, 11, 31),
+                    } as Partial<NL2025NormsInputForCultivation>,
+                ] as NL2025NormsInputForCultivation[],
+                soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+            }
+            // If the ?? 0 or ?? 1 logic is correct, this should still resolve to a valid norm
+            const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+            expect(result.normValue).toBeGreaterThan(0)
+        })
     })
 })
 

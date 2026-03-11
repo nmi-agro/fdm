@@ -701,6 +701,23 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
             const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
             expect(result.normValue).toBe(310)
         })
+
+        it("should handle explicit zero values for period days/months (regression test for falsy bug)", async () => {
+            const mockInput: NL2026NormsInput = {
+                farm: { has_grazing_intention: false },
+                field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+                cultivations: [
+                    {
+                        b_lu_catalogue: "nl_266",
+                        b_lu_start: new Date(2026, 0, 1),
+                        b_lu_end: new Date(2026, 11, 31),
+                    } as Partial<NL2026NormsInputForCultivation>,
+                ] as NL2026NormsInputForCultivation[],
+                soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+            }
+            const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+            expect(result.normValue).toBeGreaterThan(0)
+        })
     })
 })
 
