@@ -62,6 +62,10 @@ describe("Soil Conversions", () => {
             expect(calculateCarbonNitrogenRatio(10, undefined)).toBeNull()
         })
 
+        it("should return null when nitrogen is zero to avoid division by zero", () => {
+            expect(calculateCarbonNitrogenRatio(10, 0)).toBeNull()
+        })
+
         it("should handle zero input for a_c_of", () => {
             expect(calculateCarbonNitrogenRatio(0, 1000)).toBe(5) // 0 is valid for a_c_of, clamped to min 5
         })
