@@ -1,4 +1,4 @@
-import { Layers, Mountain, PanelsRightBottom } from "lucide-react"
+import { Layers, Mountain, PanelsRightBottom, Scan } from "lucide-react"
 import type { ControlPosition, Map as MapLibreMap } from "maplibre-gl"
 import { useEffect } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -23,6 +23,8 @@ type ControlsProps = {
     onToggleElevation?: () => void
     showSoil?: boolean
     onToggleSoil?: () => void
+    showFlyToFields?: boolean
+    onFlyToFields?: () => void
 }
 
 export function Controls(props: ControlsProps) {
@@ -51,6 +53,9 @@ export function Controls(props: ControlsProps) {
                     showSoil={props.showSoil}
                     onToggle={props.onToggleSoil}
                 />
+            )}
+            {props.showFlyToFields !== undefined && props.onFlyToFields && (
+                <FlyToFieldsControl onClick={props.onFlyToFields} />
             )}
             <GeolocateControl
                 positionOptions={{ enableHighAccuracy: true }}
@@ -174,6 +179,36 @@ function FieldsControl({
             Icon: PanelsRightBottom,
         })
     }, [control, showFields, onToggle])
+
+    return null
+}
+
+function FlyToFieldsControl({ onClick }: { onClick: () => void }) {
+    const control = useControl<CustomControl>(
+        () =>
+            new CustomControl({
+                active: true,
+                onToggle: () => {
+                    onClick()
+                },
+                labelActive: "Vliegen naar percelen",
+                labelInactive: "Vliegen niet naar percelen",
+                Icon: Scan,
+            }),
+        CONTROL_OPTIONS,
+    )
+
+    useEffect(() => {
+        control.updateProps({
+            active: true,
+            onToggle: () => {
+                onClick()
+            },
+            labelActive: "Vliegen naar percelen",
+            labelInactive: "Vliegen naar percelen",
+            Icon: Scan,
+        })
+    }, [control, onClick])
 
     return null
 }

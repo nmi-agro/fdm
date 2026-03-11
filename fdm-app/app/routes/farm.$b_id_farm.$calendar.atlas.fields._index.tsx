@@ -2,10 +2,11 @@ import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/turf"
 import type { FeatureCollection, Geometry } from "geojson"
 import maplibregl from "maplibre-gl"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
     Layer,
     Map as MapGL,
+    type MapRef,
     type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
@@ -149,6 +150,8 @@ export default function FarmAtlasFieldsBlock() {
         setViewState(event.viewState)
     }, [])
 
+    const mapRef = useRef<MapRef>(null)
+
     useEffect(() => {
         if (typeof window !== "undefined") {
             try {
@@ -163,10 +166,10 @@ export default function FarmAtlasFieldsBlock() {
     }, [viewState])
 
     const layerLayout = { visibility: showFields ? "visible" : "none" } as const
-
     return (
         <MapGL
             {...viewState}
+            ref={mapRef}
             style={{ height: "calc(100vh - 64px)", width: "100%" }}
             interactive={true}
             mapStyle={loaderData.mapStyle}
@@ -187,6 +190,16 @@ export default function FarmAtlasFieldsBlock() {
                 }
                 showFields={showFields}
                 onToggleFields={() => setShowFields(!showFields)}
+                showFlyToFields={fields}
+                onFlyToFields={() => {
+                    setViewState({ ...initialViewState })
+                    if (initialViewState.bounds) {
+                        mapRef.current?.fitBounds(
+                            initialViewState.bounds,
+                            initialViewState.fitBoundsOptions,
+                        )
+                    }
+                }}
             />
 
             <MapTilerAttribution />
