@@ -319,10 +319,9 @@ describe("calculateNitrogenRemovalByHarvests", () => {
             cultivationDetailsMap,
         )
 
-        expect(result).toEqual({
-            total: new Decimal(0),
-            harvests: [{ id: "harvest1", value: new Decimal("-0") }],
-        })
+        expect(result.total.isZero()).toBe(true)
+        expect(result.harvests[0].value.isZero()).toBe(true)
+        expect(result.harvests[0].id).toBe("harvest1")
     })
 
     it("should throw an error if a harvest has no corresponding cultivation", () => {

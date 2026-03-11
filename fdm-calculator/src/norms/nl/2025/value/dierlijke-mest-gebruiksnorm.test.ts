@@ -22,9 +22,12 @@ describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
         expect(result.normSource).toBe("Standaard - geen derogatie")
     })
 
-    it("should handle undefined is_derogatie_bedrijf (regression test for falsy bug)", async () => {
-        const mockInput = {
-            farm: { has_grazing_intention: false }, // is_derogatie_bedrijf is undefined
+    it("should handle null is_derogatie_bedrijf (regression test for falsy bug)", async () => {
+        const mockInput: NL2025NormsInput = {
+            farm: {
+                is_derogatie_bedrijf: null as any,
+                has_grazing_intention: false,
+            },
             field: {
                 b_id: "1",
                 b_centroid: [5.641351453912945, 51.97755938887036],
@@ -32,7 +35,26 @@ describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
             },
             cultivations: [],
             soilAnalysis: { a_p_cc: 0, a_p_al: 0 },
-        } as unknown as NL2025NormsInput
+        }
+        const result = await calculateNL2025DierlijkeMestGebruiksNorm(mockInput)
+        expect(result.normValue).toBe(170)
+        expect(result.normSource).toBe("Standaard - geen derogatie")
+    })
+
+    it("should handle 0 as is_derogatie_bedrijf (regression test for falsy bug)", async () => {
+        const mockInput: NL2025NormsInput = {
+            farm: {
+                is_derogatie_bedrijf: 0 as any,
+                has_grazing_intention: false,
+            },
+            field: {
+                b_id: "1",
+                b_centroid: [5.641351453912945, 51.97755938887036],
+                b_bufferstrip: false,
+            },
+            cultivations: [],
+            soilAnalysis: { a_p_cc: 0, a_p_al: 0 },
+        }
         const result = await calculateNL2025DierlijkeMestGebruiksNorm(mockInput)
         expect(result.normValue).toBe(170)
         expect(result.normSource).toBe("Standaard - geen derogatie")

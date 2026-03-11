@@ -84,7 +84,7 @@ function getNormsForCultivation(
 
         // Find all matching sub-types
         const potentialMatches = selectedStandard.sub_types.filter((sub) => {
-            if (sub.period_start_month && sub.period_end_month) {
+            if (sub.period_start_month != null && sub.period_end_month != null) {
                 const startPeriod = new Date(
                     endDate.getFullYear(),
                     sub.period_start_month - 1,
@@ -112,11 +112,11 @@ function getNormsForCultivation(
                 // Special handling for "vanaf" (Late sowing or summer/autumn teelten)
                 // For "vanaf" periods, the crop must start on or after the startPeriod.
                 const isVanaf =
-                    sub.period_start_month && sub.period_start_month > 1
+                    sub.period_start_month != null && sub.period_start_month > 1
 
                 if (isVanaf) {
                     // If it's a "tot minstens" period (implied by end month < 12), it must also last until endPeriod.
-                    if (sub.period_end_month && sub.period_end_month < 12) {
+                    if (sub.period_end_month != null && sub.period_end_month < 12) {
                         return startDate >= startPeriod && endDate >= endPeriod
                     }
                     // For "vanaf X" (without "tot minstens", e.g. "vanaf 15 oktober"), we only check if it starts on or after X.
@@ -136,18 +136,18 @@ function getNormsForCultivation(
         if (potentialMatches.length > 0) {
             potentialMatches.sort((a, b) => {
                 const aStart =
-                    (a.period_start_month ?? 0) * 100 +
-                    (a.period_start_day ?? 0)
+                    (a.period_start_month ?? -1) * 100 +
+                    (a.period_start_day ?? -1)
                 const bStart =
-                    (b.period_start_month ?? 0) * 100 +
-                    (b.period_start_day ?? 0)
+                    (b.period_start_month ?? -1) * 100 +
+                    (b.period_start_day ?? -1)
                 if (aStart !== bStart) {
                     return aStart - bStart
                 }
                 const aEnd =
-                    (a.period_end_month ?? 0) * 100 + (a.period_end_day ?? 0)
+                    (a.period_end_month ?? -1) * 100 + (a.period_end_day ?? -1)
                 const bEnd =
-                    (b.period_end_month ?? 0) * 100 + (b.period_end_day ?? 0)
+                    (b.period_end_month ?? -1) * 100 + (b.period_end_day ?? -1)
                 return bEnd - aEnd
             })
             matchingSubType = potentialMatches[0]
@@ -157,11 +157,11 @@ function getNormsForCultivation(
         // to prevent "undefined" regressions for edge cases, but with timezone fix.
         if (!matchingSubType) {
             matchingSubType = selectedStandard.sub_types.find((sub) => {
-                if (sub.period_start_month && sub.period_end_month) {
+                if (sub.period_start_month != null && sub.period_end_month != null) {
                     const startPeriod = new Date(
                         endDate.getFullYear(),
                         sub.period_start_month - 1,
-                        sub.period_start_day || 1,
+                        sub.period_start_day ?? 1,
                         12,
                         0,
                         0,
@@ -170,7 +170,7 @@ function getNormsForCultivation(
                     const endPeriod = new Date(
                         endDate.getFullYear(),
                         sub.period_end_month - 1,
-                        sub.period_end_day || 1,
+                        sub.period_end_day ?? 1,
                         12,
                         0,
                         0,
