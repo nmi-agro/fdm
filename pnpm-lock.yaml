@@ -25,7 +25,7 @@ catalogs:
       specifier: 4.0.18
       version: 4.0.18
     better-auth:
-      specifier: 1.5.4
+      specifier: ^1.5.4
       version: 1.5.4
     drizzle-kit:
       specifier: ^0.31.9
