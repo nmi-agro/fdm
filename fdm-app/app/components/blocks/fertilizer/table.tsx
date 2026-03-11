@@ -89,7 +89,7 @@ export function DataTable<TData, TValue>({
         p_n_rt: "N (Stikstof)",
         p_n_wc: "N-werk. (N-werkingscoëfficiënt)",
         p_p_rt: "P₂O₅ (Fosfaat)",
-        p_k_rt: "K₂O (Kali)",
+        p_k_rt: "K₂O (Kalium)",
         p_dm: "DS (Droge stof)",
         p_om: "OS (Organische stof)",
         p_mg_rt: "MgO (Magnesium)",
@@ -143,7 +143,11 @@ export function DataTable<TData, TValue>({
                         >
                             {table
                                 .getAllColumns()
-                                .filter((column) => column.getCanHide())
+                                .filter(
+                                    (column) =>
+                                        column.getCanHide() &&
+                                        column.id !== "p_name_nl",
+                                )
                                 .map((column) => {
                                     return (
                                         <DropdownMenuCheckboxItem
