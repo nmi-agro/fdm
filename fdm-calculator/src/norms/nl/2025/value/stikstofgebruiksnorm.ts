@@ -174,7 +174,12 @@ function getNormsForCultivation(
 
         // Find all matching sub-types
         const potentialMatches = selectedStandard.sub_types.filter((sub) => {
-            if (sub.period_start_month != null && sub.period_end_month != null) {
+            if (
+                sub.period_start_month !== null &&
+                sub.period_start_month !== undefined &&
+                sub.period_end_month !== null &&
+                sub.period_end_month !== undefined
+            ) {
                 const startPeriod = new Date(
                     endDate.getFullYear(),
                     sub.period_start_month - 1,
@@ -202,11 +207,17 @@ function getNormsForCultivation(
                 // Special handling for "vanaf" (Late sowing or summer/autumn teelten)
                 // For "vanaf" periods, the crop must start on or after the startPeriod.
                 const isVanaf =
-                    sub.period_start_month != null && sub.period_start_month > 1
+                    sub.period_start_month !== null &&
+                    sub.period_start_month !== undefined &&
+                    sub.period_start_month > 1
 
                 if (isVanaf) {
                     // If it's a "tot minstens" period (implied by end month < 12), it must also last until endPeriod.
-                    if (sub.period_end_month != null && sub.period_end_month < 12) {
+                    if (
+                        sub.period_end_month !== null &&
+                        sub.period_end_month !== undefined &&
+                        sub.period_end_month < 12
+                    ) {
                         return startDate >= startPeriod && endDate >= endPeriod
                     }
                     // For "vanaf X" (without "tot minstens", e.g. "vanaf 15 oktober"), we only check if it starts on or after X.
@@ -247,7 +258,12 @@ function getNormsForCultivation(
         // to prevent "undefined" regressions for edge cases, but with timezone fix.
         if (!matchingSubType) {
             matchingSubType = selectedStandard.sub_types.find((sub) => {
-                if (sub.period_start_month != null && sub.period_end_month != null) {
+                if (
+                    sub.period_start_month !== null &&
+                    sub.period_start_month !== undefined &&
+                    sub.period_end_month !== null &&
+                    sub.period_end_month !== undefined
+                ) {
                     const startPeriod = new Date(
                         endDate.getFullYear(),
                         sub.period_start_month - 1,
