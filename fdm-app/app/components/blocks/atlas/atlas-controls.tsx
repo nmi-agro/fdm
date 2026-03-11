@@ -132,7 +132,7 @@ class CustomControl implements IControl {
 /**
  * React root that can be added to a react-map-gl Map to include buttons etc. on it
  *
- * - position will tall MapGL where to put the controls
+ * - position will tell MapGL where to put the controls
  */
 export function AtlasControls(props: AtlasControlsProps) {
     const control = useControl(() => new CustomControl(props), {
