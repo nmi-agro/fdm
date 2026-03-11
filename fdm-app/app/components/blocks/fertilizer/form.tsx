@@ -265,6 +265,16 @@ export function FertilizerForm({
                         />
                     ))}
                 </div>
+                {form.formState.errors[param.parameter as keyof typeof form.formState.errors] && (
+                    <FieldError
+                        className="mt-2"
+                        errors={[
+                            {
+                                message: (form.formState.errors[param.parameter as keyof typeof form.formState.errors] as any)?.message,
+                            },
+                        ]}
+                    />
+                )}
             </div>
         )
     }
