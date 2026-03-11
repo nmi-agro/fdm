@@ -237,18 +237,18 @@ function getNormsForCultivation(
         if (potentialMatches.length > 0) {
             potentialMatches.sort((a, b) => {
                 const aStart =
-                    (a.period_start_month ?? -1) * 100 +
-                    (a.period_start_day ?? -1)
+                    (a.period_start_month ?? 1) * 100 +
+                    (a.period_start_day ?? 1)
                 const bStart =
-                    (b.period_start_month ?? -1) * 100 +
-                    (b.period_start_day ?? -1)
+                    (b.period_start_month ?? 1) * 100 +
+                    (b.period_start_day ?? 1)
                 if (aStart !== bStart) {
                     return aStart - bStart
                 }
                 const aEnd =
-                    (a.period_end_month ?? -1) * 100 + (a.period_end_day ?? -1)
+                    (a.period_end_month ?? 1) * 100 + (a.period_end_day ?? 1)
                 const bEnd =
-                    (b.period_end_month ?? -1) * 100 + (b.period_end_day ?? -1)
+                    (b.period_end_month ?? 1) * 100 + (b.period_end_day ?? 1)
                 return bEnd - aEnd
             })
             matchingSubType = potentialMatches[0]
