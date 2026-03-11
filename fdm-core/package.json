@@ -32,7 +32,7 @@
     ],
     "scripts": {
         "coverage": "dotenvx run -- vitest run --coverage",
-        "db:generate-authn": "pnpm dlx @better-auth/cli generate --config /src/db/generator/authn.ts --output ./src/db/schema-authn.ts --y",
+        "db:generate-authn": "pnpm dlx auth generate --config ./src/db/generator/authn.ts --output ./src/db/schema-authn.ts --y",
         "db:generate": "npx drizzle-kit generate",
         "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
         "dotenvx": "dotenvx",
