@@ -75,6 +75,17 @@ const baseFertilizer: Fertilizer = {
     p_ef_nh3: null,
     p_type: null,
     p_type_rvo: null,
+    p_source: "test",
+    p_dm: null,
+    p_density: null,
+    p_om: null,
+    p_a: null,
+    p_hc: null,
+    p_c_rt: null,
+    p_c_of: null,
+    p_c_if: null,
+    p_c_fr: null,
+    p_cn_of: null,
 }
 
 describe("calculateDose", () => {
