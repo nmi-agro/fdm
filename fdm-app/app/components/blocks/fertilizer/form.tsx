@@ -1,7 +1,7 @@
 import type { FertilizerParameters } from "@nmi-agro/fdm-core"
 import { Copy, InfoIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { Form, NavLink, useParams } from "react-router"
+import { Form, NavLink, useLocation, useParams } from "react-router"
 import { Controller } from "react-hook-form"
 import { RemixFormProvider, type useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
@@ -68,6 +68,10 @@ export function FertilizerForm({
     rvoToType,
 }: FertilizerFormNewProps) {
     const { p_id, b_id_farm } = useParams()
+    const location = useLocation()
+    const searchParams = new URLSearchParams(location.search)
+    const returnUrl = searchParams.get("returnUrl")
+
     const formValues = form.watch()
     const sidebarButtonRef = useRef<HTMLDivElement>(null)
     const [isSidebarButtonVisible, setIsSidebarButtonVisible] = useState(true)
@@ -265,12 +269,18 @@ export function FertilizerForm({
                         />
                     ))}
                 </div>
-                {form.formState.errors[param.parameter as keyof typeof form.formState.errors] && (
+                {form.formState.errors[
+                    param.parameter as keyof typeof form.formState.errors
+                ] && (
                     <FieldError
                         className="mt-2"
                         errors={[
                             {
-                                message: (form.formState.errors[param.parameter as keyof typeof form.formState.errors] as any)?.message,
+                                message: (
+                                    form.formState.errors[
+                                        param.parameter as keyof typeof form.formState.errors
+                                    ] as any
+                                )?.message,
                             },
                         ]}
                     />
@@ -344,7 +354,7 @@ export function FertilizerForm({
                                         asChild
                                     >
                                         <NavLink
-                                            to={`/farm/${b_id_farm}/fertilizers/new/${p_id}`}
+                                            to={`/farm/${b_id_farm}/fertilizers/new/${p_id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
                                         >
                                             <Copy className="mr-2 h-4 w-4" />
                                             Gebruik als sjabloon
