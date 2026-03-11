@@ -15,7 +15,7 @@ describe("Soil Conversions", () => {
 
         it("should handle null input", () => {
             expect(calculateOrganicCarbon(null)).toBeNull()
-            expect(calculateOrganicCarbon(undefined)).toBeNull()
+            expect(calculateOrganicCarbon(undefined as any)).toBeNull()
         })
 
         it("should handle zero input", () => {
@@ -36,7 +36,7 @@ describe("Soil Conversions", () => {
 
         it("should handle null input", () => {
             expect(calculateOrganicMatter(null)).toBeNull()
-            expect(calculateOrganicMatter(undefined)).toBeNull()
+            expect(calculateOrganicMatter(undefined as any)).toBeNull()
         })
 
         it("should handle zero input", () => {
@@ -57,9 +57,9 @@ describe("Soil Conversions", () => {
 
         it("should handle null input for either parameter", () => {
             expect(calculateCarbonNitrogenRatio(null, 2000)).toBeNull()
-            expect(calculateCarbonNitrogenRatio(undefined, 2000)).toBeNull()
+            expect(calculateCarbonNitrogenRatio(undefined as any, 2000)).toBeNull()
             expect(calculateCarbonNitrogenRatio(10, null)).toBeNull()
-            expect(calculateCarbonNitrogenRatio(10, undefined)).toBeNull()
+            expect(calculateCarbonNitrogenRatio(10, undefined as any)).toBeNull()
         })
 
         it("should handle zero input for a_c_of", () => {
@@ -92,9 +92,9 @@ describe("Soil Conversions", () => {
 
         it("should handle null input for either parameter", () => {
             expect(calculateBulkDensity(null, "dekzand")).toBeNull()
-            expect(calculateBulkDensity(undefined, "dekzand")).toBeNull()
+            expect(calculateBulkDensity(undefined as any, "dekzand")).toBeNull()
             expect(calculateBulkDensity(10, null)).toBeNull()
-            expect(calculateBulkDensity(10, undefined)).toBeNull()
+            expect(calculateBulkDensity(10, undefined as any)).toBeNull()
         })
 
         it("should handle zero input for a_som_loi", () => {
