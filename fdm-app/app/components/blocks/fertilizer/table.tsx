@@ -194,32 +194,53 @@ export function DataTable<TData, TValue>({
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={
-                                        row.getIsSelected() && "selected"
+                            table.getRowModel().rows.map((row) => {
+                                const fertilizer = row.original as {
+                                    p_id?: string
+                                    p_name_nl?: string
+                                }
+                                const p_id = fertilizer.p_id
+                                const p_name =
+                                    fertilizer.p_name_nl || "Onbekende meststof"
+
+                                const handleNavigate = () => {
+                                    if (p_id) {
+                                        navigate(`./${p_id}`)
                                     }
-                                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                    onClick={() => {
-                                        const p_id = (
-                                            row.original as { p_id?: string }
-                                        ).p_id
-                                        if (p_id) {
-                                            navigate(`./${p_id}`)
+                                }
+
+                                return (
+                                    <TableRow
+                                        key={row.id}
+                                        tabIndex={0}
+                                        role="link"
+                                        aria-label={`Bekijk details van ${p_name}`}
+                                        data-state={
+                                            row.getIsSelected() && "selected"
                                         }
-                                    }}
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext(),
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
+                                        className="cursor-pointer hover:bg-muted/50 transition-colors outline-none focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        onClick={handleNavigate}
+                                        onKeyDown={(e) => {
+                                            if (
+                                                e.key === "Enter" ||
+                                                e.key === " "
+                                            ) {
+                                                e.preventDefault()
+                                                handleNavigate()
+                                            }
+                                        }}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext(),
+                                                )}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                )
+                            })
                         ) : (
                             <TableRow>
                                 <TableCell
