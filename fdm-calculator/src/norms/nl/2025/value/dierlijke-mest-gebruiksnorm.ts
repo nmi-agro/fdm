@@ -142,7 +142,7 @@ export async function isFieldInDerogatieVrijeZone(
 export async function calculateNL2025DierlijkeMestGebruiksNorm(
     input: NL2025NormsInput,
 ): Promise<DierlijkeMestGebruiksnormResult> {
-    const is_derogatie_bedrijf = input.farm.is_derogatie_bedrijf || false
+    const is_derogatie_bedrijf = input.farm.is_derogatie_bedrijf ?? false
     const field = input.field
 
     // Check for buffer strip
