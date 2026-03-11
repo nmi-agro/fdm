@@ -11,12 +11,7 @@ import { FormSchema } from "~/components/blocks/fertilizer/formschema"
 import { buildFertilizerDefaults } from "~/components/blocks/fertilizer/utils"
 
 interface FarmNewFertilizerBlockLoaderData {
-    fertilizer: Partial<Fertilizer> & {
-        p_name_nl?: string | null
-        p_type_rvo?: string | null
-        p_app_method_options?: string[] | null
-        p_type?: "manure" | "compost" | "mineral" | null
-    }
+    fertilizer: Partial<Fertilizer>
     fertilizerParameters: FertilizerParameterDescriptionItem[]
     editable?: boolean
     rvoLabels?: Record<string, string>

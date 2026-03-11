@@ -7,7 +7,7 @@ import type { FormSchema } from "./formschema"
  * Maps null values to undefined to match Zod schema expectations (string | undefined, number | undefined).
  */
 export function buildFertilizerDefaults(
-    fertilizer: Partial<Fertilizer> & Record<string, any>,
+    fertilizer: Partial<Fertilizer>,
     clearName = false,
 ): z.infer<typeof FormSchema> {
     const toUndefined = (val: any) =>
