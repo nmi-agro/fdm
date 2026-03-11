@@ -97,6 +97,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         const { rvoLabels, rvoToType } = await getRvoMappings(fertilizers)
 
+        // Validate that the fetched fertilizer is part of this farm's fertilizers
+        if (!fertilizers.some((f) => f.p_id === p_id)) {
+            throw data("fertilizer not in farm scope", {
+                status: 404,
+                statusText: "not found: p_id",
+            })
+        }
+
         // Return user information from loader
         return {
             farm: farm,
@@ -117,10 +125,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 /**
- * Renders the form for adding a new fertilizer based on an existing one.
- *
- * This component displays a sidebar that includes the farm header, navigation options, and a link to farm fields.
- * It also renders a main section containing the farm title, description, nested routes via an Outlet, and a notification toaster.
+ * Renders the FarmTitle and FarmNewFertilizerBlock components to display the page for creating a new fertilizer from an existing one.
  */
 export default function FarmFertilizerPage() {
     const loaderData = useLoaderData<typeof loader>()
