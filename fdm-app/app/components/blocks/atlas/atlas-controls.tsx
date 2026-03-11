@@ -173,6 +173,7 @@ function AtlasButton({ active = true, ...props }: ButtonProps) {
             className="maplibregl-ctrl-icon flex items-center justify-center p-0!"
             type="button"
             title={props.label}
+            aria-label={props.label}
             onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
