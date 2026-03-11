@@ -105,7 +105,7 @@ export function calculateBulkDensity(
         | fdmSchema.soilAnalysisTypeSelect["b_soiltype_agr"]
         | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_density_sa"] {
-    if (a_som_loi === null || a_som_loi === undefined || !b_soiltype_agr) {
+    if (a_som_loi === null || a_som_loi === undefined || b_soiltype_agr == null) {
         return null
     }
 
