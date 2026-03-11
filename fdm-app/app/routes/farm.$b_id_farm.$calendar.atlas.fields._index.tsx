@@ -190,7 +190,9 @@ export default function FarmAtlasFieldsBlock() {
                 }
                 showFields={showFields}
                 onToggleFields={() => setShowFields(!showFields)}
-                showFlyToFields={fields}
+                showFlyToFields={
+                    fields && fields.features.length > 0 ? true : undefined
+                }
                 onFlyToFields={() => {
                     setViewState({ ...initialViewState })
                     if (initialViewState.bounds) {

@@ -226,6 +226,8 @@ export default function Index() {
     const [showFields, setShowFields] = useState(true)
     const layerLayout = { visibility: showFields ? "visible" : "none" } as const
 
+    const mapRef = useRef<MapRef>(null)
+
     return (
         <SidebarInset>
             <Header action={undefined}>
@@ -306,6 +308,28 @@ export default function Index() {
                                     onToggleFields={() =>
                                         setShowFields(!showFields)
                                     }
+                                    showFlyToFields={
+                                        fieldsSaved.features.length +
+                                            selectedFieldsData.features.length >
+                                        0
+                                            ? true
+                                            : undefined
+                                    }
+                                    onFlyToFields={() => {
+                                        const overallViewState = getViewState(
+                                            featureCollection([
+                                                ...fieldsSaved.features,
+                                                ...selectedFieldsData.features,
+                                            ]),
+                                        )
+                                        setViewState(overallViewState)
+                                        if (overallViewState.bounds) {
+                                            mapRef.current?.fitBounds(
+                                                overallViewState.bounds,
+                                                overallViewState.fitBoundsOptions,
+                                            )
+                                        }
+                                    }}
                                 />
 
                                 <MapTilerAttribution />
