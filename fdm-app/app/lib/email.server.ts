@@ -274,3 +274,12 @@ export async function sendMagicLinkEmailToUser(
     const email = await renderMagicLinkEmail(emailAddress, magicLinkUrl, code)
     await sendEmail(email)
 }
+
+export async function sendWelcomeEmailToUser(user: User) {
+    try {
+        const email = await renderWelcomeEmail(user)
+        await sendEmail(email)
+    } catch (error) {
+        console.error("Error sending welcome email:", error)
+    }
+}
