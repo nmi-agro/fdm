@@ -136,11 +136,12 @@ export function DataTable<TData, TValue>({
                 <div className="flex items-center gap-2 shrink-0">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline">
-                                Kolommen
-                            </Button>
+                            <Button variant="outline">Kolommen</Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="max-h-[400px] overflow-y-auto">
+                        <DropdownMenuContent
+                            align="end"
+                            className="max-h-100 overflow-y-auto"
+                        >
                             {table
                                 .getAllColumns()
                                 .filter((column) => column.getCanHide())
@@ -154,7 +155,8 @@ export function DataTable<TData, TValue>({
                                                 column.toggleVisibility(!!value)
                                             }
                                         >
-                                            {columnLabels[column.id] || column.id}
+                                            {columnLabels[column.id] ||
+                                                column.id}
                                         </DropdownMenuCheckboxItem>
                                     )
                                 })}
@@ -164,7 +166,9 @@ export function DataTable<TData, TValue>({
                         <NavLink to={"./new"}>
                             <Button>
                                 <Plus className="mr-2 h-4 w-4" />
-                                <span className="hidden sm:inline">Meststof toevoegen</span>
+                                <span className="hidden sm:inline">
+                                    Meststof toevoegen
+                                </span>
                                 <span className="sm:hidden">Toevoegen</span>
                             </Button>
                         </NavLink>
@@ -203,38 +207,35 @@ export function DataTable<TData, TValue>({
                                 const p_name =
                                     fertilizer.p_name_nl || "Onbekende meststof"
 
-                                const handleNavigate = () => {
-                                    if (p_id) {
-                                        navigate(`./${p_id}`)
-                                    }
-                                }
-
                                 return (
                                     <TableRow
                                         key={row.id}
-                                        tabIndex={0}
-                                        role="link"
-                                        aria-label={`Bekijk details van ${p_name}`}
                                         data-state={
                                             row.getIsSelected() && "selected"
                                         }
-                                        className="cursor-pointer hover:bg-muted/50 transition-colors outline-none focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                        onClick={handleNavigate}
-                                        onKeyDown={(e) => {
-                                            if (
-                                                e.key === "Enter" ||
-                                                e.key === " "
-                                            ) {
-                                                e.preventDefault()
-                                                handleNavigate()
-                                            }
-                                        }}
+                                        className="hover:bg-muted/50 transition-colors"
                                     >
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell key={cell.id}>
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext(),
+                                                {cell.column.id ===
+                                                    "p_name_nl" && p_id ? (
+                                                    <NavLink
+                                                        to={`./${p_id}`}
+                                                        className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm block"
+                                                        aria-label={`Bekijk details van ${p_name}`}
+                                                    >
+                                                        {flexRender(
+                                                            cell.column
+                                                                .columnDef.cell,
+                                                            cell.getContext(),
+                                                        )}
+                                                    </NavLink>
+                                                ) : (
+                                                    flexRender(
+                                                        cell.column.columnDef
+                                                            .cell,
+                                                        cell.getContext(),
+                                                    )
                                                 )}
                                             </TableCell>
                                         ))}
@@ -244,7 +245,9 @@ export function DataTable<TData, TValue>({
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    colSpan={table.getVisibleLeafColumns().length}
+                                    colSpan={
+                                        table.getVisibleLeafColumns().length
+                                    }
                                     className="h-24 text-center"
                                 >
                                     Geen resultaten.

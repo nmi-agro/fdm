@@ -1,8 +1,4 @@
-import {
-    type Fertilizer,
-    getFertilizers,
-    getFertilizerParametersDescription,
-} from "@nmi-agro/fdm-core"
+import { type Fertilizer, getFertilizers } from "@nmi-agro/fdm-core"
 import { Plus, Pencil } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import type { LoaderFunctionArgs } from "react-router"
