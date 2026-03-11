@@ -25,10 +25,10 @@
         "format-and-lint:fix-unsafe": "biome check . --write --unsafe"
     },
     "devDependencies": {
-        "@biomejs/biome": "^2.4.5",
-        "@changesets/changelog-github": "^0.5.2",
+        "@biomejs/biome": "^2.4.6",
+        "@changesets/changelog-github": "^0.6.0",
         "@changesets/cli": "^2.30.0",
-        "turbo": "^2.8.13"
+        "turbo": "^2.8.16"
     },
     "packageManager": "pnpm@10.32.1",
     "pnpm": {
