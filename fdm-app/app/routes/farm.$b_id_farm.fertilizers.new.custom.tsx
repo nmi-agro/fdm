@@ -12,14 +12,16 @@ import {
     useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import { FarmNewFertilizerBlock } from "~/components/blocks/fertilizer/new-fertilizer-page"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FormSchema } from "~/components/blocks/fertilizer/formschema"
-import { FarmNewCustomFertilizerBlock } from "~/components/blocks/fertilizer/new-custom-fertilizer-page"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { isOfOrigin, modifySearchParams } from "~/lib/url-utils"
+import type { z } from "zod"
 
 export const meta: MetaFunction = () => {
     return [
@@ -49,54 +51,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Get selected fertilizer
         const fertilizerParameters = getFertilizerParametersDescription()
 
+        // Get RVO labels for the summary
+        const fertilizerParameterDescription =
+            getFertilizerParametersDescription("NL-nl")
+        const p_type_rvo_options =
+            fertilizerParameterDescription.find(
+                (x) => x.parameter === "p_type_rvo",
+            )?.options ?? []
+        const rvoLabelByValue = new Map(
+            p_type_rvo_options.map((opt) => [String(opt.value), opt.label]),
+        )
+
         const fertilizer = {
             p_id: undefined, // Added p_id
             p_source: b_id_farm,
             p_name_nl: "",
-            p_type_rvo: undefined,
-            p_dm: undefined,
-            p_density: undefined,
-            p_om: undefined,
-            p_a: undefined,
-            p_hc: undefined,
-            p_eom: undefined,
-            p_eoc: undefined,
-            p_c_rt: undefined,
-            p_c_of: undefined,
-            p_c_if: undefined,
-            p_c_fr: undefined,
-            p_cn_of: undefined,
-            p_n_rt: undefined,
-            p_n_if: undefined,
-            p_n_of: undefined,
-            p_n_wc: undefined,
-            p_no3_rt: undefined,
-            p_nh4_rt: undefined,
-            p_p_rt: undefined,
-            p_k_rt: undefined,
-            p_mg_rt: undefined,
-            p_ca_rt: undefined,
-            p_ne: undefined,
-            p_s_rt: undefined,
-            p_s_wc: undefined,
-            p_cu_rt: undefined,
-            p_zn_rt: undefined,
-            p_na_rt: undefined,
-            p_si_rt: undefined,
-            p_b_rt: undefined,
-            p_mn_rt: undefined,
-            p_ni_rt: undefined,
-            p_fe_rt: undefined,
-            p_mo_rt: undefined,
-            p_co_rt: undefined,
-            p_as_rt: undefined,
-            p_cd_rt: undefined,
-            p_cr_rt: undefined,
-            p_cr_vi: undefined,
-            p_pb_rt: undefined,
-            p_hg_rt: undefined,
-            p_cl_rt: undefined,
             p_app_method_options: [],
+            p_type: null as any,
         }
 
         // Get the available fertilizers
@@ -112,11 +83,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })
 
+        // Build mapping of RVO code to Type for dynamic badge colors
+        const rvoToType: Record<string, string> = {}
+        for (const f of fertilizers) {
+            if (f.p_type_rvo && f.p_type) {
+                rvoToType[f.p_type_rvo] = f.p_type
+            }
+        }
+
         // Return user information from loader
         return {
             fertilizerOptions: fertilizerOptions,
             fertilizer: fertilizer,
             fertilizerParameters: fertilizerParameters,
+            editable: true,
+            rvoLabels: Object.fromEntries(rvoLabelByValue),
+            rvoToType,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -124,7 +106,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 /**
- * Renders the layout for managing farm settings.
+ * Renders the layout for creating a custom fertilizer.
  *
  * This component displays a sidebar that includes the farm header, navigation options, and a link to farm fields.
  * It also renders a main section containing the farm title, description, nested routes via an Outlet, and a notification toaster.
@@ -132,7 +114,75 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmFertilizerPage() {
     const loaderData = useLoaderData<typeof loader>()
 
-    return <FarmNewCustomFertilizerBlock loaderData={loaderData} />
+    return (
+        <div className="space-y-6">
+            <FarmTitle
+                title={"Nieuwe meststof"}
+                description={
+                    "Voer handmatig de gehaltes en eigenschappen in voor uw nieuwe meststof."
+                }
+            />
+            <div className="p-4 md:p-8 pt-0 md:pt-0">
+                <div className="mx-auto max-w-6xl w-full">
+                    <FarmNewFertilizerBlock loaderData={loaderData} />
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export function buildCataloguePayload(formValues: z.infer<typeof FormSchema>) {
+    return {
+        p_name_nl: formValues.p_name_nl,
+        p_name_en: formValues.p_name_en,
+        p_description: formValues.p_description,
+        p_type: null,
+        p_type_rvo: formValues.p_type_rvo,
+        p_dm: formValues.p_dm,
+        p_density: formValues.p_density,
+        p_om: formValues.p_om,
+        p_a: formValues.p_a,
+        p_hc: formValues.p_hc,
+        p_eom: formValues.p_eom,
+        p_eoc: formValues.p_eoc,
+        p_c_rt: formValues.p_c_rt,
+        p_c_of: formValues.p_c_of,
+        p_c_if: formValues.p_c_if,
+        p_c_fr: formValues.p_c_fr,
+        p_cn_of: formValues.p_cn_of,
+        p_n_rt: formValues.p_n_rt,
+        p_n_if: formValues.p_n_if,
+        p_n_of: formValues.p_n_of,
+        p_n_wc: formValues.p_n_wc,
+        p_no3_rt: formValues.p_no3_rt,
+        p_nh4_rt: formValues.p_nh4_rt,
+        p_p_rt: formValues.p_p_rt,
+        p_k_rt: formValues.p_k_rt,
+        p_mg_rt: formValues.p_mg_rt,
+        p_ca_rt: formValues.p_ca_rt,
+        p_ne: formValues.p_ne,
+        p_s_rt: formValues.p_s_rt,
+        p_s_wc: formValues.p_s_wc,
+        p_cu_rt: formValues.p_cu_rt,
+        p_zn_rt: formValues.p_zn_rt,
+        p_na_rt: formValues.p_na_rt,
+        p_si_rt: formValues.p_si_rt,
+        p_b_rt: formValues.p_b_rt,
+        p_mn_rt: formValues.p_mn_rt,
+        p_ni_rt: formValues.p_ni_rt,
+        p_fe_rt: formValues.p_fe_rt,
+        p_mo_rt: formValues.p_mo_rt,
+        p_co_rt: formValues.p_co_rt,
+        p_as_rt: formValues.p_as_rt,
+        p_cd_rt: formValues.p_cd_rt,
+        p_cr_rt: formValues.p_cr_rt,
+        p_cr_vi: formValues.p_cr_vi,
+        p_pb_rt: formValues.p_pb_rt,
+        p_hg_rt: formValues.p_hg_rt,
+        p_cl_rt: formValues.p_cl_rt,
+        p_ef_nh3: undefined,
+        p_app_method_options: formValues.p_app_method_options,
+    }
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -158,57 +208,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             fdm,
             session.principal_id,
             b_id_farm,
-            {
-                p_name_nl: formValues.p_name_nl,
-                p_name_en: formValues.p_name_en,
-                p_description: formValues.p_description,
-                p_type: null,
-                p_type_rvo: formValues.p_type_rvo,
-                p_dm: formValues.p_dm,
-                p_density: formValues.p_density,
-                p_om: formValues.p_om,
-                p_a: formValues.p_a,
-                p_hc: formValues.p_hc,
-                p_eom: formValues.p_eom,
-                p_eoc: formValues.p_eoc,
-                p_c_rt: formValues.p_c_rt,
-                p_c_of: formValues.p_c_of,
-                p_c_if: formValues.p_c_if,
-                p_c_fr: formValues.p_c_fr,
-                p_cn_of: formValues.p_cn_of,
-                p_n_rt: formValues.p_n_rt,
-                p_n_if: formValues.p_n_if,
-                p_n_of: formValues.p_n_of,
-                p_n_wc: formValues.p_n_wc,
-                p_no3_rt: formValues.p_no3_rt,
-                p_nh4_rt: formValues.p_nh4_rt,
-                p_p_rt: formValues.p_p_rt,
-                p_k_rt: formValues.p_k_rt,
-                p_mg_rt: formValues.p_mg_rt,
-                p_ca_rt: formValues.p_ca_rt,
-                p_ne: formValues.p_ne,
-                p_s_rt: formValues.p_s_rt,
-                p_s_wc: formValues.p_s_wc,
-                p_cu_rt: formValues.p_cu_rt,
-                p_zn_rt: formValues.p_zn_rt,
-                p_na_rt: formValues.p_na_rt,
-                p_si_rt: formValues.p_si_rt,
-                p_b_rt: formValues.p_b_rt,
-                p_mn_rt: formValues.p_mn_rt,
-                p_ni_rt: formValues.p_ni_rt,
-                p_fe_rt: formValues.p_fe_rt,
-                p_mo_rt: formValues.p_mo_rt,
-                p_co_rt: formValues.p_co_rt,
-                p_as_rt: formValues.p_as_rt,
-                p_cd_rt: formValues.p_cd_rt,
-                p_cr_rt: formValues.p_cr_rt,
-                p_cr_vi: formValues.p_cr_vi,
-                p_pb_rt: formValues.p_pb_rt,
-                p_hg_rt: formValues.p_hg_rt,
-                p_cl_rt: formValues.p_cl_rt,
-                p_ef_nh3: undefined,
-                p_app_method_options: formValues.p_app_method_options,
-            },
+            buildCataloguePayload(formValues)
         )
 
         const p_new_id = await addFertilizer(
