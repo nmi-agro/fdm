@@ -162,15 +162,15 @@ export function DataTable<TData, TValue>({
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <div className={cn(!canAddItem ? "hidden" : "")}>
-                        <NavLink to={"./new"}>
-                            <Button>
+                        <Button asChild>
+                            <NavLink to={"./new"}>
                                 <Plus className="mr-2 h-4 w-4" />
                                 <span className="hidden sm:inline">
                                     Meststof toevoegen
                                 </span>
                                 <span className="sm:hidden">Toevoegen</span>
-                            </Button>
-                        </NavLink>
+                            </NavLink>
+                        </Button>
                     </div>
                 </div>
             </div>
