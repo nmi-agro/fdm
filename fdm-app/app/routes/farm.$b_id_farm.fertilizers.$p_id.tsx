@@ -8,6 +8,7 @@ import {
     getFertilizers,
     updateFertilizerFromCatalogue,
 } from "@nmi-agro/fdm-core"
+import { useEffect } from "react"
 import {
     type ActionFunctionArgs,
     data,
@@ -185,6 +186,10 @@ export default function FarmFertilizerBlock() {
         resolver: zodResolver(FormSchema),
         defaultValues: buildFertilizerDefaults(fertilizer),
     })
+
+    useEffect(() => {
+        form.reset(buildFertilizerDefaults(fertilizer))
+    }, [fertilizer, form])
 
     return (
         <SidebarInset>

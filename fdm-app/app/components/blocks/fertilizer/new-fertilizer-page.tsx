@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { Fertilizer } from "@nmi-agro/fdm-core"
+import { useEffect } from "react"
 import { useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
 import {
@@ -46,6 +47,10 @@ export function FarmNewFertilizerBlock({
         resolver: zodResolver(FormSchema),
         defaultValues: buildFertilizerDefaults(fertilizer, clearName),
     })
+
+    useEffect(() => {
+        form.reset(buildFertilizerDefaults(fertilizer, clearName))
+    }, [fertilizer, form, clearName])
 
     return (
         <FertilizerForm
