@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table"
 import { Plus } from "lucide-react"
 import { useState } from "react"
-import { NavLink, useNavigate } from "react-router"
+import { NavLink } from "react-router"
 import { Button } from "~/components/ui/button"
 import {
     DropdownMenu,
@@ -67,7 +67,6 @@ export function DataTable<TData, TValue>({
         p_hg_rt: false,
         p_cl_rt: false,
     })
-    const navigate = useNavigate()
 
     const table = useReactTable({
         data,
