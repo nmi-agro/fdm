@@ -19,6 +19,7 @@ import {
     CommandList,
 } from "~/components/ui/command"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { getRvoMappings } from "~/components/blocks/fertilizer/utils"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
@@ -37,20 +38,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id_farm,
     )
 
-    // Get RVO labels for the search string and display
-    const fertilizerParameterDescription =
-        await getFertilizerParametersDescription("NL-nl")
-    const p_type_rvo_options =
-        fertilizerParameterDescription.find((x) => x.parameter === "p_type_rvo")
-            ?.options ?? []
-    const rvoLabelByValue = new Map(
-        p_type_rvo_options.map((opt) => [String(opt.value), opt.label]),
-    )
+    const { rvoLabels } = await getRvoMappings()
 
     return {
         b_id_farm: b_id_farm,
         fertilizers: fertilizers,
-        rvoLabels: Object.fromEntries(rvoLabelByValue),
+        rvoLabels,
     }
 }
 

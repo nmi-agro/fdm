@@ -22,7 +22,10 @@ import type { z } from "zod"
 import { FertilizerForm } from "@/app/components/blocks/fertilizer/form"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FormSchema } from "~/components/blocks/fertilizer/formschema"
-import { buildFertilizerDefaults } from "~/components/blocks/fertilizer/utils"
+import {
+    buildFertilizerDefaults,
+    getRvoMappings,
+} from "~/components/blocks/fertilizer/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"
@@ -95,17 +98,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fertilizer = await getFertilizer(fdm, p_id)
         const fertilizerParameters = getFertilizerParametersDescription()
 
-        // Get RVO labels for the summary
-        const fertilizerParameterDescription =
-            getFertilizerParametersDescription("NL-nl")
-        const p_type_rvo_options =
-            fertilizerParameterDescription.find(
-                (x) => x.parameter === "p_type_rvo",
-            )?.options ?? []
-        const rvoLabelByValue = new Map(
-            p_type_rvo_options.map((opt) => [String(opt.value), opt.label]),
-        )
-
         // Get the available fertilizers
         const fertilizers = await getFertilizers(
             fdm,
@@ -119,13 +111,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })
 
-        // Build mapping of RVO code to Type for dynamic badge colors
-        const rvoToType: Record<string, string> = {}
-        for (const f of fertilizers) {
-            if (f.p_type_rvo && f.p_type) {
-                rvoToType[f.p_type_rvo] = f.p_type
-            }
-        }
+        const { rvoLabels, rvoToType } = await getRvoMappings(fertilizers)
 
         // Set editable status
         let editable = false
@@ -157,7 +143,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fertilizer: fertilizer,
             editable: editable,
             fertilizerParameters: fertilizerParameters,
-            rvoLabels: Object.fromEntries(rvoLabelByValue),
+            rvoLabels,
             rvoToType,
         }
     } catch (error) {

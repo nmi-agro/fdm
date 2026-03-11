@@ -15,6 +15,7 @@ import { redirectWithSuccess } from "remix-toast"
 import { FarmNewFertilizerBlock } from "~/components/blocks/fertilizer/new-fertilizer-page"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FormSchema } from "~/components/blocks/fertilizer/formschema"
+import { getRvoMappings } from "~/components/blocks/fertilizer/utils"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -51,17 +52,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Get selected fertilizer
         const fertilizerParameters = getFertilizerParametersDescription()
 
-        // Get RVO labels for the summary
-        const fertilizerParameterDescription =
-            getFertilizerParametersDescription("NL-nl")
-        const p_type_rvo_options =
-            fertilizerParameterDescription.find(
-                (x) => x.parameter === "p_type_rvo",
-            )?.options ?? []
-        const rvoLabelByValue = new Map(
-            p_type_rvo_options.map((opt) => [String(opt.value), opt.label]),
-        )
-
         const fertilizer = {
             p_id: undefined, // Added p_id
             p_source: b_id_farm,
@@ -83,13 +73,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })
 
-        // Build mapping of RVO code to Type for dynamic badge colors
-        const rvoToType: Record<string, string> = {}
-        for (const f of fertilizers) {
-            if (f.p_type_rvo && f.p_type) {
-                rvoToType[f.p_type_rvo] = f.p_type
-            }
-        }
+        const { rvoLabels, rvoToType } = await getRvoMappings(fertilizers)
 
         // Return user information from loader
         return {
@@ -97,7 +81,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fertilizer: fertilizer,
             fertilizerParameters: fertilizerParameters,
             editable: true,
-            rvoLabels: Object.fromEntries(rvoLabelByValue),
+            rvoLabels,
             rvoToType,
         }
     } catch (error) {

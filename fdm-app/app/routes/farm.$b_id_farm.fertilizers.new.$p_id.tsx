@@ -13,6 +13,7 @@ import {
 } from "react-router"
 import { FarmNewFertilizerBlock } from "~/components/blocks/fertilizer/new-fertilizer-page"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { getRvoMappings } from "~/components/blocks/fertilizer/utils"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -81,17 +82,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fertilizer = await getFertilizer(fdm, p_id)
         const fertilizerParameters = getFertilizerParametersDescription()
 
-        // Get RVO labels for the summary
-        const fertilizerParameterDescription =
-            getFertilizerParametersDescription("NL-nl")
-        const p_type_rvo_options =
-            fertilizerParameterDescription.find(
-                (x) => x.parameter === "p_type_rvo",
-            )?.options ?? []
-        const rvoLabelByValue = new Map(
-            p_type_rvo_options.map((opt) => [String(opt.value), opt.label]),
-        )
-
         // Get the available fertilizers
         const fertilizers = await getFertilizers(
             fdm,
@@ -105,13 +95,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })
 
-        // Build mapping of RVO code to Type for dynamic badge colors
-        const rvoToType: Record<string, string> = {}
-        for (const f of fertilizers) {
-            if (f.p_type_rvo && f.p_type) {
-                rvoToType[f.p_type_rvo] = f.p_type
-            }
-        }
+        const { rvoLabels, rvoToType } = await getRvoMappings(fertilizers)
 
         // Return user information from loader
         return {
@@ -123,7 +107,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fertilizer: fertilizer,
             editable: true,
             fertilizerParameters: fertilizerParameters,
-            rvoLabels: Object.fromEntries(rvoLabelByValue),
+            rvoLabels,
             rvoToType,
             clearName: true,
         }
