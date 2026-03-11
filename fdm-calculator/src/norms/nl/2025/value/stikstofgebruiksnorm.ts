@@ -178,7 +178,7 @@ function getNormsForCultivation(
                 const startPeriod = new Date(
                     endDate.getFullYear(),
                     sub.period_start_month - 1,
-                    sub.period_start_day || 1,
+                    sub.period_start_day ?? 1,
                     12,
                     0,
                     0,
@@ -187,7 +187,7 @@ function getNormsForCultivation(
                 const endPeriod = new Date(
                     endDate.getFullYear(),
                     sub.period_end_month - 1,
-                    sub.period_end_day || 1,
+                    sub.period_end_day ?? 1,
                     12,
                     0,
                     0,
@@ -226,18 +226,18 @@ function getNormsForCultivation(
         if (potentialMatches.length > 0) {
             potentialMatches.sort((a, b) => {
                 const aStart =
-                    (a.period_start_month || 0) * 100 +
-                    (a.period_start_day || 0)
+                    (a.period_start_month ?? 0) * 100 +
+                    (a.period_start_day ?? 0)
                 const bStart =
-                    (b.period_start_month || 0) * 100 +
-                    (b.period_start_day || 0)
+                    (b.period_start_month ?? 0) * 100 +
+                    (b.period_start_day ?? 0)
                 if (aStart !== bStart) {
                     return aStart - bStart
                 }
                 const aEnd =
-                    (a.period_end_month || 0) * 100 + (a.period_end_day || 0)
+                    (a.period_end_month ?? 0) * 100 + (a.period_end_day ?? 0)
                 const bEnd =
-                    (b.period_end_month || 0) * 100 + (b.period_end_day || 0)
+                    (b.period_end_month ?? 0) * 100 + (b.period_end_day ?? 0)
                 return bEnd - aEnd
             })
             matchingSubType = potentialMatches[0]

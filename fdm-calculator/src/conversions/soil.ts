@@ -13,7 +13,7 @@ import { Decimal } from "decimal.js"
 export function calculateOrganicCarbon(
     a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"],
 ): fdmSchema.soilAnalysisTypeSelect["a_c_of"] {
-    if (!a_som_loi) {
+    if (a_som_loi === null || a_som_loi === undefined) {
         return null
     }
 
@@ -40,7 +40,7 @@ export function calculateOrganicCarbon(
 export function calculateOrganicMatter(
     a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"],
 ): fdmSchema.soilAnalysisTypeSelect["a_som_loi"] {
-    if (!a_c_of) {
+    if (a_c_of === null || a_c_of === undefined) {
         return null
     }
 
@@ -70,7 +70,7 @@ export function calculateCarbonNitrogenRatio(
     a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"],
     a_n_rt: fdmSchema.soilAnalysisTypeSelect["a_n_rt"],
 ): fdmSchema.soilAnalysisTypeSelect["a_cn_fr"] {
-    if (!a_c_of || !a_n_rt) {
+    if (a_c_of === null || a_c_of === undefined || !a_n_rt) {
         return null
     }
 
@@ -103,7 +103,7 @@ export function calculateBulkDensity(
     a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"],
     b_soiltype_agr: fdmSchema.soilAnalysisTypeSelect["b_soiltype_agr"],
 ): fdmSchema.soilAnalysisTypeSelect["a_density_sa"] {
-    if (!a_som_loi || !b_soiltype_agr) {
+    if (a_som_loi === null || a_som_loi === undefined || !b_soiltype_agr) {
         return null
     }
 
