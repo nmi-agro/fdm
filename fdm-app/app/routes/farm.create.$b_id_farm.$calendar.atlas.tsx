@@ -7,7 +7,7 @@ import {
     getFarm,
     getFields,
 } from "@nmi-agro/fdm-core"
-import { simplify } from "@turf/turf"
+import { featureCollection, simplify } from "@turf/turf"
 import type {
     Feature,
     FeatureCollection,
@@ -16,10 +16,11 @@ import type {
     Polygon,
 } from "geojson"
 import maplibregl from "maplibre-gl"
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import {
     Layer,
     Map as MapGL,
+    type MapRef,
     type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
@@ -262,6 +263,7 @@ export default function Index() {
                         {() => (
                             <MapGL
                                 {...viewState}
+                                ref={mapRef}
                                 style={{
                                     height: "calc(100vh - 64px - 147px)",
                                     width: "100%",
