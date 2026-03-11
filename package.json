@@ -50,6 +50,7 @@
         "onlyBuiltDependencies": [
             "@biomejs/biome",
             "@geomatico/maplibre-cog-protocol",
+            "@prisma/engines",
             "@sentry-internal/node-cpu-profiler",
             "@sentry/cli",
             "@swc/core",
@@ -57,6 +58,7 @@
             "core-js",
             "core-js-pure",
             "esbuild",
+            "prisma",
             "protobufjs"
         ]
     }

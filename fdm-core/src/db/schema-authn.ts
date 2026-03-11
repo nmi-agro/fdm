@@ -148,9 +148,9 @@ export const invitation = fdmAuthNSchema.table(
 
 export const rateLimit = fdmAuthNSchema.table("rate_limit", {
     id: text("id").primaryKey(),
-    key: text("key"),
-    count: integer("count"),
-    lastRequest: bigint("last_request", { mode: "number" }),
+    key: text("key").notNull().unique(),
+    count: integer("count").notNull(),
+    lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 })
 
 export const userRelations = relations(user, ({ many }) => ({
