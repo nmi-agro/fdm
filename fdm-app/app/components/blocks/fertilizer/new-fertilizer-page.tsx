@@ -19,6 +19,7 @@ interface FarmNewFertilizerBlockLoaderData {
     fertilizerParameters: FertilizerParameterDescriptionItem[]
     editable?: boolean
     rvoLabels?: Record<string, string>
+    rvoToType?: Record<string, string>
     clearName?: boolean
 }
 
@@ -36,6 +37,7 @@ export function FarmNewFertilizerBlock({
         fertilizerParameters,
         editable = true,
         rvoLabels,
+        rvoToType,
         clearName = false,
     } = loaderData
 
@@ -52,6 +54,7 @@ export function FarmNewFertilizerBlock({
             editable={editable}
             p_type={fertilizer.p_type}
             rvoLabels={rvoLabels}
+            rvoToType={rvoToType}
         />
     )
 }
