@@ -9,13 +9,7 @@ import type { LoaderFunctionArgs } from "react-router"
 import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
+import { Card } from "~/components/ui/card"
 import {
     Command,
     CommandEmpty,
