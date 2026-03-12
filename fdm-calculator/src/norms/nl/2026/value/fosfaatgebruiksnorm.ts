@@ -136,7 +136,7 @@ export async function calculateNL2026FosfaatGebruiksNorm(
     const a_p_cc = input.soilAnalysis.a_p_cc
     const a_p_al = input.soilAnalysis.a_p_al
 
-    if (!a_p_al || !a_p_cc) {
+    if (a_p_al === null || a_p_al === undefined || a_p_cc === null || a_p_cc === undefined) {
         throw new Error(
             "Missing soil analysis data for NL 2026 Fosfaatgebruiksnorm",
         )

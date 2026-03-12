@@ -50,15 +50,11 @@ export function calculateNitrogenRemovalByHarvests(
             (harvestAnalysis: HarvestableAnalysis): Decimal => {
                 // Collect yield from input or use default value or use default value of the cultivation
                 let b_lu_yield = harvestAnalysis.b_lu_yield
-                if (!b_lu_yield) {
-                    b_lu_yield = cultivationDetail.b_lu_yield
-                }
+                b_lu_yield ??= cultivationDetail.b_lu_yield
 
                 // Collect Nitrogen content of harvestable from input or use default value of the cultivation
                 let b_lu_n_harvestable = harvestAnalysis.b_lu_n_harvestable
-                if (!b_lu_n_harvestable) {
-                    b_lu_n_harvestable = cultivationDetail.b_lu_n_harvestable
-                }
+                b_lu_n_harvestable ??= cultivationDetail.b_lu_n_harvestable
 
                 const removalHarvest = new Decimal(b_lu_yield ?? 0)
                     .times(new Decimal(b_lu_n_harvestable ?? 0))
