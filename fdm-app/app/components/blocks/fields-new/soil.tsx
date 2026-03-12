@@ -28,7 +28,7 @@ export function NewFieldSoilAnalysisBlock({
     const { b_id_farm, calendar } = params
 
     const bulkUploadLink = isFarmCreateWizard
-        ? `/farm/create/${b_id_farm}/${calendar}/soil-analysis/bulk`
+        ? `/farm/create/${b_id_farm}/${calendar}/fields/${b_id}/soil-analysis/bulk`
         : `/farm/${b_id_farm}/soil-analysis/bulk`
 
     return (

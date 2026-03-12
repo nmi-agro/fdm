@@ -6,7 +6,11 @@ import {
     getRegion,
     isFieldInNVGebied,
 } from "./stikstofgebruiksnorm"
-import type { NL2025NormsInput, NL2025NormsInputForCultivation } from "./types"
+import type {
+    NitrogenStandard,
+    NL2025NormsInput,
+    NL2025NormsInputForCultivation,
+} from "./types"
 
 vi.mock("../../../../shared/geotiff", async (importActual) => {
     const actual =
@@ -46,7 +50,9 @@ describe("stikstofgebruiksnorm helpers", () => {
     })
 })
 
-describe(" calculateNL2025StikstofGebruiksNorm", () => {
+import * as StikstofData from "./stikstofgebruiksnorm-data"
+
+describe("calculateNL2025StikstofGebruiksNorm", () => {
     it("should return the correct norm for grasland (beweiden)", async () => {
         const mockInput: NL2025NormsInput = {
             farm: { is_derogatie_bedrijf: false, has_grazing_intention: true },
@@ -758,6 +764,63 @@ describe(" calculateNL2025StikstofGebruiksNorm", () => {
 
             const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
             expect(result.normValue).toBe(310)
+        })
+
+        it("should handle explicit zero values for period days/months (regression test for falsy bug)", async () => {
+            // Mock data with explicit zero in period_start_month or period_start_day
+            const mockData: NitrogenStandard[] = [
+                {
+                    b_lu_catalogue_match: ["nl_zero_test"],
+                    cultivation_rvo_table2: "Zero Test Crop",
+                    norms: {
+                        klei: { standard: 100, nv_area: 80 },
+                        loess: { standard: 100, nv_area: 80 },
+                        veen: { standard: 100, nv_area: 80 },
+                        zand_nwc: { standard: 100, nv_area: 80 },
+                        zand_zuid: { standard: 100, nv_area: 80 },
+                    },
+                    sub_types: [
+                        {
+                            omschrijving: "zero_period",
+                            // Use explicit zero values that would fail with !! check
+                            period_start_month: 0 as any, 
+                            period_start_day: 0 as any,
+                            period_end_month: 12,
+                            period_end_day: 31,
+                            norms: {
+                                klei: { standard: 200, nv_area: 160 },
+                                loess: { standard: 200, nv_area: 160 },
+                                veen: { standard: 200, nv_area: 160 },
+                                zand_nwc: { standard: 200, nv_area: 160 },
+                                zand_zuid: { standard: 200, nv_area: 160 },
+                            },
+                        },
+                    ],
+                } as any,
+            ]
+
+            const spy = vi.spyOn(StikstofData, "nitrogenStandardsData", "get").mockReturnValue(mockData as any)
+
+            const mockInput: NL2025NormsInput = {
+                farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
+                field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+                cultivations: [
+                    {
+                        b_lu_catalogue: "nl_zero_test",
+                        b_lu_start: new Date(2025, 0, 1),
+                        b_lu_end: new Date(2025, 11, 31),
+                    } as Partial<NL2025NormsInputForCultivation>,
+                ] as NL2025NormsInputForCultivation[],
+                soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+            }
+
+            const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+            
+            // Should match the 200 norm from the sub_type with zero-valued periods
+            expect(result.normValue).toBe(200)
+            expect(result.normSource).toContain("Zero Test Crop")
+
+            spy.mockRestore()
         })
     })
 })

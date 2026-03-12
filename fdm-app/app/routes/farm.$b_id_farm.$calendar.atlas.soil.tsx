@@ -439,6 +439,18 @@ export default function FarmAtlasSoilBlock() {
                     onToggleFields={onToggleFields}
                     showSoil={showSoil}
                     onToggleSoil={onToggleSoil}
+                    showFlyToFields={
+                        fields && fields.features.length > 0 ? true : undefined
+                    }
+                    onFlyToFields={() => {
+                        setViewState({ ...initialViewState })
+                        if (initialViewState.bounds) {
+                            mapRef.current?.fitBounds(
+                                initialViewState.bounds,
+                                initialViewState.fitBoundsOptions,
+                            )
+                        }
+                    }}
                 />
 
                 <MapTilerAttribution />
