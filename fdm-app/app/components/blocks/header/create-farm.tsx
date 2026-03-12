@@ -49,6 +49,22 @@ export function HeaderFarmCreate({
                     <BreadcrumbLink>Percelen</BreadcrumbLink>
                 </BreadcrumbItem>
             ) : null}
+            {currentPath.match(/soil-analysis/) ? (
+                <>
+                    <BreadcrumbSeparator className="hidden xl:block" />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink>Bodemanalyses uploaden</BreadcrumbLink>
+                    </BreadcrumbItem>
+                </>
+            ) : null}
+            {currentPath.match(/soil\/analysis/) ? (
+                <>
+                    <BreadcrumbSeparator className="hidden xl:block" />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink>Bodemanalyse toevoegen</BreadcrumbLink>
+                    </BreadcrumbItem>
+                </>
+            ) : null}
             {currentPath.match(/cultivations/) ? (
                 <>
                     <BreadcrumbItem className="hidden xl:block">
