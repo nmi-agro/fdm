@@ -2,7 +2,7 @@ import type { FertilizerParameters } from "@nmi-agro/fdm-core"
 import { Copy, InfoIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Form, NavLink, useLocation, useParams } from "react-router"
-import { Controller } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { RemixFormProvider, type useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
 import { FormSchema } from "~/components/blocks/fertilizer/formschema"
@@ -33,13 +33,7 @@ export interface FertilizerParameterDescriptionItem {
     type: "numeric" | "enum" | "date" | "text" | "enum_multi"
     name: string
     description: string
-    category:
-        | "general"
-        | "primary"
-        | "secondary"
-        | "trace"
-        | "heavy_metals"
-        | "physical"
+    category: "general" | "primary" | "secondary" | "trace" | "physical"
     min?: number
     max?: number
     options?: { label: string; value: string }[]
@@ -72,7 +66,7 @@ export function FertilizerForm({
     const searchParams = new URLSearchParams(location.search)
     const returnUrl = searchParams.get("returnUrl")
 
-    const formValues = form.watch()
+    const formValues = useWatch({ control: form.control })
     const sidebarButtonRef = useRef<HTMLDivElement>(null)
     const [isSidebarButtonVisible, setIsSidebarButtonVisible] = useState(true)
 

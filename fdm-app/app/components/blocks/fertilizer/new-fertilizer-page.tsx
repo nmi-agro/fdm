@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { Fertilizer } from "@nmi-agro/fdm-core"
-import { useEffect } from "react"
 import { useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
 import {
@@ -20,10 +19,10 @@ interface FarmNewFertilizerBlockLoaderData {
 }
 
 /**
- * Renders the new fertilizer form.
- * Can be used for both creating from scratch and basing off an existing fertilizer.
+ * Inner component holding the form, keyed by fertilizer identity so it
+ * remounts (re-initialising defaultValues) when the fertilizer changes.
  */
-export function FarmNewFertilizerBlock({
+function FarmNewFertilizerFormBlock({
     loaderData,
 }: {
     loaderData: FarmNewFertilizerBlockLoaderData
@@ -43,10 +42,6 @@ export function FarmNewFertilizerBlock({
         defaultValues: buildFertilizerDefaults(fertilizer, clearName),
     })
 
-    useEffect(() => {
-        form.reset(buildFertilizerDefaults(fertilizer, clearName))
-    }, [fertilizer, form, clearName])
-
     return (
         <FertilizerForm
             fertilizerParameters={fertilizerParameters}
@@ -55,6 +50,23 @@ export function FarmNewFertilizerBlock({
             p_type={fertilizer.p_type}
             rvoLabels={rvoLabels}
             rvoToType={rvoToType}
+        />
+    )
+}
+
+/**
+ * Renders the new fertilizer form.
+ * Can be used for both creating from scratch and basing off an existing fertilizer.
+ */
+export function FarmNewFertilizerBlock({
+    loaderData,
+}: {
+    loaderData: FarmNewFertilizerBlockLoaderData
+}) {
+    return (
+        <FarmNewFertilizerFormBlock
+            key={loaderData.fertilizer.p_id ?? "custom"}
+            loaderData={loaderData}
         />
     )
 }

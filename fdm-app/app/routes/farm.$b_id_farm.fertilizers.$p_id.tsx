@@ -159,23 +159,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmFertilizerBlock() {
     const loaderData = useLoaderData<typeof loader>()
-    const {
-        fertilizer,
-        fertilizerParameters,
-        editable,
-        rvoLabels,
-        rvoToType,
-    } = loaderData
+    const { fertilizer, fertilizerParameters, editable, rvoLabels, rvoToType } =
+        loaderData
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
         resolver: zodResolver(FormSchema),
         defaultValues: buildFertilizerDefaults(fertilizer),
     })
-
-    useEffect(() => {
-        form.reset(buildFertilizerDefaults(fertilizer))
-    }, [fertilizer, form])
 
     return (
         <SidebarInset>
@@ -198,7 +189,9 @@ export default function FarmFertilizerBlock() {
             </Header>
             <main>
                 <FarmTitle
-                    title={loaderData.fertilizer.p_name_nl || "Naamloze meststof"}
+                    title={
+                        loaderData.fertilizer.p_name_nl || "Naamloze meststof"
+                    }
                     description={
                         editable
                             ? "Pas de gehaltes en eigenschappen van deze meststof aan."
