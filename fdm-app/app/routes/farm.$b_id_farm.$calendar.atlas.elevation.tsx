@@ -632,6 +632,18 @@ export default function FarmAtlasElevationBlock() {
                     onToggleFields={() => setShowFields(!showFields)}
                     showElevation={showElevation}
                     onToggleElevation={onToggleElevation}
+                    showFlyToFields={
+                        fields && fields.features.length > 0 ? true : undefined
+                    }
+                    onFlyToFields={() => {
+                        setViewState({ ...initialViewState })
+                        if (initialViewState.bounds) {
+                            mapRef.current?.fitBounds(
+                                initialViewState.bounds,
+                                initialViewState.fitBoundsOptions,
+                            )
+                        }
+                    }}
                 />
 
                 <MapTilerAttribution />
