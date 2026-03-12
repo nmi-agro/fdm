@@ -166,8 +166,7 @@ export default function NewFertilizerIndexPage() {
                                             onValueChange={setSearchQuery}
                                             className="text-base py-6"
                                         />
-                                        />
-                                        <CommandList className="max-h-[450px] overflow-y-auto p-2 border-t">
+                                        <CommandList className="max-h-112.5 overflow-y-auto p-2 border-t">
                                             <CommandEmpty className="py-10 text-center text-sm text-muted-foreground leading-relaxed px-4">
                                                 Geen meststoffen gevonden voor "
                                                 {searchQuery}"<br />
