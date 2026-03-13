@@ -25,6 +25,10 @@ const sentryTunnel = async (request: Request) => {
         return new Response("Failed to read request body", { status: 400 })
     }
 
+    if (body.length > MAX_BODY_SIZE) {
+        return new Response("Request too large", { status: 413 })
+    }
+
     // The Sentry envelope format: first line is the envelope header JSON
     const envelopeHeader = body.split("\n")[0]
     let dsn: string
