@@ -4,6 +4,7 @@ packages:
   - fdm-calculator
   - fdm-docs
   - fdm-app
+  - fdm-agent
 
 catalog:
   '@dotenvx/dotenvx': ^1.54.1

@@ -1,0 +1,41 @@
+{
+    "name": "@nmi-agro/fdm-agent",
+    "private": false,
+    "version": "0.12.1",
+    "description": "AI Agent for Fertilizer Planning",
+    "license": "MIT",
+    "type": "module",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "rollup -c && tsc -p tsconfig.build.json",
+        "check-types": "tsc --noEmit",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "@google/adk": "^0.5.0",
+        "@google/genai": "latest",
+        "@nmi-agro/fdm-calculator": "workspace:*",
+        "@nmi-agro/fdm-core": "workspace:*",
+        "@nmi-agro/fdm-data": "workspace:*",
+        "posthog-node": "^5.28.1",
+        "zod": "^3.24.1"
+    },
+    "devDependencies": {
+        "@rollup/plugin-commonjs": "catalog:",
+        "@rollup/plugin-json": "catalog:",
+        "@rollup/plugin-node-resolve": "catalog:",
+        "@types/node": "catalog:",
+        "rollup": "catalog:",
+        "rollup-plugin-esbuild": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    }
+}
