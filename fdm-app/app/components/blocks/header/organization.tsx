@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react"
-import { NavLink, useLocation, useMatches } from "react-router"
+import { NavLink, useLocation, useMatches, useParams } from "react-router"
 import {
     BreadcrumbItem,
     BreadcrumbLink,
@@ -40,6 +40,15 @@ export function HeaderOrganization({
     const isNewOrganizationRoute = !!matches.find(
         (match) => match.id === "routes/organization.new",
     )
+    const typesOfBalanceRoutes = ["nitrogen", "organic-matter"] as const
+    const farmBalanceRouteType = typesOfBalanceRoutes.find((type) =>
+        matches.find(
+            (match) =>
+                match.id ===
+                `routes/organization.$slug.$calendar.farms.balance.${type}._index`,
+        ),
+    )
+    const params = useParams()
 
     return (
         <>
@@ -122,6 +131,58 @@ export function HeaderOrganization({
                         <>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>Leden</BreadcrumbItem>
+                        </>
+                    ) : farmBalanceRouteType ? (
+                        <>
+                            <BreadcrumbSeparator className="hidden xl:block" />
+                            <BreadcrumbItem className="hidden xl:block">
+                                <BreadcrumbLink
+                                    href={`/organization/${selectedOrganizationSlug}/${params.calendar}/farms/balance/nitrogen`}
+                                >
+                                    Balans
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger className="flex items-center gap-1 max-w-[120px] sm:max-w-[200px] md:max-w-none outline-none">
+                                        <span className="truncate">
+                                            {farmBalanceRouteType === "nitrogen"
+                                                ? "Stikstof"
+                                                : "Organische stof"}
+                                        </span>
+                                        <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start">
+                                        <DropdownMenuCheckboxItem
+                                            checked={
+                                                farmBalanceRouteType ===
+                                                "nitrogen"
+                                            }
+                                            key={"nitrogen"}
+                                        >
+                                            <NavLink
+                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/farms/balance/nitrogen`}
+                                            >
+                                                Stikstof
+                                            </NavLink>
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            checked={
+                                                farmBalanceRouteType ===
+                                                "organic-matter"
+                                            }
+                                            key={"organic-matter"}
+                                        >
+                                            <NavLink
+                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/farms/balance/organic-matter`}
+                                            >
+                                                Organische stof
+                                            </NavLink>
+                                        </DropdownMenuCheckboxItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </BreadcrumbItem>
                         </>
                     ) : isFarmsRoute ? (
                         <>

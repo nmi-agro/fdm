@@ -26,7 +26,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import type { Route } from "./+types/organization.$slug.$calendar.farms"
+import type { Route } from "./+types/organization.$slug.$calendar.farms._index"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
