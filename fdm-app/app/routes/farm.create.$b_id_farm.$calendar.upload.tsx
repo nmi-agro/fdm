@@ -227,7 +227,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
 
             const b_geometry = turf.polygon(geometry.coordinates)
-            const b_name = NAAM ?? `Naamloos perceel ${++unnamedCount}`
+            const b_name = NAAM?.trim() ?? `Naamloos perceel ${++unnamedCount}`
             const b_start = new Date(BEGINDAT)
             const b_end = EINDDAT === 253402297199 ? null : new Date(EINDDAT)
             const b_lu_catalogue = `nl_${GEWASCODE}`
