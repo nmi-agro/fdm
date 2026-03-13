@@ -17,7 +17,10 @@ export function getAvailableFieldsUrl(calendar: string): string {
         version = "draft"
     }
 
-    // Create the url
-    const availableFieldsUrl = `${datasetsUrl}/fields/nl/${year}/${version}.fgb`
+    // Create the url. The ?v= query param is a cache-buster: it changes the
+    // browser cache key on each app deploy, clearing any corrupted HTTP Range
+    // response entries that may have accumulated in the browser cache.
+    const appVersion = import.meta.env.PUBLIC_APP_VERSION
+    const availableFieldsUrl = `${datasetsUrl}/fields/nl/${year}/${version}.fgb?v=${appVersion}`
     return availableFieldsUrl
 }
