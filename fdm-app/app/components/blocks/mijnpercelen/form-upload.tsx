@@ -137,7 +137,10 @@ export function MijnPercelenUploadForm({
             try {
                 const dbfBuffer = await dbfFile.arrayBuffer()
                 const dbfData = parseDbf(dbfBuffer) as any[]
-                const names = dbfData.map((row) => row?.NAAM).filter(Boolean) // Remove null/undefined values
+                let unnamedCount = 0
+                const names = dbfData.map(
+                    (row) => row?.NAAM ?? `Naamloos perceel ${++unnamedCount}`,
+                )
                 setFieldNames(names)
             } catch (error) {
                 console.error("Failed to parse DBF file:", error)

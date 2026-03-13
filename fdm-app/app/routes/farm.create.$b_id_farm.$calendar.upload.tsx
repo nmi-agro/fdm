@@ -95,7 +95,7 @@ interface RvoProperties {
     SECTORVER: number
     NEN3610ID: string
     VOLGNR: number
-    NAAM: string
+    NAAM: string | null | undefined
     BEGINDAT: number
     EINDDAT: number
     GEWASCODE: string
@@ -190,6 +190,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             },
         )
 
+        let unnamedCount = 0
         for (const feature of features) {
             const { properties, geometry } = feature
             const {
@@ -211,7 +212,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 !SECTORVER ||
                 !NEN3610ID ||
                 !VOLGNR ||
-                !NAAM ||
+                NAAM === undefined ||
                 !BEGINDAT ||
                 !EINDDAT ||
                 !GEWASCODE ||
@@ -226,7 +227,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
 
             const b_geometry = turf.polygon(geometry.coordinates)
-            const b_name = NAAM
+            const b_name = NAAM ?? `Naamloos perceel ${++unnamedCount}`
             const b_start = new Date(BEGINDAT)
             const b_end = EINDDAT === 253402297199 ? null : new Date(EINDDAT)
             const b_lu_catalogue = `nl_${GEWASCODE}`
