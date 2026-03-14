@@ -45,7 +45,7 @@
         "date-fns": "^4.1.0",
         "dompurify": "^3.3.3",
         "drizzle-orm": "catalog:",
-        "file-type": "^21.3.1",
+        "file-type": "^21.3.2",
         "flatgeobuf": "^4.4.0",
         "framer-motion": "^12.35.2",
         "fuzzysort": "^3.1.0",
