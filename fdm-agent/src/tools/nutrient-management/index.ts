@@ -3,10 +3,12 @@ import { z } from "zod"
 import {
     getNutrientAdvice,
     createFunctionsForNorms,
+    createUncachedFunctionsForFertilizerApplicationFilling,
     calculateOrganicMatterBalanceField,
     collectInputForOrganicMatterBalance,
     calculateNitrogenBalanceField,
     collectInputForNitrogenBalance,
+    calculateDose,
     aggregateNormsToFarmLevel,
     aggregateNormFillingsToFarmLevel,
 } from "@nmi-agro/fdm-calculator"
@@ -17,7 +19,12 @@ import {
     getField,
     getFields,
 } from "@nmi-agro/fdm-core"
-import type { FdmType, PrincipalId, Fertilizer } from "@nmi-agro/fdm-core"
+import type {
+    FdmType,
+    PrincipalId,
+    Fertilizer,
+    FertilizerApplication,
+} from "@nmi-agro/fdm-core"
 
 interface AdviceArgs {
     b_ids: string[]
@@ -324,6 +331,11 @@ export function createNutrientManagementTools(fdm: FdmType) {
             ])
 
             const normFuncs = createFunctionsForNorms("NL", calendar as any)
+            const fillFuncs =
+                createUncachedFunctionsForFertilizerApplicationFilling(
+                    "NL",
+                    calendar as any,
+                )
 
             const fieldResults = await Promise.all(
                 args.fields.map(async (fieldData) => {
@@ -354,56 +366,33 @@ export function createNutrientManagementTools(fdm: FdmType) {
                         }
                     }
 
-                    const appsWithDetails = fieldData.applications.map(
-                        (app) => {
-                            const details = fertilizers.find(
+                    // Build properly typed FertilizerApplication objects from proposed
+                    // applications. Synthetic p_app_id values are used because these
+                    // applications are not yet persisted in the database.
+                    const proposedApps = fieldData.applications.map(
+                        (app, idx) => {
+                            const fertilizer = fertilizers.find(
                                 (f: Fertilizer) =>
                                     f.p_id_catalogue === app.p_id_catalogue,
                             )
-                            if (!details) {
+                            if (!fertilizer) {
                                 throw new Error(
                                     `Fertilizer ${app.p_id_catalogue} not found in farm inventory.`,
                                 )
                             }
                             return {
-                                ...app,
-                                ...details,
+                                p_app_id: `synth-${fieldData.b_id}-${idx}`,
+                                p_id: fertilizer.p_id,
+                                p_id_catalogue: app.p_id_catalogue,
+                                p_app_amount: app.p_app_amount,
                                 p_app_date: new Date(app.p_app_date),
-                            }
+                                p_app_method: app.p_app_method ?? null,
+                            } as unknown as FertilizerApplication
                         },
                     )
 
-                    // Calculate filling directly from fertilizer properties (all values in kg/ha).
-                    // p_app_amount is in kg/ha; nutrient content values are in g/kg → divide by 1000.
-                    const manureFillingPerHa = appsWithDetails.reduce(
-                        (sum, app) => {
-                            if (app.p_type === "manure") {
-                                return (
-                                    sum +
-                                    ((app.p_app_amount ?? 0) *
-                                        (app.p_n_rt ?? 0)) /
-                                        1000
-                                )
-                            }
-                            return sum
-                        },
-                        0,
-                    )
-                    const workableNFillingPerHa = appsWithDetails.reduce(
-                        (sum, app) =>
-                            sum +
-                            ((app.p_app_amount ?? 0) * (app.p_n_wc ?? 0)) /
-                                1000,
-                        0,
-                    )
-                    const phosphateFillingPerHa = appsWithDetails.reduce(
-                        (sum, app) =>
-                            sum +
-                            ((app.p_app_amount ?? 0) * (app.p_p_rt ?? 0)) /
-                                1000,
-                        0,
-                    )
-
+                    // Calculate legal norms (phosphate.normValue is required as
+                    // input to the filling functions).
                     const normsInput = await normFuncs.collectInputForNorms(
                         fdm,
                         principalId,
@@ -424,52 +413,94 @@ export function createNutrientManagementTools(fdm: FdmType) {
                         ),
                     ])
 
+                    // Calculate norm fillings using the proper Dutch regulatory logic
+                    // from fdm-calculator (Table 9 werkingscoëfficiënten, Table 11
+                    // mestcodes, organic-rich fertilizer discount regulation).
+                    const collectedFillingInput =
+                        await fillFuncs.collectInputForFertilizerApplicationFilling(
+                            fdm,
+                            principalId,
+                            fieldData.b_id,
+                            phosphate.normValue,
+                        )
+                    const fillingInput = {
+                        ...collectedFillingInput,
+                        applications: proposedApps,
+                    }
+                    const [manureFilling, nitrogenFilling, phosphateFilling] =
+                        await Promise.all([
+                            fillFuncs.calculateFertilizerApplicationFillingForManure(
+                                fillingInput,
+                            ),
+                            fillFuncs.calculateFertilizerApplicationFillingForNitrogen(
+                                fillingInput,
+                            ),
+                            fillFuncs.calculateFertilizerApplicationFillingForPhosphate(
+                                fillingInput,
+                            ),
+                        ])
+
+                    // Calculate organic matter balance using proposed applications.
                     const fieldOmInput = omInput.fields.find(
                         (f: any) => f.field.b_id === fieldData.b_id,
                     )
                     let omBalance = null
+                    let omBalanceError: string | null = null
                     if (fieldOmInput) {
                         try {
                             omBalance = calculateOrganicMatterBalanceField({
                                 fieldInput: {
                                     ...fieldOmInput,
-                                    fertilizerApplications:
-                                        appsWithDetails as any,
+                                    fertilizerApplications: proposedApps,
                                 },
                                 fertilizerDetails: omInput.fertilizerDetails,
                                 cultivationDetails: omInput.cultivationDetails,
                                 timeFrame: timeframe,
                             })
-                        } catch (e) {}
+                        } catch (e) {
+                            omBalanceError =
+                                e instanceof Error ? e.message : String(e)
+                        }
                     }
 
+                    // Calculate nitrogen balance using proposed applications.
                     const fieldNInput = nInput.fields.find(
                         (f: any) => f.field.b_id === fieldData.b_id,
                     )
                     let nBalance = null
+                    let nBalanceError: string | null = null
                     if (fieldNInput) {
                         try {
                             nBalance = calculateNitrogenBalanceField({
                                 fieldInput: {
                                     ...fieldNInput,
-                                    fertilizerApplications:
-                                        appsWithDetails as any,
+                                    fertilizerApplications: proposedApps,
                                 },
                                 fertilizerDetails: nInput.fertilizerDetails,
                                 cultivationDetails: nInput.cultivationDetails,
                                 timeFrame: timeframe,
                             })
-                        } catch (e) {}
+                        } catch (e) {
+                            nBalanceError =
+                                e instanceof Error ? e.message : String(e)
+                        }
                     }
+
+                    // Calculate nutrient doses from the proposed plan so the agent
+                    // can compare what the plan provides against the nutrient advice.
+                    const proposedDose = calculateDose({
+                        applications: proposedApps,
+                        fertilizers,
+                    }).dose
 
                     return {
                         b_id: fieldData.b_id,
                         b_area: fieldInfo.b_area,
-                        // Per-hectare values — for agronomic review per field
+                        // Per-hectare filling values from proper regulatory calculations
                         fillingPerHa: {
-                            animalManureN: manureFillingPerHa,
-                            workableN: workableNFillingPerHa,
-                            phosphate: phosphateFillingPerHa,
+                            animalManureN: manureFilling.normFilling,
+                            workableN: nitrogenFilling.normFilling,
+                            phosphate: phosphateFilling.normFilling,
                         },
                         normPerHa: {
                             animalManureN: manure.normValue,
@@ -478,18 +509,9 @@ export function createNutrientManagementTools(fdm: FdmType) {
                         },
                         // Structured for aggregateNormFillingsToFarmLevel
                         normsFilling: {
-                            manure: {
-                                normFilling: manureFillingPerHa,
-                                applicationFilling: [],
-                            },
-                            nitrogen: {
-                                normFilling: workableNFillingPerHa,
-                                applicationFilling: [],
-                            },
-                            phosphate: {
-                                normFilling: phosphateFillingPerHa,
-                                applicationFilling: [],
-                            },
+                            manure: manureFilling,
+                            nitrogen: nitrogenFilling,
+                            phosphate: phosphateFilling,
                         },
                         // Structured for aggregateNormsToFarmLevel
                         norms: {
@@ -497,7 +519,12 @@ export function createNutrientManagementTools(fdm: FdmType) {
                             nitrogen,
                             phosphate,
                         },
+                        // Proposed nutrient dose (kg/ha) for comparison with nutrient advice
+                        proposedDose,
                         omBalance: omBalance?.balance,
+                        omBalanceError,
+                        eomSupplyPerHa:
+                            omBalance?.supply?.fertilizers?.total ?? null,
                         nBalance: nBalance
                             ? {
                                   balance: nBalance.balance,
@@ -506,6 +533,7 @@ export function createNutrientManagementTools(fdm: FdmType) {
                                       nBalance.balance <= nBalance.target,
                               }
                             : null,
+                        nBalanceError,
                         isValid: true,
                     }
                 }),
