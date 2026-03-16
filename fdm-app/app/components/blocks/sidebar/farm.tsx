@@ -1,5 +1,6 @@
 import type { getFarm } from "@nmi-agro/fdm-core"
 import {
+    Bot,
     Calendar,
     Check,
     ChevronRight,
@@ -365,6 +366,42 @@ export function SidebarFarm({
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
+
         </TooltipProvider>
+    )
+}
+
+export function SidebarLabs() {
+    const farmId = useFarmStore((state) => state.farmId)
+    const selectedCalendar = useCalendarStore((state) => state.calendar)
+    const location = useLocation()
+
+    const isFarmSelected = farmId && farmId !== "undefined"
+    if (!isFarmSelected) return null
+
+    return (
+        <SidebarGroup>
+            <SidebarGroupLabel>Labs</SidebarGroupLabel>
+            <SidebarGroupContent>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname.includes(
+                                `/farm/${farmId}/${selectedCalendar}/gerrit`,
+                            )}
+                            tooltip="Gerrit's Bemestingsplan"
+                        >
+                            <NavLink
+                                to={`/farm/${farmId}/${selectedCalendar}/gerrit`}
+                            >
+                                <Bot />
+                                <span>Gerrit</span>
+                            </NavLink>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroupContent>
+        </SidebarGroup>
     )
 }

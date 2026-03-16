@@ -39,6 +39,10 @@ export const serverConfig: ServerConfig = {
         nmi: {
             api_key: String(process.env.NMI_API_KEY),
         },
+        gemini: {
+            api_key: String(process.env.GEMINI_API_KEY),
+            model: process.env.GEMINI_MODEL,
+        },
     },
 
     // Analytics

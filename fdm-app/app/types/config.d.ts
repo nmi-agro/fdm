@@ -34,6 +34,10 @@ export interface ServerConfig {
         nmi?: {
             api_key: string
         }
+        gemini?: {
+            api_key: string
+            model?: string
+        }
     }
     analytics: {
         sentry?: {
