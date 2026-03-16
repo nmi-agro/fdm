@@ -1,15 +1,18 @@
 import {
     calculateDose,
     calculateNitrogenBalance,
+    calculateNitrogenBalancesFieldToFarm,
     calculateOrganicMatterBalance,
     collectInputForNitrogenBalance,
     collectInputForOrganicMatterBalance,
+    collectOnlyFieldInputForNitrogenBalance,
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
     type FieldInput,
     getNitrogenBalanceField,
     getNutrientAdvice,
     getOrganicMatterBalanceField,
+    type NitrogenBalanceFieldInput,
     type NitrogenBalanceFieldResultNumeric,
     type NitrogenBalanceNumeric,
     type NutrientAdvice,
@@ -17,10 +20,11 @@ import {
     type OrganicMatterBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import {
+    type fdmSchema,
     type FdmType,
     type Field,
-    type fdmSchema,
     getCultivations,
+    getCultivationsOfPrincipalFromCatalogue,
     getCurrentSoilData,
     getFertilizerApplications,
     getFertilizers,
@@ -87,6 +91,116 @@ export async function getNitrogenBalanceForFarm({
     )
 
     return calculateNitrogenBalance(fdm, input)
+}
+
+export async function getNitrogenBalanceForFarms({
+    fdm,
+    principal_id,
+    farmIds,
+    timeframe,
+}: {
+    fdm: FdmType
+    principal_id: PrincipalId
+    farmIds: fdmSchema.farmsTypeSelect["b_id_farm"][]
+    timeframe: Timeframe
+}) {
+    const [cultivationCatalogue, onlyFieldInputs] = await Promise.all([
+        getCultivationsOfPrincipalFromCatalogue(fdm, principal_id),
+        Promise.all(
+            farmIds.map(async (b_id_farm) => ({
+                b_id_farm: b_id_farm,
+                fertilizerDetails: await getFertilizers(
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                ),
+                inputs: await collectOnlyFieldInputForNitrogenBalance(
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                    timeframe,
+                ),
+            })),
+        ),
+    ])
+
+    const inputs: (NitrogenBalanceFieldInput & { b_id_farm: string })[] =
+        onlyFieldInputs.flatMap(({ fertilizerDetails, inputs }, farmIndex) => {
+            const b_lu_catalogues = new Set(
+                inputs.flatMap((input) =>
+                    input.cultivations.map(
+                        (cultivation) => cultivation.b_lu_catalogue,
+                    ),
+                ),
+            )
+            const cultivationDetails = cultivationCatalogue.filter(
+                (cultivation) =>
+                    b_lu_catalogues.has(cultivation.b_lu_catalogue),
+            )
+            return inputs.map((input) => {
+                return {
+                    b_id_farm: farmIds[farmIndex],
+                    fieldInput: input,
+                    fertilizerDetails: fertilizerDetails,
+                    cultivationDetails: cultivationDetails,
+                    timeFrame: timeframe,
+                }
+            })
+        })
+
+    const batchSize = 50
+    const farmsWithBalanceResults: Record<
+        string,
+        NitrogenBalanceFieldResultNumeric[]
+    > = {}
+    for (let i = 0; i < inputs.length; i += batchSize) {
+        const batch = inputs.slice(i, i + batchSize)
+        const batchResults = await Promise.all(
+            batch.map(async (input) => {
+                const fieldInput = input.fieldInput
+                try {
+                    const balance = await getNitrogenBalanceField(fdm, input)
+                    return {
+                        b_id_farm: input.b_id_farm,
+                        b_id: fieldInput.field.b_id,
+                        b_area: fieldInput.field.b_area ?? 0,
+                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        balance,
+                    }
+                } catch (error) {
+                    return {
+                        b_id_farm: input.b_id_farm,
+                        b_id: fieldInput.field.b_id,
+                        b_area: fieldInput.field.b_area ?? 0,
+                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        errorMessage:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                    }
+                }
+            }),
+        )
+        batchResults.forEach((result) => {
+            farmsWithBalanceResults[result.b_id_farm] ??= []
+            farmsWithBalanceResults[result.b_id_farm].push(result)
+        })
+    }
+
+    return farmIds.map((b_id_farm) => {
+        const fieldResults = farmsWithBalanceResults[b_id_farm] ?? []
+        const fieldErrorMessages = fieldResults
+            .map((result) => result.errorMessage)
+            .filter((msg) => msg) as string[]
+        return {
+            b_id_farm: b_id_farm,
+            ...calculateNitrogenBalancesFieldToFarm(
+                fieldResults,
+                fieldErrorMessages.length > 0,
+                fieldErrorMessages,
+            ),
+        }
+    })
 }
 
 // Get organic matter balance for a field

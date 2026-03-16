@@ -19,32 +19,34 @@ import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/depositio
 import type { NitrogenBalanceInput } from "./types"
 
 /**
- * Collects necessary input data from a FDM instance for calculating the nitrogen balance.
+ * Collects field-specific input data from a FDM instance for calculating the nitrogen balance.
  *
  * This function orchestrates the retrieval of data related to fields, cultivations,
- * harvests, soil analyses, fertilizer applications, fertilizer details, and cultivation details
- * within a specified farm and timeframe. It fetches data from the FDM database and structures
- * it into a `NitrogenBalanceInput` object.
+ * harvests, soil analyses, fertilizer applications within a specified farm and timeframe. It
+ * fetches data from the FDM database and structures it into an array of `FieldInput` objects.
+ * A complete NitrogenBalanceInput object can be built by collecting the cultivationDetails and
+ * fertilizerDetails separately, then combining them in a new object along with the array
+ * returned from this function, ending up with a `NitrogenBalanceInput` object.
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
  * @param b_id_farm - The ID of the farm for which to collect the nitrogen balance input.
  * @param timeframe - The timeframe for which to collect the data.
- * @returns A promise that resolves with a `NitrogenBalanceInput` object containing all the necessary data.
+ * @returns A promise that resolves with an array of `FieldInput` objects containing only the field-specific input data.
  * @throws {Error} - Throws an error if data collection or processing fails.
  *
  * @alpha
  */
-export async function collectInputForNitrogenBalance(
+export async function collectOnlyFieldInputForNitrogenBalance(
     fdm: FdmType,
     principal_id: PrincipalId,
     b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
     timeframe: Timeframe,
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
-): Promise<NitrogenBalanceInput> {
+) {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
-            // Collect the fields for the farm
+        // Collect the fields for the farm
+        return await fdm.transaction(async (tx: typeof fdm) => {
             let farmFields: Awaited<ReturnType<typeof getFields>>
             if (b_id) {
                 const field = await getField(tx, principal_id, b_id)
@@ -73,7 +75,7 @@ export async function collectInputForNitrogenBalance(
                 )
 
             // Collect the details per field
-            const fields = await Promise.all(
+            return await Promise.all(
                 farmFields.map(async (field) => {
                     // Collect the cultivations of the field
                     const cultivations = await getCultivations(
@@ -127,10 +129,55 @@ export async function collectInputForNitrogenBalance(
                         fertilizerApplications: fertilizerApplications,
                         soilAnalyses: soilAnalyses,
                         depositionSupply: depositionByField.get(field.b_id),
+                        timeframe: timeframe,
                     }
                 }),
             )
+        })
+    } catch (error) {
+        throw new Error(
+            `Failed to collect field nitrogen balance input for farm ${b_id_farm}: ${
+                error instanceof Error ? error.message : String(error)
+            }`,
+            { cause: error },
+        )
+    }
+}
 
+/**
+ * Collects necessary input data from a FDM instance for calculating the nitrogen balance.
+ *
+ * This function orchestrates the retrieval of data related to fields, cultivations,
+ * harvests, soil analyses, fertilizer applications, fertilizer details, and cultivation details
+ * within a specified farm and timeframe. It fetches data from the FDM database and structures
+ * it into a `NitrogenBalanceInput` object.
+ *
+ * @param fdm - The FDM instance for database interaction.
+ * @param principal_id - The ID of the principal (user or service) initiating the data collection.
+ * @param b_id_farm - The ID of the farm for which to collect the nitrogen balance input.
+ * @param timeframe - The timeframe for which to collect the data.
+ * @returns A promise that resolves with a `NitrogenBalanceInput` object containing all the necessary data.
+ * @throws {Error} - Throws an error if data collection or processing fails.
+ *
+ * @alpha
+ */
+export async function collectInputForNitrogenBalance(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
+    timeframe: Timeframe,
+    b_id?: fdmSchema.fieldsTypeSelect["b_id"],
+): Promise<NitrogenBalanceInput> {
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            const onlyFieldInput =
+                await collectOnlyFieldInputForNitrogenBalance(
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                    timeframe,
+                    b_id,
+                )
             // Collect the details of the fertilizers
             const fertilizerDetails = await getFertilizers(
                 tx,
@@ -146,7 +193,7 @@ export async function collectInputForNitrogenBalance(
             )
 
             return {
-                fields,
+                fields: onlyFieldInput,
                 fertilizerDetails: fertilizerDetails,
                 cultivationDetails: cultivationDetails,
                 timeFrame: timeframe,

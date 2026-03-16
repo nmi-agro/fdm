@@ -47,6 +47,7 @@ export {
     getCultivation,
     getCultivationPlan,
     getCultivations,
+    getCultivationsOfPrincipalFromCatalogue,
     getCultivationsFromCatalogue,
     getDefaultDatesOfCultivation,
     removeCultivation,

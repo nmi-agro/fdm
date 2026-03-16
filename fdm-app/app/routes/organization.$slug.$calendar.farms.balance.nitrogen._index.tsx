@@ -45,7 +45,10 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
-import { getNitrogenBalanceForFarm } from "~/integrations/calculator"
+import {
+    getNitrogenBalanceForFarm,
+    getNitrogenBalanceForFarms,
+} from "~/integrations/calculator"
 import { auth, getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -97,79 +100,85 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         const farms = await getFarms(fdm, organization.id)
 
-        const asyncData = Promise.all(
-            farms.map(async (farm) => {
-                const farmPrincipals = await listPrincipalsForFarm(
-                    fdm,
-                    organization.id,
-                    farm.b_id_farm,
-                )
-                const owner = farmPrincipals.find(
-                    (p) => p.role === "owner" && p.type === "user",
-                )
+        const farmsMap = Object.fromEntries(
+            farms.map((farm) => [farm.b_id_farm, farm]),
+        )
 
-                const fields = await getFields(
-                    fdm,
-                    organization.id,
-                    farm.b_id_farm,
-                )
+        const asyncData = getNitrogenBalanceForFarms({
+            fdm: fdm,
+            principal_id: organization.id,
+            farmIds: farms.map((farm) => farm.b_id_farm),
+            timeframe: timeframe,
+        }).then((results) =>
+            Promise.all(
+                results.map(async (nitrogenBalanceResult) => {
+                    const farm = farmsMap[nitrogenBalanceResult.b_id_farm]
+                    const farmPrincipals = await listPrincipalsForFarm(
+                        fdm,
+                        organization.id,
+                        farm.b_id_farm,
+                    )
+                    const owner = farmPrincipals.find(
+                        (p) => p.role === "owner" && p.type === "user",
+                    )
 
-                const totalArea = fields.reduce(
-                    (totalArea, field) => totalArea + (field.b_area ?? 0),
-                    0,
-                )
-                try {
-                    const nitrogenBalanceResult =
-                        await getNitrogenBalanceForFarm({
-                            fdm,
-                            principal_id: organization.id,
-                            b_id_farm: farm.b_id_farm,
-                            timeframe,
-                        })
+                    const fields = await getFields(
+                        fdm,
+                        organization.id,
+                        farm.b_id_farm,
+                    )
 
-                    if (nitrogenBalanceResult.hasErrors) {
-                        reportError(
-                            nitrogenBalanceResult.fieldErrorMessages.join(
-                                ",\n",
-                            ),
-                            {
-                                page: "organization/{slug}/{calendar}/farms/balance/nitrogen/_index",
-                                scope: "loader",
+                    const totalArea = fields.reduce(
+                        (totalArea, field) => totalArea + (field.b_area ?? 0),
+                        0,
+                    )
+                    try {
+                        if (nitrogenBalanceResult.hasErrors) {
+                            reportError(
+                                nitrogenBalanceResult.fieldErrorMessages.join(
+                                    ",\n",
+                                ),
+                                {
+                                    page: "organization/{slug}/{calendar}/farms/balance/nitrogen/_index",
+                                    scope: "loader",
+                                },
+                                {
+                                    b_id_farm: farm.b_id_farm,
+                                    timeframe,
+                                    userId: session.principal_id,
+                                },
+                            )
+                        }
+
+                        return {
+                            farm: farm,
+                            owner: owner,
+                            fields: fields,
+                            totalArea: totalArea,
+                            nitrogenBalanceResult:
+                                nitrogenBalanceResult as NitrogenBalanceNumeric & {
+                                    errorMessage?: undefined
+                                },
+                        }
+                    } catch (error) {
+                        return {
+                            farm: farm,
+                            owner: owner,
+                            fields: fields,
+                            totalArea: totalArea,
+                            nitrogenBalanceResult: {
+                                hasErrors: true,
+                                errorMessage:
+                                    error instanceof Error
+                                        ? error.message
+                                        : String(error),
+                            } as NitrogenBalanceNumeric & {
+                                errorMessage?: string
                             },
-                            {
-                                b_id_farm: farm.b_id_farm,
-                                timeframe,
-                                userId: session.principal_id,
-                            },
-                        )
+                        }
                     }
-
-                    return {
-                        farm: farm,
-                        owner: owner,
-                        fields: fields,
-                        totalArea: totalArea,
-                        nitrogenBalanceResult:
-                            nitrogenBalanceResult as NitrogenBalanceNumeric & {
-                                errorMessage: undefined
-                            },
-                    }
-                } catch (error) {
-                    return {
-                        farm: farm,
-                        owner: owner,
-                        fields: fields,
-                        totalArea: totalArea,
-                        nitrogenBalanceResult: {
-                            hasErrors: true,
-                            errorMessage:
-                                error instanceof Error
-                                    ? error.message
-                                    : String(error),
-                        } as NitrogenBalanceNumeric & { errorMessage: string },
-                    }
-                }
-            }),
+                }),
+            ),
         )
 
         return {
@@ -214,7 +223,6 @@ function OrganizationFarmBalanceNitrogenOverview({
 }: Awaited<ReturnType<typeof loader>>) {
     const farmResults = use(asyncData)
     const farm = farmResults[0].farm
-    const fields = farmResults[0].fields
     const params = useParams()
 
     const { syncOrganization, farmIds, setFarmIds } =
@@ -327,8 +335,9 @@ function OrganizationFarmBalanceNitrogenOverview({
             fieldErrorMessages: allResults.flatMap(
                 (result) => result.nitrogenBalanceResult.fieldErrorMessages,
             ),
-            errorMessage: allResults.find((result) => result.errorMessage)
-                ?.errorMessage as string | undefined,
+            errorMessage: allResults.find(
+                (result) => result.nitrogenBalanceResult.errorMessage,
+            )?.nitrogenBalanceResult.errorMessage as string | undefined,
         }
     }, [allResults])
 

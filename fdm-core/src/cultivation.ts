@@ -12,7 +12,7 @@ import {
     type SQL,
     sql,
 } from "drizzle-orm"
-import { checkPermission } from "./authorization"
+import { checkPermission, listResources } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
 import type {
     Cultivation,
@@ -42,19 +42,23 @@ import type { Timeframe } from "./timeframe"
  * @returns A Promise that resolves with an array of cultivation catalogue entries.
  * @alpha
  */
-export async function getCultivationsFromCatalogue(
+export async function getCultivationsOfFarmsFromCatalogue(
     fdm: FdmType,
     principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    farmIds: schema.farmsTypeSelect["b_id_farm"][],
 ): Promise<CultivationCatalogue[]> {
     try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "read",
-            b_id_farm,
-            principal_id,
-            "getCultivationsFromCatalogue",
+        await Promise.all(
+            farmIds.map((b_id_farm) =>
+                checkPermission(
+                    fdm,
+                    "farm",
+                    "read",
+                    b_id_farm,
+                    principal_id,
+                    "getCultivationsFromCatalogue",
+                ),
+            ),
         )
 
         // Get enabled catalogues for the farm
@@ -64,7 +68,10 @@ export async function getCultivationsFromCatalogue(
             })
             .from(schema.cultivationCatalogueSelecting)
             .where(
-                eq(schema.cultivationCatalogueSelecting.b_id_farm, b_id_farm),
+                inArray(
+                    schema.cultivationCatalogueSelecting.b_id_farm,
+                    farmIds,
+                ),
             )
 
         // If no catalogues are enabled, return empty array
@@ -89,9 +96,35 @@ export async function getCultivationsFromCatalogue(
     } catch (err) {
         throw handleError(err, "Exception for getCultivationsFromCatalogue", {
             principal_id,
-            b_id_farm,
+            farmIds,
         })
     }
+}
+
+export async function getCultivationsOfPrincipalFromCatalogue(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+) {
+    try {
+        const farmIds = await listResources(fdm, "farm", "read", principal_id)
+        return getCultivationsOfFarmsFromCatalogue(fdm, principal_id, farmIds)
+    } catch (err) {
+        throw handleError(
+            err,
+            "Exception for getCultivationsOfPrincipalFromCatalogue",
+            {
+                principal_id,
+            },
+        )
+    }
+}
+
+export async function getCultivationsFromCatalogue(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: string,
+) {
+    return getCultivationsOfFarmsFromCatalogue(fdm, principal_id, [b_id_farm])
 }
 
 /**
