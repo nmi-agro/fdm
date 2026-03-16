@@ -7,6 +7,8 @@ import type {
 import {
     getCultivations,
     getCultivationsFromCatalogue,
+    getCultivationsOfPrincipalFromCatalogue,
+    getFarms,
     getFertilizerApplications,
     getFertilizers,
     getField,
@@ -16,7 +18,11 @@ import {
 } from "@nmi-agro/fdm-core"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
-import type { NitrogenBalanceInput } from "./types"
+import type {
+    FieldInput,
+    NitrogenBalanceFieldInput,
+    NitrogenBalanceInput,
+} from "./types"
 
 /**
  * Collects field-specific input data from a FDM instance for calculating the nitrogen balance.
@@ -43,7 +49,7 @@ export async function collectOnlyFieldInputForNitrogenBalance(
     b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
     timeframe: Timeframe,
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
-) {
+): Promise<FieldInput[]> {
     try {
         // Collect the fields for the farm
         return await fdm.transaction(async (tx: typeof fdm) => {
@@ -207,4 +213,79 @@ export async function collectInputForNitrogenBalance(
             { cause: error },
         )
     }
+}
+
+/**
+ * Collects necessary input data from a FDM instance for calculating the nitrogen balance while minimizing
+ * the data lookups.
+ *
+ * This function orchestrates the retrieval of data related to fields, cultivations,
+ * harvests, soil analyses, fertilizer applications, fertilizer details, and cultivation details
+ * within a specified farm and timeframe. It fetches data from the FDM database and structures
+ * it into a `NitrogenBalanceInput` object.
+ *
+ * @param fdm - The FDM instance for database interaction.
+ * @param principal_id - The ID of the principal (user or service) initiating the data collection.
+ * @param timeframe - The timeframe for which to collect the data.
+ * @returns A promise that resolves with a `NitrogenBalanceInput` object containing all the necessary data.
+ * @throws {Error} - Throws an error if data collection or processing fails.
+ *
+ * @alpha
+ */
+export async function collectInputForNitrogenBalanceForPrincipal({
+    fdm,
+    principal_id,
+    timeframe,
+}: {
+    fdm: FdmType
+    principal_id: PrincipalId
+    timeframe: Timeframe
+}): Promise<(NitrogenBalanceFieldInput & { b_id_farm: string })[]> {
+    const farms = await getFarms(fdm, principal_id)
+    const [cultivationCatalogue, farmInputsFieldInputsOnly] = await Promise.all(
+        [
+            getCultivationsOfPrincipalFromCatalogue(fdm, principal_id),
+            Promise.all(
+                farms.map(async ({ b_id_farm }) => ({
+                    b_id_farm: b_id_farm,
+                    fertilizerDetails: await getFertilizers(
+                        fdm,
+                        principal_id,
+                        b_id_farm,
+                    ),
+                    fieldInputs: await collectOnlyFieldInputForNitrogenBalance(
+                        fdm,
+                        principal_id,
+                        b_id_farm,
+                        timeframe,
+                    ),
+                })),
+            ),
+        ],
+    )
+
+    return farmInputsFieldInputsOnly.flatMap(
+        ({ fertilizerDetails, fieldInputs }, farmIndex) => {
+            const b_lu_catalogues = new Set(
+                fieldInputs.flatMap((input) =>
+                    input.cultivations.map(
+                        (cultivation) => cultivation.b_lu_catalogue,
+                    ),
+                ),
+            )
+            const cultivationDetails = cultivationCatalogue.filter(
+                (cultivation) =>
+                    b_lu_catalogues.has(cultivation.b_lu_catalogue),
+            )
+            return fieldInputs.map((input) => {
+                return {
+                    b_id_farm: farms[farmIndex].b_id_farm,
+                    fieldInput: input,
+                    fertilizerDetails: fertilizerDetails,
+                    cultivationDetails: cultivationDetails,
+                    timeFrame: timeframe,
+                }
+            })
+        },
+    )
 }

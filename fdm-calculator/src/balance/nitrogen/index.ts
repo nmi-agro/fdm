@@ -5,6 +5,7 @@ import { convertDecimalToNumberRecursive } from "../shared/conversion"
 import { combineSoilAnalyses } from "../shared/soil"
 import { calculateNitrogenEmission } from "./emission"
 import { calculateNitrogenEmissionViaNitrate } from "./emission/nitrate"
+import type { collectInputForNitrogenBalanceForPrincipal } from "./input"
 import { calculateNitrogenRemoval } from "./removal"
 import { calculateNitrogenSupply } from "./supply"
 import { calculateTargetForNitrogenBalance } from "./target"
@@ -84,6 +85,79 @@ export async function calculateNitrogenBalance(
         hasErrors,
         fieldErrorMessages,
     )
+}
+
+/**
+ * Calculates the nitrogen balance for all farms readable by a principal.
+ *
+ * This function orchestrates the nitrogen balance calculation for all fields on a farm.
+ * It calls `getNitrogenBalanceField` for each field and then aggregates the results
+ * using `calculateNitrogenBalancesFieldToFarm`.
+ *
+ * @param fdm - The FDM instance for database access (caching).
+ * @param nitrogenBalanceInput - The input data for the nitrogen balance calculation, including all fields.
+ * @returns A promise that resolves an array where each item is the aggregated nitrogen balance of a farm,
+ * including the b_id_farm.
+ */
+export async function calculateNitrogenBalanceForPrincipal(
+    fdm: FdmType,
+    inputs: Awaited<
+        ReturnType<typeof collectInputForNitrogenBalanceForPrincipal>
+    >,
+) {
+    const batchSize = 50
+    const farmsWithBalanceResults: Record<
+        string,
+        NitrogenBalanceFieldResultNumeric[]
+    > = {}
+    for (let i = 0; i < inputs.length; i += batchSize) {
+        const batch = inputs.slice(i, i + batchSize)
+        const batchResults = await Promise.all(
+            batch.map(async (input) => {
+                const fieldInput = input.fieldInput
+                try {
+                    const balance = await getNitrogenBalanceField(fdm, input)
+                    return {
+                        b_id_farm: input.b_id_farm,
+                        b_id: fieldInput.field.b_id,
+                        b_area: fieldInput.field.b_area ?? 0,
+                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        balance,
+                    }
+                } catch (error) {
+                    return {
+                        b_id_farm: input.b_id_farm,
+                        b_id: fieldInput.field.b_id,
+                        b_area: fieldInput.field.b_area ?? 0,
+                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        errorMessage:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                    }
+                }
+            }),
+        )
+        batchResults.forEach((result) => {
+            farmsWithBalanceResults[result.b_id_farm] ??= []
+            farmsWithBalanceResults[result.b_id_farm].push(result)
+        })
+    }
+
+    return inputs.map(({ b_id_farm }) => {
+        const fieldResults = farmsWithBalanceResults[b_id_farm] ?? []
+        const fieldErrorMessages = fieldResults
+            .map((result) => result.errorMessage)
+            .filter((msg) => msg) as string[]
+        return {
+            b_id_farm: b_id_farm,
+            ...calculateNitrogenBalancesFieldToFarm(
+                fieldResults,
+                fieldErrorMessages.length > 0,
+                fieldErrorMessages,
+            ),
+        }
+    })
 }
 
 /**
