@@ -48,6 +48,7 @@ export { getDoseForField } from "./doses/get-dose-field"
 export {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
+    createUncachedFunctionsForFertilizerApplicationFilling,
 } from "./norms"
 export type {
     AggregatedNormFillingsToFarmLevel,
