@@ -60,6 +60,9 @@
             "esbuild",
             "prisma",
             "protobufjs"
+        ],
+        "ignoredBuiltDependencies": [
+            "sqlite3"
         ]
     }
 }

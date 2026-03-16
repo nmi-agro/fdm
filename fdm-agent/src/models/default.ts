@@ -7,7 +7,7 @@ import { Gemini } from '@google/adk';
  */
 export function createDefaultModel(apiKey?: string) {
     return new Gemini({
-        model: 'gemini-3.1-pro',
+        model: 'gemini-3.1-pro-preview',
         apiKey: apiKey
     });
 }

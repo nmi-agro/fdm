@@ -1,4 +1,4 @@
-import { InMemoryRunner } from '@google/adk';
+import { InMemoryRunner, isFinalResponse, stringifyContent } from '@google/adk';
 import type { BaseAgent } from '@google/adk';
 
 /**
@@ -31,23 +31,29 @@ export async function runOneShotAgent(
     let totalOutputTokens = 0;
 
     for await (const event of stream) {
+        // Surface model errors immediately instead of silently returning empty string.
+        // When Gemini returns a non-200 (e.g. 400), the LlmAgent emits an event
+        // with errorCode/errorMessage but no content.
+        if (event.errorCode) {
+            throw new Error(`Gemini API error [${event.errorCode}]: ${event.errorMessage ?? 'unknown error'}`);
+        }
+
         // Aggregate usage metadata if available
         if (event.usageMetadata) {
             totalInputTokens += event.usageMetadata.promptTokenCount || 0;
             totalOutputTokens += event.usageMetadata.candidatesTokenCount || 0;
         }
 
-        if (event.content && event.content.role === 'model') {
-           const parts = event.content.parts || [];
-           for (const part of parts) {
-               if (part.text) {
-                   finalResponse += part.text;
-               }
-           }
+        // Only capture the final text response, not intermediate reasoning or tool calls.
+        if (isFinalResponse(event)) {
+            const text = stringifyContent(event);
+            if (text) {
+                finalResponse = text;
+            }
         }
     }
 
-    // Calculate estimated cost (Gemini 3.1 Pro Estimate)
+    // Calculate estimated cost (Gemini 3.1 Pro Preview estimate)
     // Input: $1.25 / 1M tokens
     // Output: $5.00 / 1M tokens
     const inputCost = (totalInputTokens / 1_000_000) * 1.25;
@@ -61,7 +67,7 @@ export async function runOneShotAgent(
                 distinctId: posthog.distinctId,
                 event: '$ai_generation',
                 properties: {
-                    $ai_model: 'gemini-3.1-pro',
+                    $ai_model: 'gemini-3.1-pro-preview',
                     $ai_provider: 'google',
                     $ai_input: [{ role: 'user', content: input }],
                     $ai_output: [{ role: 'assistant', content: finalResponse }],
@@ -71,7 +77,7 @@ export async function runOneShotAgent(
                     $ai_cost: totalCost,
                     $ai_currency: 'USD',
                     agent_name: agent.name,
-                    farm_id: context.farmId,
+                    b_id_farm: context.b_id_farm,
                     principal_id: context.principalId
                 }
             });

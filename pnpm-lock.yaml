@@ -86,14 +86,17 @@ importers:
         specifier: latest
         version: 1.45.0(@modelcontextprotocol/sdk@1.27.1(zod@4.3.6))
       '@nmi-agro/fdm-calculator':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../fdm-calculator
       '@nmi-agro/fdm-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../fdm-core
       '@nmi-agro/fdm-data':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../fdm-data
+      posthog-node:
+        specifier: ^5.28.1
+        version: 5.28.1
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -113,6 +116,9 @@ importers:
       rollup:
         specifier: 'catalog:'
         version: 4.59.0
+      rollup-plugin-dts:
+        specifier: ^6.4.0
+        version: 6.4.0(rollup@4.59.0)(typescript@5.9.3)
       rollup-plugin-esbuild:
         specifier: 'catalog:'
         version: 6.2.1(esbuild@0.27.3)(rollup@4.59.0)
@@ -143,6 +149,9 @@ importers:
       '@maplibre/maplibre-gl-geocoder':
         specifier: ^1.9.4
         version: 1.9.4(maplibre-gl@5.20.0)
+      '@nmi-agro/fdm-agent':
+        specifier: workspace:*
+        version: link:../fdm-agent
       '@nmi-agro/fdm-calculator':
         specifier: workspace:^
         version: link:../fdm-calculator
@@ -11410,6 +11419,13 @@ packages:
 
   robust-predicates@3.0.2:
     resolution: {integrity: sha512-IXgzBWvWQwE6PrDI05OvmXUIruQTcoMDzRsOd5CDvHCVLcLHMTSYvOK5Cm46kWqlV3yAbuSpBZdJ5oP5OUoStg==}
+
+  rollup-plugin-dts@6.4.0:
+    resolution: {integrity: sha512-2i00A5UoPCoDecLEs13Eu105QegSGfrbp1sDeUj/54LKGmv6XFHDxWKC6Wsb4BobGUWYVCWWjmjAc8bXXbXH/Q==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      rollup: ^3.29.4 || ^4
+      typescript: ^4.5 || ^5.0 || ^6.0
 
   rollup-plugin-esbuild@6.2.1:
     resolution: {integrity: sha512-jTNOMGoMRhs0JuueJrJqbW8tOwxumaWYq+V5i+PD+8ecSCVkuX27tGW7BXqDgoULQ55rO7IdNxPcnsWtshz3AA==}
@@ -26464,6 +26480,17 @@ snapshots:
   robust-predicates@2.0.4: {}
 
   robust-predicates@3.0.2: {}
+
+  rollup-plugin-dts@6.4.0(rollup@4.59.0)(typescript@5.9.3):
+    dependencies:
+      '@jridgewell/remapping': 2.3.5
+      '@jridgewell/sourcemap-codec': 1.5.5
+      convert-source-map: 2.0.0
+      magic-string: 0.30.21
+      rollup: 4.59.0
+      typescript: 5.9.3
+    optionalDependencies:
+      '@babel/code-frame': 7.29.0
 
   rollup-plugin-esbuild@6.2.1(esbuild@0.27.3)(rollup@4.59.0):
     dependencies:
