@@ -1,21 +1,21 @@
-import { createNutrientManagementAgent } from './agents/gerrit/agent';
-import { runOneShotAgent } from './runners/one-shot';
-import { z } from 'zod';
+import { createNutrientManagementAgent } from "./agents/gerrit/agent"
+import { runOneShotAgent } from "./runners/one-shot"
+import { z } from "zod"
 
-export { createNutrientManagementAgent as createNutrientPlannerAgent };
-export { runOneShotAgent };
+export { createNutrientManagementAgent as createNutrientPlannerAgent }
+export { runOneShotAgent }
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */
-    isOrganic: boolean;
+    isOrganic: boolean
     /** Whether to maximize manure applications up to the legal norm */
-    fillManureSpace: boolean;
+    fillManureSpace: boolean
     /** Whether to prioritize ammonia emission reduction */
-    reduceAmmoniaEmissions: boolean;
+    reduceAmmoniaEmissions: boolean
     /** Whether to keep the nitrogen balance below the calculated target */
-    keepNitrogenBalanceBelowTarget: boolean;
+    keepNitrogenBalanceBelowTarget: boolean
     /** Whether to apply the same plan to all fields with the same cultivation (bouwplan level) */
-    workOnRotationLevel: boolean;
+    workOnRotationLevel: boolean
 }
 
 /** Schema for validating FertilizerPlanStrategies — all fields must be explicit booleans. */
@@ -25,16 +25,16 @@ export const FertilizerPlanStrategiesSchema = z.object({
     reduceAmmoniaEmissions: z.boolean(),
     keepNitrogenBalanceBelowTarget: z.boolean(),
     workOnRotationLevel: z.boolean(),
-});
+})
 
 /** Compact field summary injected into the initial prompt for faster agent orientation. */
 export interface FarmFieldSummary {
-    b_id: string;
-    b_name: string;
-    b_area: number;
-    b_bufferstrip: boolean;
-    b_lu_catalogue: string;
-    b_lu_name: string;
+    b_id: string
+    b_name: string
+    b_area: number
+    b_bufferstrip: boolean
+    b_lu_catalogue: string
+    b_lu_name: string
 }
 
 /**
@@ -45,7 +45,7 @@ function sanitizeAdditionalContext(raw: string): string {
     return raw
         .trim()
         .slice(0, 1000)
-        .replace(/^(IGNORE|SYSTEM:|OVERRIDE|INSTRUCTION:).*/gim, '[removed]');
+        .replace(/^(IGNORE|SYSTEM:|OVERRIDE|INSTRUCTION:).*/gim, "[removed]")
 }
 
 /**
@@ -61,41 +61,73 @@ function sanitizeAdditionalContext(raw: string): string {
  * @param posthog Optional PostHog client or config.
  * @param fieldsSummary Optional pre-fetched field list to include in the prompt context.
  */
+/**
+ * Builds the prompt string for the fertilizer planning agent.
+ * Shared between the one-shot and streaming entry points.
+ */
+export function buildFertilizerPlanPrompt(
+    farmData: { b_id_farm: string },
+    strategies: FertilizerPlanStrategies,
+    calendar: string,
+    additionalContext?: string,
+    fieldsSummary?: FarmFieldSummary[],
+): string {
+    const validatedStrategies = FertilizerPlanStrategiesSchema.parse(strategies)
+    const safeContext = additionalContext
+        ? sanitizeAdditionalContext(additionalContext)
+        : "None"
+
+    const fieldsBlock =
+        fieldsSummary && fieldsSummary.length > 0
+            ? `\nFARM FIELDS (${fieldsSummary.length} fields, pre-loaded for your reference):\n${fieldsSummary
+                  .map(
+                      (f) =>
+                          `- b_id: ${f.b_id} | Name: ${f.b_name} | Area: ${f.b_area?.toFixed(2)} ha | Crop: ${f.b_lu_name} (${f.b_lu_catalogue}) | BufferStrip: ${f.b_bufferstrip}`,
+                  )
+                  .join("\n")}\n`
+            : ""
+
+    return `Please generate a fertilizer plan for farm "${farmData.b_id_farm}" for the year "${calendar}".
+${fieldsBlock}
+STRATEGIES TO ENFORCE:
+- Organic Farming: ${validatedStrategies.isOrganic ? "YES (No mineral fertilizers allowed)" : "NO"}
+- Fill Manure Space: ${validatedStrategies.fillManureSpace ? "YES (Maximize manure usage up to legal limits)" : "NO (Only use manure as needed for advice)"}
+- Reduce NH3 Emissions: ${validatedStrategies.reduceAmmoniaEmissions ? "YES (Prioritize fertilizers and methods with lower ammonia emission factors)" : "NO"}
+- Keep Nitrogen Balance Below Target: ${validatedStrategies.keepNitrogenBalanceBelowTarget ? "YES (Ensure the N balance surplus is within the legal/environmental target)" : "NO"}
+- Work on Rotation Level (Bouwplan): ${validatedStrategies.workOnRotationLevel ? "YES (All fields sharing the same b_lu_catalogue MUST receive identical applications — same products, amounts, dates and methods)" : "NO"}
+
+Additional Context: ${safeContext}`
+}
+
 export async function generateFarmFertilizerPlan(
-    fdm: any, 
-    principalId: any, 
-    farmData: { b_id_farm: string }, 
+    fdm: any,
+    principalId: any,
+    farmData: { b_id_farm: string },
     strategies: FertilizerPlanStrategies,
     calendar: string,
     geminiApiKey?: string,
     nmiApiKey?: string,
     additionalContext?: string,
-    posthog?: { client: any, distinctId: string },
-    fieldsSummary?: FarmFieldSummary[]
+    posthog?: { client: any; distinctId: string },
+    fieldsSummary?: FarmFieldSummary[],
 ) {
-    const validatedStrategies = FertilizerPlanStrategiesSchema.parse(strategies);
-    const safeContext = additionalContext ? sanitizeAdditionalContext(additionalContext) : 'None';
+    const validatedStrategies = FertilizerPlanStrategiesSchema.parse(strategies)
+    const safeContext = additionalContext
+        ? sanitizeAdditionalContext(additionalContext)
+        : "None"
 
-    const agent = createNutrientManagementAgent(fdm, geminiApiKey);
-
-    const fieldsBlock = fieldsSummary && fieldsSummary.length > 0
-        ? `\nFARM FIELDS (${fieldsSummary.length} fields, pre-loaded for your reference):\n${fieldsSummary
-              .map(f =>
-                  `- b_id: ${f.b_id} | Name: ${f.b_name} | Area: ${f.b_area?.toFixed(2)} ha | Crop: ${f.b_lu_name} (${f.b_lu_catalogue}) | BufferStrip: ${f.b_bufferstrip}`
-              )
-              .join('\n')}\n`
-        : '';
-
-    const input = `Please generate a fertilizer plan for farm "${farmData.b_id_farm}" for the year "${calendar}".
-${fieldsBlock}
-STRATEGIES TO ENFORCE:
-- Organic Farming: ${validatedStrategies.isOrganic ? 'YES (No mineral fertilizers allowed)' : 'NO'}
-- Fill Manure Space: ${validatedStrategies.fillManureSpace ? 'YES (Maximize manure usage up to legal limits)' : 'NO (Only use manure as needed for advice)'}
-- Reduce NH3 Emissions: ${validatedStrategies.reduceAmmoniaEmissions ? 'YES (Prioritize fertilizers and methods with lower ammonia emission factors)' : 'NO'}
-- Keep Nitrogen Balance Below Target: ${validatedStrategies.keepNitrogenBalanceBelowTarget ? 'YES (Ensure the N balance surplus is within the legal/environmental target)' : 'NO'}
-- Work on Rotation Level (Bouwplan): ${validatedStrategies.workOnRotationLevel ? 'YES (All fields sharing the same b_lu_catalogue MUST receive identical applications — same products, amounts, dates and methods)' : 'NO'}
-
-Additional Context: ${safeContext}`;
-    
-    return runOneShotAgent(agent, input, { principalId, b_id_farm: farmData.b_id_farm, calendar, nmiApiKey }, posthog);
+    const agent = createNutrientManagementAgent(fdm, geminiApiKey)
+    const input = buildFertilizerPlanPrompt(
+        farmData,
+        validatedStrategies,
+        calendar,
+        safeContext,
+        fieldsSummary,
+    )
+    return runOneShotAgent(
+        agent,
+        input,
+        { principalId, b_id_farm: farmData.b_id_farm, calendar, nmiApiKey },
+        posthog,
+    )
 }

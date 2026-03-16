@@ -7,13 +7,14 @@ import type { FdmType } from "@nmi-agro/fdm-core"
  * Creates the Nutrient Management Agent: "Gerrit"
  * @param fdm The non-serializable FDM database instance.
  * @param apiKey Optional API key for the Gemini model.
+ * @param model Optional model name override.
  */
-export function createNutrientManagementAgent(fdm: FdmType, apiKey?: string) {
+export function createNutrientManagementAgent(fdm: FdmType, apiKey?: string, model?: string) {
     return new LlmAgent({
         name: "Gerrit",
         description:
             "Expert Dutch Agronomist for nutrient management and fertilizer planning.",
-        model: createDefaultModel(apiKey),
+        model: createDefaultModel(apiKey, model),
         instruction: `You are Gerrit, an expert Dutch Agronomist.
 Your goal is to create a legally compliant and agronomically sound fertilizer plan for the entire farm.
 
@@ -45,22 +46,39 @@ Use the tools provided to:
 - Simulate your proposed distribution to ensure compliance and monitor the organic matter and nitrogen balances.
 
 OUTPUT FORMAT:
-Your final response MUST be a JSON object containing:
-1. "summary": A concise explanation (< 250 words) in Dutch for your choices, written as an agronomist advising a farmer or advisor. Explain how you balanced the norms, handled specific nutrient deficits, ensured operational consistency, optimized the organic matter balance, and addressed the selected strategies (Organic, Manure Filling, Ammonia, Nitrogen Balance). Mention why you chose specific application methods and dates, if needed.
-2. "plan": A JSON array of fields. IMPORTANT: Only include fields where you have proposed AT LEAST one application. If a field has zero applications (e.g., buffer strips), DO NOT include it in this array. Each field object in the array must match this structure:
+Your final response MUST be a JSON object with exactly this structure (all fields required unless marked optional):
 {
-  "b_id": "string",
-  "applications": [
+  "summary": "string — Dutch explanation < 250 words",
+  "metrics": {
+    "farmTotals": {
+      "fillingKg": { "animalManureN": number, "workableN": number, "phosphate": number },
+      "normKg":    { "animalManureN": number, "workableN": number, "phosphate": number },
+      "nBalanceKg": number,
+      "nTargetKg":  number
+    }
+  },
+  "plan": [
     {
-      "p_id_catalogue": "string",
-      "p_app_amount": number,
-      "p_app_date": "YYYY-MM-DD",
-      "p_app_method": "string"
+      "b_id": "string",
+      "applications": [
+        { "p_id_catalogue": "string", "p_app_amount": number, "p_app_date": "YYYY-MM-DD", "p_app_method": "string" }
+      ],
+      "fieldMetrics": {
+        "fillingPerHa": { "animalManureN": number, "workableN": number, "phosphate": number },
+        "normPerHa":    { "animalManureN": number, "workableN": number, "phosphate": number },
+        "omBalance": number,
+        "nBalance": { "balance": number, "target": number, "isBelowTarget": boolean }
+      }
     }
   ]
 }
 
-DO NOT include any text before or after the JSON object.
+Rules:
+- "summary": Dutch agronomist narrative (< 250 words). Explain norm balance, nutrient deficits, OM balance, strategy choices.
+- "metrics.farmTotals": Copy the farmTotals values directly from the final simulateFarmPlan result.
+- "plan": Only include fields with at least one application. Buffer strips MUST NOT appear.
+- "fieldMetrics": Copy fillingPerHa, normPerHa, omBalance, nBalance directly from simulateFarmPlan fieldResults for that field.
+- DO NOT include any text before or after the JSON object.
 
 CALCULATOR REFERENCE (units and semantics for the simulation tool):
 - All per-field nutrient amounts are in kg/ha (per hectare).
@@ -80,10 +98,10 @@ CALCULATOR REFERENCE (units and semantics for the simulation tool):
 - "fieldResults[].normPerHa": norm values per field in kg/ha — field-level reference only.
 - "omBalance" (organische stofbalans): net organic matter balance, kg EOM/ha. Positive = good. Aim for ≥ 0.
 - "nBalanceKg / nTargetKg": farm-level nitrogen balance and target, both in kg. nBalanceKg must be ≤ nTargetKg if keepNitrogenBalanceBelowTarget is YES.
-- "p_app_amount": application amount.
-  - Liquid manure / digestate / slurry: m³/ha (e.g., 20–40 m³/ha is typical).
-  - Solid manure / compost: tonnes/ha (e.g., 10–30 t/ha for solid manure, 3–8 t/ha for compost).
-  - Mineral fertilizers: kg/ha (e.g., 150–300 kg/ha for KAS/CAN).
+- "p_app_amount": application amount — **always in kg/ha, regardless of fertilizer type**.
+  - Liquid manure / digestate / slurry: convert m³/ha → kg/ha using 1 m³ = 1000 kg. Round to nearest 1000. Example: 18 m³/ha = 18000 kg/ha.
+  - Solid manure / compost: convert t/ha → kg/ha using 1 t = 1000 kg. Round to nearest 1000. Example: 20 t/ha = 20000 kg/ha.
+  - Mineral fertilizers: already in kg/ha, round to nearest 5 or 10. Example: 200 kg/ha KAS.
 - "p_ef_nh3": ammonia emission factor (fraction of N applied lost as NH3). Lower = less emission.
 TOOL RETURN SHAPES:
 - "getFarmFields" returns { fields: [...] } — access the array via result.fields
