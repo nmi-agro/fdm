@@ -1,4 +1,8 @@
-import type { NitrogenBalanceNumeric } from "@nmi-agro/fdm-calculator"
+import {
+    calculateNitrogenBalanceForPrincipal,
+    collectInputForNitrogenBalanceForPrincipal,
+    type NitrogenBalanceNumeric,
+} from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields, listPrincipalsForFarm } from "@nmi-agro/fdm-core"
 import {
     ArrowDown,
@@ -45,10 +49,6 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
-import {
-    getNitrogenBalanceForFarm,
-    getNitrogenBalanceForFarms,
-} from "~/integrations/calculator"
 import { auth, getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -104,18 +104,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             farms.map((farm) => [farm.b_id_farm, farm]),
         )
 
-        const asyncData = getNitrogenBalanceForFarms({
-            fdm: fdm,
-            principal_id: organization.id,
-            farmIds: farms.map((farm) => farm.b_id_farm),
-            timeframe: timeframe,
-        }).then((results) =>
-            Promise.all(
+        async function getAsyncData(principal_id: string) {
+            const inputs = await collectInputForNitrogenBalanceForPrincipal({
+                fdm,
+                principal_id,
+                timeframe,
+            })
+            const results = await calculateNitrogenBalanceForPrincipal(
+                fdm,
+                inputs,
+            )
+            return Promise.all(
                 results.map(async (nitrogenBalanceResult) => {
                     const farm = farmsMap[nitrogenBalanceResult.b_id_farm]
                     const farmPrincipals = await listPrincipalsForFarm(
                         fdm,
-                        organization.id,
+                        principal_id,
                         farm.b_id_farm,
                     )
                     const owner = farmPrincipals.find(
@@ -124,7 +128,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
                     const fields = await getFields(
                         fdm,
-                        organization.id,
+                        principal_id,
                         farm.b_id_farm,
                     )
 
@@ -178,8 +182,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         }
                     }
                 }),
-            ),
-        )
+            )
+        }
+
+        const asyncData = getAsyncData(organization.id)
 
         return {
             organization: organization,
