@@ -127,7 +127,14 @@ export async function generateFarmFertilizerPlan(
     return runOneShotAgent(
         agent,
         input,
-        { principalId, b_id_farm: farmData.b_id_farm, calendar, nmiApiKey },
+        { 
+            principalId, 
+            b_id_farm: farmData.b_id_farm, 
+            calendar, 
+            nmiApiKey,
+            strategies: validatedStrategies,
+            additionalContext: safeContext
+        },
         posthog,
     )
 }

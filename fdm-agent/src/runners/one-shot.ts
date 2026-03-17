@@ -57,6 +57,8 @@ export async function runOneShotAgent(
                     agent_name: agent.name,
                     b_id_farm: context.b_id_farm,
                     principal_id: context.principalId,
+                    strategies: context.strategies,
+                    additional_context: context.additionalContext,
                 },
             })
         } catch (e) {
