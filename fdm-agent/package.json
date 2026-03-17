@@ -36,6 +36,7 @@
         "@rollup/plugin-json": "catalog:",
         "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
         "rollup": "catalog:",
         "rollup-plugin-dts": "^6.4.0",
         "rollup-plugin-esbuild": "catalog:",

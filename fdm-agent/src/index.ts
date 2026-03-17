@@ -41,7 +41,7 @@ export interface FarmFieldSummary {
  * Sanitizes the additionalContext string: trims whitespace, limits to 1000 characters,
  * and strips any prompt-injection attempts (e.g. lines starting with "IGNORE " or "SYSTEM:").
  */
-function sanitizeAdditionalContext(raw: string): string {
+export function sanitizeAdditionalContext(raw: string): string {
     // 1. Remove markdown code blocks (e.g. ```) to prevent structure breaking
     const noCodeBlocks = raw.replace(/```/g, "'''")
     // 2. Remove XML/HTML-like tags to prevent injection into structural boundaries

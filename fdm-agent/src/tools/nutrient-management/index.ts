@@ -35,7 +35,7 @@ interface AdviceArgs {
  * Determines the main cultivation based on the "May 15th" rule.
  * It searches for a cultivation that is active on May 15th of the given calendar year.
  */
-function getMainCultivation(cultivations: any[], calendarYear: string) {
+export function getMainCultivation(cultivations: any[], calendarYear: string) {
     const targetDate = new Date(`${calendarYear}-05-15T12:00:00`)
     const sorted = [...cultivations].sort(
         (a, b) =>
