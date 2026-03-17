@@ -8,6 +8,7 @@ import {
     collectInputForOrganicMatterBalance,
     calculateNitrogenBalanceField,
     collectInputForNitrogenBalance,
+    calculateNitrogenBalancesFieldToFarm,
     calculateDose,
     aggregateNormsToFarmLevel,
     aggregateNormFillingsToFarmLevel,
@@ -496,17 +497,6 @@ export function createNutrientManagementTools(fdm: FdmType) {
                     return {
                         b_id: fieldData.b_id,
                         b_area: fieldInfo.b_area,
-                        // Per-hectare filling values from proper regulatory calculations
-                        fillingPerHa: {
-                            animalManureN: manureFilling.normFilling,
-                            workableN: nitrogenFilling.normFilling,
-                            phosphate: phosphateFilling.normFilling,
-                        },
-                        normPerHa: {
-                            animalManureN: manure.normValue,
-                            workableN: nitrogen.normValue,
-                            phosphate: phosphate.normValue,
-                        },
                         // Structured for aggregateNormFillingsToFarmLevel
                         normsFilling: {
                             manure: manureFilling,
@@ -525,14 +515,7 @@ export function createNutrientManagementTools(fdm: FdmType) {
                         omBalanceError,
                         eomSupplyPerHa:
                             omBalance?.supply?.fertilizers?.total ?? null,
-                        nBalance: nBalance
-                            ? {
-                                  balance: nBalance.balance,
-                                  target: nBalance.target,
-                                  isBelowTarget:
-                                      nBalance.balance <= nBalance.target,
-                              }
-                            : null,
+                        nBalance: nBalance || null,
                         nBalanceError,
                         isValid: true,
                     }
@@ -561,21 +544,15 @@ export function createNutrientManagementTools(fdm: FdmType) {
                 })),
             )
 
-            const nBalanceTotalKg = validFieldResults.reduce(
-                (sum: number, r: any) => {
-                    if (r.nBalance)
-                        return sum + (r.nBalance.balance ?? 0) * (r.b_area ?? 0)
-                    return sum
-                },
-                0,
-            )
-            const nTargetTotalKg = validFieldResults.reduce(
-                (sum: number, r: any) => {
-                    if (r.nBalance)
-                        return sum + (r.nBalance.target ?? 0) * (r.b_area ?? 0)
-                    return sum
-                },
-                0,
+            const farmNBalance = calculateNitrogenBalancesFieldToFarm(
+                validFieldResults.map((r: any) => ({
+                    b_id: r.b_id,
+                    b_area: r.b_area,
+                    b_bufferstrip: false,
+                    balance: r.nBalance || undefined,
+                })),
+                false,
+                []
             )
 
             const hasBufferStripViolations = fieldResults.some(
@@ -586,19 +563,9 @@ export function createNutrientManagementTools(fdm: FdmType) {
                 fieldResults,
                 // Farm-level totals in kg — legal compliance is verified here, NOT per field
                 farmTotals: {
-                    fillingKg: {
-                        animalManureN: farmFillingsKg.manure,
-                        workableN: farmFillingsKg.nitrogen,
-                        phosphate: farmFillingsKg.phosphate,
-                    },
-                    normKg: {
-                        animalManureN: farmNormsKg.manure,
-                        workableN: farmNormsKg.nitrogen,
-                        phosphate: farmNormsKg.phosphate,
-                    },
-                    nBalanceKg: nBalanceTotalKg,
-                    nTargetKg: nTargetTotalKg,
-                    nBalanceValid: nBalanceTotalKg <= nTargetTotalKg,
+                    normsFilling: farmFillingsKg,
+                    norms: farmNormsKg,
+                    nBalance: farmNBalance,
                 },
                 isValid:
                     !hasBufferStripViolations &&
