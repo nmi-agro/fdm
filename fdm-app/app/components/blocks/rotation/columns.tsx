@@ -34,7 +34,7 @@ export type CropRow = {
     b_lu: string[]
     b_lu_name: string
     m_cropresidue: "all" | "some" | "none"
-    b_lu_eom_residue: boolean
+    b_lu_eom_residue: number | null
     b_lu_variety: Record<string, number>
     b_lu_variety_options: { label: string; value: string }[] | null
     b_lu_croprotation: string

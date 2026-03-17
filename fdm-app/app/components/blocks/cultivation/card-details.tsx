@@ -62,7 +62,9 @@ export function CultivationDetailsCard({
             b_lu_end: cultivation.b_lu_end
                 ? new Date(cultivation.b_lu_end)
                 : null,
-            m_cropresidue: cultivation.m_cropresidue ?? false,
+            m_cropresidue:
+                !!cultivation.b_lu_eom_residue &&
+                (cultivation.m_cropresidue ?? false),
             b_lu_variety: cultivation.b_lu_variety ?? null,
         })
     }, [cultivation, form.reset])
