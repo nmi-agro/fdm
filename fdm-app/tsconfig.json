@@ -1,4 +1,5 @@
 {
+    "extends": "../tsconfig.apps.json",
     "include": [
         "**/*.ts",
         "**/*.tsx",
@@ -13,20 +14,7 @@
         "app/types/public-env.d.ts"
     ],
     "compilerOptions": {
-        "lib": ["DOM", "DOM.Iterable", "ES2022"],
         "types": ["@react-router/node", "vite/client"],
-        "isolatedModules": true,
-        "esModuleInterop": true,
-        "jsx": "react-jsx",
-        "module": "ESNext",
-        "moduleResolution": "Bundler",
-        "resolveJsonModule": true,
-        "target": "ES2022",
-        "strict": true,
-        "allowJs": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "baseUrl": ".",
         "paths": {
             "@/*": ["./*"],
             "~/*": ["./app/*"],
@@ -34,8 +22,6 @@
             "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"],
             "@nmi-agro/fdm-calculator": ["../fdm-calculator/src/index.ts"]
         },
-        "rootDirs": [".", "./.react-router/types"],
-
-        "noEmit": true
+        "rootDirs": [".", "./.react-router/types"]
     }
 }
