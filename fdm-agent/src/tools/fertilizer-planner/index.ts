@@ -49,10 +49,10 @@ export function getMainCultivation(cultivations: any[], calendarYear: string) {
 }
 
 /**
- * Creates tools for nutrient management.
+ * Creates tools for the fertilizer application planner.
  * @param fdm The non-serializable FDM database instance.
  */
-export function createNutrientManagementTools(fdm: FdmType) {
+export function createFertilizerPlannerTools(fdm: FdmType) {
     /**
      * Tool for fetching the list of fields for a farm.
      */

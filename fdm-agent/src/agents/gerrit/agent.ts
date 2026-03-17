@@ -1,15 +1,15 @@
 import { LlmAgent } from "@google/adk"
 import { createDefaultModel } from "../../models/default"
-import { createNutrientManagementTools } from "../../tools/nutrient-management"
+import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
 import type { FdmType } from "@nmi-agro/fdm-core"
 
 /**
- * Creates the Nutrient Management Agent: "Gerrit"
+ * Creates the Fertilizer Application Planner Agent: "Gerrit"
  * @param fdm The non-serializable FDM database instance.
  * @param apiKey Optional API key for the Gemini model.
  * @param model Optional model name override.
  */
-export function createNutrientManagementAgent(
+export function createFertilizerPlannerAgent(
     fdm: FdmType,
     apiKey?: string,
     model?: string,
@@ -17,7 +17,7 @@ export function createNutrientManagementAgent(
     return new LlmAgent({
         name: "Gerrit",
         description:
-            "Expert Dutch Agronomist for nutrient management and fertilizer planning.",
+            "Expert Dutch Agronomist for fertilizer application planning.",
         model: createDefaultModel(apiKey, model),
         instruction: `You are Gerrit, an expert Dutch Agronomist.
 Your goal is to create a legally compliant and agronomically sound fertilizer plan for the entire farm.
@@ -139,6 +139,6 @@ TOOL RETURN SHAPES:
   If "isValid" is false, you MUST read the "complianceIssues" array. It contains exact string messages explaining which hard legal norms you violated (and by how many kg). You must adjust your plan to fix these issues in the next iteration. 
   You should also read "agronomicWarnings", which provides hints on soft limits (like organic matter balance, nitrogen targets, or filling manure space). Use these warnings to refine your plan to better match the requested strategies.
 `,
-        tools: createNutrientManagementTools(fdm),
+        tools: createFertilizerPlannerTools(fdm),
     })
 }
