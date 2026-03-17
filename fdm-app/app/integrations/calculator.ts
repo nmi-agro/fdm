@@ -29,7 +29,7 @@ import {
     type Timeframe,
 } from "@nmi-agro/fdm-core"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
-import { getNmiApiKey } from "./nmi"
+import { getNmiApiKey } from "./nmi.server"
 
 // Get nitrogen balance for a field
 export async function getNitrogenBalanceForField({

@@ -1,8 +1,12 @@
 import { cowHead } from "@lucide/lab"
-import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import {
+    checkPermission,
+    getFarm,
+    getFarms,
+    getFields,
+} from "@nmi-agro/fdm-core"
 import {
     ArrowRightLeft,
-    ArrowDownToLine,
     BookOpenText,
     ChevronUp,
     DownloadIcon,
@@ -446,62 +450,6 @@ export default function FarmDashboardIndex() {
                                             </CardHeader>
                                         </Card>
                                     </NavLink>
-                                    <NavLink to={`${calendar}/field/new`}>
-                                        <Card className="transition-all hover:shadow-md h-full">
-                                            <CardHeader>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="rounded-lg bg-muted p-3">
-                                                        <PlusIcon className="h-6 w-6 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <CardTitle>
-                                                            Nieuwe percelen
-                                                        </CardTitle>
-                                                        <CardDescription>
-                                                            Voeg nieuwe percelen
-                                                            toe aan dit bedrijf.
-                                                        </CardDescription>
-                                                    </div>
-                                                </div>
-                                            </CardHeader>
-                                        </Card>
-                                    </NavLink>
-                                </div>
-                            </div>
-
-                            {/* Acties */}
-                            <div className="space-y-4">
-                                <h2 className="text-2xl font-semibold tracking-tight">
-                                    Acties
-                                </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <NavLink
-                                        to={`${calendar}/field/new`}
-                                        className={cn(
-                                            !loaderData.farmWritePermission &&
-                                                "pointer-events-none opacity-50",
-                                        )}
-                                    >
-                                        <Card className="transition-all hover:shadow-md h-full">
-                                            <CardHeader>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="rounded-lg bg-muted p-3">
-                                                        <MapPin className="h-6 w-6 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <CardTitle>
-                                                            Nieuw perceel
-                                                        </CardTitle>
-                                                        <CardDescription>
-                                                            Teken of selecteer
-                                                            een perceel op de
-                                                            kaart.
-                                                        </CardDescription>
-                                                    </div>
-                                                </div>
-                                            </CardHeader>
-                                        </Card>
-                                    </NavLink>
                                     {loaderData.isRvoConfigured && (
                                         <NavLink
                                             to={`${calendar}/rvo`}
@@ -531,6 +479,26 @@ export default function FarmDashboardIndex() {
                                             </Card>
                                         </NavLink>
                                     )}
+                                    <NavLink to={`${calendar}/field/new`}>
+                                        <Card className="transition-all hover:shadow-md h-full">
+                                            <CardHeader>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="rounded-lg bg-muted p-3">
+                                                        <PlusIcon className="h-6 w-6 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle>
+                                                            Nieuwe percelen
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            Voeg nieuwe percelen
+                                                            toe aan dit bedrijf.
+                                                        </CardDescription>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                        </Card>
+                                    </NavLink>
                                 </div>
                             </div>
                         </div>
