@@ -3,7 +3,7 @@ export const fdmCalculator = pkg
 export {
     calculateNitrogenBalance,
     calculateNitrogenBalanceField,
-    calculateNitrogenBalanceForPrincipal,
+    calculateNitrogenBalanceForFarms,
     getNitrogenBalanceField,
 } from "./balance/nitrogen/index"
 export {

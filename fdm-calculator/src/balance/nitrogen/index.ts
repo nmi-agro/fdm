@@ -98,17 +98,27 @@ export async function calculateNitrogenBalance(
  * @returns A promise that resolves an array where each item is the aggregated nitrogen balance of a farm,
  * including the b_id_farm.
  */
-export async function calculateNitrogenBalanceForPrincipal(
+export async function calculateNitrogenBalanceForFarms(
     fdm: FdmType,
-    inputs: (NitrogenBalanceFieldInput & { b_id_farm: string })[],
+    inputs: (NitrogenBalanceInput & { b_id_farm: string })[],
 ) {
     const batchSize = 50
     const farmsWithBalanceResults: Record<
         string,
         NitrogenBalanceFieldResultNumeric[]
     > = {}
-    for (let i = 0; i < inputs.length; i += batchSize) {
-        const batch = inputs.slice(i, i + batchSize)
+    const fieldInputs: (NitrogenBalanceFieldInput & { b_id_farm: string })[] =
+        inputs.flatMap((input) =>
+            input.fields.map((field) => ({
+                b_id_farm: input.b_id_farm,
+                fieldInput: field,
+                fertilizerDetails: input.fertilizerDetails,
+                cultivationDetails: input.cultivationDetails,
+                timeFrame: input.timeFrame,
+            })),
+        )
+    for (let i = 0; i < fieldInputs.length; i += batchSize) {
+        const batch = fieldInputs.slice(i, i + batchSize)
         const batchResults = await Promise.all(
             batch.map(async (input) => {
                 const fieldInput = input.fieldInput
