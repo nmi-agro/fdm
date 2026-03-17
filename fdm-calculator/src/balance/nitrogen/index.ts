@@ -5,7 +5,6 @@ import { convertDecimalToNumberRecursive } from "../shared/conversion"
 import { combineSoilAnalyses } from "../shared/soil"
 import { calculateNitrogenEmission } from "./emission"
 import { calculateNitrogenEmissionViaNitrate } from "./emission/nitrate"
-import type { collectInputForNitrogenBalanceForPrincipal } from "./input"
 import { calculateNitrogenRemoval } from "./removal"
 import { calculateNitrogenSupply } from "./supply"
 import { calculateTargetForNitrogenBalance } from "./target"
@@ -101,9 +100,7 @@ export async function calculateNitrogenBalance(
  */
 export async function calculateNitrogenBalanceForPrincipal(
     fdm: FdmType,
-    inputs: Awaited<
-        ReturnType<typeof collectInputForNitrogenBalanceForPrincipal>
-    >,
+    inputs: (NitrogenBalanceFieldInput & { b_id_farm: string })[],
 ) {
     const batchSize = 50
     const farmsWithBalanceResults: Record<

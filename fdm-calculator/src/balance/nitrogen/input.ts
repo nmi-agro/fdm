@@ -7,8 +7,7 @@ import type {
 import {
     getCultivations,
     getCultivationsFromCatalogue,
-    getCultivationsOfPrincipalFromCatalogue,
-    getFarms,
+    getCultivationsOfFarmsFromCatalogue,
     getFertilizerApplications,
     getFertilizers,
     getField,
@@ -151,7 +150,8 @@ export async function collectOnlyFieldInputForNitrogenBalance(
 }
 
 /**
- * Collects necessary input data from a FDM instance for calculating the nitrogen balance.
+ * Collects necessary input data from a FDM instance for calculating the nitrogen balance while minimizing
+ * the data lookups.
  *
  * This function orchestrates the retrieval of data related to fields, cultivations,
  * harvests, soil analyses, fertilizer applications, fertilizer details, and cultivation details
@@ -167,7 +167,7 @@ export async function collectOnlyFieldInputForNitrogenBalance(
  *
  * @alpha
  */
-export async function collectInputForNitrogenBalance(
+export async function collectInputForNitrogenBalanceForFarms(
     fdm: FdmType,
     principal_id: PrincipalId,
     b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
@@ -216,8 +216,7 @@ export async function collectInputForNitrogenBalance(
 }
 
 /**
- * Collects necessary input data from a FDM instance for calculating the nitrogen balance while minimizing
- * the data lookups.
+ * Collects necessary input data from a FDM instance for calculating the nitrogen balance.
  *
  * This function orchestrates the retrieval of data related to fields, cultivations,
  * harvests, soil analyses, fertilizer applications, fertilizer details, and cultivation details
@@ -226,66 +225,83 @@ export async function collectInputForNitrogenBalance(
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
+ * @param farmIds - The IDs of the farms for which to collect the nitrogen balance input.
  * @param timeframe - The timeframe for which to collect the data.
  * @returns A promise that resolves with a `NitrogenBalanceInput` object containing all the necessary data.
  * @throws {Error} - Throws an error if data collection or processing fails.
  *
  * @alpha
  */
-export async function collectInputForNitrogenBalanceForPrincipal({
-    fdm,
-    principal_id,
-    timeframe,
-}: {
-    fdm: FdmType
-    principal_id: PrincipalId
-    timeframe: Timeframe
-}): Promise<(NitrogenBalanceFieldInput & { b_id_farm: string })[]> {
-    const farms = await getFarms(fdm, principal_id)
-    const [cultivationCatalogue, farmInputsFieldInputsOnly] = await Promise.all(
-        [
-            getCultivationsOfPrincipalFromCatalogue(fdm, principal_id),
-            Promise.all(
-                farms.map(async ({ b_id_farm }) => ({
-                    b_id_farm: b_id_farm,
-                    fertilizerDetails: await getFertilizers(
-                        fdm,
-                        principal_id,
-                        b_id_farm,
-                    ),
-                    fieldInputs: await collectOnlyFieldInputForNitrogenBalance(
-                        fdm,
-                        principal_id,
-                        b_id_farm,
-                        timeframe,
-                    ),
-                })),
-            ),
-        ],
-    )
+export async function collectInputForNitrogenBalance(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    farmIds: string[],
+    timeframe: Timeframe,
+): Promise<(NitrogenBalanceFieldInput & { b_id_farm: string })[]> {
+    try {
+        if (
+            timeframe.start === null ||
+            typeof timeframe.start === "undefined"
+        ) {
+            throw new Error("Timeframe start is not defined")
+        }
+        if (timeframe.end === null || typeof timeframe.end === "undefined") {
+            throw new Error("Timeframe end is not defined")
+        }
+        const myTimeframe = timeframe as { start: Date; end: Date }
 
-    return farmInputsFieldInputsOnly.flatMap(
-        ({ fertilizerDetails, fieldInputs }, farmIndex) => {
-            const b_lu_catalogues = new Set(
-                fieldInputs.flatMap((input) =>
-                    input.cultivations.map(
-                        (cultivation) => cultivation.b_lu_catalogue,
-                    ),
+        const [cultivationCatalogue, farmInputsFieldInputsOnly] =
+            await Promise.all([
+                getCultivationsOfFarmsFromCatalogue(fdm, principal_id, farmIds),
+                Promise.all(
+                    farmIds.map(async (b_id_farm) => ({
+                        b_id_farm: b_id_farm,
+                        fertilizerDetails: await getFertilizers(
+                            fdm,
+                            principal_id,
+                            b_id_farm,
+                        ),
+                        fieldInputs:
+                            await collectOnlyFieldInputForNitrogenBalance(
+                                fdm,
+                                principal_id,
+                                b_id_farm,
+                                timeframe,
+                            ),
+                    })),
                 ),
-            )
-            const cultivationDetails = cultivationCatalogue.filter(
-                (cultivation) =>
-                    b_lu_catalogues.has(cultivation.b_lu_catalogue),
-            )
-            return fieldInputs.map((input) => {
-                return {
-                    b_id_farm: farms[farmIndex].b_id_farm,
+            ] as const)
+
+        return
+
+        return farmInputsFieldInputsOnly.flatMap(
+            ({ b_id_farm, fertilizerDetails, fieldInputs }) => {
+                const b_lu_catalogues = new Set(
+                    fieldInputs.flatMap((input) =>
+                        input.cultivations.map(
+                            (cultivation) => cultivation.b_lu_catalogue,
+                        ),
+                    ),
+                )
+                const cultivationDetails = cultivationCatalogue.filter(
+                    (cultivation) =>
+                        b_lu_catalogues.has(cultivation.b_lu_catalogue),
+                )
+                return fieldInputs.map((input) => ({
+                    b_id_farm: b_id_farm,
                     fieldInput: input,
                     fertilizerDetails: fertilizerDetails,
                     cultivationDetails: cultivationDetails,
-                    timeFrame: timeframe,
-                }
-            })
-        },
-    )
+                    timeFrame: myTimeframe,
+                }))
+            },
+        )
+    } catch (error) {
+        throw new Error(
+            `Failed to collect nitrogen balance input for principal ${principal_id}: ${
+                error instanceof Error ? error.message : String(error)
+            }`,
+            { cause: error },
+        )
+    }
 }

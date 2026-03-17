@@ -11,6 +11,7 @@ import {
     getCultivationPlan,
     getCultivations,
     getCultivationsFromCatalogue,
+    getCultivationsOfFarmsFromCatalogue,
     getDefaultDatesOfCultivation,
     removeCultivation,
     updateCultivation,
@@ -140,6 +141,15 @@ describe("Cultivation Data Model", () => {
                 fdm,
                 principal_id,
                 b_id_farm,
+            )
+            expect(cultivations).toBeDefined()
+        })
+
+        it("should get all cultivations of farms from catalogue", async () => {
+            const cultivations = await getCultivationsOfFarmsFromCatalogue(
+                fdm,
+                principal_id,
+                [b_id_farm],
             )
             expect(cultivations).toBeDefined()
         })

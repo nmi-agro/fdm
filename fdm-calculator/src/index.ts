@@ -8,7 +8,7 @@ export {
 } from "./balance/nitrogen/index"
 export {
     collectInputForNitrogenBalance,
-    collectInputForNitrogenBalanceForPrincipal,
+    collectInputForNitrogenBalanceForFarms,
 } from "./balance/nitrogen/input"
 export type {
     FieldInput,

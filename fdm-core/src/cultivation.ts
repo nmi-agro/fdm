@@ -12,7 +12,7 @@ import {
     type SQL,
     sql,
 } from "drizzle-orm"
-import { checkPermission, listResources } from "./authorization"
+import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
 import type {
     Cultivation,
@@ -38,7 +38,7 @@ import type { Timeframe } from "./timeframe"
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id The ID of the principal making the request.
- * @param b_id_farm The ID of the farm.
+ * @param farmIds The ID of the farms.
  * @returns A Promise that resolves with an array of cultivation catalogue entries.
  * @alpha
  */
@@ -94,26 +94,12 @@ export async function getCultivationsOfFarmsFromCatalogue(
 
         return cultivationsCatalogue
     } catch (err) {
-        throw handleError(err, "Exception for getCultivationsFromCatalogue", {
-            principal_id,
-            farmIds,
-        })
-    }
-}
-
-export async function getCultivationsOfPrincipalFromCatalogue(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-) {
-    try {
-        const farmIds = await listResources(fdm, "farm", "read", principal_id)
-        return getCultivationsOfFarmsFromCatalogue(fdm, principal_id, farmIds)
-    } catch (err) {
         throw handleError(
             err,
-            "Exception for getCultivationsOfPrincipalFromCatalogue",
+            "Exception for getCultivationsOfFarmsFromCatalogue",
             {
                 principal_id,
+                farmIds,
             },
         )
     }
@@ -124,7 +110,28 @@ export async function getCultivationsFromCatalogue(
     principal_id: PrincipalId,
     b_id_farm: string,
 ) {
-    return getCultivationsOfFarmsFromCatalogue(fdm, principal_id, [b_id_farm])
+    try {
+        return await getCultivationsOfFarmsFromCatalogue(fdm, principal_id, [
+            b_id_farm,
+        ])
+    } catch (err) {
+        if (
+            (err as Error)?.message?.startsWith(
+                "Exception for getCultivationsOfFarmsFromCatalogue",
+            )
+        ) {
+            const handledError = err as Error
+            throw handleError(
+                handledError.cause,
+                "Exception for getCultivationsFromCatalogue",
+                {
+                    principal_id,
+                    b_id_farm,
+                },
+            )
+        }
+        throw err
+    }
 }
 
 /**
