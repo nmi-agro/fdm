@@ -257,39 +257,44 @@ async function computePlanMetrics(
                 }
 
                 // Fetch NMI nutrient advice per field
-                let advicePerHa = { n: 0, p: 0, k: 0 }
+                let advice = {} as any
                 if (nmiApiKey && field.b_lu_catalogue) {
                     try {
                         const [fieldData, currentSoilData] = await Promise.all([
                             getField(fdm, principalId as any, field.b_id),
                             getCurrentSoilData(fdm, principalId as any, field.b_id),
                         ])
-                        const advice = await getNutrientAdvice(fdm, {
+                        advice = await getNutrientAdvice(fdm, {
                             b_lu_catalogue: field.b_lu_catalogue,
                             b_centroid: fieldData.b_centroid ?? [0, 0],
                             currentSoilData,
                             nmiApiKey,
                             b_bufferstrip: fieldData.b_bufferstrip,
                         })
-                        advicePerHa = {
-                            n: advice.d_n_req ?? 0,
-                            p: advice.d_p_req ?? 0,
-                            k: advice.d_k_req ?? 0,
-                        }
                     } catch (err) {
                         console.warn(`[computePlanMetrics] NMI advice failed for ${field.b_id}:`, err)
                     }
                 }
 
+                const proposedDose = calculateDose(
+                    field.applications.map((app) => ({
+                        p_id_catalogue: app.p_id_catalogue,
+                        p_app_amount: app.p_app_amount,
+                    })),
+                    fertilizers as any,
+                )
+
                 fieldMetricsMap[field.b_id] = {
-                    fillingPerHa: { animalManureN: manureFilling.normFilling, workableN: nitrogenFilling.normFilling, phosphate: phosphateFilling.normFilling },
-                    normPerHa: { animalManureN: manure.normValue, workableN: nitrogen.normValue, phosphate: phosphate.normValue },
                     normsFilling: { manure: manureFilling, nitrogen: nitrogenFilling, phosphate: phosphateFilling },
                     norms: { manure, nitrogen, phosphate },
-                    nBalance: { balance: nitrogenFilling.normFilling, target: nitrogen.normValue, isBelowTarget: nitrogenFilling.normFilling <= nitrogen.normValue },
-                    eomSupplyPerHa,
-                    advicePerHa,
-                    kFillPerHa,
+                    nBalance: { 
+                        balance: nitrogenFilling.normFilling, 
+                        target: nitrogen.normValue, 
+                        emission: { ammonia: { total: 0 }, nitrate: { total: 0 } }
+                    },
+                    omBalance: null, // Stubbed for fallback
+                    advice,
+                    proposedDose
                 }
                 return { b_id: field.b_id, b_area: field.b_area! }
             }),
@@ -304,12 +309,28 @@ async function computePlanMetrics(
 
     const farmNormsKg = aggregateNormsToFarmLevel(validFields.map((f) => ({ b_id: f.b_id, b_area: f.b_area, norms: fieldMetricsMap[f.b_id].norms })))
     const farmFillingsKg = aggregateNormFillingsToFarmLevel(validFields.map((f) => ({ b_id: f.b_id, b_area: f.b_area, normsFilling: fieldMetricsMap[f.b_id].normsFilling })))
+    
+    // Minimal fallback for farm-level N-balance
+    let totalArea = 0
+    let totalBal = 0
+    let totalTarg = 0
+    for (const f of validFields) {
+        totalArea += f.b_area
+        totalBal += (fieldMetricsMap[f.b_id].nBalance.balance || 0) * f.b_area
+        totalTarg += (fieldMetricsMap[f.b_id].nBalance.target || 0) * f.b_area
+    }
+    const farmNBalance = {
+        balance: totalArea > 0 ? totalBal / totalArea : 0,
+        target: totalArea > 0 ? totalTarg / totalArea : 0,
+        emission: { ammonia: { total: 0 }, nitrate: { total: 0 } }
+    }
 
     return {
         fieldMetricsMap,
         farmTotals: {
-            fillingKg: { animalManureN: farmFillingsKg.manure, workableN: farmFillingsKg.nitrogen, phosphate: farmFillingsKg.phosphate },
-            normKg: { animalManureN: farmNormsKg.manure, workableN: farmNormsKg.nitrogen, phosphate: farmNormsKg.phosphate },
+            normsFilling: farmFillingsKg,
+            norms: farmNormsKg,
+            nBalance: farmNBalance
         },
     }
 }
@@ -967,20 +988,15 @@ export default function GerritApp() {
                                                                     ))}
                                                                     <TableCell className="py-3">
                                                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                                                            {hasMetrics && m.fillingPerHa && (() => {
-                                                                                // Prefer NMI advice badges; fall back to norm badges
-                                                                                const hasAdvice = m.advicePerHa && (m.advicePerHa.n > 0 || m.advicePerHa.p > 0 || m.advicePerHa.k > 0)
-                                                                                const badges = hasAdvice
-                                                                                    ? [
-                                                                                        { key: "N", fill: m.fillingPerHa.workableN, ref: m.advicePerHa.n },
-                                                                                        { key: "P", fill: m.fillingPerHa.phosphate, ref: m.advicePerHa.p },
-                                                                                        { key: "K", fill: m.kFillPerHa ?? 0, ref: m.advicePerHa.k },
-                                                                                      ]
-                                                                                    : [
-                                                                                        { key: "N", fill: m.fillingPerHa.workableN, ref: m.normPerHa?.workableN ?? 0 },
-                                                                                        { key: "P", fill: m.fillingPerHa.phosphate, ref: m.normPerHa?.phosphate ?? 0 },
-                                                                                        { key: "M", fill: m.fillingPerHa.animalManureN, ref: m.normPerHa?.animalManureN ?? 0 },
-                                                                                      ]
+                                                                            {hasMetrics && m.advice && (() => {
+                                                                                const hasAdvice = m.advice.d_n_req > 0 || m.advice.d_p_req > 0 || m.advice.d_k_req > 0
+                                                                                if (!hasAdvice) return null
+
+                                                                                const badges = [
+                                                                                    { key: "N", fill: m.proposedDose?.p_dose_n ?? 0, ref: m.advice.d_n_req },
+                                                                                    { key: "P", fill: m.proposedDose?.p_dose_p ?? 0, ref: m.advice.d_p_req },
+                                                                                    { key: "K", fill: m.proposedDose?.p_dose_k ?? 0, ref: m.advice.d_k_req },
+                                                                                ]
                                                                                 return badges.map(({ key, fill, ref }) => {
                                                                                     if (ref <= 0) return null
                                                                                     const pct = Math.round((fill / ref) * 100)
@@ -988,7 +1004,7 @@ export default function GerritApp() {
                                                                                     return (
                                                                                         <span
                                                                                             key={key}
-                                                                                            title={hasAdvice ? `Advies: ${Math.round(ref)} kg/ha` : `Norm: ${Math.round(ref)} kg/ha`}
+                                                                                            title={`Advies: ${Math.round(ref)} kg/ha`}
                                                                                             className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${over ? "bg-red-100 text-red-700" : pct >= 80 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
                                                                                         >
                                                                                             {key} {pct}%
@@ -1007,13 +1023,13 @@ export default function GerritApp() {
                                                                     <TableRow className="bg-muted/10 hover:bg-muted/10">
                                                                         <TableCell colSpan={columns.length + 1} className="py-4 px-6">
                                                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
-                                                                                {m.fillingPerHa && m.normPerHa && (
+                                                                                {m.normsFilling && m.norms && (
                                                                                     <div className="space-y-2">
                                                                                         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Normen (kg/ha)</p>
                                                                                         {[
-                                                                                            { label: "Dierlijke mest N", fill: m.fillingPerHa.animalManureN, norm: m.normPerHa.animalManureN },
-                                                                                            { label: "Werkzame N", fill: m.fillingPerHa.workableN, norm: m.normPerHa.workableN },
-                                                                                            { label: "Fosfaat P₂O₅", fill: m.fillingPerHa.phosphate, norm: m.normPerHa.phosphate },
+                                                                                            { label: "Dierlijke mest N", fill: m.normsFilling.manure?.normFilling ?? 0, norm: m.norms.manure?.normValue ?? 0 },
+                                                                                            { label: "Werkzame N", fill: m.normsFilling.nitrogen?.normFilling ?? 0, norm: m.norms.nitrogen?.normValue ?? 0 },
+                                                                                            { label: "Fosfaat P₂O₅", fill: m.normsFilling.phosphate?.normFilling ?? 0, norm: m.norms.phosphate?.normValue ?? 0 },
                                                                                         ].map(({ label, fill, norm }) => (
                                                                                             <div key={label} className="space-y-1">
                                                                                                 <div className="flex justify-between text-xs">
@@ -1032,13 +1048,13 @@ export default function GerritApp() {
                                                                                         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Stikstofbalans</p>
                                                                                         <div className="flex justify-between text-sm items-center">
                                                                                             <span className="text-muted-foreground">Balans vs. doel</span>
-                                                                                            <span className={`font-semibold tabular-nums ${m.nBalance.isBelowTarget ? "text-green-600" : "text-amber-600"}`}>
+                                                                                            <span className={`font-semibold tabular-nums ${m.nBalance.balance <= m.nBalance.target ? "text-green-600" : "text-amber-600"}`}>
                                                                                                 {Math.round(m.nBalance.balance)} / {Math.round(m.nBalance.target)} kg N/ha
                                                                                             </span>
                                                                                         </div>
                                                                                         <Progress
                                                                                             value={Math.min(m.nBalance.target > 0 ? (m.nBalance.balance / m.nBalance.target) * 100 : 0, 100)}
-                                                                                            colorBar={m.nBalance.isBelowTarget ? "green-500" : "amber-500"}
+                                                                                            colorBar={m.nBalance.balance <= m.nBalance.target ? "green-500" : "amber-500"}
                                                                                             className="h-1.5"
                                                                                         />
                                                                                     </div>
@@ -1057,6 +1073,43 @@ export default function GerritApp() {
                                                                                         </p>
                                                                                     </div>
                                                                                 )}
+                                                                                {m.advice && m.proposedDose && (() => {
+                                                                                    const otherNutrients = [
+                                                                                        { key: "S", fill: m.proposedDose.p_dose_s ?? 0, ref: m.advice.d_s_req ?? 0 },
+                                                                                        { key: "Mg", fill: m.proposedDose.p_dose_mg ?? 0, ref: m.advice.d_mg_req ?? 0 },
+                                                                                        { key: "Ca", fill: m.proposedDose.p_dose_ca ?? 0, ref: m.advice.d_ca_req ?? 0 },
+                                                                                        { key: "Na", fill: m.proposedDose.p_dose_na ?? 0, ref: m.advice.d_na_req ?? 0 },
+                                                                                        { key: "Cu", fill: m.proposedDose.p_dose_cu ?? 0, ref: m.advice.d_cu_req ?? 0 },
+                                                                                        { key: "Zn", fill: m.proposedDose.p_dose_zn ?? 0, ref: m.advice.d_zn_req ?? 0 },
+                                                                                        { key: "B", fill: m.proposedDose.p_dose_b ?? 0, ref: m.advice.d_b_req ?? 0 },
+                                                                                        { key: "Mn", fill: m.proposedDose.p_dose_mn ?? 0, ref: m.advice.d_mn_req ?? 0 },
+                                                                                        { key: "Mo", fill: m.proposedDose.p_dose_mo ?? 0, ref: m.advice.d_mo_req ?? 0 },
+                                                                                        { key: "Co", fill: m.proposedDose.p_dose_co ?? 0, ref: m.advice.d_co_req ?? 0 },
+                                                                                    ].filter(n => n.ref > 0)
+                                                                                    
+                                                                                    if (otherNutrients.length === 0) return null
+
+                                                                                    return (
+                                                                                        <div className="space-y-2">
+                                                                                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Overige Nutriënten</p>
+                                                                                            <div className="flex flex-wrap gap-1.5">
+                                                                                                {otherNutrients.map(({ key, fill, ref }) => {
+                                                                                                    const pct = Math.round((fill / ref) * 100)
+                                                                                                    const over = fill > ref
+                                                                                                    return (
+                                                                                                        <span
+                                                                                                            key={key}
+                                                                                                            title={`Advies: ${Math.round(ref)} kg/ha, Aangevoerd: ${Math.round(fill)} kg/ha`}
+                                                                                                            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${over ? "bg-red-100 text-red-700" : pct >= 80 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
+                                                                                                        >
+                                                                                                            {key} {pct}%
+                                                                                                        </span>
+                                                                                                    )
+                                                                                                })}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )
+                                                                                })()}
                                                                             </div>
                                                                         </TableCell>
                                                                     </TableRow>
