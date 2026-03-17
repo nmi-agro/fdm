@@ -479,6 +479,36 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         },
     },
     {
+        id: "bufferstrook",
+        header: () => (
+            <Tooltip>
+                <TooltipTrigger>Bufferstrook</TooltipTrigger>
+                <TooltipContent>
+                    Geeft aan of het perceel bij RVO geregistreerd staat als
+                    bufferstrook.
+                </TooltipContent>
+            </Tooltip>
+        ),
+        cell: ({ row }) => {
+            const item = row.original
+            const isBufferstrip = item.rvoField?.properties.mestData?.Bufferstrook
+
+            if (isBufferstrip === undefined) return <span className="text-muted-foreground">-</span>
+
+            return (
+                <Badge
+                    variant={isBufferstrip ? "outline" : "secondary"}
+                    className={cn(
+                        isBufferstrip &&
+                            "bg-green-50 text-green-700 border-green-200",
+                    )}
+                >
+                    {isBufferstrip ? "Ja" : "Nee"}
+                </Badge>
+            )
+        },
+    },
+    {
         id: "actions",
         header: () => (
             <Tooltip>
