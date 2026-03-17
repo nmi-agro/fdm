@@ -118,7 +118,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_n_residue: 2,
                 b_n_fixation: 0,
                 b_lu_eom: 100,
-                b_lu_eom_residues: 50,
+                b_lu_eom_residue: 50,
                 b_lu_rest_oravib: false,
                 b_lu_variety_options: ["variety1", "variety2"],
                 b_lu_start_default: "03-01",
@@ -170,7 +170,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_n_residue: 2,
                 b_n_fixation: 0,
                 b_lu_eom: 100,
-                b_lu_eom_residues: 50,
+                b_lu_eom_residue: 50,
                 b_lu_rest_oravib: false,
                 b_lu_variety_options: ["variety1", "variety2"],
                 b_lu_start_default: "03-01",
@@ -231,7 +231,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_n_residue: 2,
                     b_n_fixation: 0,
                     b_lu_eom: 100,
-                    b_lu_eom_residues: 50,
+                    b_lu_eom_residue: 50,
                     b_lu_rest_oravib: false,
                     b_lu_variety_options: null,
                     b_lu_start_default: "03-01",
@@ -456,7 +456,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: null,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -534,7 +534,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: null,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -584,7 +584,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: null,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -698,7 +698,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_n_residue: 2,
                 b_n_fixation: 0,
                 b_lu_eom: 100,
-                b_lu_eom_residues: 50,
+                b_lu_eom_residue: 50,
                 b_lu_rest_oravib: false,
                 b_lu_variety_options: ["variety1", "variety2"],
                 b_lu_start_default: "03-01",
@@ -943,7 +943,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: b_lu_variety_options,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -986,7 +986,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_variety_options: ["v1", "v2"],
                     b_lu_start_default: "2024-03-01", // Invalid format
                     b_lu_eom: null,
-                    b_lu_eom_residues: null,
+                    b_lu_eom_residue: null,
                     b_date_harvest_default: "09-15",
                 }),
             ).rejects.toThrow("Exception for addCultivationToCatalogue")
@@ -1015,7 +1015,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_variety_options: ["v1", "v2"],
                     b_lu_start_default: "03-01",
                     b_lu_eom: null,
-                    b_lu_eom_residues: null,
+                    b_lu_eom_residue: null,
                     b_date_harvest_default: "2024-09-15", // Invalid format
                 }),
             ).rejects.toThrow("Exception for addCultivationToCatalogue")
@@ -1045,7 +1045,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_variety_options: ["v1", "v2"],
                     b_lu_start_default: "03-01",
                     b_lu_eom: null,
-                    b_lu_eom_residues: null,
+                    b_lu_eom_residue: null,
                     b_date_harvest_default: "09-15",
                 }),
             ).resolves.not.toThrow()
@@ -1075,7 +1075,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_variety_options: ["v1", "v2"],
                     b_lu_start_default: null,
                     b_lu_eom: null,
-                    b_lu_eom_residues: null,
+                    b_lu_eom_residue: null,
                     b_date_harvest_default: null,
                 }),
             ).resolves.not.toThrow()
@@ -1118,7 +1118,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_variety_options: null,
                     b_lu_start_default: "10-15", // October 15th
                     b_lu_eom: null,
-                    b_lu_eom_residues: null,
+                    b_lu_eom_residue: null,
                     b_date_harvest_default: "07-20", // July 20th
                 })
 
@@ -1158,7 +1158,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_variety_options: null,
                     b_lu_start_default: "04-01",
                     b_lu_eom: null,
-                    b_lu_eom_residues: null,
+                    b_lu_eom_residue: null,
                     b_date_harvest_default: null,
                 })
 
@@ -1198,7 +1198,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_variety_options: null,
                     b_lu_start_default: "04-01",
                     b_lu_eom: null,
-                    b_lu_eom_residues: null,
+                    b_lu_eom_residue: null,
                     b_date_harvest_default: null,
                 })
 
@@ -1238,7 +1238,7 @@ describe("Cultivation Data Model", () => {
                     b_lu_variety_options: null,
                     b_lu_start_default: null,
                     b_lu_eom: null,
-                    b_lu_eom_residues: null,
+                    b_lu_eom_residue: null,
                     b_date_harvest_default: "09-15",
                 })
 
@@ -1363,7 +1363,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: null,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -1539,7 +1539,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: null,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -1690,7 +1690,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: null,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -1760,7 +1760,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: null,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -1921,7 +1921,7 @@ describe("Cultivation Data Model", () => {
                 b_lu_variety_options: null,
                 b_lu_start_default: "03-01",
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_date_harvest_default: "09-15",
             })
 
@@ -2071,7 +2071,7 @@ describe("buildCultivationTimeframeCondition", () => {
             b_lu_variety_options: null,
             b_lu_start_default: "03-01",
             b_lu_eom: null,
-            b_lu_eom_residues: null,
+            b_lu_eom_residue: null,
             b_date_harvest_default: "09-15",
         })
     })
