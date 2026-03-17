@@ -32,6 +32,23 @@ interface AdviceArgs {
 }
 
 /**
+ * Determines the main cultivation based on the "May 15th" rule.
+ * It searches for a cultivation that is active on May 15th of the given calendar year.
+ */
+function getMainCultivation(cultivations: any[], calendarYear: string) {
+    const targetDate = new Date(`${calendarYear}-05-15T12:00:00`)
+    const sorted = [...cultivations].sort(
+        (a, b) =>
+            new Date(b.b_lu_start).getTime() - new Date(a.b_lu_start).getTime(),
+    )
+    return sorted.find((c) => {
+        const start = new Date(c.b_lu_start)
+        const end = c.b_lu_end ? new Date(c.b_lu_end) : null
+        return end ? start <= targetDate && end >= targetDate : start <= targetDate
+    })
+}
+
+/**
  * Creates tools for nutrient management.
  * @param fdm The non-serializable FDM database instance.
  */
@@ -42,7 +59,7 @@ export function createNutrientManagementTools(fdm: FdmType) {
     const getFarmFieldsTool = new FunctionTool({
         name: "getFarmFields",
         description:
-            "Get the list of all fields belonging to the farm for the current year.",
+            "Get the list of all fields belonging to the farm for the current year, including their main cultivation details.",
         parameters: z.object({
             b_id_farm: z.string().describe("The ID of the farm"),
             calendar: z.string().describe('The calendar year (e.g. "2025")'),
@@ -69,13 +86,19 @@ export function createNutrientManagementTools(fdm: FdmType) {
                         f.b_id,
                         timeframe,
                     )
+                    const mainLu = getMainCultivation(cultivations, input.calendar)
                     return {
                         b_id: f.b_id,
                         b_name: f.b_name,
                         b_area: f.b_area,
                         b_bufferstrip: f.b_bufferstrip,
-                        b_lu_catalogue: cultivations[0]?.b_lu_catalogue || null,
-                        b_lu_name: cultivations[0]?.b_lu_name || null,
+                        b_lu_catalogue: mainLu?.b_lu_catalogue || null,
+                        b_lu_name: mainLu?.b_lu_name || null,
+                        b_lu_start: mainLu?.b_lu_start
+                            ? new Date(mainLu.b_lu_start)
+                                  .toISOString()
+                                  .split("T")[0]
+                            : null,
                     }
                 }),
             )
@@ -276,10 +299,23 @@ export function createNutrientManagementTools(fdm: FdmType) {
             "Simulates a proposed fertilizer plan to check compliance against all 3 legal norms, organic matter balance, and nitrogen balance.",
         parameters: z.object({
             b_id_farm: z.string().describe("The ID of the farm"),
+            strategies: z
+                .object({
+                    isOrganic: z.boolean().optional(),
+                    fillManureSpace: z.boolean().optional(),
+                    reduceAmmoniaEmissions: z.boolean().optional(),
+                    keepNitrogenBalanceBelowTarget: z.boolean().optional(),
+                    workOnRotationLevel: z.boolean().optional(),
+                })
+                .optional()
+                .describe("User strategies to enforce in warnings"),
             fields: z
                 .array(
                     z.object({
                         b_id: z.string().describe("The field ID"),
+                        b_lu_catalogue: z.string().describe("The crop catalogue ID (e.g., nl_265) for this field"),
+                        b_lu_name: z.string().describe("The name of the crop (e.g., Wintertarwe)"),
+                        b_lu_start: z.string().describe("The sowing or start date of the crop (YYYY-MM-DD)"),
                         applications: z.array(
                             z.object({
                                 p_id_catalogue: z.string(),
@@ -552,12 +588,176 @@ export function createNutrientManagementTools(fdm: FdmType) {
                     balance: r.nBalance || undefined,
                 })),
                 false,
-                []
+                [],
             )
 
             const hasBufferStripViolations = fieldResults.some(
                 (r: any) => !r.isValid && r.error,
             )
+
+            const complianceIssues: string[] = []
+            const agronomicWarnings: string[] = []
+
+            if (hasBufferStripViolations) {
+                const bufferFields = fieldResults
+                    .filter((r: any) => !r.isValid && r.error)
+                    .map((r: any) => r.b_id)
+                complianceIssues.push(
+                    `Buffer strip violation: Fields [${bufferFields.join(", ")}] are buffer strips and cannot receive fertilizers.`,
+                )
+            }
+
+            if (farmFillingsKg.manure > farmNormsKg.manure) {
+                const excess = Math.round(
+                    farmFillingsKg.manure - farmNormsKg.manure,
+                )
+                complianceIssues.push(
+                    `Legal norm violation (Manure N): Farm exceeds the limit by ${excess} kg N. Total applied: ${farmFillingsKg.manure} kg, Limit: ${farmNormsKg.manure} kg.`,
+                )
+            }
+
+            if (farmFillingsKg.nitrogen > farmNormsKg.nitrogen) {
+                const excess = Math.round(
+                    farmFillingsKg.nitrogen - farmNormsKg.nitrogen,
+                )
+                complianceIssues.push(
+                    `Legal norm violation (Workable N): Farm exceeds the limit by ${excess} kg N. Total applied: ${farmFillingsKg.nitrogen} kg, Limit: ${farmNormsKg.nitrogen} kg.`,
+                )
+            }
+
+            if (farmFillingsKg.phosphate > farmNormsKg.phosphate) {
+                const excess = Math.round(
+                    farmFillingsKg.phosphate - farmNormsKg.phosphate,
+                )
+                complianceIssues.push(
+                    `Legal norm violation (Phosphate): Farm exceeds the limit by ${excess} kg P2O5. Total applied: ${farmFillingsKg.phosphate} kg, Limit: ${farmNormsKg.phosphate} kg.`,
+                )
+            }
+
+            if (args.strategies?.isOrganic) {
+                for (const field of args.fields) {
+                    for (const app of field.applications) {
+                        const fert = fertilizers.find(
+                            (f: Fertilizer) =>
+                                f.p_id_catalogue === app.p_id_catalogue,
+                        )
+                        if (fert?.p_type === "mineral") {
+                            complianceIssues.push(
+                                `Strategy violation (Organic Farming): Plan includes mineral fertilizer (${fert.p_id_catalogue} on field ${field.b_id}), which is not allowed.`,
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (args.strategies?.keepNitrogenBalanceBelowTarget) {
+                if (
+                    farmNBalance.balance &&
+                    farmNBalance.target &&
+                    farmNBalance.balance > farmNBalance.target
+                ) {
+                    const excess = Math.round(
+                        farmNBalance.balance - farmNBalance.target,
+                    )
+                    agronomicWarnings.push(
+                        `Strategy warning (Nitrogen Target): The farm-level nitrogen balance (${Math.round(farmNBalance.balance)} kg N/ha) exceeds the target (${Math.round(farmNBalance.target)} kg N/ha) by ${excess} kg N/ha.`,
+                    )
+                }
+                for (const r of validFieldResults) {
+                    if (
+                        r.nBalance?.balance &&
+                        r.nBalance?.target &&
+                        r.nBalance.balance > r.nBalance.target
+                    ) {
+                        const excess = Math.round(
+                            r.nBalance.balance - r.nBalance.target,
+                        )
+                        agronomicWarnings.push(
+                            `Strategy warning (Nitrogen Target): Field ${r.b_id} exceeds its N-balance target by ${excess} kg N/ha.`,
+                        )
+                    }
+                }
+            }
+
+            if (args.strategies?.workOnRotationLevel) {
+                const groupedByCrop: Record<string, typeof args.fields> = {}
+                for (const field of args.fields) {
+                    let cropGroup = field.b_lu_catalogue
+                    // Normalize grassland codes
+                    if (["nl_265", "nl_266", "nl_331"].includes(cropGroup)) {
+                        cropGroup = "grassland"
+                    }
+                    if (!groupedByCrop[cropGroup]) {
+                        groupedByCrop[cropGroup] = []
+                    }
+                    groupedByCrop[cropGroup].push(field)
+                }
+
+                for (const fields of Object.values(groupedByCrop)) {
+                    if (fields.length <= 1) continue
+
+                    const referenceField = fields[0]
+                    const referenceApps = [...referenceField.applications].sort((a, b) => {
+                        return a.p_id_catalogue.localeCompare(b.p_id_catalogue) ||
+                               a.p_app_amount - b.p_app_amount ||
+                               a.p_app_date.localeCompare(b.p_app_date)
+                    })
+
+                    for (let i = 1; i < fields.length; i++) {
+                        const currentField = fields[i]
+                        const currentApps = [...currentField.applications].sort((a, b) => {
+                            return a.p_id_catalogue.localeCompare(b.p_id_catalogue) ||
+                                   a.p_app_amount - b.p_app_amount ||
+                                   a.p_app_date.localeCompare(b.p_app_date)
+                        })
+
+                        let mismatch = false
+                        if (currentApps.length !== referenceApps.length) {
+                            mismatch = true
+                        } else {
+                            for (let j = 0; j < referenceApps.length; j++) {
+                                const ref = referenceApps[j]
+                                const cur = currentApps[j]
+                                if (
+                                    ref.p_id_catalogue !== cur.p_id_catalogue ||
+                                    ref.p_app_amount !== cur.p_app_amount ||
+                                    ref.p_app_date !== cur.p_app_date ||
+                                    ref.p_app_method !== cur.p_app_method
+                                ) {
+                                    mismatch = true
+                                    break
+                                }
+                            }
+                        }
+
+                        if (mismatch) {
+                            agronomicWarnings.push(
+                                `Strategy warning (Rotation Level): Field ${currentField.b_id} (Crop: ${currentField.b_lu_name}) has different applications than other fields in the same group. For the "Work on Rotation Level" strategy, all fields with the same crop must receive identical applications.`,
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (args.strategies?.fillManureSpace) {
+                if (farmFillingsKg.manure < farmNormsKg.manure * 0.95) {
+                    // warn if less than 95% full
+                    const remaining = Math.round(
+                        farmNormsKg.manure - farmFillingsKg.manure,
+                    )
+                    agronomicWarnings.push(
+                        `Strategy warning (Fill Manure Space): The farm has unused manure space (${remaining} kg N available). Consider adding more manure to maximize usage.`,
+                    )
+                }
+            }
+
+            for (const r of validFieldResults) {
+                if (r.omBalance && r.omBalance < 0) {
+                    agronomicWarnings.push(
+                        `Strategy warning (Organic Matter): Field ${r.b_id} has a negative organic matter balance (${Math.round(r.omBalance)} kg EOM/ha). Consider applying compost or other fertilizer with a high EOM content.`,
+                    )
+                }
+            }
 
             return {
                 fieldResults,
@@ -567,11 +767,9 @@ export function createNutrientManagementTools(fdm: FdmType) {
                     norms: farmNormsKg,
                     nBalance: farmNBalance,
                 },
-                isValid:
-                    !hasBufferStripViolations &&
-                    farmFillingsKg.manure <= farmNormsKg.manure &&
-                    farmFillingsKg.nitrogen <= farmNormsKg.nitrogen &&
-                    farmFillingsKg.phosphate <= farmNormsKg.phosphate,
+                isValid: complianceIssues.length === 0,
+                complianceIssues,
+                agronomicWarnings,
             }
         },
     })
@@ -593,6 +791,9 @@ interface SearchArgs {
 
 interface SimulationField {
     b_id: string
+    b_lu_catalogue: string
+    b_lu_name: string
+    b_lu_start: string
     applications: {
         p_id_catalogue: string
         p_app_amount: number
@@ -603,5 +804,12 @@ interface SimulationField {
 
 interface SimulationArgs {
     b_id_farm: string
+    strategies?: {
+        isOrganic?: boolean
+        fillManureSpace?: boolean
+        reduceAmmoniaEmissions?: boolean
+        keepNitrogenBalanceBelowTarget?: boolean
+        workOnRotationLevel?: boolean
+    }
     fields: SimulationField[]
 }

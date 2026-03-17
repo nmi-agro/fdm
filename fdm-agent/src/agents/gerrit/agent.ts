@@ -32,7 +32,7 @@ IMPORTANT CONSTRAINTS:
 4. ORGANIC MATTER: Aim for a positive organic matter balance (organische stofbalans) on every field. Prioritize compost ("p_type": "compost") or high-EOM organic fertilizers where the balance is at risk. The simulation tool will return the net balance in kg EOM/ha (positive is better).
 5. BUFFER STRIPS: Fields designated as buffer strips ("b_bufferstrip": true) MUST NOT receive any fertilizer applications. Ensure your plan contains zero applications for these fields.
 6. APPLICATION METHOD: For each application, you must propose a valid "p_app_method". Choose ONLY from the "p_app_method_options" returned by the search tool for that specific fertilizer.
-7. REALISTIC DATES: Ensure all "p_app_date" values are realistic for the crop type, cultivation season, and Dutch climate. Check the field data for any user-defined starting dates or existing applications to ensure your plan follows a logical temporal sequence.
+7. REALISTIC DATES: Ensure all "p_app_date" values are realistic for the crop type, cultivation season, and Dutch climate. Use the provided "b_lu_start" (sowing/start date) as a critical reference point for each crop.
 8. PRIORITIZATION: If legal norms (especially Nitrogen or Phosphate) limit the total nutrient space on the farm, prioritize fulfilling the nutrient advice for high-value crops (e.g., potatoes, onions, sugar beets, vegetables) over lower-value crops or grasslands. Strategy should focus on maximizing the economic return of the limited nutrient space.
 9. ORGANIC FARMING: If "Organic Farming" is YES, you MUST NOT use any mineral fertilizers ("p_type": "mineral") in the plan.
 10. MANURE FILLING STRATEGY: 
@@ -40,14 +40,14 @@ IMPORTANT CONSTRAINTS:
     - If "Fill Manure Space" is NO: Use manure only as needed for agronomic advice and organic matter balance.
 11. AMMONIA REDUCTION: If "Reduce NH3 Emissions" is YES, prioritize fertilizers and application methods with lower ammonia emission factors (p_ef_nh3). Prefer methods like "incorporation" or "injection" over "broadcasting" where the fertilizer allows it.
 12. NITROGEN BALANCE TARGET: If "Keep Nitrogen Balance Below Target" is YES, you MUST ensure that the calculated nitrogen balance surplus (the amount of nitrogen applied that is not taken up by the crop or lost to emissions) stays below the environmental target for each field and the farm as a whole. Use the simulation tool to monitor the "nBalance" and "target" values.
-13. ROTATION LEVEL (BOUWPLAN): If "Work on Rotation Level" is YES, you MUST group fields by their "b_lu_catalogue" value and assign identical applications (same p_id_catalogue, p_app_amount, p_app_date, and p_app_method) to every field within the same group. For the various cultivation codes for grassland (i.e. 'nl_265', 'nl_266' and 'nl_331'), treat them as one group. Design one optimal plan per cultivation type and replicate it exactly across all fields sharing that cultivation. This enforces operational consistency at the bouwplan level.
+13. ROTATION LEVEL (BOUWPLAN): If "Work on Rotation Level" is YES, you MUST group fields by their "b_lu_catalogue" value and assign identical applications (same p_id_catalogue, p_app_amount, p_app_date, and p_app_method) to every field within the same group. For the various cultivation codes for grassland (i.e. 'nl_265', 'nl_266' and 'nl_331'), treat them as one group. Design one optimal plan per cultivation type and replicate it exactly across all fields sharing that cultivation. This enforces operational consistency at the bouwplan level. You MUST include the cultivation details (b_lu_catalogue, b_lu_name, b_lu_start) in your calls to "simulateFarmPlan".
 
 Use the tools provided to:
-- Fetch the list of fields for the farm using "getFarmFields".
+- Fetch the list of fields for the farm using "getFarmFields" (this returns the main cultivation for each field based on the May 15th rule).
 - Fetch agronomic advice for all nutrients.
 - Fetch the three legal norms for each field and the farm.
 - Search for available fertilizer products in the catalogue and farm inventory.
-- Simulate your proposed distribution to ensure compliance and monitor the organic matter and nitrogen balances.
+- Simulate your proposed distribution to ensure compliance and monitor the organic matter and nitrogen balances. Pass the cultivation details you received from "getFarmFields" into "simulateFarmPlan".
 
 OUTPUT FORMAT:
 Your final response MUST be a JSON object with exactly this structure (all fields required unless marked optional):
@@ -130,11 +130,13 @@ CALCULATOR REFERENCE (units and semantics for the simulation tool):
   - Mineral fertilizers: already in kg/ha, round to nearest 5 or 10. Example: 200 kg/ha KAS.
 - "p_ef_nh3": ammonia emission factor (fraction of N applied lost as NH3). Lower = less emission.
 TOOL RETURN SHAPES:
-- "getFarmFields" returns { fields: [...] } — access the array via result.fields
+- "getFarmFields" returns { fields: [...] } — access the array via result.fields. Each field includes main cultivation details (b_lu_catalogue, b_lu_name, b_lu_start).
 - "getFarmNutrientAdvice" returns { advicePerField: [...] } — access via result.advicePerField
 - "getFarmLegalNorms" returns { normsPerField: [...] } — access via result.normsPerField
 - "searchFertilizers" returns { fertilizers: [...] } — access via result.fertilizers
-- "simulateFarmPlan" returns { fieldResults: [...], farmTotals: {...}, isValid: bool } — farmTotals holds the authoritative farm-level kg compliance data.
+- "simulateFarmPlan" returns { fieldResults: [...], farmTotals: {...}, isValid: bool, complianceIssues: [...], agronomicWarnings: [...] }.
+  If "isValid" is false, you MUST read the "complianceIssues" array. It contains exact string messages explaining which hard legal norms you violated (and by how many kg). You must adjust your plan to fix these issues in the next iteration. 
+  You should also read "agronomicWarnings", which provides hints on soft limits (like organic matter balance, nitrogen targets, or filling manure space). Use these warnings to refine your plan to better match the requested strategies.
 `,
         tools: createNutrientManagementTools(fdm),
     })
