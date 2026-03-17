@@ -32,6 +32,9 @@ import {
     Pencil,
 } from "lucide-react"
 import { Fragment, useEffect, useRef, useState } from "react"
+import { Controller } from "react-hook-form"
+import { RemixFormProvider, useRemixForm, getValidatedFormData } from "remix-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
     type ActionFunctionArgs,
     data,
@@ -103,6 +106,11 @@ import {
     TableHeader,
     TableRow,
 } from "~/components/ui/table"
+
+const GerritFormSchema = FertilizerPlanStrategiesSchema.extend({
+    additionalContext: z.string().max(1000, "Maximaal 1000 karakters toegestaan.").optional().default(""),
+    geminiModel: z.string().optional().default("gemini-3.1-pro-preview"),
+})
 
 export const handle = { hideNavigationProgress: true }
 
@@ -343,25 +351,28 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     if (!b_id_farm) throw data("Missing farm ID", { status: 400 })
 
+    const clonedRequest = request.clone()
     const formData = await request.formData()
     const intent = formData.get("intent")
 
     if (intent === "generate") {
-        const strategiesResult = FertilizerPlanStrategiesSchema.safeParse({
-            isOrganic: formData.get("isOrganic") === "on",
-            fillManureSpace: formData.get("fillManureSpace") === "on",
-            reduceAmmoniaEmissions: formData.get("reduceAmmoniaEmissions") === "on",
-            keepNitrogenBalanceBelowTarget: formData.get("keepNitrogenBalanceBelowTarget") === "on",
-            workOnRotationLevel: formData.get("workOnRotationLevel") === "on",
-        })
-        if (!strategiesResult.success) return dataWithError(null, "Ongeldige strategieopties.")
-        const strategies = strategiesResult.data
-        const additionalContext = formData.get("additionalContext")?.toString().trim().slice(0, 1000) || ""
-        const SUPPORTED_MODELS = Object.keys(GEMINI_MODEL_PRICING)
-        const requestedModel = formData.get("geminiModel")?.toString() ?? ""
-        const modelName = SUPPORTED_MODELS.includes(requestedModel)
-            ? requestedModel
-            : (serverConfig.integrations.gemini?.model ?? "gemini-3.1-pro-preview")
+        const { errors, data: formValues, receivedValues: defaultValues } = await getValidatedFormData<z.infer<typeof GerritFormSchema>>(
+            clonedRequest,
+            zodResolver(GerritFormSchema)
+        )
+        if (errors || !formValues) {
+            return dataWithError(null, "Ongeldige invoer, controleer het formulier.")
+        }
+        
+        const strategies = {
+            isOrganic: formValues.isOrganic,
+            fillManureSpace: formValues.fillManureSpace,
+            reduceAmmoniaEmissions: formValues.reduceAmmoniaEmissions,
+            keepNitrogenBalanceBelowTarget: formValues.keepNitrogenBalanceBelowTarget,
+            workOnRotationLevel: formValues.workOnRotationLevel,
+        }
+        const additionalContext = formValues.additionalContext
+        const modelName = formValues.geminiModel
 
         const rawFields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
         const fieldsData = await Promise.all(
@@ -696,7 +707,22 @@ export default function GerritApp() {
     const actionData = useActionData<typeof action>()
     const navigation = useNavigation()
     const { b_id_farm, calendar } = useParams()
-    const [selectedModel, setSelectedModel] = useState(GEMINI_MODELS[0].value)
+    
+    const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
+        mode: "onTouched",
+        resolver: zodResolver(GerritFormSchema),
+        defaultValues: {
+            ...defaultStrategies,
+            reduceAmmoniaEmissions: false,
+            keepNitrogenBalanceBelowTarget: false,
+            workOnRotationLevel: false,
+            additionalContext: "",
+            geminiModel: GEMINI_MODELS[0].value,
+        }
+    })
+    
+    const selectedModel = form.watch("geminiModel")
+    const additionalContextValue = form.watch("additionalContext")
 
     const isGenerating =
         navigation.state === "submitting" &&
@@ -766,79 +792,84 @@ export default function GerritApp() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Form method="post" className="space-y-8">
-                                        <input type="hidden" name="intent" value="generate" />
-                                        <div className="space-y-6">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="space-y-1">
-                                                    <Label htmlFor="isOrganic" className="text-base">Biologische bedrijfsvoering</Label>
-                                                    <p className="text-sm text-muted-foreground leading-snug">Geen gebruik van minerale kunstmeststoffen.</p>
-                                                </div>
-                                                <Switch id="isOrganic" name="isOrganic" defaultChecked={defaultStrategies.isOrganic} className="mt-1" />
+                                    <RemixFormProvider {...form}>
+                                        <Form method="post" className="space-y-8">
+                                            <input type="hidden" name="intent" value="generate" />
+                                            <div className="space-y-6">
+                                                {["isOrganic", "fillManureSpace", "reduceAmmoniaEmissions", "keepNitrogenBalanceBelowTarget", "workOnRotationLevel"].map((name) => (
+                                                    <div key={name} className="flex items-start justify-between gap-4">
+                                                        <div className="space-y-1">
+                                                            <Label htmlFor={name} className="text-base">{STRATEGY_LABELS[name]}</Label>
+                                                            <p className="text-sm text-muted-foreground leading-snug">
+                                                                {name === "isOrganic" && "Geen gebruik van minerale kunstmeststoffen."}
+                                                                {name === "fillManureSpace" && "Volledig invullen van de gebruiksnorm voor dierlijke mest."}
+                                                                {name === "reduceAmmoniaEmissions" && "Reductie van ammoniakemissies via optimale techniek."}
+                                                                {name === "keepNitrogenBalanceBelowTarget" && "Stikstofoverschot beperken tot onder de doelwaarde."}
+                                                                {name === "workOnRotationLevel" && "Percelen met hetzelfde gewas krijgen exact hetzelfde plan."}
+                                                            </p>
+                                                        </div>
+                                                        <Controller
+                                                            name={name as keyof z.infer<typeof GerritFormSchema>}
+                                                            control={form.control}
+                                                            render={({ field }) => (
+                                                                <Switch
+                                                                    id={name}
+                                                                    checked={field.value as boolean}
+                                                                    onCheckedChange={field.onChange}
+                                                                    className="mt-1"
+                                                                />
+                                                            )}
+                                                        />
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="space-y-1">
-                                                    <Label htmlFor="fillManureSpace" className="text-base">Maximale benutting mestplaatsingsruimte</Label>
-                                                    <p className="text-sm text-muted-foreground leading-snug">Volledig invullen van de gebruiksnorm voor dierlijke mest.</p>
+                                            <div className="space-y-3 pt-2">
+                                                <div className="flex justify-between items-end">
+                                                    <Label htmlFor="additionalContext" className="text-base">Aanvullende opmerkingen of wensen</Label>
+                                                    <span className={`text-xs ${additionalContextValue?.length > 1000 ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
+                                                        {additionalContextValue?.length || 0} / 1000
+                                                    </span>
                                                 </div>
-                                                <Switch id="fillManureSpace" name="fillManureSpace" defaultChecked={defaultStrategies.fillManureSpace} className="mt-1" />
+                                                <Textarea
+                                                    id="additionalContext"
+                                                    placeholder="Bijv: Gebruik bij voorkeur eigen drijfmest op de huiskavel..."
+                                                    className={`min-h-[100px] resize-none ${form.formState.errors.additionalContext ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                                    maxLength={1000}
+                                                    {...form.register("additionalContext")}
+                                                />
+                                                {form.formState.errors.additionalContext && (
+                                                    <p className="text-sm text-red-500">{form.formState.errors.additionalContext.message}</p>
+                                                )}
                                             </div>
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="space-y-1">
-                                                    <Label htmlFor="reduceAmmoniaEmissions" className="text-base">Emissiearme aanwending</Label>
-                                                    <p className="text-sm text-muted-foreground leading-snug">Reductie van ammoniakemissies via optimale techniek.</p>
-                                                </div>
-                                                <Switch id="reduceAmmoniaEmissions" name="reduceAmmoniaEmissions" className="mt-1" />
+                                            <div className="space-y-2 pt-2">
+                                                <Label htmlFor="geminiModel" className="text-sm font-medium text-muted-foreground">AI-model</Label>
+                                                <Controller
+                                                    name="geminiModel"
+                                                    control={form.control}
+                                                    render={({ field }) => (
+                                                        <Select value={field.value} onValueChange={field.onChange}>
+                                                            <SelectTrigger id="geminiModel" className="w-full text-sm">
+                                                                <SelectValue />
+                                                                <input type="hidden" name="geminiModel" value={field.value} />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {GEMINI_MODELS.map((m) => (
+                                                                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
+                                                />
                                             </div>
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="space-y-1">
-                                                    <Label htmlFor="keepNitrogenBalanceBelowTarget" className="text-base">Inzetten op doelsturing</Label>
-                                                    <p className="text-sm text-muted-foreground leading-snug">Stikstofoverschot beperken tot onder de doelwaarde.</p>
-                                                </div>
-                                                <Switch id="keepNitrogenBalanceBelowTarget" name="keepNitrogenBalanceBelowTarget" className="mt-1" />
-                                            </div>
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="space-y-1">
-                                                    <Label htmlFor="workOnRotationLevel" className="text-base">Bouwplanniveau</Label>
-                                                    <p className="text-sm text-muted-foreground leading-snug">Percelen met hetzelfde gewas krijgen exact hetzelfde plan.</p>
-                                                </div>
-                                                <Switch id="workOnRotationLevel" name="workOnRotationLevel" className="mt-1" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3 pt-2">
-                                            <Label htmlFor="additionalContext" className="text-base">Aanvullende opmerkingen of wensen</Label>
-                                            <Textarea
-                                                id="additionalContext"
-                                                name="additionalContext"
-                                                placeholder="Bijv: Gebruik bij voorkeur eigen drijfmest op de huiskavel..."
-                                                className="min-h-[100px] resize-none"
-                                            />
-                                        </div>
-                                        <div className="space-y-2 pt-2">
-                                            <Label htmlFor="geminiModel" className="text-sm font-medium text-muted-foreground">AI-model</Label>
-                                            <input type="hidden" name="geminiModel" value={selectedModel} />
-                                            <Select
-                                                value={selectedModel}
-                                                onValueChange={setSelectedModel}
-                                            >
-                                                <SelectTrigger id="geminiModel" className="w-full text-sm">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {GEMINI_MODELS.map((m) => (
-                                                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <Button type="submit" className="w-full py-6 text-lg" disabled={isGenerating}>
-                                            {isGenerating ? (
-                                                <><Spinner className="mr-3 h-5 w-5" />Gerrit berekent het plan...</>
-                                            ) : (
-                                                "Bemestingsplan genereren"
-                                            )}
-                                        </Button>
-                                    </Form>
+                                            <Button type="submit" className="w-full py-6 text-lg" disabled={isGenerating}>
+                                                {isGenerating ? (
+                                                    <><Spinner className="mr-3 h-5 w-5" />Gerrit berekent het plan...</>
+                                                ) : (
+                                                    "Bemestingsplan genereren"
+                                                )}
+                                            </Button>
+                                        </Form>
+                                    </RemixFormProvider>
                                 </CardContent>
                             </Card>
                         ) : (
