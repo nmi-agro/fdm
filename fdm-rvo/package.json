@@ -51,19 +51,20 @@
         "test-coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "@nmi-agro/fdm-core": "workspace:*",
-        "@nmi-agro/rvo-connector": "^2.1.1",
+        "@nmi-agro/fdm-core": "workspace:^",
+        "@nmi-agro/rvo-connector": "^2.2.0",
         "@turf/area": "^7.3.4",
         "@turf/bbox": "^7.3.4",
         "@turf/helpers": "^7.3.4",
         "@turf/intersect": "^7.3.4",
         "@turf/union": "^7.3.4",
-        "zod": "^3.25.76"
+        "zod": "^4.3.6"
     },
     "devDependencies": {
+        "@nmi-agro/fdm-core": "workspace:*",
         "@rollup/plugin-commonjs": "catalog:",
         "@rollup/plugin-node-resolve": "catalog:",
-        "@types/node": "^20.19.37",
+        "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
         "rollup": "catalog:",
         "rollup-plugin-esbuild": "catalog:",
