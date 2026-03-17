@@ -22,12 +22,12 @@ Fertilizer application planning in the Netherlands is complex due to strict regu
 
 The FDM Agent framework is built to be extensible. Future iterations will introduce additional agents tailored to different personas and management domains.
 
-## Architecture: The Oracle Pattern
+## Architecture: The Reasoner-Verifier Architecture
 
-The FDM Agent follows a "separation of concerns" architecture often referred to as the **Oracle Pattern**:
+The FDM Agent follows a "separation of concerns" architecture known as the **Reasoner-Verifier Architecture**:
 
-1. **Reasoning (The LLM)**: The LLM (Gemini) acts as the brain. It formulates strategies, selects fertilizers, and iterates on the plan based on feedback.
-2. **Deterministic Calculation (The Tools)**: All legal and agronomic calculations are handled by the `fdm-calculator` through a set of TypeScript tools. The LLM never performs arithmetic itself; instead, it asks the "Oracle" (the tools) for the exact results of its proposed actions.
+1.  **Reasoning (The LLM)**: The LLM (Gemini) acts as the brain. It formulates strategies, selects fertilizers, and iterates on the plan based on feedback.
+2.  **Deterministic Calculation (The Tools)**: All legal and agronomic calculations are handled by the `fdm-calculator` through a set of TypeScript tools. The LLM never performs arithmetic itself; instead, it asks the **Verifier** (the tools) for the exact results of its proposed actions.
 
 ### Available Tools
 
