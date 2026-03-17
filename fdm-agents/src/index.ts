@@ -1,8 +1,8 @@
-import { createNutrientManagementAgent } from "./agents/gerrit/agent"
+import { createFertilizerPlannerAgent } from "./agents/gerrit/agent"
 import { runOneShotAgent } from "./runners/one-shot"
 import { z } from "zod"
 
-export { createNutrientManagementAgent as createNutrientPlannerAgent }
+export { createFertilizerPlannerAgent }
 export { runOneShotAgent }
 
 export interface FertilizerPlanStrategies {
@@ -123,7 +123,7 @@ export async function generateFarmFertilizerPlan(
         ? sanitizeAdditionalContext(additionalContext)
         : "None"
 
-    const agent = createNutrientManagementAgent(fdm, geminiApiKey)
+    const agent = createFertilizerPlannerAgent(fdm, geminiApiKey)
     const input = buildFertilizerPlanPrompt(
         farmData,
         validatedStrategies,

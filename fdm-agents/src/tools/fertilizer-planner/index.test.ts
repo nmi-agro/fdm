@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { getMainCultivation, createNutrientManagementTools } from "./index"
+import { getMainCultivation, createFertilizerPlannerTools } from "./index"
 
-describe("nutrient-management tools", () => {
+describe("fertilizer-planner tools", () => {
     describe("getMainCultivation", () => {
         const cultivations = [
             {
@@ -66,10 +66,10 @@ describe("nutrient-management tools", () => {
         })
     })
 
-    describe("createNutrientManagementTools", () => {
+    describe("createFertilizerPlannerTools", () => {
         it("should return the correct set of 5 tools", () => {
             const mockFdm = {} as any
-            const tools = createNutrientManagementTools(mockFdm)
+            const tools = createFertilizerPlannerTools(mockFdm)
             expect(tools).toHaveLength(5)
             
             const names = tools.map(t => t.name)

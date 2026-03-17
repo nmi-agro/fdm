@@ -1,10 +1,10 @@
-# FDM Agent
+# FDM Agents
 
-The **FDM Agent** package provides a framework for strategic decision support using Agentic AI. The core philosophy of the FDM Agent is to assist and improve decision-making. While it currently features a single specialized agent, **Gerrit**, the architecture is designed to host a suite of autonomous assistants that help farmers, advisors, and policy makers navigate complex decisions in farm management.
+The **FDM Agents** package provides a framework for strategic decision support using Agentic AI. The core philosophy of the FDM Agents is to assist and improve decision-making. While it currently features a single specialized agent, **Gerrit**, the architecture is designed to host a suite of autonomous assistants that help farmers, advisors, and policy makers navigate complex decisions in farm management.
 
 ## Philosophy: Usefull Assistance
 
-The FDM Agent is designed to be a collaborative partner. Rather than a "black box" that outputs a fixed result, the agent provides a transparent reasoning process:
+The FDM Agents are designed to be a collaborative partner. Rather than a "black box" that outputs a fixed result, the agent provides a transparent reasoning process:
 
 - **User Steering**: Users guide the agent's logic through explicit **Planning Strategies** and by providing **Additional Context** (specific wishes or constraints).
 - **Transparency**: The agent provides extensive detail on the effects of its choices and how its advice was formed.
@@ -20,11 +20,11 @@ Fertilizer application planning in the Netherlands is complex due to strict regu
 
 ## Future Expansion
 
-The FDM Agent framework is built to be extensible. Future iterations will introduce additional agents tailored to different personas and management domains.
+The FDM Agents framework is built to be extensible. Future iterations will introduce additional agents tailored to different personas and management domains.
 
 ## Architecture: The Reasoner-Verifier Architecture
 
-The FDM Agent follows a "separation of concerns" architecture known as the **Reasoner-Verifier Architecture**:
+The FDM Agents package follows a "separation of concerns" architecture known as the **Reasoner-Verifier Architecture**:
 
 1.  **Reasoning (The LLM)**: The LLM (Gemini) acts as the brain. It formulates strategies, selects fertilizers, and iterates on the plan based on feedback.
 2.  **Deterministic Calculation (The Tools)**: All legal and agronomic calculations are handled by the `fdm-calculator` through a set of TypeScript tools. The LLM never performs arithmetic itself; instead, it asks the **Verifier** (the tools) for the exact results of its proposed actions.

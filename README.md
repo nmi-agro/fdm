@@ -24,9 +24,11 @@ FDM comprises several interconnected packages, each serving a distinct purpose:
 
 * **`fdm-data`:** Extends `fdm-core` with pre-defined catalogues of data records (fertilizers, cultivations). Users can select from existing catalogues or easily create their own, streamlining data entry and ensuring consistency.
 
-* **`fdm-calculator`:**  This package provides functions to calculate nutrient doses and nitrogen balance at both farm and field levels, offering valuable insights and decision support tools based on the FDM schema.
+* **`fdm-calculator`**:  This package provides functions to calculate nutrient doses and nitrogen balance at both farm and field levels, offering valuable insights and decision support tools based on the FDM schema.
 
-* **`fdm-app`:** A React application offering a user-friendly interface for visualizing and managing farm data.  Utilizes `fdm-core` for database interaction and provides a practical demonstration of FDM's capabilities.
+* **`fdm-agents`**: Provides a framework for strategic decision support using Agentic AI. It combines Large Language Models (LLMs) with the FDM's deterministic calculation engine to assist in making complex farm management decisions, starting with Gerrit, the fertilizer application planner.
+
+* **`fdm-app`**: A React application offering a user-friendly interface for visualizing and managing farm data.  Utilizes `fdm-core` for database interaction and provides a practical demonstration of FDM's capabilities.
 
 * **`fdm-docs`:** Houses the comprehensive documentation for the entire FDM project.
 
@@ -36,44 +38,52 @@ The preferred way to run the `fdm-app` locally is using Docker. This ensures a c
 
 **Prerequisites:**
 
-*   **Docker Desktop:** Ensure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running on your system.
-*   **Git:** Ensure you have [Git](https://git-scm.com/downloads) installed on your system. This is needed to clone the repository.
+* **Docker Desktop:** Ensure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running on your system.
+* **Git:** Ensure you have [Git](https://git-scm.com/downloads) installed on your system. This is needed to clone the repository.
 
 **Steps:**
 
-1.  **Clone the Repository:**
+1. **Clone the Repository:**
+
     ```bash
     git clone https://github.com/nmi-agro/fdm.git
     cd fdm
     ```
+
     This will download the entire FDM project to your local machine.
 
-2.  **Build the Docker Images:**
+2. **Build the Docker Images:**
+
     ```bash
     docker compose build
     ```
+
     This command builds the Docker images defined in the `docker-compose.yml` file. This includes setting up the `fdm-app` and the `postgres` service. This step only needs to be executed once, or after changing a part of the code.
 
-3.  **Start the Application:**
+3. **Start the Application:**
+
     ```bash
     docker compose up -d
     ```
-    This command starts the application in detached mode (`-d`), meaning it will run in the background. This will start both the `fdm-app` and the `postgres` service. You can then access the application by browsing to http://localhost:5173
+
+    This command starts the application in detached mode (`-d`), meaning it will run in the background. This will start both the `fdm-app` and the `postgres` service. You can then access the application by browsing to <http://localhost:5173>
 
 4. **Run migrations and sync catalogues**
     The first time the app starts, the migrations will be run. This will only happen once. If the database gets reset, the migrations will be ran again.
 
-5.  **Stop the Application:**
+5. **Stop the Application:**
+
     ```bash
     docker compose down
     ```
+
     This command stops and removes the containers created by `docker compose up`.
 
 **Additional Notes:**
 
-*   **Database Persistence:** The `docker-compose.yml` file is configured to persist the PostgreSQL database data in a volume. This means your data will not be lost when you stop and restart the containers. If you want to fully reset the database, also execute `docker compose volume rm postgres_data`
-*   **Environment Variables:** The application requires several environment variables to be set. These are configured in the `docker-compose.yml` file. If you run the application outside of docker, make sure to set the variables in the `.env` file as well.
-*   **Accessing the Application:** Once the containers are running, the `fdm-app` will be accessible in your browser at `http://localhost:5173`.
+* **Database Persistence:** The `docker-compose.yml` file is configured to persist the PostgreSQL database data in a volume. This means your data will not be lost when you stop and restart the containers. If you want to fully reset the database, also execute `docker compose volume rm postgres_data`
+* **Environment Variables:** The application requires several environment variables to be set. These are configured in the `docker-compose.yml` file. If you run the application outside of docker, make sure to set the variables in the `.env` file as well.
+* **Accessing the Application:** Once the containers are running, the `fdm-app` will be accessible in your browser at `http://localhost:5173`.
 * **Changing Code:** If you change the code, make sure to rebuild the images with `docker compose build`
 
 ## Getting Involved
@@ -94,7 +104,7 @@ FDM is developed by the [Nutriënten Management Instituut](https://www.nmi-agro.
 <img src="https://ec.europa.eu/regional_policy/images/information-sources/logo-download-center/eu_funded_en.jpg" alt="EU Logo" height="300px">
 <img src="https://media.licdn.com/dms/image/C560BAQEYGcm4HjNnxA/company-logo_200_200/0?e=2159024400&v=beta&t=u40rJ7bixPWB2SAqaj3KCKzJRoKcqf0wUXCdmsTDQvw" alt="NMI Logo" height="250px">
 
-
 ## Contact
+
 Maintainer: @SvenVw
 Reviewer: @gerardhros
