@@ -1,12 +1,9 @@
 {
     "extends": "./tsconfig.json",
-    "compilerOptions": {
-        "allowImportingTsExtensions": true,
-        "declaration": true,
-        "emitDeclarationOnly": true,
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "tsBuildInfoFile": "./dist/.tsbuildinfo"
-    },
-    "include": ["src/**/*"]
+    "exclude": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "src/setup-test.ts",
+        "src/test-utils.ts"
+    ]
 }
