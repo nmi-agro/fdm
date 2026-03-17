@@ -1,6 +1,22 @@
 import { z } from "zod"
 
 /**
+ * Zod schema for properties returned by the RegelingspercelenMest endpoint.
+ */
+export const MestDataSchema = z.object({
+    /** Unique identifier for the crop field (linked to Bedrijfspercelen) */
+    CropFieldID: z.string().optional(),
+    /** Indicates if the field is a buffer strip */
+    Bufferstrook: z.boolean().optional(),
+    /** Soil type code */
+    Grondsoort: z.union([z.string(), z.number()]).optional(),
+    /** Indicates if a catch crop (vanggewas/nateelt) is required or present for manure regulations */
+    IndNateeltMest: z.boolean().optional(),
+    /** Human-readable labels and boolean mappings if `enrichResponse` was used */
+    descriptiveValues: z.record(z.string(), z.any()).optional(),
+}).catchall(z.any())
+
+/**
  * Zod schema for validating RVO Field data.
  *
  * This schema matches the GeoJSON Feature structure returned by the RVO connector.
@@ -45,6 +61,8 @@ export const RvoFieldSchema = z.object({
         UseTitleCode: z.string(),
         /** Optional cause for the field record */
         CropFieldCause: z.string().optional(),
+        /** Optional data from the RegelingspercelenMest endpoint */
+        mestData: MestDataSchema.optional(),
     }),
 })
 

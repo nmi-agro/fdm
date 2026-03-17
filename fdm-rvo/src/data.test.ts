@@ -20,9 +20,24 @@ describe("fetchRvoFields", () => {
             },
         ]
 
+        const mockMestFeatures = [
+            {
+                type: "Feature",
+                geometry: { type: "Polygon", coordinates: [] },
+                properties: {
+                    CropFieldID: "123",
+                    Bufferstrook: true,
+                    Regelingsgebied: "Yes",
+                },
+            },
+        ]
+
         const mockClient = {
             opvragenBedrijfspercelen: vi.fn().mockResolvedValue({
                 features: mockFeatures,
+            }),
+            opvragenRegelingspercelenMest: vi.fn().mockResolvedValue({
+                features: mockMestFeatures,
             }),
         } as unknown as RvoClient
 
@@ -34,13 +49,27 @@ describe("fetchRvoFields", () => {
             farmId: "12345678",
             outputFormat: "geojson",
         })
+        expect(mockClient.opvragenRegelingspercelenMest).toHaveBeenCalledWith({
+            periodBeginDate: "2024-01-01",
+            periodEndDate: "2024-12-31",
+            farmId: "12345678",
+            outputFormat: "geojson",
+        })
         expect(result).toHaveLength(1)
         expect(result[0].properties.CropFieldID).toBe("123")
+        expect(result[0].properties.mestData).toEqual({
+            CropFieldID: "123",
+            Bufferstrook: true,
+            Regelingsgebied: "Yes",
+        })
     })
 
     it("should return empty array if no features found", async () => {
         const mockClient = {
             opvragenBedrijfspercelen: vi.fn().mockResolvedValue({
+                features: [],
+            }),
+            opvragenRegelingspercelenMest: vi.fn().mockResolvedValue({
                 features: [],
             }),
         } as unknown as RvoClient
@@ -53,6 +82,9 @@ describe("fetchRvoFields", () => {
         const mockClient = {
             opvragenBedrijfspercelen: vi.fn().mockResolvedValue({
                 somethingElse: [],
+            }),
+            opvragenRegelingspercelenMest: vi.fn().mockResolvedValue({
+                features: [],
             }),
         } as unknown as RvoClient
 
@@ -74,6 +106,9 @@ describe("fetchRvoFields", () => {
         const mockClient = {
             opvragenBedrijfspercelen: vi.fn().mockResolvedValue({
                 features: mockFeatures,
+            }),
+            opvragenRegelingspercelenMest: vi.fn().mockResolvedValue({
+                features: [],
             }),
         } as unknown as RvoClient
 
