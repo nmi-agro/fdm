@@ -24,11 +24,14 @@ import {
     BulkSoilAnalysisReview,
     type ProcessedAnalysis,
 } from "~/components/blocks/soil/bulk-upload-review"
+import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+
+export const handle = { hideNavigationProgress: true }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
@@ -109,6 +112,10 @@ export default function BulkSoilAnalysisUploadPage() {
                 }}
             >
                 <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
+                <BreadcrumbSeparator />
+                <BreadcrumbItem className="hidden md:block">
+                    Upload bodemanalyses
+                </BreadcrumbItem>
             </Header>
             <main>
                 <FarmTitle

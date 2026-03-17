@@ -1,5 +1,42 @@
 # Changelog fdm-app
 
+## 0.28.3
+
+### Patch Changes
+
+- [#517](https://github.com/nmi-agro/fdm/pull/517) [`5eadcd9`](https://github.com/nmi-agro/fdm/commit/5eadcd98fa121021479ce3f8dca078c9bd4ae962) Thanks [@SvenVw](https://github.com/SvenVw)! - Increase `streamTimeout` from 30s to 90s to reduce timeout errors for large calculations
+
+## 0.28.2
+
+### Patch Changes
+
+- [#511](https://github.com/nmi-agro/fdm/pull/511) [`604f161`](https://github.com/nmi-agro/fdm/commit/604f16166ac430a967cf5a5b8f7a74377d21b5ac) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix RVO shapefile upload failing when NAAM attribute is null; accept null NAAM and assign fallback name 'Naamloos perceel N'
+
+- [#513](https://github.com/nmi-agro/fdm/pull/513) [`08719fb`](https://github.com/nmi-agro/fdm/commit/08719fbc145b69e313ac2264a3231fcba1a7d0a5) Thanks [@SvenVw](https://github.com/SvenVw)! - Add reverse proxy for Sentry
+
+- [#512](https://github.com/nmi-agro/fdm/pull/512) [`38ddf3a`](https://github.com/nmi-agro/fdm/commit/38ddf3a6f9b82f1c6e991be4529292c28578d30a) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix: remove the `signal.aborted` check from inside the `for await` loop so FlatGeobuf always completes its HTTP exchange cleanly. The abort guard before `setData()` is kept, so stale data is still never rendered after a map pan.
+
+  Additionally, append `?v={APP_VERSION}` to the FlatGeobuf file URL so that users who already have a corrupted browser cache get a fresh cache key on the next deploy.
+
+## 0.28.1
+
+### Patch Changes
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`9d5050a`](https://github.com/nmi-agro/fdm/commit/9d5050aef5f70636be638d2f1a4027ccd22f4189) Thanks [@SvenVw](https://github.com/SvenVw)! - Do not show the NavigationProgress for pages with their own loaders, like uploading files
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`9d5050a`](https://github.com/nmi-agro/fdm/commit/9d5050aef5f70636be638d2f1a4027ccd22f4189) Thanks [@SvenVw](https://github.com/SvenVw)! - Increase navigation progress time from 300 to 500ms
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`9d5050a`](https://github.com/nmi-agro/fdm/commit/9d5050aef5f70636be638d2f1a4027ccd22f4189) Thanks [@SvenVw](https://github.com/SvenVw)! - Improve DatePickers and Forms to use contextual default dates based on the selected calendar year. Forms now default to domain-specific dates (e.g., March 1st for fertilizer and cultivation-specific harvest defaults in non-current years), and DatePickers now resolve partial text entries (like "15 april") to the active calendar year instead of the current real-world year.
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`9d5050a`](https://github.com/nmi-agro/fdm/commit/9d5050aef5f70636be638d2f1a4027ccd22f4189) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix that link for going back for fertilizer application modification goes back to rotation
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`9d5050a`](https://github.com/nmi-agro/fdm/commit/9d5050aef5f70636be638d2f1a4027ccd22f4189) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix that going to Fertilizers page does not reset the selected calendar year to current year
+
+- [#495](https://github.com/nmi-agro/fdm/pull/495) [`9d5050a`](https://github.com/nmi-agro/fdm/commit/9d5050aef5f70636be638d2f1a4027ccd22f4189) Thanks [@SvenVw](https://github.com/SvenVw)! - At the Sentry metric for NavigationProgress include a tag for the page
+
+- Updated dependencies [[`9d5050a`](https://github.com/nmi-agro/fdm/commit/9d5050aef5f70636be638d2f1a4027ccd22f4189)]:
+  - @nmi-agro/fdm-calculator@0.12.1
+
 ## 0.28.0
 
 ### Minor Changes

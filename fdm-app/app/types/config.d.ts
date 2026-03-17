@@ -44,6 +44,7 @@ export interface ServerConfig {
     analytics: {
         sentry?: {
             auth_token: string
+            dsn?: string
         } | null
         posthog?: {
             key: string

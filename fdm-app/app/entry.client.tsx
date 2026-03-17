@@ -58,6 +58,8 @@ if (clientConfig.analytics.sentry) {
         //     return event
         // },
 
+        tunnel: "/sentry-tunnel",
+
         tracesSampleRate: sentryConfig.trace_sample_rate,
 
         tracePropagationTargets: [window.location.hostname],

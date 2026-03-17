@@ -29,10 +29,15 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
+export const handle = { hideNavigationProgress: true }
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
         const b_id_farm = params.b_id_farm
         if (!b_id_farm) throw data("Farm ID is required", { status: 400 })
+
+        const b_id = params.b_id
+        if (!b_id) throw data("Field ID is required", { status: 400 })
 
         const session = await getSession(request)
         const farm = await getFarm(fdm, session.principal_id, b_id_farm)
@@ -51,6 +56,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         return {
             b_id_farm,
+            b_id,
             b_name_farm: farm.b_name_farm,
             calendar,
             fields: fields.map((f) => ({
@@ -66,8 +72,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function BulkSoilAnalysisUploadWizardPage() {
-    const { b_name_farm, fields, soilParameterDescription } =
-        useLoaderData<typeof loader>()
+    const {
+        b_id_farm,
+        b_id,
+        b_name_farm,
+        calendar,
+        fields,
+        soilParameterDescription,
+    } = useLoaderData<typeof loader>()
     const [processedAnalyses, setProcessedAnalyses] = useState<
         ProcessedAnalysis[]
     >([])
@@ -102,7 +114,13 @@ export default function BulkSoilAnalysisUploadWizardPage() {
 
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header
+                action={{
+                    to: `/farm/create/${b_id_farm}/${calendar}/fields/${b_id}`,
+                    label: "Terug naar percelen",
+                    disabled: false,
+                }}
+            >
                 <HeaderFarmCreate b_name_farm={b_name_farm} />
             </Header>
             <main>

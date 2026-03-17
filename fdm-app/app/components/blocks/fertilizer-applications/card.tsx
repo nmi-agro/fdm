@@ -5,6 +5,7 @@ import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useFetcher, useLocation, useNavigation, useParams } from "react-router"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
+import { useCalendarStore } from "~/store/calendar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
@@ -75,11 +76,13 @@ export function FertilizerApplicationCard({
     }, [navigation.state])
 
     const fieldFertilizerFormStore = useFieldFertilizerFormStore()
+    const { calendar } = useCalendarStore()
     const savedFormValues =
         params.b_id_farm && b_id_or_b_lu_catalogue
             ? fieldFertilizerFormStore.load(
                   params.b_id_farm,
                   b_id_or_b_lu_catalogue,
+                  calendar,
               )
             : null
 
@@ -98,6 +101,7 @@ export function FertilizerApplicationCard({
             fieldFertilizerFormStore.delete(
                 params.b_id_farm || "",
                 b_id_or_b_lu_catalogue || "",
+                calendar,
             )
         }
     }, [
@@ -139,6 +143,7 @@ export function FertilizerApplicationCard({
             fieldFertilizerFormStore.delete(
                 params.b_id_farm,
                 b_id_or_b_lu_catalogue,
+                calendar,
             )
         }
 

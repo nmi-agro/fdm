@@ -22,22 +22,64 @@ import {
 } from "~/components/ui/popover"
 
 import { endMonth } from "~/lib/calendar"
+import { useCalendarStore } from "~/store/calendar"
 
-function parseDateString(dateString: string): Date | undefined {
+function parseDateString(dateString: string, calendarYear: number): Date | undefined {
     if (!dateString) {
         return undefined
     }
 
-    // Attempt to parse using chrono-node (Dutch)
-    const referenceDate = new Date()
-    const parsedDate = chrono.nl.parseDate(dateString, referenceDate)
-    if (parsedDate) {
-        return parsedDate
+    const currentYear = new Date().getFullYear()
+
+    // Dutch numeric format: DD-MM, DD-MM-YY, DD-MM-YYYY
+    const dutchNumeric = parseDutchNumericDate(dateString, calendarYear)
+    if (dutchNumeric) {
+        return dutchNumeric
     }
 
-    // Fallback to default Date parsing for other formats
-    const defaultDate = new Date(dateString)
-    return isValidDate(defaultDate) ? defaultDate : undefined
+    // Chrono-node always uses today as reference so relative terms ("gisteren") work correctly.
+    const results = chrono.nl.parse(dateString, new Date())
+    if (!results?.length) {
+        // Fallback to default Date parsing for ISO-like strings
+        const defaultDate = new Date(dateString)
+        return isValidDate(defaultDate) ? defaultDate : undefined
+    }
+    const result = results[0]
+    const parsedDate = result.start.date()
+
+    // Override with calendar year only for explicit partial dates (month/day stated, year not).
+    if (
+        calendarYear !== currentYear &&
+        !result.start.isCertain("year") &&
+        (result.start.isCertain("month") || result.start.isCertain("day"))
+    ) {
+        parsedDate.setFullYear(calendarYear)
+    }
+
+    return isValidDate(parsedDate) ? parsedDate : undefined
+}
+
+// Parses Dutch numeric date format DD-MM, DD-MM-YY or DD-MM-YYYY.
+function parseDutchNumericDate(text: string, targetYear: number): Date | undefined {
+    const match = text.trim().match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?$/)
+    if (!match) {
+        return undefined
+    }
+    const day = Number(match[1])
+    const month = Number(match[2])
+    if (day < 1 || day > 31 || month < 1 || month > 12) {
+        return undefined
+    }
+    let year = targetYear
+    if (match[3]) {
+        const y = Number(match[3])
+        year = match[3].length <= 2 ? 2000 + y : y
+    }
+    const result = new Date(year, month - 1, day)
+    if (Number.isNaN(result.getTime()) || result.getMonth() !== month - 1) {
+        return undefined
+    }
+    return result
 }
 
 function formatDate(date: Date | undefined) {
@@ -70,11 +112,15 @@ export function DatePicker<TFieldValues extends FieldValues>({
     description,
     disabled = false,
 }: DatePickerProps<TFieldValues>) {
+    const { calendar } = useCalendarStore()
+    const calendarYear = calendar ? Number(calendar) : new Date().getFullYear()
+    const referenceDate = new Date(calendarYear, 0, 1)
+
     const [open, setOpen] = React.useState(false)
     const [date, setDate] = React.useState<Date | undefined>(
         form.getValues(name),
     )
-    const [month, setMonth] = React.useState<Date>(date || new Date()) // Initialize month to current date if 'date' is undefined
+    const [month, setMonth] = React.useState<Date>(date || referenceDate)
     const [value, setValue] = React.useState(formatDate(date))
     const [isInputValid, setIsInputValid] = React.useState(true)
 
@@ -91,7 +137,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
         } else if (date !== undefined) {
             // If formDate is undefined or invalid, and date was previously defined
             setDate(undefined)
-            setMonth(new Date()) // Reset month to current month
+            setMonth(referenceDate) // Reset month to calendar context month
             setValue("") // Clear input value
             setIsInputValid(true)
         }
@@ -130,7 +176,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
                                         return
                                     }
 
-                                    const newDate = parseDateString(text)
+                                    const newDate = parseDateString(text, calendarYear)
                                     if (newDate && isValidDate(newDate)) {
                                         setDate(newDate)
                                         setMonth(newDate)

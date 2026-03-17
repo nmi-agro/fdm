@@ -52,6 +52,7 @@ export const serverConfig: ServerConfig = {
         // Sentry
         sentry: {
             auth_token: String(process.env.SENTRY_AUTH_TOKEN),
+            dsn: process.env.PUBLIC_SENTRY_DSN,
         },
         posthog: {
             key: String(process.env.PUBLIC_POSTHOG_KEY),

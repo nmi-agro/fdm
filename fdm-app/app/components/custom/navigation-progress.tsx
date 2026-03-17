@@ -2,31 +2,50 @@ import * as Sentry from "@sentry/react-router"
 import { AnimatePresence, motion } from "framer-motion"
 import { Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { useNavigation } from "react-router"
+import { useLocation, useMatches, useNavigation } from "react-router"
 import { clientConfig } from "~/lib/config"
 
 /**
- * Shows a blurred overlay with a loading card when navigation takes longer than 300ms.
+ * Shows a blurred overlay with a loading card when navigation takes longer than 500ms.
  * Fast navigations never trigger the indicator.
- * Tracks show frequency and duration as Sentry metrics.
+ * Tracks show frequency and duration as Sentry metrics, tagged with the source page pathname.
+ *
+ * Routes can opt out by exporting `export const handle = { hideNavigationProgress: true }`.
  */
 export function NavigationProgress() {
     const { state } = useNavigation()
+    const { pathname } = useLocation()
+    const matches = useMatches()
+    const hideProgress = matches.some(
+        (m) =>
+            m.handle !== null &&
+            typeof m.handle === "object" &&
+            (m.handle as Record<string, unknown>).hideNavigationProgress ===
+                true,
+    )
     const [show, setShow] = useState(false)
     const startTimeRef = useRef<number | null>(null)
+    const startPathnameRef = useRef<string | null>(null)
 
-    // Show after 300ms — emit a count metric when it appears
+    // Show after 500ms — emit a count metric when it appears
     useEffect(() => {
-        if (state !== "idle") {
+        if (state !== "idle" && !hideProgress) {
             if (startTimeRef.current === null) {
                 startTimeRef.current = Date.now()
+                startPathnameRef.current = pathname
             }
             const timer = setTimeout(() => {
                 setShow(true)
                 if (clientConfig.analytics.sentry) {
-                    Sentry.metrics.count("navigation_progress.shown", 1)
+                    Sentry.withScope((scope) => {
+                        scope.setTag(
+                            "page",
+                            startPathnameRef.current ?? pathname,
+                        )
+                        Sentry.metrics.count("navigation_progress.shown", 1)
+                    })
                 }
-            }, 300)
+            }, 500)
             return () => clearTimeout(timer)
         }
 
@@ -34,15 +53,22 @@ export function NavigationProgress() {
         if (show && startTimeRef.current !== null) {
             const duration = Date.now() - startTimeRef.current
             if (clientConfig.analytics.sentry) {
-                Sentry.metrics.distribution(
-                    "navigation_progress.duration_ms",
-                    duration,
-                )
-            }
+                    Sentry.withScope((scope) => {
+                        scope.setTag(
+                            "page",
+                            startPathnameRef.current ?? pathname,
+                        )
+                        Sentry.metrics.distribution(
+                            "navigation_progress.duration_ms",
+                            duration,
+                        )
+                    })
+                }
         }
         setShow(false)
         startTimeRef.current = null
-    }, [state, show])
+        startPathnameRef.current = null
+    }, [state, show, hideProgress, pathname])
 
     return (
         <AnimatePresence>
