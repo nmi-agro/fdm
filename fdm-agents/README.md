@@ -1,10 +1,10 @@
-# FDM Agent (`fdm-agent`)
+# FDM Agents (`fdm-agents`)
 
-The `fdm-agent` package provides a framework for strategic decision support using Agentic AI. It enables the creation of specialized autonomous assistants that help farmers, advisors, and policy makers navigate complex decisions in farm management by combining the reasoning power of Large Language Models (LLMs) with the deterministic accuracy of the Farm Data Model.
+The `fdm-agents` package provides a framework for strategic decision support using Agentic AI. It enables the creation of specialized autonomous assistants that help farmers, advisors, and policy makers navigate complex decisions in farm management by combining the reasoning power of Large Language Models (LLMs) with the deterministic accuracy of the Farm Data Model.
 
 ## Philosophy: Decision Support, Not Automation
 
-The core mission of `fdm-agent` is to **assist and improve decision-making**, rather than fully automating it. The agent acts as a collaborative partner:
+The core mission of `fdm-agents` is to **assist and improve decision-making**, rather than fully automating it. The agent acts as a collaborative partner:
 - **User Steering:** Users guide the agent through explicit strategies and additional context.
 - **Transparency:** The agent provides detailed explanations of its reasoning (*"hoe het advies tot stand is gekomen"*) and the effects of its choices.
 - **Informed Choices:** By surfacing legal deltas, environmental impacts, and agronomic warnings, the agent empowers users to make final management decisions with full confidence.
@@ -23,7 +23,7 @@ The core mission of `fdm-agent` is to **assist and improve decision-making**, ra
 ### Installation
 
 ```bash
-pnpm add @nmi-agro/fdm-agent
+pnpm add @nmi-agro/fdm-agents
 ```
 
 ### Usage
@@ -31,7 +31,7 @@ pnpm add @nmi-agro/fdm-agent
 The package provides high-level APIs to trigger agent executions. You will need a Gemini API key and, depending on the tools used, access to the NMI API.
 
 ```typescript
-import { generateFarmFertilizerPlan } from "@nmi-agro/fdm-agent";
+import { generateFarmFertilizerPlan } from "@nmi-agro/fdm-agents";
 
 const plan = await generateFarmFertilizerPlan(
     fdm,
@@ -53,7 +53,7 @@ const plan = await generateFarmFertilizerPlan(
 
 ## Architecture: The Reasoner-Verifier Architecture
 
-To ensure 100% regulatory accuracy, `fdm-agent` uses the **Reasoner-Verifier Architecture**:
+To ensure 100% regulatory accuracy, `fdm-agents` uses the **Reasoner-Verifier Architecture**:
 1.  **Reasoning (The LLM):** Formulates the plan, selects fertilizers, and handles the expert narrative.
 2.  **Deterministic Calculation (The Tools):** All math and rule-following (e.g., werkingscoëfficiënten, soil-specific norms) are handled by TypeScript tools calling `fdm-calculator`.
 
@@ -61,7 +61,7 @@ The LLM never performs arithmetic itself; it proposes actions and asks the tools
 
 ## Security
 
-`fdm-agent` implements multiple layers of defense against malicious input:
+`fdm-agents` implements multiple layers of defense against malicious input:
 - **Character Sanitization:** Neuters markdown code blocks and strips XML/HTML tags from user input.
 - **Structural Framing:** Encapsulates user context within strict boundary markers in the system prompt.
 - **Secret Isolation:** API keys and sensitive environment variables remain strictly server-side and are never transmitted to the LLM context.

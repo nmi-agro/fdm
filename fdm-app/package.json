@@ -23,7 +23,7 @@
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/fdm-data": "workspace:*",
-        "@nmi-agro/fdm-agent": "workspace:*",
+        "@nmi-agro/fdm-agents": "workspace:*",
         "@react-email/components": "^1.0.8",
         "@react-email/tailwind": "^2.0.5",
         "@react-pdf/renderer": "^4.3.2",

@@ -5,7 +5,7 @@ import {
     buildFertilizerPlanPrompt,
 } from "./index"
 
-describe("fdm-agent index", () => {
+describe("fdm-agents index", () => {
     describe("FertilizerPlanStrategiesSchema", () => {
         it("should validate correct strategies", () => {
             const valid = {

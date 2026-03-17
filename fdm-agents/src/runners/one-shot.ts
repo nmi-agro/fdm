@@ -2,7 +2,7 @@ import { InMemoryRunner, isFinalResponse, stringifyContent } from "@google/adk"
 import type { BaseAgent } from "@google/adk"
 
 /**
- * Common runner for one-shot agent execution in fdm-agent.
+ * Common runner for one-shot agent execution in fdm-agents.
  * @param agent The agent instance to run.
  * @param input The user input string.
  * @param context Extra context to provide to the agent (e.g. fdm, principalId).
@@ -15,7 +15,7 @@ export async function runOneShotAgent(
     context: Record<string, any> = {},
     posthog?: { client: any; distinctId: string },
 ): Promise<string> {
-    const runner = new InMemoryRunner({ agent, appName: "fdm-agent" })
+    const runner = new InMemoryRunner({ agent, appName: "fdm-agents" })
 
     const stream = runner.runEphemeral({
         userId: "system",

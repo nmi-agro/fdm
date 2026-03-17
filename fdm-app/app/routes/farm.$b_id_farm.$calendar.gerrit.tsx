@@ -87,7 +87,7 @@ import {
     createNutrientPlannerAgent,
     buildFertilizerPlanPrompt,
     type FarmFieldSummary,
-} from "@nmi-agro/fdm-agent"
+} from "@nmi-agro/fdm-agents"
 import { serverConfig } from "~/lib/config.server"
 import PostHogClient from "~/posthog.server"
 

@@ -11,7 +11,8 @@
         "fdm-data",
         "fdm-docs",
         "fdm-app",
-        "fdm-calculator"
+        "fdm-calculator",
+        "fdm-agents"
     ],
     "scripts": {
         "test": "turbo run test-coverage --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-calculator",
