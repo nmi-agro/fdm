@@ -6,6 +6,7 @@ import { Outlet } from "react-router-dom"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"
 import { SidebarOrganization } from "~/components/blocks/sidebar/organization"
+import { SidebarOrganizationApps } from "~/components/blocks/sidebar/organization-apps"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
@@ -123,6 +124,7 @@ export default function App() {
                         organization={organization}
                         roles={loaderData.selectedOrganizationRoles}
                     />
+                    <SidebarOrganizationApps />
                 </SidebarContent>
                 <SidebarSupport
                     name={loaderData.userName}

@@ -26,6 +26,8 @@ import {
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
+import { Button } from "~/components/ui/button"
 import {
     Card,
     CardContent,
@@ -55,7 +57,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useOrganizationFarmSelectionStore } from "~/store/organization-farm-selection"
-import { Button } from "../components/ui/button"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -99,6 +100,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
 
         const farms = await getFarms(fdm, organization.id)
+
+        // If the organization has no access to any farms, render the empty message
+        if (farms.length === 0) {
+            return {
+                organization,
+                noFarms: true,
+                asyncData: Promise.resolve([]),
+            }
+        }
 
         const farmsMap = Object.fromEntries(
             farms.map((farm) => [farm.b_id_farm, farm]),
@@ -224,9 +234,9 @@ type FarmResult = Awaited<
 function OrganizationFarmBalanceNitrogenOverview({
     organization,
     asyncData,
+    noFarms,
 }: Awaited<ReturnType<typeof loader>>) {
     const farmResults = use(asyncData)
-    const farm = farmResults[0].farm
     const params = useParams()
 
     const { syncOrganization, farmIds, setFarmIds } =
@@ -344,6 +354,19 @@ function OrganizationFarmBalanceNitrogenOverview({
             )?.nitrogenBalanceResult.errorMessage as string | undefined,
         }
     }, [allResults])
+
+    if (noFarms) {
+        return (
+            <div className="lg:mt-20">
+                <NoFarmsMessage
+                    action={{
+                        label: "Naar dashboard",
+                        to: `/organization/${organization.slug}`,
+                    }}
+                />
+            </div>
+        )
+    }
 
     if (resolvedNitrogenBalanceResult.errorMessage) {
         return (
@@ -542,11 +565,13 @@ function OrganizationFarmBalanceNitrogenOverview({
                     <CardHeader>
                         <CardTitle>Balans</CardTitle>
                         <CardDescription>
-                            De stikstofbalans voor alle percelen van{" "}
-                            {farm.b_name_farm}. De balans is het verschil tussen
-                            de totale aanvoer, afvoer en emissie van stikstof.
-                            Een positieve balans betekent een overschot aan
-                            stikstof, een negatieve balans een tekort.
+                            De gemiddelde stikstofbalans voor de geselecteerde
+                            bedrijven. De balans is het verschil tussen de
+                            totale aanvoer, afvoer en emissie van stikstof. Een
+                            positieve balans betekent een overschot aan
+                            stikstof, een negatieve balans een tekort. U kunt de
+                            selectie van de bedrijven wijzigen om de
+                            uitschieters te identificeren.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="pl-2">
