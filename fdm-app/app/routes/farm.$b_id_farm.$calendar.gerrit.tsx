@@ -9,6 +9,9 @@ import {
     isOrganicCertificationValid,
     removeFertilizerApplication,
     getFertilizerApplications,
+    type Fertilizer,
+    type FertilizerApplication,
+    type PrincipalId,
 } from "@nmi-agro/fdm-core"
 import {
     createFunctionsForNorms,
@@ -16,26 +19,14 @@ import {
     aggregateNormsToFarmLevel,
     aggregateNormFillingsToFarmLevel,
     getNutrientAdvice,
+    calculateDose,
+    type NutrientAdvice,
+    type NormFilling,
 } from "@nmi-agro/fdm-calculator"
-import {
-    Info,
-    Bot,
-    CheckCircle2,
-    Square,
-    Circle,
-    Triangle,
-    Diamond,
-    ChevronDown,
-    ChevronUp,
-    Pencil,
-} from "lucide-react"
-import { Fragment, useEffect, useRef, useState } from "react"
-import { Controller } from "react-hook-form"
-import {
-    RemixFormProvider,
-    useRemixForm,
-    getValidatedFormData,
-} from "remix-hook-form"
+import { Bot } from "lucide-react"
+import { useEffect, useState } from "react"
+import { type Resolver } from "react-hook-form"
+import { useRemixForm, getValidatedFormData } from "remix-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
     type ActionFunctionArgs,
@@ -47,41 +38,18 @@ import {
     useLoaderData,
     useNavigation,
     useParams,
-    Form,
 } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
-import { Switch } from "~/components/ui/switch"
-import { Label } from "~/components/ui/label"
-import { Textarea } from "~/components/ui/textarea"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "~/components/ui/select"
+import { Card } from "~/components/ui/card"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { Spinner } from "~/components/ui/spinner"
-import { Progress } from "~/components/ui/progress"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
-import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { serverConfig } from "~/lib/config.server"
 import PostHogClient from "~/posthog.server"
 import {
@@ -93,34 +61,19 @@ import {
 } from "@nmi-agro/fdm-agents"
 
 import {
-    createColumnHelper,
-    flexRender,
-    getCoreRowModel,
-    getSortedRowModel,
-    useReactTable,
-} from "@tanstack/react-table"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "~/components/ui/table"
-
-const GerritFormSchema = z.object({
-    isOrganic: z.boolean(),
-    fillManureSpace: z.boolean(),
-    reduceAmmoniaEmissions: z.boolean(),
-    keepNitrogenBalanceBelowTarget: z.boolean(),
-    workOnRotationLevel: z.boolean(),
-    additionalContext: z
-        .string()
-        .max(1000, "Maximaal 1000 karakters toegestaan.")
-        .optional()
-        .default(""),
-    geminiModel: z.string().optional().default("gemini-3.1-pro-preview"),
-})
+    GerritFormSchema,
+    GEMINI_MODELS,
+    STRATEGY_LABELS,
+} from "~/components/blocks/gerrit/schema"
+import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
+import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
+import { PlanTable } from "~/components/blocks/gerrit/plan-table"
+import { GerritLoading } from "~/components/blocks/gerrit/gerrit-loading"
+import type {
+    ParsedPlan,
+    ParsedPlanApplication,
+    FieldMetrics,
+} from "~/components/blocks/gerrit/types"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -215,7 +168,7 @@ function calcModelCost(
 }
 
 async function computePlanMetrics(
-    principalId: string,
+    principalId: PrincipalId,
     calendar: string,
     enrichedPlan: Array<{
         b_id: string
@@ -238,7 +191,7 @@ async function computePlanMetrics(
         "NL",
         year,
     )
-    const fieldMetricsMap: Record<string, any> = {}
+    const fieldMetricsMap: Record<string, FieldMetrics> = {}
 
     const fieldResults = await Promise.allSettled(
         enrichedPlan
@@ -250,23 +203,18 @@ async function computePlanMetrics(
                 try {
                     const normsInput = await normFuncs.collectInputForNorms(
                         fdm,
-                        principalId as any,
+                        principalId,
                         field.b_id,
                     )
-                    ;[manure, phosphate, nitrogen] = (await Promise.all([
-                        normFuncs.calculateNormForManure(
-                            fdm,
-                            normsInput as any,
-                        ),
-                        normFuncs.calculateNormForPhosphate(
-                            fdm,
-                            normsInput as any,
-                        ),
-                        normFuncs.calculateNormForNitrogen(
-                            fdm,
-                            normsInput as any,
-                        ),
-                    ])) as any
+                    const [manureResult, phosphateResult, nitrogenResult] =
+                        await Promise.all([
+                            normFuncs.calculateNormForManure(fdm, normsInput as any),
+                            normFuncs.calculateNormForPhosphate(fdm, normsInput as any),
+                            normFuncs.calculateNormForNitrogen(fdm, normsInput as any),
+                        ])
+                    manure = { normValue: manureResult.normValue, normSource: manureResult.normSource }
+                    phosphate = { normValue: phosphateResult.normValue, normSource: phosphateResult.normSource }
+                    nitrogen = { normValue: nitrogenResult.normValue, normSource: nitrogenResult.normSource }
                 } catch (err) {
                     console.warn(
                         `[computePlanMetrics] Norm calc failed for ${field.b_id}:`,
@@ -274,26 +222,33 @@ async function computePlanMetrics(
                     )
                 }
 
-                const syntheticApps = field.applications.map((app, i) => ({
-                    p_id_catalogue: app.p_id_catalogue,
-                    p_app_amount: app.p_app_amount,
-                    p_app_date: new Date(app.p_app_date),
-                    p_app_id: `plan-${field.b_id}-${i}`,
-                    b_id: field.b_id,
-                    p_app_method: null,
-                }))
+                const syntheticApps: FertilizerApplication[] =
+                    field.applications.map((app, i) => {
+                        const fert = fertilizers.find(
+                            (f) => f.p_id_catalogue === app.p_id_catalogue,
+                        )
+                        return {
+                            p_id: fert?.p_id ?? app.p_id_catalogue,
+                            p_id_catalogue: app.p_id_catalogue,
+                            p_name_nl: fert?.p_name_nl ?? null,
+                            p_app_amount: app.p_app_amount,
+                            p_app_date: new Date(app.p_app_date),
+                            p_app_id: `plan-${field.b_id}-${i}`,
+                            p_app_method: null,
+                        }
+                    })
 
-                let manureFilling = {
+                let manureFilling: NormFilling = {
                     normFilling: 0,
-                    applicationFilling: [] as any[],
+                    applicationFilling: [],
                 }
-                let nitrogenFilling = {
+                let nitrogenFilling: NormFilling = {
                     normFilling: 0,
-                    applicationFilling: [] as any[],
+                    applicationFilling: [],
                 }
-                let phosphateFilling = {
+                let phosphateFilling: NormFilling = {
                     normFilling: 0,
-                    applicationFilling: [] as any[],
+                    applicationFilling: [],
                 }
                 let eomSupplyPerHa = 0
 
@@ -301,45 +256,49 @@ async function computePlanMetrics(
                     const baseInput =
                         await fillingFuncs.collectInputForFertilizerApplicationFilling(
                             fdm,
-                            principalId as any,
+                            principalId,
                             field.b_id,
                             phosphate.normValue,
                         )
                     const fillingInput = {
                         ...baseInput,
-                        applications: syntheticApps as any,
-                        fertilizers: fertilizers as any,
-                    }
-                    ;[manureFilling, nitrogenFilling, phosphateFilling] =
-                        (await Promise.all([
+                        applications: syntheticApps,
+                        fertilizers,
+                    } as Awaited<ReturnType<typeof fillingFuncs.collectInputForFertilizerApplicationFilling>>
+                    const [manureResult, nitrogenResult, phosphateResult] =
+                        await Promise.all([
                             Promise.resolve(
                                 fillingFuncs.calculateFertilizerApplicationFillingForManure(
-                                    fdm as any,
-                                    fillingInput as any,
+                                    fdm,
+                                    fillingInput,
                                 ),
                             ),
                             fillingFuncs.calculateFertilizerApplicationFillingForNitrogen(
-                                fdm as any,
-                                fillingInput as any,
+                                fdm,
+                                fillingInput,
                             ),
                             Promise.resolve(
                                 fillingFuncs.calculateFertilizerApplicationFillingForPhosphate(
-                                    fdm as any,
-                                    fillingInput as any,
+                                    fdm,
+                                    fillingInput,
                                 ),
                             ),
-                        ])) as any
+                        ])
+                    manureFilling = manureResult
+                    nitrogenFilling = nitrogenResult
+                    phosphateFilling = phosphateResult
                 } catch (err) {
                     console.warn(
                         `[computePlanMetrics] Filling calc failed for ${field.b_id}, fallback:`,
                         err,
                     )
-                    let mFill = 0,
-                        nFill = 0,
-                        pFill = 0
+                    let mFill = 0
+                    let nFill = 0
+                    let pFill = 0
                     for (const app of field.applications) {
                         const fert = fertilizers.find(
-                            (f: any) => f.p_id_catalogue === app.p_id_catalogue,
+                            (f: Fertilizer) =>
+                                f.p_id_catalogue === app.p_id_catalogue,
                         )
                         if (!fert) continue
                         const amount = app.p_app_amount ?? 0
@@ -366,7 +325,8 @@ async function computePlanMetrics(
 
                 for (const app of field.applications) {
                     const fert = fertilizers.find(
-                        (f: any) => f.p_id_catalogue === app.p_id_catalogue,
+                        (f: Fertilizer) =>
+                            f.p_id_catalogue === app.p_id_catalogue,
                     )
                     if (fert)
                         eomSupplyPerHa +=
@@ -377,7 +337,8 @@ async function computePlanMetrics(
                 let kFillPerHa = 0
                 for (const app of field.applications) {
                     const fert = fertilizers.find(
-                        (f: any) => f.p_id_catalogue === app.p_id_catalogue,
+                        (f: Fertilizer) =>
+                            f.p_id_catalogue === app.p_id_catalogue,
                     )
                     if (fert)
                         kFillPerHa +=
@@ -385,14 +346,14 @@ async function computePlanMetrics(
                 }
 
                 // Fetch NMI nutrient advice per field
-                let advice = {} as any
+                let advice: NutrientAdvice | null = null
                 if (nmiApiKey && field.b_lu_catalogue) {
                     try {
                         const [fieldData, currentSoilData] = await Promise.all([
-                            getField(fdm, principalId as any, field.b_id),
+                            getField(fdm, principalId, field.b_id),
                             getCurrentSoilData(
                                 fdm,
-                                principalId as any,
+                                principalId,
                                 field.b_id,
                             ),
                         ])
@@ -411,13 +372,10 @@ async function computePlanMetrics(
                     }
                 }
 
-                const proposedDose = calculateDose(
-                    field.applications.map((app) => ({
-                        p_id_catalogue: app.p_id_catalogue,
-                        p_app_amount: app.p_app_amount,
-                    })),
-                    fertilizers as any,
-                )
+                const proposedDose = calculateDose({
+                    applications: syntheticApps,
+                    fertilizers,
+                })
 
                 fieldMetricsMap[field.b_id] = {
                     normsFilling: {
@@ -435,6 +393,7 @@ async function computePlanMetrics(
                         },
                     },
                     omBalance: null, // Stubbed for fallback
+                    eomSupplyPerHa,
                     advice,
                     proposedDose,
                 }
@@ -461,6 +420,7 @@ async function computePlanMetrics(
             norms: fieldMetricsMap[f.b_id].norms,
         })),
     )
+
     const farmFillingsKg = aggregateNormFillingsToFarmLevel(
         validFields.map((f) => ({
             b_id: f.b_id,
@@ -510,10 +470,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const {
             errors,
             data: formValues,
-            receivedValues: defaultValues,
         } = await getValidatedFormData<z.infer<typeof GerritFormSchema>>(
             clonedRequest,
-            zodResolver(GerritFormSchema),
+            zodResolver(GerritFormSchema) as any,
         )
         if (errors || !formValues) {
             return dataWithError(
@@ -604,10 +563,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
             rawResult = agentResult.result
             usageData = agentResult.usage
-        } catch (err: any) {
+        } catch (err: unknown) {
             return dataWithError(
                 null,
-                err?.message ?? "Gerrit kon geen plan genereren.",
+                err instanceof Error
+                    ? err.message
+                    : "Gerrit kon geen plan genereren.",
             )
         }
 
@@ -619,9 +580,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 "Gerrit gaf een onleesbaar antwoord. Probeer het opnieuw.",
             )
 
-        let parsedPlan: any
+        let parsedPlan: ParsedPlan
         try {
-            parsedPlan = JSON.parse(rawResult.slice(firstBrace, lastBrace + 1))
+            parsedPlan = JSON.parse(
+                rawResult.slice(firstBrace, lastBrace + 1),
+            ) as ParsedPlan
         } catch {
             return dataWithError(
                 null,
@@ -631,7 +594,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const enrichedPlan = fieldsData.map((fd) => {
             const proposedField = parsedPlan.plan?.find(
-                (p: any) => p.b_id === fd.b_id,
+                (p) => p.b_id === fd.b_id,
             )
             return {
                 b_id: fd.b_id,
@@ -641,9 +604,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 b_lu_croprotation: fd.b_lu_croprotation,
                 b_area: fd.b_area,
                 applications: (proposedField?.applications || []).map(
-                    (app: any) => {
+                    (app) => {
                         const fert = fertilizers.find(
-                            (f: any) => f.p_id_catalogue === app.p_id_catalogue,
+                            (f: Fertilizer) =>
+                                f.p_id_catalogue === app.p_id_catalogue,
                         )
                         return {
                             ...app,
@@ -652,7 +616,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         }
                     },
                 ),
-                fieldMetrics: null as any,
+                fieldMetrics: null as FieldMetrics | null,
             }
         })
 
@@ -768,7 +732,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 for (const field of plan.plan) {
                     for (const app of field.applications) {
                         const fertilizer = fertilizers.find(
-                            (f: any) => f.p_id_catalogue === app.p_id_catalogue,
+                            (f: Fertilizer) =>
+                                f.p_id_catalogue === app.p_id_catalogue,
                         )
                         if (!fertilizer) {
                             console.warn(
@@ -794,227 +759,28 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 `./rotation/fertilizer`,
                 "Gerrit's plan is succesvol toegepast!",
             )
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error("Save failed:", e)
-            return dataWithError(null, "Fout bij opslaan: " + e.message)
+            return dataWithError(
+                null,
+                "Fout bij opslaan: " +
+                    (e instanceof Error ? e.message : String(e)),
+            )
         }
     }
 
     return null
 }
 
-function FertilizerIcon({ p_type }: { p_type: string }) {
-    if (p_type === "manure")
-        return (
-            <Square className="size-3 text-yellow-600 fill-yellow-600 shrink-0" />
-        )
-    if (p_type === "mineral")
-        return <Circle className="size-3 text-sky-600 fill-sky-600 shrink-0" />
-    if (p_type === "compost")
-        return (
-            <Triangle className="size-3 text-green-600 fill-green-600 shrink-0" />
-        )
-    return <Diamond className="size-3 text-gray-500 fill-gray-500 shrink-0" />
-}
-
-function appUnit(p_type: string): string {
-    if (p_type === "manure") return "m³/ha"
-    if (p_type === "compost") return "t/ha"
-    return "kg/ha"
-}
-
-function NormBar({
-    label,
-    filling,
-    norm,
-}: {
-    label: string
-    filling: number
-    norm: number
-}) {
-    const pct = norm > 0 ? (filling / norm) * 100 : 0
-    const over = filling > norm
-    return (
-        <div className="space-y-1.5">
-            <div className="flex justify-between items-center gap-2">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                    {label}
-                </span>
-                <span
-                    className={`text-xs font-bold tabular-nums shrink-0 ${over ? "text-red-600" : "text-foreground"}`}
-                >
-                    {Math.round(filling)} / {Math.round(norm)} kg
-                </span>
-            </div>
-            <Progress
-                value={Math.min(pct, 100)}
-                colorBar={over ? "red-500" : "green-500"}
-                className="h-2"
-            />
-        </div>
-    )
-}
-
-function GerritLoading() {
-    const [elapsed, setElapsed] = useState(0)
-    const startRef = useRef(Date.now())
-    useEffect(() => {
-        const id = setInterval(
-            () =>
-                setElapsed(Math.floor((Date.now() - startRef.current) / 1000)),
-            1000,
-        )
-        return () => clearInterval(id)
-    }, [])
-    const elapsedStr =
-        elapsed >= 60
-            ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`
-            : `${elapsed}s`
-    return (
-        <Card className="shadow-sm">
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between text-base font-semibold">
-                    <span className="flex items-center gap-2">
-                        <Bot className="w-5 h-5 text-primary animate-pulse" />
-                        Gerrit is aan het werk…
-                    </span>
-                    <span className="text-sm font-normal tabular-nums text-muted-foreground">
-                        {elapsedStr}
-                    </span>
-                </CardTitle>
-                <CardDescription>
-                    Dit kan 2–5 minuten duren. Gerrit analyseert het bedrijf en
-                    stelt het bemestingsplan op.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Spinner className="h-4 w-4 shrink-0 text-primary" />
-                    <span>
-                        Gerrit is bezig. Dit kan enkele minuten duren,
-                        afhankelijk van het gekozen model en de omvang van het
-                        bedrijf.
-                    </span>
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
-
-const columnHelper = createColumnHelper<any>()
-
-const columns = [
-    columnHelper.accessor("b_name", {
-        header: "Perceel",
-        cell: (info) => (
-            <span className="font-medium text-foreground">
-                {info.getValue()}
-            </span>
-        ),
-    }),
-    columnHelper.accessor("b_lu_name", {
-        header: "Gewas",
-        cell: (info) => {
-            const row = info.row.original
-            return (
-                <Badge
-                    style={{
-                        backgroundColor: getCultivationColor(
-                            row.b_lu_croprotation,
-                        ),
-                    }}
-                    className="text-white text-xs font-normal"
-                >
-                    {info.getValue() || row.b_lu_catalogue}
-                </Badge>
-            )
-        },
-    }),
-    columnHelper.accessor("b_area", {
-        header: "Opp.",
-        cell: (info) => {
-            const ha = info.getValue()
-            return (
-                <span className="text-muted-foreground tabular-nums text-sm">
-                    {ha == null
-                        ? "—"
-                        : ha < 0.1
-                          ? "< 0.1 ha"
-                          : `${ha.toFixed(1)} ha`}
-                </span>
-            )
-        },
-    }),
-    columnHelper.accessor("applications", {
-        header: "Bemestingsmaatregelen",
-        cell: (info) => {
-            const apps = (info.getValue() as any[])
-                ?.slice()
-                .sort(
-                    (a, b) =>
-                        new Date(a.p_app_date).getTime() -
-                        new Date(b.p_app_date).getTime(),
-                )
-            if (!apps || apps.length === 0)
-                return (
-                    <Badge variant="outline" className="font-normal opacity-60">
-                        Geen bemesting
-                    </Badge>
-                )
-            return (
-                <div className="flex flex-col gap-1.5">
-                    {apps.map((app, i) => (
-                        <Badge
-                            key={i}
-                            variant="outline"
-                            className="gap-1.5 font-normal text-muted-foreground w-fit"
-                        >
-                            <FertilizerIcon p_type={app.p_type} />
-                            <span className="font-medium text-foreground">
-                                {app.p_name_nl}
-                            </span>
-                            <span className="tabular-nums">
-                                {app.p_app_amount} {appUnit(app.p_type)}
-                            </span>
-                            <span className="text-muted-foreground/70">·</span>
-                            <span>{app.p_app_date}</span>
-                        </Badge>
-                    ))}
-                </div>
-            )
-        },
-    }),
-]
-
-const STRATEGY_LABELS: Record<string, string> = {
-    isOrganic: "Biologisch",
-    fillManureSpace: "Max. mestplaatsing",
-    reduceAmmoniaEmissions: "Emissiearme aanwending",
-    keepNitrogenBalanceBelowTarget: "Doelsturing N",
-    workOnRotationLevel: "Bouwplanniveau",
-}
-
-const GEMINI_MODELS = [
-    { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (standaard)" },
-    { value: "gemini-3-flash-preview", label: "Gemini 3 Flash (snel)" },
-    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (stabiel)" },
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (zuinig)" },
-    {
-        value: "gemini-3.1-flash-lite-preview",
-        label: "Gemini 3.1 Flash Lite (goedkoopst)",
-    },
-]
-
 export default function GerritApp() {
     const { farm, farmOptions, defaultStrategies } =
         useLoaderData<typeof loader>()
     const actionData = useActionData<typeof action>()
     const navigation = useNavigation()
-    const { b_id_farm, calendar } = useParams()
 
     const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(GerritFormSchema),
+        resolver: zodResolver(GerritFormSchema) as any,
         defaultValues: {
             ...defaultStrategies,
             reduceAmmoniaEmissions: false,
@@ -1025,7 +791,6 @@ export default function GerritApp() {
         },
     })
 
-    const selectedModel = form.watch("geminiModel")
     const additionalContextValue = form.watch("additionalContext")
 
     const isGenerating =
@@ -1056,13 +821,6 @@ export default function GerritApp() {
         })
     }
 
-    const table = useReactTable({
-        data: plan?.plan || [],
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-    })
-
     const activeStrategyLabels = strategies
         ? Object.entries(strategies)
               .filter(([, v]) => v === true)
@@ -1083,379 +841,18 @@ export default function GerritApp() {
                     <div className="lg:col-span-1 flex flex-col gap-6">
                         {/* Strategy form OR compact summary */}
                         {showStrategyForm ? (
-                            <Card className="h-fit sticky top-6">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-                                        <Bot className="w-6 h-6 text-primary" />
-                                        Bedrijfsstrategie & voorkeuren
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Stel de kaders in waarbinnen Gerrit het
-                                        optimale bemestingsplan berekent.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <RemixFormProvider {...form}>
-                                        <Form
-                                            method="post"
-                                            className="space-y-8"
-                                        >
-                                            <input
-                                                type="hidden"
-                                                name="intent"
-                                                value="generate"
-                                            />
-                                            <div className="space-y-6">
-                                                {[
-                                                    "isOrganic",
-                                                    "fillManureSpace",
-                                                    "reduceAmmoniaEmissions",
-                                                    "keepNitrogenBalanceBelowTarget",
-                                                    "workOnRotationLevel",
-                                                ].map((name) => (
-                                                    <div
-                                                        key={name}
-                                                        className="flex items-start justify-between gap-4"
-                                                    >
-                                                        <div className="space-y-1">
-                                                            <Label
-                                                                htmlFor={name}
-                                                                className="text-base"
-                                                            >
-                                                                {
-                                                                    STRATEGY_LABELS[
-                                                                        name
-                                                                    ]
-                                                                }
-                                                            </Label>
-                                                            <p className="text-sm text-muted-foreground leading-snug">
-                                                                {name ===
-                                                                    "isOrganic" &&
-                                                                    "Geen gebruik van minerale kunstmeststoffen."}
-                                                                {name ===
-                                                                    "fillManureSpace" &&
-                                                                    "Volledig invullen van de gebruiksnorm voor dierlijke mest."}
-                                                                {name ===
-                                                                    "reduceAmmoniaEmissions" &&
-                                                                    "Reductie van ammoniakemissies via optimale techniek."}
-                                                                {name ===
-                                                                    "keepNitrogenBalanceBelowTarget" &&
-                                                                    "Stikstofoverschot beperken tot onder de doelwaarde."}
-                                                                {name ===
-                                                                    "workOnRotationLevel" &&
-                                                                    "Percelen met hetzelfde gewas krijgen exact hetzelfde plan."}
-                                                            </p>
-                                                        </div>
-                                                        <Controller
-                                                            name={
-                                                                name as keyof z.infer<
-                                                                    typeof GerritFormSchema
-                                                                >
-                                                            }
-                                                            control={
-                                                                form.control
-                                                            }
-                                                            render={({
-                                                                field,
-                                                            }) => (
-                                                                <Switch
-                                                                    id={name}
-                                                                    checked={
-                                                                        field.value as boolean
-                                                                    }
-                                                                    onCheckedChange={
-                                                                        field.onChange
-                                                                    }
-                                                                    className="mt-1"
-                                                                />
-                                                            )}
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div className="space-y-3 pt-2">
-                                                <div className="flex justify-between items-end">
-                                                    <Label
-                                                        htmlFor="additionalContext"
-                                                        className="text-base"
-                                                    >
-                                                        Aanvullende opmerkingen
-                                                        of wensen
-                                                    </Label>
-                                                    <span
-                                                        className={`text-xs ${additionalContextValue?.length > 1000 ? "text-red-500 font-medium" : "text-muted-foreground"}`}
-                                                    >
-                                                        {additionalContextValue?.length ||
-                                                            0}{" "}
-                                                        / 1000
-                                                    </span>
-                                                </div>
-                                                <Textarea
-                                                    id="additionalContext"
-                                                    placeholder="Bijv: Gebruik bij voorkeur eigen drijfmest op de huiskavel..."
-                                                    className={`min-h-[100px] resize-none ${form.formState.errors.additionalContext ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                                                    maxLength={1000}
-                                                    {...form.register(
-                                                        "additionalContext",
-                                                    )}
-                                                />
-                                                {form.formState.errors
-                                                    .additionalContext && (
-                                                    <p className="text-sm text-red-500">
-                                                        {
-                                                            form.formState
-                                                                .errors
-                                                                .additionalContext
-                                                                .message
-                                                        }
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="space-y-2 pt-2">
-                                                <Label
-                                                    htmlFor="geminiModel"
-                                                    className="text-sm font-medium text-muted-foreground"
-                                                >
-                                                    AI-model
-                                                </Label>
-                                                <Controller
-                                                    name="geminiModel"
-                                                    control={form.control}
-                                                    render={({ field }) => (
-                                                        <Select
-                                                            value={field.value}
-                                                            onValueChange={
-                                                                field.onChange
-                                                            }
-                                                        >
-                                                            <SelectTrigger
-                                                                id="geminiModel"
-                                                                className="w-full text-sm"
-                                                            >
-                                                                <SelectValue />
-                                                                <input
-                                                                    type="hidden"
-                                                                    name="geminiModel"
-                                                                    value={
-                                                                        field.value
-                                                                    }
-                                                                />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {GEMINI_MODELS.map(
-                                                                    (m) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                m.value
-                                                                            }
-                                                                            value={
-                                                                                m.value
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                m.label
-                                                                            }
-                                                                        </SelectItem>
-                                                                    ),
-                                                                )}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )}
-                                                />
-                                            </div>
-                                            <Button
-                                                type="submit"
-                                                className="w-full py-6 text-lg"
-                                                disabled={isGenerating}
-                                            >
-                                                {isGenerating ? (
-                                                    <>
-                                                        <Spinner className="mr-3 h-5 w-5" />
-                                                        Gerrit berekent het
-                                                        plan...
-                                                    </>
-                                                ) : (
-                                                    "Bemestingsplan genereren"
-                                                )}
-                                            </Button>
-                                        </Form>
-                                    </RemixFormProvider>
-                                </CardContent>
-                            </Card>
+                            <StrategyForm
+                                form={form as any}
+                                isGenerating={isGenerating}
+                                additionalContextValue={additionalContextValue}
+                            />
                         ) : (
-                            <>
-                                {/* Farm-level norm compliance — first so users see compliance status immediately */}
-                                {farmTotals && (
-                                    <Card className="shadow-sm">
-                                        <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm font-semibold">
-                                                Bedrijfsnormen
-                                            </CardTitle>
-                                            <CardDescription className="text-xs">
-                                                Totale invulling op
-                                                bedrijfsniveau (kg)
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <NormBar
-                                                label="Dierlijke mest N"
-                                                filling={
-                                                    farmTotals.fillingKg
-                                                        .animalManureN
-                                                }
-                                                norm={
-                                                    farmTotals.normKg
-                                                        .animalManureN
-                                                }
-                                            />
-                                            <NormBar
-                                                label="Werkzame stikstof N"
-                                                filling={
-                                                    farmTotals.fillingKg
-                                                        .workableN
-                                                }
-                                                norm={
-                                                    farmTotals.normKg.workableN
-                                                }
-                                            />
-                                            <NormBar
-                                                label="Fosfaat P₂O₅"
-                                                filling={
-                                                    farmTotals.fillingKg
-                                                        .phosphate
-                                                }
-                                                norm={
-                                                    farmTotals.normKg.phosphate
-                                                }
-                                            />
-                                            {/* N-balance: overschot/tekort vs. norm */}
-                                            {farmTotals.normKg.workableN > 0 &&
-                                                (() => {
-                                                    const surplus =
-                                                        farmTotals.fillingKg
-                                                            .workableN -
-                                                        farmTotals.normKg
-                                                            .workableN
-                                                    const isOver = surplus > 0
-                                                    return (
-                                                        <div className="pt-2 border-t space-y-1.5">
-                                                            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                                                                Stikstofbalans
-                                                            </span>
-                                                            <div className="flex justify-between items-baseline gap-2">
-                                                                <span className="text-xs text-muted-foreground">
-                                                                    Aanvoer
-                                                                    werkzaam N
-                                                                </span>
-                                                                <span className="text-xs font-semibold tabular-nums">
-                                                                    {Math.round(
-                                                                        farmTotals
-                                                                            .fillingKg
-                                                                            .workableN,
-                                                                    )}{" "}
-                                                                    kg
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex justify-between items-baseline gap-2">
-                                                                <span className="text-xs text-muted-foreground">
-                                                                    Doelwaarde
-                                                                    (norm)
-                                                                </span>
-                                                                <span className="text-xs font-semibold tabular-nums">
-                                                                    {Math.round(
-                                                                        farmTotals
-                                                                            .normKg
-                                                                            .workableN,
-                                                                    )}{" "}
-                                                                    kg
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex justify-between items-baseline gap-2 pt-0.5 border-t">
-                                                                <span className="text-xs font-medium">
-                                                                    {isOver
-                                                                        ? "Overschot"
-                                                                        : "Onderschrijding"}
-                                                                </span>
-                                                                <span
-                                                                    className={`text-xs font-bold tabular-nums ${isOver ? "text-red-600" : "text-green-600"}`}
-                                                                >
-                                                                    {isOver
-                                                                        ? "+"
-                                                                        : ""}
-                                                                    {Math.round(
-                                                                        surplus,
-                                                                    )}{" "}
-                                                                    kg
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })()}
-                                        </CardContent>
-                                    </Card>
-                                )}
-
-                                {/* Gerrit's narrative summary */}
-                                {plan?.summary && (
-                                    <Card className="bg-primary/5 border-primary/20">
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-primary">
-                                                <Info className="w-4 h-4" />
-                                                Toelichting van Gerrit
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground italic">
-                                                "{plan.summary}"
-                                            </p>
-                                        </CardContent>
-                                    </Card>
-                                )}
-
-                                {/* Compact strategy summary */}
-                                <Card>
-                                    <CardHeader className="pb-3">
-                                        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                                            <Bot className="w-5 h-5 text-primary" />
-                                            Gehanteerde strategie
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {activeStrategyLabels.length > 0 ? (
-                                            <div className="flex flex-wrap gap-2">
-                                                {activeStrategyLabels.map(
-                                                    (label) => (
-                                                        <Badge
-                                                            key={label}
-                                                            variant="secondary"
-                                                        >
-                                                            {label}
-                                                        </Badge>
-                                                    ),
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">
-                                                Geen specifieke strategie
-                                                geselecteerd.
-                                            </p>
-                                        )}
-                                    </CardContent>
-                                    <CardFooter className="border-t pt-4">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full gap-2"
-                                            onClick={() =>
-                                                setShowStrategyForm(true)
-                                            }
-                                        >
-                                            <Pencil className="h-3.5 w-3.5" />
-                                            Wijzig & herbereken
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            </>
+                            <SummaryCards
+                                farmTotals={farmTotals}
+                                planSummary={plan?.summary}
+                                activeStrategyLabels={activeStrategyLabels}
+                                onEditStrategy={() => setShowStrategyForm(true)}
+                            />
                         )}
                     </div>
 
@@ -1464,679 +861,12 @@ export default function GerritApp() {
                         {isGenerating ? (
                             <GerritLoading />
                         ) : plan ? (
-                            /* Plan table */
-                            <Card className="shadow-sm">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">
-                                        Voorgesteld bemestingsplan
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Klik op een rij voor perceeldetails
-                                        (normen, N-balans, organische
-                                        stofbalans).
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    <div className="rounded-md border-y">
-                                        <Table>
-                                            <TableHeader className="bg-muted/30">
-                                                {table
-                                                    .getHeaderGroups()
-                                                    .map((hg) => (
-                                                        <TableRow key={hg.id}>
-                                                            {hg.headers.map(
-                                                                (h) => (
-                                                                    <TableHead
-                                                                        key={
-                                                                            h.id
-                                                                        }
-                                                                        className="font-semibold"
-                                                                    >
-                                                                        {h.isPlaceholder
-                                                                            ? null
-                                                                            : flexRender(
-                                                                                  h
-                                                                                      .column
-                                                                                      .columnDef
-                                                                                      .header,
-                                                                                  h.getContext(),
-                                                                              )}
-                                                                    </TableHead>
-                                                                ),
-                                                            )}
-                                                            <TableHead className="w-8" />
-                                                        </TableRow>
-                                                    ))}
-                                            </TableHeader>
-                                            <TableBody>
-                                                {table.getRowModel().rows
-                                                    ?.length ? (
-                                                    table
-                                                        .getRowModel()
-                                                        .rows.map((row) => {
-                                                            const m =
-                                                                row.original
-                                                                    .fieldMetrics
-                                                            const isExpanded =
-                                                                expandedRows.has(
-                                                                    row.original
-                                                                        .b_id,
-                                                                )
-                                                            const hasMetrics =
-                                                                m != null
-                                                            return (
-                                                                <Fragment
-                                                                    key={row.id}
-                                                                >
-                                                                    <TableRow
-                                                                        className={`hover:bg-muted/20 transition-colors ${hasMetrics ? "cursor-pointer" : ""}`}
-                                                                        onClick={() =>
-                                                                            hasMetrics &&
-                                                                            toggleRow(
-                                                                                row
-                                                                                    .original
-                                                                                    .b_id,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        {row
-                                                                            .getVisibleCells()
-                                                                            .map(
-                                                                                (
-                                                                                    cell,
-                                                                                ) => (
-                                                                                    <TableCell
-                                                                                        key={
-                                                                                            cell.id
-                                                                                        }
-                                                                                        className="py-3"
-                                                                                    >
-                                                                                        {flexRender(
-                                                                                            cell
-                                                                                                .column
-                                                                                                .columnDef
-                                                                                                .cell,
-                                                                                            cell.getContext(),
-                                                                                        )}
-                                                                                    </TableCell>
-                                                                                ),
-                                                                            )}
-                                                                        <TableCell className="py-3">
-                                                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                                                {hasMetrics &&
-                                                                                    m.advice &&
-                                                                                    (() => {
-                                                                                        const hasAdvice =
-                                                                                            m
-                                                                                                .advice
-                                                                                                .d_n_req >
-                                                                                                0 ||
-                                                                                            m
-                                                                                                .advice
-                                                                                                .d_p_req >
-                                                                                                0 ||
-                                                                                            m
-                                                                                                .advice
-                                                                                                .d_k_req >
-                                                                                                0
-                                                                                        if (
-                                                                                            !hasAdvice
-                                                                                        )
-                                                                                            return null
-
-                                                                                        const badges =
-                                                                                            [
-                                                                                                {
-                                                                                                    key: "N",
-                                                                                                    fill:
-                                                                                                        m
-                                                                                                            .proposedDose
-                                                                                                            ?.p_dose_n ??
-                                                                                                        0,
-                                                                                                    ref: m
-                                                                                                        .advice
-                                                                                                        .d_n_req,
-                                                                                                },
-                                                                                                {
-                                                                                                    key: "P",
-                                                                                                    fill:
-                                                                                                        m
-                                                                                                            .proposedDose
-                                                                                                            ?.p_dose_p ??
-                                                                                                        0,
-                                                                                                    ref: m
-                                                                                                        .advice
-                                                                                                        .d_p_req,
-                                                                                                },
-                                                                                                {
-                                                                                                    key: "K",
-                                                                                                    fill:
-                                                                                                        m
-                                                                                                            .proposedDose
-                                                                                                            ?.p_dose_k ??
-                                                                                                        0,
-                                                                                                    ref: m
-                                                                                                        .advice
-                                                                                                        .d_k_req,
-                                                                                                },
-                                                                                            ]
-                                                                                        return badges.map(
-                                                                                            ({
-                                                                                                key,
-                                                                                                fill,
-                                                                                                ref,
-                                                                                            }) => {
-                                                                                                if (
-                                                                                                    ref <=
-                                                                                                    0
-                                                                                                )
-                                                                                                    return null
-                                                                                                const pct =
-                                                                                                    Math.round(
-                                                                                                        (fill /
-                                                                                                            ref) *
-                                                                                                            100,
-                                                                                                    )
-                                                                                                const over =
-                                                                                                    fill >
-                                                                                                    ref
-                                                                                                return (
-                                                                                                    <span
-                                                                                                        key={
-                                                                                                            key
-                                                                                                        }
-                                                                                                        title={`Advies: ${Math.round(ref)} kg/ha`}
-                                                                                                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${over ? "bg-red-100 text-red-700" : pct >= 80 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
-                                                                                                    >
-                                                                                                        {
-                                                                                                            key
-                                                                                                        }{" "}
-                                                                                                        {
-                                                                                                            pct
-                                                                                                        }
-                                                                                                        %
-                                                                                                    </span>
-                                                                                                )
-                                                                                            },
-                                                                                        )
-                                                                                    })()}
-                                                                                {hasMetrics &&
-                                                                                    (isExpanded ? (
-                                                                                        <ChevronUp className="h-4 w-4 text-muted-foreground ml-1" />
-                                                                                    ) : (
-                                                                                        <ChevronDown className="h-4 w-4 text-muted-foreground ml-1" />
-                                                                                    ))}
-                                                                            </div>
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                    {isExpanded &&
-                                                                        hasMetrics && (
-                                                                            <TableRow className="bg-muted/10 hover:bg-muted/10">
-                                                                                <TableCell
-                                                                                    colSpan={
-                                                                                        columns.length +
-                                                                                        1
-                                                                                    }
-                                                                                    className="py-4 px-6"
-                                                                                >
-                                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
-                                                                                        {m.normsFilling &&
-                                                                                            m.norms && (
-                                                                                                <div className="space-y-2">
-                                                                                                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                                                        Normen
-                                                                                                        (kg/ha)
-                                                                                                    </p>
-                                                                                                    {[
-                                                                                                        {
-                                                                                                            label: "Dierlijke mest N",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .normsFilling
-                                                                                                                    .manure
-                                                                                                                    ?.normFilling ??
-                                                                                                                0,
-                                                                                                            norm:
-                                                                                                                m
-                                                                                                                    .norms
-                                                                                                                    .manure
-                                                                                                                    ?.normValue ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            label: "Werkzame N",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .normsFilling
-                                                                                                                    .nitrogen
-                                                                                                                    ?.normFilling ??
-                                                                                                                0,
-                                                                                                            norm:
-                                                                                                                m
-                                                                                                                    .norms
-                                                                                                                    .nitrogen
-                                                                                                                    ?.normValue ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            label: "Fosfaat P₂O₅",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .normsFilling
-                                                                                                                    .phosphate
-                                                                                                                    ?.normFilling ??
-                                                                                                                0,
-                                                                                                            norm:
-                                                                                                                m
-                                                                                                                    .norms
-                                                                                                                    .phosphate
-                                                                                                                    ?.normValue ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                    ].map(
-                                                                                                        ({
-                                                                                                            label,
-                                                                                                            fill,
-                                                                                                            norm,
-                                                                                                        }) => (
-                                                                                                            <div
-                                                                                                                key={
-                                                                                                                    label
-                                                                                                                }
-                                                                                                                className="space-y-1"
-                                                                                                            >
-                                                                                                                <div className="flex justify-between text-xs">
-                                                                                                                    <span className="text-muted-foreground">
-                                                                                                                        {
-                                                                                                                            label
-                                                                                                                        }
-                                                                                                                    </span>
-                                                                                                                    <span
-                                                                                                                        className={`tabular-nums font-medium ${fill > norm ? "text-red-600" : "text-foreground"}`}
-                                                                                                                    >
-                                                                                                                        {Math.round(
-                                                                                                                            fill,
-                                                                                                                        )}{" "}
-                                                                                                                        /{" "}
-                                                                                                                        {Math.round(
-                                                                                                                            norm,
-                                                                                                                        )}
-                                                                                                                    </span>
-                                                                                                                </div>
-                                                                                                                <Progress
-                                                                                                                    value={Math.min(
-                                                                                                                        norm >
-                                                                                                                            0
-                                                                                                                            ? (fill /
-                                                                                                                                  norm) *
-                                                                                                                                  100
-                                                                                                                            : 0,
-                                                                                                                        100,
-                                                                                                                    )}
-                                                                                                                    colorBar={
-                                                                                                                        fill >
-                                                                                                                        norm
-                                                                                                                            ? "red-500"
-                                                                                                                            : "green-500"
-                                                                                                                    }
-                                                                                                                    className="h-1.5"
-                                                                                                                />
-                                                                                                            </div>
-                                                                                                        ),
-                                                                                                    )}
-                                                                                                </div>
-                                                                                            )}
-                                                                                        {m.nBalance && (
-                                                                                            <div className="space-y-2">
-                                                                                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                                                    Stikstofbalans
-                                                                                                </p>
-                                                                                                <div className="flex justify-between text-sm items-center">
-                                                                                                    <span className="text-muted-foreground">
-                                                                                                        Balans
-                                                                                                        vs.
-                                                                                                        doel
-                                                                                                    </span>
-                                                                                                    <span
-                                                                                                        className={`font-semibold tabular-nums ${m.nBalance.balance <= m.nBalance.target ? "text-green-600" : "text-amber-600"}`}
-                                                                                                    >
-                                                                                                        {Math.round(
-                                                                                                            m
-                                                                                                                .nBalance
-                                                                                                                .balance,
-                                                                                                        )}{" "}
-                                                                                                        /{" "}
-                                                                                                        {Math.round(
-                                                                                                            m
-                                                                                                                .nBalance
-                                                                                                                .target,
-                                                                                                        )}{" "}
-                                                                                                        kg
-                                                                                                        N/ha
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                                <Progress
-                                                                                                    value={Math.min(
-                                                                                                        m
-                                                                                                            .nBalance
-                                                                                                            .target >
-                                                                                                            0
-                                                                                                            ? (m
-                                                                                                                  .nBalance
-                                                                                                                  .balance /
-                                                                                                                  m
-                                                                                                                      .nBalance
-                                                                                                                      .target) *
-                                                                                                                  100
-                                                                                                            : 0,
-                                                                                                        100,
-                                                                                                    )}
-                                                                                                    colorBar={
-                                                                                                        m
-                                                                                                            .nBalance
-                                                                                                            .balance <=
-                                                                                                        m
-                                                                                                            .nBalance
-                                                                                                            .target
-                                                                                                            ? "green-500"
-                                                                                                            : "amber-500"
-                                                                                                    }
-                                                                                                    className="h-1.5"
-                                                                                                />
-                                                                                            </div>
-                                                                                        )}
-                                                                                        {(m.eomSupplyPerHa !=
-                                                                                            null ||
-                                                                                            m.omBalance !=
-                                                                                                null) && (
-                                                                                            <div className="space-y-2">
-                                                                                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                                                    Effectieve
-                                                                                                    organische
-                                                                                                    stof
-                                                                                                </p>
-                                                                                                <div className="flex justify-between items-center text-sm">
-                                                                                                    <span className="text-muted-foreground">
-                                                                                                        Aanvoer
-                                                                                                        EOM
-                                                                                                        (kg/ha)
-                                                                                                    </span>
-                                                                                                    <span
-                                                                                                        className={`font-semibold tabular-nums ${(m.eomSupplyPerHa ?? m.omBalance ?? 0) >= 0 ? "text-green-600" : "text-red-600"}`}
-                                                                                                    >
-                                                                                                        {(m.eomSupplyPerHa ??
-                                                                                                            m.omBalance ??
-                                                                                                            0) >
-                                                                                                        0
-                                                                                                            ? "+"
-                                                                                                            : ""}
-                                                                                                        {Math.round(
-                                                                                                            m.eomSupplyPerHa ??
-                                                                                                                m.omBalance ??
-                                                                                                                0,
-                                                                                                        )}{" "}
-                                                                                                        kg
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                                <p className="text-xs text-muted-foreground">
-                                                                                                    EOM-aanvoer
-                                                                                                    via
-                                                                                                    meststoffen
-                                                                                                    in
-                                                                                                    het
-                                                                                                    voorgestelde
-                                                                                                    plan
-                                                                                                </p>
-                                                                                            </div>
-                                                                                        )}
-                                                                                        {m.advice &&
-                                                                                            m.proposedDose &&
-                                                                                            (() => {
-                                                                                                const otherNutrients =
-                                                                                                    [
-                                                                                                        {
-                                                                                                            key: "S",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_s ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_s_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "Mg",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_mg ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_mg_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "Ca",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_ca ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_ca_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "Na",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_na ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_na_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "Cu",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_cu ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_cu_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "Zn",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_zn ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_zn_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "B",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_b ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_b_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "Mn",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_mn ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_mn_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "Mo",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_mo ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_mo_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                        {
-                                                                                                            key: "Co",
-                                                                                                            fill:
-                                                                                                                m
-                                                                                                                    .proposedDose
-                                                                                                                    .p_dose_co ??
-                                                                                                                0,
-                                                                                                            ref:
-                                                                                                                m
-                                                                                                                    .advice
-                                                                                                                    .d_co_req ??
-                                                                                                                0,
-                                                                                                        },
-                                                                                                    ].filter(
-                                                                                                        (
-                                                                                                            n,
-                                                                                                        ) =>
-                                                                                                            n.ref >
-                                                                                                            0,
-                                                                                                    )
-
-                                                                                                if (
-                                                                                                    otherNutrients.length ===
-                                                                                                    0
-                                                                                                )
-                                                                                                    return null
-
-                                                                                                return (
-                                                                                                    <div className="space-y-2">
-                                                                                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                                                            Overige
-                                                                                                            Nutriënten
-                                                                                                        </p>
-                                                                                                        <div className="flex flex-wrap gap-1.5">
-                                                                                                            {otherNutrients.map(
-                                                                                                                ({
-                                                                                                                    key,
-                                                                                                                    fill,
-                                                                                                                    ref,
-                                                                                                                }) => {
-                                                                                                                    const pct =
-                                                                                                                        Math.round(
-                                                                                                                            (fill /
-                                                                                                                                ref) *
-                                                                                                                                100,
-                                                                                                                        )
-                                                                                                                    const over =
-                                                                                                                        fill >
-                                                                                                                        ref
-                                                                                                                    return (
-                                                                                                                        <span
-                                                                                                                            key={
-                                                                                                                                key
-                                                                                                                            }
-                                                                                                                            title={`Advies: ${Math.round(ref)} kg/ha, Aangevoerd: ${Math.round(fill)} kg/ha`}
-                                                                                                                            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${over ? "bg-red-100 text-red-700" : pct >= 80 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
-                                                                                                                        >
-                                                                                                                            {
-                                                                                                                                key
-                                                                                                                            }{" "}
-                                                                                                                            {
-                                                                                                                                pct
-                                                                                                                            }
-                                                                                                                            %
-                                                                                                                        </span>
-                                                                                                                    )
-                                                                                                                },
-                                                                                                            )}
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                )
-                                                                                            })()}
-                                                                                    </div>
-                                                                                </TableCell>
-                                                                            </TableRow>
-                                                                        )}
-                                                                </Fragment>
-                                                            )
-                                                        })
-                                                ) : (
-                                                    <TableRow>
-                                                        <TableCell
-                                                            colSpan={
-                                                                columns.length +
-                                                                1
-                                                            }
-                                                            className="h-32 text-center text-muted-foreground"
-                                                        >
-                                                            Geen percelen
-                                                            gevonden om te
-                                                            bemesten.
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="flex justify-end gap-4 border-t p-6 bg-muted/5">
-                                    <Form method="post">
-                                        <input
-                                            type="hidden"
-                                            name="intent"
-                                            value="accept"
-                                        />
-                                        <input
-                                            type="hidden"
-                                            name="plan"
-                                            value={JSON.stringify(plan)}
-                                        />
-                                        <Button
-                                            type="submit"
-                                            size="lg"
-                                            className="px-8"
-                                            disabled={isSaving}
-                                        >
-                                            {isSaving ? (
-                                                <Spinner className="mr-2" />
-                                            ) : (
-                                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                            )}
-                                            Plan definitief maken en toepassen
-                                        </Button>
-                                    </Form>
-                                </CardFooter>
-                            </Card>
+                            <PlanTable
+                                plan={plan}
+                                isSaving={isSaving}
+                                expandedRows={expandedRows}
+                                toggleRow={toggleRow}
+                            />
                         ) : (
                             <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
                                 <div className="bg-primary/10 p-6 rounded-full mb-6">
