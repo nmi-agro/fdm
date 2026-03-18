@@ -16,7 +16,7 @@ describe("calculateOrganicMatterDegradation", () => {
                 b_lu_catalogue: "grass",
                 b_lu_croprotation: "grass",
                 b_lu_eom: 1000,
-                b_lu_eom_residues: 200,
+                b_lu_eom_residue: 200,
             },
         ],
         [
@@ -25,7 +25,7 @@ describe("calculateOrganicMatterDegradation", () => {
                 b_lu_catalogue: "maize",
                 b_lu_croprotation: "maize",
                 b_lu_eom: 400,
-                b_lu_eom_residues: 800,
+                b_lu_eom_residue: 800,
             },
         ],
     ])
