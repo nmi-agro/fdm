@@ -46,7 +46,9 @@ export function CultivationDetailsCard({
             b_lu_end: cultivation.b_lu_end
                 ? new Date(cultivation.b_lu_end)
                 : null,
-            m_cropresidue: cultivation.m_cropresidue ?? false,
+            m_cropresidue:
+                !!cultivation.b_lu_eom_residue &&
+                (cultivation.m_cropresidue ?? false),
             b_lu_variety: cultivation.b_lu_variety ?? null,
         },
     })
@@ -60,7 +62,9 @@ export function CultivationDetailsCard({
             b_lu_end: cultivation.b_lu_end
                 ? new Date(cultivation.b_lu_end)
                 : null,
-            m_cropresidue: cultivation.m_cropresidue ?? false,
+            m_cropresidue:
+                !!cultivation.b_lu_eom_residue &&
+                (cultivation.m_cropresidue ?? false),
             b_lu_variety: cultivation.b_lu_variety ?? null,
         })
     }, [cultivation, form.reset])
@@ -128,7 +132,13 @@ export function CultivationDetailsCard({
                                     control={form.control}
                                     name="m_cropresidue"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem
+                                            className={cn(
+                                                "flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4",
+                                                /* null or 0 */ !cultivation.b_lu_eom_residue &&
+                                                    "invisible",
+                                            )}
+                                        >
                                             <FormControl>
                                                 <Checkbox
                                                     checked={Boolean(

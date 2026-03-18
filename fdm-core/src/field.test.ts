@@ -761,7 +761,7 @@ describe("Farm Data Model", () => {
                 b_lu_harvestcat: "HC010",
                 b_lu_dm: 500,
                 b_lu_eom: null,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
                 b_lu_yield: 6000,
                 b_lu_hi: 0.4,
                 b_lu_n_harvestable: 4,

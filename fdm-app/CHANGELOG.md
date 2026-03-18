@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.28.3
+
+### Patch Changes
+
+- [#517](https://github.com/nmi-agro/fdm/pull/517) [`5eadcd9`](https://github.com/nmi-agro/fdm/commit/5eadcd98fa121021479ce3f8dca078c9bd4ae962) Thanks [@SvenVw](https://github.com/SvenVw)! - Increase `streamTimeout` from 30s to 90s to reduce timeout errors for large calculations
+
 ## 0.28.2
 
 ### Patch Changes
