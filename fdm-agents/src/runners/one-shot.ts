@@ -1,20 +1,25 @@
 import { InMemoryRunner, isFinalResponse, stringifyContent } from "@google/adk"
 import type { BaseAgent } from "@google/adk"
 
+export interface OneShotAgentResult {
+    result: string
+    usage: { inputTokens: number; outputTokens: number; totalTokens: number } | null
+}
+
 /**
  * Common runner for one-shot agent execution in fdm-agents.
  * @param agent The agent instance to run.
  * @param input The user input string.
  * @param context Extra context to provide to the agent (e.g. fdm, principalId).
  * @param posthog Optional PostHog client and distinctId for tracking.
- * @returns The final response from the agent.
+ * @returns The final response and token usage from the agent.
  */
 export async function runOneShotAgent(
     agent: BaseAgent,
     input: string,
     context: Record<string, any> = {},
     posthog?: { client: any; distinctId: string },
-): Promise<string> {
+): Promise<OneShotAgentResult> {
     const runner = new InMemoryRunner({ agent, appName: "fdm-agents" })
 
     const stream = runner.runEphemeral({
@@ -27,6 +32,9 @@ export async function runOneShotAgent(
     })
 
     let finalResponse = ""
+    let inputTokens = 0
+    let outputTokens = 0
+    let totalTokens = 0
 
     for await (const event of stream) {
         // Surface model errors immediately instead of silently returning empty string.
@@ -36,6 +44,14 @@ export async function runOneShotAgent(
             throw new Error(
                 `Gemini API error [${event.errorCode}]: ${event.errorMessage ?? "unknown error"}`,
             )
+        }
+
+        // Accumulate usage metadata across all events.
+        const usage = event.usageMetadata
+        if (usage) {
+            inputTokens += usage.promptTokenCount ?? 0
+            outputTokens += usage.candidatesTokenCount ?? 0
+            totalTokens += usage.totalTokenCount ?? 0
         }
 
         // Only capture the final text response, not intermediate reasoning or tool calls.
@@ -66,5 +82,8 @@ export async function runOneShotAgent(
         }
     }
 
-    return finalResponse
+    return {
+        result: finalResponse,
+        usage: totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
+    }
 }

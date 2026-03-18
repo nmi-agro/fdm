@@ -4,6 +4,7 @@ import { z } from "zod"
 
 export { createFertilizerPlannerAgent }
 export { runOneShotAgent }
+export type { OneShotAgentResult } from "./runners/one-shot"
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */
@@ -131,7 +132,7 @@ export async function generateFarmFertilizerPlan(
         safeContext,
         fieldsSummary,
     )
-    return runOneShotAgent(
+    return (await runOneShotAgent(
         agent,
         input,
         { 
@@ -143,5 +144,5 @@ export async function generateFarmFertilizerPlan(
             additionalContext: safeContext
         },
         posthog,
-    )
+    )).result
 }
