@@ -307,6 +307,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                     : cropResidue.some((a) => a)
                       ? "some"
                       : "none"
+                const b_lu_eom_residue =
+                    cultivationsForCatalogue[0]?.b_lu_eom_residue
                 const b_lu_harvestable =
                     getHarvestabilityFromCatalogue(b_lu_catalogue)
                 return {
@@ -356,6 +358,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                             })) ?? null,
                     b_lu_croprotation:
                         cultivationsForCatalogue[0]?.b_lu_croprotation ?? "",
+                    b_lu_eom_residue: b_lu_eom_residue,
                     b_lu_harvestable: b_lu_harvestable,
                     b_lu_start: b_lu_start,
                     b_lu_end: b_lu_end,
@@ -463,6 +466,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                                 cultivation.b_lu_end as Date,
                                 cultivation.m_cropresidue ?? false,
                             ]),
+                        b_lu_eom_residue: b_lu_eom_residue,
                         calendar: calendar,
                         fertilizerApplications:
                             field.fertilizerApplications.map((app) => ({

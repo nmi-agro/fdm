@@ -20,7 +20,7 @@ import type {
 import { ServerRouter } from "react-router"
 import { addSecurityHeaders, getCacheControlHeaders } from "./lib/cache.server"
 
-export const streamTimeout = 30000
+export const streamTimeout = 90000
 
 const handleRequest = async function handleRequest(
     request: Request,

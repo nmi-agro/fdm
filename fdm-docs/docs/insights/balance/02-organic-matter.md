@@ -46,7 +46,7 @@ An accurate organic matter balance requires data that captures the key managemen
     * Type (`p_type`: "manure", "compost", "other", or "mineral").
   * `CultivationCatalogue` (`CultivationDetail`):
     * Effective Organic Matter from the main cultivation (`b_lu_eom`, kg EOM / ha / year).
-    * Effective Organic Matter from crop residues (`b_lu_eom_residues`, kg EOM / ha / year).
+    * Effective Organic Matter from crop residues (`b_lu_eom_residue`, kg EOM / ha / year).
     * Crop rotation type (`b_lu_croprotation`) to determine land use (e.g., "grassland").
 
 ## 3. Calculation Components
@@ -79,7 +79,7 @@ This component accounts for the organic matter supplied by the roots and root ex
 When crop residues (stems, leaves) are incorporated into the soil after harvest, they decompose and contribute to SOM.
 
 * **Condition:** This supply is only counted if the `m_cropresidue` flag for a cultivation is `true` AND the cultivation's end date (`b_lu_end`) falls within the calculation `Timeframe`.
-* **Source:** The `b_lu_eom_residues` value (kg EOM / ha / year) is taken from the `CultivationCatalogue`.
+* **Source:** The `b_lu_eom_residue` value (kg EOM / ha / year) is taken from the `CultivationCatalogue`.
 * This represents the estimated EOM contribution from the residues of that specific crop type.
 
 ### 3.2. Organic Matter Degradation (kg OM / ha)
