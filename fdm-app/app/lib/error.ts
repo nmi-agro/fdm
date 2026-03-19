@@ -9,6 +9,29 @@ const errorIdSize = 8 // Number of characters in ID
 
 export const createErrorId = customAlphabet(customErrorAlphabet, errorIdSize)
 
+/**
+ * Extracts a human-readable error message from any thrown value.
+ *
+ * React Router loaders/actions can throw `Response` objects (e.g. via
+ * `throw new Response("msg", { status: 400 })`). These are valid `Error`
+ * values in a try/catch, but `.message` is `undefined` on them — only `.text()`
+ * returns the body string. This helper handles all three cases:
+ *   1. `Response` → await `.text()`, fallback to `HTTP <status>`
+ *   2. `Error`    → `.message`
+ *   3. anything   → `String(e)`
+ */
+export async function extractErrorMessage(e: unknown): Promise<string> {
+    if (e instanceof Response) {
+        try {
+            return (await e.text()) || `HTTP ${e.status}`
+        } catch {
+            return `HTTP ${e.status}`
+        }
+    }
+    if (e instanceof Error) return e.message
+    return String(e)
+}
+
 export function reportError(
     error: unknown,
     tags: Record<string, string> = {},

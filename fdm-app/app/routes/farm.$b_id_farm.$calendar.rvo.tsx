@@ -11,6 +11,7 @@ import {
     useLocation,
 } from "react-router"
 import { getSession } from "~/lib/auth.server"
+import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
     generateAuthUrl,
@@ -168,7 +169,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             )
         } catch (e: any) {
             console.error("Error with importing from RVO:", e)
-            error = e.message
+            error = await extractErrorMessage(e)
         }
     } else if (!url.searchParams.has("start_import")) {
         return {
@@ -631,7 +632,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             console.error("Error with processing RVO import: ", e)
             return {
                 success: false,
-                message: `Error with processing RVO import:  ${e.message}`,
+                message: `Error with processing RVO import: ${await extractErrorMessage(e)}`,
             }
         }
     }

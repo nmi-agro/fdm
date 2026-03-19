@@ -10,6 +10,7 @@ import {
     useLocation,
 } from "react-router"
 import { getSession } from "~/lib/auth.server"
+import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
     generateAuthUrl,
@@ -143,7 +144,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             )
         } catch (e: any) {
             console.error("RVO Import Fout:", e)
-            error = e.message
+            error = await extractErrorMessage(e)
         }
     } else if (!url.searchParams.has("start_import")) {
         return {
@@ -493,7 +494,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             console.error("Error at saving RVO fields: ", e)
             return {
                 success: false,
-                message: `Error at saving RVO fields: ${e.message}`,
+                message: `Error at saving RVO fields: ${await extractErrorMessage(e)}`,
             }
         }
     }
