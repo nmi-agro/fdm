@@ -78,6 +78,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         throw new Response("Farm ID is required", { status: 400 })
     }
     const year = Number(yearString)
+    if (!Number.isInteger(year)) {
+        throw new Response("Ongeldig kalenderjaar", { status: 400 })
+    }
 
     const session = await getSession(request)
     const url = new URL(request.url)
@@ -414,8 +417,8 @@ export default function RvoImportReviewPage() {
                                                 </DialogTitle>
                                                 <DialogDescription>
                                                     U staat op het punt de
-                                                    volgende wijzigingen door
-                                                    te voeren:
+                                                    volgende wijzigingen door te
+                                                    voeren:
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="py-4">
@@ -425,8 +428,7 @@ export default function RvoImportReviewPage() {
                                                             {changes.add}{" "}
                                                             perceel
                                                             {changes.add !==
-                                                                1 &&
-                                                                "en"}{" "}
+                                                                1 && "en"}{" "}
                                                             toevoegen
                                                         </li>
                                                     )}
@@ -435,8 +437,7 @@ export default function RvoImportReviewPage() {
                                                             {changes.remove}{" "}
                                                             perceel
                                                             {changes.remove !==
-                                                                1 &&
-                                                                "en"}{" "}
+                                                                1 && "en"}{" "}
                                                             verwijderen
                                                         </li>
                                                     )}
@@ -445,8 +446,7 @@ export default function RvoImportReviewPage() {
                                                             {changes.update}{" "}
                                                             perceel
                                                             {changes.update !==
-                                                                1 &&
-                                                                "en"}{" "}
+                                                                1 && "en"}{" "}
                                                             bijwerken
                                                         </li>
                                                     )}
@@ -455,8 +455,7 @@ export default function RvoImportReviewPage() {
                                                             {changes.close}{" "}
                                                             perceel
                                                             {changes.close !==
-                                                                1 &&
-                                                                "en"}{" "}
+                                                                1 && "en"}{" "}
                                                             afsluiten
                                                         </li>
                                                     )}
