@@ -102,8 +102,8 @@ const DiffCell = ({
 
     // CONFLICT
     if (status === "CONFLICT") {
-        // If values are effectively equal (loose check), show one
-        if (local === remote) {
+        // If values are effectively equal (deep check), show one
+        if (JSON.stringify(local) === JSON.stringify(remote)) {
             return (
                 <span className="text-sm text-foreground">
                     {formatter(local)}
