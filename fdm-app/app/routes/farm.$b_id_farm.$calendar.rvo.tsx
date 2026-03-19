@@ -66,7 +66,7 @@ import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
 import { clientConfig } from "../lib/config"
 
 export const meta: MetaFunction = ({ params }) => {
-    return [{ title: `RVO Koppeling - Bedrijf ${params.b_id_farm}` }]
+    return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {

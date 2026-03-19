@@ -55,13 +55,13 @@ import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
 
 export const meta: MetaFunction = ({ params }) => {
     const b_id_farm = params.b_id_farm
-    return [{ title: `RVO Import - Nieuw Bedrijf ${b_id_farm}` }]
+    return [{ title: `Percelen ophalen bij RVO - Nieuw Bedrijf ${b_id_farm}` }]
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
     const { b_id_farm, calendar: yearString } = params
     if (!b_id_farm || !yearString) {
-        throw new Response("Farm ID en Kalender zijn verplicht", {
+        throw new Response("Farm ID en kalender zijn verplicht", {
             status: 400,
         })
     }
