@@ -143,7 +143,7 @@ export function addSecurityHeaders(headers: Headers): Headers {
         media-src 'self' https://*.posthog.com;
         object-src 'none';
         base-uri 'self';
-        form-action 'self' https:;
+        form-action 'self';
         frame-ancestors 'none';`
 
     // Add report-uri only if it exists
