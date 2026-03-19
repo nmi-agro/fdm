@@ -457,6 +457,15 @@ export default function FarmDashboardIndex() {
                                                 !loaderData.farmWritePermission &&
                                                     "pointer-events-none opacity-50",
                                             )}
+                                            aria-disabled={
+                                                !loaderData.farmWritePermission ||
+                                                undefined
+                                            }
+                                            tabIndex={
+                                                !loaderData.farmWritePermission
+                                                    ? -1
+                                                    : undefined
+                                            }
                                         >
                                             <Card className="transition-all hover:shadow-md h-full">
                                                 <CardHeader>
