@@ -44,6 +44,15 @@ export async function processRvoImport(
         switch (action) {
             case "ADD_REMOTE":
                 if (item.rvoField) {
+                    const b_bufferstrip =
+                        item.rvoField.properties.mestData?.IndBufferstrook ===
+                        "J"
+                            ? true
+                            : item.rvoField.properties.mestData?.IndBufferstrook ===
+                                "N"
+                              ? false
+                              : undefined
+
                     const b_id = await addField(
                         fdm,
                         principal_id,
@@ -57,6 +66,7 @@ export async function processRvoImport(
                         item.rvoField.properties.EndDate
                             ? new Date(item.rvoField.properties.EndDate)
                             : undefined,
+                        b_bufferstrip,
                     )
 
                     // Add cultivation from RVO
@@ -85,6 +95,15 @@ export async function processRvoImport(
                 break
             case "UPDATE_FROM_REMOTE":
                 if (item.localField && item.rvoField) {
+                    const b_bufferstrip =
+                        item.rvoField.properties.mestData?.IndBufferstrook ===
+                        "J"
+                            ? true
+                            : item.rvoField.properties.mestData?.IndBufferstrook ===
+                                "N"
+                              ? false
+                              : undefined
+
                     await updateField(
                         fdm,
                         principal_id,
@@ -98,6 +117,7 @@ export async function processRvoImport(
                         item.rvoField.properties.EndDate
                             ? new Date(item.rvoField.properties.EndDate)
                             : undefined,
+                        b_bufferstrip,
                     )
 
                     // Update cultivation if different

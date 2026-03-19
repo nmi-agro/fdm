@@ -1,6 +1,14 @@
 import { RvoClient } from "@nmi-agro/rvo-connector"
+import bbox from "@turf/bbox"
 import { RvoFieldSchema, type RvoField } from "./types"
 import { z } from "zod"
+import { calculateIoU, bboxOverlap } from "./utils"
+
+// Minimum IoU to consider a MEST feature as matching a bedrijfsperceel.
+// Set high (0.95) because both datasets represent the same physical parcel in RVO —
+// geometries should be essentially identical, with only minor coordinate precision
+// differences between the two RVO registration systems.
+const MEST_IOU_THRESHOLD = 0.95
 
 /**
  * Fetches agricultural fields (bedrijfspercelen) from the RVO webservice for a specific year and farm.
@@ -46,23 +54,79 @@ export async function fetchRvoFields(
     const mestFeatures = (mestFieldsRaw as any).features || []
 
     if (Array.isArray(features)) {
-        // Create a lookup for MEST fields by CropFieldID
-        const mestLookup = new Map<string, any>()
-        if (Array.isArray(mestFeatures)) {
-            for (const mf of mestFeatures) {
-                if (mf?.properties?.CropFieldID) {
-                    mestLookup.set(String(mf.properties.CropFieldID), mf.properties)
+        // Pre-compute bounding boxes for all MEST features (avoid recalc in inner loops)
+        const mestWithBbox = Array.isArray(mestFeatures)
+            ? mestFeatures
+                  .filter((mf: any) => mf?.geometry)
+                  .map((mf: any) => ({
+                      feature: mf,
+                      bbox: bbox(mf.geometry) as number[],
+                  }))
+            : []
+
+        const matchedMestIndices = new Set<number>()
+
+        for (const cropFeature of features) {
+            if (!cropFeature?.geometry) continue
+
+            const cropBbox = bbox(cropFeature.geometry) as number[]
+            const cropDesignator: string =
+                cropFeature?.properties?.CropFieldDesignator ?? ""
+
+            let mergedMestProps: any = null
+
+            // -------------------------------------------------------
+            // Tier 1: FieldDesignator name match + IoU sanity check
+            // -------------------------------------------------------
+            if (cropDesignator) {
+                const nameMatches = mestWithBbox
+                    .map((m, idx) => ({ ...m, idx }))
+                    .filter(
+                        ({ feature: mf, idx }) =>
+                            !matchedMestIndices.has(idx) &&
+                            mf?.properties?.Fielddesignator === cropDesignator,
+                    )
+
+                if (nameMatches.length === 1) {
+                    const candidate = nameMatches[0]
+                    const iou = calculateIoU(
+                        cropFeature.geometry,
+                        candidate.feature.geometry,
+                    )
+                    if (iou >= MEST_IOU_THRESHOLD) {
+                        mergedMestProps = candidate.feature.properties
+                        matchedMestIndices.add(candidate.idx)
+                    }
                 }
             }
-        }
 
-        // Merge MEST data into Bedrijfspercelen features
-        for (const feature of features) {
-            if (feature?.properties?.CropFieldID) {
-                const cropFieldId = String(feature.properties.CropFieldID)
-                if (mestLookup.has(cropFieldId)) {
-                    feature.properties.mestData = mestLookup.get(cropFieldId)
+            // -------------------------------------------------------
+            // Tier 2: Spatial IoU join (bbox pre-filter)
+            // -------------------------------------------------------
+            if (!mergedMestProps) {
+                let bestIoU = 0
+                let bestIdx = -1
+
+                for (let i = 0; i < mestWithBbox.length; i++) {
+                    if (matchedMestIndices.has(i)) continue
+                    const { feature: mf, bbox: mBbox } = mestWithBbox[i]
+                    if (!bboxOverlap(cropBbox, mBbox)) continue
+
+                    const iou = calculateIoU(cropFeature.geometry, mf.geometry)
+                    if (iou > bestIoU) {
+                        bestIoU = iou
+                        bestIdx = i
+                    }
                 }
+
+                if (bestIdx >= 0 && bestIoU >= MEST_IOU_THRESHOLD) {
+                    mergedMestProps = mestWithBbox[bestIdx].feature.properties
+                    matchedMestIndices.add(bestIdx)
+                }
+            }
+
+            if (mergedMestProps) {
+                cropFeature.properties.mestData = mergedMestProps
             }
         }
 

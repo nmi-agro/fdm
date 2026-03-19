@@ -1,17 +1,68 @@
 import { z } from "zod"
 
+const MestCropDetailsSchema = z.object({
+    Grondbedekking: z.union([z.string(), z.number()]).optional(),
+    Oppervlakte: z.union([z.string(), z.number()]).optional(),
+    Inzaaidatum: z.string().optional(),
+    GewasbeschermingVoorteelt: z.string().optional(),
+    descriptiveValues: z.record(z.string(), z.any()).optional(),
+}).catchall(z.any())
+
 /**
  * Zod schema for properties returned by the RegelingspercelenMest endpoint.
+ * Matches `MestFieldProperties` from the rvo-connector.
  */
 export const MestDataSchema = z.object({
-    /** Unique identifier for the crop field (linked to Bedrijfspercelen) */
-    CropFieldID: z.string().optional(),
-    /** Indicates if the field is a buffer strip */
-    Bufferstrook: z.boolean().optional(),
-    /** Soil type code */
-    Grondsoort: z.union([z.string(), z.number()]).optional(),
-    /** Indicates if a catch crop (vanggewas/nateelt) is required or present for manure regulations */
-    IndNateeltMest: z.boolean().optional(),
+    /** Unique identification of the parcel (e.g. AGRONL...). */
+    MESTFieldid: z.string().optional(),
+    /** Version number of the MEST field. */
+    MESTFieldVersion: z.string().optional(),
+    /** Start date of the field's validity (YYYY-MM-DDTHH:mm:ss). */
+    BeginDate: z.string().optional(),
+    /** End date of the field's validity (YYYY-MM-DDTHH:mm:ss). */
+    EndDate: z.string().optional(),
+    /** Date of the statement. */
+    OpgaveDatum: z.string().optional(),
+    /** User-assigned name/designator for the field. */
+    Fielddesignator: z.string().optional(),
+    /** Calculated area in hectares (4 decimals). */
+    CalculatedArea: z.union([z.string(), z.number()]).optional(),
+    /** Proposed area in hectares. */
+    VoorgesteldeOppervlakte: z.union([z.string(), z.number()]).optional(),
+    /** Declared area in hectares. */
+    OpgegevenOppervlakte: z.union([z.string(), z.number()]).optional(),
+    /** Crop Type Code. Codelist: CL263 or CL411. */
+    Grondbedekking: z.union([z.string(), z.number()]).optional(),
+    /** Use Title Code. Codelist: CL412. */
+    GebruiksTitel: z.string().optional(),
+    /** Regulatory Soil Type Code. Codelist: CL405. */
+    Grondsoort: z.string().optional(),
+    /** Natural land type code. */
+    TypeGrond: z.string().optional(),
+    /** Indicator for buffer strips. */
+    IndBufferstrook: z.enum(["J", "N"]).optional(),
+    /** Surface area of buffer strips. */
+    BufferstrookOppervlakte: z.union([z.string(), z.number()]).optional(),
+    /** Sampling date. */
+    BemonsteringDatum: z.string().optional(),
+    /** Sampling protocol code. */
+    BemonsteringProtocol: z.string().optional(),
+    /** Indicator for phosphate differentiation. */
+    IndFosfaatdifferentiatie: z.enum(["J", "N"]).optional(),
+    /** PCA CL2 value. */
+    PCACL2Waarde: z.union([z.string(), z.number()]).optional(),
+    /** Pal value from 2021 onwards. */
+    PalWaardeVanaf2021: z.union([z.string(), z.number()]).optional(),
+    /** Indicator for catch crop (nateelt) as manure requirement. */
+    IndNateeltMest: z.string().optional(),
+    /** Cause of the update/mutation. */
+    MESTFieldCause: z.string().optional(),
+    /** Previous crop (Voorteelt) details. */
+    Voorteelt: z.union([MestCropDetailsSchema, z.array(MestCropDetailsSchema)]).optional(),
+    /** Catch crop (Nateelt) details. */
+    Nateelt: z.union([MestCropDetailsSchema, z.array(MestCropDetailsSchema)]).optional(),
+    /** Quality indicators for this field. */
+    QualityIndicatorType: z.any().optional(),
     /** Human-readable labels and boolean mappings if `enrichResponse` was used */
     descriptiveValues: z.record(z.string(), z.any()).optional(),
 }).catchall(z.any())

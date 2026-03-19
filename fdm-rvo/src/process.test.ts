@@ -77,6 +77,7 @@ describe("processRvoImport", () => {
             expect.any(Date), // start
             "nl_01",
             undefined, // end
+            undefined, // b_bufferstrip (no mestData in test)
         )
         expect(addCultivation).toHaveBeenCalled()
         expect(onFieldAdded).toHaveBeenCalledWith(
@@ -128,6 +129,7 @@ describe("processRvoImport", () => {
             expect.any(Date),
             "nl_01",
             undefined,
+            undefined, // b_bufferstrip (no mestData in test)
         )
         // No cultivation change implies no cultivation update call unless localCultivation differs
         expect(removeCultivation).not.toHaveBeenCalled()
