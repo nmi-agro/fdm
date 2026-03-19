@@ -30,6 +30,10 @@ export const createRvoClient = (
     ) {
         if (fs.existsSync(pkioPrivateKey)) {
             privateKey = fs.readFileSync(pkioPrivateKey, "utf8")
+        } else {
+            throw new Error(
+                `PKIO private key file not found: ${pkioPrivateKey}`,
+            )
         }
     }
 
