@@ -36,7 +36,7 @@ function findActiveCultivation(
  * 1. **Tier 1: ID Match**: Checks if `localField.b_id_source` matches `rvoField.CropFieldID`.
  *    This is the most reliable method for fields that have been synced before.
  * 2. **Tier 2: Spatial Match**: For fields unmatched by ID, it calculates the spatial overlap (IoU).
- *    If the overlap exceeds `IOU_THRESHOLD` (0.9), they are considered the same field.
+ *    If the overlap exceeds `IOU_THRESHOLD` (0.99), they are considered the same field.
  *
  * @param localFields - Array of fields currently in the local database.
  * @param rvoFields - Array of fields retrieved from the RVO webservice.
