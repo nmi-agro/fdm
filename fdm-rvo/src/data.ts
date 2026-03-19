@@ -36,16 +36,18 @@ export async function fetchRvoFields(
             farmId: kvkNumber,
             outputFormat: "geojson",
         }),
-        rvoClient.opvragenRegelingspercelenMest({
-            periodBeginDate: `${year}-01-01`,
-            periodEndDate: `${year}-12-31`,
-            farmId: kvkNumber,
-            outputFormat: "geojson",
-        }).catch(err => {
-            // Catching in case this endpoint fails independently so we don't break the main flow.
-            console.warn("Failed to fetch RegelingspercelenMest:", err)
-            return { features: [] }
-        })
+        rvoClient
+            .opvragenRegelingspercelenMest({
+                periodBeginDate: `${year}-01-01`,
+                periodEndDate: `${year}-12-31`,
+                farmId: kvkNumber,
+                outputFormat: "geojson",
+            })
+            .catch((err) => {
+                // Catching in case this endpoint fails independently so we don't break the main flow.
+                console.warn("Failed to fetch RegelingspercelenMest:", err)
+                return { features: [] }
+            }),
     ])
 
     // The raw response is expected to be a GeoJSON FeatureCollection.
@@ -88,6 +90,8 @@ export async function fetchRvoFields(
                     )
 
                 if (nameMatches.length === 1) {
+                    // Only match when exactly one MEST feature has the same name.
+                    // Multiple matches indicate ambiguity; fall through to Tier 2 spatial matching.
                     const candidate = nameMatches[0]
                     const iou = calculateIoU(
                         cropFeature.geometry,
