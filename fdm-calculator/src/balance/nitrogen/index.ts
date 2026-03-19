@@ -630,7 +630,7 @@ export function calculateNitrogenBalancesFieldToFarm(
  * @param farmBalanceResults - An array of nitrogen balance results for individual farms, potentially including errors.
  * @returns The aggregated nitrogen balance for all the farms.
  */
-export function combineFarmNitrogenBalanceResults(
+export function aggregateFarmNitrogenBalanceResults(
     farmBalanceResults: NitrogenBalanceNumeric[],
 ): NitrogenBalanceNumeric {
     const results = farmBalanceResults.filter((result) => !result.hasErrors)
@@ -658,6 +658,7 @@ export function combineFarmNitrogenBalanceResults(
         [k in (typeof fertilizerResultKeys)[number]]: number
     }
     function weightedAvg(accessor: (result: NitrogenBalanceNumeric) => number) {
+        if (results.length === 0) return 0 // Area will be 0 too so best to fall back to 0
         return results
             .reduce(
                 (total, result, i) =>
@@ -678,6 +679,7 @@ export function combineFarmNitrogenBalanceResults(
             ]),
         ) as FertilizerResult
     }
+
     return {
         balance: weightedAvg((result) => result.balance),
         target: weightedAvg((result) => result.target),
@@ -711,9 +713,16 @@ export function combineFarmNitrogenBalanceResults(
             nitrate: weightedAvg((result) => result.emission.nitrate),
         },
         fields: farmBalanceResults.flatMap((result) => result.fields),
-        hasErrors: farmBalanceResults.some((result) => result.hasErrors),
-        fieldErrorMessages: farmBalanceResults.flatMap(
-            (result) => result.fieldErrorMessages,
-        ),
+        hasErrors:
+            results.length === 0 ||
+            farmBalanceResults.some((result) => result.hasErrors),
+        fieldErrorMessages: [
+            ...(results.length === 0
+                ? ["Geen geldige bedrijfsstikstofbalans resultäten gevonden."]
+                : []),
+            ...farmBalanceResults.flatMap(
+                (result) => result.fieldErrorMessages,
+            ),
+        ],
     }
 }

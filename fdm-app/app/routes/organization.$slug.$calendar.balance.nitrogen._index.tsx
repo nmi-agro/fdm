@@ -1,7 +1,7 @@
 import {
     calculateNitrogenBalanceForFarms,
     collectInputForNitrogenBalanceForFarms,
-    combineFarmNitrogenBalanceResults,
+    aggregateFarmNitrogenBalanceResults,
     type NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields, listPrincipalsForFarm } from "@nmi-agro/fdm-core"
@@ -172,7 +172,7 @@ export async function loader({
             )
 
             const results = await calculateNitrogenBalanceForFarms(fdm, inputs)
-            const combinedResult = combineFarmNitrogenBalanceResults(results)
+            const combinedResult = aggregateFarmNitrogenBalanceResults(results)
             const farmResults = await Promise.all(
                 results.map(async (nitrogenBalanceResult) => {
                     const farm = farmsMap[nitrogenBalanceResult.b_id_farm]
