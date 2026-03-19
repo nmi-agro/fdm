@@ -10,6 +10,12 @@ import {
 import type { RvoImportReviewItem, UserChoiceMap } from "./types"
 import { getItemId } from "./utils"
 
+function parseBufferstrip(value: string | undefined): boolean | undefined {
+    if (value === "J") return true
+    if (value === "N") return false
+    return undefined
+}
+
 /**
  * Processes the RVO import review results by applying user-selected actions.
  *
@@ -44,14 +50,9 @@ export async function processRvoImport(
         switch (action) {
             case "ADD_REMOTE":
                 if (item.rvoField) {
-                    const b_bufferstrip =
-                        item.rvoField.properties.mestData?.IndBufferstrook ===
-                        "J"
-                            ? true
-                            : item.rvoField.properties.mestData?.IndBufferstrook ===
-                                "N"
-                              ? false
-                              : undefined
+                    const b_bufferstrip = parseBufferstrip(
+                        item.rvoField.properties.mestData?.IndBufferstrook,
+                    )
 
                     const b_id = await addField(
                         fdm,
@@ -95,14 +96,9 @@ export async function processRvoImport(
                 break
             case "UPDATE_FROM_REMOTE":
                 if (item.localField && item.rvoField) {
-                    const b_bufferstrip =
-                        item.rvoField.properties.mestData?.IndBufferstrook ===
-                        "J"
-                            ? true
-                            : item.rvoField.properties.mestData?.IndBufferstrook ===
-                                "N"
-                              ? false
-                              : undefined
+                    const b_bufferstrip = parseBufferstrip(
+                        item.rvoField.properties.mestData?.IndBufferstrook,
+                    )
 
                     await updateField(
                         fdm,
