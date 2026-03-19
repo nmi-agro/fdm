@@ -1,6 +1,7 @@
 import {
     calculateNitrogenBalanceForFarms,
     collectInputForNitrogenBalanceForFarms,
+    combineFarmNitrogenBalanceResults,
     type NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields, listPrincipalsForFarm } from "@nmi-agro/fdm-core"
@@ -14,7 +15,7 @@ import {
     CircleCheck,
     CircleX,
 } from "lucide-react"
-import { Suspense, use, useEffect, useMemo } from "react"
+import { Suspense, use, useRef } from "react"
 import {
     data,
     type LoaderFunctionArgs,
@@ -22,6 +23,7 @@ import {
     NavLink,
     useLoaderData,
     useParams,
+    useSearchParams,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
@@ -38,7 +40,6 @@ import {
 import { Checkbox } from "~/components/ui/checkbox"
 import {
     Dialog,
-    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -56,8 +57,35 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { useOrganizationFarmSelectionStore } from "~/store/organization-farm-selection"
 
+type Farm = Awaited<ReturnType<typeof getFarms>>[number]
+type Organization = Awaited<
+    ReturnType<typeof auth.api.listOrganizations>
+>[number]
+type FarmResult = {
+    farm: Farm
+    owner: Awaited<ReturnType<typeof listPrincipalsForFarm>>[number] | undefined
+    fields: Awaited<ReturnType<typeof getFields>>
+    totalArea: number
+    nitrogenBalanceResult: NitrogenBalanceNumeric & {
+        errorMessage?: string
+    }
+}
+type AsyncData = {
+    farmResults: FarmResult[]
+    combinedResult: NitrogenBalanceNumeric
+}
+type LoaderData =
+    | {
+          organization: Organization
+          noFarms: true
+      }
+    | {
+          farms: Farm[]
+          organization: Organization
+          noFarms: false
+          asyncData: Promise<AsyncData>
+      }
 // Meta
 export const meta: MetaFunction = () => {
     return [
@@ -71,7 +99,10 @@ export const meta: MetaFunction = () => {
     ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({
+    request,
+    params,
+}: LoaderFunctionArgs): Promise<LoaderData> {
     try {
         // Get the organization
         const slug = params.slug
@@ -80,6 +111,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 status: 404,
                 statusText: "missing: slug",
             })
+        }
+
+        const url = new URL(request.url)
+
+        let searchParamFarmIds: string[] | undefined
+        if (url.searchParams.has("farmIds")) {
+            searchParamFarmIds = url.searchParams
+                .get("farmIds")
+                ?.split(",")
+                .filter(Boolean)
+            if (!searchParamFarmIds || searchParamFarmIds.length === 0) {
+                throw data("invalid: farmIds", {
+                    status: 400,
+                    statusText: "invalid: farmIds",
+                })
+            }
         }
 
         // Get timeframe from calendar store
@@ -104,9 +151,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // If the organization has no access to any farms, render the empty message
         if (farms.length === 0) {
             return {
-                organization,
+                organization: organization,
                 noFarms: true,
-                asyncData: Promise.resolve([]),
             }
         }
 
@@ -114,15 +160,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             farms.map((farm) => [farm.b_id_farm, farm]),
         )
 
+        const farmIds =
+            searchParamFarmIds ?? farms.map((farm) => farm.b_id_farm)
+
         async function getAsyncData(principal_id: string) {
             const inputs = await collectInputForNitrogenBalanceForFarms(
                 fdm,
                 principal_id,
-                farms.map((farm) => farm.b_id_farm),
+                farmIds,
                 timeframe,
             )
+
             const results = await calculateNitrogenBalanceForFarms(fdm, inputs)
-            return await Promise.all(
+            const combinedResult = combineFarmNitrogenBalanceResults(results)
+            const farmResults = await Promise.all(
                 results.map(async (nitrogenBalanceResult) => {
                     const farm = farmsMap[nitrogenBalanceResult.b_id_farm]
                     const farmPrincipals = await listPrincipalsForFarm(
@@ -169,7 +220,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                             totalArea: totalArea,
                             nitrogenBalanceResult:
                                 nitrogenBalanceResult as NitrogenBalanceNumeric & {
-                                    errorMessage?: undefined
+                                    errorMessage?: string
                                 },
                         }
                     } catch (error) {
@@ -191,12 +242,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     }
                 }),
             )
+
+            return {
+                farmResults: farmResults,
+                combinedResult: combinedResult,
+            }
         }
 
         const asyncData = getAsyncData(organization.id)
 
         return {
+            farms: farms,
             organization: organization,
+            noFarms: false,
             asyncData: asyncData,
         }
     } catch (error) {
@@ -219,9 +277,6 @@ export default function FarmBalanceNitrogenOverviewBlock() {
     )
 }
 
-type FarmResult = Awaited<
-    Awaited<ReturnType<typeof loader>>["asyncData"]
->[number]
 /**
  * Renders the page elements with asynchronously loaded data
  *
@@ -231,183 +286,40 @@ type FarmResult = Awaited<
  * If `use(...)` was added to `FarmBalanceNitrogenOverviewBlock` instead, the Suspense
  * would not render until `asyncData` resolves and the fallback would never be shown.
  */
-function OrganizationFarmBalanceNitrogenOverview({
-    organization,
-    asyncData,
-    noFarms,
-}: Awaited<ReturnType<typeof loader>>) {
-    const farmResults = use(asyncData)
+function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
+    const [searchParams, setSearchParams] = useSearchParams()
     const params = useParams()
+    const formRef = useRef<HTMLFormElement | null>(null)
 
-    const { syncOrganization, farmIds, setFarmIds } =
-        useOrganizationFarmSelectionStore()
-
-    useEffect(() => {
-        syncOrganization(
-            organization.id,
-            farmResults.map((result) => result.farm.b_id_farm),
-        )
-    }, [organization.id, syncOrganization, farmResults])
-
-    const resultByFarmId = useMemo(
-        () =>
-            Object.fromEntries(
-                farmResults.map((result) => [result.farm.b_id_farm, result]),
-            ),
-        [farmResults],
-    )
-
-    const allResults = farmIds
-        .map((b_id_farm) => resultByFarmId[b_id_farm])
-        .filter(Boolean)
-
-    const resolvedNitrogenBalanceResult = useMemo(() => {
-        const results = allResults.filter(
-            (result) => !result.nitrogenBalanceResult.hasErrors,
-        )
-
-        const totalArea = results.reduce(
-            (totalArea, result) => totalArea + result.totalArea,
-            0,
-        )
-
-        const fertilizerResultKeys = [
-            "total",
-            "mineral",
-            "manure",
-            "compost",
-            "other",
-        ] as const
-        type FertilizerResult = {
-            [k in (typeof fertilizerResultKeys)[number]]: number
-        }
-        function weightedAvg(
-            accessor: (result: NitrogenBalanceNumeric) => number,
-        ) {
-            return Math.round(
-                results.reduce(
-                    (total, result) =>
-                        total +
-                        accessor(result.nitrogenBalanceResult) *
-                            result.totalArea,
-                    0,
-                ) / totalArea,
-            )
-        }
-
-        function weightedFertilizerAvg(
-            accessor: (result: NitrogenBalanceNumeric) => FertilizerResult,
-        ) {
-            return Object.fromEntries(
-                fertilizerResultKeys.map((key) => [
-                    key,
-                    weightedAvg((result) => accessor(result)[key]),
-                ]),
-            ) as FertilizerResult
-        }
-
-        return {
-            balance: weightedAvg((result) => result.balance),
-            target: weightedAvg((result) => result.target),
-            supply: {
-                total: weightedAvg((result) => result.supply.total),
-                deposition: weightedAvg((result) => result.supply.deposition),
-                fixation: weightedAvg((result) => result.supply.fixation),
-                mineralisation: weightedAvg(
-                    (result) => result.supply.mineralisation,
-                ),
-                fertilizers: weightedFertilizerAvg(
-                    (result) => result.supply.fertilizers,
-                ),
-            },
-            removal: {
-                total: weightedAvg((result) => result.removal.total),
-                harvests: weightedAvg((result) => result.removal.harvests),
-                residues: weightedAvg((result) => result.removal.residues),
-            },
-            emission: {
-                total: weightedAvg((result) => result.emission.total),
-                ammonia: {
-                    total: weightedAvg(
-                        (result) => result.emission.ammonia.total,
-                    ),
-                    fertilizers: weightedFertilizerAvg(
-                        (result) => result.emission.ammonia.fertilizers,
-                    ),
-                    residues: weightedAvg(
-                        (result) => result.emission.ammonia.residues,
-                    ),
-                },
-                nitrate: weightedAvg((result) => result.emission.nitrate),
-            },
-            fields: allResults.flatMap(
-                (result) => result.nitrogenBalanceResult.fields,
-            ),
-            hasErrors: allResults.some(
-                (result) => result.nitrogenBalanceResult.hasErrors,
-            ),
-            fieldErrorMessages: allResults.flatMap(
-                (result) => result.nitrogenBalanceResult.fieldErrorMessages,
-            ),
-            errorMessage: allResults.find(
-                (result) => result.nitrogenBalanceResult.errorMessage,
-            )?.nitrogenBalanceResult.errorMessage as string | undefined,
-        }
-    }, [allResults])
-
-    if (noFarms) {
+    if (loaderData.noFarms) {
         return (
             <div className="lg:mt-20">
                 <NoFarmsMessage
                     action={{
                         label: "Naar dashboard",
-                        to: `/organization/${organization.slug}`,
+                        to: `/organization/${loaderData.organization.slug}`,
                     }}
                 />
             </div>
         )
     }
 
-    if (resolvedNitrogenBalanceResult.errorMessage) {
-        return (
-            <div className="flex items-center justify-center">
-                <Card className="w-[350px]">
-                    <CardHeader>
-                        <CardTitle>
-                            Helaas is het niet mogelijk om je balans uit te
-                            rekenen
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-muted-foreground">
-                            <p>
-                                Er is helaas wat misgegaan. Probeer opnieuw of
-                                neem contact op met Ondersteuning en deel de
-                                volgende foutmelding:
-                            </p>
-                            <div className="mt-8 w-full max-w-2xl">
-                                <pre className="bg-gray-200 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
-                                    {JSON.stringify(
-                                        {
-                                            message:
-                                                resolvedNitrogenBalanceResult.errorMessage,
-                                            timestamp: new Date(),
-                                        },
-                                        null,
-                                        2,
-                                    )}
-                                </pre>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
+    const { farms, asyncData: asyncDataPromise } = loaderData
 
-    const { hasErrors } = resolvedNitrogenBalanceResult
+    // `use` is not a React hook, therefore we can call it conditionally
+    const asyncData = use(asyncDataPromise)
 
-    const createFarmRow = (farmResult: FarmResult) => {
+    const { combinedResult: resolvedNitrogenBalanceResult, farmResults } =
+        asyncData
+    const farmChartBalanceData = resolvedNitrogenBalanceResult as unknown as {
+        balance: number
+        removal: number
+    } & NitrogenBalanceNumeric
+    const hasErrors = farmResults.some(
+        ({ nitrogenBalanceResult }) => nitrogenBalanceResult.hasErrors,
+    )
+
+    const createFarmRow = (farmResult: (typeof farmResults)[number]) => {
         const balanceResult = farmResult.nitrogenBalanceResult
         return (
             <div
@@ -577,7 +489,8 @@ function OrganizationFarmBalanceNitrogenOverview({
                     <CardContent className="pl-2">
                         <NitrogenBalanceChart
                             type="farm"
-                            balanceData={resolvedNitrogenBalanceResult}
+                            balanceData={farmChartBalanceData}
+                            fieldInput={undefined}
                         />
                     </CardContent>
                 </Card>
@@ -586,7 +499,7 @@ function OrganizationFarmBalanceNitrogenOverview({
                         <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
                             <p className="grow">Bedrijven</p>
                             <Dialog>
-                                <DialogTrigger>
+                                <DialogTrigger asChild>
                                     <Button variant="outline">
                                         Wijzig selectie
                                     </Button>
@@ -601,64 +514,108 @@ function OrganizationFarmBalanceNitrogenOverview({
                                             uitgesloten in de berekening.
                                         </DialogDescription>
                                     </DialogHeader>
-                                    <div className="space-y-8">
-                                        {farmResults.map((result) => {
-                                            const b_id_farm =
-                                                result.farm.b_id_farm
+                                    <form ref={formRef} className="space-y-8">
+                                        {farms.map((farm) => {
+                                            const b_id_farm = farm.b_id_farm
+                                            const currentValue =
+                                                farmResults.find(
+                                                    (result) =>
+                                                        result.farm
+                                                            .b_id_farm ===
+                                                        b_id_farm,
+                                                )
                                             return (
                                                 <div
-                                                    key={result.farm.b_id_farm}
+                                                    key={farm.b_id_farm}
                                                     className="flex flex-row items-center gap-4"
                                                 >
                                                     <Checkbox
-                                                        checked={farmIds.includes(
-                                                            result.farm
-                                                                .b_id_farm,
-                                                        )}
-                                                        onCheckedChange={(
-                                                            value,
-                                                        ) => {
-                                                            if (
-                                                                value &&
-                                                                !farmIds.includes(
-                                                                    result.farm
-                                                                        .b_id_farm,
-                                                                )
-                                                            ) {
-                                                                setFarmIds([
-                                                                    ...farmIds,
-                                                                    result.farm
-                                                                        .b_id_farm,
-                                                                ])
-                                                            } else if (
-                                                                farmIds.includes(
-                                                                    result.farm
-                                                                        .b_id_farm,
-                                                                )
-                                                            ) {
-                                                                setFarmIds(
-                                                                    farmIds.filter(
-                                                                        (
-                                                                            current_b_id_farm,
-                                                                        ) =>
-                                                                            current_b_id_farm !==
-                                                                            b_id_farm,
-                                                                    ),
-                                                                )
-                                                            }
-                                                        }}
+                                                        name={b_id_farm}
+                                                        defaultChecked={
+                                                            !!currentValue
+                                                        }
                                                     />
-                                                    {createFarmRow(result)}
+                                                    {farm.b_name_farm ??
+                                                        "Onbekend"}
                                                 </div>
                                             )
                                         })}
-                                    </div>
+                                    </form>
                                     <DialogFooter>
-                                        <DialogClose asChild>
-                                            <Button variant="outline">
-                                                Sluiten
-                                            </Button>
-                                        </DialogClose>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                const form = formRef.current
+
+                                                const selectedFarmIds: string[] =
+                                                    []
+                                                if (form) {
+                                                    const formData =
+                                                        new FormData(form)
+                                                    for (const [
+                                                        b_id_farm,
+                                                        selected,
+                                                    ] of formData.entries()) {
+                                                        if (selected) {
+                                                            selectedFarmIds.push(
+                                                                b_id_farm,
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                const farmIds =
+                                                    searchParams
+                                                        .get("farmIds")
+                                                        ?.split(",")
+                                                        .filter(Boolean) ??
+                                                    farms.map(
+                                                        (farm) =>
+                                                            farm.b_id_farm,
+                                                    )
+                                                const sortedPrevFarmIds =
+                                                    farmIds.sort()
+                                                selectedFarmIds.sort()
+                                                if (
+                                                    sortedPrevFarmIds.length !==
+                                                        selectedFarmIds.length ||
+                                                    selectedFarmIds.find(
+                                                        (selected_id, index) =>
+                                                            selected_id !==
+                                                            sortedPrevFarmIds[
+                                                                index
+                                                            ],
+                                                    )
+                                                ) {
+                                                    setSearchParams(
+                                                        (searchParams) => {
+                                                            const newSearchParams =
+                                                                new URLSearchParams(
+                                                                    searchParams,
+                                                                )
+                                                            if (
+                                                                selectedFarmIds.length >
+                                                                0
+                                                            ) {
+                                                                newSearchParams.set(
+                                                                    "farmIds",
+                                                                    selectedFarmIds.join(
+                                                                        ",",
+                                                                    ),
+                                                                )
+                                                            } else {
+                                                                newSearchParams.delete(
+                                                                    "farmIds",
+                                                                )
+                                                            }
+                                                            return newSearchParams
+                                                        },
+                                                    )
+                                                }
+                                            }}
+                                        >
+                                            Sluiten
+                                        </Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
@@ -668,7 +625,7 @@ function OrganizationFarmBalanceNitrogenOverview({
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-8">
-                            {allResults.map(createFarmRow)}
+                            {farmResults.map(createFarmRow)}
                         </div>
                     </CardContent>
                 </Card>

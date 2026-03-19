@@ -4,6 +4,7 @@ export {
     calculateNitrogenBalance,
     calculateNitrogenBalanceField,
     calculateNitrogenBalanceForFarms,
+    combineFarmNitrogenBalanceResults,
     getNitrogenBalanceField,
 } from "./balance/nitrogen/index"
 export {

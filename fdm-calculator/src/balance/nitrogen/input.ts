@@ -249,6 +249,7 @@ export async function collectInputForNitrogenBalance(
     principal_id: PrincipalId,
     b_id_farm: string,
     timeframe: Timeframe,
+    b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<NitrogenBalanceInput> {
     return (
         await collectInputForNitrogenBalanceForFarms(
@@ -256,6 +257,7 @@ export async function collectInputForNitrogenBalance(
             principal_id,
             [b_id_farm],
             timeframe,
+            b_id,
         )
     )[0]
 }

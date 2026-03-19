@@ -617,3 +617,103 @@ export function calculateNitrogenBalancesFieldToFarm(
         farmWithBalance,
     ) as NitrogenBalanceNumeric
 }
+
+/**
+ * Aggregates nitrogen balances from multiple farms and takes the average weighted by each farm area.
+ *
+ * This function takes an array of nitrogen balance results for individual farms and aggregates
+ * them to provide an overall nitrogen balance for all the farms. It calculates weighted
+ * averages of nitrogen supply, removal, and emission based on the area of each farm.
+ *
+ * The function returns a comprehensive mean nitrogen balance for all the farms, including total supply,
+ * removal, emission, and the overall balance.
+ * @param farmBalanceResults - An array of nitrogen balance results for individual farms, potentially including errors.
+ * @returns The aggregated nitrogen balance for all the farms.
+ */
+export function combineFarmNitrogenBalanceResults(
+    farmBalanceResults: NitrogenBalanceNumeric[],
+): NitrogenBalanceNumeric {
+    const results = farmBalanceResults.filter((result) => !result.hasErrors)
+
+    const resultAreas = results.map(
+        (result) =>
+            new Decimal(
+                result.fields.reduce((total, field) => total + field.b_area, 0),
+            ),
+    )
+
+    const totalArea = resultAreas.reduce(
+        (totalArea, area) => totalArea.add(area),
+        new Decimal(0),
+    )
+
+    const fertilizerResultKeys = [
+        "total",
+        "mineral",
+        "manure",
+        "compost",
+        "other",
+    ] as const
+    type FertilizerResult = {
+        [k in (typeof fertilizerResultKeys)[number]]: number
+    }
+    function weightedAvg(accessor: (result: NitrogenBalanceNumeric) => number) {
+        return results
+            .reduce(
+                (total, result, i) =>
+                    total.add(resultAreas[i].mul(accessor(result))),
+                new Decimal(0),
+            )
+            .dividedBy(totalArea)
+            .toNumber()
+    }
+
+    function weightedFertilizerAvg(
+        accessor: (result: NitrogenBalanceNumeric) => FertilizerResult,
+    ) {
+        return Object.fromEntries(
+            fertilizerResultKeys.map((key) => [
+                key,
+                weightedAvg((result) => accessor(result)[key]),
+            ]),
+        ) as FertilizerResult
+    }
+    return {
+        balance: weightedAvg((result) => result.balance),
+        target: weightedAvg((result) => result.target),
+        supply: {
+            total: weightedAvg((result) => result.supply.total),
+            deposition: weightedAvg((result) => result.supply.deposition),
+            fixation: weightedAvg((result) => result.supply.fixation),
+            mineralisation: weightedAvg(
+                (result) => result.supply.mineralisation,
+            ),
+            fertilizers: weightedFertilizerAvg(
+                (result) => result.supply.fertilizers,
+            ),
+        },
+        removal: {
+            total: weightedAvg((result) => result.removal.total),
+            harvests: weightedAvg((result) => result.removal.harvests),
+            residues: weightedAvg((result) => result.removal.residues),
+        },
+        emission: {
+            total: weightedAvg((result) => result.emission.total),
+            ammonia: {
+                total: weightedAvg((result) => result.emission.ammonia.total),
+                fertilizers: weightedFertilizerAvg(
+                    (result) => result.emission.ammonia.fertilizers,
+                ),
+                residues: weightedAvg(
+                    (result) => result.emission.ammonia.residues,
+                ),
+            },
+            nitrate: weightedAvg((result) => result.emission.nitrate),
+        },
+        fields: farmBalanceResults.flatMap((result) => result.fields),
+        hasErrors: farmBalanceResults.some((result) => result.hasErrors),
+        fieldErrorMessages: farmBalanceResults.flatMap(
+            (result) => result.fieldErrorMessages,
+        ),
+    }
+}
