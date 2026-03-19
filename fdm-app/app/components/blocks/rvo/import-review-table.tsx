@@ -489,22 +489,36 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                 </TooltipContent>
             </Tooltip>
         ),
-        cell: ({ row }) => {
+        cell: ({ row, table }) => {
             const item = row.original
-            const isBufferstrip = item.rvoField?.properties.mestData?.Bufferstrook
+            // @ts-ignore
+            const { userChoices } = table.options.meta as any
+            const action = userChoices[getItemId(item)] as ImportReviewAction
 
-            if (isBufferstrip === undefined) return <span className="text-muted-foreground">-</span>
+            const rvoBufferstrip =
+                item.rvoField?.properties.mestData?.IndBufferstrook
+            const rvoLabel =
+                rvoBufferstrip === undefined
+                    ? undefined
+                    : rvoBufferstrip === "J"
+                      ? "Ja"
+                      : "Nee"
+
+            const localLabel =
+                item.localField?.b_bufferstrip === undefined
+                    ? undefined
+                    : item.localField.b_bufferstrip
+                      ? "Ja"
+                      : "Nee"
 
             return (
-                <Badge
-                    variant={isBufferstrip ? "outline" : "secondary"}
-                    className={cn(
-                        isBufferstrip &&
-                            "bg-green-50 text-green-700 border-green-200",
-                    )}
-                >
-                    {isBufferstrip ? "Ja" : "Nee"}
-                </Badge>
+                <DiffCell
+                    local={localLabel}
+                    remote={rvoLabel}
+                    status={item.status}
+                    action={action}
+                    formatter={(val) => val ?? "-"}
+                />
             )
         },
     },
@@ -599,7 +613,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                                 </SelectItem>
                                 <SelectItem value="KEEP_LOCAL">
                                     <div className="flex items-center gap-2">
-                                        <Check className="h-3 w-3" /> Gebruik
+                                        <Check className="h-3 w-3" /> Gebruik{" "}
                                         {clientConfig.name}
                                     </div>
                                 </SelectItem>
