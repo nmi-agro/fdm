@@ -538,7 +538,7 @@ export async function getFertilizers(
     b_id_farm: schema.fertilizerAcquiringTypeSelect["b_id_farm"],
 ) {
     try {
-        await getFertilizersOfFarms(fdm, principal_id, [b_id_farm])
+        return await getFertilizersOfFarms(fdm, principal_id, [b_id_farm])
     } catch (err) {
         if ((err as Error)?.message === "Exception for getFertilizersOfFarms") {
             throw handleError(err, "Exception for getFertilizers", {
