@@ -348,7 +348,7 @@ export default function RvoImportReviewPage() {
                         >
                             <AlertTitle className="flex items-center gap-2">
                                 <AlertTriangle className="h-4 w-4" />
-                                Perceleh ophalen bij RVO is niet beschikbaar
+                                Percelen ophalen bij RVO is niet beschikbaar
                             </AlertTitle>
                             <AlertDescription>
                                 De RVO koppeling is nog niet ingesteld op deze
@@ -548,7 +548,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             return {
                 success: false,
                 message:
-                    "Geen data gevonden om te verwerken. Start 'percelehn ophalen bij RVO' opnieuw.",
+                    "Geen data gevonden om te verwerken. Start 'percelen ophalen bij RVO' opnieuw.",
             }
         }
 
