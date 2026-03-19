@@ -46,7 +46,7 @@ import {
     createRvoState,
     verifyRvoState,
 } from "../integrations/rvo"
-import { RvoErrorAlert } from "~/components/blocks/rvo/rvo-error-alert"
+import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
 import {
     getNmiApiKey,
     getSoilParameterEstimates,

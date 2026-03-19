@@ -95,7 +95,7 @@ export function RvoErrorAlert({
                         </Button>
                     ) : null}
                 </div>
-                {process.env.NODE_ENV === "development" && (
+                {import.meta.env.MODE === "development" && (
                     <div className="mt-4 p-2 bg-red-100 rounded text-xs font-mono text-red-900 overflow-auto max-w-full">
                         <strong>DEBUG:</strong> {rawMessage}
                     </div>
