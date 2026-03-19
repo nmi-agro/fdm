@@ -150,6 +150,7 @@ export type FieldDiff =
     | "b_end" // End date difference
     | "b_acquiring_method" // Method of acquisition difference (implied)
     | "b_lu_catalogue" // Cultivation difference
+    | "b_bufferstrip" // Buffer strip status difference
 
 /**
  * Represents the explicit decision made by the user for a RVO Import Review item.

@@ -314,5 +314,14 @@ function detectDiffs(local: Field, rvo: RvoField): FieldDiff[] {
         diffs.push("b_end")
     }
 
+    // 5. Buffer strip
+    // Only check when RVO MEST data is available (mestData present means MEST was fetched)
+    if (rvo.properties.mestData?.IndBufferstrook !== undefined) {
+        const rvoBufferstrip = rvo.properties.mestData.IndBufferstrook === "J"
+        if (local.b_bufferstrip !== rvoBufferstrip) {
+            diffs.push("b_bufferstrip")
+        }
+    }
+
     return diffs
 }
