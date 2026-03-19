@@ -120,7 +120,7 @@ const DiffCell = ({
                         className={cn(
                             "flex items-center gap-2",
 
-                            useRemote && "opacity-50 grayscale",
+                            useRemote && "opacity-70",
                         )}
                     >
                         <Badge
@@ -135,7 +135,7 @@ const DiffCell = ({
                                 "text-sm",
 
                                 useRemote &&
-                                    "line-through decoration-muted-foreground/50",
+                                    "line-through decoration-muted-foreground/50 text-muted-foreground",
 
                                 useLocal && "font-bold",
                             )}
@@ -150,7 +150,7 @@ const DiffCell = ({
                         className={cn(
                             "flex items-center gap-2",
 
-                            useLocal && "opacity-50 grayscale",
+                            useLocal && "opacity-70",
                         )}
                     >
                         <Badge
@@ -165,7 +165,7 @@ const DiffCell = ({
                                 "text-sm",
 
                                 useLocal &&
-                                    "line-through decoration-muted-foreground/50",
+                                    "line-through decoration-muted-foreground/50 text-muted-foreground",
 
                                 useRemote && "font-bold",
                             )}
