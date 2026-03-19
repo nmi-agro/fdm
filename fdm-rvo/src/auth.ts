@@ -26,7 +26,7 @@ export const createRvoClient = (
         pkioPrivateKey.startsWith("/") ||
         pkioPrivateKey.startsWith("./") ||
         pkioPrivateKey.startsWith("../") ||
-        /^[a-zA-Z]:\\/.test(pkioPrivateKey)
+        /^[a-zA-Z]:[/\\]/.test(pkioPrivateKey)
     ) {
         if (fs.existsSync(pkioPrivateKey)) {
             privateKey = fs.readFileSync(pkioPrivateKey, "utf8")
