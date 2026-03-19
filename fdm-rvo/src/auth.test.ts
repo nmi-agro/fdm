@@ -26,6 +26,7 @@ describe("auth", () => {
         const url = generateAuthUrl(mockClient, "state123")
         expect(mockClient.getAuthorizationUrl).toHaveBeenCalledWith({
             state: "state123",
+            services: ["opvragenBedrijfspercelen", "opvragenRegelingspercelenMest"],
         })
         expect(url).toBe("https://example.com/auth")
     })

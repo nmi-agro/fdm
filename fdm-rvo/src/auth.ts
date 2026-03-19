@@ -54,7 +54,10 @@ export const createRvoClient = (
  * @returns The full URL to redirect the user to.
  */
 export const generateAuthUrl = (rvoClient: RvoClient, state: string) => {
-    return rvoClient.getAuthorizationUrl({ state })
+    return rvoClient.getAuthorizationUrl({
+        state,
+        services: ["opvragenBedrijfspercelen", "opvragenRegelingspercelenMest"],
+    })
 }
 
 /**
