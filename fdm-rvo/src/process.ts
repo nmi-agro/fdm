@@ -5,15 +5,26 @@ import {
     addCultivation,
     removeCultivation,
     getDefaultDatesOfCultivation,
+    acquiringMethodOptions,
     type FdmType,
 } from "@nmi-agro/fdm-core"
 import type { RvoImportReviewItem, UserChoiceMap } from "./types"
 import { getItemId } from "./utils"
 
+type AcquiringMethod = (typeof acquiringMethodOptions)[number]["value"]
+
 function parseBufferstrip(value: string | undefined): boolean | undefined {
     if (value === "J") return true
     if (value === "N") return false
     return undefined
+}
+
+function parseAcquiringMethod(useTitleCode: string | undefined): AcquiringMethod {
+    const candidate = `nl_${useTitleCode}`
+    if (acquiringMethodOptions.some((opt) => opt.value === candidate)) {
+        return candidate as AcquiringMethod
+    }
+    return "unknown"
 }
 
 /**
@@ -63,7 +74,7 @@ export async function processRvoImport(
                         item.rvoField.properties.CropFieldID,
                         item.rvoField.geometry,
                         new Date(item.rvoField.properties.BeginDate),
-                        `nl_${item.rvoField.properties.UseTitleCode}` as any,
+                        parseAcquiringMethod(item.rvoField.properties.UseTitleCode),
                         item.rvoField.properties.EndDate
                             ? new Date(item.rvoField.properties.EndDate)
                             : undefined,
@@ -109,7 +120,7 @@ export async function processRvoImport(
                         item.rvoField.properties.CropFieldID,
                         item.rvoField.geometry,
                         new Date(item.rvoField.properties.BeginDate),
-                        `nl_${item.rvoField.properties.UseTitleCode}` as any,
+                        parseAcquiringMethod(item.rvoField.properties.UseTitleCode),
                         item.rvoField.properties.EndDate
                             ? new Date(item.rvoField.properties.EndDate)
                             : undefined,
