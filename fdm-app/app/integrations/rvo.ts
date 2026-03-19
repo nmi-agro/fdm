@@ -60,6 +60,7 @@ export async function verifyRvoState(
         }
         return decodedState
     } catch (e) {
+        if (e instanceof Response) throw e
         throw new Response("Ongeldig state formaat", { status: 400 })
     }
 }
