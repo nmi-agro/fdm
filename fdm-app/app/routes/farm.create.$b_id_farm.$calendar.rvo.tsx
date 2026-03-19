@@ -158,13 +158,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
     }
 
+    const noRvoParcelsFound = !error && RvoImportReviewData.length === 0
     return {
         b_id_farm,
         b_businessid_farm,
         calendar: yearString,
         RvoImportReviewData,
         error,
-        showImportButton: false,
+        showImportButton: noRvoParcelsFound,
+        noRvoParcelsFound,
         isRvoConfigured,
         b_name_farm,
     }
@@ -178,6 +180,7 @@ export default function RvoImportCreatePage() {
         RvoImportReviewData,
         error,
         showImportButton,
+        noRvoParcelsFound,
         isRvoConfigured,
         b_name_farm,
     } = useLoaderData<typeof loader>()
@@ -302,6 +305,18 @@ export default function RvoImportCreatePage() {
                 {RvoImportReviewData.length === 0 ? (
                     <div className="flex h-full items-center justify-center p-6">
                         <div className="w-full max-w-lg space-y-6">
+                            {noRvoParcelsFound && (
+                                <Alert>
+                                    <AlertTitle>
+                                        Geen percelen gevonden
+                                    </AlertTitle>
+                                    <AlertDescription>
+                                        Er zijn geen percelen gevonden voor dit
+                                        bedrijf bij RVO. Controleer het
+                                        KvK-nummer en probeer opnieuw.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                             {showImportButton && (
                                 <RvoConnectCard
                                     b_businessid_farm={b_businessid_farm}
