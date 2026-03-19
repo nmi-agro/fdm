@@ -59,7 +59,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: 'https://npm.pkg.github.com'
           cache: 'pnpm'
 
       - name: Install Dependencies
@@ -152,7 +151,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: 'https://npm.pkg.github.com'
           cache: 'pnpm'
 
       - name: Install Dependencies
@@ -232,7 +230,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: 'https://npm.pkg.github.com'
           cache: 'pnpm'
 
       - name: Install Dependencies
@@ -310,7 +307,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: 'https://npm.pkg.github.com'
           cache: 'pnpm'
 
       - name: Install Dependencies
