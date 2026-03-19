@@ -1,10 +1,10 @@
 import pkg from "./package"
 export const fdmCalculator = pkg
 export {
-    aggregateFarmNitrogenBalanceResults,
     calculateNitrogenBalance,
     calculateNitrogenBalanceField,
     calculateNitrogenBalanceForFarms,
+    calculateNitrogenBalancesFieldToFarm,
     getNitrogenBalanceField,
 } from "./balance/nitrogen/index"
 export {

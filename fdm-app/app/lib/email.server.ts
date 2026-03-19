@@ -257,8 +257,10 @@ function getTimeZoneFromUrl(url: string): string | undefined {
     return undefined
 }
 
+import fs from "node:fs/promises"
 export async function sendEmail(email: Email): Promise<void> {
-    await client.sendEmail(email)
+    // await client.sendEmail(email)
+    await fs.writeFile("email.html", email.HtmlBody)
 }
 
 export function isInactiveRecipientError(e: any) {

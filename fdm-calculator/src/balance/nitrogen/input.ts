@@ -62,7 +62,6 @@ export async function collectOnlyFieldInputForNitrogenBalance(
                     b_id_farm,
                     timeframe,
                 )
-                console.error(new Error("I AM HERE"))
             }
 
             // Set the link to location of FDM public data

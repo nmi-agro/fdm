@@ -1,7 +1,8 @@
 import {
-    aggregateFarmNitrogenBalanceResults,
     calculateNitrogenBalanceForFarms,
+    calculateNitrogenBalancesFieldToFarm,
     collectInputForNitrogenBalanceForFarms,
+    type NitrogenBalanceFieldResultNumeric,
     type NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields, listPrincipalsForFarm } from "@nmi-agro/fdm-core"
@@ -170,77 +171,109 @@ export async function loader({
                 farmIds,
                 timeframe,
             )
+            const fieldToFarmMap: Record<string, string> = {}
+            for (const farmInput of inputs) {
+                for (const fieldInput of farmInput.fields) {
+                    fieldToFarmMap[fieldInput.field.b_id] = farmInput.b_id_farm
+                }
+            }
 
-            const results = await calculateNitrogenBalanceForFarms(fdm, inputs)
-            const combinedResult = aggregateFarmNitrogenBalanceResults(results)
+            const combinedResult = await calculateNitrogenBalanceForFarms(
+                fdm,
+                inputs,
+            )
+            const rawFarmResultsMap: Record<
+                string,
+                NitrogenBalanceFieldResultNumeric[]
+            > = {}
+            for (const result of combinedResult.fields) {
+                const b_id_farm = fieldToFarmMap[result.b_id] as string
+                rawFarmResultsMap[b_id_farm] ??= []
+                rawFarmResultsMap[b_id_farm].push(result)
+            }
             const farmResults = await Promise.all(
-                results.map(async (nitrogenBalanceResult) => {
-                    const farm = farmsMap[nitrogenBalanceResult.b_id_farm]
-                    const farmPrincipals = await listPrincipalsForFarm(
-                        fdm,
-                        principal_id,
-                        farm.b_id_farm,
-                    )
-                    const owner = farmPrincipals.find(
-                        (p) => p.role === "owner" && p.type === "user",
-                    )
-
-                    const fields = await getFields(
-                        fdm,
-                        principal_id,
-                        farm.b_id_farm,
-                    )
-
-                    const totalArea = fields.reduce(
-                        (totalArea, field) => totalArea + (field.b_area ?? 0),
-                        0,
-                    )
-                    try {
-                        if (nitrogenBalanceResult.hasErrors) {
-                            reportError(
-                                nitrogenBalanceResult.fieldErrorMessages.join(
-                                    ",\n",
+                Object.entries(rawFarmResultsMap).map(
+                    async ([b_id_map, fieldResults]) => {
+                        const nitrogenBalanceResult =
+                            calculateNitrogenBalancesFieldToFarm(
+                                fieldResults,
+                                fieldResults.some(
+                                    (result) => result.errorMessage,
                                 ),
-                                {
-                                    page: "organization/{slug}/{calendar}/farms/balance/nitrogen/_index",
-                                    scope: "loader",
-                                },
-                                {
-                                    b_id_farm: farm.b_id_farm,
-                                    timeframe,
-                                    userId: session.principal_id,
-                                },
+                                fieldResults
+                                    .filter((result) => result.errorMessage)
+                                    .map(
+                                        (result) => result.errorMessage,
+                                    ) as string[],
                             )
-                        }
+                        const farm = farmsMap[b_id_map]
+                        const farmPrincipals = await listPrincipalsForFarm(
+                            fdm,
+                            principal_id,
+                            farm.b_id_farm,
+                        )
+                        const owner = farmPrincipals.find(
+                            (p) => p.role === "owner" && p.type === "user",
+                        )
 
-                        return {
-                            farm: farm,
-                            owner: owner,
-                            fields: fields,
-                            totalArea: totalArea,
-                            nitrogenBalanceResult:
-                                nitrogenBalanceResult as NitrogenBalanceNumeric & {
+                        const fields = await getFields(
+                            fdm,
+                            principal_id,
+                            farm.b_id_farm,
+                        )
+
+                        const totalArea = fields.reduce(
+                            (totalArea, field) =>
+                                totalArea + (field.b_area ?? 0),
+                            0,
+                        )
+                        try {
+                            if (nitrogenBalanceResult.hasErrors) {
+                                reportError(
+                                    nitrogenBalanceResult.fieldErrorMessages.join(
+                                        ",\n",
+                                    ),
+                                    {
+                                        page: "organization/{slug}/{calendar}/farms/balance/nitrogen/_index",
+                                        scope: "loader",
+                                    },
+                                    {
+                                        b_id_farm: farm.b_id_farm,
+                                        timeframe,
+                                        userId: session.principal_id,
+                                    },
+                                )
+                            }
+
+                            return {
+                                farm: farm,
+                                owner: owner,
+                                fields: fields,
+                                totalArea: totalArea,
+                                nitrogenBalanceResult:
+                                    nitrogenBalanceResult as NitrogenBalanceNumeric & {
+                                        errorMessage?: string
+                                    },
+                            }
+                        } catch (error) {
+                            return {
+                                farm: farm,
+                                owner: owner,
+                                fields: fields,
+                                totalArea: totalArea,
+                                nitrogenBalanceResult: {
+                                    hasErrors: true,
+                                    errorMessage:
+                                        error instanceof Error
+                                            ? error.message
+                                            : String(error),
+                                } as NitrogenBalanceNumeric & {
                                     errorMessage?: string
                                 },
+                            }
                         }
-                    } catch (error) {
-                        return {
-                            farm: farm,
-                            owner: owner,
-                            fields: fields,
-                            totalArea: totalArea,
-                            nitrogenBalanceResult: {
-                                hasErrors: true,
-                                errorMessage:
-                                    error instanceof Error
-                                        ? error.message
-                                        : String(error),
-                            } as NitrogenBalanceNumeric & {
-                                errorMessage?: string
-                            },
-                        }
-                    }
-                }),
+                    },
+                ),
             )
 
             return {

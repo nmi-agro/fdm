@@ -32,35 +32,76 @@ import type {
 export async function calculateNitrogenBalance(
     fdm: FdmType,
     nitrogenBalanceInput: NitrogenBalanceInput,
-): Promise<NitrogenBalanceNumeric> {
-    const { fields, fertilizerDetails, cultivationDetails, timeFrame } =
-        nitrogenBalanceInput
+) {
+    const fieldInputs: NitrogenBalanceFieldInput[] =
+        nitrogenBalanceInput.fields.map((field) => ({
+            fieldInput: field,
+            cultivationDetails: nitrogenBalanceInput.cultivationDetails,
+            fertilizerDetails: nitrogenBalanceInput.fertilizerDetails,
+            timeFrame: nitrogenBalanceInput.timeFrame,
+        }))
 
+    return calculateNitrogenBalanceBatched(fdm, fieldInputs)
+}
+
+/**
+ * Calculates the nitrogen balance for all the farms.
+ *
+ * This function orchestrates the nitrogen balance calculation for all fields on multiple farms.
+ * It calls `getNitrogenBalanceField` for each field and then aggregates the results
+ * using `calculateNitrogenBalancesFieldToFarm`.
+ *
+ * @param fdm - The FDM instance for database access (caching).
+ * @param nitrogenBalanceInput - The input data for the nitrogen balance calculation, including all fields.
+ * @returns A promise that resolves an array where each item is the aggregated nitrogen balance of a farm,
+ * including the b_id_farm.
+ */
+export async function calculateNitrogenBalanceForFarms(
+    fdm: FdmType,
+    inputs: (NitrogenBalanceInput & { b_id_farm: string })[],
+) {
+    const fieldInputs: (NitrogenBalanceFieldInput & { b_id_farm: string })[] =
+        inputs.flatMap((input) =>
+            input.fields.map((field) => ({
+                b_id_farm: input.b_id_farm,
+                fieldInput: field,
+                fertilizerDetails: input.fertilizerDetails,
+                cultivationDetails: input.cultivationDetails,
+                timeFrame: input.timeFrame,
+            })),
+        )
+    return calculateNitrogenBalanceBatched(fdm, fieldInputs)
+}
+
+async function calculateNitrogenBalanceBatched(
+    fdm: FdmType,
+    fieldInputs: NitrogenBalanceFieldInput[],
+): Promise<NitrogenBalanceNumeric> {
     const fieldsWithBalanceResults: NitrogenBalanceFieldResultNumeric[] = []
     const batchSize = 50
 
-    for (let i = 0; i < fields.length; i += batchSize) {
-        const batch = fields.slice(i, i + batchSize)
+    for (let i = 0; i < fieldInputs.length; i += batchSize) {
+        const batch = fieldInputs.slice(i, i + batchSize)
         const batchResults = await Promise.all(
             batch.map(async (fieldInput) => {
                 try {
-                    const balance = await getNitrogenBalanceField(fdm, {
+                    const balance = await getNitrogenBalanceField(
+                        fdm,
                         fieldInput,
-                        fertilizerDetails,
-                        cultivationDetails,
-                        timeFrame,
-                    })
+                    )
                     return {
-                        b_id: fieldInput.field.b_id,
-                        b_area: fieldInput.field.b_area ?? 0,
-                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        b_id: fieldInput.fieldInput.field.b_id,
+                        b_area: fieldInput.fieldInput.field.b_area ?? 0,
+                        b_bufferstrip:
+                            fieldInput.fieldInput.field.b_bufferstrip ?? false,
                         balance,
                     }
                 } catch (error) {
                     return {
-                        b_id: fieldInput.field.b_id,
-                        b_area: fieldInput.field.b_area ?? 0,
-                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        b_id: fieldInput.fieldInput.field.b_id,
+                        b_area: fieldInput.fieldInput.field.b_area ?? 0,
+                        b_bufferstrip:
+                            fieldInput.fieldInput.field.b_bufferstrip ?? false,
                         errorMessage:
                             error instanceof Error
                                 ? error.message
@@ -84,87 +125,6 @@ export async function calculateNitrogenBalance(
         hasErrors,
         fieldErrorMessages,
     )
-}
-
-/**
- * Calculates the nitrogen balance for all farms readable by a principal.
- *
- * This function orchestrates the nitrogen balance calculation for all fields on a farm.
- * It calls `getNitrogenBalanceField` for each field and then aggregates the results
- * using `calculateNitrogenBalancesFieldToFarm`.
- *
- * @param fdm - The FDM instance for database access (caching).
- * @param nitrogenBalanceInput - The input data for the nitrogen balance calculation, including all fields.
- * @returns A promise that resolves an array where each item is the aggregated nitrogen balance of a farm,
- * including the b_id_farm.
- */
-export async function calculateNitrogenBalanceForFarms(
-    fdm: FdmType,
-    inputs: (NitrogenBalanceInput & { b_id_farm: string })[],
-) {
-    const batchSize = 50
-    const farmsWithBalanceResults: Record<
-        string,
-        NitrogenBalanceFieldResultNumeric[]
-    > = {}
-    const fieldInputs: (NitrogenBalanceFieldInput & { b_id_farm: string })[] =
-        inputs.flatMap((input) =>
-            input.fields.map((field) => ({
-                b_id_farm: input.b_id_farm,
-                fieldInput: field,
-                fertilizerDetails: input.fertilizerDetails,
-                cultivationDetails: input.cultivationDetails,
-                timeFrame: input.timeFrame,
-            })),
-        )
-    for (let i = 0; i < fieldInputs.length; i += batchSize) {
-        const batch = fieldInputs.slice(i, i + batchSize)
-        const batchResults = await Promise.all(
-            batch.map(async (input) => {
-                const fieldInput = input.fieldInput
-                try {
-                    const balance = await getNitrogenBalanceField(fdm, input)
-                    return {
-                        b_id_farm: input.b_id_farm,
-                        b_id: fieldInput.field.b_id,
-                        b_area: fieldInput.field.b_area ?? 0,
-                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
-                        balance,
-                    }
-                } catch (error) {
-                    return {
-                        b_id_farm: input.b_id_farm,
-                        b_id: fieldInput.field.b_id,
-                        b_area: fieldInput.field.b_area ?? 0,
-                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
-                        errorMessage:
-                            error instanceof Error
-                                ? error.message
-                                : String(error),
-                    }
-                }
-            }),
-        )
-        batchResults.forEach((result) => {
-            farmsWithBalanceResults[result.b_id_farm] ??= []
-            farmsWithBalanceResults[result.b_id_farm].push(result)
-        })
-    }
-
-    return inputs.map(({ b_id_farm }) => {
-        const fieldResults = farmsWithBalanceResults[b_id_farm] ?? []
-        const fieldErrorMessages = fieldResults
-            .map((result) => result.errorMessage)
-            .filter((msg) => msg) as string[]
-        return {
-            b_id_farm: b_id_farm,
-            ...calculateNitrogenBalancesFieldToFarm(
-                fieldResults,
-                fieldErrorMessages.length > 0,
-                fieldErrorMessages,
-            ),
-        }
-    })
 }
 
 /**
@@ -616,113 +576,4 @@ export function calculateNitrogenBalancesFieldToFarm(
     return convertDecimalToNumberRecursive(
         farmWithBalance,
     ) as NitrogenBalanceNumeric
-}
-
-/**
- * Aggregates nitrogen balances from multiple farms and takes the average weighted by each farm area.
- *
- * This function takes an array of nitrogen balance results for individual farms and aggregates
- * them to provide an overall nitrogen balance for all the farms. It calculates weighted
- * averages of nitrogen supply, removal, and emission based on the area of each farm.
- *
- * The function returns a comprehensive mean nitrogen balance for all the farms, including total supply,
- * removal, emission, and the overall balance.
- * @param farmBalanceResults - An array of nitrogen balance results for individual farms, potentially including errors.
- * @returns The aggregated nitrogen balance for all the farms.
- */
-export function aggregateFarmNitrogenBalanceResults(
-    farmBalanceResults: NitrogenBalanceNumeric[],
-): NitrogenBalanceNumeric {
-    const results = farmBalanceResults.filter((result) => !result.hasErrors)
-
-    const resultAreas = results.map(
-        (result) =>
-            new Decimal(
-                result.fields.reduce((total, field) => total + field.b_area, 0),
-            ),
-    )
-
-    const totalArea = resultAreas.reduce(
-        (totalArea, area) => totalArea.add(area),
-        new Decimal(0),
-    )
-
-    const fertilizerResultKeys = [
-        "total",
-        "mineral",
-        "manure",
-        "compost",
-        "other",
-    ] as const
-    type FertilizerResult = {
-        [k in (typeof fertilizerResultKeys)[number]]: number
-    }
-    function weightedAvg(accessor: (result: NitrogenBalanceNumeric) => number) {
-        if (results.length === 0) return 0 // Area will be 0 too so best to fall back to 0
-        return results
-            .reduce(
-                (total, result, i) =>
-                    total.add(resultAreas[i].mul(accessor(result))),
-                new Decimal(0),
-            )
-            .dividedBy(totalArea)
-            .toNumber()
-    }
-
-    function weightedFertilizerAvg(
-        accessor: (result: NitrogenBalanceNumeric) => FertilizerResult,
-    ) {
-        return Object.fromEntries(
-            fertilizerResultKeys.map((key) => [
-                key,
-                weightedAvg((result) => accessor(result)[key]),
-            ]),
-        ) as FertilizerResult
-    }
-
-    return {
-        balance: weightedAvg((result) => result.balance),
-        target: weightedAvg((result) => result.target),
-        supply: {
-            total: weightedAvg((result) => result.supply.total),
-            deposition: weightedAvg((result) => result.supply.deposition),
-            fixation: weightedAvg((result) => result.supply.fixation),
-            mineralisation: weightedAvg(
-                (result) => result.supply.mineralisation,
-            ),
-            fertilizers: weightedFertilizerAvg(
-                (result) => result.supply.fertilizers,
-            ),
-        },
-        removal: {
-            total: weightedAvg((result) => result.removal.total),
-            harvests: weightedAvg((result) => result.removal.harvests),
-            residues: weightedAvg((result) => result.removal.residues),
-        },
-        emission: {
-            total: weightedAvg((result) => result.emission.total),
-            ammonia: {
-                total: weightedAvg((result) => result.emission.ammonia.total),
-                fertilizers: weightedFertilizerAvg(
-                    (result) => result.emission.ammonia.fertilizers,
-                ),
-                residues: weightedAvg(
-                    (result) => result.emission.ammonia.residues,
-                ),
-            },
-            nitrate: weightedAvg((result) => result.emission.nitrate),
-        },
-        fields: farmBalanceResults.flatMap((result) => result.fields),
-        hasErrors:
-            results.length === 0 ||
-            farmBalanceResults.some((result) => result.hasErrors),
-        fieldErrorMessages: [
-            ...(results.length === 0
-                ? ["Geen geldige bedrijfsstikstofbalans resultäten gevonden."]
-                : []),
-            ...farmBalanceResults.flatMap(
-                (result) => result.fieldErrorMessages,
-            ),
-        ],
-    }
 }
