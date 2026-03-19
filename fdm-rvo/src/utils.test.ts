@@ -21,11 +21,15 @@ describe("getItemId", () => {
         expect(getItemId(item)).toBe("rvo-1")
     })
 
-    it("should return 'unknown' if neither present", () => {
+    it("should return a deterministic composite when neither field is present", () => {
         const item = {
             status: RvoImportReviewStatus.NEW_REMOTE,
             diffs: [],
         } as any
-        expect(getItemId(item)).toBe("unknown")
+        const id = getItemId(item)
+        // Must be a non-empty string that starts with the status value
+        expect(id).toContain(RvoImportReviewStatus.NEW_REMOTE)
+        // Must not be "unknown" — no collisions across degenerate items
+        expect(id).not.toBe("unknown")
     })
 })

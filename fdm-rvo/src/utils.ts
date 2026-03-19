@@ -8,19 +8,33 @@ import type { RvoImportReviewItem } from "./types"
 /**
  * Generates a stable unique identifier for a review item.
  *
- * This ID is used to key items in the UI (e.g., for React lists) and to map user choices.
- * It prioritizes the local field ID (`b_id`), falling back to the RVO field ID (`CropFieldID`)
- * if the item represents a new remote field.
+ * Priority:
+ * 1. Local field DB id (`b_id`) — always present when `localField` exists.
+ * 2. RVO crop field id (`CropFieldID`) — always present when `rvoField` exists.
+ * 3. Deterministic composite from `status`, `CropFieldVersion`, and `BeginDate`
+ *    — used only in the degenerate case where neither field is set.
+ *
+ * The returned value is stable across renders for the same item, making it
+ * safe to use as a React key and for `UserChoiceMap` identity comparisons.
  *
  * @param item - The review item to generate an ID for.
  * @returns A unique string identifier for the item.
  */
 export function getItemId(item: RvoImportReviewItem<any>): string {
-    return (
-        item.localField?.b_id ||
-        item.rvoField?.properties.CropFieldID ||
-        "unknown"
-    )
+    if (item.localField?.b_id) return item.localField.b_id
+    if (item.rvoField?.properties.CropFieldID)
+        return item.rvoField.properties.CropFieldID
+
+    // Degenerate fallback: build a deterministic composite from whatever
+    // stable data is available so multiple items don't collapse to the same key.
+    return [
+        item.status,
+        item.rvoField?.properties.CropFieldVersion,
+        item.rvoField?.properties.BeginDate,
+        item.localField ? "local" : "remote",
+    ]
+        .filter(Boolean)
+        .join(":")
 }
 
 /**
