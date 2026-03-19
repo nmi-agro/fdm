@@ -371,122 +371,129 @@ export default function RvoImportReviewPage() {
                     </div>
                 ) : (
                     <>
-                        <div className="flex items-center justify-between">
-                            <FarmTitle
-                                title={`Percelen opgehaald bij RVO voor ${currentFarmName}`}
-                                description={`Beoordeel de verschillen tussen de percelen in ${clientConfig.name} en bij RVO.`}
-                            />
-                            <div className="flex items-center gap-4 px-8 pt-6">
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button disabled={isApplying}>
-                                            {isApplying ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Verwerken...
-                                                </>
-                                            ) : hasChanges ? (
-                                                "Wijzigingen toepassen"
-                                            ) : (
-                                                "Doorgaan"
-                                            )}
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>
-                                                Wijzigingen toepassen
-                                            </DialogTitle>
-                                            <DialogDescription>
-                                                U staat op het punt de volgende
-                                                wijzigingen door te voeren:
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="py-4">
-                                            <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                                                {changes.add > 0 && (
-                                                    <li>
-                                                        {changes.add} perceel
-                                                        {changes.add !== 1 &&
-                                                            "en"}{" "}
-                                                        toevoegen
-                                                    </li>
-                                                )}
-                                                {changes.remove > 0 && (
-                                                    <li>
-                                                        {changes.remove} perceel
-                                                        {changes.remove !== 1 &&
-                                                            "en"}{" "}
-                                                        verwijderen
-                                                    </li>
-                                                )}
-                                                {changes.update > 0 && (
-                                                    <li>
-                                                        {changes.update} perceel
-                                                        {changes.update !== 1 &&
-                                                            "en"}{" "}
-                                                        bijwerken
-                                                    </li>
-                                                )}
-                                                {changes.close > 0 && (
-                                                    <li>
-                                                        {changes.close} perceel
-                                                        {changes.close !== 1 &&
-                                                            "en"}{" "}
-                                                        afsluiten
-                                                    </li>
-                                                )}
-                                            </ul>
-                                            {!hasChanges && (
-                                                <p>
-                                                    Geen wijzigingen
-                                                    geselecteerd.
-                                                </p>
-                                            )}
-                                        </div>
-                                        <DialogFooter>
-                                            <DialogClose asChild>
-                                                <Button variant="outline">
-                                                    Annuleren
-                                                </Button>
-                                            </DialogClose>
-                                            <Form
-                                                method="post"
-                                                action={`/farm/${b_id_farm}/${calendar}/rvo`}
-                                            >
-                                                <input
-                                                    type="hidden"
-                                                    name="intent"
-                                                    value="apply_changes"
-                                                />
-                                                <input
-                                                    type="hidden"
-                                                    name="userChoices"
-                                                    value={JSON.stringify(
-                                                        userChoices,
-                                                    )}
-                                                />
-                                                <input
-                                                    type="hidden"
-                                                    name="rvoImportReviewDataJson"
-                                                    value={JSON.stringify(
-                                                        rvoImportReviewData,
-                                                    )}
-                                                />
-                                                <Button
-                                                    type="submit"
-                                                    disabled={isApplying}
-                                                >
-                                                    Bevestigen
-                                                </Button>
-                                            </Form>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        </div>
+                        <FarmTitle
+                            title={`Percelen opgehaald bij RVO voor ${currentFarmName}`}
+                            description={`Beoordeel de verschillen tussen de percelen in ${clientConfig.name} en bij RVO.`}
+                        />
                         <FarmContent>
-                            <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
+                            <div className="flex flex-col space-y-4 pb-10">
+                                <div className="flex justify-end">
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button disabled={isApplying}>
+                                                {isApplying ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Verwerken...
+                                                    </>
+                                                ) : hasChanges ? (
+                                                    "Wijzigingen toepassen"
+                                                ) : (
+                                                    "Doorgaan"
+                                                )}
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>
+                                                    Wijzigingen toepassen
+                                                </DialogTitle>
+                                                <DialogDescription>
+                                                    U staat op het punt de
+                                                    volgende wijzigingen door
+                                                    te voeren:
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="py-4">
+                                                <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                                                    {changes.add > 0 && (
+                                                        <li>
+                                                            {changes.add}{" "}
+                                                            perceel
+                                                            {changes.add !==
+                                                                1 &&
+                                                                "en"}{" "}
+                                                            toevoegen
+                                                        </li>
+                                                    )}
+                                                    {changes.remove > 0 && (
+                                                        <li>
+                                                            {changes.remove}{" "}
+                                                            perceel
+                                                            {changes.remove !==
+                                                                1 &&
+                                                                "en"}{" "}
+                                                            verwijderen
+                                                        </li>
+                                                    )}
+                                                    {changes.update > 0 && (
+                                                        <li>
+                                                            {changes.update}{" "}
+                                                            perceel
+                                                            {changes.update !==
+                                                                1 &&
+                                                                "en"}{" "}
+                                                            bijwerken
+                                                        </li>
+                                                    )}
+                                                    {changes.close > 0 && (
+                                                        <li>
+                                                            {changes.close}{" "}
+                                                            perceel
+                                                            {changes.close !==
+                                                                1 &&
+                                                                "en"}{" "}
+                                                            afsluiten
+                                                        </li>
+                                                    )}
+                                                </ul>
+                                                {!hasChanges && (
+                                                    <p>
+                                                        Geen wijzigingen
+                                                        geselecteerd.
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <DialogFooter>
+                                                <DialogClose asChild>
+                                                    <Button variant="outline">
+                                                        Annuleren
+                                                    </Button>
+                                                </DialogClose>
+                                                <Form
+                                                    method="post"
+                                                    action={`/farm/${b_id_farm}/${calendar}/rvo`}
+                                                >
+                                                    <input
+                                                        type="hidden"
+                                                        name="intent"
+                                                        value="apply_changes"
+                                                    />
+                                                    <input
+                                                        type="hidden"
+                                                        name="userChoices"
+                                                        value={JSON.stringify(
+                                                            userChoices,
+                                                        )}
+                                                    />
+                                                    <input
+                                                        type="hidden"
+                                                        name="rvoImportReviewDataJson"
+                                                        value={JSON.stringify(
+                                                            rvoImportReviewData,
+                                                        )}
+                                                    />
+                                                    <Button
+                                                        type="submit"
+                                                        disabled={isApplying}
+                                                    >
+                                                        Bevestigen
+                                                    </Button>
+                                                </Form>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
                                 <div className="w-full">
                                     <RvoImportReviewTable
                                         data={rvoImportReviewData}

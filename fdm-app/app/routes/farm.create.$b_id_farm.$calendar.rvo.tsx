@@ -314,49 +314,50 @@ export default function RvoImportCreatePage() {
                     </div>
                 ) : (
                     <>
-                        <div className="flex items-center justify-between">
-                            <FarmTitle
-                                title="Verwerken van geïmporteerde percelen"
-                                description="Controleer de percelen opgehaald vanuit RVO. Deze worden toegevoegd aan uw nieuwe bedrijf."
-                            />
-                            <div className="flex items-center gap-4 px-8 pt-6">
-                                <Form
-                                    method="post"
-                                    action={`/farm/create/${b_id_farm}/${calendar}/rvo`}
-                                >
-                                    <input
-                                        type="hidden"
-                                        name="intent"
-                                        value="save_fields"
-                                    />
-                                    <input
-                                        type="hidden"
-                                        name="userChoices"
-                                        value={JSON.stringify(userChoices)}
-                                    />
-                                    <input
-                                        type="hidden"
-                                        name="RvoImportReviewDataJson"
-                                        value={JSON.stringify(
-                                            RvoImportReviewData,
-                                        )}
-                                    />
-                                    <Button type="submit" disabled={isSaving}>
-                                        {isSaving ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Opslaan...
-                                            </>
-                                        ) : (
-                                            "Opslaan en verder"
-                                        )}
-                                    </Button>
-                                </Form>
-                            </div>
-                        </div>
+                        <FarmTitle
+                            title="Verwerken van geïmporteerde percelen"
+                            description="Controleer de percelen opgehaald vanuit RVO. Deze worden toegevoegd aan uw nieuwe bedrijf."
+                        />
 
                         <FarmContent>
-                            <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
+                            <div className="flex flex-col space-y-4 pb-10">
+                                <div className="flex justify-end">
+                                    <Form
+                                        method="post"
+                                        action={`/farm/create/${b_id_farm}/${calendar}/rvo`}
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="intent"
+                                            value="save_fields"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="userChoices"
+                                            value={JSON.stringify(userChoices)}
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="RvoImportReviewDataJson"
+                                            value={JSON.stringify(
+                                                RvoImportReviewData,
+                                            )}
+                                        />
+                                        <Button
+                                            type="submit"
+                                            disabled={isSaving}
+                                        >
+                                            {isSaving ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Opslaan...
+                                                </>
+                                            ) : (
+                                                "Opslaan en verder"
+                                            )}
+                                        </Button>
+                                    </Form>
+                                </div>
                                 <div className="w-full">
                                     <RvoImportReviewTable
                                         data={RvoImportReviewData}
