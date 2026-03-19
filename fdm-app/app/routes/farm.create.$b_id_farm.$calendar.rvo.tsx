@@ -16,7 +16,6 @@ import {
     generateAuthUrl,
     fetchRvoFields,
     compareFields,
-    createRvoClient,
     exchangeToken,
 } from "~/lib/rvo.server"
 import type {
@@ -44,6 +43,7 @@ import {
 } from "~/components/ui/breadcrumb"
 import {
     getRvoCredentials,
+    createConfiguredRvoClient,
     createRvoState,
     verifyRvoState,
 } from "../integrations/rvo"
@@ -113,15 +113,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 )
             }
 
-            const rvoClient = createRvoClient(
-                rvoCredentials.clientId,
-                rvoCredentials.clientName,
-                rvoCredentials.redirectUri,
-                rvoCredentials.clientSecret,
-                process.env.NODE_ENV === "production"
-                    ? "production"
-                    : "acceptance",
-            ) // Instantiate RvoClient
+            const rvoClient = createConfiguredRvoClient(rvoCredentials)
             await exchangeToken(rvoClient, code)
 
             const rvoFields = await fetchRvoFields(
@@ -414,13 +406,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             throw new Response("RVO client is not available", { status: 500 })
         }
 
-        const rvoClient = createRvoClient(
-            rvoCredentials.clientId,
-            rvoCredentials.clientName,
-            rvoCredentials.redirectUri,
-            rvoCredentials.clientSecret,
-            process.env.NODE_ENV === "production" ? "production" : "acceptance",
-        ) // Instantiate RvoClient
+        const rvoClient = createConfiguredRvoClient(rvoCredentials)
 
         const { state, cookieHeader } = await createRvoState(
             b_id_farm,

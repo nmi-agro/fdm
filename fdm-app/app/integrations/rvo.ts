@@ -1,6 +1,7 @@
 import { serverConfig } from "../lib/config.server"
 import { createCookie } from "react-router"
 import { nanoid } from "nanoid"
+import { createRvoClient } from "@nmi-agro/fdm-rvo"
 
 export const rvoStateCookie = createCookie("rvo_state", {
     path: "/",
@@ -90,4 +91,17 @@ type RvoCredentials = {
     clientSecret: string
     redirectUri: string
     clientName: string
+}
+
+/**
+ * Creates an RvoClient configured from the given credentials and the current NODE_ENV.
+ */
+export function createConfiguredRvoClient(credentials: RvoCredentials) {
+    return createRvoClient(
+        credentials.clientId,
+        credentials.clientName,
+        credentials.redirectUri,
+        credentials.clientSecret,
+        process.env.NODE_ENV === "production" ? "production" : "acceptance",
+    )
 }
