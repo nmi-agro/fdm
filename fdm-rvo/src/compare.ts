@@ -174,19 +174,25 @@ export function compareFields(
             results.push(processMatch(bestMatch, rvo))
         } else {
             // No match found -> This is a NEW field from RVO
-            const rvoCode = `nl_${rvo.properties.CropTypeCode}`
-            const rvoCatalogueEntry = cultivationsCatalogue.find(
-                (c) => c.b_lu_catalogue === rvoCode,
-            )
+            const rvoCode = rvo.properties.CropTypeCode
+                ? `nl_${rvo.properties.CropTypeCode}`
+                : undefined
+            const rvoCatalogueEntry = rvoCode
+                ? cultivationsCatalogue.find(
+                      (c) => c.b_lu_catalogue === rvoCode,
+                  )
+                : undefined
             results.push({
                 status: RvoImportReviewStatus.NEW_REMOTE,
                 rvoField: rvo,
-                rvoCultivation: {
-                    b_lu_catalogue: rvoCode,
-                    b_lu_name: rvoCatalogueEntry
-                        ? rvoCatalogueEntry.b_lu_name
-                        : rvoCode,
-                },
+                rvoCultivation: rvoCode
+                    ? {
+                          b_lu_catalogue: rvoCode,
+                          b_lu_name: rvoCatalogueEntry
+                              ? rvoCatalogueEntry.b_lu_name
+                              : rvoCode,
+                      }
+                    : undefined,
                 diffs: [],
             })
         }

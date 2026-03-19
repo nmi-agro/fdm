@@ -417,4 +417,13 @@ describe("compareFields Edge Cases", () => {
         expect(result[0].status).toBe(RvoImportReviewStatus.NEW_REMOTE)
         expect(result[0].rvoCultivation?.b_lu_name).toBe("nl_999")
     })
+
+    it("should set rvoCultivation to undefined for NEW_REMOTE when CropTypeCode is missing", () => {
+        const rvo = createRvoField({ CropFieldID: "new-no-crop", CropTypeCode: "" })
+        const result = compareFields([], [rvo], calendar, [])
+
+        expect(result).toHaveLength(1)
+        expect(result[0].status).toBe(RvoImportReviewStatus.NEW_REMOTE)
+        expect(result[0].rvoCultivation).toBeUndefined()
+    })
 })
