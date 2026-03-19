@@ -98,7 +98,7 @@ export async function getCultivationsFromCatalogue(
  * Adds a new cultivation to the catalogue.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
- * @param properties The properties of the cultivation to add. This includes fields like `b_lu_catalogue`, `b_lu_name`, `b_lu_harvestable`, `b_lu_eom`, `b_lu_eom_residues`, and optionally `b_lu_variety_options` to specify available varieties.
+ * @param properties The properties of the cultivation to add. This includes fields like `b_lu_catalogue`, `b_lu_name`, `b_lu_harvestable`, `b_lu_eom`, `b_lu_eom_residue`, and optionally `b_lu_variety_options` to specify available varieties.
  * @returns A Promise that resolves when the cultivation is added.
  * @throws If the insertion fails.
  * @alpha
@@ -122,7 +122,7 @@ export async function addCultivationToCatalogue(
         b_lu_n_residue: schema.cultivationsCatalogueTypeInsert["b_lu_n_residue"]
         b_n_fixation: schema.cultivationsCatalogueTypeInsert["b_n_fixation"]
         b_lu_eom: schema.cultivationsCatalogueTypeInsert["b_lu_eom"]
-        b_lu_eom_residues: schema.cultivationsCatalogueTypeInsert["b_lu_eom_residues"]
+        b_lu_eom_residue: schema.cultivationsCatalogueTypeInsert["b_lu_eom_residue"]
         b_lu_rest_oravib: schema.cultivationsCatalogueTypeInsert["b_lu_rest_oravib"]
         b_lu_variety_options: schema.cultivationsCatalogueTypeInsert["b_lu_variety_options"]
         b_lu_start_default: schema.cultivationsCatalogueTypeInsert["b_lu_start_default"]
@@ -543,8 +543,7 @@ export async function getCultivation(
                 b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
                 b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
                 b_lu_eom: schema.cultivationsCatalogue.b_lu_eom,
-                b_lu_eom_residues:
-                    schema.cultivationsCatalogue.b_lu_eom_residues,
+                b_lu_eom_residue: schema.cultivationsCatalogue.b_lu_eom_residue,
                 b_lu_croprotation:
                     schema.cultivationsCatalogue.b_lu_croprotation,
                 b_lu_variety: schema.cultivations.b_lu_variety,
@@ -630,8 +629,7 @@ export async function getCultivations(
                 b_lu_croprotation:
                     schema.cultivationsCatalogue.b_lu_croprotation,
                 b_lu_eom: schema.cultivationsCatalogue.b_lu_eom,
-                b_lu_eom_residues:
-                    schema.cultivationsCatalogue.b_lu_eom_residues,
+                b_lu_eom_residue: schema.cultivationsCatalogue.b_lu_eom_residue,
                 b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
                 b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
                 b_lu_variety: schema.cultivations.b_lu_variety,
@@ -801,8 +799,7 @@ export async function getCultivationPlan(
                 b_lu_croprotation:
                     schema.cultivationsCatalogue.b_lu_croprotation,
                 b_lu_eom: schema.cultivationsCatalogue.b_lu_eom,
-                b_lu_eom_residues:
-                    schema.cultivationsCatalogue.b_lu_eom_residues,
+                b_lu_eom_residue: schema.cultivationsCatalogue.b_lu_eom_residue,
                 b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
                 b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
                 b_lu_yield: schema.harvestableAnalyses.b_lu_yield,
@@ -935,7 +932,7 @@ export async function getCultivationPlan(
                         b_lu_variety: curr.b_lu_variety,
                         b_lu_croprotation: curr.b_lu_croprotation,
                         b_lu_eom: curr.b_lu_eom,
-                        b_lu_eom_residues: curr.b_lu_eom_residues,
+                        b_lu_eom_residue: curr.b_lu_eom_residue,
                         b_lu_harvestcat: curr.b_lu_harvestcat,
                         b_lu_harvestable: curr.b_lu_harvestable,
                         b_area: 0,

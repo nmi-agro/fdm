@@ -466,7 +466,7 @@ export const cultivationsCatalogue = fdmSchema.table(
         b_lu_n_residue: numericCasted(),
         b_n_fixation: numericCasted(),
         b_lu_eom: numericCasted(),
-        b_lu_eom_residues: numericCasted(),
+        b_lu_eom_residue: numericCasted(),
         b_lu_rest_oravib: boolean(),
         b_lu_variety_options: text().array(),
         b_lu_start_default: text(), // MM-dd

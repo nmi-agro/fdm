@@ -230,7 +230,7 @@ export type CultivationDetail = Pick<
     | "b_lu_catalogue"
     | "b_lu_croprotation"
     | "b_lu_eom" // Effective Organic Matter from the cultivation (kg EOM/ha/yr)
-    | "b_lu_eom_residues" // Effective Organic Matter from crop residues (kg EOM/ha/yr)
+    | "b_lu_eom_residue" // Effective Organic Matter from crop residues (kg EOM/ha/yr)
 >
 
 /**

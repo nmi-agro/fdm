@@ -15,7 +15,7 @@ describe("calculateOrganicMatterSupplyByResidues", () => {
                 b_lu_catalogue: "maize",
                 b_lu_croprotation: "maize",
                 b_lu_eom: 400,
-                b_lu_eom_residues: 800,
+                b_lu_eom_residue: 800,
             },
         ],
         [
@@ -24,7 +24,7 @@ describe("calculateOrganicMatterSupplyByResidues", () => {
                 b_lu_catalogue: "wheat",
                 b_lu_croprotation: "cereal",
                 b_lu_eom: null,
-                b_lu_eom_residues: 500,
+                b_lu_eom_residue: 500,
             },
         ],
         [
@@ -33,7 +33,7 @@ describe("calculateOrganicMatterSupplyByResidues", () => {
                 b_lu_catalogue: "no-residue-eom",
                 b_lu_croprotation: "other",
                 b_lu_eom: 100,
-                b_lu_eom_residues: null,
+                b_lu_eom_residue: null,
             },
         ],
     ])
@@ -136,7 +136,7 @@ describe("calculateOrganicMatterSupplyByResidues", () => {
         expect(result.cultivations).toHaveLength(2)
     })
 
-    it("should return zero if b_lu_eom_residues is null", () => {
+    it("should return zero if b_lu_eom_residue is null", () => {
         const cultivations: FieldInput["cultivations"] = [
             {
                 b_lu: "cult1",
