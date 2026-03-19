@@ -536,19 +536,59 @@ export async function getFertilizers(
     fdm: FdmType,
     principal_id: PrincipalId,
     b_id_farm: schema.fertilizerAcquiringTypeSelect["b_id_farm"],
-): Promise<Fertilizer[]> {
+) {
     try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "read",
-            b_id_farm,
-            principal_id,
-            "getFertilizers",
+        await getFertilizersOfFarms(fdm, principal_id, [b_id_farm])
+    } catch (err) {
+        if ((err as Error)?.message === "Exception for getFertilizersOfFarms") {
+            throw handleError(err, "Exception for getFertilizers", {
+                b_id_farm,
+            })
+        }
+
+        throw err
+    }
+}
+
+/**
+ * Retrieves fertilizer details for a specified farm.
+ *
+ * This function verifies that the requesting principal has read access to the farm,
+ * then queries the database to return a list of fertilizers along with their catalogue
+ * and application details.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id - The ID of the principal making the request.
+ * @param b_id_farm - The ID of the farm for which the fertilizers are retrieved.
+ * @returns A promise that resolves with an array of fertilizer detail objects.
+ *
+ * @alpha
+ */
+export async function getFertilizersOfFarms(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    farmIds: schema.fertilizerAcquiringTypeSelect["b_id_farm"][],
+    includeFarmIds = false,
+): Promise<(Fertilizer & { b_id_farm?: string })[]> {
+    try {
+        await Promise.all(
+            farmIds.map((b_id_farm) =>
+                checkPermission(
+                    fdm,
+                    "farm",
+                    "read",
+                    b_id_farm,
+                    principal_id,
+                    "getFertilizers",
+                ),
+            ),
         )
 
         const fertilizers = await fdm
             .select({
+                ...(includeFarmIds
+                    ? { b_id_farm: schema.fertilizerAcquiring.b_id_farm }
+                    : {}),
                 p_id: schema.fertilizers.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_source: schema.fertilizersCatalogue.p_source,
@@ -625,8 +665,11 @@ export async function getFertilizers(
                     schema.fertilizersCatalogue.p_id_catalogue,
                 ),
             )
-            .where(eq(schema.fertilizerAcquiring.b_id_farm, b_id_farm))
-            .orderBy(asc(schema.fertilizersCatalogue.p_name_nl))
+            .where(inArray(schema.fertilizerAcquiring.b_id_farm, farmIds))
+            .orderBy(
+                asc(schema.fertilizerAcquiring.b_id_farm),
+                asc(schema.fertilizersCatalogue.p_name_nl),
+            )
 
         return fertilizers.map((f: (typeof fertilizers)[number]) => {
             let p_type: "manure" | "mineral" | "compost" | null = null
@@ -648,8 +691,8 @@ export async function getFertilizers(
             }
         })
     } catch (err) {
-        throw handleError(err, "Exception for getFertilizers", {
-            b_id_farm,
+        throw handleError(err, "Exception for getFertilizersOfFarms", {
+            farmIds,
         })
     }
 }

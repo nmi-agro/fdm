@@ -97,6 +97,7 @@ export {
     getFertilizerApplications,
     getFertilizerParametersDescription,
     getFertilizers,
+    getFertilizersOfFarms,
     getFertilizersFromCatalogue,
     removeFertilizer,
     removeFertilizerApplication,

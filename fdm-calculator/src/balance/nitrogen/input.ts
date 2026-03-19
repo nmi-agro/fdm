@@ -3,12 +3,13 @@ import type {
     fdmSchema,
     PrincipalId,
     Timeframe,
+    Fertilizer,
 } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
     getCultivationsOfFarmsFromCatalogue,
     getFertilizerApplications,
-    getFertilizers,
+    getFertilizersOfFarms,
     getField,
     getFields,
     getHarvests,
@@ -61,6 +62,7 @@ export async function collectOnlyFieldInputForNitrogenBalance(
                     b_id_farm,
                     timeframe,
                 )
+                console.error(new Error("I AM HERE"))
             }
 
             // Set the link to location of FDM public data
@@ -176,7 +178,37 @@ export async function collectInputForNitrogenBalanceForFarms(
                     tx,
                     principal_id,
                     farmIds,
-                )
+                ) // sorted by b_lu_catalogue
+            const fertilizerDetails = await getFertilizersOfFarms(
+                tx,
+                principal_id,
+                farmIds,
+                true,
+            )
+
+            const fertilizerDetailsForFarms: Record<string, Fertilizer[]> = {}
+            if (fertilizerDetails && fertilizerDetails.length > 0) {
+                let fertilizerStart = 0
+                let fertilizerEnd = 0
+                while (fertilizerEnd < fertilizerDetails.length) {
+                    const b_id_farm = fertilizerDetails[fertilizerStart]
+                        .b_id_farm as string
+                    for (
+                        ;
+                        fertilizerEnd < fertilizerDetails.length;
+                        fertilizerEnd++
+                    ) {
+                        if (
+                            fertilizerDetails[fertilizerEnd].b_id_farm !==
+                            b_id_farm
+                        )
+                            break
+                    }
+                    fertilizerDetailsForFarms[b_id_farm] =
+                        fertilizerDetails.slice(fertilizerStart, fertilizerEnd)
+                    fertilizerStart = fertilizerEnd
+                }
+            }
 
             return await Promise.all(
                 farmIds.map(async (b_id_farm) => {
@@ -190,18 +222,32 @@ export async function collectInputForNitrogenBalanceForFarms(
                                 b_id,
                             )
 
-                        // Collect the details of the fertilizers
-                        const fertilizerDetails = await getFertilizers(
-                            tx,
-                            principal_id,
-                            b_id_farm,
-                        )
+                        let cultivationDetailsForThisFarm = cultivationDetails
+                        const fertilizerDetailsForThisFarm =
+                            fertilizerDetailsForFarms[b_id_farm] ?? []
+                        if (farmIds.length > 1) {
+                            // Required cultivation and fertilizer details for this farm should be extracted to not break the cache
+                            const cultivationIds = new Set(
+                                onlyFieldInput.flatMap((input) =>
+                                    input.cultivations.map(
+                                        (cultivation) =>
+                                            cultivation.b_lu_catalogue,
+                                    ),
+                                ),
+                            )
+                            cultivationDetailsForThisFarm =
+                                cultivationDetails.filter((cultivation) =>
+                                    cultivationIds.has(
+                                        cultivation.b_lu_catalogue,
+                                    ),
+                                )
+                        }
 
                         return {
                             b_id_farm: b_id_farm,
                             fields: onlyFieldInput,
-                            fertilizerDetails: fertilizerDetails,
-                            cultivationDetails: cultivationDetails,
+                            fertilizerDetails: fertilizerDetailsForThisFarm,
+                            cultivationDetails: cultivationDetailsForThisFarm,
                             timeFrame: timeframe,
                         }
                     } catch (error) {
@@ -218,6 +264,7 @@ export async function collectInputForNitrogenBalanceForFarms(
             )
         })
     } catch (error) {
+        console.log("ERROR OCCURRED", error)
         throw new Error(
             `Failed to collect nitrogen balance input: ${
                 error instanceof Error ? error.message : String(error)
