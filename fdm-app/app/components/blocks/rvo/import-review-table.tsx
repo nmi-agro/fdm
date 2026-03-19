@@ -40,6 +40,13 @@ import { acquiringMethodOptions } from "~/lib/constants"
 import { useMemo } from "react"
 import { clientConfig } from "@/app/lib/config"
 
+declare module "@tanstack/react-table" {
+    interface TableMeta<TData extends object> {
+        userChoices: UserChoiceMap
+        onChoiceChange: (id: string, action: ImportReviewAction) => void
+    }
+}
+
 interface RvoImportReviewTableProps {
     data: RvoImportReviewItem<any>[]
     userChoices: UserChoiceMap
@@ -295,8 +302,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            // @ts-ignore
-            const { userChoices } = table.options.meta as any
+            const { userChoices } = table.options.meta!
             const action = userChoices[id] as ImportReviewAction
 
             return (
@@ -325,8 +331,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            // @ts-ignore
-            const { userChoices } = table.options.meta as any
+            const { userChoices } = table.options.meta!
             const action = userChoices[id] as ImportReviewAction
 
             const localArea = item.localField
@@ -359,8 +364,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            // @ts-ignore
-            const { userChoices } = table.options.meta as any
+            const { userChoices } = table.options.meta!
             const action = userChoices[id] as ImportReviewAction
 
             return (
@@ -387,8 +391,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            // @ts-ignore
-            const { userChoices } = table.options.meta as any
+            const { userChoices } = table.options.meta!
             const action = userChoices[id] as ImportReviewAction
 
             return (
@@ -414,8 +417,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            // @ts-ignore
-            const { userChoices } = table.options.meta as any
+            const { userChoices } = table.options.meta!
             const action = userChoices[id] as ImportReviewAction
 
             return (
@@ -450,8 +452,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            // @ts-ignore
-            const { userChoices } = table.options.meta as any
+            const { userChoices } = table.options.meta!
             const action = userChoices[id] as ImportReviewAction
 
             // Map RVO code to label using FDM dictionary
@@ -493,8 +494,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         ),
         cell: ({ row, table }) => {
             const item = row.original
-            // @ts-ignore
-            const { userChoices } = table.options.meta as any
+            const { userChoices } = table.options.meta!
             const action = userChoices[getItemId(item)] as ImportReviewAction
 
             const rvoBufferstrip =
@@ -537,8 +537,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            // @ts-ignore - meta is not strictly typed in React Table basic usage but useful here
-            const { userChoices, onChoiceChange } = table.options.meta as any
+            const { userChoices, onChoiceChange } = table.options.meta!
             const currentChoice = userChoices[id] as ImportReviewAction
 
             if (item.status === "MATCH") {
