@@ -37,6 +37,8 @@ import { area } from "@turf/turf"
 import { format } from "date-fns"
 import { cn } from "~/lib/utils"
 import { acquiringMethodOptions } from "~/lib/constants"
+import { useMemo } from "react"
+import { clientConfig } from "@/app/lib/config"
 
 interface RvoImportReviewTableProps {
     data: RvoImportReviewItem<any>[]
@@ -625,9 +627,6 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         },
     },
 ]
-
-import { useMemo } from "react"
-import { clientConfig } from "@/app/lib/config"
 
 export function RvoImportReviewTable({
     data,
