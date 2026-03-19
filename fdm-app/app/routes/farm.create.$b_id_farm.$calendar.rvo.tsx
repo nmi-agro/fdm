@@ -41,7 +41,11 @@ import {
     BreadcrumbSeparator,
     BreadcrumbLink,
 } from "~/components/ui/breadcrumb"
-import { getRvoCredentials } from "../integrations/rvo"
+import {
+    getRvoCredentials,
+    createRvoState,
+    verifyRvoState,
+} from "../integrations/rvo"
 import { RvoErrorAlert } from "~/components/blocks/rvo/rvo-error-alert"
 import {
     getNmiApiKey,
@@ -90,17 +94,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     if (code && state) {
         try {
             if (!isRvoConfigured) {
-                throw new Response("RVO is niet geconfigureerd.", {
+                throw new Response("RVO client is not configured.", {
                     status: 500,
                 })
             }
 
-            const decodedState = JSON.parse(
-                Buffer.from(state, "base64").toString("utf-8"),
-            )
-            if (decodedState.farmId !== b_id_farm) {
-                throw new Response("Ongeldige state parameter", { status: 403 })
-            }
+            // CSRF Verification
+            await verifyRvoState(request, state, b_id_farm)
 
             if (!farm || !farm.b_businessid_farm) {
                 throw new Response(
@@ -401,11 +401,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
             rvoCredentials.clientSecret,
             process.env.NODE_ENV === "production" ? "production" : "acceptance",
         ) // Instantiate RvoClient
-        const state = Buffer.from(
-            JSON.stringify({ farmId: b_id_farm, returnUrl: request.url }),
-        ).toString("base64")
-        const authUrl = generateAuthUrl(rvoClient, state) // Pass rvoClient instance
-        return redirect(authUrl)
+
+        const { state, cookieHeader } = await createRvoState(
+            b_id_farm,
+            request.url,
+        )
+
+        const authUrl = generateAuthUrl(rvoClient, state)
+
+        return redirect(authUrl, {
+            headers: {
+                "Set-Cookie": cookieHeader,
+            },
+        })
     }
 
     if (intent === "save_fields") {

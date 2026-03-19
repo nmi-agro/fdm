@@ -8,8 +8,6 @@ import {
     useLoaderData,
     useNavigation,
     useParams,
-    Link,
-    useNavigate,
     useLocation,
 } from "react-router"
 import { getSession } from "~/lib/auth.server"
@@ -51,7 +49,11 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { getRvoCredentials } from "../integrations/rvo"
+import {
+    createRvoState,
+    getRvoCredentials,
+    verifyRvoState,
+} from "~/integrations/rvo"
 import { RvoErrorAlert } from "~/components/blocks/rvo/rvo-error-alert"
 import {
     getNmiApiKey,
@@ -63,7 +65,7 @@ import {
     getCultivationsFromCatalogue,
 } from "@nmi-agro/fdm-core"
 import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
-import { clientConfig } from "../lib/config"
+import { clientConfig } from "~/lib/config"
 
 export const meta: MetaFunction = ({ params }) => {
     return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]
@@ -105,12 +107,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     status: 500,
                 })
             }
-            const decodedState = JSON.parse(
-                Buffer.from(state, "base64").toString("utf-8"),
-            )
-            if (decodedState.farmId !== b_id_farm) {
-                throw new Response("Invalid state parameter", { status: 403 })
-            }
+
+            // CSRF Verification
+            await verifyRvoState(request, state, b_id_farm)
 
             if (!farm || !farm.b_businessid_farm) {
                 throw new Response("b_businessid_farm is not available", {
@@ -530,11 +529,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
             rvoCredentials.clientSecret,
             process.env.NODE_ENV === "production" ? "production" : "acceptance",
         )
-        const state = Buffer.from(
-            JSON.stringify({ farmId: b_id_farm, returnUrl: request.url }),
-        ).toString("base64")
+
+        const { state, cookieHeader } = await createRvoState(
+            b_id_farm,
+            request.url,
+        )
+
         const authUrl = generateAuthUrl(rvoClient, state)
-        return redirect(authUrl)
+
+        // Set state in cookie and redirect
+        return redirect(authUrl, {
+            headers: {
+                "Set-Cookie": cookieHeader,
+            },
+        })
     }
 
     if (intent === "apply_changes") {
@@ -555,6 +563,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
         try {
             rvoImportReviewData = JSON.parse(String(rvoImportReviewDataJson))
             userChoices = JSON.parse(String(userChoicesJson))
+
+            // Basic validation: ensure we have an array of items
+            if (!Array.isArray(rvoImportReviewData)) {
+                throw new Error("Invalid review data format")
+            }
 
             const onFieldAdded = async (b_id: string, geometry: any) => {
                 const nmiApiKey = getNmiApiKey()
