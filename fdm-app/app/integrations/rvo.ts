@@ -67,11 +67,12 @@ export async function verifyRvoState(
 
 export function getRvoCredentials(): RvoCredentials | undefined {
     // Check if RVO is configured
+    const { clientId, clientSecret } = serverConfig.integrations.rvo
     const rvoConfigured =
-        serverConfig.integrations.rvo.clientId !== "undefined" &&
-        serverConfig.integrations.rvo.clientId !== "" &&
-        serverConfig.integrations.rvo.clientSecret !== "undefined" &&
-        serverConfig.integrations.rvo.clientSecret !== ""
+        !!clientId?.trim() &&
+        clientId !== "undefined" &&
+        !!clientSecret?.trim() &&
+        clientSecret !== "undefined"
     if (!rvoConfigured) {
         return undefined
     }
