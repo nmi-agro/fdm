@@ -67,10 +67,11 @@ export function handleLoaderError(error: unknown) {
                     userMessage = "De gevraagde data kon niet worden gevonden."
                     break
                 // case 500:
-                default:
-                    userMessage =
-                        "Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning."
+                default: {
+                    const errorId = reportError(error, { scope: "loader" })
+                    userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
                     break
+                }
             }
             return data(
                 {
@@ -219,11 +220,12 @@ export function handleActionError(error: unknown) {
                     dataStatus = "warning"
                     break
                 // case 500:
-                default:
-                    userMessage =
-                        "Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning."
+                default: {
+                    const errorId = reportError(error, { scope: "action" })
+                    userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
                     dataStatus = "error"
                     break
+                }
             }
             if (dataStatus === "warning") {
                 return dataWithWarning(
