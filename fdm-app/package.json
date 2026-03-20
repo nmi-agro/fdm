@@ -1,6 +1,6 @@
 {
     "name": "@nmi-agro/fdm-app",
-    "version": "0.28.4",
+    "version": "0.28.6",
     "private": true,
     "sideEffects": false,
     "type": "module",
@@ -8,8 +8,8 @@
         "build": "dotenvx run -- react-router build",
         "dev": "dotenvx run -- pnpm db:migrate && dotenvx run -- react-router dev",
         "dotenvx": "dotenvx",
-        "start": "pnpm db:migrate && react-router-serve ./build/server/index.js",
-        "start-dev": "dotenvx run -- pnpm db:migrate && dotenvx run -- react-router-serve ./build/server/index.js",
+        "start": "pnpm db:migrate && NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
+        "start-dev": "dotenvx run -- pnpm db:migrate && dotenvx run -- NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
         "db:migrate": "node ./app/lib/fdm-migrate.server.js",
         "typecheck": "react-router typegen && tsc"
     },
