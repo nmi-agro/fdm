@@ -37,7 +37,7 @@ import type { FieldInput, NitrogenBalanceInput } from "./types"
  *
  * @alpha
  */
-export async function collectOnlyFieldInputForNitrogenBalance(
+async function collectInputForNitrogenBalanceForFarm(
     fdm: FdmType,
     principal_id: PrincipalId,
     b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
@@ -187,7 +187,7 @@ export async function collectInputForNitrogenBalanceForFarms(
                 farmIds.map(async (b_id_farm) => {
                     try {
                         const onlyFieldInput =
-                            await collectOnlyFieldInputForNitrogenBalance(
+                            await collectInputForNitrogenBalanceForFarm(
                                 fdm,
                                 principal_id,
                                 b_id_farm,

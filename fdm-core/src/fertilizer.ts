@@ -714,9 +714,6 @@ export async function getFertilizersOfFarms(
                     fertilizerStart,
                     fertilizerEnd,
                 )
-                console.log(
-                    `for farm ${b_id_farm} the start is ${fertilizerStart} and end is ${fertilizerEnd}`,
-                )
                 fertilizerStart = fertilizerEnd
             }
         }
