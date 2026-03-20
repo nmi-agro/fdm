@@ -75,7 +75,7 @@ export function StrategyForm({
                                             {name === "isOrganic" &&
                                                 "Geen gebruik van minerale kunstmeststoffen."}
                                             {name === "fillManureSpace" &&
-                                                "Volledig invullen van de gebruiksnorm voor dierlijke mest."}
+                                                "Volledig opvullen van de gebruiksruimte voor dierlijke mest."}
                                             {name ===
                                                 "reduceAmmoniaEmissions" &&
                                                 "Reductie van ammoniakemissies via optimale techniek."}
