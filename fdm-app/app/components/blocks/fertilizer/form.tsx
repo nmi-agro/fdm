@@ -437,7 +437,7 @@ export function FertilizerForm({
                                         </span>
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-sm font-bold">
-                                                {stat.value ?? "0,00"}
+                                                {stat.value ?? "0"}
                                             </span>
                                             <span className="text-[10px] font-medium text-muted-foreground">
                                                 {stat.unit}
