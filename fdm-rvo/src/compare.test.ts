@@ -2,15 +2,35 @@ import { describe, it, expect } from "vitest"
 import { compareFields } from "./compare"
 import { RvoImportReviewStatus, type RvoField } from "./types"
 
-describe("compareFields", () => {
-    const calendar = 2025
+// Shared helpers used across all describe blocks
+const createLocalField = (overrides: Partial<any> = {}): any => ({
+    b_id: "local-1",
+    b_id_source: "rvo-1",
+    b_name: "Field 1",
+    b_geometry: {
+        type: "Polygon",
+        coordinates: [
+            [
+                [0, 0],
+                [0, 10],
+                [10, 10],
+                [10, 0],
+                [0, 0],
+            ],
+        ],
+    },
+    b_start: new Date("2024-01-01"),
+    b_end: undefined,
+    b_acquiring_method: "nl_01",
+    cultivations: [],
+    ...overrides,
+})
 
-    // Helper to create a basic local field
-    const createLocalField = (overrides: Partial<any> = {}): any => ({
-        b_id: "local-1",
-        b_id_source: "rvo-1",
-        b_name: "Field 1",
-        b_geometry: {
+const createRvoField = (overrides: any = {}): RvoField => {
+    const { geometry, ...props } = overrides
+    return {
+        type: "Feature",
+        geometry: geometry || {
             type: "Polygon",
             coordinates: [
                 [
@@ -22,43 +42,22 @@ describe("compareFields", () => {
                 ],
             ],
         },
-        b_start: new Date("2024-01-01"),
-        b_end: undefined,
-        b_acquiring_method: "nl_01",
-        cultivations: [],
-        ...overrides,
-    })
-
-    // Helper to create a basic RVO field
-    const createRvoField = (overrides: any = {}): RvoField => {
-        const { geometry, ...props } = overrides
-        return {
-            type: "Feature",
-            geometry: geometry || {
-                type: "Polygon",
-                coordinates: [
-                    [
-                        [0, 0],
-                        [0, 10],
-                        [10, 10],
-                        [10, 0],
-                        [0, 0],
-                    ],
-                ],
-            },
-            properties: {
-                CropFieldID: "rvo-1",
-                CropFieldVersion: "1",
-                CropFieldDesignator: "Field 1",
-                BeginDate: "2024-01-01",
-                EndDate: undefined,
-                Country: "NL",
-                CropTypeCode: "101",
-                UseTitleCode: "01",
-                ...props,
-            },
-        }
+        properties: {
+            CropFieldID: "rvo-1",
+            CropFieldVersion: "1",
+            CropFieldDesignator: "Field 1",
+            BeginDate: "2024-01-01",
+            EndDate: undefined,
+            Country: "NL",
+            CropTypeCode: "101",
+            UseTitleCode: "01",
+            ...props,
+        },
     }
+}
+
+describe("compareFields", () => {
+    const calendar = 2025
 
     describe("Tier 1: ID Match", () => {
         it("should MATCH fields with same ID and identical properties", () => {
@@ -152,6 +151,30 @@ describe("compareFields", () => {
             expect(result).toHaveLength(1)
             expect(result[0].status).toBe(RvoImportReviewStatus.CONFLICT)
             expect(result[0].diffs).toContain("b_lu_catalogue")
+        })
+
+        it("should detect CONFLICT when acquiring method differs", () => {
+            const local = createLocalField({ b_acquiring_method: "nl_02" })
+            const rvo = createRvoField({ UseTitleCode: "01" }) // nl_01 ≠ nl_02
+
+            const result = compareFields([local], [rvo], calendar)
+
+            expect(result).toHaveLength(1)
+            expect(result[0].status).toBe(RvoImportReviewStatus.CONFLICT)
+            expect(result[0].diffs).toContain("b_acquiring_method")
+        })
+
+        it("should detect CONFLICT when buffer strip status differs", () => {
+            const local = createLocalField({ b_bufferstrip: false })
+            const rvo = createRvoField({
+                mestData: { IndBufferstrook: "J" }, // true ≠ false
+            })
+
+            const result = compareFields([local], [rvo], calendar)
+
+            expect(result).toHaveLength(1)
+            expect(result[0].status).toBe(RvoImportReviewStatus.CONFLICT)
+            expect(result[0].diffs).toContain("b_bufferstrip")
         })
     })
 
@@ -259,58 +282,6 @@ describe("compareFields", () => {
 
 describe("compareFields Edge Cases", () => {
     const calendar = 2025
-
-    const createLocalField = (overrides: Partial<any> = {}): any => ({
-        b_id: "local-1",
-        b_id_source: "rvo-1",
-        b_name: "Field 1",
-        b_geometry: {
-            type: "Polygon",
-            coordinates: [
-                [
-                    [0, 0],
-                    [0, 10],
-                    [10, 10],
-                    [10, 0],
-                    [0, 0],
-                ],
-            ],
-        },
-        b_start: new Date("2024-01-01"),
-        b_end: undefined,
-        b_acquiring_method: "nl_01",
-        cultivations: [],
-        ...overrides,
-    })
-
-    const createRvoField = (overrides: any = {}): RvoField => {
-        const { geometry, ...props } = overrides
-        return {
-            type: "Feature",
-            geometry: geometry || {
-                type: "Polygon",
-                coordinates: [
-                    [
-                        [0, 0],
-                        [0, 10],
-                        [10, 10],
-                        [10, 0],
-                        [0, 0],
-                    ],
-                ],
-            },
-            properties: {
-                CropFieldID: "rvo-1",
-                CropFieldVersion: "1",
-                CropFieldDesignator: "Field 1",
-                BeginDate: "2024-01-01",
-                Country: "NL",
-                CropTypeCode: "101",
-                UseTitleCode: "01",
-                ...props,
-            },
-        }
-    }
 
     it("should handle IoU calculation when polygons touch (area 0)", () => {
         // Two squares touching at x=10.

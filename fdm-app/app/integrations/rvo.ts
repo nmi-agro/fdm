@@ -2,6 +2,14 @@ import { serverConfig } from "../lib/config.server"
 import { createCookie } from "react-router"
 import { nanoid } from "nanoid"
 import { createRvoClient } from "@nmi-agro/fdm-rvo"
+import { isOfOrigin } from "../lib/url-utils"
+
+const sessionSecret = serverConfig.auth.fdm_session_secret
+if (!sessionSecret?.trim() || sessionSecret === "undefined") {
+    throw new Error(
+        "FDM_SESSION_SECRET is missing or invalid. Cannot initialize RVO state cookie.",
+    )
+}
 
 export const rvoStateCookie = createCookie("rvo_state", {
     path: "/",
@@ -9,7 +17,7 @@ export const rvoStateCookie = createCookie("rvo_state", {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: 3600, // 1 hour
-    secrets: [serverConfig.auth.fdm_session_secret],
+    secrets: [sessionSecret],
 })
 
 /**
@@ -17,11 +25,14 @@ export const rvoStateCookie = createCookie("rvo_state", {
  * @returns { state, cookieHeader } The base64 state string and the serialized cookie header.
  */
 export async function createRvoState(farmId: string, returnUrl: string) {
+    const appOrigin = new URL(serverConfig.url).origin
+    const safeReturnUrl = isOfOrigin(returnUrl, appOrigin) ? returnUrl : "/"
+
     const nonce = nanoid()
     const state = Buffer.from(
         JSON.stringify({
             farmId,
-            returnUrl,
+            returnUrl: safeReturnUrl,
             nonce,
         }),
     ).toString("base64")
