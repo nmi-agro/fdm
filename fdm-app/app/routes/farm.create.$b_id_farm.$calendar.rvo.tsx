@@ -393,6 +393,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
         })
     }
     const year = Number(yearString)
+    if (!Number.isInteger(year)) {
+        throw new Response("Ongeldig kalenderjaar", { status: 400 })
+    }
 
     const session = await getSession(request)
     const formData = await request.formData()
