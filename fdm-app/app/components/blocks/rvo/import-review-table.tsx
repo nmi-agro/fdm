@@ -34,7 +34,7 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import { area } from "@turf/turf"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { cn } from "~/lib/utils"
 import { acquiringMethodOptions } from "~/lib/constants"
 import { useMemo } from "react"
@@ -56,7 +56,9 @@ interface RvoImportReviewTableProps {
 function formatDate(dateString?: string | Date) {
     if (!dateString) return "-"
     try {
-        return format(new Date(dateString), "dd-MM-yyyy")
+        const date =
+            typeof dateString === "string" ? parseISO(dateString) : dateString
+        return format(date, "dd-MM-yyyy")
     } catch {
         return dateString.toString()
     }
@@ -634,16 +636,21 @@ export function RvoImportReviewTable({
 }: RvoImportReviewTableProps) {
     const sortedData = useMemo(() => {
         return [...data].sort((a, b) => {
-            const getArea = (item: typeof a) => {
+            const getArea = (item: typeof a): number | null => {
                 if (item.rvoField?.geometry) {
-                    return area(item.rvoField.geometry) / 10000 // Convert m2 to ha
+                    return area(item.rvoField.geometry) / 10000
                 }
-                if (item.localField) {
-                    return item.localField.b_area
+                if (Number.isFinite(item.localField?.b_area)) {
+                    return item.localField.b_area as number
                 }
-                return 0
+                return null
             }
-            return getArea(b) - getArea(a)
+            const areaA = getArea(a)
+            const areaB = getArea(b)
+            if (areaA === null && areaB === null) return 0
+            if (areaA === null) return 1
+            if (areaB === null) return -1
+            return areaB - areaA
         })
     }, [data])
 

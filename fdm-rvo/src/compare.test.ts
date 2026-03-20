@@ -24,6 +24,7 @@ describe("compareFields", () => {
         },
         b_start: new Date("2024-01-01"),
         b_end: undefined,
+        b_acquiring_method: "nl_01",
         cultivations: [],
         ...overrides,
     })
@@ -277,6 +278,7 @@ describe("compareFields Edge Cases", () => {
         },
         b_start: new Date("2024-01-01"),
         b_end: undefined,
+        b_acquiring_method: "nl_01",
         cultivations: [],
         ...overrides,
     })

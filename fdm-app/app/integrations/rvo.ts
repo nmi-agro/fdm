@@ -68,22 +68,25 @@ export async function verifyRvoState(
 
 export function getRvoCredentials(): RvoCredentials | undefined {
     // Check if RVO is configured
-    const { clientId, clientSecret } = serverConfig.integrations.rvo
+    const { clientId, clientSecret, redirectUri, clientName, pkioPrivateKey } =
+        serverConfig.integrations.rvo
+    const isValid = (v: string) => !!v?.trim() && v !== "undefined"
     const rvoConfigured =
-        !!clientId?.trim() &&
-        clientId !== "undefined" &&
-        !!clientSecret?.trim() &&
-        clientSecret !== "undefined"
+        isValid(clientId) &&
+        isValid(clientSecret) &&
+        isValid(redirectUri) &&
+        isValid(clientName) &&
+        isValid(pkioPrivateKey)
     if (!rvoConfigured) {
         return undefined
     }
 
     return {
-        clientId: serverConfig.integrations.rvo.clientId,
-        clientSecret: serverConfig.integrations.rvo.clientSecret,
-        redirectUri: serverConfig.integrations.rvo.redirectUri,
-        clientName: serverConfig.integrations.rvo.clientName,
-        pkioPrivateKey: serverConfig.integrations.rvo.pkioPrivateKey,
+        clientId,
+        clientSecret,
+        redirectUri,
+        clientName,
+        pkioPrivateKey,
     }
 }
 

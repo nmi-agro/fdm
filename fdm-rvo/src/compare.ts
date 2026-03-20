@@ -153,9 +153,10 @@ export function compareFields(
         let bestMatch: (Field & { cultivations?: Cultivation[] }) | null = null
         let bestIoU = 0
 
-        // Optimization: Fast BBox overlap check before accurate IoU
-        const candidates = remainingLocals.filter((l) =>
-            bboxOverlap(l.bbox, rvoBbox),
+        // Optimization: Fast BBox overlap check before accurate IoU; exclude already-matched locals
+        const candidates = remainingLocals.filter(
+            (l) =>
+                !matchedLocalIds.has(l.field.b_id) && bboxOverlap(l.bbox, rvoBbox),
         )
 
         // Find the best spatial match among candidates
@@ -313,7 +314,9 @@ function detectDiffs(local: Field, rvo: RvoField): FieldDiff[] {
     const localEnd =
         local.b_end instanceof Date
             ? local.b_end.toISOString().split("T")[0]
-            : null
+            : typeof local.b_end === "string"
+              ? local.b_end
+              : null
     const rvoEnd = rvo.properties.EndDate
         ? new Date(rvo.properties.EndDate).toISOString().split("T")[0]
         : null
@@ -323,7 +326,18 @@ function detectDiffs(local: Field, rvo: RvoField): FieldDiff[] {
         diffs.push("b_end")
     }
 
-    // 5. Buffer strip
+    // 5. Acquiring method
+    const rvoAcquiringMethod = rvo.properties.UseTitleCode
+        ? `nl_${rvo.properties.UseTitleCode}`
+        : null
+    if (
+        local.b_acquiring_method !== rvoAcquiringMethod &&
+        (local.b_acquiring_method !== null || rvoAcquiringMethod !== null)
+    ) {
+        diffs.push("b_acquiring_method")
+    }
+
+    // 6. Buffer strip
     // Only check when RVO MEST data is available (mestData present means MEST was fetched)
     if (rvo.properties.mestData?.IndBufferstrook !== undefined) {
         const rvoBufferstrip = rvo.properties.mestData.IndBufferstrook === "J"
