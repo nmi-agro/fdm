@@ -279,7 +279,9 @@ describe("collectInputForNitrogenBalance", () => {
             ...fert,
             b_id_farm: "test-farm-id",
         }))
-        mockedGetFertilizersOfFarms.mockResolvedValue(allFertilizerDetails)
+        mockedGetFertilizersOfFarms.mockResolvedValue({
+            [b_id_farm]: allFertilizerDetails,
+        })
         mockedGetCultivationsOfFarmsFromCatalogue.mockResolvedValue(
             mockCultivationDetailsData,
         )
@@ -357,7 +359,6 @@ describe("collectInputForNitrogenBalance", () => {
             mockFdm,
             principal_id,
             [b_id_farm],
-            true,
         )
         expect(mockedGetCultivationsOfFarmsFromCatalogue).toHaveBeenCalledWith(
             mockFdm,
@@ -434,7 +435,7 @@ describe("collectInputForNitrogenBalance", () => {
 
     it("should handle empty arrays from core functions correctly", async () => {
         mockedGetFields.mockResolvedValue([])
-        mockedGetFertilizersOfFarms.mockResolvedValue([])
+        mockedGetFertilizersOfFarms.mockResolvedValue({})
         mockedGetCultivationsOfFarmsFromCatalogue.mockResolvedValue([])
 
         const result = await collectInputForNitrogenBalance(
@@ -463,7 +464,6 @@ describe("collectInputForNitrogenBalance", () => {
             mockFdm,
             principal_id,
             [b_id_farm],
-            true,
         )
         expect(mockedGetCultivationsOfFarmsFromCatalogue).toHaveBeenCalledWith(
             mockFdm,
@@ -541,7 +541,10 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
             ...fert,
             b_id_farm: "test-farm-id-2",
         }))
-        const allFertilizerDetails = [...fertData1, ...fertData2]
+        const allFertilizerDetails = {
+            "test-farm-id": fertData1,
+            "test-farm-id-2": fertData2,
+        }
         mockedGetFertilizersOfFarms.mockResolvedValue(allFertilizerDetails)
         const combinedCultivationDetails = [
             ...mockCultivationDetailsData,
@@ -625,7 +628,6 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
             mockFdm,
             principal_id,
             ["test-farm-id", "test-farm-id-2"],
-            true,
         )
         expect(mockedGetFertilizersOfFarms).toHaveBeenCalledTimes(1)
     })

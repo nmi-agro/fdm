@@ -11,6 +11,7 @@ import {
     disableFertilizerCatalogue,
     enableFertilizerCatalogue,
 } from "./catalogues"
+import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.d"
@@ -24,6 +25,7 @@ import {
     getFertilizerParametersDescription,
     getFertilizers,
     getFertilizersFromCatalogue,
+    getFertilizersOfFarms,
     removeFertilizer,
     removeFertilizerApplication,
     updateFertilizerApplication,
@@ -36,6 +38,7 @@ describe("Fertilizer Data Model", () => {
     let fdm: FdmServerType
     let principal_id: string
     let b_id_farm: string
+    let b_id_farm_2: string
 
     beforeEach(async () => {
         const host = inject("host")
@@ -51,6 +54,14 @@ describe("Fertilizer Data Model", () => {
         const farmAddress = "123 Farm Lane"
         const farmPostalCode = "12345"
         b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            farmName,
+            farmBusinessId,
+            farmAddress,
+            farmPostalCode,
+        )
+        b_id_farm_2 = await addFarm(
             fdm,
             principal_id,
             farmName,
@@ -320,6 +331,102 @@ describe("Fertilizer Data Model", () => {
                 b_id_farm,
             )
             expect(fertilizers.length).toBe(2)
+        })
+
+        it("should get fertilizers for multiple farm IDs", async () => {
+            function makeFertilizer(name: string) {
+                const fert: Partial<
+                    Parameters<typeof addFertilizerToCatalogue>[3]
+                > = Object.fromEntries(
+                    Object.keys(fertilizersCatalogue)
+                        .filter((key) => key.startsWith("p_"))
+                        .map((key) => [key, Math.random()]),
+                )
+                const randomAppMethod = () =>
+                    applicationMethodOptions[
+                        Math.floor(
+                            Math.random() * applicationMethodOptions.length,
+                        )
+                    ].value
+                Object.assign(fert, {
+                    p_id_catalogue: createId(),
+                    p_name_nl: name,
+                    p_name_en: name,
+                    p_description: `This is ${name}`,
+                    p_type: ["manure", "mineral", "compost", "other"][
+                        Math.floor(Math.random() * 4)
+                    ],
+                    p_type_rvo: "10",
+                    p_app_method_options: [
+                        ...new Set([
+                            randomAppMethod(),
+                            randomAppMethod(),
+                            randomAppMethod(),
+                            randomAppMethod(),
+                        ]),
+                    ],
+                })
+                return fert as Parameters<typeof addFertilizerToCatalogue>[3]
+            }
+            async function addTestFertilizer(
+                b_id_farm: string,
+                p_id_catalogue: string,
+            ) {
+                const p_acquiring_amount = 1000
+                const p_acquiring_date = new Date()
+
+                // Add two fertilizers to the farm
+                await addFertilizer(
+                    fdm,
+                    principal_id,
+                    p_id_catalogue,
+                    b_id_farm,
+                    p_acquiring_amount,
+                    p_acquiring_date,
+                )
+            }
+            const farm_1_fert_1 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                makeFertilizer("Farm 1 Example Fertilizer 1"),
+            )
+            await addTestFertilizer(b_id_farm, farm_1_fert_1)
+            const farm_2_fert_1 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm_2,
+                makeFertilizer("Farm 2 Example Fertilizer 1"),
+            )
+            await addTestFertilizer(b_id_farm_2, farm_2_fert_1)
+            const farm_1_fert_2 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                makeFertilizer("Farm 1 Example Fertilizer 2"),
+            )
+            await addTestFertilizer(b_id_farm, farm_1_fert_2)
+            const farm_2_fert_2 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm_2,
+                makeFertilizer("Farm 2 Example Fertilizer 2"),
+            )
+            await addTestFertilizer(b_id_farm_2, farm_2_fert_2)
+            const map = await getFertilizersOfFarms(fdm, principal_id, [
+                b_id_farm,
+                b_id_farm_2,
+            ])
+            expect(map[b_id_farm]).toBeDefined()
+            expect(map[b_id_farm].map((fert) => fert.p_name_nl)).toEqual([
+                "Farm 1 Example Fertilizer 1",
+                "Farm 1 Example Fertilizer 2",
+            ])
+            expect(map[b_id_farm_2]).toBeDefined()
+            expect(map[b_id_farm_2].map((fert) => fert.p_name_nl)).toEqual([
+                "Farm 2 Example Fertilizer 1",
+                "Farm 2 Example Fertilizer 2",
+            ])
         })
 
         it("should remove a fertilizer", async () => {

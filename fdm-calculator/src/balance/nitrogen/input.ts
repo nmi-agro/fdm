@@ -3,7 +3,6 @@ import type {
     fdmSchema,
     PrincipalId,
     Timeframe,
-    Fertilizer,
 } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
@@ -182,32 +181,7 @@ export async function collectInputForNitrogenBalanceForFarms(
                 tx,
                 principal_id,
                 farmIds,
-                true,
             )
-
-            const fertilizerDetailsForFarms: Record<string, Fertilizer[]> = {}
-            if (fertilizerDetails && fertilizerDetails.length > 0) {
-                let fertilizerStart = 0
-                let fertilizerEnd = 0
-                while (fertilizerEnd < fertilizerDetails.length) {
-                    const b_id_farm = fertilizerDetails[fertilizerStart]
-                        .b_id_farm as string
-                    for (
-                        ;
-                        fertilizerEnd < fertilizerDetails.length;
-                        fertilizerEnd++
-                    ) {
-                        if (
-                            fertilizerDetails[fertilizerEnd].b_id_farm !==
-                            b_id_farm
-                        )
-                            break
-                    }
-                    fertilizerDetailsForFarms[b_id_farm] =
-                        fertilizerDetails.slice(fertilizerStart, fertilizerEnd)
-                    fertilizerStart = fertilizerEnd
-                }
-            }
 
             return await Promise.all(
                 farmIds.map(async (b_id_farm) => {
@@ -223,7 +197,7 @@ export async function collectInputForNitrogenBalanceForFarms(
 
                         let cultivationDetailsForThisFarm = cultivationDetails
                         const fertilizerDetailsForThisFarm =
-                            fertilizerDetailsForFarms[b_id_farm] ?? []
+                            fertilizerDetails[b_id_farm] ?? []
                         if (farmIds.length > 1) {
                             // Required cultivation and fertilizer details for this farm should be extracted to not break the cache
                             const cultivationIds = new Set(

@@ -538,7 +538,9 @@ export async function getFertilizers(
     b_id_farm: schema.fertilizerAcquiringTypeSelect["b_id_farm"],
 ) {
     try {
-        return await getFertilizersOfFarms(fdm, principal_id, [b_id_farm])
+        return (await getFertilizersOfFarms(fdm, principal_id, [b_id_farm]))[
+            b_id_farm
+        ]
     } catch (err) {
         if ((err as Error)?.message === "Exception for getFertilizersOfFarms") {
             throw handleError(err, "Exception for getFertilizers", {
@@ -568,8 +570,7 @@ export async function getFertilizersOfFarms(
     fdm: FdmType,
     principal_id: PrincipalId,
     farmIds: schema.fertilizerAcquiringTypeSelect["b_id_farm"][],
-    includeFarmIds = false,
-): Promise<(Fertilizer & { b_id_farm?: string })[]> {
+): Promise<Record<string, (Fertilizer & { b_id_farm?: string })[]>> {
     try {
         await Promise.all(
             farmIds.map((b_id_farm) =>
@@ -586,9 +587,7 @@ export async function getFertilizersOfFarms(
 
         const fertilizers = await fdm
             .select({
-                ...(includeFarmIds
-                    ? { b_id_farm: schema.fertilizerAcquiring.b_id_farm }
-                    : {}),
+                b_id_farm: schema.fertilizerAcquiring.b_id_farm,
                 p_id: schema.fertilizers.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_source: schema.fertilizersCatalogue.p_source,
@@ -671,7 +670,7 @@ export async function getFertilizersOfFarms(
                 asc(schema.fertilizersCatalogue.p_name_nl),
             )
 
-        return fertilizers.map((f: (typeof fertilizers)[number]) => {
+        const res = fertilizers.map((f: (typeof fertilizers)[number]) => {
             let p_type: "manure" | "mineral" | "compost" | null = null
             if (f.p_type_rvo) {
                 p_type = convertRvoTypeToFertilizerType(f.p_type_rvo)
@@ -690,6 +689,30 @@ export async function getFertilizersOfFarms(
                 p_type: p_type,
             }
         })
+
+        console.log(res)
+        // Chunk the query result array up for each fertilizer.
+        const fertilizerDetailsForFarms: Record<string, Fertilizer[]> = {}
+        if (res && res.length > 0) {
+            let fertilizerStart = 0
+            let fertilizerEnd = 0
+            while (fertilizerEnd < res.length) {
+                const b_id_farm = res[fertilizerStart].b_id_farm as string
+                for (; fertilizerEnd < res.length; fertilizerEnd++) {
+                    if (res[fertilizerEnd].b_id_farm !== b_id_farm) break
+                }
+                fertilizerDetailsForFarms[b_id_farm] = res.slice(
+                    fertilizerStart,
+                    fertilizerEnd,
+                )
+                console.log(
+                    `for farm ${b_id_farm} the start is ${fertilizerStart} and end is ${fertilizerEnd}`,
+                )
+                fertilizerStart = fertilizerEnd
+            }
+        }
+
+        return fertilizerDetailsForFarms
     } catch (err) {
         throw handleError(err, "Exception for getFertilizersOfFarms", {
             farmIds,
