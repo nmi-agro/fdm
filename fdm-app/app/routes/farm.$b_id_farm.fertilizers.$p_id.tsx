@@ -8,7 +8,6 @@ import {
     getFertilizers,
     updateFertilizerFromCatalogue,
 } from "@nmi-agro/fdm-core"
-import { useEffect } from "react"
 import {
     type ActionFunctionArgs,
     data,
@@ -17,7 +16,7 @@ import {
     useLoaderData,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import { dataWithSuccess } from "remix-toast"
+import { redirectWithSuccess } from "remix-toast"
 import type { z } from "zod"
 import { FertilizerForm } from "@/app/components/blocks/fertilizer/form"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -247,10 +246,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             formValues,
         )
 
-        return dataWithSuccess(
-            { result: "Data saved successfully" },
-            { message: "Meststof is bijgewerkt! 🎉" },
-        )
+        return redirectWithSuccess(`/farm/${b_id_farm}/fertilizers`, {
+            message: `${formValues.p_name_nl} is toegevoegd! 🎉`,
+        })
     } catch (error) {
         throw handleActionError(error)
     }
