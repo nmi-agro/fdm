@@ -39,6 +39,7 @@ export interface ServerConfig {
             clientSecret: string
             redirectUri: string
             clientName: string
+            pkioPrivateKey: string
         }
     }
     analytics: {

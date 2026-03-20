@@ -83,6 +83,7 @@ export function getRvoCredentials(): RvoCredentials | undefined {
         clientSecret: serverConfig.integrations.rvo.clientSecret,
         redirectUri: serverConfig.integrations.rvo.redirectUri,
         clientName: serverConfig.integrations.rvo.clientName,
+        pkioPrivateKey: serverConfig.integrations.rvo.pkioPrivateKey,
     }
 }
 
@@ -91,6 +92,7 @@ type RvoCredentials = {
     clientSecret: string
     redirectUri: string
     clientName: string
+    pkioPrivateKey: string
 }
 
 /**
@@ -101,7 +103,7 @@ export function createConfiguredRvoClient(credentials: RvoCredentials) {
         credentials.clientId,
         credentials.clientName,
         credentials.redirectUri,
-        credentials.clientSecret,
+        credentials.pkioPrivateKey,
         process.env.NODE_ENV === "production" ? "production" : "acceptance",
     )
 }

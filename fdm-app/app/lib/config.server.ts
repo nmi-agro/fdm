@@ -44,6 +44,7 @@ export const serverConfig: ServerConfig = {
             clientSecret: String(process.env.RVO_CLIENT_SECRET),
             redirectUri: String(process.env.RVO_REDIRECT_URI),
             clientName: String(process.env.RVO_CLIENT_NAME),
+            pkioPrivateKey: String(process.env.RVO_PKIO_PRIVATE_KEY),
         },
     },
 
