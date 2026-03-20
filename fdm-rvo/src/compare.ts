@@ -218,9 +218,11 @@ export function compareFields(
                     ? local.b_start
                     : local.b_start
                       ? new Date(local.b_start)
-                      : new Date(0)
+                      : null
             const importYearStart = new Date(calendar, 0, 1) // Jan 1st of import year
-            const isStartedBeforeYear = localStart < importYearStart
+            // A missing start date means the field has no known start, so treat as not-yet-started → NEW_LOCAL
+            const isStartedBeforeYear =
+                localStart !== null && localStart < importYearStart
 
             const localEnd = local.b_end
                 ? local.b_end instanceof Date
