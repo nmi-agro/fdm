@@ -302,7 +302,8 @@ function detectDiffs(local: Field, rvo: RvoField): FieldDiff[] {
         ? new Date(rvo.properties.BeginDate).toISOString().split("T")[0]
         : null
 
-    if (localStart !== rvoStart) {
+    // Treat null/undefined as equal if both are missing
+    if (localStart !== rvoStart && (localStart !== null || rvoStart !== null)) {
         diffs.push("b_start")
     }
 
