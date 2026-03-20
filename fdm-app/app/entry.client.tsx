@@ -18,7 +18,10 @@ if (clientConfig.analytics.sentry) {
         dsn: sentryConfig.dsn,
         release: import.meta.env.PUBLIC_APP_VERSION,
         environment: import.meta.env.NODE_ENV,
-        ignoreErrors: [/BodyStreamBuffer was aborted/],
+        ignoreErrors: [
+            /BodyStreamBuffer was aborted/,
+            /Unexpected Server Error/,
+        ],
         integrations: [
             Sentry.reactRouterTracingIntegration(),
             Sentry.replayIntegration(),

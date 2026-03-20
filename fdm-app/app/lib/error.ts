@@ -2,7 +2,6 @@ import * as Sentry from "@sentry/react-router"
 import { customAlphabet } from "nanoid"
 import { data, redirect } from "react-router"
 import { dataWithError, dataWithWarning } from "remix-toast"
-import { clientConfig } from "~/lib/config"
 
 const customErrorAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ" // No lookalikes (0, 1, I, O, S, Z)
 const errorIdSize = 8 // Number of characters in ID
@@ -19,18 +18,19 @@ export function reportError(
             .match(/.{1,4}/g)
             ?.join("-") || createErrorId() // Format as XXXX-XXXX
 
-    if (clientConfig.analytics.sentry?.dsn) {
+    console.error(`Error (code: ${errorId}):`, error, context ?? "")
+
+    if (Sentry.getClient()) {
         Sentry.captureException(error, {
             tags: {
                 ...tags,
+                error_id: errorId,
             },
             extra: {
                 ...context,
                 errorId: errorId,
             },
         })
-    } else {
-        console.error(`Error (code: ${errorId}):`, error, context)
     }
 
     return errorId
@@ -67,10 +67,11 @@ export function handleLoaderError(error: unknown) {
                     userMessage = "De gevraagde data kon niet worden gevonden."
                     break
                 // case 500:
-                default:
-                    userMessage =
-                        "Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning."
+                default: {
+                    const errorId = reportError(error, { scope: "loader" })
+                    userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
                     break
+                }
             }
             return data(
                 {
@@ -131,9 +132,7 @@ export function handleLoaderError(error: unknown) {
         )
     }
 
-    // All other errors
-    console.error("Loader Error: ", error)
-    // Forward error to Sentry
+    // All other errors — reportError handles logging and Sentry capture
     const errorId = reportError(error, {
         scope: "loader",
     })
@@ -221,11 +220,12 @@ export function handleActionError(error: unknown) {
                     dataStatus = "warning"
                     break
                 // case 500:
-                default:
-                    userMessage =
-                        "Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning."
+                default: {
+                    const errorId = reportError(error, { scope: "action" })
+                    userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
                     dataStatus = "error"
                     break
+                }
             }
             if (dataStatus === "warning") {
                 return dataWithWarning(
@@ -275,8 +275,7 @@ export function handleActionError(error: unknown) {
         )
     }
 
-    // All other errors
-    console.error("Error: ", error)
+    // All other errors — reportError handles logging and Sentry capture
     const errorId = reportError(error, {
         scope: "action",
     })
