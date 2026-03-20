@@ -32,7 +32,7 @@ export const meta: MetaFunction = () => {
         { title: `Meststoffen | ${clientConfig.name}` },
         {
             name: "description",
-            content: "Bekij de lijst van meststoffen beschikbaar.",
+            content: "Bekijk de lijst van meststoffen beschikbaar.",
         },
     ]
 }
@@ -100,6 +100,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 ...fertilizer,
                 p_type_rvo_label:
                     rvoLabelByValue.get(String(fertilizer.p_type_rvo)) ?? null,
+                is_custom: fertilizer.p_source === b_id_farm,
             })),
         )
 
@@ -149,7 +150,7 @@ export default function FarmFertilizersIndexPage({
                     title={"Meststoffen"}
                     description={"Beheer de meststoffen van dit bedrijf"}
                 />
-                <div className="space-y-6 p-10 pb-0">
+                <div className="space-y-6 p-4 md:p-8 pb-0">
                     <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
                         <div className="flex-1">
                             <DataTable

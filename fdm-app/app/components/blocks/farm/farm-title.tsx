@@ -14,7 +14,7 @@ interface FarmTitleProps {
 
 export function FarmTitle({ title, description, action }: FarmTitleProps) {
     return (
-        <div className="space-y-6 p-4 md:px-6 md:py-8 pb-0">
+        <div className="space-y-6 p-4 md:px-8 md:py-8 pb-0">
             <div className="flex flex-col xl:flex-row xl:items-center gap-4">
                 <div className="space-y-0.5 min-w-0 flex-1">
                     <h2 className="text-2xl font-bold tracking-tight truncate xl:whitespace-normal">
@@ -39,7 +39,7 @@ export function FarmTitle({ title, description, action }: FarmTitleProps) {
 
 export function FarmTitleSkeleton() {
     return (
-        <div className="space-y-6 p-4 md:px-6 md:py-8 pb-0">
+        <div className="space-y-6 p-4 md:px-8 md:py-8 pb-0">
             <div className="flex flex-col xl:flex-row xl:items-center gap-4">
                 <div className="space-y-0.5 min-w-0 flex-1">
                     <Skeleton className="h-8 w-50 md:w-64" />
