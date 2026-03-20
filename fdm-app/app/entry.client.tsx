@@ -20,7 +20,6 @@ if (clientConfig.analytics.sentry) {
         environment: import.meta.env.NODE_ENV,
         ignoreErrors: [
             /BodyStreamBuffer was aborted/,
-            /Unexpected Server Error/,
         ],
         integrations: [
             Sentry.reactRouterTracingIntegration(),
@@ -60,8 +59,6 @@ if (clientConfig.analytics.sentry) {
         //     }
         //     return event
         // },
-
-        tunnel: "/sentry-tunnel",
 
         tracesSampleRate: sentryConfig.trace_sample_rate,
 

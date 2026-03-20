@@ -15,4 +15,11 @@ if (process.env.PUBLIC_SENTRY_DSN) {
         environment: process.env.NODE_ENV ?? "development",
         release: process.env.npm_package_version,
     })
+    console.log(
+        `[Sentry] Server SDK initialized (release: ${process.env.npm_package_version}, env: ${process.env.NODE_ENV ?? "development"})`,
+    )
+} else {
+    console.warn(
+        "[Sentry] PUBLIC_SENTRY_DSN is not set — server-side error reporting is disabled",
+    )
 }
