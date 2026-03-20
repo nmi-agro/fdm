@@ -16,7 +16,6 @@ import {
     Landmark,
     Loader2,
     MapIcon,
-    MapPin,
     PlusIcon,
     ScrollText,
     Shapes,
