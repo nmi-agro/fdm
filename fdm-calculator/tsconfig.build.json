@@ -10,6 +10,7 @@
         "**/*.test.ts",
         "**/*.spec.ts",
         "src/setup-test.ts",
-        "src/test-utils.ts"
+        "src/test-utils.ts",
+        "vitest.config.ts"
     ]
 }
