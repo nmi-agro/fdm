@@ -54,57 +54,45 @@ export function SummaryCards({
                             filling={farmTotals.normsFilling.phosphate}
                             norm={farmTotals.norms.phosphate}
                         />
-                        {/* N-balance: overschot/tekort vs. norm */}
-                        {farmTotals.norms.nitrogen > 0 &&
-                            (() => {
-                                const surplus =
-                                    farmTotals.normsFilling.nitrogen -
-                                    farmTotals.norms.nitrogen
-                                const isOver = surplus > 0
-                                return (
-                                    <div className="pt-2 border-t space-y-1.5">
-                                        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                                            Stikstofbalans
-                                        </span>
-                                        <div className="flex justify-between items-baseline gap-2">
-                                            <span className="text-xs text-muted-foreground">
-                                                Aanvoer werkzaam N
-                                            </span>
-                                            <span className="text-xs font-semibold tabular-nums">
-                                                {Math.round(
-                                                    farmTotals.normsFilling
-                                                        .nitrogen,
-                                                )}{" "}
-                                                kg
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-baseline gap-2">
-                                            <span className="text-xs text-muted-foreground">
-                                                Doelwaarde (norm)
-                                            </span>
-                                            <span className="text-xs font-semibold tabular-nums">
-                                                {Math.round(
-                                                    farmTotals.norms.nitrogen,
-                                                )}{" "}
-                                                kg
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-baseline gap-2 pt-0.5 border-t">
-                                            <span className="text-xs font-medium">
-                                                {isOver
-                                                    ? "Overschot"
-                                                    : "Onderschrijding"}
-                                            </span>
-                                            <span
-                                                className={`text-xs font-bold tabular-nums ${isOver ? "text-red-600" : "text-green-600"}`}
-                                            >
-                                                {isOver ? "+" : ""}
-                                                {Math.round(surplus)} kg
-                                            </span>
-                                        </div>
-                                    </div>
-                                )
-                            })()}
+                        {/* N-balance: agronomic balance vs target */}
+                        {farmTotals.nBalance && (
+                            <div className="pt-2 border-t space-y-1.5">
+                                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                    Stikstofbalans
+                                </span>
+                                <div className="flex justify-between items-baseline gap-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        Balans op bedrijfsniveau
+                                    </span>
+                                    <span className={`text-xs font-semibold tabular-nums ${farmTotals.nBalance.balance <= farmTotals.nBalance.target ? "text-green-600" : "text-red-600"}`}>
+                                        {Math.round(farmTotals.nBalance.balance)}{" "}
+                                        kg N/ha
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-baseline gap-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        Doel
+                                    </span>
+                                    <span className="text-xs font-semibold tabular-nums">
+                                        {Math.round(farmTotals.nBalance.target)}{" "}
+                                        kg N/ha
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-baseline gap-2 pt-0.5 border-t">
+                                    <span className="text-xs font-medium">
+                                        Status
+                                    </span>
+                                    <span
+                                        className={`text-xs font-bold tabular-nums ${farmTotals.nBalance.balance <= farmTotals.nBalance.target ? "text-green-600" : "text-red-600"}`}
+                                    >
+                                        {farmTotals.nBalance.balance <=
+                                        farmTotals.nBalance.target
+                                            ? "Binnen doel"
+                                            : "Boven doel"}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}

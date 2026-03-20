@@ -40,6 +40,8 @@ import {
     type MetaFunction,
     redirect,
     useActionData,
+    useBeforeUnload,
+    useBlocker,
     useLoaderData,
     useNavigation,
 } from "react-router"
@@ -60,6 +62,18 @@ import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
 import type { FieldMetrics, ParsedPlan } from "~/components/blocks/gerrit/types"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "~/components/ui/alert-dialog"
+import { Button } from "~/components/ui/button"
+import { Card } from "~/components/ui/card"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -123,43 +137,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 }
 
-// Pricing per 1M tokens (USD) — source: https://ai.google.dev/gemini-api/docs/pricing
-const GEMINI_MODEL_PRICING: Record<
-    string,
-    { input: number | [number, number]; output: number | [number, number] }
-> = {
-    "gemini-3.1-pro-preview": { input: [2.0, 4.0], output: [12.0, 18.0] },
-    "gemini-3.1-flash-lite-preview": { input: 0.1, output: 0.4 },
-    "gemini-3-flash-preview": { input: 0.5, output: 3.0 },
-    "gemini-2.5-pro": { input: [1.25, 2.5], output: [10.0, 15.0] },
-    "gemini-2.5-flash": { input: 0.3, output: 2.5 },
-}
-
-function calcModelCost(
-    modelName: string,
-    inputTokens: number,
-    outputTokens: number,
-) {
-    const pricing =
-        GEMINI_MODEL_PRICING[modelName] ??
-        GEMINI_MODEL_PRICING["gemini-3.1-pro-preview"]
-    const large = inputTokens > 200_000
-    const inputRate = Array.isArray(pricing.input)
-        ? large
-            ? pricing.input[1]
-            : pricing.input[0]
-        : pricing.input
-    const outputRate = Array.isArray(pricing.output)
-        ? large
-            ? pricing.output[1]
-            : pricing.output[0]
-        : pricing.output
-    return {
-        inputCost: (inputTokens / 1_000_000) * inputRate,
-        outputCost: (outputTokens / 1_000_000) * outputRate,
-    }
-}
-
 async function computePlanMetrics(
     principalId: PrincipalId,
     calendar: string,
@@ -172,6 +149,7 @@ async function computePlanMetrics(
             p_app_amount: number
             p_app_date: string
         }>
+        fieldMetrics: FieldMetrics | null
     }>,
     fertilizers: Awaited<ReturnType<typeof getFertilizers>>,
     nmiApiKey?: string,
@@ -188,7 +166,7 @@ async function computePlanMetrics(
 
     const fieldResults = await Promise.allSettled(
         enrichedPlan
-            .filter((f) => f.applications.length > 0 && f.b_area)
+            .filter((f) => f.b_area)
             .map(async (field) => {
                 let manure = { normValue: 170, normSource: "default" }
                 let nitrogen = { normValue: 0, normSource: "default" }
@@ -348,18 +326,6 @@ async function computePlanMetrics(
                             (app.p_app_amount * (fert.p_eom ?? 0)) / 1000
                 }
 
-                // Compute K applied (kg K₂O/ha)
-                let kFillPerHa = 0
-                for (const app of field.applications) {
-                    const fert = fertilizers.find(
-                        (f: Fertilizer) =>
-                            f.p_id_catalogue === app.p_id_catalogue,
-                    )
-                    if (fert)
-                        kFillPerHa +=
-                            (app.p_app_amount * (fert.p_k_rt ?? 0)) / 1000
-                }
-
                 // Fetch NMI nutrient advice per field
                 let advice: NutrientAdvice | null = null
                 if (nmiApiKey && field.b_lu_catalogue) {
@@ -395,18 +361,18 @@ async function computePlanMetrics(
                         phosphate: phosphateFilling,
                     },
                     norms: { manure, nitrogen, phosphate },
-                    nBalance: {
-                        balance: nitrogenFilling.normFilling,
-                        target: nitrogen.normValue,
+                    nBalance: field.fieldMetrics?.nBalance ?? {
+                        balance: 0,
+                        target: 0,
                         emission: {
                             ammonia: { total: 0 },
                             nitrate: { total: 0 },
                         },
                     },
-                    omBalance: null, // Stubbed for fallback
+                    omBalance: field.fieldMetrics?.omBalance ?? null, // Stubbed for fallback
                     eomSupplyPerHa,
                     advice,
-                    proposedDose,
+                    proposedDose: proposedDose.dose,
                 }
                 return { b_id: field.b_id, b_area: field.b_area! }
             }),
@@ -440,15 +406,17 @@ async function computePlanMetrics(
         })),
     )
 
-    // Minimal fallback for farm-level N-balance
+    // Calculate farm-level N-balance using weighted averages
     let totalArea = 0
     let totalBal = 0
     let totalTarg = 0
     for (const f of validFields) {
-        totalArea += f.b_area
-        totalBal += (fieldMetricsMap[f.b_id].nBalance.balance || 0) * f.b_area
-        totalTarg += (fieldMetricsMap[f.b_id].nBalance.target || 0) * f.b_area
+        const area = f.b_area ?? 0
+        totalArea += area
+        totalBal += (fieldMetricsMap[f.b_id].nBalance.balance ?? 0) * area
+        totalTarg += (fieldMetricsMap[f.b_id].nBalance.target ?? 0) * area
     }
+
     const farmNBalance = {
         balance: totalArea > 0 ? totalBal / totalArea : 0,
         target: totalArea > 0 ? totalTarg / totalArea : 0,
@@ -621,7 +589,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         p_type: fert?.p_type || "other",
                     }
                 }),
-                fieldMetrics: null as FieldMetrics | null,
+                fieldMetrics:
+                    (proposedField as any)?.fieldMetrics ??
+                    (null as FieldMetrics | null),
             }
         })
 
@@ -640,25 +610,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const latencySeconds = (Date.now() - startTime) / 1000
         const posthog = PostHogClient()
         if (posthog) {
-            const inputTokens = usageData?.inputTokens ?? 0
-            const outputTokens = usageData?.outputTokens ?? 0
-            const { inputCost, outputCost } = calcModelCost(
-                modelName,
-                inputTokens,
-                outputTokens,
-            )
             posthog.capture({
                 distinctId: session.principal_id,
                 event: "$ai_generation",
                 properties: {
-                    // $ai_model: modelName,
-                    // $ai_latency: latencySeconds,
-                    // $ai_input_tokens: usageData?.inputTokens ?? null,
-                    // $ai_output_tokens: usageData?.outputTokens ?? null,
-                    // $ai_total_tokens: usageData?.totalTokens ?? null,
-                    // $ai_input_cost: inputCost,
-                    // $ai_output_cost: outputCost,
-                    // $ai_total_cost: inputCost + outputCost,
+                    $ai_model: modelName,
+                    $ai_latency: latencySeconds,
+                    $ai_input_tokens: usageData?.inputTokens ?? null,
+                    $ai_output_tokens: usageData?.outputTokens ?? null,
+                    $ai_total_tokens: usageData?.totalTokens ?? null,
                     $ai_input: [
                         { role: "user", content: prompt.slice(0, 2000) },
                     ],
@@ -778,10 +738,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function GerritApp() {
-    const { farm, farmOptions, defaultStrategies } =
+    const { farm, farmOptions, defaultStrategies, calendar } =
         useLoaderData<typeof loader>()
     const actionData = useActionData<typeof action>()
     const navigation = useNavigation()
+
+    const currentYear = new Date().getFullYear().toString()
+    const isCurrentYear = calendar === currentYear
 
     const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
         mode: "onTouched",
@@ -798,13 +761,28 @@ export default function GerritApp() {
 
     const additionalContextValue = form.watch("additionalContext")
 
-    const isGenerating =
-        navigation.state === "submitting" &&
-        navigation.formData?.get("intent") === "generate"
-
     const isSaving =
         navigation.state === "submitting" &&
         navigation.formData?.get("intent") === "accept"
+
+    // Check if Gerrit is currently generating a plan
+    const isAIGenerating =
+        navigation.state !== "idle" &&
+        navigation.formData?.get("intent") === "generate"
+
+    useBeforeUnload(
+        (event) => {
+            if (isAIGenerating) {
+                event.preventDefault()
+            }
+        },
+        { capture: true },
+    )
+
+    const blocker = useBlocker(
+        ({ currentValue, nextLocation }) =>
+            isAIGenerating && currentValue.pathname !== nextLocation.pathname,
+    )
 
     const plan = actionData?.intent === "generate" ? actionData.plan : null
     const strategies =
@@ -850,24 +828,119 @@ export default function GerritApp() {
         setHasAcceptedDisclaimer(true)
     }
 
+    const blockerDialog = (
+        <AlertDialog open={blocker.state === "blocked"}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>
+                        Wil je de berekening annuleren?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Gerrit is momenteel een bemestingsplan voor je aan het
+                        berekenen. Als je nu weg navigeert, wordt de berekening
+                        gestopt.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => blocker.reset?.()}>
+                        Verder gaan met Gerrit
+                    </AlertDialogCancel>
+                    <AlertDialogAction onClick={() => blocker.proceed?.()}>
+                        Berekening annuleren
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )
+
     if (hasAcceptedDisclaimer === null) {
         return (
-            <SidebarInset>
-                <Header action={undefined}>
-                    <HeaderFarm
-                        b_id_farm={farm.b_id_farm}
-                        farmOptions={farmOptions}
-                    />
-                </Header>
-                <FarmContent>
-                    <div className="min-h-[50vh]" />
-                </FarmContent>
-            </SidebarInset>
+            <>
+                <SidebarInset>
+                    <Header action={undefined}>
+                        <HeaderFarm
+                            b_id_farm={farm.b_id_farm}
+                            farmOptions={farmOptions}
+                        />
+                    </Header>
+                    <FarmContent>
+                        <div className="min-h-[50vh]" />
+                    </FarmContent>
+                </SidebarInset>
+                {blockerDialog}
+            </>
         )
     }
 
     if (hasAcceptedDisclaimer === false) {
         return (
+            <>
+                <SidebarInset>
+                    <Header action={undefined}>
+                        <HeaderFarm
+                            b_id_farm={farm.b_id_farm}
+                            farmOptions={farmOptions}
+                        />
+                    </Header>
+                    <FarmContent>
+                        <GerritOnboarding
+                            isCheckboxChecked={isCheckboxChecked}
+                            setIsCheckboxChecked={setIsCheckboxChecked}
+                            onAccept={handleAcceptDisclaimer}
+                        />
+                    </FarmContent>
+                </SidebarInset>
+                {blockerDialog}
+            </>
+        )
+    }
+
+    if (!isCurrentYear) {
+        return (
+            <>
+                <SidebarInset>
+                    <Header action={undefined}>
+                        <HeaderFarm
+                            b_id_farm={farm.b_id_farm}
+                            farmOptions={farmOptions}
+                        />
+                    </Header>
+                    <FarmContent>
+                        <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
+                            <div className="bg-amber-50 border border-amber-200 p-8 rounded-xl">
+                                <Bot className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+                                <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                                    Gerrit is alleen beschikbaar voor{" "}
+                                    {currentYear}
+                                </h2>
+                                <p className="text-amber-800 mb-6">
+                                    Het AI-bemestingsplan van Gerrit kan
+                                    momenteel alleen worden gegenereerd voor het
+                                    lopende kalenderjaar. Schakel over naar{" "}
+                                    {currentYear} om aan de slag te gaan.
+                                </p>
+                                <Button asChild size="lg">
+                                    <a
+                                        href={`/farm/${farm.b_id_farm}/${currentYear}/gerrit`}
+                                    >
+                                        Switch naar {currentYear}
+                                    </a>
+                                </Button>
+                            </div>
+                        </div>
+                    </FarmContent>
+                </SidebarInset>
+                {blockerDialog}
+            </>
+        )
+    }
+
+    const isGenerating =
+        navigation.state === "submitting" &&
+        navigation.formData?.get("intent") === "generate"
+
+    return (
+        <>
             <SidebarInset>
                 <Header action={undefined}>
                     <HeaderFarm
@@ -876,77 +949,63 @@ export default function GerritApp() {
                     />
                 </Header>
                 <FarmContent>
-                    <GerritOnboarding
-                        isCheckboxChecked={isCheckboxChecked}
-                        setIsCheckboxChecked={setIsCheckboxChecked}
-                        onAccept={handleAcceptDisclaimer}
-                    />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                        {/* ── Left column ── */}
+                        <div className="lg:col-span-1 flex flex-col gap-6">
+                            {/* Strategy form OR compact summary */}
+                            {showStrategyForm ? (
+                                <StrategyForm
+                                    form={form as any}
+                                    isGenerating={isAIGenerating}
+                                    additionalContextValue={
+                                        additionalContextValue
+                                    }
+                                />
+                            ) : (
+                                <SummaryCards
+                                    farmTotals={farmTotals}
+                                    planSummary={plan?.summary}
+                                    activeStrategyLabels={activeStrategyLabels}
+                                    onEditStrategy={() =>
+                                        setShowStrategyForm(true)
+                                    }
+                                />
+                            )}
+                        </div>
+
+                        {/* ── Right column ── */}
+                        <div className="lg:col-span-2 space-y-6">
+                            {isGenerating ? (
+                                <GerritLoading />
+                            ) : plan ? (
+                                <PlanTable
+                                    plan={plan}
+                                    isSaving={isSaving}
+                                    expandedRows={expandedRows}
+                                    toggleRow={toggleRow}
+                                />
+                            ) : (
+                                <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
+                                    <div className="bg-primary/10 p-6 rounded-full mb-6">
+                                        <Bot className="w-12 h-12 text-primary opacity-80" />
+                                    </div>
+                                    <h3 className="font-semibold text-xl text-foreground mb-3">
+                                        Gerrit staat voor je klaar
+                                    </h3>
+                                    <p className="max-w-lg leading-relaxed text-muted-foreground">
+                                        Selecteer aan de linkerkant jouw
+                                        bedrijfsvoorkeuren. Gerrit berekent een
+                                        integraal bemestingsplan voor het hele
+                                        bedrijf, rekening houdend met
+                                        gebruiksnormen, bemestingsadvies
+                                    </p>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
                 </FarmContent>
             </SidebarInset>
-        )
-    }
-
-    return (
-        <SidebarInset>
-            <Header action={undefined}>
-                <HeaderFarm
-                    b_id_farm={farm.b_id_farm}
-                    farmOptions={farmOptions}
-                />
-            </Header>
-            <FarmContent>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                    {/* ── Left column ── */}
-                    <div className="lg:col-span-1 flex flex-col gap-6">
-                        {/* Strategy form OR compact summary */}
-                        {showStrategyForm ? (
-                            <StrategyForm
-                                form={form as any}
-                                isGenerating={isGenerating}
-                                additionalContextValue={additionalContextValue}
-                            />
-                        ) : (
-                            <SummaryCards
-                                farmTotals={farmTotals}
-                                planSummary={plan?.summary}
-                                activeStrategyLabels={activeStrategyLabels}
-                                onEditStrategy={() => setShowStrategyForm(true)}
-                            />
-                        )}
-                    </div>
-
-                    {/* ── Right column ── */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {isGenerating ? (
-                            <GerritLoading />
-                        ) : plan ? (
-                            <PlanTable
-                                plan={plan}
-                                isSaving={isSaving}
-                                expandedRows={expandedRows}
-                                toggleRow={toggleRow}
-                            />
-                        ) : (
-                            <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
-                                <div className="bg-primary/10 p-6 rounded-full mb-6">
-                                    <Bot className="w-12 h-12 text-primary opacity-80" />
-                                </div>
-                                <h3 className="font-semibold text-xl text-foreground mb-3">
-                                    Gerrit staat voor je klaar
-                                </h3>
-                                <p className="max-w-lg leading-relaxed text-muted-foreground">
-                                    Selecteer aan de linkerkant de kaders voor
-                                    jouw bedrijfsvoering. Gerrit berekent een
-                                    integraal bemestingsplan voor het hele
-                                    bedrijf, rekening houdend met
-                                    gebruiksnormen, bodemvruchtbaarheid en
-                                    agronomisch advies.
-                                </p>
-                            </Card>
-                        )}
-                    </div>
-                </div>
-            </FarmContent>
-        </SidebarInset>
+            {blockerDialog}
+        </>
     )
 }

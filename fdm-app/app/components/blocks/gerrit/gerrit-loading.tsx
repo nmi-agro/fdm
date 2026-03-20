@@ -36,16 +36,12 @@ export function GerritLoading() {
                         {elapsedStr}
                     </span>
                 </CardTitle>
-                <CardDescription>
-                    Dit kan 2–5 minuten duren. Gerrit analyseert het bedrijf en
-                    stelt het bemestingsplan op.
-                </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Spinner className="h-4 w-4 shrink-0 text-primary" />
                     <span>
-                        Gerrit is bezig. Dit kan enkele minuten duren,
+                        Dit kan enkele minuten tot een kwartier duren,
                         afhankelijk van het gekozen model en de omvang van het
                         bedrijf.
                     </span>

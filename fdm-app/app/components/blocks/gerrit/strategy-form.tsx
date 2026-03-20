@@ -21,7 +21,7 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
-import { GEMINI_MODELS, STRATEGY_LABELS, type GerritFormValues } from "./schema"
+import { GEMINI_MODELS, type GerritFormValues, STRATEGY_LABELS } from "./schema"
 
 interface StrategyFormProps {
     form: UseFormReturn<GerritFormValues>
@@ -78,24 +78,40 @@ export function StrategyForm({
                                                 "Volledig opvullen van de gebruiksruimte voor dierlijke mest."}
                                             {name ===
                                                 "reduceAmmoniaEmissions" &&
-                                                "Reductie van ammoniakemissies via optimale techniek."}
+                                                "Gebruik emissiearme meststoffen en technieken."}
                                             {name ===
                                                 "keepNitrogenBalanceBelowTarget" &&
                                                 "Stikstofoverschot beperken tot onder de doelwaarde."}
                                             {name === "workOnRotationLevel" &&
-                                                "Percelen met hetzelfde gewas krijgen exact hetzelfde plan."}
+                                                "Percelen met hetzelfde gewas krijgen dezelfde bemesting."}
                                         </p>
                                     </div>
                                     <Controller
                                         name={name as keyof GerritFormValues}
                                         control={form.control}
                                         render={({ field }) => (
-                                            <Switch
-                                                id={name}
-                                                checked={field.value as boolean}
-                                                onCheckedChange={field.onChange}
-                                                className="mt-1"
-                                            />
+                                            <>
+                                                <Switch
+                                                    id={name}
+                                                    checked={
+                                                        field.value as boolean
+                                                    }
+                                                    onCheckedChange={
+                                                        field.onChange
+                                                    }
+                                                    className="mt-1"
+                                                    disabled={isGenerating}
+                                                />
+                                                <input
+                                                    type="hidden"
+                                                    name={name}
+                                                    value={
+                                                        field.value
+                                                            ? "true"
+                                                            : "false"
+                                                    }
+                                                />
+                                            </>
                                         )}
                                     />
                                 </div>
@@ -121,6 +137,7 @@ export function StrategyForm({
                                 className={`min-h-25 resize-none ${form.formState.errors.additionalContext ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                 maxLength={1000}
                                 {...form.register("additionalContext")}
+                                disabled={isGenerating}
                             />
                             {form.formState.errors.additionalContext && (
                                 <p className="text-sm text-red-500">
@@ -145,6 +162,7 @@ export function StrategyForm({
                                     <Select
                                         value={field.value as string}
                                         onValueChange={field.onChange}
+                                        disabled={isGenerating}
                                     >
                                         <SelectTrigger
                                             id="geminiModel"

@@ -8,6 +8,7 @@ import {
 import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react"
 import { Fragment } from "react"
 import { Form } from "react-router"
+import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
@@ -28,7 +29,12 @@ import {
     TableHeader,
     TableRow,
 } from "~/components/ui/table"
-import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 import { FertilizerIcon } from "./fertilizer-icon"
 import type { ParsedPlan, PlanRow } from "./types"
 
@@ -239,7 +245,7 @@ export function PlanTable({
                                                                     {
                                                                         key: "N",
                                                                         fill:
-                                                                            dose?.p_dose_n ??
+                                                                            dose?.p_dose_nw ??
                                                                             0,
                                                                         ref: advice.d_n_req,
                                                                     },
@@ -253,53 +259,104 @@ export function PlanTable({
                                                                     {
                                                                         key: "K",
                                                                         fill:
-                                                                            dose?.p_dose_k2o ??
+                                                                            dose?.p_dose_k ??
                                                                             0,
                                                                         ref: advice.d_k_req,
                                                                     },
                                                                 ]
-                                                                return badges.map(
-                                                                    ({
-                                                                        key,
-                                                                        fill,
-                                                                        ref,
-                                                                    }) => {
-                                                                        if (
-                                                                            ref <=
-                                                                            0
-                                                                        )
-                                                                            return null
-                                                                        const pct =
-                                                                            Math.round(
-                                                                                (Number(
-                                                                                    fill,
-                                                                                ) /
-                                                                                    ref) *
-                                                                                    100,
-                                                                            )
-                                                                        const over =
-                                                                            Number(
+                                                                return (
+                                                                    <TooltipProvider>
+                                                                        {badges.map(
+                                                                            ({
+                                                                                key,
                                                                                 fill,
-                                                                            ) >
-                                                                            ref
-                                                                        return (
-                                                                            <span
-                                                                                key={
-                                                                                    key
-                                                                                }
-                                                                                title={`Advies: ${Math.round(ref)} kg/ha`}
-                                                                                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${over ? "bg-red-100 text-red-700" : pct >= 80 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
-                                                                            >
-                                                                                {
-                                                                                    key
-                                                                                }{" "}
-                                                                                {
-                                                                                    pct
-                                                                                }
-                                                                                %
-                                                                            </span>
-                                                                        )
-                                                                    },
+                                                                                ref,
+                                                                            }) => {
+                                                                                if (
+                                                                                    ref <=
+                                                                                    0
+                                                                                )
+                                                                                    return null
+                                                                                const pct =
+                                                                                    Math.round(
+                                                                                        (Number(
+                                                                                            fill,
+                                                                                        ) /
+                                                                                            ref) *
+                                                                                            100,
+                                                                                    )
+                                                                                const isUnder =
+                                                                                    pct <
+                                                                                    90
+                                                                                const isExceed =
+                                                                                    pct >
+                                                                                    110
+                                                                                const colorClass =
+                                                                                    isUnder
+                                                                                        ? "bg-red-100 text-red-700 border-red-200"
+                                                                                        : isExceed
+                                                                                          ? "bg-amber-100 text-amber-700 border-amber-200"
+                                                                                          : "bg-green-100 text-green-700 border-green-200"
+
+                                                                                return (
+                                                                                    <Tooltip
+                                                                                        key={
+                                                                                            key
+                                                                                        }
+                                                                                    >
+                                                                                        <TooltipTrigger
+                                                                                            asChild
+                                                                                        >
+                                                                                            <span
+                                                                                                className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums cursor-default ${colorClass}`}
+                                                                                            >
+                                                                                                {
+                                                                                                    key
+                                                                                                }{" "}
+                                                                                                {
+                                                                                                    pct
+                                                                                                }
+                                                                                                %
+                                                                                            </span>
+                                                                                        </TooltipTrigger>
+                                                                                        <TooltipContent
+                                                                                            side="top"
+                                                                                            className="text-xs"
+                                                                                        >
+                                                                                            <div className="space-y-1">
+                                                                                                <p className="font-semibold">
+                                                                                                    {key ===
+                                                                                                    "N"
+                                                                                                        ? "Stikstof"
+                                                                                                        : key ===
+                                                                                                            "P"
+                                                                                                          ? "Fosfaat"
+                                                                                                          : key ===
+                                                                                                              "K"
+                                                                                                            ? "Kali"
+                                                                                                            : key}
+                                                                                                </p>
+                                                                                                <p>
+                                                                                                    Advies:{" "}
+                                                                                                    {Math.round(
+                                                                                                        ref,
+                                                                                                    )}{" "}
+                                                                                                    kg/ha
+                                                                                                </p>
+                                                                                                <p>
+                                                                                                    Aangevoerd:{" "}
+                                                                                                    {Math.round(
+                                                                                                        fill,
+                                                                                                    )}{" "}
+                                                                                                    kg/ha
+                                                                                                </p>
+                                                                                            </div>
+                                                                                        </TooltipContent>
+                                                                                    </Tooltip>
+                                                                                )
+                                                                            },
+                                                                        )}
+                                                                    </TooltipProvider>
                                                                 )
                                                             })()}
                                                         {hasMetrics &&
@@ -320,11 +377,12 @@ export function PlanTable({
                                                         className="py-4 px-6"
                                                     >
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+                                                            {/* ── Normen ── */}
                                                             {normsFilling &&
                                                                 norms && (
                                                                     <div className="space-y-2">
                                                                         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                            Normen
+                                                                            Gebruiksruimte
                                                                             (kg/ha)
                                                                         </p>
                                                                         {[
@@ -398,15 +456,17 @@ export function PlanTable({
                                                                                         </span>
                                                                                     </div>
                                                                                     <Progress
-                                                                                        value={Math.min(
-                                                                                            norm >
-                                                                                                0
-                                                                                                ? (fill /
-                                                                                                      norm) *
-                                                                                                      100
-                                                                                                : 0,
-                                                                                            100,
-                                                                                        )}
+                                                                                        value={
+                                                                                            fill >
+                                                                                            norm
+                                                                                                ? 100
+                                                                                                : norm >
+                                                                                                    0
+                                                                                                  ? (fill /
+                                                                                                        norm) *
+                                                                                                    100
+                                                                                                  : 0
+                                                                                        }
                                                                                         colorBar={
                                                                                             fill >
                                                                                             norm
@@ -420,99 +480,109 @@ export function PlanTable({
                                                                         )}
                                                                     </div>
                                                                 )}
-                                                            {nBalance && (
-                                                                <div className="space-y-2">
-                                                                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                        Stikstofbalans
-                                                                    </p>
-                                                                    <div className="flex justify-between text-sm items-center">
-                                                                        <span className="text-muted-foreground">
-                                                                            Balans
-                                                                            vs.
-                                                                            doel
-                                                                        </span>
-                                                                        <span
-                                                                            className={`font-semibold tabular-nums ${nBalance.balance <= nBalance.target ? "text-green-600" : "text-amber-600"}`}
-                                                                        >
-                                                                            {Math.round(
-                                                                                nBalance.balance,
-                                                                            )}{" "}
-                                                                            /{" "}
-                                                                            {Math.round(
-                                                                                nBalance.target,
-                                                                            )}{" "}
-                                                                            kg
-                                                                            N/ha
-                                                                        </span>
+
+                                                            {/* ── Balansen ── */}
+                                                            <div className="space-y-6">
+                                                                {nBalance && (
+                                                                    <div className="space-y-2">
+                                                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                                                            Stikstofbalans
+                                                                        </p>
+                                                                        <div className="flex justify-between text-sm items-center">
+                                                                            <span className="text-muted-foreground">
+                                                                                Balans
+                                                                                vs.
+                                                                                doel
+                                                                                (kg/ha)
+                                                                            </span>
+                                                                            <span
+                                                                                className={`font-semibold tabular-nums ${nBalance.balance <= nBalance.target ? "text-green-600" : "text-red-600"}`}
+                                                                            >
+                                                                                {Math.round(
+                                                                                    nBalance.balance,
+                                                                                )}{" "}
+                                                                                /{" "}
+                                                                                {Math.round(
+                                                                                    nBalance.target,
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
-                                                                    <Progress
-                                                                        value={Math.min(
-                                                                            nBalance.target >
-                                                                                0
-                                                                                ? (nBalance.balance /
-                                                                                      nBalance.target) *
-                                                                                      100
-                                                                                : 0,
-                                                                            100,
-                                                                        )}
-                                                                        colorBar={
-                                                                            nBalance.balance <=
-                                                                            nBalance.target
-                                                                                ? "green-500"
-                                                                                : "amber-500"
-                                                                        }
-                                                                        className="h-1.5"
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                            {(eomSupplyPerHa !=
-                                                                null ||
-                                                                omBalance !=
-                                                                    null) && (
-                                                                <div className="space-y-2">
-                                                                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                        Effectieve
-                                                                        organische
-                                                                        stof
-                                                                    </p>
-                                                                    <div className="flex justify-between items-center text-sm">
-                                                                        <span className="text-muted-foreground">
-                                                                            Aanvoer
-                                                                            EOM
-                                                                            (kg/ha)
-                                                                        </span>
-                                                                        <span
-                                                                            className={`font-semibold tabular-nums ${(eomSupplyPerHa ?? omBalance ?? 0) >= 0 ? "text-green-600" : "text-red-600"}`}
-                                                                        >
-                                                                            {(eomSupplyPerHa ??
-                                                                                omBalance ??
-                                                                                0) >
-                                                                            0
-                                                                                ? "+"
-                                                                                : ""}
-                                                                            {Math.round(
-                                                                                eomSupplyPerHa ??
+                                                                )}
+                                                                {(eomSupplyPerHa !=
+                                                                    null ||
+                                                                    omBalance !=
+                                                                        null) && (
+                                                                    <div className="space-y-2">
+                                                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                                                            Organische
+                                                                            stof
+                                                                        </p>
+                                                                        <div className="flex justify-between items-center text-sm">
+                                                                            <span className="text-muted-foreground">
+                                                                                Aanvoer
+                                                                                EOS
+                                                                                (kg/ha)
+                                                                            </span>
+                                                                            <span
+                                                                                className={`font-semibold tabular-nums ${(eomSupplyPerHa ?? omBalance ?? 0) >= 0 ? "text-green-600" : "text-red-600"}`}
+                                                                            >
+                                                                                {(eomSupplyPerHa ??
                                                                                     omBalance ??
-                                                                                    0,
-                                                                            )}{" "}
-                                                                            kg
-                                                                        </span>
+                                                                                    0) >
+                                                                                0
+                                                                                    ? "+"
+                                                                                    : ""}
+                                                                                {Math.round(
+                                                                                    eomSupplyPerHa ??
+                                                                                        omBalance ??
+                                                                                        0,
+                                                                                )}{" "}
+                                                                                kg
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                            EOS-aanvoer
+                                                                            via
+                                                                            meststoffen
+                                                                        </p>
                                                                     </div>
-                                                                    <p className="text-xs text-muted-foreground">
-                                                                        EOM-aanvoer
-                                                                        via
-                                                                        meststoffen
-                                                                        in het
-                                                                        voorgestelde
-                                                                        plan
-                                                                    </p>
-                                                                </div>
-                                                            )}
+                                                                )}
+                                                            </div>
+
+                                                            {/* ── Nutrientenadvies ── */}
                                                             {advice &&
                                                                 dose &&
                                                                 (() => {
-                                                                    const otherNutrients =
+                                                                    const allAdvices =
                                                                         [
+                                                                            {
+                                                                                key: "N",
+                                                                                fill:
+                                                                                    dose.p_dose_nw ??
+                                                                                    0,
+                                                                                ref:
+                                                                                    advice.d_n_req ??
+                                                                                    0,
+                                                                            },
+                                                                            {
+                                                                                key: "P",
+                                                                                fill:
+                                                                                    dose.p_dose_p ??
+                                                                                    0,
+                                                                                ref:
+                                                                                    advice.d_p_req ??
+                                                                                    0,
+                                                                            },
+                                                                            {
+                                                                                key: "K",
+                                                                                fill:
+                                                                                    dose.p_dose_k ??
+                                                                                    0,
+                                                                                ref:
+                                                                                    advice.d_k_req ??
+                                                                                    0,
+                                                                            },
                                                                             {
                                                                                 key: "S",
                                                                                 fill:
@@ -612,7 +682,7 @@ export function PlanTable({
                                                                         )
 
                                                                     if (
-                                                                        otherNutrients.length ===
+                                                                        allAdvices.length ===
                                                                         0
                                                                     )
                                                                         return null
@@ -620,45 +690,95 @@ export function PlanTable({
                                                                     return (
                                                                         <div className="space-y-2">
                                                                             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                                Overige
-                                                                                Nutriënten
+                                                                                Nutriëntenbehoefte
                                                                             </p>
-                                                                            <div className="flex flex-wrap gap-1.5">
-                                                                                {otherNutrients.map(
-                                                                                    ({
-                                                                                        key,
-                                                                                        fill,
-                                                                                        ref,
-                                                                                    }) => {
-                                                                                        const pct =
-                                                                                            Math.round(
-                                                                                                (fill /
-                                                                                                    ref) *
-                                                                                                    100,
+                                                                            <TooltipProvider>
+                                                                                <div className="flex flex-wrap gap-1.5">
+                                                                                    {allAdvices.map(
+                                                                                        ({
+                                                                                            key,
+                                                                                            fill,
+                                                                                            ref,
+                                                                                        }) => {
+                                                                                            const pct =
+                                                                                                Math.round(
+                                                                                                    (fill /
+                                                                                                        ref) *
+                                                                                                        100,
+                                                                                                )
+                                                                                            const isUnder =
+                                                                                                pct <
+                                                                                                90
+                                                                                            const isExceed =
+                                                                                                pct >
+                                                                                                110
+                                                                                            const colorClass =
+                                                                                                isUnder
+                                                                                                    ? "bg-red-100 text-red-700 border-red-200"
+                                                                                                    : isExceed
+                                                                                                      ? "bg-amber-100 text-amber-700 border-amber-200"
+                                                                                                      : "bg-green-100 text-green-700 border-green-200"
+
+                                                                                            return (
+                                                                                                <Tooltip
+                                                                                                    key={
+                                                                                                        key
+                                                                                                    }
+                                                                                                >
+                                                                                                    <TooltipTrigger
+                                                                                                        asChild
+                                                                                                    >
+                                                                                                        <span
+                                                                                                            className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums cursor-default ${colorClass}`}
+                                                                                                        >
+                                                                                                            {
+                                                                                                                key
+                                                                                                            }{" "}
+                                                                                                            {
+                                                                                                                pct
+                                                                                                            }
+                                                                                                            %
+                                                                                                        </span>
+                                                                                                    </TooltipTrigger>
+                                                                                                    <TooltipContent
+                                                                                                        side="top"
+                                                                                                        className="text-xs"
+                                                                                                    >
+                                                                                                        <div className="space-y-1">
+                                                                                                            <p className="font-semibold">
+                                                                                                                {key ===
+                                                                                                                "N"
+                                                                                                                    ? "Stikstof"
+                                                                                                                    : key ===
+                                                                                                                        "P"
+                                                                                                                      ? "Fosfaat"
+                                                                                                                      : key ===
+                                                                                                                          "K"
+                                                                                                                        ? "Kali"
+                                                                                                                        : key}
+                                                                                                            </p>
+                                                                                                            <p>
+                                                                                                                Advies:{" "}
+                                                                                                                {Math.round(
+                                                                                                                    ref,
+                                                                                                                )}{" "}
+                                                                                                                kg/ha
+                                                                                                            </p>
+                                                                                                            <p>
+                                                                                                                Aangevoerd:{" "}
+                                                                                                                {Math.round(
+                                                                                                                    fill,
+                                                                                                                )}{" "}
+                                                                                                                kg/ha
+                                                                                                            </p>
+                                                                                                        </div>
+                                                                                                    </TooltipContent>
+                                                                                                </Tooltip>
                                                                                             )
-                                                                                        const over =
-                                                                                            fill >
-                                                                                            ref
-                                                                                        return (
-                                                                                            <span
-                                                                                                key={
-                                                                                                    key
-                                                                                                }
-                                                                                                title={`Advies: ${Math.round(ref)} kg/ha, Aangevoerd: ${Math.round(fill)} kg/ha`}
-                                                                                                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${over ? "bg-red-100 text-red-700" : pct >= 80 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
-                                                                                            >
-                                                                                                {
-                                                                                                    key
-                                                                                                }{" "}
-                                                                                                {
-                                                                                                    pct
-                                                                                                }
-                                                                                                %
-                                                                                            </span>
-                                                                                        )
-                                                                                    },
-                                                                                )}
-                                                                            </div>
+                                                                                        },
+                                                                                    )}
+                                                                                </div>
+                                                                            </TooltipProvider>
                                                                         </div>
                                                                     )
                                                                 })()}

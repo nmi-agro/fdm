@@ -19,6 +19,7 @@ export interface ParsedPlan {
     plan?: Array<{
         b_id: string
         applications: ParsedPlanApplication[]
+        fieldMetrics?: FieldMetrics | null
     }>
     summary?: string
 }

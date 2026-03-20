@@ -1,11 +1,15 @@
 import { z } from "zod"
 
 export const GerritFormSchema = z.object({
-    isOrganic: z.boolean(),
-    fillManureSpace: z.boolean(),
-    reduceAmmoniaEmissions: z.boolean(),
-    keepNitrogenBalanceBelowTarget: z.boolean(),
-    workOnRotationLevel: z.boolean(),
+    isOrganic: z.coerce.string().transform((val) => val === "true"),
+    fillManureSpace: z.coerce.string().transform((val) => val === "true"),
+    reduceAmmoniaEmissions: z.coerce
+        .string()
+        .transform((val) => val === "true"),
+    keepNitrogenBalanceBelowTarget: z.coerce
+        .string()
+        .transform((val) => val === "true"),
+    workOnRotationLevel: z.coerce.string().transform((val) => val === "true"),
     additionalContext: z
         .string()
         .max(1000, "Maximaal 1000 karakters toegestaan.")
@@ -17,20 +21,20 @@ export const GerritFormSchema = z.object({
 export type GerritFormValues = z.infer<typeof GerritFormSchema>
 
 export const STRATEGY_LABELS: Record<string, string> = {
-    isOrganic: "Biologisch",
-    fillManureSpace: "Max. mestplaatsing",
-    reduceAmmoniaEmissions: "Emissiearme aanwending",
-    keepNitrogenBalanceBelowTarget: "Doelsturing N",
+    isOrganic: "Biologisch bedrijf",
+    fillManureSpace: "Opvullen mestruimte",
+    reduceAmmoniaEmissions: "Ammoniakemssies verminderen",
+    keepNitrogenBalanceBelowTarget: "Inzetten op doelsturing",
     workOnRotationLevel: "Bouwplanniveau",
 }
 
 export const GEMINI_MODELS = [
-    { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (Geavanceerd)" },
-    { value: "gemini-3-flash-preview", label: "Gemini 3 Flash (Standaard)" },
+    { value: "gemini-3-flash-preview", label: "Gemini 3 Flash (standaard)" },
+    { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (geavanceerd)" },
     // { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (stabiel)" },
     // { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (zuinig)" },
     {
         value: "gemini-3.1-flash-lite-preview",
-        label: "Gemini 3.1 Flash Lite (Snel)",
+        label: "Gemini 3.1 Flash Lite (snel)",
     },
 ]
