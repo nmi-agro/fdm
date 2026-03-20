@@ -53,6 +53,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder --chown=user:nodejs /app/fdm-app/build ./fdm-app/build
 COPY --from=builder --chown=user:nodejs /app/fdm-app/app ./fdm-app/app
 COPY --from=builder --chown=user:nodejs /app/fdm-app/public ./fdm-app/public
+COPY --from=builder --chown=user:nodejs /app/fdm-app/instrument.server.mjs ./fdm-app/instrument.server.mjs
 # Workspace dependencies builds
 COPY --from=builder --chown=user:nodejs /app/fdm-core/dist ./fdm-core/dist
 COPY --from=builder --chown=user:nodejs /app/fdm-data/dist ./fdm-data/dist
