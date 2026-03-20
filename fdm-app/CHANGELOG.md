@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.28.6
+
+### Patch Changes
+
+- [#525](https://github.com/nmi-agro/fdm/pull/525) [`6876a82`](https://github.com/nmi-agro/fdm/commit/6876a82611b6ad1cbc67174e9e1f2c40b74e0eeb) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix to include instrument.server.mjs in docker image
+
 ## 0.28.5
 
 ### Patch Changes
