@@ -439,7 +439,7 @@ export function FertilizerForm({
                                             <span className="text-sm font-bold">
                                                 {stat.value ?? "0,00"}
                                             </span>
-                                            <span className="text-[10px] font-medium text-muted-foreground uppercase">
+                                            <span className="text-[10px] font-medium text-muted-foreground">
                                                 {stat.unit}
                                             </span>
                                         </div>
