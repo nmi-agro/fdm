@@ -997,7 +997,8 @@ export default function GerritApp() {
                                         bedrijfsvoorkeuren. Gerrit berekent een
                                         integraal bemestingsplan voor het hele
                                         bedrijf, rekening houdend met
-                                        gebruiksnormen, bemestingsadvies
+                                        gebruiksnormen, bemestingsadvies en je
+                                        voorkeuren.
                                     </p>
                                 </Card>
                             )}
