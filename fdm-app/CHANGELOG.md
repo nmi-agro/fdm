@@ -1,5 +1,23 @@
 # Changelog fdm-app
 
+## 0.28.3
+
+### Patch Changes
+
+- [#517](https://github.com/nmi-agro/fdm/pull/517) [`5eadcd9`](https://github.com/nmi-agro/fdm/commit/5eadcd98fa121021479ce3f8dca078c9bd4ae962) Thanks [@SvenVw](https://github.com/SvenVw)! - Increase `streamTimeout` from 30s to 90s to reduce timeout errors for large calculations
+
+## 0.28.2
+
+### Patch Changes
+
+- [#511](https://github.com/nmi-agro/fdm/pull/511) [`604f161`](https://github.com/nmi-agro/fdm/commit/604f16166ac430a967cf5a5b8f7a74377d21b5ac) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix RVO shapefile upload failing when NAAM attribute is null; accept null NAAM and assign fallback name 'Naamloos perceel N'
+
+- [#513](https://github.com/nmi-agro/fdm/pull/513) [`08719fb`](https://github.com/nmi-agro/fdm/commit/08719fbc145b69e313ac2264a3231fcba1a7d0a5) Thanks [@SvenVw](https://github.com/SvenVw)! - Add reverse proxy for Sentry
+
+- [#512](https://github.com/nmi-agro/fdm/pull/512) [`38ddf3a`](https://github.com/nmi-agro/fdm/commit/38ddf3a6f9b82f1c6e991be4529292c28578d30a) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix: remove the `signal.aborted` check from inside the `for await` loop so FlatGeobuf always completes its HTTP exchange cleanly. The abort guard before `setData()` is kept, so stale data is still never rendered after a map pan.
+
+  Additionally, append `?v={APP_VERSION}` to the FlatGeobuf file URL so that users who already have a corrupted browser cache get a fresh cache key on the next deploy.
+
 ## 0.28.1
 
 ### Patch Changes

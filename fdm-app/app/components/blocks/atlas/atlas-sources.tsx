@@ -241,8 +241,9 @@ export function FieldsSourceAvailable({
                             const featureClass = generateFeatureClass()
 
                             for await (const feature of iter) {
-                                if (signal.aborted) return
-
+                                // Do NOT check signal.aborted here. FlatGeobuf does not
+                                // support AbortController, so its HTTP Range requests
+                                // continue regardless.
                                 const catalogueKey =
                                     feature.properties?.b_lu_catalogue
                                 featureClass.features.push({
