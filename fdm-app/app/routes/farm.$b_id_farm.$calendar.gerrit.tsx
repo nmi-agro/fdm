@@ -1,33 +1,38 @@
+import { zodResolver } from "@hookform/resolvers/zod"
+import {
+    buildFertilizerPlanPrompt,
+    createFertilizerPlannerAgent,
+    type FarmFieldSummary,
+    type OneShotAgentResult,
+    runOneShotAgent,
+} from "@nmi-agro/fdm-agents"
+import {
+    aggregateNormFillingsToFarmLevel,
+    aggregateNormsToFarmLevel,
+    calculateDose,
+    createFunctionsForFertilizerApplicationFilling,
+    createFunctionsForNorms,
+    getNutrientAdvice,
+    type NormFilling,
+    type NutrientAdvice,
+} from "@nmi-agro/fdm-calculator"
 import {
     addFertilizerApplication,
+    type Fertilizer,
+    type FertilizerApplication,
+    getCultivations,
+    getCurrentSoilData,
     getFarms,
+    getFertilizerApplications,
     getFertilizers,
     getField,
     getFields,
-    getCultivations,
-    getCurrentSoilData,
     isOrganicCertificationValid,
-    removeFertilizerApplication,
-    getFertilizerApplications,
-    type Fertilizer,
-    type FertilizerApplication,
     type PrincipalId,
+    removeFertilizerApplication,
 } from "@nmi-agro/fdm-core"
-import {
-    createFunctionsForNorms,
-    createFunctionsForFertilizerApplicationFilling,
-    aggregateNormsToFarmLevel,
-    aggregateNormFillingsToFarmLevel,
-    getNutrientAdvice,
-    calculateDose,
-    type NutrientAdvice,
-    type NormFilling,
-} from "@nmi-agro/fdm-calculator"
 import { Bot } from "lucide-react"
 import { useEffect, useState } from "react"
-import { type Resolver } from "react-hook-form"
-import { useRemixForm, getValidatedFormData } from "remix-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import {
     type ActionFunctionArgs,
     data,
@@ -37,43 +42,41 @@ import {
     useActionData,
     useLoaderData,
     useNavigation,
-    useParams,
 } from "react-router"
+import { getValidatedFormData, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
-import { z } from "zod"
+import type { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
-import { Header } from "~/components/blocks/header/base"
-import { HeaderFarm } from "~/components/blocks/header/farm"
-import { Card } from "~/components/ui/card"
-import { SidebarInset } from "~/components/ui/sidebar"
-import { getSession } from "~/lib/auth.server"
-import { getCalendar, getTimeframe } from "~/lib/calendar"
-import { clientConfig } from "~/lib/config"
-import { fdm } from "~/lib/fdm.server"
-import { serverConfig } from "~/lib/config.server"
-import PostHogClient from "~/posthog.server"
+import { GerritLoading } from "~/components/blocks/gerrit/gerrit-loading"
+import { PlanTable } from "~/components/blocks/gerrit/plan-table"
 import {
-    runOneShotAgent,
-    createFertilizerPlannerAgent,
-    buildFertilizerPlanPrompt,
-    type FarmFieldSummary,
-    type OneShotAgentResult,
-} from "@nmi-agro/fdm-agents"
-
-import {
-    GerritFormSchema,
     GEMINI_MODELS,
+    GerritFormSchema,
     STRATEGY_LABELS,
 } from "~/components/blocks/gerrit/schema"
 import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
 import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
-import { PlanTable } from "~/components/blocks/gerrit/plan-table"
-import { GerritLoading } from "~/components/blocks/gerrit/gerrit-loading"
-import type {
-    ParsedPlan,
-    ParsedPlanApplication,
-    FieldMetrics,
-} from "~/components/blocks/gerrit/types"
+import type { FieldMetrics, ParsedPlan } from "~/components/blocks/gerrit/types"
+import { Header } from "~/components/blocks/header/base"
+import { HeaderFarm } from "~/components/blocks/header/farm"
+import { Button } from "~/components/ui/button"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
+import { Checkbox } from "~/components/ui/checkbox"
+import { Label } from "~/components/ui/label"
+import { SidebarInset } from "~/components/ui/sidebar"
+import { getSession } from "~/lib/auth.server"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
+import { clientConfig } from "~/lib/config"
+import { serverConfig } from "~/lib/config.server"
+import { fdm } from "~/lib/fdm.server"
+import PostHogClient from "~/posthog.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -208,13 +211,31 @@ async function computePlanMetrics(
                     )
                     const [manureResult, phosphateResult, nitrogenResult] =
                         await Promise.all([
-                            normFuncs.calculateNormForManure(fdm, normsInput as any),
-                            normFuncs.calculateNormForPhosphate(fdm, normsInput as any),
-                            normFuncs.calculateNormForNitrogen(fdm, normsInput as any),
+                            normFuncs.calculateNormForManure(
+                                fdm,
+                                normsInput as any,
+                            ),
+                            normFuncs.calculateNormForPhosphate(
+                                fdm,
+                                normsInput as any,
+                            ),
+                            normFuncs.calculateNormForNitrogen(
+                                fdm,
+                                normsInput as any,
+                            ),
                         ])
-                    manure = { normValue: manureResult.normValue, normSource: manureResult.normSource }
-                    phosphate = { normValue: phosphateResult.normValue, normSource: phosphateResult.normSource }
-                    nitrogen = { normValue: nitrogenResult.normValue, normSource: nitrogenResult.normSource }
+                    manure = {
+                        normValue: manureResult.normValue,
+                        normSource: manureResult.normSource,
+                    }
+                    phosphate = {
+                        normValue: phosphateResult.normValue,
+                        normSource: phosphateResult.normSource,
+                    }
+                    nitrogen = {
+                        normValue: nitrogenResult.normValue,
+                        normSource: nitrogenResult.normSource,
+                    }
                 } catch (err) {
                     console.warn(
                         `[computePlanMetrics] Norm calc failed for ${field.b_id}:`,
@@ -264,7 +285,11 @@ async function computePlanMetrics(
                         ...baseInput,
                         applications: syntheticApps,
                         fertilizers,
-                    } as Awaited<ReturnType<typeof fillingFuncs.collectInputForFertilizerApplicationFilling>>
+                    } as Awaited<
+                        ReturnType<
+                            typeof fillingFuncs.collectInputForFertilizerApplicationFilling
+                        >
+                    >
                     const [manureResult, nitrogenResult, phosphateResult] =
                         await Promise.all([
                             Promise.resolve(
@@ -351,11 +376,7 @@ async function computePlanMetrics(
                     try {
                         const [fieldData, currentSoilData] = await Promise.all([
                             getField(fdm, principalId, field.b_id),
-                            getCurrentSoilData(
-                                fdm,
-                                principalId,
-                                field.b_id,
-                            ),
+                            getCurrentSoilData(fdm, principalId, field.b_id),
                         ])
                         advice = await getNutrientAdvice(fdm, {
                             b_lu_catalogue: field.b_lu_catalogue,
@@ -467,13 +488,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const intent = formData.get("intent")
 
     if (intent === "generate") {
-        const {
-            errors,
-            data: formValues,
-        } = await getValidatedFormData<z.infer<typeof GerritFormSchema>>(
-            clonedRequest,
-            zodResolver(GerritFormSchema) as any,
-        )
+        const { errors, data: formValues } = await getValidatedFormData<
+            z.infer<typeof GerritFormSchema>
+        >(clonedRequest, zodResolver(GerritFormSchema) as any)
         if (errors || !formValues) {
             return dataWithError(
                 null,
@@ -603,19 +620,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 b_lu_name: fd.b_lu_name,
                 b_lu_croprotation: fd.b_lu_croprotation,
                 b_area: fd.b_area,
-                applications: (proposedField?.applications || []).map(
-                    (app) => {
-                        const fert = fertilizers.find(
-                            (f: Fertilizer) =>
-                                f.p_id_catalogue === app.p_id_catalogue,
-                        )
-                        return {
-                            ...app,
-                            p_name_nl: fert?.p_name_nl || app.p_id_catalogue,
-                            p_type: fert?.p_type || "other",
-                        }
-                    },
-                ),
+                applications: (proposedField?.applications || []).map((app) => {
+                    const fert = fertilizers.find(
+                        (f: Fertilizer) =>
+                            f.p_id_catalogue === app.p_id_catalogue,
+                    )
+                    return {
+                        ...app,
+                        p_name_nl: fert?.p_name_nl || app.p_id_catalogue,
+                        p_type: fert?.p_type || "other",
+                    }
+                }),
                 fieldMetrics: null as FieldMetrics | null,
             }
         })
@@ -646,14 +661,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 distinctId: session.principal_id,
                 event: "$ai_generation",
                 properties: {
-                    $ai_model: modelName,
-                    $ai_latency: latencySeconds,
-                    $ai_input_tokens: usageData?.inputTokens ?? null,
-                    $ai_output_tokens: usageData?.outputTokens ?? null,
-                    $ai_total_tokens: usageData?.totalTokens ?? null,
-                    $ai_input_cost: inputCost,
-                    $ai_output_cost: outputCost,
-                    $ai_total_cost: inputCost + outputCost,
+                    // $ai_model: modelName,
+                    // $ai_latency: latencySeconds,
+                    // $ai_input_tokens: usageData?.inputTokens ?? null,
+                    // $ai_output_tokens: usageData?.outputTokens ?? null,
+                    // $ai_total_tokens: usageData?.totalTokens ?? null,
+                    // $ai_input_cost: inputCost,
+                    // $ai_output_cost: outputCost,
+                    // $ai_total_cost: inputCost + outputCost,
                     $ai_input: [
                         { role: "user", content: prompt.slice(0, 2000) },
                     ],
@@ -756,7 +771,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             })
 
             return redirectWithSuccess(
-                `./rotation/fertilizer`,
+                "./rotation/fertilizer",
                 "Gerrit's plan is succesvol toegepast!",
             )
         } catch (e: unknown) {
@@ -826,6 +841,244 @@ export default function GerritApp() {
               .filter(([, v]) => v === true)
               .map(([k]) => STRATEGY_LABELS[k] ?? k)
         : []
+
+    const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState<
+        boolean | null
+    >(null)
+    const [isCheckboxChecked, setIsCheckboxChecked] = useState(false)
+
+    useEffect(() => {
+        const key = `gerrit_disclaimer_accepted_${farm.b_id_farm}`
+        const accepted = localStorage.getItem(key) === "true"
+        setHasAcceptedDisclaimer(accepted)
+    }, [farm.b_id_farm])
+
+    const handleAcceptDisclaimer = () => {
+        if (!isCheckboxChecked) return
+        const key = `gerrit_disclaimer_accepted_${farm.b_id_farm}`
+        localStorage.setItem(key, "true")
+        setHasAcceptedDisclaimer(true)
+    }
+
+    if (hasAcceptedDisclaimer === null) {
+        return (
+            <SidebarInset>
+                <Header action={undefined}>
+                    <HeaderFarm
+                        b_id_farm={farm.b_id_farm}
+                        farmOptions={farmOptions}
+                    />
+                </Header>
+                <FarmContent>
+                    <div className="min-h-[50vh]" />
+                </FarmContent>
+            </SidebarInset>
+        )
+    }
+
+    if (hasAcceptedDisclaimer === false) {
+        return (
+            <SidebarInset>
+                <Header action={undefined}>
+                    <HeaderFarm
+                        b_id_farm={farm.b_id_farm}
+                        farmOptions={farmOptions}
+                    />
+                </Header>
+                <FarmContent>
+                    <div className="max-w-5xl mx-auto mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        {/* ── Hoe Gerrit werkt ── */}
+                        <Card className="flex flex-col h-full">
+                            <CardHeader>
+                                <CardTitle className="text-2xl flex items-center gap-3 font-bold">
+                                    <Bot className="w-6 h-6 text-primary" />
+                                    Hoe werkt Gerrit?
+                                </CardTitle>
+                                <CardDescription className="text-base">
+                                    Gerrit stelt een bemestingsplan op op basis
+                                    van jouw gekozen strategie. Elk voorstel
+                                    wordt direct getoetst en doorloopt een
+                                    cyclus van verbeteringen tot het plan
+                                    optimaal is.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6 flex-grow">
+                                <p className="text-muted-foreground">
+                                    Wanneer je op 'Genereer plan' klikt, gaat
+                                    Gerrit als volgt te werk:
+                                </p>
+                                <ul className="space-y-6">
+                                    <li className="flex items-start gap-4">
+                                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                            1
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-foreground">
+                                                Inventarisatie
+                                            </p>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                Eerst worden alle gegevens
+                                                verzameld: je percelen, de
+                                                gewassen, de bodemanalyses en
+                                                welke meststoffen beschikbaar
+                                                zijn.
+                                            </p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-4">
+                                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                            2
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-foreground">
+                                                Ontwerpen en controleren
+                                            </p>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                Gerrit maakt een eerste
+                                                bemestingsplan en rekent dit
+                                                direct door. Er wordt getoetst
+                                                of het plan past binnen de
+                                                gebruiksruimte en of de gewassen
+                                                voldoende krijgen.
+                                            </p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-4">
+                                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                            3
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-foreground">
+                                                Bijsturen tot het klopt
+                                            </p>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                Als het eerste ontwerp niet
+                                                voldoet, past Gerrit het plan
+                                                zelfstandig aan. Dit herhaalt
+                                                zich tot er een agronomisch en
+                                                wettelijk correct voorstel ligt.
+                                            </p>
+                                        </div>
+                                    </li>
+                                </ul>
+                                <p className="text-muted-foreground">
+                                    Het uiteindelijke voorstel zie je hierna op
+                                    je scherm. Pas als je op 'Plan toepassen'
+                                    klikt, worden de bemestingen opgeslagen.
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* ── Voorwaarden / Disclaimer ── */}
+                        <Card className="flex flex-col h-full">
+                            <CardHeader>
+                                <CardTitle className="text-2xl flex items-center gap-3 font-bold">
+                                    Gebruiksvoorwaarden
+                                </CardTitle>
+                                <CardDescription className="text-base">
+                                    Om Gerrit te kunnen gebruiken, vragen we je
+                                    akkoord te gaan met de volgende punten voor
+                                    het gebruik van deze experimentele functie.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6 flex-grow">
+                                <ul className="space-y-6">
+                                    <li className="flex items-start gap-4">
+                                        <div className="flex h-2 w-2 mt-2 shrink-0 rounded-full bg-primary" />
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-foreground">
+                                                Experimentele functie
+                                            </p>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                Dit is een proefversie (bèta) en
+                                                nog geen definitief product. We
+                                                kunnen deze functie in de
+                                                toekomst aanpassen of
+                                                verwijderen.
+                                            </p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-4">
+                                        <div className="flex h-2 w-2 mt-2 shrink-0 rounded-full bg-primary" />
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-foreground">
+                                                Fair Use & limieten
+                                            </p>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                Bedoeld voor normaal gebruik bij
+                                                het opstellen van je eigen plan.
+                                                Om Gerrit voor iedereen
+                                                beschikbaar te houden kunnen er
+                                                limieten gelden.
+                                            </p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-4">
+                                        <div className="flex h-2 w-2 mt-2 shrink-0 rounded-full bg-primary" />
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-foreground">
+                                                Controleren is nodig
+                                            </p>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                Gerrit maakt gebruik van AI en
+                                                kan fouten maken. Controleer de
+                                                plannen altijd kritisch op
+                                                agronomische en wettelijke
+                                                juistheid.
+                                            </p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-4">
+                                        <div className="flex h-2 w-2 mt-2 shrink-0 rounded-full bg-primary" />
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-foreground">
+                                                Dataverwerking
+                                            </p>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                Bedrijfs- en perceelsgegevens
+                                                worden meegestuurd naar de
+                                                AI-modellen van Google (Gemini)
+                                                om een plan te kunnen genereren.
+                                            </p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </CardContent>
+                            <CardFooter className="flex-col items-stretch gap-4 pt-6 border-t mt-auto">
+                                <div className="flex items-start space-x-3">
+                                    <Checkbox
+                                        id="accept-terms"
+                                        checked={isCheckboxChecked}
+                                        onCheckedChange={(checked) =>
+                                            setIsCheckboxChecked(
+                                                checked === true,
+                                            )
+                                        }
+                                        className="mt-1"
+                                    />
+                                    <Label
+                                        htmlFor="accept-terms"
+                                        className="text-sm font-medium leading-relaxed cursor-pointer"
+                                    >
+                                        Ik begrijp en ga akkoord met
+                                        bovenstaande voorwaarden voor het
+                                        gebruik van Gerrit.
+                                    </Label>
+                                </div>
+                                <Button
+                                    onClick={handleAcceptDisclaimer}
+                                    disabled={!isCheckboxChecked}
+                                    className="w-full"
+                                >
+                                    Start met Gerrit
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    </div>
+                </FarmContent>
+            </SidebarInset>
+        )
+    }
 
     return (
         <SidebarInset>
