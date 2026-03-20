@@ -335,7 +335,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
             const action = userChoices[id] as ImportReviewAction
 
             const localArea = item.localField
-                ? `${item.localField.b_area.toFixed(2)} ha`
+                ? `${(item.localField.b_area ?? 0).toFixed(2)} ha`
                 : undefined
             const remoteArea = item.rvoField
                 ? formatArea(item.rvoField.geometry)
