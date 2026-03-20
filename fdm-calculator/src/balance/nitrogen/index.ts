@@ -33,15 +33,17 @@ export async function calculateNitrogenBalance(
     fdm: FdmType,
     nitrogenBalanceInput: NitrogenBalanceInput,
 ) {
-    const fieldInputs: NitrogenBalanceFieldInput[] =
-        nitrogenBalanceInput.fields.map((field) => ({
-            fieldInput: field,
-            cultivationDetails: nitrogenBalanceInput.cultivationDetails,
-            fertilizerDetails: nitrogenBalanceInput.fertilizerDetails,
-            timeFrame: nitrogenBalanceInput.timeFrame,
-        }))
-
-    return calculateNitrogenBalanceBatched(fdm, fieldInputs)
+    return calculateNitrogenBalanceForFarms(fdm, [
+        {
+            ...nitrogenBalanceInput,
+            b_id_farm:
+                (
+                    nitrogenBalanceInput as NitrogenBalanceInput & {
+                        b_id_farm?: string
+                    }
+                ).b_id_farm ?? "farm",
+        },
+    ])
 }
 
 /**

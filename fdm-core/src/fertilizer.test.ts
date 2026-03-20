@@ -429,6 +429,14 @@ describe("Fertilizer Data Model", () => {
             ])
         })
 
+        it("(getFertilizers) should rename the error if getFertilizersOfFarms throws an error", async () => {
+            const invalidFarmId = createId()
+
+            expect(
+                getFertilizers(fdm, principal_id, invalidFarmId),
+            ).rejects.not.toThrowError("Exception for getFertilizersOfFarms")
+        })
+
         it("should remove a fertilizer", async () => {
             // Add fertilizer to catalogue
             const p_name_nl = "Test Fertilizer"

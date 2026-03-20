@@ -237,7 +237,6 @@ export async function collectInputForNitrogenBalanceForFarms(
             )
         })
     } catch (error) {
-        console.log("ERROR OCCURRED", error)
         throw new Error(
             `Failed to collect nitrogen balance input: ${
                 error instanceof Error ? error.message : String(error)

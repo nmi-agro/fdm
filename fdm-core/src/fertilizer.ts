@@ -538,14 +538,24 @@ export async function getFertilizers(
     b_id_farm: schema.fertilizerAcquiringTypeSelect["b_id_farm"],
 ) {
     try {
-        return (await getFertilizersOfFarms(fdm, principal_id, [b_id_farm]))[
-            b_id_farm
-        ]
+        return (
+            (await getFertilizersOfFarms(fdm, principal_id, [b_id_farm]))[
+                b_id_farm
+            ] ?? []
+        )
     } catch (err) {
-        if ((err as Error)?.message === "Exception for getFertilizersOfFarms") {
-            throw handleError(err, "Exception for getFertilizers", {
-                b_id_farm,
-            })
+        if (
+            (err as Error)?.message?.startsWith(
+                "Exception for getFertilizersOfFarms",
+            )
+        ) {
+            throw handleError(
+                (err as Error).cause,
+                "Exception for getFertilizers",
+                {
+                    b_id_farm,
+                },
+            )
         }
 
         throw err
@@ -690,9 +700,8 @@ export async function getFertilizersOfFarms(
             }
         })
 
-        console.log(res)
         // Chunk the query result array up for each fertilizer.
-        const fertilizerDetailsForFarms: Record<string, Fertilizer[]> = {}
+        const fertilizersMap: Record<string, Fertilizer[]> = {}
         if (res && res.length > 0) {
             let fertilizerStart = 0
             let fertilizerEnd = 0
@@ -701,7 +710,7 @@ export async function getFertilizersOfFarms(
                 for (; fertilizerEnd < res.length; fertilizerEnd++) {
                     if (res[fertilizerEnd].b_id_farm !== b_id_farm) break
                 }
-                fertilizerDetailsForFarms[b_id_farm] = res.slice(
+                fertilizersMap[b_id_farm] = res.slice(
                     fertilizerStart,
                     fertilizerEnd,
                 )
@@ -712,7 +721,12 @@ export async function getFertilizersOfFarms(
             }
         }
 
-        return fertilizerDetailsForFarms
+        // Add empty arrays for farms with no fertilizers to be consistent with the old `getFertilizers` implementation
+        for (const b_id_farm of farmIds) {
+            fertilizersMap[b_id_farm] ??= []
+        }
+
+        return fertilizersMap
     } catch (err) {
         throw handleError(err, "Exception for getFertilizersOfFarms", {
             farmIds,
