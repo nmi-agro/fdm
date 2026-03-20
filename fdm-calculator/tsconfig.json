@@ -1,14 +1,12 @@
 {
     "extends": "../tsconfig.packages.json",
     "compilerOptions": {
-        "noEmit": false,
-        "rootDir": "./src",
-        "outDir": "./dist",
+        "noEmit": true,
         "types": ["vitest/globals", "node"],
         "paths": {
             "@nmi-agro/fdm-core": ["../fdm-core/src/index.ts"],
             "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"]
         }
     },
-    "include": ["src", "src/**/*.test.ts"]
+    "include": ["src/**/*", "vitest.config.ts"]
 }
