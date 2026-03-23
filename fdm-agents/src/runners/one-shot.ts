@@ -4,6 +4,7 @@ import type { BaseAgent } from "@google/adk"
 export interface OneShotAgentResult {
     result: string
     usage: { inputTokens: number; outputTokens: number; totalTokens: number } | null
+    toolCalls?: string[]
 }
 
 /**
@@ -35,6 +36,27 @@ export async function runOneShotAgent(
     let inputTokens = 0
     let outputTokens = 0
     let totalTokens = 0
+    const toolCalls: string[] = []
+
+    function extractToolCalls(obj: any, visited = new Set<any>()) {
+        if (!obj || typeof obj !== "object" || visited.has(obj)) return
+        visited.add(obj)
+
+        if (Array.isArray(obj)) {
+            for (const item of obj) extractToolCalls(item, visited)
+            return
+        }
+
+        if (obj.functionCall && typeof obj.functionCall.name === "string") {
+            toolCalls.push(obj.functionCall.name)
+        } else if (obj.toolCall && typeof obj.toolCall.name === "string") {
+            toolCalls.push(obj.toolCall.name)
+        }
+
+        for (const key of Object.keys(obj)) {
+            extractToolCalls(obj[key], visited)
+        }
+    }
 
     for await (const event of stream) {
         // Surface model errors immediately instead of silently returning empty string.
@@ -54,6 +76,8 @@ export async function runOneShotAgent(
             totalTokens += usage.totalTokenCount ?? 0
         }
 
+        extractToolCalls(event)
+
         // Only capture the final text response, not intermediate reasoning or tool calls.
         if (isFinalResponse(event)) {
             const text = stringifyContent(event)
@@ -62,6 +86,8 @@ export async function runOneShotAgent(
             }
         }
     }
+
+    const uniqueToolCalls = [...new Set(toolCalls)]
 
     // PostHog LLM Tracking
     if (posthog?.client) {
@@ -75,6 +101,8 @@ export async function runOneShotAgent(
                     principal_id: context.principalId,
                     strategies: context.strategies,
                     additional_context: context.additionalContext,
+                    $ai_tools_called: uniqueToolCalls,
+                    $ai_tool_call_count: uniqueToolCalls.length,
                 },
             })
         } catch (e) {
@@ -85,5 +113,6 @@ export async function runOneShotAgent(
     return {
         result: finalResponse,
         usage: totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
+        toolCalls: uniqueToolCalls,
     }
 }

@@ -530,6 +530,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const startTime = Date.now()
         let rawResult = ""
         let usageData: OneShotAgentResult["usage"] = null
+        let toolCalls: string[] | undefined = undefined
 
         try {
             const agentResult = await runOneShotAgent(
@@ -539,6 +540,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
             rawResult = agentResult.result
             usageData = agentResult.usage
+            toolCalls = agentResult.toolCalls
         } catch (err: unknown) {
             return dataWithError(
                 null,
@@ -629,6 +631,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             content: rawResult.slice(0, 2000),
                         },
                     ],
+                    $ai_tools_called: toolCalls || [],
+                    $ai_tool_call_count: toolCalls?.length || 0,
                     $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
                     b_id_farm,
                     calendar,
@@ -782,8 +786,8 @@ export default function GerritApp() {
     )
 
     const blocker = useBlocker(
-        ({ currentValue, nextLocation }) =>
-            isAIGenerating && currentValue.pathname !== nextLocation.pathname,
+        ({ currentLocation, nextLocation }) =>
+            isAIGenerating && currentLocation.pathname !== nextLocation.pathname,
     )
 
     const plan = actionData?.intent === "generate" ? actionData.plan : null
