@@ -50,6 +50,7 @@ import { getValidatedFormData, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import type { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
+import { GerritFeedback } from "~/components/blocks/gerrit/gerrit-feedback"
 import { GerritLoading } from "~/components/blocks/gerrit/gerrit-loading"
 import { GerritOnboarding } from "~/components/blocks/gerrit/onboarding"
 import { PlanTable } from "~/components/blocks/gerrit/plan-table"
@@ -1019,12 +1020,17 @@ export default function GerritApp() {
                             {isGenerating ? (
                                 <GerritLoading />
                             ) : plan ? (
-                                <PlanTable
-                                    plan={plan}
-                                    isSaving={isSaving}
-                                    expandedRows={expandedRows}
-                                    toggleRow={toggleRow}
-                                />
+                                <>
+                                    <PlanTable
+                                        plan={plan}
+                                        isSaving={isSaving}
+                                        expandedRows={expandedRows}
+                                        toggleRow={toggleRow}
+                                    />
+                                    <GerritFeedback
+                                        traceId={`gerrit-${farm.b_id_farm}-${calendar}`}
+                                    />
+                                </>
                             ) : (
                                 <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
                                     <div className="bg-primary/10 p-6 rounded-full mb-6">
