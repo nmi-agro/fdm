@@ -16,7 +16,7 @@ import {
     CircleCheck,
     CircleX,
 } from "lucide-react"
-import { Suspense, use, useRef } from "react"
+import { Suspense, use } from "react"
 import {
     data,
     type LoaderFunctionArgs,
@@ -24,13 +24,11 @@ import {
     NavLink,
     useLoaderData,
     useParams,
-    useSearchParams,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
-import { Button } from "~/components/ui/button"
 import {
     Card,
     CardContent,
@@ -38,16 +36,6 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import { Checkbox } from "~/components/ui/checkbox"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "~/components/ui/dialog"
 import {
     Tooltip,
     TooltipContent,
@@ -58,6 +46,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { FarmSelectDialog } from "../components/blocks/balance/farm-select-dialog"
 
 type Farm = Awaited<ReturnType<typeof getFarms>>[number]
 type Organization = Awaited<
@@ -307,14 +296,15 @@ export default function FarmBalanceNitrogenOverviewBlock() {
     const loaderData = useLoaderData<typeof loader>()
     const farmIds = !loaderData.noFarms ? loaderData.farmIds : []
     return (
-        <div className="space-y-4">
+        <main className="p-8 space-y-4">
+            <h2 className="text-2xl font-bold tracking-tight">Stikstof</h2>
             <Suspense
                 key={`loaderData.organization.id,${farmIds.join(",")}`}
                 fallback={<NitrogenBalanceFallback />}
             >
                 <OrganizationFarmBalanceNitrogenOverview {...loaderData} />
             </Suspense>
-        </div>
+        </main>
     )
 }
 
@@ -328,9 +318,7 @@ export default function FarmBalanceNitrogenOverviewBlock() {
  * would not render until `asyncData` resolves and the fallback would never be shown.
  */
 function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
-    const [, setSearchParams] = useSearchParams()
     const params = useParams()
-    const formRef = useRef<HTMLFormElement | null>(null)
 
     if (loaderData.noFarms) {
         return (
@@ -406,8 +394,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
         )
     }
     return (
-        <main className="p-8 space-y-8">
-            <h2 className="text-2xl font-bold tracking-tight">Stikstof</h2>
+        <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -539,113 +526,10 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                     <CardHeader>
                         <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
                             <p className="grow">Bedrijven</p>
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline">
-                                        Wijzig selectie
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>
-                                            Wijzig selectie van bedrijven
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            De geselecteerde bedrijven zijn
-                                            uitgesloten in de berekening.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <form ref={formRef} className="space-y-8">
-                                        {farms.map((farm) => {
-                                            const b_id_farm = farm.b_id_farm
-                                            const currentValue =
-                                                farmResults.find(
-                                                    (result) =>
-                                                        result.farm
-                                                            .b_id_farm ===
-                                                        b_id_farm,
-                                                )
-                                            return (
-                                                <div
-                                                    key={farm.b_id_farm}
-                                                    className="flex flex-row items-center gap-4"
-                                                >
-                                                    <Checkbox
-                                                        name={b_id_farm}
-                                                        defaultChecked={
-                                                            !!currentValue
-                                                        }
-                                                    />
-                                                    {farm.b_name_farm ??
-                                                        "Onbekend"}
-                                                </div>
-                                            )
-                                        })}
-                                    </form>
-                                    <DialogFooter>
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => {
-                                                const form = formRef.current
-
-                                                const selectedFarmIds: string[] =
-                                                    []
-                                                if (form) {
-                                                    const formData =
-                                                        new FormData(form)
-                                                    for (const [
-                                                        b_id_farm,
-                                                        selected,
-                                                    ] of formData.entries()) {
-                                                        if (selected) {
-                                                            selectedFarmIds.push(
-                                                                b_id_farm,
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                                selectedFarmIds.sort()
-                                                if (
-                                                    farmIds.length !==
-                                                        selectedFarmIds.length ||
-                                                    selectedFarmIds.find(
-                                                        (selected_id, index) =>
-                                                            selected_id !==
-                                                            farmIds[index],
-                                                    )
-                                                ) {
-                                                    setSearchParams(
-                                                        (searchParams) => {
-                                                            const newSearchParams =
-                                                                new URLSearchParams(
-                                                                    searchParams,
-                                                                )
-                                                            if (
-                                                                selectedFarmIds.length >
-                                                                0
-                                                            ) {
-                                                                newSearchParams.set(
-                                                                    "farmIds",
-                                                                    selectedFarmIds.join(
-                                                                        ",",
-                                                                    ),
-                                                                )
-                                                            } else {
-                                                                newSearchParams.delete(
-                                                                    "farmIds",
-                                                                )
-                                                            }
-                                                            return newSearchParams
-                                                        },
-                                                    )
-                                                }
-                                            }}
-                                        >
-                                            Opslaan
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                            <FarmSelectDialog
+                                farms={farms}
+                                defaultSelectedFarmIds={farmIds}
+                            />
                             <BufferStripInfo />
                         </CardTitle>
                         <CardDescription />
@@ -657,6 +541,6 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                     </CardContent>
                 </Card>
             </div>
-        </main>
+        </>
     )
 }
