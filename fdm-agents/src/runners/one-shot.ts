@@ -47,10 +47,13 @@ export async function runOneShotAgent(
             return
         }
 
-        if (obj.functionCall && typeof obj.functionCall.name === "string") {
-            toolCalls.push(obj.functionCall.name)
-        } else if (obj.toolCall && typeof obj.toolCall.name === "string") {
-            toolCalls.push(obj.toolCall.name)
+        const rawName = obj.functionCall?.name || obj.toolCall?.name
+        if (typeof rawName === "string") {
+            // Remove literal brackets and quotes that sometimes appear in raw LLM tool responses
+            const cleanName = rawName.replace(/[\[\]"]/g, "").trim()
+            if (cleanName) {
+                toolCalls.push(cleanName)
+            }
         }
 
         for (const key of Object.keys(obj)) {
