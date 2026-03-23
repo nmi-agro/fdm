@@ -81,6 +81,7 @@ type LoaderData =
       }
     | {
           farms: Farm[]
+          farmIds: string[]
           organization: Organization
           noFarms: false
           asyncData: Promise<AsyncData>
@@ -291,6 +292,7 @@ export async function loader({
 
         return {
             farms: farms,
+            farmIds: farmIds.sort(),
             organization: organization,
             noFarms: false,
             asyncData: asyncData,
@@ -302,11 +304,11 @@ export async function loader({
 
 export default function FarmBalanceOrganicMatterOverviewBlock() {
     const loaderData = useLoaderData<typeof loader>()
-
+    const farmIds = !loaderData.noFarms ? loaderData.farmIds : []
     return (
         <div className="space-y-4">
             <Suspense
-                key={loaderData.organization.id}
+                key={`loaderData.organization.id,${farmIds.join(",")}`}
                 fallback={<NitrogenBalanceFallback />}
             >
                 <OrganizationFarmBalanceOrganicMatterOverview {...loaderData} />
@@ -325,7 +327,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
  * would not render until `asyncData` resolves and the fallback would never be shown.
  */
 function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
-    const [searchParams, setSearchParams] = useSearchParams()
+    const [, setSearchParams] = useSearchParams()
     const params = useParams()
     const formRef = useRef<HTMLFormElement | null>(null)
 
@@ -342,7 +344,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
         )
     }
 
-    const { farms, asyncData: asyncDataPromise } = loaderData
+    const { farms, farmIds, asyncData: asyncDataPromise } = loaderData
 
     // `use` is not a React hook, therefore we can call it conditionally
     const asyncData = use(asyncDataPromise)
@@ -566,28 +568,14 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
                                                         }
                                                     }
                                                 }
-
-                                                const farmIds =
-                                                    searchParams
-                                                        .get("farmIds")
-                                                        ?.split(",")
-                                                        .filter(Boolean) ??
-                                                    farms.map(
-                                                        (farm) =>
-                                                            farm.b_id_farm,
-                                                    )
-                                                const sortedPrevFarmIds =
-                                                    farmIds.sort()
                                                 selectedFarmIds.sort()
                                                 if (
-                                                    sortedPrevFarmIds.length !==
+                                                    farmIds.length !==
                                                         selectedFarmIds.length ||
                                                     selectedFarmIds.find(
                                                         (selected_id, index) =>
                                                             selected_id !==
-                                                            sortedPrevFarmIds[
-                                                                index
-                                                            ],
+                                                            farmIds[index],
                                                     )
                                                 ) {
                                                     setSearchParams(
@@ -617,7 +605,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
                                                 }
                                             }}
                                         >
-                                            Sluiten
+                                            Opslaan
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>

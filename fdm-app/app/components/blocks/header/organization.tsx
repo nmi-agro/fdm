@@ -20,9 +20,10 @@ export function HeaderOrganization({
     organizationOptions: HeaderOrganizationOption[]
 }) {
     const location = useLocation()
+    const params = useParams()
+    const matches = useMatches()
     const currentPath = String(location.pathname)
 
-    const matches = useMatches()
     const isSettingsRoute = !!matches.find(
         (match) => match.id === "routes/organization.$slug.settings",
     )
@@ -48,7 +49,6 @@ export function HeaderOrganization({
                 `routes/organization.$slug.$calendar.balance.${type}._index`,
         ),
     )
-    const params = useParams()
 
     return (
         <>
@@ -162,7 +162,7 @@ export function HeaderOrganization({
                                             key={"nitrogen"}
                                         >
                                             <NavLink
-                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/nitrogen`}
+                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/nitrogen${location.search}`}
                                             >
                                                 Stikstof
                                             </NavLink>
@@ -175,7 +175,7 @@ export function HeaderOrganization({
                                             key={"organic-matter"}
                                         >
                                             <NavLink
-                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/organic-matter`}
+                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/organic-matter${location.search}`}
                                             >
                                                 Organische stof
                                             </NavLink>
