@@ -32,6 +32,7 @@ import {
     removeFertilizerApplication,
 } from "@nmi-agro/fdm-core"
 import { Bot } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useEffect, useState } from "react"
 import {
     type ActionFunctionArgs,
@@ -745,6 +746,7 @@ export default function GerritApp() {
 
     const currentYear = new Date().getFullYear().toString()
     const isCurrentYear = calendar === currentYear
+    const isGerritEnabled = useFeatureFlagEnabled("gerrit")
 
     const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
         mode: "onTouched",
@@ -852,6 +854,41 @@ export default function GerritApp() {
             </AlertDialogContent>
         </AlertDialog>
     )
+
+    if (isGerritEnabled === undefined) {
+        return null
+    }
+
+    if (isGerritEnabled === false) {
+        return (
+            <SidebarInset>
+                <Header action={undefined}>
+                    <HeaderFarm
+                        b_id_farm={farm.b_id_farm}
+                        farmOptions={farmOptions}
+                    />
+                </Header>
+                <FarmContent>
+                    <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
+                        <div className="bg-primary/10 border border-primary/20 p-8 rounded-xl">
+                            <Bot className="w-12 h-12 text-primary mx-auto mb-4" />
+                            <h2 className="text-2xl font-bold text-foreground mb-2">
+                                Gerrit is nog niet beschikbaar voor je.
+                            </h2>
+                            <p className="text-muted-foreground mb-6">
+                                Gerrit is momenteel in ontwikkeling en is nog
+                                niet voor iedereen beschikbaar. We zijn de
+                                functionaliteit aan het testen met een selecte
+                                groep gebruikers. Als je interesse of vragen
+                                over Gerrit, neem dan contact op met
+                                Ondersteuning.
+                            </p>
+                        </div>
+                    </div>
+                </FarmContent>
+            </SidebarInset>
+        )
+    }
 
     if (hasAcceptedDisclaimer === null) {
         return (

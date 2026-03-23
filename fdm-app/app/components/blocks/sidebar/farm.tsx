@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { NavLink, useLocation, useSearchParams } from "react-router"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import { getCalendarSelection } from "@/app/lib/calendar"
 import { useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"
@@ -375,9 +376,12 @@ export function SidebarLabs() {
     const farmId = useFarmStore((state) => state.farmId)
     const selectedCalendar = useCalendarStore((state) => state.calendar)
     const location = useLocation()
+    const isGerritEnabled = useFeatureFlagEnabled("gerrit")
 
     const isFarmSelected = farmId && farmId !== "undefined"
     if (!isFarmSelected) return null
+
+    if (!isGerritEnabled) return null
 
     return (
         <SidebarGroup>

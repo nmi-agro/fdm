@@ -124,7 +124,7 @@ export function GerritOnboarding({
                                     Experimentele functie
                                 </p>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
-                                    Dit is een proefversie (bèta) en nog geen
+                                    Dit is een proefversie (alpha) en nog geen
                                     definitief product. We kunnen deze functie
                                     in de toekomst aanpassen of verwijderen.
                                 </p>
