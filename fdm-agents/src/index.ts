@@ -96,9 +96,9 @@ export function buildFertilizerPlanPrompt(
 ${fieldsBlock}
 STRATEGIES TO ENFORCE:
 - Organic Farming: ${validatedStrategies.isOrganic ? "YES (No mineral fertilizers allowed)" : "NO"}
-- Fill Manure Space: ${validatedStrategies.fillManureSpace ? "YES (Maximize manure usage up to legal limits)" : "NO (Only use manure as needed for advice)"}
-- Reduce NH3 Emissions: ${validatedStrategies.reduceAmmoniaEmissions ? "YES (Prioritize fertilizers and methods with lower ammonia emission factors)" : "NO"}
-- Keep Nitrogen Balance Below Target: ${validatedStrategies.keepNitrogenBalanceBelowTarget ? "YES (Ensure the N balance surplus is within the legal/environmental target)" : "NO"}
+- Fill Manure Space: ${validatedStrategies.fillManureSpace ? "YES (Maximize manure usage up to the farm-level legal limits, individual fields may exceed their specific field norms as long as the farm total is compliant)" : "NO (Only use manure as needed for advice)"}
+- Reduce NH3 Emissions: ${validatedStrategies.reduceAmmoniaEmissions ? "YES (Prioritize fertilizers and methods with lower ammonia emission factors for the farm as a whole)" : "NO"}
+- Keep Nitrogen Balance Below Target: ${validatedStrategies.keepNitrogenBalanceBelowTarget ? "YES (Ensure the farm-level N balance surplus stays below the farm-level environmental target. Individual fields may exceed their target if compensated by others)" : "NO"}
 - Work on Rotation Level (Bouwplan): ${validatedStrategies.workOnRotationLevel ? "YES (All fields sharing the same b_lu_catalogue MUST receive identical applications — same products, amounts, dates and methods)" : "NO"}
 
 --- BEGIN ADDITIONAL USER CONTEXT ---

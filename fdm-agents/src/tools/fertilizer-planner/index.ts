@@ -663,20 +663,6 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         `Strategy warning (Nitrogen Target): The farm-level nitrogen balance (${Math.round(farmNBalance.balance)} kg N/ha) exceeds the target (${Math.round(farmNBalance.target)} kg N/ha) by ${excess} kg N/ha.`,
                     )
                 }
-                for (const r of validFieldResults) {
-                    if (
-                        r.nBalance?.balance &&
-                        r.nBalance?.target &&
-                        r.nBalance.balance > r.nBalance.target
-                    ) {
-                        const excess = Math.round(
-                            r.nBalance.balance - r.nBalance.target,
-                        )
-                        agronomicWarnings.push(
-                            `Strategy warning (Nitrogen Target): Field ${r.b_id} exceeds its N-balance target by ${excess} kg N/ha.`,
-                        )
-                    }
-                }
             }
 
             if (args.strategies?.workOnRotationLevel) {
