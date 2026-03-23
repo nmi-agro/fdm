@@ -39,7 +39,6 @@ describe("Cultivation Data Model", () => {
     let b_id: string
     let b_id_2: string
     let b_lu: string
-    let b_lu_2: string
     let b_lu_start: Date
     let principal_id: string
     let b_lu_source: string
@@ -192,7 +191,7 @@ describe("Cultivation Data Model", () => {
                 b_id,
                 b_lu_start,
             )
-            b_lu_2 = await addCultivation(
+            await addCultivation(
                 fdm,
                 principal_id,
                 b_lu_catalogue_2,
