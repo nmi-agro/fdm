@@ -71,6 +71,12 @@ describe("Fertilizer Data Model", () => {
         )
 
         await enableFertilizerCatalogue(fdm, principal_id, b_id_farm, b_id_farm)
+        await enableFertilizerCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm_2,
+            b_id_farm_2,
+        )
     })
 
     afterAll(async () => {})
@@ -434,7 +440,7 @@ describe("Fertilizer Data Model", () => {
 
             expect(
                 getFertilizers(fdm, principal_id, invalidFarmId),
-            ).rejects.not.toThrowError("Exception for getFertilizersOfFarms")
+            ).rejects.not.toThrowError("Exception for getFertilizers")
         })
 
         it("should remove a fertilizer", async () => {

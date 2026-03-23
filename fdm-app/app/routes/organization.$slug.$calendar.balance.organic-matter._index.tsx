@@ -186,54 +186,60 @@ export async function loader({
                 OrganicMatterBalanceFieldResultNumeric[]
             > = {}
             for (const result of combinedResult.fields) {
-                const b_id_farm = fieldToFarmMap[result.b_id] as string
+                const b_id_farm = fieldToFarmMap[result.b_id]
+                if (!b_id_farm) {
+                    console.warn(
+                        `Field ${result.b_id} not found in fieldToFarmMap, skipping`,
+                    )
+                    continue
+                }
                 rawFarmResultsMap[b_id_farm] ??= []
                 rawFarmResultsMap[b_id_farm].push(result)
             }
             const farmResults = await Promise.all(
                 Object.entries(rawFarmResultsMap).map(
-                    async ([b_id_map, fieldResults]) => {
-                        const organicMatterBalanceResult =
-                            calculateOrganicMatterBalancesFieldToFarm(
-                                fieldResults,
-                                fieldResults.some(
-                                    (result) => result.errorMessage,
-                                ),
-                                fieldResults
-                                    .filter((result) => result.errorMessage)
-                                    .map(
-                                        (result) => result.errorMessage,
-                                    ) as string[],
-                            )
-                        const farm = farmsMap[b_id_map]
-                        const farmPrincipals = await listPrincipalsForFarm(
-                            fdm,
-                            principal_id,
-                            farm.b_id_farm,
-                        )
-                        const owner = farmPrincipals.find(
-                            (p) => p.role === "owner" && p.type === "user",
-                        )
-
-                        const fields = await getFields(
-                            fdm,
-                            principal_id,
-                            farm.b_id_farm,
-                        )
-
-                        const totalArea = fields.reduce(
-                            (totalArea, field) =>
-                                totalArea + (field.b_area ?? 0),
-                            0,
-                        )
+                    async ([b_id_farm, fieldResults]) => {
+                        const farm = farmsMap[b_id_farm]
                         try {
+                            const organicMatterBalanceResult =
+                                calculateOrganicMatterBalancesFieldToFarm(
+                                    fieldResults,
+                                    fieldResults.some(
+                                        (result) => result.errorMessage,
+                                    ),
+                                    fieldResults
+                                        .filter((result) => result.errorMessage)
+                                        .map(
+                                            (result) => result.errorMessage,
+                                        ) as string[],
+                                )
+                            const farmPrincipals = await listPrincipalsForFarm(
+                                fdm,
+                                principal_id,
+                                farm.b_id_farm,
+                            )
+                            const owner = farmPrincipals.find(
+                                (p) => p.role === "owner" && p.type === "user",
+                            )
+
+                            const fields = await getFields(
+                                fdm,
+                                principal_id,
+                                farm.b_id_farm,
+                            )
+
+                            const totalArea = fields.reduce(
+                                (totalArea, field) =>
+                                    totalArea + (field.b_area ?? 0),
+                                0,
+                            )
                             if (organicMatterBalanceResult.hasErrors) {
                                 reportError(
                                     organicMatterBalanceResult.fieldErrorMessages.join(
                                         ",\n",
                                     ),
                                     {
-                                        page: "organization/{slug}/{calendar}/farms/balance/organic-matter/_index",
+                                        page: "organization/{slug}/{calendar}/balance/organic-matter/_index",
                                         scope: "loader",
                                     },
                                     {
@@ -257,9 +263,9 @@ export async function loader({
                         } catch (error) {
                             return {
                                 farm: farm,
-                                owner: owner,
-                                fields: fields,
-                                totalArea: totalArea,
+                                owner: undefined,
+                                fields: [],
+                                totalArea: 0,
                                 organicMatterBalanceResult: {
                                     hasErrors: true,
                                     errorMessage:
@@ -309,9 +315,16 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
     )
 }
 
-function OrganizationFarmBalanceOrganicMatterOverview(
-    loaderData: Awaited<ReturnType<typeof loader>>,
-) {
+/**
+ * Renders the page elements with asynchronously loaded data
+ *
+ * This has to be extracted into a separate component because of the `use(...)` hook.
+ * React will not render the component until `asyncData` resolves, but React Router
+ * handles it nicely via the `Suspense` component and server-to-client data streaming.
+ * If `use(...)` was added to `FarmBalanceOrganicMatterOverviewBlock` instead, the Suspense
+ * would not render until `asyncData` resolves and the fallback would never be shown.
+ */
+function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
     const [searchParams, setSearchParams] = useSearchParams()
     const params = useParams()
     const formRef = useRef<HTMLFormElement | null>(null)
@@ -353,8 +366,8 @@ function OrganizationFarmBalanceOrganicMatterOverview(
                 className="flex items-center grow"
                 key={farmResult.farm.b_id_farm}
             >
-                {balanceResult.balance ? (
-                    balanceResult.balance <= balanceResult.target ? (
+                {Number.isFinite(balanceResult.balance) ? (
+                    balanceResult.balance > 0 ? (
                         <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full w-6 h-6" />
                     ) : (
                         <CircleX className="text-red-500 bg-red-100 p-0 rounded-full w-6 h-6" />
@@ -377,7 +390,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(
                 </div>
                 <div className="ml-auto font-medium">
                     {!balanceResult.hasErrors ? (
-                        `${balanceResult.balance} / ${balanceResult.target}`
+                        balanceResult.balance
                     ) : (
                         <NavLink
                             to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/organic-matter`}
@@ -420,8 +433,8 @@ function OrganizationFarmBalanceOrganicMatterOverview(
                                             berekend
                                         </TooltipContent>
                                     </Tooltip>
-                                ) : resolvedOrganicMatterBalanceResult.balance <=
-                                  resolvedOrganicMatterBalanceResult.target ? (
+                                ) : resolvedOrganicMatterBalanceResult.balance >
+                                  0 ? (
                                     <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full " />
                                 ) : (
                                     <CircleX className="text-red-500 bg-red-100 rounded-full " />

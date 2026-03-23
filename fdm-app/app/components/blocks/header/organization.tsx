@@ -45,7 +45,7 @@ export function HeaderOrganization({
         matches.find(
             (match) =>
                 match.id ===
-                `routes/organization.$slug.$calendar.farms.balance.${type}._index`,
+                `routes/organization.$slug.$calendar.balance.${type}._index`,
         ),
     )
     const params = useParams()
@@ -137,7 +137,7 @@ export function HeaderOrganization({
                             <BreadcrumbSeparator className="hidden xl:block" />
                             <BreadcrumbItem className="hidden xl:block">
                                 <BreadcrumbLink
-                                    href={`/organization/${selectedOrganizationSlug}/${params.calendar}/farms/balance/nitrogen`}
+                                    href={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/nitrogen`}
                                 >
                                     Balans
                                 </BreadcrumbLink>
@@ -162,7 +162,7 @@ export function HeaderOrganization({
                                             key={"nitrogen"}
                                         >
                                             <NavLink
-                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/farms/balance/nitrogen`}
+                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/nitrogen`}
                                             >
                                                 Stikstof
                                             </NavLink>
@@ -175,7 +175,7 @@ export function HeaderOrganization({
                                             key={"organic-matter"}
                                         >
                                             <NavLink
-                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/farms/balance/organic-matter`}
+                                                to={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/organic-matter`}
                                             >
                                                 Organische stof
                                             </NavLink>

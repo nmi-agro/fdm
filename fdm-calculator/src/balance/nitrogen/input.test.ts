@@ -235,6 +235,8 @@ function createMockData() {
         mockDepositionSupplyMap: new Map([
             ["field-1", { total: new Decimal(10) }],
             ["field-2", { total: new Decimal(20) }],
+            ["2-field-1", { total: new Decimal(10) }],
+            ["2-field-2", { total: new Decimal(20) }],
         ]),
     }
 }

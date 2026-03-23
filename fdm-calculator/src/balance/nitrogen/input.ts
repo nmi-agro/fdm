@@ -267,7 +267,7 @@ export async function collectInputForNitrogenBalanceForFarms(
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
- * @param farmIds - The IDs of the farms for which to collect the nitrogen balance input.
+ * @param b_id_farm - The ID of the farm for which to collect the nitrogen balance input.
  * @param timeframe - The timeframe for which to collect the data.
  * @returns A promise that resolves with a `NitrogenBalanceInput` object containing all the necessary data.
  * @throws {Error} - Throws an error if data collection or processing fails.
