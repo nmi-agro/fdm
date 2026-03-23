@@ -336,7 +336,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
 
     const { farms, farmIds, asyncData: asyncDataPromise } = loaderData
 
-    // `use` is not a React hook, therefore we can call it conditionally
+    // Unlike most React hooks `use` may be called conditionally
     const asyncData = use(asyncDataPromise)
 
     const { combinedResult: resolvedOrganicMatterBalanceResult, farmResults } =
