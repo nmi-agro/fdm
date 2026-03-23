@@ -33,12 +33,17 @@ import { createId } from "./id"
 describe("Cultivation Data Model", () => {
     let fdm: FdmServerType
     let b_lu_catalogue: string
+    let b_lu_catalogue_2: string
     let b_id_farm: string
+    let b_id_farm_2: string
     let b_id: string
+    let b_id_2: string
     let b_lu: string
+    let b_lu_2: string
     let b_lu_start: Date
     let principal_id: string
     let b_lu_source: string
+    let b_lu_source_2: string
 
     beforeEach(async () => {
         const host = inject("host")
@@ -49,11 +54,15 @@ describe("Cultivation Data Model", () => {
         fdm = createFdmServer(host, port, user, password, database)
 
         b_lu_catalogue = createId()
+        b_lu_catalogue_2 = createId()
         const farmName = "Test Farm"
+        const farmName2 = "Test Farm 2"
         const farmBusinessId = "123456"
         const farmAddress = "123 Farm Lane"
         const farmPostalCode = "12345"
         principal_id = createId()
+
+        // Farm 1
         b_id_farm = await addFarm(
             fdm,
             principal_id,
@@ -93,6 +102,46 @@ describe("Cultivation Data Model", () => {
             b_id_farm,
             b_lu_source,
         )
+
+        b_id_farm_2 = await addFarm(
+            fdm,
+            principal_id,
+            farmName2,
+            farmBusinessId,
+            farmAddress,
+            farmPostalCode,
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm_2,
+            "test field 2",
+            "test source",
+            {
+                type: "Polygon",
+                coordinates: [
+                    [
+                        [30, 10],
+                        [40, 40],
+                        [20, 40],
+                        [10, 20],
+                        [30, 10],
+                    ],
+                ],
+            },
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+
+        b_lu_source_2 = "custom-2"
+        await enableCultivationCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm_2,
+            b_lu_source_2,
+        )
     })
 
     afterAll(async () => {
@@ -102,10 +151,7 @@ describe("Cultivation Data Model", () => {
     describe("Cultivation CRUD", () => {
         beforeEach(async () => {
             // Ensure catalogue entry exists before each test
-            await addCultivationToCatalogue(fdm, {
-                b_lu_catalogue,
-                b_lu_source: b_lu_source,
-                b_lu_name: "test-name",
+            const details = {
                 b_lu_name_en: "test-name-en",
                 b_lu_harvestable: "once",
                 b_lu_hcat3: "test-hcat3",
@@ -121,9 +167,21 @@ describe("Cultivation Data Model", () => {
                 b_lu_eom: 100,
                 b_lu_eom_residue: 50,
                 b_lu_rest_oravib: false,
-                b_lu_variety_options: ["variety1", "variety2"],
+                b_lu_variety_options: ["variety1", "variety2"] as string[],
                 b_lu_start_default: "03-01",
                 b_date_harvest_default: "09-15",
+            } as const
+            await addCultivationToCatalogue(fdm, {
+                ...details,
+                b_lu_catalogue,
+                b_lu_source: b_lu_source,
+                b_lu_name: "test-name",
+            })
+            await addCultivationToCatalogue(fdm, {
+                ...details,
+                b_lu_catalogue: b_lu_catalogue_2,
+                b_lu_source: b_lu_source_2,
+                b_lu_name: "test-name-2",
             })
 
             b_lu_start = new Date("2024-01-01")
@@ -134,6 +192,13 @@ describe("Cultivation Data Model", () => {
                 b_id,
                 b_lu_start,
             )
+            b_lu_2 = await addCultivation(
+                fdm,
+                principal_id,
+                b_lu_catalogue_2,
+                b_id_2,
+                b_lu_start,
+            )
         })
 
         it("should get cultivations from catalogue", async () => {
@@ -142,16 +207,32 @@ describe("Cultivation Data Model", () => {
                 principal_id,
                 b_id_farm,
             )
-            expect(cultivations).toBeDefined()
+            expect(
+                cultivations.find(
+                    (cultivation) =>
+                        cultivation.b_lu_catalogue === b_lu_catalogue,
+                ),
+            ).toBeDefined()
         })
 
         it("should get all cultivations of farms from catalogue", async () => {
             const cultivations = await getCultivationsOfFarmsFromCatalogue(
                 fdm,
                 principal_id,
-                [b_id_farm],
+                [b_id_farm, b_id_farm_2],
             )
-            expect(cultivations).toBeDefined()
+            expect(
+                cultivations.find(
+                    (cultivation) =>
+                        cultivation.b_lu_catalogue === b_lu_catalogue,
+                ),
+            ).toBeDefined()
+            expect(
+                cultivations.find(
+                    (cultivation) =>
+                        cultivation.b_lu_catalogue === b_lu_catalogue_2,
+                ),
+            ).toBeDefined()
         })
 
         it("should add a new cultivation to the catalogue", async () => {
