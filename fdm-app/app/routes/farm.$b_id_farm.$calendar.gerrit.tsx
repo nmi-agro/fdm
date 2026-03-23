@@ -860,10 +860,6 @@ export default function GerritApp() {
         </AlertDialog>
     )
 
-    if (isGerritEnabled === undefined) {
-        return null
-    }
-
     if (isGerritEnabled === false) {
         return (
             <SidebarInset>
