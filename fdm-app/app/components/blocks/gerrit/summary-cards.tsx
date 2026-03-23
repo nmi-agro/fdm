@@ -9,6 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { GerritFeedback } from "./gerrit-feedback"
 import { NormBar } from "./norm-bar"
 import type { FarmTotals } from "./types"
 
@@ -17,6 +18,7 @@ interface SummaryCardsProps {
     planSummary?: string
     activeStrategyLabels: string[]
     onEditStrategy: () => void
+    traceId?: string
 }
 
 export function SummaryCards({
@@ -24,6 +26,7 @@ export function SummaryCards({
     planSummary,
     activeStrategyLabels,
     onEditStrategy,
+    traceId,
 }: SummaryCardsProps) {
     return (
         <>
@@ -99,17 +102,22 @@ export function SummaryCards({
 
             {/* Gerrit's narrative summary */}
             {planSummary && (
-                <Card className="bg-primary/5 border-primary/20">
+                <Card className="bg-primary/5 border-primary/20 flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-sm font-semibold text-primary">
                             <Info className="w-4 h-4" />
                             Toelichting van Gerrit
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground italic">
+                    <CardContent className="flex-1 flex flex-col">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground italic mb-6">
                             "{planSummary}"
                         </p>
+                        {traceId && (
+                            <div className="mt-auto pt-4 border-t border-primary/10">
+                                <GerritFeedback traceId={traceId} />
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}

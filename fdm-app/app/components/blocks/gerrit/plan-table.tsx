@@ -102,21 +102,34 @@ const columns = [
             return (
                 <div className="flex flex-col gap-1.5">
                     {apps.map((app, i) => (
-                        <Badge
-                            key={i}
-                            variant="outline"
-                            className="gap-1.5 font-normal text-muted-foreground w-fit"
-                        >
-                            <FertilizerIcon p_type={app.p_type} />
-                            <span className="font-medium text-foreground">
-                                {app.p_name_nl}
-                            </span>
-                            <span className="tabular-nums">
-                                {app.p_app_amount} {"kg/ha"}
-                            </span>
-                            <span className="text-muted-foreground/70">·</span>
-                            <span>{app.p_app_date}</span>
-                        </Badge>
+                        <TooltipProvider key={i}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Badge
+                                        variant="outline"
+                                        className="gap-1.5 font-normal text-muted-foreground w-fit cursor-help"
+                                    >
+                                        <FertilizerIcon p_type={app.p_type} />
+                                        <span className="font-medium text-foreground">
+                                            {app.p_name_nl}
+                                        </span>
+                                        <span className="tabular-nums">
+                                            {app.p_app_amount} {"kg/ha"}
+                                        </span>
+                                        <span className="text-muted-foreground/70">·</span>
+                                        <span>{app.p_app_date}</span>
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="text-xs">
+                                        Methode:{" "}
+                                        <span className="font-semibold">
+                                            {app.p_app_method_name ?? "Onbekend"}
+                                        </span>
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     ))}
                 </div>
             )
@@ -146,14 +159,36 @@ export function PlanTable({
 
     return (
         <Card className="shadow-sm">
-            <CardHeader>
-                <CardTitle className="text-lg">
-                    Voorgesteld bemestingsplan
-                </CardTitle>
-                <CardDescription>
-                    Klik op een rij voor perceeldetails (normen, N-balans,
-                    organische stofbalans).
-                </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div className="space-y-1.5">
+                    <CardTitle className="text-lg">
+                        Voorgesteld bemestingsplan
+                    </CardTitle>
+                    <CardDescription>
+                        Klik op een rij voor perceeldetails (normen, N-balans,
+                        organische stofbalans).
+                    </CardDescription>
+                </div>
+                <Form method="post">
+                    <input type="hidden" name="intent" value="accept" />
+                    <input
+                        type="hidden"
+                        name="plan"
+                        value={JSON.stringify(plan)}
+                    />
+                    <Button
+                        type="submit"
+                        size="sm"
+                        disabled={isSaving}
+                    >
+                        {isSaving ? (
+                            <Spinner className="mr-2" />
+                        ) : (
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                        )}
+                        Plan definitief maken en toepassen
+                    </Button>
+                </Form>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="rounded-md border-y">
@@ -803,29 +838,6 @@ export function PlanTable({
                     </Table>
                 </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-4 border-t p-6 bg-muted/5">
-                <Form method="post">
-                    <input type="hidden" name="intent" value="accept" />
-                    <input
-                        type="hidden"
-                        name="plan"
-                        value={JSON.stringify(plan)}
-                    />
-                    <Button
-                        type="submit"
-                        size="lg"
-                        className="px-8"
-                        disabled={isSaving}
-                    >
-                        {isSaving ? (
-                            <Spinner className="mr-2" />
-                        ) : (
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                        )}
-                        Plan definitief maken en toepassen
-                    </Button>
-                </Form>
-            </CardFooter>
         </Card>
     )
 }

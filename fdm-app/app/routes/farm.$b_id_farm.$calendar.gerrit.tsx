@@ -24,6 +24,7 @@ import {
     getCurrentSoilData,
     getFarms,
     getFertilizerApplications,
+    getFertilizerParametersDescription,
     getFertilizers,
     getField,
     getFields,
@@ -571,6 +572,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
         }
 
+        const fertilizerParameterDescription = getFertilizerParametersDescription()
+        const applicationMethods = fertilizerParameterDescription.find(
+            (x: any) => x.parameter === "p_app_method_options",
+        )
+
         const enrichedPlan = fieldsData.map((fd) => {
             const proposedField = parsedPlan.plan?.find(
                 (p) => p.b_id === fd.b_id,
@@ -587,10 +593,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         (f: Fertilizer) =>
                             f.p_id_catalogue === app.p_id_catalogue,
                     )
+                    const methodMeta = applicationMethods?.options?.find(
+                        (x: any) => x.value === app.p_app_method,
+                    )
                     return {
                         ...app,
                         p_name_nl: fert?.p_name_nl || app.p_id_catalogue,
                         p_type: fert?.p_type || "other",
+                        p_app_method_name: methodMeta?.label ?? app.p_app_method,
                     }
                 }),
                 fieldMetrics:

@@ -13,6 +13,7 @@ export interface ParsedPlanApplication {
     p_app_amount: number
     p_app_date: string
     p_app_method?: string | null
+    p_app_method_name?: string | null
 }
 
 export interface ParsedPlan {
@@ -56,6 +57,7 @@ export interface PlanRow {
         ParsedPlanApplication & {
             p_name_nl: string | null
             p_type: string
+            p_app_method_name?: string | null
         }
     >
     fieldMetrics: FieldMetrics | null
