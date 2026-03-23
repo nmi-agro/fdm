@@ -56,7 +56,7 @@ export async function getCultivationsOfFarmsFromCatalogue(
                     "read",
                     b_id_farm,
                     principal_id,
-                    "getCultivationsFromCatalogue",
+                    "getCultivationsOfFarmsFromCatalogue",
                 ),
             ),
         )

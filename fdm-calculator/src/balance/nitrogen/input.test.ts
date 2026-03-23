@@ -174,7 +174,7 @@ function createMockData() {
                 p_app_amount: 100,
                 p_app_method: "broadcasting", // match one of ApplicationMethods
                 p_app_date: new Date(),
-                p_id: "",
+                p_id: "fert-cat-1",
             },
         ] as FertilizerApplication[],
         mockFertilizerApplicationsData2: [
@@ -185,7 +185,7 @@ function createMockData() {
                 p_app_amount: 100,
                 p_app_method: "broadcasting", // match one of ApplicationMethods
                 p_app_date: new Date(),
-                p_id: "",
+                p_id: "fert-cat-2",
             },
         ] as FertilizerApplication[],
         mockFertilizerDetailsData: [
@@ -508,6 +508,7 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
             mockFertilizerApplicationsData,
             mockFertilizerApplicationsData2,
             mockFertilizerDetailsData,
+            mockFertilizerDetailsData2,
             mockCultivationDetailsData,
             mockCultivationDetailsData2,
             mockDepositionSupplyMap,
@@ -539,7 +540,7 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
             ...fert,
             b_id_farm: "test-farm-id",
         }))
-        const fertData2 = mockFertilizerDetailsData.map((fert) => ({
+        const fertData2 = mockFertilizerDetailsData2.map((fert) => ({
             ...fert,
             b_id_farm: "test-farm-id-2",
         }))

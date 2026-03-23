@@ -106,7 +106,7 @@ async function collectInputForOrganicMatterBalanceForFarm(
         })
     } catch (error) {
         throw new Error(
-            `Failed to collect field organic matter balance input for farm ${b_id_farm}: ${
+            `Failed to collect organic matter balance input for farm ${b_id_farm}: ${
                 error instanceof Error ? error.message : String(error)
             }`,
             { cause: error },
@@ -161,56 +161,47 @@ export async function collectInputForOrganicMatterBalanceForFarms(
 
             return await Promise.all(
                 farmIds.map(async (b_id_farm) => {
-                    try {
-                        const onlyFieldInput =
-                            await collectInputForOrganicMatterBalanceForFarm(
-                                fdm,
-                                principal_id,
-                                b_id_farm,
-                                timeframe,
-                                b_id,
-                            )
-
-                        // 3. Fetch farm-level catalogue data.
-                        // These details are fetched once for the entire farm and reused for each field.
-                        let cultivationDetailsForThisFarm = cultivationDetails
-                        const fertilizerDetailsForThisFarm =
-                            fertilizerDetails[b_id_farm] ?? []
-                        if (farmIds.length > 1) {
-                            // Required cultivation and fertilizer details for this farm should be extracted to not break the cache
-                            const cultivationIds = new Set(
-                                onlyFieldInput.flatMap((input) =>
-                                    input.cultivations.map(
-                                        (cultivation) =>
-                                            cultivation.b_lu_catalogue,
-                                    ),
-                                ),
-                            )
-                            cultivationDetailsForThisFarm =
-                                cultivationDetails.filter((cultivation) =>
-                                    cultivationIds.has(
-                                        cultivation.b_lu_catalogue,
-                                    ),
-                                )
-                        }
-
-                        // 4. Assemble the final input object.
-                        return {
-                            b_id_farm: b_id_farm,
-                            fields: onlyFieldInput,
-                            fertilizerDetails: fertilizerDetailsForThisFarm,
-                            cultivationDetails: cultivationDetailsForThisFarm,
-                            timeFrame: timeframe,
-                        }
-                    } catch (error) {
-                        throw new Error(
-                            `Failed to collect organic matter balance input for farm ${b_id_farm}: ${
-                                error instanceof Error
-                                    ? error.message
-                                    : String(error)
-                            }`,
-                            { cause: error },
+                    const onlyFieldInput =
+                        await collectInputForOrganicMatterBalanceForFarm(
+                            fdm,
+                            principal_id,
+                            b_id_farm,
+                            timeframe,
+                            b_id,
                         )
+
+                    // 3. Fetch farm-level catalogue data.
+                    // These details are fetched once for the entire farm and reused for each field.
+                    // Required cultivation and fertilizer details for this farm should be extracted to not break the cache
+                    const cultivationIds = new Set(
+                        onlyFieldInput.flatMap((input) =>
+                            input.cultivations.map(
+                                (cultivation) => cultivation.b_lu_catalogue,
+                            ),
+                        ),
+                    )
+                    const cultivationDetailsForThisFarm =
+                        cultivationDetails.filter((cultivation) =>
+                            cultivationIds.has(cultivation.b_lu_catalogue),
+                        )
+
+                    const fertilizerIds = new Set(
+                        onlyFieldInput.flatMap((input) =>
+                            input.fertilizerApplications.map((app) => app.p_id),
+                        ),
+                    )
+                    const fertilizerDetailsForThisFarm =
+                        fertilizerDetails[b_id_farm]?.filter((fert) =>
+                            fertilizerIds.has(fert.p_id),
+                        ) ?? []
+
+                    // 4. Assemble the final input object.
+                    return {
+                        b_id_farm: b_id_farm,
+                        fields: onlyFieldInput,
+                        fertilizerDetails: fertilizerDetailsForThisFarm,
+                        cultivationDetails: cultivationDetailsForThisFarm,
+                        timeFrame: timeframe,
                     }
                 }),
             )
@@ -218,7 +209,7 @@ export async function collectInputForOrganicMatterBalanceForFarms(
     } catch (error) {
         if (
             (error as Error).message?.startsWith(
-                "Failed to collect field organic matter balance input for farm",
+                "Failed to collect organic matter balance input for farm",
             )
         ) {
             throw error

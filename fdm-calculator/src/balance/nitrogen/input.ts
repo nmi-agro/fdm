@@ -198,26 +198,30 @@ export async function collectInputForNitrogenBalanceForFarms(
                                 b_id,
                             )
 
-                        let cultivationDetailsForThisFarm = cultivationDetails
-                        const fertilizerDetailsForThisFarm =
-                            fertilizerDetails[b_id_farm] ?? []
-                        if (farmIds.length > 1) {
-                            // Required cultivation and fertilizer details for this farm should be extracted to not break the cache
-                            const cultivationIds = new Set(
-                                onlyFieldInput.flatMap((input) =>
-                                    input.cultivations.map(
-                                        (cultivation) =>
-                                            cultivation.b_lu_catalogue,
-                                    ),
+                        // Required cultivation and fertilizer details for this farm should be extracted to not break the cache
+                        const cultivationIds = new Set(
+                            onlyFieldInput.flatMap((input) =>
+                                input.cultivations.map(
+                                    (cultivation) => cultivation.b_lu_catalogue,
                                 ),
+                            ),
+                        )
+                        const cultivationDetailsForThisFarm =
+                            cultivationDetails.filter((cultivation) =>
+                                cultivationIds.has(cultivation.b_lu_catalogue),
                             )
-                            cultivationDetailsForThisFarm =
-                                cultivationDetails.filter((cultivation) =>
-                                    cultivationIds.has(
-                                        cultivation.b_lu_catalogue,
-                                    ),
-                                )
-                        }
+
+                        const fertilizerIds = new Set(
+                            onlyFieldInput.flatMap((input) =>
+                                input.fertilizerApplications.map(
+                                    (app) => app.p_id,
+                                ),
+                            ),
+                        )
+                        const fertilizerDetailsForThisFarm =
+                            fertilizerDetails[b_id_farm]?.filter((fert) =>
+                                fertilizerIds.has(fert.p_id),
+                            ) ?? []
 
                         return {
                             b_id_farm: b_id_farm,

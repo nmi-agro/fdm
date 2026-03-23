@@ -27,7 +27,6 @@ vi.mock("@nmi-agro/fdm-core", async () => {
         getSoilAnalyses: vi.fn(),
         getFertilizerApplications: vi.fn(),
         getFertilizersOfFarms: vi.fn(),
-        getCultivationsFromCatalogue: vi.fn(),
         getCultivationsOfFarmsFromCatalogue: vi.fn(),
     }
 })
@@ -132,7 +131,7 @@ function createMockData() {
                 p_app_amount: 100,
                 p_app_method: "broadcasting", // match one of ApplicationMethods
                 p_app_date: new Date(),
-                p_id: "",
+                p_id: "fert-cat-1",
             },
         ] as FertilizerApplication[],
         mockFertilizerApplicationsData2: [
@@ -143,7 +142,7 @@ function createMockData() {
                 p_app_amount: 100,
                 p_app_method: "broadcasting", // match one of ApplicationMethods
                 p_app_date: new Date(),
-                p_id: "",
+                p_id: "fert-cat-2",
             },
         ] as FertilizerApplication[],
         mockFertilizerDetailsData: [
@@ -206,15 +205,28 @@ describe("collectInputForOrganicMatterBalance", () => {
 
     it("should collect input for all fields in a farm", async () => {
         const mockFields = [{ b_id: "field1" }, { b_id: "field2" }]
+        const {
+            mockFertilizerApplicationsData,
+            mockFertilizerDetailsData,
+            mockCultivationsData,
+            mockCultivationDetailsData,
+        } = createMockData()
         vi.spyOn(fdmCore, "getFields").mockResolvedValue(mockFields as any)
-        vi.spyOn(fdmCore, "getCultivations").mockResolvedValue([])
+        vi.spyOn(fdmCore, "getCultivations").mockResolvedValue(
+            mockCultivationsData,
+        )
         vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
         vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([])
+        vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue(
+            mockFertilizerApplicationsData,
+        )
         vi.spyOn(fdmCore, "getFertilizersOfFarms").mockResolvedValue({
-            [b_id_farm]: [],
+            [b_id_farm]: mockFertilizerDetailsData,
         })
-        vi.spyOn(fdmCore, "getCultivationsFromCatalogue").mockResolvedValue([])
+        vi.spyOn(
+            fdmCore,
+            "getCultivationsOfFarmsFromCatalogue",
+        ).mockResolvedValue(mockCultivationDetailsData)
 
         const result = await collectInputForOrganicMatterBalance(
             mockFdm,
@@ -281,7 +293,7 @@ describe("collectInputForOrganicMatterBalance", () => {
     it("should correctly structure the output", async () => {
         const mockField = { b_id: "field1" }
         const mockCultivation = { b_lu: "cult1" }
-        const mockFertilizer = { p_id_catalogue: "fert1" }
+        const mockFertilizer = { p_id: "fert1", p_id_catalogue: "fert1" }
         vi.spyOn(fdmCore, "getFields").mockResolvedValue([mockField] as any)
         vi.spyOn(fdmCore, "getCultivations").mockResolvedValue([
             mockCultivation,
@@ -295,7 +307,9 @@ describe("collectInputForOrganicMatterBalance", () => {
         ).mockResolvedValue([mockCultivation] as any)
         vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
         vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([])
+        vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([
+            { p_id: "fert1" } as any,
+        ])
 
         const result = await collectInputForOrganicMatterBalance(
             mockFdm,
@@ -339,6 +353,7 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
             mockFertilizerApplicationsData,
             mockFertilizerApplicationsData2,
             mockFertilizerDetailsData,
+            mockFertilizerDetailsData2,
             mockCultivationDetailsData,
             mockCultivationDetailsData2,
         } = createMockData()
@@ -374,7 +389,7 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
             ...fert,
             b_id_farm: "test-farm-id",
         }))
-        const fertData2 = mockFertilizerDetailsData.map((fert) => ({
+        const fertData2 = mockFertilizerDetailsData2.map((fert) => ({
             ...fert,
             b_id_farm: "test-farm-id-2",
         }))
