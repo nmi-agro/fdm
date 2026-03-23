@@ -32,6 +32,7 @@ import type { FieldInput, NitrogenBalanceInput } from "./types"
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
  * @param b_id_farm - The ID of the farm for which to collect the nitrogen balance input.
  * @param timeframe - The timeframe for which to collect the data.
+ * @param b_id - Optional. If provided, the data collection will be limited to this specific field ID. Otherwise, data for all fields in the farm will be collected.
  * @returns A promise that resolves with an array of `FieldInput` objects containing only the field-specific input data.
  * @throws {Error} - Throws an error if data collection or processing fails.
  *
@@ -156,6 +157,8 @@ async function collectInputForNitrogenBalanceForFarm(
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
  * @param b_id_farm - The ID of the farm for which to collect the nitrogen balance input.
  * @param timeframe - The timeframe for which to collect the data.
+ * @param b_id - Optional. If provided, the data collection will be limited to this specific field ID. Otherwise, data for all fields in the farm will be collected.
+ * **Do not** provide this if collecting input for multiple farms, it will yield an unusable input.
  * @returns A promise that resolves with an array of `NitrogenBalanceInput` objects with b_id_farm containing all the necessary data.
  * @throws {Error} - Throws an error if data collection or processing fails.
  *
@@ -176,7 +179,7 @@ export async function collectInputForNitrogenBalanceForFarms(
                     tx,
                     principal_id,
                     farmIds,
-                ) // sorted by b_lu_catalogue
+                )
             const fertilizerDetails = await getFertilizersOfFarms(
                 tx,
                 principal_id,
@@ -237,6 +240,14 @@ export async function collectInputForNitrogenBalanceForFarms(
             )
         })
     } catch (error) {
+        if (
+            (error as Error).message?.startsWith(
+                "Failed to collect field nitrogen balance input for farm",
+            )
+        ) {
+            throw error
+        }
+        // Wrap any errors in a more descriptive error message.
         throw new Error(
             `Failed to collect nitrogen balance input: ${
                 error instanceof Error ? error.message : String(error)
@@ -266,7 +277,7 @@ export async function collectInputForNitrogenBalanceForFarms(
 export async function collectInputForNitrogenBalance(
     fdm: FdmType,
     principal_id: PrincipalId,
-    b_id_farm: string,
+    b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
     timeframe: Timeframe,
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<NitrogenBalanceInput> {

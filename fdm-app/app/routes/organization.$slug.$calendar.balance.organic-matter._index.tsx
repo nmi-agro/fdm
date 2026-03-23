@@ -1,15 +1,13 @@
 import {
-    calculateNitrogenBalanceForFarms,
-    calculateNitrogenBalancesFieldToFarm,
-    collectInputForNitrogenBalanceForFarms,
-    type NitrogenBalanceFieldResultNumeric,
-    type NitrogenBalanceNumeric,
+    calculateOrganicMatterBalanceForFarms,
+    calculateOrganicMatterBalancesFieldToFarm,
+    collectInputForOrganicMatterBalanceForFarms,
+    type OrganicMatterBalanceFieldResultNumeric,
+    type OrganicMatterBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields, listPrincipalsForFarm } from "@nmi-agro/fdm-core"
 import {
-    ArrowDown,
-    ArrowRight,
-    ArrowRightFromLine,
+    ArrowDownToLine,
     ArrowRightLeft,
     ArrowUpFromLine,
     CircleAlert,
@@ -27,8 +25,8 @@ import {
     useSearchParams,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
-import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
-import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
+import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons" // Can be reused
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { Button } from "~/components/ui/button"
 import {
@@ -68,13 +66,13 @@ type FarmResult = {
     owner: Awaited<ReturnType<typeof listPrincipalsForFarm>>[number] | undefined
     fields: Awaited<ReturnType<typeof getFields>>
     totalArea: number
-    nitrogenBalanceResult: NitrogenBalanceNumeric & {
+    organicMatterBalanceResult: OrganicMatterBalanceNumeric & {
         errorMessage?: string
     }
 }
 type AsyncData = {
     farmResults: FarmResult[]
-    combinedResult: NitrogenBalanceNumeric
+    combinedResult: OrganicMatterBalanceNumeric
 }
 type LoaderData =
     | {
@@ -87,15 +85,16 @@ type LoaderData =
           noFarms: false
           asyncData: Promise<AsyncData>
       }
+
 // Meta
 export const meta: MetaFunction = () => {
     return [
         {
-            title: `Stikstof | Organisatie | Nutriëntenbalans| ${clientConfig.name}`,
+            title: `Organische Stof | Organisatie | Nutriëntenbalans| ${clientConfig.name}`,
         },
         {
             name: "description",
-            content: "Bekijk stikstof voor je nutriëntenbalans.",
+            content: "Bekijk de organische stofbalans van je organisatie.",
         },
     ]
 }
@@ -165,7 +164,7 @@ export async function loader({
             searchParamFarmIds ?? farms.map((farm) => farm.b_id_farm)
 
         async function getAsyncData(principal_id: string) {
-            const inputs = await collectInputForNitrogenBalanceForFarms(
+            const inputs = await collectInputForOrganicMatterBalanceForFarms(
                 fdm,
                 principal_id,
                 farmIds,
@@ -178,13 +177,13 @@ export async function loader({
                 }
             }
 
-            const combinedResult = await calculateNitrogenBalanceForFarms(
+            const combinedResult = await calculateOrganicMatterBalanceForFarms(
                 fdm,
                 inputs,
             )
             const rawFarmResultsMap: Record<
                 string,
-                NitrogenBalanceFieldResultNumeric[]
+                OrganicMatterBalanceFieldResultNumeric[]
             > = {}
             for (const result of combinedResult.fields) {
                 const b_id_farm = fieldToFarmMap[result.b_id] as string
@@ -194,8 +193,8 @@ export async function loader({
             const farmResults = await Promise.all(
                 Object.entries(rawFarmResultsMap).map(
                     async ([b_id_map, fieldResults]) => {
-                        const nitrogenBalanceResult =
-                            calculateNitrogenBalancesFieldToFarm(
+                        const organicMatterBalanceResult =
+                            calculateOrganicMatterBalancesFieldToFarm(
                                 fieldResults,
                                 fieldResults.some(
                                     (result) => result.errorMessage,
@@ -228,13 +227,13 @@ export async function loader({
                             0,
                         )
                         try {
-                            if (nitrogenBalanceResult.hasErrors) {
+                            if (organicMatterBalanceResult.hasErrors) {
                                 reportError(
-                                    nitrogenBalanceResult.fieldErrorMessages.join(
+                                    organicMatterBalanceResult.fieldErrorMessages.join(
                                         ",\n",
                                     ),
                                     {
-                                        page: "organization/{slug}/{calendar}/farms/balance/nitrogen/_index",
+                                        page: "organization/{slug}/{calendar}/farms/balance/organic-matter/_index",
                                         scope: "loader",
                                     },
                                     {
@@ -250,8 +249,8 @@ export async function loader({
                                 owner: owner,
                                 fields: fields,
                                 totalArea: totalArea,
-                                nitrogenBalanceResult:
-                                    nitrogenBalanceResult as NitrogenBalanceNumeric & {
+                                organicMatterBalanceResult:
+                                    organicMatterBalanceResult as OrganicMatterBalanceNumeric & {
                                         errorMessage?: string
                                     },
                             }
@@ -261,13 +260,13 @@ export async function loader({
                                 owner: owner,
                                 fields: fields,
                                 totalArea: totalArea,
-                                nitrogenBalanceResult: {
+                                organicMatterBalanceResult: {
                                     hasErrors: true,
                                     errorMessage:
                                         error instanceof Error
                                             ? error.message
                                             : String(error),
-                                } as NitrogenBalanceNumeric & {
+                                } as OrganicMatterBalanceNumeric & {
                                     errorMessage?: string
                                 },
                             }
@@ -295,7 +294,7 @@ export async function loader({
     }
 }
 
-export default function FarmBalanceNitrogenOverviewBlock() {
+export default function FarmBalanceOrganicMatterOverviewBlock() {
     const loaderData = useLoaderData<typeof loader>()
 
     return (
@@ -304,22 +303,15 @@ export default function FarmBalanceNitrogenOverviewBlock() {
                 key={loaderData.organization.id}
                 fallback={<NitrogenBalanceFallback />}
             >
-                <OrganizationFarmBalanceNitrogenOverview {...loaderData} />
+                <OrganizationFarmBalanceOrganicMatterOverview {...loaderData} />
             </Suspense>
         </div>
     )
 }
 
-/**
- * Renders the page elements with asynchronously loaded data
- *
- * This has to be extracted into a separate component because of the `use(...)` hook.
- * React will not render the component until `asyncData` resolves, but React Router
- * handles it nicely via the `Suspense` component and server-to-client data streaming.
- * If `use(...)` was added to `FarmBalanceNitrogenOverviewBlock` instead, the Suspense
- * would not render until `asyncData` resolves and the fallback would never be shown.
- */
-function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
+function OrganizationFarmBalanceOrganicMatterOverview(
+    loaderData: Awaited<ReturnType<typeof loader>>,
+) {
     const [searchParams, setSearchParams] = useSearchParams()
     const params = useParams()
     const formRef = useRef<HTMLFormElement | null>(null)
@@ -342,18 +334,20 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
     // `use` is not a React hook, therefore we can call it conditionally
     const asyncData = use(asyncDataPromise)
 
-    const { combinedResult: resolvedNitrogenBalanceResult, farmResults } =
+    const { combinedResult: resolvedOrganicMatterBalanceResult, farmResults } =
         asyncData
-    const farmChartBalanceData = resolvedNitrogenBalanceResult as unknown as {
-        balance: number
-        removal: number
-    } & NitrogenBalanceNumeric
+    const farmChartBalanceData =
+        resolvedOrganicMatterBalanceResult as unknown as {
+            supply: number
+            removal: number
+        } & OrganicMatterBalanceNumeric
     const hasErrors = farmResults.some(
-        ({ nitrogenBalanceResult }) => nitrogenBalanceResult.hasErrors,
+        ({ organicMatterBalanceResult }) =>
+            organicMatterBalanceResult.hasErrors,
     )
 
     const createFarmRow = (farmResult: (typeof farmResults)[number]) => {
-        const balanceResult = farmResult.nitrogenBalanceResult
+        const balanceResult = farmResult.organicMatterBalanceResult
         return (
             <div
                 className="flex items-center grow"
@@ -371,7 +365,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
 
                 <div className="ml-4 space-y-1">
                     <NavLink
-                        to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/nitrogen`}
+                        to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/organic-matter`}
                     >
                         <p className="text-sm font-medium leading-none hover:underline">
                             {farmResult.farm.b_name_farm ?? "Onbekende bedrijf"}
@@ -386,7 +380,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                         `${balanceResult.balance} / ${balanceResult.target}`
                     ) : (
                         <NavLink
-                            to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/nitrogen`}
+                            to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/organic-matter`}
                         >
                             <p className="text-sm text-end text-orange-500 hover:underline">
                                 {"Bekijk foutmelding"}
@@ -399,12 +393,14 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
     }
     return (
         <main className="p-8 space-y-8">
-            <h2 className="text-2xl font-bold tracking-tight">Stikstof</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <h2 className="text-2xl font-bold tracking-tight">
+                Organische Stof
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Overschot / Doel (Alle Bedrijven)
+                            Balans (Bedrijf)
                         </CardTitle>
                         <ArrowRightLeft className="text-xs text-muted-foreground" />
                     </CardHeader>
@@ -412,7 +408,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                         <div className="text-2xl font-bold">
                             <div className="flex items-center gap-4">
                                 <p>
-                                    {`${resolvedNitrogenBalanceResult.balance} / ${resolvedNitrogenBalanceResult.target}`}
+                                    {resolvedOrganicMatterBalanceResult.balance}
                                 </p>
                                 {hasErrors ? (
                                     <Tooltip>
@@ -424,8 +420,8 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                                             berekend
                                         </TooltipContent>
                                     </Tooltip>
-                                ) : resolvedNitrogenBalanceResult.balance <=
-                                  resolvedNitrogenBalanceResult.target ? (
+                                ) : resolvedOrganicMatterBalanceResult.balance <=
+                                  resolvedOrganicMatterBalanceResult.target ? (
                                     <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full " />
                                 ) : (
                                     <CircleX className="text-red-500 bg-red-100 rounded-full " />
@@ -433,7 +429,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                             </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            kg N / ha
+                            kg OS / ha
                         </p>
                     </CardContent>
                 </Card>
@@ -442,65 +438,30 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                         <CardTitle className="text-sm font-medium">
                             Aanvoer
                         </CardTitle>
-                        <ArrowDown className="text-xs text-muted-foreground" />
+                        <ArrowDownToLine className="text-xs text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {resolvedNitrogenBalanceResult.supply.total}
+                            {resolvedOrganicMatterBalanceResult.supply}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            kg N / ha
+                            kg EOS / ha
                         </p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Afvoer
-                        </CardTitle>
-                        <ArrowRight className="text-xs text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {resolvedNitrogenBalanceResult.removal.total}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            kg N / ha
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Ammoniakemissie
+                            Afbraak
                         </CardTitle>
                         <ArrowUpFromLine className="text-xs text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {
-                                resolvedNitrogenBalanceResult.emission.ammonia
-                                    .total
-                            }
+                            {resolvedOrganicMatterBalanceResult.degradation}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            kg N / ha
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Nitraatuitspoeling
-                        </CardTitle>
-                        <ArrowRightFromLine className="text-xs text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {resolvedNitrogenBalanceResult.emission.nitrate}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            kg N / ha
+                            kg OS / ha
                         </p>
                     </CardContent>
                 </Card>
@@ -510,20 +471,16 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                     <CardHeader>
                         <CardTitle>Balans</CardTitle>
                         <CardDescription>
-                            De gemiddelde stikstofbalans voor de geselecteerde
-                            bedrijven. De balans is het verschil tussen de
-                            totale aanvoer, afvoer en emissie van stikstof. Een
-                            positieve balans betekent een overschot aan
-                            stikstof, een negatieve balans een tekort. U kunt de
-                            selectie van de bedrijven wijzigen om de
-                            uitschieters te identificeren.
+                            De gemiddelde organische stofbalans voor de
+                            geselecteerde bedrijven. De balans is het verschil
+                            tussen de effectieve organische stof aanvoer en de
+                            afbraak van organische stof.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="pl-2">
-                        <NitrogenBalanceChart
-                            type="farm"
-                            balanceData={farmChartBalanceData}
-                            fieldInput={undefined}
+                        <OrganicMatterBalanceChart
+                            supply={farmChartBalanceData.supply}
+                            degradation={farmChartBalanceData.degradation}
                         />
                     </CardContent>
                 </Card>
