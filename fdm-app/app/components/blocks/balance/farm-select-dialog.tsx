@@ -5,6 +5,7 @@ import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -68,8 +69,8 @@ export function FarmSelectDialog({
                     })}
                 </form>
                 <DialogFooter>
-                    <Button
-                        variant="outline"
+                    <DialogClose
+                        asChild
                         onClick={() => {
                             const form = formRef.current
 
@@ -89,7 +90,7 @@ export function FarmSelectDialog({
                             if (
                                 defaultSelectedFarmIds.length !==
                                     newlySelectedFarmIds.length ||
-                                newlySelectedFarmIds.find(
+                                newlySelectedFarmIds.some(
                                     (selected_id, index) =>
                                         selected_id !==
                                         defaultSelectedFarmIds[index],
@@ -112,8 +113,8 @@ export function FarmSelectDialog({
                             }
                         }}
                     >
-                        Opslaan
-                    </Button>
+                        <Button variant="outline">Opslaan</Button>
+                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
