@@ -9,6 +9,7 @@ import {
     useNavigation,
     useParams,
     useLocation,
+    data,
 } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { extractErrorMessage } from "~/lib/error"
@@ -518,7 +519,10 @@ export default function RvoImportReviewPage() {
 export async function action({ request, params }: ActionFunctionArgs) {
     const { b_id_farm, calendar: yearString } = params
     if (!b_id_farm || !yearString) {
-        throw new Response("Farm ID is required", { status: 400 })
+        throw data("Farm ID is required", {
+            status: 400,
+            statusText: "Farm ID is required",
+        })
     }
     const year = Number(yearString)
 
