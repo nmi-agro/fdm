@@ -26,7 +26,7 @@ import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
-import { getCalendar, getTimeframe } from "~/lib/calendar"
+import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -103,7 +103,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Get timeframe from calendar store
         const timeframe = getTimeframe(params)
-        const calendar = getCalendar(params)
 
         // Get a list of possible farms of the user
         const farms = await getFarms(fdm, session.principal_id)
@@ -221,7 +220,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         return {
             shouldShowLayout: true,
             b_id_farm: b_id_farm,
-            calendar: calendar,
             farmOptions: farmOptions,
             fieldOptions: fieldOptions,
             fieldsExtended: fieldsExtended,
