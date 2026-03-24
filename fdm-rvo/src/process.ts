@@ -19,7 +19,9 @@ function parseBufferstrip(value: string | undefined): boolean | undefined {
     return undefined
 }
 
-function parseAcquiringMethod(useTitleCode: string | undefined): AcquiringMethod {
+function parseAcquiringMethod(
+    useTitleCode: string | undefined,
+): AcquiringMethod {
     const candidate = `nl_${useTitleCode}`
     if (acquiringMethodOptions.some((opt) => opt.value === candidate)) {
         return candidate as AcquiringMethod
@@ -58,7 +60,7 @@ export async function processRvoImport(
             continue
         }
 
-        await fdm.transaction(async (tx) => {
+        await fdm.transaction(async (tx: FdmType) => {
             switch (action) {
                 case "ADD_REMOTE":
                     if (item.rvoField) {
@@ -75,7 +77,9 @@ export async function processRvoImport(
                             item.rvoField.properties.CropFieldID,
                             item.rvoField.geometry,
                             new Date(item.rvoField.properties.BeginDate),
-                            parseAcquiringMethod(item.rvoField.properties.UseTitleCode),
+                            parseAcquiringMethod(
+                                item.rvoField.properties.UseTitleCode,
+                            ),
                             item.rvoField.properties.EndDate
                                 ? new Date(item.rvoField.properties.EndDate)
                                 : undefined,
@@ -121,7 +125,9 @@ export async function processRvoImport(
                             item.rvoField.properties.CropFieldID,
                             item.rvoField.geometry,
                             new Date(item.rvoField.properties.BeginDate),
-                            parseAcquiringMethod(item.rvoField.properties.UseTitleCode),
+                            parseAcquiringMethod(
+                                item.rvoField.properties.UseTitleCode,
+                            ),
                             item.rvoField.properties.EndDate
                                 ? new Date(item.rvoField.properties.EndDate)
                                 : undefined,
@@ -143,13 +149,14 @@ export async function processRvoImport(
 
                             // Add new RVO cultivation
                             const b_lu_catalogue = `nl_${item.rvoField.properties.CropTypeCode}`
-                            const defaultDates = await getDefaultDatesOfCultivation(
-                                tx,
-                                principal_id,
-                                b_id_farm,
-                                b_lu_catalogue,
-                                year,
-                            )
+                            const defaultDates =
+                                await getDefaultDatesOfCultivation(
+                                    tx,
+                                    principal_id,
+                                    b_id_farm,
+                                    b_lu_catalogue,
+                                    year,
+                                )
 
                             await addCultivation(
                                 tx,
@@ -166,7 +173,11 @@ export async function processRvoImport(
                     break
                 case "REMOVE_LOCAL":
                     if (item.localField) {
-                        await removeField(tx, principal_id, item.localField.b_id)
+                        await removeField(
+                            tx,
+                            principal_id,
+                            item.localField.b_id,
+                        )
                     }
                     break
                 case "CLOSE_LOCAL":

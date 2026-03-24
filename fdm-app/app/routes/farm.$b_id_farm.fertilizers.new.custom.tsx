@@ -15,10 +15,8 @@ import { redirectWithSuccess } from "remix-toast"
 import { FarmNewFertilizerBlock } from "~/components/blocks/fertilizer/new-fertilizer-page"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FormSchema } from "~/components/blocks/fertilizer/formschema"
-import {
-    buildCataloguePayload,
-    getRvoMappings,
-} from "~/components/blocks/fertilizer/utils"
+import { buildCataloguePayload } from "~/components/blocks/fertilizer/utils"
+import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"

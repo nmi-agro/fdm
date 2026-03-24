@@ -21,10 +21,8 @@ import type { z } from "zod"
 import { FertilizerForm } from "@/app/components/blocks/fertilizer/form"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FormSchema } from "~/components/blocks/fertilizer/formschema"
-import {
-    buildFertilizerDefaults,
-    getRvoMappings,
-} from "~/components/blocks/fertilizer/utils"
+import { buildFertilizerDefaults } from "~/components/blocks/fertilizer/utils"
+import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"
