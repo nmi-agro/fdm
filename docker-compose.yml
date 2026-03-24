@@ -23,14 +23,14 @@ services:
       - MS_CLIENT_SECRET=YOUR_MS_CLIENT_SECRET # Replace with your Microsoft Client Secret
       - AVAILABLE_FIELDS_URL=YOUR_STORAGE_ULR # Replace with the url of the storage location
       - FDM_APP_URL=YOUR_DOMAIN # Replace with your domain
-      - VITE_SENTRY_ORG=YOUR_SENTRY_ORG # Replace with your Sentry organization
-      - VITE_SENTRY_PROJECT=YOUR_SENTRY_PROJECT # Replace with your Sentry project
-      - VITE_SENTRY_DSN=YOUR_SENTRY_DSN # Replace with your Sentry DSN
+      - PUBLIC_SENTRY_ORG=YOUR_SENTRY_ORG # Replace with your Sentry organization
+      - PUBLIC_SENTRY_PROJECT=YOUR_SENTRY_PROJECT # Replace with your Sentry project
+      - PUBLIC_SENTRY_DSN=YOUR_SENTRY_DSN # Replace with your Sentry DSN
       - SENTRY_AUTH_TOKEN=YOUR_SENTRY_AUTH_TOKEN # Replace with your Sentry authentication token
-      - VITE_SENTRY_TRACE_SAMPLE_RATE=1
-      - VITE_SENTRY_REPLAY_SAMPLE_RATE=0
-      - VITE_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR=1
-      - VITE_SENTRY_PROFILE_SAMPLE_RATE=1
+      - PUBLIC_SENTRY_TRACE_SAMPLE_RATE=1
+      - PUBLIC_SENTRY_REPLAY_SAMPLE_RATE=0
+      - PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR=1
+      - PUBLIC_SENTRY_PROFILE_SAMPLE_RATE=1
     depends_on:
       postgres:
         condition: service_healthy

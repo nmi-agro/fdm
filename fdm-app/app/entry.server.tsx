@@ -5,7 +5,8 @@ import { createReadableStreamFromReadable } from "@react-router/node"
  * You are free to delete this file if you'd like to, but if you ever want it revealed again, you can run `npx remix reveal` ✨
  * For more information, see https://remix.run/file-conventions/entry.server
  */
-import * as Sentry from "@sentry/react-router"
+// Fallback: ensure Sentry server SDK is initialized even if NODE_OPTIONS is not set
+import "../instrument.server.mjs"
 import {
     getMetaTagTransformer,
     wrapSentryHandleRequest,
@@ -18,6 +19,7 @@ import type {
     HandleErrorFunction,
 } from "react-router"
 import { ServerRouter } from "react-router"
+import { reportError } from "~/lib/error"
 import { addSecurityHeaders, getCacheControlHeaders } from "./lib/cache.server"
 
 export const streamTimeout = 90000
@@ -115,7 +117,7 @@ function handleBotRequest(
                     // errors encountered during initial shell rendering since they'll
                     // reject and get logged in handleDocumentRequest.
                     if (shellRendered) {
-                        console.error(error)
+                        reportError(error, { scope: "streaming-bot" })
                     }
                 },
             },
@@ -164,7 +166,7 @@ function handleBrowserRequest(
                     // errors encountered during initial shell rendering since they'll
                     // reject and get logged in handleDocumentRequest.
                     if (shellRendered) {
-                        console.error(error)
+                        reportError(error, { scope: "streaming" })
                     }
                 },
             },
@@ -180,7 +182,6 @@ export default wrapSentryHandleRequest(handleRequest)
 export const handleError: HandleErrorFunction = (error, { request }) => {
     // React Router may abort some interrupted requests, report those
     if (!request.signal.aborted) {
-        Sentry.captureException(error)
-        console.error(error)
+        reportError(error, { scope: "unhandled" })
     }
 }

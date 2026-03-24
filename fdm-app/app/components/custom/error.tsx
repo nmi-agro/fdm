@@ -31,15 +31,17 @@ export function ErrorBlock({
     page: string
     timestamp: string
 }) {
-    const [isCopied, setIsCopied] = useState(false)
+    const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
+        "idle",
+    )
     const navigate = useNavigate()
 
     useEffect(() => {
-        if (isCopied) {
-            const timer = setTimeout(() => setIsCopied(false), 5000)
+        if (copyState !== "idle") {
+            const timer = setTimeout(() => setCopyState("idle"), 5000)
             return () => clearTimeout(timer)
         }
-    }, [isCopied])
+    }, [copyState])
 
     const errorDetails = JSON.stringify(
         {
@@ -52,9 +54,21 @@ export function ErrorBlock({
         null,
         2,
     )
-    const copyStackTrace = () => {
-        navigator.clipboard.writeText(errorDetails)
-        setIsCopied(true)
+    const copyStackTrace = async () => {
+        try {
+            await navigator.clipboard.writeText(errorDetails)
+            setCopyState("copied")
+        } catch {
+            // Fallback: select the text in the pre element so the user can copy manually
+            const pre = document.querySelector("pre")
+            if (pre) {
+                const range = document.createRange()
+                range.selectNodeContents(pre)
+                window.getSelection()?.removeAllRanges()
+                window.getSelection()?.addRange(range)
+            }
+            setCopyState("failed")
+        }
     }
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 px-4">
@@ -107,7 +121,11 @@ export function ErrorBlock({
                     </Button>
                     <Button variant="outline" onClick={copyStackTrace}>
                         <Copy className="mr-2 h-4 w-4" />
-                        {isCopied ? "Gekopieerd!" : "Kopieer foutmelding"}
+                        {copyState === "copied"
+                            ? "Gekopieerd!"
+                            : copyState === "failed"
+                              ? "Browser staat niet toe om te kopiëren — selecteer de tekst hieronder en kopieer handmatig"
+                              : "Kopieer foutmelding"}
                     </Button>
                 </div>
             )}
