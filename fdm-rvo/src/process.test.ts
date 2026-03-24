@@ -36,7 +36,9 @@ vi.mock("@nmi-agro/fdm-core", () => ({
 }))
 
 describe("processRvoImport", () => {
-    const mockFdm = {} as any
+    const mockFdm = {
+        transaction: vi.fn(async (cb: (tx: any) => Promise<any>) => cb(mockFdm)),
+    } as any
     const principalId = "user-1"
     const farmId = "farm-1"
     const year = 2025
@@ -96,6 +98,7 @@ describe("processRvoImport", () => {
         )
         expect(addCultivation).toHaveBeenCalled()
         expect(onFieldAdded).toHaveBeenCalledWith(
+            mockFdm,
             "new-field-id",
             expect.anything(),
         )

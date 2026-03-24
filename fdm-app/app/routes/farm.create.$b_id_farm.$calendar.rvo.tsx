@@ -55,6 +55,7 @@ import {
 import {
     addSoilAnalysis,
     getCultivationsFromCatalogue,
+    type FdmType,
 } from "@nmi-agro/fdm-core"
 import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
 
@@ -444,7 +445,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             RvoImportReviewData = JSON.parse(String(RvoImportReviewDataJson))
             userChoices = JSON.parse(String(userChoicesJson))
 
-            const onFieldAdded = async (b_id: string, geometry: any) => {
+            const onFieldAdded = async (tx: FdmType, b_id: string, geometry: any) => {
                 const nmiApiKey = getNmiApiKey()
                 if (nmiApiKey) {
                     try {
@@ -453,7 +454,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             nmiApiKey,
                         )
                         await addSoilAnalysis(
-                            fdm,
+                            tx,
                             session.principal_id,
                             undefined,
                             "nl-other-nmi",
