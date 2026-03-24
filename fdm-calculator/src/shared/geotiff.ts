@@ -96,15 +96,18 @@ function abortableDelay(ms: number, signal?: AbortSignal | null): Promise<void> 
             reject(signal.reason)
             return
         }
-        const timer = setTimeout(resolve, ms)
-        signal?.addEventListener(
-            "abort",
-            () => {
-                clearTimeout(timer)
-                reject(signal.reason)
-            },
-            { once: true },
-        )
+
+        const onAbort = () => {
+            clearTimeout(timer)
+            reject(signal.reason)
+        }
+
+        const timer = setTimeout(() => {
+            signal?.removeEventListener("abort", onAbort)
+            resolve()
+        }, ms)
+
+        signal?.addEventListener("abort", onAbort, { once: true })
     })
 }
 
