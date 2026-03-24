@@ -85,6 +85,8 @@ async function fetchWithRetry(
 
         // Retry on 5xx server errors
         if (!response.ok && response.status >= 500 && retries > 0) {
+            // Drain the body to free the keep-alive connection before retrying
+            await response.text().catch(() => {})
             throw new Error(`Server error: ${response.status}`)
         }
 
@@ -187,8 +189,9 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
                 const arrayBuffer = await response.arrayBuffer()
                 tiff = await fromArrayBuffer(arrayBuffer)
             } else {
-                // Large file (or unknown size): use fromUrl for lazy, efficient HTTP Range requests
-                tiff = await fromUrl(url)
+                // Large file (or unknown size): use fromUrl for lazy, efficient HTTP Range requests.
+                // Pass timeoutSignal so in-flight range requests are cancelled on global timeout.
+                tiff = await fromUrl(url, undefined, timeoutSignal)
             }
 
             tiffCache.set(url, tiff)

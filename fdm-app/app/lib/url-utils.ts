@@ -56,16 +56,16 @@ export function getSearchParams(href: string) {
 
 /**
  * Normalises a pathname for use as a low-cardinality Sentry tag.
- * Replaces dynamic segments (IDs, years, coordinates) with `:id` placeholders
- * so the tag value represents the route shape rather than a specific resource.
+ * Replaces dynamic segments with typed placeholders so the tag value
+ * represents the route shape rather than a specific resource.
  *
  * Handles:
- * - FDM nanoid IDs (16 chars from the custom read-safe alphabet)
- * - Pure numeric segments (years, numeric IDs)
- * - Coordinate-like segments (digits mixed with dots or commas)
+ * - FDM nanoid IDs (16 chars from the custom read-safe alphabet) → `:id`
+ * - Pure numeric segments (years, numeric IDs) → `:year`
+ * - Coordinate-like segments (digits mixed with dots or commas) → `:centroid`
  *
  * @param page - The raw pathname string (e.g. from `location.pathname`).
- * @returns The normalised route pattern (e.g. `/farm/:id/:id/atlas/fields/:id`).
+ * @returns The normalised route pattern (e.g. `/farm/:id/:year/atlas/fields/:centroid`).
  */
 export function normalizePage(page: string): string {
     // Strip query string and hash (pathname typically excludes these, but be defensive)

@@ -58,7 +58,7 @@ describe("geotiff module", () => {
 
             expect(fetchMock).toHaveBeenCalledTimes(1) // Only HEAD
             expect(geotiff.fromUrl).toHaveBeenCalledTimes(1)
-            expect(geotiff.fromUrl).toHaveBeenCalledWith(url)
+            expect(geotiff.fromUrl).toHaveBeenCalledWith(url, undefined, expect.any(AbortSignal))
         })
 
         it("should load unknown size file using fromUrl", async () => {
@@ -75,7 +75,7 @@ describe("geotiff module", () => {
 
             expect(fetchMock).toHaveBeenCalledTimes(1) // Only HEAD
             expect(geotiff.fromUrl).toHaveBeenCalledTimes(1)
-            expect(geotiff.fromUrl).toHaveBeenCalledWith(url)
+            expect(geotiff.fromUrl).toHaveBeenCalledWith(url, undefined, expect.any(AbortSignal))
         })
 
         it("should cache successful requests", async () => {
@@ -144,7 +144,7 @@ describe("geotiff module", () => {
             await getTiff(url)
 
             // HEAD non-ok should warn and fall through to fromUrl, not throw
-            expect(geotiff.fromUrl).toHaveBeenCalledWith(url)
+            expect(geotiff.fromUrl).toHaveBeenCalledWith(url, undefined, expect.any(AbortSignal))
         })
 
         it("should throw if GET request for small file fails", async () => {
@@ -294,6 +294,36 @@ describe("geotiff module", () => {
             const results = await Promise.all(promises)
 
             expect(results.every((r) => r === 42)).toBe(true)
+        })
+
+        it("should reject queued semaphore waiter when signal is aborted mid-wait", async () => {
+            // Hold all 10 semaphore slots with long-running readRasters calls
+            mockImage.readRasters.mockImplementation(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 150))
+                return [new Float32Array([42])]
+            })
+
+            // Launch 10 blocking calls — each acquire()s a slot synchronously before yielding
+            const blockingPromises = Array.from({ length: 10 }).map((_, i) =>
+                getGeoTiffValue(`http://example.com/blocking-abort-${i}.tif`, 50, 50),
+            )
+
+            // Semaphore is now full (active === 10). Queue the 11th with an abort controller.
+            const controller = new AbortController()
+            const queuedPromise = getGeoTiffValue(
+                "http://example.com/queued-abort-mid.tif",
+                50,
+                50,
+                controller.signal,
+            )
+
+            // Abort while the 11th is waiting in the queue
+            controller.abort(new Error("Aborted while queued"))
+
+            await expect(queuedPromise).rejects.toThrow("Aborted while queued")
+
+            // Let blocking calls finish to clean up open async operations
+            await Promise.all(blockingPromises)
         })
     })
 })
