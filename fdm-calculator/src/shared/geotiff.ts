@@ -102,6 +102,31 @@ async function fetchWithRetry(
 }
 
 /**
+ * Races a shared promise against a caller-specific AbortSignal.
+ * The shared promise itself is never cancelled — only this caller's view of it is.
+ */
+function raceWithSignal(promise: Promise<GeoTIFF>, signal: AbortSignal): Promise<GeoTIFF> {
+    return new Promise<GeoTIFF>((resolve, reject) => {
+        if (signal.aborted) {
+            reject(signal.reason)
+            return
+        }
+        const onAbort = () => reject(signal.reason)
+        signal.addEventListener("abort", onAbort, { once: true })
+        promise.then(
+            (value) => {
+                signal.removeEventListener("abort", onAbort)
+                resolve(value)
+            },
+            (err) => {
+                signal.removeEventListener("abort", onAbort)
+                reject(err)
+            },
+        )
+    })
+}
+
+/**
  * Fetches and caches the GeoTIFF object from a given URL.
  * It checks if the TIFF object is already in the cache. If not, it fetches it
  * from the provided URL and stores it in the cache for future use.
@@ -116,16 +141,14 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
     const cached = tiffCache.get(url)
     if (cached) return cached
 
-    // Deduplicate in-flight fetches
+    // Deduplicate in-flight fetches. Wrap with caller's signal so only this
+    // caller is cancelled on abort — the shared fetch continues for others.
     const inFlight = tiffPromiseCache.get(url)
-    if (inFlight) return inFlight
+    if (inFlight) return signal ? raceWithSignal(inFlight, signal) : inFlight
 
     const promise = (async () => {
-        // Create a timeout signal and combine it with the optional external signal
+        // Shared promise uses only the timeout signal — no caller signal baked in.
         const timeoutSignal = AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
-        const combinedSignal = signal
-            ? AbortSignal.any([timeoutSignal, signal])
-            : timeoutSignal
 
         try {
             // 1. Check the file size via a lightweight HEAD request.
@@ -135,7 +158,7 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
             try {
                 const headResponse = await fetchWithRetry(url, {
                     method: "HEAD",
-                    signal: combinedSignal,
+                    signal: timeoutSignal,
                 })
                 if (headResponse.ok) {
                     const contentLength = headResponse.headers.get("content-length")
@@ -157,7 +180,7 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
             // 2. Dynamically choose the loading strategy
             if (sizeBytes !== null && sizeBytes <= IN_MEMORY_THRESHOLD_BYTES) {
                 // Small file: load entirely into memory to prevent concurrent HTTP Range request crashes
-                const response = await fetchWithRetry(url, { signal: combinedSignal })
+                const response = await fetchWithRetry(url, { signal: timeoutSignal })
                 if (!response.ok) {
                     throw new Error(`HTTP GET error! status: ${response.status} for ${url}`)
                 }
@@ -179,7 +202,7 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
         }
     })()
     tiffPromiseCache.set(url, promise)
-    return promise
+    return signal ? raceWithSignal(promise, signal) : promise
 }
 
 /**
