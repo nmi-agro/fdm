@@ -22,7 +22,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { clientConfig } from "~/lib/config"
 import { getSession } from "../lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
-import { getRvoCredentials } from "~/integrations/rvo"
+import { getRvoCredentials } from "~/integrations/rvo.server"
 import { cn } from "~/lib/utils"
 
 // Meta

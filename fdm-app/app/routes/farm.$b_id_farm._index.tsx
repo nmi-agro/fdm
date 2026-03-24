@@ -61,7 +61,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
-import { getRvoCredentials } from "../integrations/rvo"
+import { getRvoCredentials } from "~/integrations/rvo.server"
 import { cn } from "~/lib/utils"
 
 // Meta

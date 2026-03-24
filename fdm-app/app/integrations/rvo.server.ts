@@ -1,8 +1,8 @@
 import { serverConfig } from "../lib/config.server"
 import { createCookie } from "react-router"
 import { nanoid } from "nanoid"
-import { createRvoClient } from "@nmi-agro/fdm-rvo"
-import { isOfOrigin } from "../lib/url-utils"
+import { createRvoClient } from "~/lib/rvo.server"
+import { isOfOrigin } from "~/lib/url-utils"
 
 const sessionSecret = serverConfig.auth.fdm_session_secret
 if (!sessionSecret?.trim() || sessionSecret === "undefined") {
@@ -14,6 +14,9 @@ if (!sessionSecret?.trim() || sessionSecret === "undefined") {
 export const rvoStateCookie = createCookie("rvo_state", {
     path: "/",
     httpOnly: true,
+    // "lax" is required (not "strict"): the OAuth callback is a cross-site
+    // top-level redirect from RVO back to our app, and "strict" would suppress
+    // the cookie, breaking CSRF verification for every user.
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: 3600, // 1 hour

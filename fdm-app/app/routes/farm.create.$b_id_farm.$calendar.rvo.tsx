@@ -17,6 +17,7 @@ import {
     fetchRvoFields,
     compareFields,
     exchangeToken,
+    processRvoImport,
 } from "~/lib/rvo.server"
 import type {
     RvoImportReviewItem,
@@ -24,7 +25,6 @@ import type {
     UserChoiceMap,
 } from "@nmi-agro/fdm-rvo/types"
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
-import { processRvoImport } from "@nmi-agro/fdm-rvo"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
 import { type Cultivation, type Field, getFarm } from "@nmi-agro/fdm-core"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
@@ -46,7 +46,7 @@ import {
     createConfiguredRvoClient,
     createRvoState,
     verifyRvoState,
-} from "../integrations/rvo"
+} from "~/integrations/rvo.server"
 import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
 import {
     getNmiApiKey,
