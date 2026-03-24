@@ -10,13 +10,30 @@ class Semaphore {
     private active = 0
     constructor(private maxConcurrent: number) {}
 
-    async acquire(): Promise<void> {
+    acquire(signal?: AbortSignal): Promise<void> {
+        if (signal?.aborted) {
+            return Promise.reject(signal.reason)
+        }
         if (this.active < this.maxConcurrent) {
             this.active++
-            return
+            return Promise.resolve()
         }
-        return new Promise<void>((resolve) => {
-            this.queue.push(resolve)
+        return new Promise<void>((resolve, reject) => {
+            const onRelease = () => {
+                // Slot transfers from the releasing caller — active stays the same.
+                signal?.removeEventListener("abort", onAbort)
+                resolve()
+            }
+            const onAbort = () => {
+                const idx = this.queue.indexOf(onRelease)
+                if (idx !== -1) {
+                    this.queue.splice(idx, 1)
+                }
+                // No slot was ever granted, so active is not incremented.
+                reject(signal!.reason)
+            }
+            this.queue.push(onRelease)
+            signal?.addEventListener("abort", onAbort, { once: true })
         })
     }
 
@@ -180,15 +197,11 @@ export async function getGeoTiffValue(
     latitude: number,
     signal?: AbortSignal,
 ): Promise<number | null> {
-    // Acquire the semaphore before doing network-bound/heavy raster reads
-    await rasterSemaphore.acquire()
+    // Acquire the semaphore before doing network-bound/heavy raster reads.
+    // Rejects immediately if signal is already aborted, or if it aborts while waiting.
+    await rasterSemaphore.acquire(signal)
 
     try {
-        // Check if we already aborted while waiting for the semaphore
-        if (signal?.aborted) {
-            throw signal.reason
-        }
-
         const tiff = await getTiff(url, signal)
         const image = await tiff.getImage()
         const bbox = image.getBoundingBox()
