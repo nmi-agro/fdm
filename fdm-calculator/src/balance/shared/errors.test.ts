@@ -72,7 +72,7 @@ describe("handleInputCollectionError", () => {
         } catch (error) {
             const wrapped = handleNutrientBalanceInputCollectionError(error)
             expect(wrapped.message).toEqual(
-                `Failed to collect nutrient balance input: ${null}`,
+                "Failed to collect nutrient balance input: null",
             )
             expect(wrapped.cause).toEqual(null)
         }
