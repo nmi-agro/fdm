@@ -83,6 +83,9 @@ const IN_MEMORY_THRESHOLD_BYTES = 2 * 1024 * 1024
 // Default timeout for network requests (10 seconds)
 const DEFAULT_TIMEOUT_MS = 10000
 
+// Shorter timeout for the initial HEAD probe (3 seconds)
+const HEAD_TIMEOUT_MS = 3000
+
 // Shared semaphore to limit concurrent raster reads across all TIFFs
 const rasterSemaphore = new Semaphore(10)
 
@@ -90,24 +93,29 @@ const rasterSemaphore = new Semaphore(10)
  * Waits for `ms` milliseconds, but rejects immediately if `signal` is aborted.
  * Cleans up both the timer and the abort listener on resolution or rejection.
  */
-function abortableDelay(ms: number, signal?: AbortSignal | null): Promise<void> {
+function abortableDelay(
+    ms: number,
+    signal?: AbortSignal | null,
+): Promise<void> {
     return new Promise<void>((resolve, reject) => {
         if (signal?.aborted) {
             reject(signal.reason)
             return
         }
 
+        const abortSignal = signal ?? undefined
+
         const onAbort = () => {
             clearTimeout(timer)
-            reject(signal.reason)
+            reject(abortSignal?.reason)
         }
 
         const timer = setTimeout(() => {
-            signal?.removeEventListener("abort", onAbort)
+            abortSignal?.removeEventListener("abort", onAbort)
             resolve()
         }, ms)
 
-        signal?.addEventListener("abort", onAbort, { once: true })
+        abortSignal?.addEventListener("abort", onAbort, { once: true })
     })
 }
 
@@ -138,11 +146,15 @@ async function fetchWithRetry(
 
         return response
     } catch (error) {
-        const isAbortError = error instanceof Error && error.name === "AbortError"
+        const isAbortError =
+            error instanceof Error && error.name === "AbortError"
 
         // Do not retry if the request was explicitly aborted
         if (retries > 0 && !isAbortError) {
-            await abortableDelay(backoff, options.signal as AbortSignal | undefined)
+            await abortableDelay(
+                backoff,
+                options.signal as AbortSignal | undefined,
+            )
             return fetchWithRetry(url, options, retries - 1, backoff * 2)
         }
         throw error
@@ -153,7 +165,10 @@ async function fetchWithRetry(
  * Races a shared promise against a caller-specific AbortSignal.
  * The shared promise itself is never cancelled — only this caller's view of it is.
  */
-function raceWithSignal(promise: Promise<GeoTIFF>, signal: AbortSignal): Promise<GeoTIFF> {
+function raceWithSignal(
+    promise: Promise<GeoTIFF>,
+    signal: AbortSignal,
+): Promise<GeoTIFF> {
     return new Promise<GeoTIFF>((resolve, reject) => {
         if (signal.aborted) {
             reject(signal.reason)
@@ -184,7 +199,10 @@ function raceWithSignal(promise: Promise<GeoTIFF>, signal: AbortSignal): Promise
  * @returns A promise that resolves with the GeoTIFF object.
  * @throws Throws an error if the GeoTIFF file cannot be fetched or parsed.
  */
-export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIFF> {
+export async function getTiff(
+    url: string,
+    signal?: AbortSignal,
+): Promise<GeoTIFF> {
     // Return cached object if it exists
     const cached = tiffCacheGet(url)
     if (cached) return cached
@@ -204,13 +222,20 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
             //    "unknown size" so execution falls through to the fromUrl path.
             let sizeBytes: number | null = null
             try {
+                // Use a separate, shorter timeout for the HEAD probe to ensure
+                // it doesn't consume the main timeout budget.
+                const headTimeoutSignal = AbortSignal.timeout(HEAD_TIMEOUT_MS)
+
                 const headResponse = await fetchWithRetry(url, {
                     method: "HEAD",
-                    signal: timeoutSignal,
+                    signal: headTimeoutSignal,
                 })
                 if (headResponse.ok) {
-                    const contentLength = headResponse.headers.get("content-length")
-                    sizeBytes = contentLength ? Number.parseInt(contentLength, 10) : null
+                    const contentLength =
+                        headResponse.headers.get("content-length")
+                    sizeBytes = contentLength
+                        ? Number.parseInt(contentLength, 10)
+                        : null
                 } else {
                     console.warn(
                         `HEAD request returned ${headResponse.status} for ${url}, falling back to fromUrl`,
@@ -228,9 +253,13 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
             // 2. Dynamically choose the loading strategy
             if (sizeBytes !== null && sizeBytes <= IN_MEMORY_THRESHOLD_BYTES) {
                 // Small file: load entirely into memory to prevent concurrent HTTP Range request crashes
-                const response = await fetchWithRetry(url, { signal: timeoutSignal })
+                const response = await fetchWithRetry(url, {
+                    signal: timeoutSignal,
+                })
                 if (!response.ok) {
-                    throw new Error(`HTTP GET error! status: ${response.status} for ${url}`)
+                    throw new Error(
+                        `HTTP GET error! status: ${response.status} for ${url}`,
+                    )
                 }
                 const arrayBuffer = await response.arrayBuffer()
                 tiff = await fromArrayBuffer(arrayBuffer)
@@ -245,7 +274,8 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
             return tiff
         } catch (error) {
             tiffPromiseCache.delete(url)
-            const reason = error instanceof Error ? error.message : String(error)
+            const reason =
+                error instanceof Error ? error.message : String(error)
             throw new Error(
                 `Failed to fetch or parse GeoTIFF from ${url}: ${reason}`,
                 { cause: error },
@@ -283,13 +313,6 @@ export async function getGeoTiffValue(
         const pixelHeight = image.getHeight()
         const bboxWidth = bbox[2] - bbox[0]
         const bboxHeight = bbox[3] - bbox[1]
-        const _noData = await image.fileDirectory.loadValue("GDAL_NODATA")
-        const noDataValue =
-            typeof _noData === "string"
-                ? Number.parseFloat(_noData)
-                : _noData != null
-                  ? Number(_noData)
-                  : null
 
         // Convert geographic coordinates to pixel coordinates.
         const widthPct = (longitude - bbox[0]) / bboxWidth
@@ -301,6 +324,14 @@ export async function getGeoTiffValue(
         if (xPx < 0 || xPx >= pixelWidth || yPx < 0 || yPx >= pixelHeight) {
             return null
         }
+
+        const _noData = await image.fileDirectory.loadValue("GDAL_NODATA")
+        const noDataValue =
+            typeof _noData === "string"
+                ? Number.parseFloat(_noData)
+                : _noData != null
+                  ? Number(_noData)
+                  : null
 
         const window = [xPx, yPx, xPx + 1, yPx + 1]
 
