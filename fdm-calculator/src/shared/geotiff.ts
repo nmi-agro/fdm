@@ -232,7 +232,7 @@ export async function getGeoTiffValue(
 
         // Read the raster data for this specific field's window.
         // This is safe even with Promise.all because of the semaphore throttling.
-        const rasterData = await image.readRasters({ window })
+        const rasterData = await image.readRasters({ window, signal })
 
         // For a single window and band, the result is typically [Float32Array(1)].
         const value = (rasterData[0] as Float32Array)[0]
