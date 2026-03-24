@@ -300,7 +300,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
                 Organische Stof
             </h2>
             <Suspense
-                key={`loaderData.organization.id,${farmIds.join(",")}`}
+                key={`${loaderData.organization.id},${farmIds.join(",")}`}
                 fallback={<NitrogenBalanceFallback />}
             >
                 <OrganizationFarmBalanceOrganicMatterOverview {...loaderData} />

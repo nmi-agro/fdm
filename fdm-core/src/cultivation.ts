@@ -33,6 +33,10 @@ import {
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
 
+/** Error message which will be replaced if getCultivationsFromCatalogue is rethrowing the error. */
+export const exceptionForGetCultivationsOfFarmsFromCatalogue =
+    "Exception for getCultivationsOfFarmsFromCatalogue"
+
 /**
  * Retrieves cultivations available in the enabled catalogues for a farm.
  *
@@ -96,7 +100,7 @@ export async function getCultivationsOfFarmsFromCatalogue(
     } catch (err) {
         throw handleError(
             err,
-            "Exception for getCultivationsOfFarmsFromCatalogue",
+            exceptionForGetCultivationsOfFarmsFromCatalogue,
             {
                 principal_id,
                 farmIds,
@@ -117,7 +121,7 @@ export async function getCultivationsFromCatalogue(
     } catch (err) {
         if (
             (err as Error)?.message?.startsWith(
-                "Exception for getCultivationsOfFarmsFromCatalogue",
+                exceptionForGetCultivationsOfFarmsFromCatalogue,
             )
         ) {
             const handledError = err as Error

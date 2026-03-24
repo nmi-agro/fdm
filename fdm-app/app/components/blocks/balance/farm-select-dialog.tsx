@@ -86,14 +86,17 @@ export function FarmSelectDialog({
                                     }
                                 }
                             }
+                            const sortedDefaultSelectedFarmIds = [
+                                ...defaultSelectedFarmIds,
+                            ].sort()
                             newlySelectedFarmIds.sort()
                             if (
-                                defaultSelectedFarmIds.length !==
+                                sortedDefaultSelectedFarmIds.length !==
                                     newlySelectedFarmIds.length ||
                                 newlySelectedFarmIds.some(
                                     (selected_id, index) =>
                                         selected_id !==
-                                        defaultSelectedFarmIds[index],
+                                        sortedDefaultSelectedFarmIds[index],
                                 )
                             ) {
                                 setSearchParams((searchParams) => {

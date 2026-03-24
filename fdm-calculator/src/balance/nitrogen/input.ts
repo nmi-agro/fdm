@@ -15,6 +15,7 @@ import {
     getSoilAnalyses,
 } from "@nmi-agro/fdm-core"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
+import { handleInputCollectionError } from "../shared/errors"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 import type { FieldInput, NitrogenBalanceInput } from "./types"
 
@@ -135,12 +136,7 @@ async function collectInputForNitrogenBalanceForFarm(
             )
         })
     } catch (error) {
-        throw new Error(
-            `Failed to collect field nitrogen balance input for farm ${b_id_farm}: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-            { cause: error },
-        )
+        throw handleNitrogenBalanceInputCollectionError(error, b_id_farm)
     }
 }
 
@@ -191,7 +187,7 @@ export async function collectInputForNitrogenBalanceForFarms(
                     try {
                         const onlyFieldInput =
                             await collectInputForNitrogenBalanceForFarm(
-                                fdm,
+                                tx,
                                 principal_id,
                                 b_id_farm,
                                 timeframe,
@@ -231,33 +227,16 @@ export async function collectInputForNitrogenBalanceForFarms(
                             timeFrame: timeframe,
                         }
                     } catch (error) {
-                        throw new Error(
-                            `Failed to collect nitrogen balance input for farm ${b_id_farm}: ${
-                                error instanceof Error
-                                    ? error.message
-                                    : String(error)
-                            }`,
-                            { cause: error },
+                        throw handleNitrogenBalanceInputCollectionError(
+                            error,
+                            b_id_farm,
                         )
                     }
                 }),
             )
         })
     } catch (error) {
-        if (
-            (error as Error).message?.startsWith(
-                "Failed to collect field nitrogen balance input for farm",
-            )
-        ) {
-            throw error
-        }
-        // Wrap any errors in a more descriptive error message.
-        throw new Error(
-            `Failed to collect nitrogen balance input: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-            { cause: error },
-        )
+        throw handleNitrogenBalanceInputCollectionError(error)
     }
 }
 
@@ -273,6 +252,7 @@ export async function collectInputForNitrogenBalanceForFarms(
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
  * @param b_id_farm - The ID of the farm for which to collect the nitrogen balance input.
  * @param timeframe - The timeframe for which to collect the data.
+ * @param b_id - Optional. If provided, the data collection will be limited to this specific field ID. Otherwise, data for all fields in the farm will be collected.
  * @returns A promise that resolves with a `NitrogenBalanceInput` object containing all the necessary data.
  * @throws {Error} - Throws an error if data collection or processing fails.
  *
@@ -295,3 +275,9 @@ export async function collectInputForNitrogenBalance(
         )
     )[0]
 }
+
+export const handleNitrogenBalanceInputCollectionError =
+    handleInputCollectionError(
+        "Failed to collect nitrogen balance input for farm",
+        "Failed to collect nitrogen balance input",
+    )
