@@ -48,13 +48,34 @@ class Semaphore {
 }
 
 /**
- * In-memory cache for the GeoTIFF object.
- * This is a simple singleton pattern to ensure that for a given server instance,
- * the potentially large TIFF file is only downloaded and parsed once.
- * Subsequent calls will reuse the cached object, saving network and CPU resources.
+ * In-memory LRU cache for resolved GeoTIFF objects.
+ * Evicts the least-recently-used entry when the cache exceeds MAX_TIFF_CACHE_SIZE.
  */
 const tiffCache = new Map<string, GeoTIFF>()
 const tiffPromiseCache = new Map<string, Promise<GeoTIFF>>()
+
+const MAX_TIFF_CACHE_SIZE = 50
+
+function tiffCacheGet(url: string): GeoTIFF | undefined {
+    const tiff = tiffCache.get(url)
+    if (tiff !== undefined) {
+        // Refresh recency: move the entry to the end of insertion order
+        tiffCache.delete(url)
+        tiffCache.set(url, tiff)
+    }
+    return tiff
+}
+
+function tiffCacheSet(url: string, tiff: GeoTIFF): void {
+    if (tiffCache.has(url)) {
+        tiffCache.delete(url)
+    } else if (tiffCache.size >= MAX_TIFF_CACHE_SIZE) {
+        // Evict the oldest (least-recently-used) entry
+        const lruKey = tiffCache.keys().next().value
+        if (lruKey !== undefined) tiffCache.delete(lruKey)
+    }
+    tiffCache.set(url, tiff)
+}
 
 // Threshold for downloading the entire file into memory (2 MB)
 const IN_MEMORY_THRESHOLD_BYTES = 2 * 1024 * 1024
@@ -64,6 +85,28 @@ const DEFAULT_TIMEOUT_MS = 10000
 
 // Shared semaphore to limit concurrent raster reads across all TIFFs
 const rasterSemaphore = new Semaphore(10)
+
+/**
+ * Waits for `ms` milliseconds, but rejects immediately if `signal` is aborted.
+ * Cleans up both the timer and the abort listener on resolution or rejection.
+ */
+function abortableDelay(ms: number, signal?: AbortSignal | null): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(signal.reason)
+            return
+        }
+        const timer = setTimeout(resolve, ms)
+        signal?.addEventListener(
+            "abort",
+            () => {
+                clearTimeout(timer)
+                reject(signal.reason)
+            },
+            { once: true },
+        )
+    })
+}
 
 /**
  * Performs a fetch with automatic retries and exponential backoff.
@@ -96,7 +139,7 @@ async function fetchWithRetry(
 
         // Do not retry if the request was explicitly aborted
         if (retries > 0 && !isAbortError) {
-            await new Promise((resolve) => setTimeout(resolve, backoff))
+            await abortableDelay(backoff, options.signal as AbortSignal | undefined)
             return fetchWithRetry(url, options, retries - 1, backoff * 2)
         }
         throw error
@@ -140,7 +183,7 @@ function raceWithSignal(promise: Promise<GeoTIFF>, signal: AbortSignal): Promise
  */
 export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIFF> {
     // Return cached object if it exists
-    const cached = tiffCache.get(url)
+    const cached = tiffCacheGet(url)
     if (cached) return cached
 
     // Deduplicate in-flight fetches. Wrap with caller's signal so only this
@@ -194,7 +237,7 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
                 tiff = await fromUrl(url, undefined, timeoutSignal)
             }
 
-            tiffCache.set(url, tiff)
+            tiffCacheSet(url, tiff)
             tiffPromiseCache.delete(url)
             return tiff
         } catch (error) {
