@@ -419,36 +419,38 @@ export default function RvoImportReviewPage() {
                                                     {changes.add > 0 && (
                                                         <li>
                                                             {changes.add}{" "}
-                                                            perceel
-                                                            {changes.add !==
-                                                                1 && "en"}{" "}
+                                                            {changes.add === 1
+                                                                ? "perceel"
+                                                                : "percelen"}{" "}
                                                             toevoegen
                                                         </li>
                                                     )}
                                                     {changes.remove > 0 && (
                                                         <li>
                                                             {changes.remove}{" "}
-                                                            perceel
-                                                            {changes.remove !==
-                                                                1 && "en"}{" "}
+                                                            {changes.remove ===
+                                                            1
+                                                                ? "perceel"
+                                                                : "percelen"}{" "}
                                                             verwijderen
                                                         </li>
                                                     )}
                                                     {changes.update > 0 && (
                                                         <li>
                                                             {changes.update}{" "}
-                                                            perceel
-                                                            {changes.update !==
-                                                                1 && "en"}{" "}
+                                                            {changes.update ===
+                                                            1
+                                                                ? "perceel"
+                                                                : "percelen"}{" "}
                                                             bijwerken
                                                         </li>
                                                     )}
                                                     {changes.close > 0 && (
                                                         <li>
                                                             {changes.close}{" "}
-                                                            perceel
-                                                            {changes.close !==
-                                                                1 && "en"}{" "}
+                                                            {changes.close === 1
+                                                                ? "perceel"
+                                                                : "percelen"}{" "}
                                                             afsluiten
                                                         </li>
                                                     )}
