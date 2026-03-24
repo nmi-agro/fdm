@@ -111,19 +111,29 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
             : timeoutSignal
 
         try {
-            // 1. Check the file size via a lightweight HEAD request
-            const headResponse = await fetchWithRetry(url, {
-                method: "HEAD",
-                signal: combinedSignal,
-            })
-            if (!headResponse.ok) {
-                throw new Error(
-                    `HTTP HEAD error! status: ${headResponse.status} for ${url}`,
+            // 1. Check the file size via a lightweight HEAD request.
+            //    Any failure (network error or non-ok status) is treated as
+            //    "unknown size" so execution falls through to the fromUrl path.
+            let sizeBytes: number | null = null
+            try {
+                const headResponse = await fetchWithRetry(url, {
+                    method: "HEAD",
+                    signal: combinedSignal,
+                })
+                if (headResponse.ok) {
+                    const contentLength = headResponse.headers.get("content-length")
+                    sizeBytes = contentLength ? Number.parseInt(contentLength, 10) : null
+                } else {
+                    console.warn(
+                        `HEAD request returned ${headResponse.status} for ${url}, falling back to fromUrl`,
+                    )
+                }
+            } catch (headErr) {
+                console.warn(
+                    `HEAD request failed for ${url}, falling back to fromUrl`,
+                    headErr,
                 )
             }
-
-            const contentLength = headResponse.headers.get("content-length")
-            const sizeBytes = contentLength ? Number.parseInt(contentLength, 10) : null
 
             let tiff: GeoTIFF
 

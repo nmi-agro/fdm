@@ -243,6 +243,26 @@ describe("geotiff module", () => {
             expect(val).toBe(0)
         })
 
+        it("should return value if NoData is NaN", async () => {
+            mockImage.fileDirectory.loadValue = async () => Number.NaN
+            mockImage.readRasters.mockResolvedValue([new Float32Array([10])])
+
+            const url = "http://example.com/nan-nodata.tif"
+            const val = await getGeoTiffValue(url, 50, 50)
+
+            expect(val).toBe(10)
+        })
+
+        it("should handle numeric NoData value", async () => {
+            mockImage.fileDirectory.loadValue = async () => -1
+            mockImage.readRasters.mockResolvedValue([new Float32Array([-1])])
+
+            const url = "http://example.com/num-nodata.tif"
+            const val = await getGeoTiffValue(url, 50, 50)
+
+            expect(val).toBeNull()
+        })
+
         it("should respect abort signal when acquiring semaphore", async () => {
             const controller = new AbortController()
             const reason = new Error("Manual abort reason")
