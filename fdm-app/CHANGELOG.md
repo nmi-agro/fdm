@@ -1,5 +1,42 @@
 # Changelog fdm-app
 
+## 0.28.6
+
+### Patch Changes
+
+- [#525](https://github.com/nmi-agro/fdm/pull/525) [`6876a82`](https://github.com/nmi-agro/fdm/commit/6876a82611b6ad1cbc67174e9e1f2c40b74e0eeb) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix to include instrument.server.mjs in docker image
+
+## 0.28.5
+
+### Patch Changes
+
+- [#524](https://github.com/nmi-agro/fdm/pull/524) [`6bbe778`](https://github.com/nmi-agro/fdm/commit/6bbe77862a8945dcad114bbe34dc81d0dd1159d9) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix server-side errors not captured in Sentry and fix error page copy button
+
+  Server-side exceptions were silently dropped from Sentry because `instrument.server.mjs` was never loaded at runtime — the `start` script was missing `NODE_OPTIONS='--import ./instrument.server.mjs'`. As a result, `Sentry.getClient()` always returned `null` server-side, making every `captureException()` call a no-op.
+  - `package.json`: Add `NODE_OPTIONS='--import ./instrument.server.mjs'` to `start` and `start-dev` scripts
+  - `entry.server.tsx`: Add fallback `import "../instrument.server.mjs"` at the top for environments where `NODE_OPTIONS` is not set
+  - `instrument.server.mjs`: Add startup log confirming Sentry initialized (or warning when DSN is missing)
+  - `root.tsx`: Remove redundant `Sentry.captureException()` for `RouteErrorResponse` in `ErrorBoundary` — server already captures these via `reportError()`; keep capture only for client-side `Error` instances
+  - `entry.client.tsx`: Remove `/sentry-tunnel` route and `tunnel` config; remove `/Unexpected Server Error/` from `ignoreErrors`
+  - `sentry-tunnel.tsx`: Delete the tunnel route (simplification — one less failure point)
+  - `error.tsx`: Fix `copyStackTrace` to properly `await` the clipboard write; on failure, auto-select the error text and show a clear message that the browser blocked clipboard access
+
+## 0.28.4
+
+### Patch Changes
+
+- [#522](https://github.com/nmi-agro/fdm/pull/522) [`931b2a6`](https://github.com/nmi-agro/fdm/commit/931b2a6c2067a9b8d8c1a502db32fe672ca1a0ea) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix error logging so server errors are actually captured in Sentry
+
+  Server errors were silently dropped from Sentry in several scenarios, leaving only an uninformative client-side "Unexpected Server Error" event with no stack trace or error code
+  - `reportError()` now always calls `Sentry.captureException()` when the SDK is initialized (guarded via `Sentry.getClient()`), removing the dependency on `clientConfig` which could silently evaluate to `null` server-side
+  - `errorId` is now stored in Sentry **tags** (`error_id`) in addition to `extra`, making it searchable — users can report their error code and you can find the exact event with `error_id:XXXX-XXXX`
+  - `console.error` is now always called in `reportError()`, regardless of whether Sentry is configured
+  - `"Unexpected Server Error"` is added to `ignoreErrors` on the client — this React Router shadow event is always a duplicate of the real server-side error
+  - `handleError` in `entry.server.tsx` now uses `reportError()` instead of raw `Sentry.captureException()`, so unhandled errors also get a trackable `errorId`
+  - Streaming `onError` callbacks now call `reportError()` instead of `console.error()` only
+  - `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACE_SAMPLE_RATE`, and `VITE_SENTRY_PROFILE_SAMPLE_RATE` renamed to `PUBLIC_SENTRY_*` for consistency with the rest of the app
+  - Sentry server-side initialization is now conditional on `PUBLIC_SENTRY_DSN` being set; the app starts normally without Sentry configured
+
 ## 0.28.3
 
 ### Patch Changes

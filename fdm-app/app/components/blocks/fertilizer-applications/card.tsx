@@ -111,6 +111,7 @@ export function FertilizerApplicationCard({
         savedFormValues,
         editedFertilizerApplication,
         fieldFertilizerFormStore,
+        calendar,
     ])
 
     useEffect(() => {
@@ -176,7 +177,7 @@ export function FertilizerApplicationCard({
                             Toevoegen
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[800px]">
+                    <DialogContent className="sm:max-w-200">
                         <DialogHeader>
                             <DialogTitle className="flex flex-row items-center justify-between mr-4">
                                 {editedFertilizerApplication
