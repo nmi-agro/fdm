@@ -75,7 +75,7 @@ export function createFdmAuth(
             clientId: microsoft.clientId,
             clientSecret: microsoft.clientSecret,
             tenantId: "common",
-            prompt: "select_account",
+            prompt: "select_account" as const,
             mapProfileToUser: async (profile: {
                 name: string | undefined
                 email: string
