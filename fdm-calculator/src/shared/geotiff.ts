@@ -41,7 +41,7 @@ class Semaphore {
         const next = this.queue.shift()
         if (next) {
             next()
-        } else {
+        } else if (this.active > 0) {
             this.active--
         }
     }
@@ -262,15 +262,20 @@ export async function getGeoTiffValue(
         // This is safe even with Promise.all because of the semaphore throttling.
         const rasterData = await image.readRasters({ window, signal })
 
-        // For a single window and band, the result is typically [Float32Array(1)].
-        const value = (rasterData[0] as Float32Array)[0]
+        // For a single window and band, index the band array generically
+        // to support all sample formats (Float32, Float64, Int16, UInt8, etc.).
+        const band = rasterData[0] as ArrayLike<number>
+        const value = band[0]
 
         // Check if the value is valid and not the 'NoData' value.
+        // NaN noData: treat a pixel as valid only when the value is also not NaN.
+        // Real noData: use strict equality to filter matching pixels.
         if (
             value !== undefined &&
             (noDataValue === null ||
-                Number.isNaN(noDataValue as number) ||
-                value !== noDataValue)
+                (Number.isNaN(noDataValue as number)
+                    ? !Number.isNaN(value)
+                    : value !== noDataValue))
         ) {
             return value
         }
