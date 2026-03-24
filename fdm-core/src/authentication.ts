@@ -55,6 +55,7 @@ export function createFdmAuth(
                 return {
                     name: profile.name,
                     email: profile.email,
+                    emailVerified: true,
                     image: profile.picture,
                     firstname: profile.given_name,
                     surname: profile.family_name,
@@ -74,6 +75,7 @@ export function createFdmAuth(
             clientId: microsoft.clientId,
             clientSecret: microsoft.clientSecret,
             tenantId: "common",
+            prompt: "select_account" as const,
             mapProfileToUser: async (profile: {
                 name: string | undefined
                 email: string
@@ -83,6 +85,7 @@ export function createFdmAuth(
                 return {
                     name: profile.name,
                     email: profile.email,
+                    emailVerified: true,
                     image: profile.picture,
                     firstname: firstname,
                     surname: surname,

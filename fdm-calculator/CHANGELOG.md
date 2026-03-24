@@ -1,5 +1,16 @@
 # fdm-calculator
 
+## 0.12.2
+
+### Patch Changes
+
+- [#528](https://github.com/nmi-agro/fdm/pull/528) [`534836a`](https://github.com/nmi-agro/fdm/commit/534836a7493201c77b5c7766c86290d7168e6f76) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix intermittent `fetch failed` errors during GeoTIFF processing by implementing a multi-layered defense strategy:
+  - **Hybrid Loading**: Small files (<= 2MB) are now buffered in RAM to eliminate excessive HTTP Range requests.
+  - **Concurrency Throttling**: Added a semaphore to limit concurrent raster reads, protecting the socket pool.
+  - **Robustness**: Integrated 10s timeouts, `AbortSignal` support for request cancellation, and automatic retries with exponential backoff for transient network failures.
+- Updated dependencies [[`e9a3cd4`](https://github.com/nmi-agro/fdm/commit/e9a3cd4de585c2e05fc215ff0c5e758005c48f73)]:
+  - @nmi-agro/fdm-core@0.30.1
+
 ## 0.12.1
 
 ### Patch Changes
