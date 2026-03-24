@@ -55,6 +55,43 @@ export function getSearchParams(href: string) {
 }
 
 /**
+ * Normalises a pathname for use as a low-cardinality Sentry tag.
+ * Replaces dynamic segments with typed placeholders so the tag value
+ * represents the route shape rather than a specific resource.
+ *
+ * Handles:
+ * - FDM nanoid IDs (16 chars from the custom read-safe alphabet) → `:id`
+ * - Pure numeric segments (years, numeric IDs) → `:year`
+ * - Coordinate-like segments (digits mixed with dots or commas) → `:centroid`
+ *
+ * @param page - The raw pathname string (e.g. from `location.pathname`).
+ * @returns The normalised route pattern (e.g. `/farm/:id/:year/atlas/fields/:centroid`).
+ */
+export function normalizePage(page: string): string {
+    // Strip query string and hash (pathname typically excludes these, but be defensive)
+    const path = page.split("?")[0].split("#")[0]
+    return path
+        .split("/")
+        .map((segment) => {
+            if (!segment) return segment
+            // FDM nanoid IDs: exactly 16 chars from the custom read-safe alphabet
+            if (/^[6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwza]{16}$/.test(segment)) {
+                return ":id"
+            }
+            // Pure numeric segments (years, numeric IDs)
+            if (/^\d+$/.test(segment)) {
+                return ":year"
+            }
+            // Coordinate-like segments: mix of digits with dots or commas
+            if (/[,.]/.test(segment) && /\d/.test(segment)) {
+                return ":centroid"
+            }
+            return segment
+        })
+        .join("/")
+}
+
+/**
  * Checks if the given URL-like might be a full URL, and if so, if it is of the
  * origin given. No origin checks are performed if neither a URI scheme nor a
  * protocol-relative prefix (`//`) is detected.
