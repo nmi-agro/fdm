@@ -136,11 +136,15 @@ describe("geotiff module", () => {
             expect(fetchMock).toHaveBeenCalledTimes(3)
         })
 
-        it("should throw if file size cannot be retrieved", async () => {
+        it("should fall through to fromUrl on non-ok HEAD response", async () => {
             fetchMock.mockResolvedValue({ ok: false, status: 404 })
+            vi.mocked(geotiff.fromUrl).mockResolvedValueOnce({} as any)
 
             const url = "http://example.com/notfound.tif"
-            await expect(getTiff(url)).rejects.toThrow(/HTTP HEAD error!/)
+            await getTiff(url)
+
+            // HEAD non-ok should warn and fall through to fromUrl, not throw
+            expect(geotiff.fromUrl).toHaveBeenCalledWith(url)
         })
 
         it("should throw if GET request for small file fails", async () => {
@@ -154,19 +158,21 @@ describe("geotiff module", () => {
             fetchMock.mockResolvedValueOnce({ ok: false, status: 500 })
 
             const url = "http://example.com/small-fail.tif"
-            await expect(getTiff(url)).rejects.toThrow(/HTTP GET error!/)
+            const err = await getTiff(url).catch((e) => e)
+            expect(err.message).toMatch(/Failed to fetch or parse GeoTIFF/)
+            expect(err.cause?.message).toMatch(/HTTP GET error!/)
         })
 
         it("should respect abort signal", async () => {
             const controller = new AbortController()
-            const err = new Error("Manual abort")
-            err.name = "AbortError"
+            // Abort before calling getTiff — raceWithSignal should reject immediately
+            controller.abort(new Error("Aborted by caller"))
 
-            fetchMock.mockRejectedValue(err)
+            vi.mocked(geotiff.fromUrl).mockResolvedValue({} as any)
 
             await expect(
                 getTiff("http://example.com/abort.tif", controller.signal),
-            ).rejects.toThrow(/Failed to fetch or parse GeoTIFF/)
+            ).rejects.toThrow(/Aborted by caller/)
         })
     })
 

@@ -196,8 +196,9 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
             return tiff
         } catch (error) {
             tiffPromiseCache.delete(url)
+            const reason = error instanceof Error ? error.message : String(error)
             throw new Error(
-                `Failed to fetch or parse GeoTIFF from ${url}`,
+                `Failed to fetch or parse GeoTIFF from ${url}: ${reason}`,
                 { cause: error },
             )
         }
