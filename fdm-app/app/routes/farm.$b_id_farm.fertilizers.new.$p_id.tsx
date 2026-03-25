@@ -13,7 +13,7 @@ import {
 } from "react-router"
 import { FarmNewFertilizerBlock } from "~/components/blocks/fertilizer/new-fertilizer-page"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { getRvoMappings } from "~/components/blocks/fertilizer/utils"
+import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"

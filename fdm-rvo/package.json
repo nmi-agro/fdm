@@ -1,0 +1,79 @@
+{
+    "name": "@nmi-agro/fdm-rvo",
+    "private": false,
+    "version": "0.1.0",
+    "description": "RVO Synchronization Logic for FDM",
+    "homepage": "https://svenvw.github.io/fdm/",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/nmi-agro/fdm.git"
+    },
+    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
+    "author": {
+        "name": "Sven Verweij",
+        "email": "37927107+SvenVw@users.noreply.github.com",
+        "url": "https://github.com/SvenVw"
+    },
+    "license": "MIT",
+    "type": "module",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        },
+        "./types": {
+            "import": {
+                "types": "./dist/types.d.ts",
+                "default": "./dist/types.js"
+            }
+        },
+        "./utils": {
+            "import": {
+                "types": "./dist/utils.d.ts",
+                "default": "./dist/utils.js"
+            }
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "coverage": "vitest run --coverage",
+        "document": "typedoc",
+        "build": "rollup -c && tsc -p tsconfig.build.json",
+        "check-types": "tsc --noEmit",
+        "test": "vitest run",
+        "test-coverage": "vitest run --coverage"
+    },
+    "dependencies": {
+        "@nmi-agro/fdm-core": "workspace:^",
+        "@nmi-agro/rvo-connector": "^2.2.1",
+        "@turf/area": "^7.3.4",
+        "@turf/bbox": "^7.3.4",
+        "@turf/helpers": "^7.3.4",
+        "@turf/intersect": "^7.3.4",
+        "@turf/union": "^7.3.4",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
+        "@nmi-agro/fdm-core": "workspace:*",
+        "@rollup/plugin-commonjs": "catalog:",
+        "@rollup/plugin-node-resolve": "catalog:",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "rollup": "catalog:",
+        "rollup-plugin-esbuild": "catalog:",
+        "typedoc": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "packageManager": "pnpm@10.32.1",
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    }
+}
