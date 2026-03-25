@@ -578,6 +578,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
             throw new Response("RVO client is not configured.", { status: 500 })
         }
 
+        const farm = await getFarm(fdm, session.principal_id, b_id_farm)
+        if (!farm?.b_businessid_farm) {
+            throw new Response("Geen KvK-nummer gevonden voor dit bedrijf.", {
+                status: 400,
+            })
+        }
+
         const rvoClient = createConfiguredRvoClient(rvoCredentials)
 
         const { state, cookieHeader } = await createRvoState(

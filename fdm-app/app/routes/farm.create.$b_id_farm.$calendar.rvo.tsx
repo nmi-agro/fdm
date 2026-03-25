@@ -116,14 +116,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
 
             const rvoClient = createConfiguredRvoClient(rvoCredentials)
-            
+
             try {
                 await exchangeToken(rvoClient, code)
             } catch (e: any) {
                 // Handle token exchange errors specifically for refreshes
                 const originalError = e?.message || ""
-                if (originalError.includes("invalid_grant") || originalError.includes("expired")) {
-                    throw new Error("De eHerkenning sessie is verlopen door een paginaverversing of een verouderde link. Klik op 'Verbinden met RVO' om opnieuw te verbinden.")
+                if (
+                    originalError.includes("invalid_grant") ||
+                    originalError.includes("expired")
+                ) {
+                    throw new Error(
+                        "De eHerkenning sessie is verlopen door een paginaverversing of een verouderde link. Klik op 'Verbinden met RVO' om opnieuw te verbinden.",
+                    )
                 }
                 throw e
             }
@@ -232,11 +237,13 @@ export default function RvoImportCreatePage() {
         if (RvoImportReviewData.length > 0) {
             const handleBeforeUnload = (e: BeforeUnloadEvent) => {
                 e.preventDefault()
-                e.returnValue = "Als u de pagina ververst, wordt de verbinding met RVO verbroken en moet u opnieuw inloggen met eHerkenning. Wilt u doorgaan?"
+                e.returnValue =
+                    "Als u de pagina ververst, wordt de verbinding met RVO verbroken en moet u opnieuw inloggen met eHerkenning. Wilt u doorgaan?"
                 return e.returnValue
             }
             window.addEventListener("beforeunload", handleBeforeUnload)
-            return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+            return () =>
+                window.removeEventListener("beforeunload", handleBeforeUnload)
         }
     }, [RvoImportReviewData])
 
@@ -435,6 +442,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
             throw new Response("RVO client is not available", { status: 500 })
         }
 
+        const farm = await getFarm(fdm, session.principal_id, b_id_farm)
+        if (!farm?.b_businessid_farm) {
+            throw new Response("Geen KvK-nummer gevonden voor dit bedrijf.", {
+                status: 400,
+            })
+        }
+
         const rvoClient = createConfiguredRvoClient(rvoCredentials)
 
         const { state, cookieHeader } = await createRvoState(
@@ -470,7 +484,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
             RvoImportReviewData = JSON.parse(String(RvoImportReviewDataJson))
             userChoices = JSON.parse(String(userChoicesJson))
 
-            const onFieldAdded = async (tx: FdmType, b_id: string, geometry: any) => {
+            const onFieldAdded = async (
+                tx: FdmType,
+                b_id: string,
+                geometry: any,
+            ) => {
                 const nmiApiKey = getNmiApiKey()
                 if (nmiApiKey) {
                     try {
