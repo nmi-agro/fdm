@@ -4,7 +4,7 @@
 
 Fix incorrect `p_dm` and `p_density` values for liquid mineral fertilizers in the BAAT catalogue.
 
-Five liquid fertilizers had `p_dm: 5` (physically impossible given their nutrient content) and `p_density: 1` (incorrect for solutions denser than water):
+Five liquid fertilizers had physically incorrect `p_dm`/`p_density` values. Four had `p_dm: 5`, while BAAT004 was still marked as a solid with `p_dm: 999`; all five had `p_density: 1`:
 
 - **BAAT003** Ammoniumnitraatureanoplossing (UAN): `p_dm` 5→750 g/kg, `p_density` 1→1.3 kg/L
 - **BAAT004** Ammoniumpolyfosfaat APP 10-34-0: `p_dm` 999→560 g/kg, `p_density` 1→1.39 kg/L, application methods corrected to `spoke wheel||spraying`
