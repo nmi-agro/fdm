@@ -8,6 +8,7 @@ import {
     useLoaderData,
     useNavigation,
     useLocation,
+    data,
 } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { extractErrorMessage } from "~/lib/error"
@@ -115,7 +116,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
 
             const rvoClient = createConfiguredRvoClient(rvoCredentials)
-            await exchangeToken(rvoClient, code)
+            
+            try {
+                await exchangeToken(rvoClient, code)
+            } catch (e: any) {
+                // Handle token exchange errors specifically for refreshes
+                const originalError = e?.message || ""
+                if (originalError.includes("invalid_grant") || originalError.includes("expired")) {
+                    throw new Error("De eHerkenning sessie is verlopen door een paginaverversing of een verouderde link. Klik op 'Verbinden met RVO' om opnieuw te verbinden.")
+                }
+                throw e
+            }
 
             const rvoFields = await fetchRvoFields(
                 rvoClient,
@@ -143,20 +154,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             error = await extractErrorMessage(e)
         }
     } else if (!url.searchParams.has("start_import")) {
-        return {
+        return data({
             b_id_farm,
             b_businessid_farm,
             calendar: yearString,
             RvoImportReviewData: [],
             error: null,
             showImportButton: true,
+            noRvoParcelsFound: false,
             isRvoConfigured,
             b_name_farm,
-        }
+        })
     }
 
     const noRvoParcelsFound = !error && RvoImportReviewData.length === 0
-    return {
+    return data({
         b_id_farm,
         b_businessid_farm,
         calendar: yearString,
@@ -166,7 +178,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         noRvoParcelsFound,
         isRvoConfigured,
         b_name_farm,
-    }
+    })
 }
 
 export default function RvoImportCreatePage() {
@@ -215,8 +227,21 @@ export default function RvoImportCreatePage() {
         setUserChoices(initialChoices)
     }, [RvoImportReviewData])
 
+    // Warn the user before refreshing or leaving when data is present
+    useEffect(() => {
+        if (RvoImportReviewData.length > 0) {
+            const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+                e.preventDefault()
+                e.returnValue = "Als u de pagina ververst, wordt de verbinding met RVO verbroken en moet u opnieuw inloggen met eHerkenning. Wilt u doorgaan?"
+                return e.returnValue
+            }
+            window.addEventListener("beforeunload", handleBeforeUnload)
+            return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+        }
+    }, [RvoImportReviewData])
+
     const handleChoiceChange = (id: string, action: ImportReviewAction) => {
-        setUserChoices((prev) => ({ ...prev, [id]: action }))
+        setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
     }
 
     if (error) {
