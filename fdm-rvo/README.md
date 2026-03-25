@@ -12,7 +12,7 @@ This package provides the core logic for synchronizing agricultural field data w
   - Compares local FDM fields (`@nmi-agro/fdm-core`'s `Field` type) against RVO fields.
   - Utilizes a two-tier matching strategy: ID-based matching followed by spatial (IoU) matching.
   - Detects and categorizes fields as `MATCH`, `NEW_REMOTE` (in RVO but not local), `NEW_LOCAL` (in local but not RVO), `CONFLICT` (different properties in both), or `EXPIRED_LOCAL` (local field started before the year but missing in RVO).
-  - Identifies specific differing properties (`b_name`, `b_geometry`, `b_start`, `b_end`) for conflicts.
+  - Identifies specific differing properties (`b_name`, `b_geometry`, `b_start`, `b_end`, `b_acquiring_method`, `b_lu_catalogue`, `b_bufferstrip`) for conflicts.
 - **Type Safety**: Fully typed for a seamless development experience.
 
 ### Installation
@@ -48,6 +48,7 @@ Create a server route (e.g., `app/routes/auth.rvo.tsx`) that initiates the redir
 import { redirect, type LoaderFunctionArgs } from "react-router";
 import { createRvoClient, generateAuthUrl } from "@nmi-agro/fdm-rvo";
 import { getEnv } from "~/lib/env.server"; // Your server-side env helper
+import { getSession, commitSession } from "~/lib/session.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const env = getEnv();
@@ -60,11 +61,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
     RVO_PKIO_PRIVATE_KEY
   );
 
-  // Use a secure, signed state or session-based state to prevent CSRF
-  const state = crypto.randomUUID(); // Example simple state
+  // 1. Generate a secure random state to prevent CSRF
+  const state = crypto.randomUUID();
   const authUrl = generateAuthUrl(rvoClient, state);
 
-  return redirect(authUrl);
+  // 2. Persist state in a secure, server-side session
+  const session = await getSession(request.headers.get("Cookie"));
+  session.set("rvoState", state);
+
+  return redirect(authUrl, {
+    headers: { "Set-Cookie": await commitSession(session) },
+  });
 }
 ```
 
@@ -83,6 +90,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
+  const session = await getSession(request.headers.get("Cookie"));
+  const storedState = session.get("rvoState");
+
+  // 1. Verify state parameter against stored session state
+  if (!state || state !== storedState) {
+    throw new Error("Invalid or missing OAuth state parameter");
+  }
+
+  // 2. Clear state from session after successful verification
+  session.unset("rvoState");
+
   if (!code) throw new Error("No authorization code received");
 
   const env = process.env; // Or your env helper
@@ -93,11 +111,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     env.RVO_PKIO_PRIVATE_KEY!
   );
 
-  // 1. Exchange the code for an access token securely on the server
+  // 3. Exchange the code for an access token securely on the server
   const accessToken = await exchangeToken(rvoClient, code);
 
-  // 2. Store the accessToken in a secure, HTTP-only session cookie
-  const session = await getSession(request.headers.get("Cookie"));
+  // 4. Store the accessToken in a secure, HTTP-only session cookie
   session.set("rvoAccessToken", accessToken);
 
   return redirect("/dashboard", {
