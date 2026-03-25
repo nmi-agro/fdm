@@ -82,7 +82,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const code = url.searchParams.get("code")
     const state = url.searchParams.get("state")
 
-    let RvoImportReviewData: RvoImportReviewItem<any>[] = []
+    let rvoImportReviewData: RvoImportReviewItem<any>[] = []
     let error: string | null = null
     let b_businessid_farm: string | null = null
     let b_name_farm: string | null | undefined = null
@@ -148,7 +148,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             const localFieldsExtended: (Field & {
                 cultivations: Cultivation[]
             })[] = [] // No existing fields to compare against yet in create wizard, so localFields is empty
-            RvoImportReviewData = compareFields(
+            rvoImportReviewData = compareFields(
                 localFieldsExtended,
                 rvoFields,
                 year,
@@ -163,7 +163,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_id_farm,
             b_businessid_farm,
             calendar: yearString,
-            RvoImportReviewData: [],
+            rvoImportReviewData: [],
             error: null,
             showImportButton: true,
             noRvoParcelsFound: false,
@@ -172,12 +172,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         })
     }
 
-    const noRvoParcelsFound = !error && RvoImportReviewData.length === 0
+    const noRvoParcelsFound = !error && rvoImportReviewData.length === 0
     return data({
         b_id_farm,
         b_businessid_farm,
         calendar: yearString,
-        RvoImportReviewData,
+        rvoImportReviewData,
         error,
         showImportButton: noRvoParcelsFound,
         noRvoParcelsFound,
@@ -191,7 +191,7 @@ export default function RvoImportCreatePage() {
         b_id_farm,
         b_businessid_farm,
         calendar,
-        RvoImportReviewData,
+        rvoImportReviewData,
         error,
         showImportButton,
         noRvoParcelsFound,
@@ -214,7 +214,7 @@ export default function RvoImportCreatePage() {
     useEffect(() => {
         // Initialize user choices with defaults
         const initialChoices: UserChoiceMap = {}
-        RvoImportReviewData.forEach((item) => {
+        rvoImportReviewData.forEach((item) => {
             const id = getItemId(item)
             let defaultAction: ImportReviewAction
 
@@ -230,11 +230,11 @@ export default function RvoImportCreatePage() {
             initialChoices[id] = defaultAction
         })
         setUserChoices(initialChoices)
-    }, [RvoImportReviewData])
+    }, [rvoImportReviewData])
 
     // Warn the user before refreshing or leaving when data is present
     useEffect(() => {
-        if (RvoImportReviewData.length > 0) {
+        if (rvoImportReviewData.length > 0) {
             const handleBeforeUnload = (e: BeforeUnloadEvent) => {
                 e.preventDefault()
                 e.returnValue =
@@ -245,7 +245,7 @@ export default function RvoImportCreatePage() {
             return () =>
                 window.removeEventListener("beforeunload", handleBeforeUnload)
         }
-    }, [RvoImportReviewData])
+    }, [rvoImportReviewData])
 
     const handleChoiceChange = (id: string, action: ImportReviewAction) => {
         setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
@@ -331,7 +331,7 @@ export default function RvoImportCreatePage() {
                     </div>
                 )}
 
-                {RvoImportReviewData.length === 0 ? (
+                {rvoImportReviewData.length === 0 ? (
                     <div className="flex h-full items-center justify-center p-6">
                         <div className="w-full max-w-lg space-y-6">
                             {noRvoParcelsFound && (
@@ -384,7 +384,7 @@ export default function RvoImportCreatePage() {
                                             type="hidden"
                                             name="RvoImportReviewDataJson"
                                             value={JSON.stringify(
-                                                RvoImportReviewData,
+                                                rvoImportReviewData,
                                             )}
                                         />
                                         <Button
@@ -404,7 +404,7 @@ export default function RvoImportCreatePage() {
                                 </div>
                                 <div className="w-full">
                                     <RvoImportReviewTable
-                                        data={RvoImportReviewData}
+                                        data={rvoImportReviewData}
                                         userChoices={userChoices}
                                         onChoiceChange={handleChoiceChange}
                                     />
@@ -469,7 +469,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const RvoImportReviewDataJson = formData.get("RvoImportReviewDataJson")
         const userChoicesJson = formData.get("userChoices")
 
-        let RvoImportReviewData: RvoImportReviewItem<any>[] = []
+        let rvoImportReviewData: RvoImportReviewItem<any>[] = []
         let userChoices: UserChoiceMap = {}
 
         if (!RvoImportReviewDataJson || !userChoicesJson) {
@@ -481,10 +481,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
 
         try {
-            RvoImportReviewData = JSON.parse(String(RvoImportReviewDataJson))
+            rvoImportReviewData = JSON.parse(String(RvoImportReviewDataJson))
             userChoices = JSON.parse(String(userChoicesJson))
 
-            if (!Array.isArray(RvoImportReviewData)) {
+            if (!Array.isArray(rvoImportReviewData)) {
                 throw new Error("Invalid review data format")
             }
 
@@ -524,7 +524,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 fdm,
                 session.principal_id,
                 b_id_farm,
-                RvoImportReviewData,
+                rvoImportReviewData,
                 userChoices,
                 year,
                 onFieldAdded,
