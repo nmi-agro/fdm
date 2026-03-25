@@ -2,7 +2,7 @@
 
 ## RVO Synchronization Logic for FDM
 
-This package provides the core logic for synchronizing agricultural field data with the RVO (Rijksdienst voor Ondernemend Nederland) webservices. It wraps the `@svenvw/rvo-connector` to handle authentication and data fetching, and implements a robust field comparison mechanism to detect new, missing, and conflicting field data between local and RVO records.
+This package provides the core logic for synchronizing agricultural field data with the RVO (Rijksdienst voor Ondernemend Nederland) webservices. It wraps the `@nmi-agro/rvo-connector` to handle authentication and data fetching, and implements a robust field comparison mechanism to detect new, missing, and conflicting field data between local and RVO records.
 
 ### Features
 
@@ -61,7 +61,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   );
 
   // Use a secure, signed state or session-based state to prevent CSRF
-  const state = Crypto.randomUUID(); // Example simple state
+  const state = crypto.randomUUID(); // Example simple state
   const authUrl = generateAuthUrl(rvoClient, state);
 
   return redirect(authUrl);
