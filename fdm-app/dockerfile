@@ -27,6 +27,9 @@ RUN pnpm install --frozen-lockfile
 # Copy source code of isolated subworkspace
 COPY --from=pruner /app/out/full/ .
 
+# Ensure root tsconfig files are present (turbo prune might miss them if not explicitly referenced as workspace deps)
+COPY --from=pruner /app/tsconfig*.json ./
+
 # Build the project
 RUN pnpm build
 
