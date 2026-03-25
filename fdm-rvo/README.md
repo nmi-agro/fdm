@@ -142,7 +142,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const kvkNumber = "12345678";
 
   // Fetch RVO fields (server-side)
-  const rvoFields = await fetchRvoFields(rvoClient, year, kvkNumber, accessToken);
+  const rvoFields = await fetchRvoFields(rvoClient, year, kvkNumber);
   
   // Fetch local fields (server-side)
   const localFields = await db.query.fields.findMany({ /* ... */ });
