@@ -134,20 +134,41 @@ export async function processRvoImport(
                             b_bufferstrip,
                         )
 
-                        // Update cultivation if different
-                        if (
-                            item.localCultivation &&
-                            item.localCultivation.b_lu_catalogue !==
+                        // Update cultivation if different or add if missing
+                        if (item.localCultivation) {
+                            if (
+                                item.localCultivation.b_lu_catalogue !==
                                 `nl_${item.rvoField.properties.CropTypeCode}`
-                        ) {
-                            // Remove old cultivation
-                            await removeCultivation(
-                                tx,
-                                principal_id,
-                                item.localCultivation.b_lu,
-                            )
+                            ) {
+                                // Remove old cultivation
+                                await removeCultivation(
+                                    tx,
+                                    principal_id,
+                                    item.localCultivation.b_lu,
+                                )
 
-                            // Add new RVO cultivation
+                                // Add new RVO cultivation
+                                const b_lu_catalogue = `nl_${item.rvoField.properties.CropTypeCode}`
+                                const defaultDates =
+                                    await getDefaultDatesOfCultivation(
+                                        tx,
+                                        principal_id,
+                                        b_id_farm,
+                                        b_lu_catalogue,
+                                        year,
+                                    )
+
+                                await addCultivation(
+                                    tx,
+                                    principal_id,
+                                    b_lu_catalogue,
+                                    item.localField.b_id,
+                                    defaultDates.b_lu_start,
+                                    defaultDates.b_lu_end,
+                                )
+                            }
+                        } else {
+                            // Add new RVO cultivation as it was missing locally
                             const b_lu_catalogue = `nl_${item.rvoField.properties.CropTypeCode}`
                             const defaultDates =
                                 await getDefaultDatesOfCultivation(
