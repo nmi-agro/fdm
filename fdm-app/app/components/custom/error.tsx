@@ -1,7 +1,10 @@
+import * as Sentry from "@sentry/react-router"
 import { ArrowLeft, Copy, Home } from "lucide-react"
 import { useEffect, useState } from "react"
 import { NavLink, useNavigate } from "react-router"
 import { Button } from "~/components/ui/button"
+import { clientConfig } from "~/lib/config"
+import { normalizePage } from "~/lib/url-utils"
 
 /**
  * Displays a full-screen error block with tailored messaging and navigation options.
@@ -35,6 +38,16 @@ export function ErrorBlock({
         "idle",
     )
     const navigate = useNavigate()
+
+    useEffect(() => {
+        if (clientConfig.analytics.sentry) {
+            Sentry.withScope((scope) => {
+                scope.setTag("status", status?.toString() ?? "unknown")
+                scope.setTag("page", normalizePage(page))
+                Sentry.metrics.count("error_block.shown", 1)
+            })
+        }
+    }, [status, page])
 
     useEffect(() => {
         if (copyState !== "idle") {

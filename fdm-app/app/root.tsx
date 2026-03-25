@@ -156,6 +156,7 @@ export function Layout() {
                 <NavigationProgress />
                 <Banner />
                 <Toaster />
+                <ErrorBoundary error={null} params={{}} />
                 <ScrollRestoration
                     getKey={(location) => {
                         return location.pathname

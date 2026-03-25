@@ -1,5 +1,19 @@
 # Changelog fdm-app
 
+## 0.28.7
+
+### Patch Changes
+
+- [#528](https://github.com/nmi-agro/fdm/pull/528) [`3442ae3`](https://github.com/nmi-agro/fdm/commit/3442ae3c92d8200b81b020ee7516bca4580c4056) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix to show the error page instead of blank page
+
+- [#528](https://github.com/nmi-agro/fdm/pull/528) [`7202197`](https://github.com/nmi-agro/fdm/commit/72021973454613231e9fbc5096684e138579a31f) Thanks [@SvenVw](https://github.com/SvenVw)! - Ignore expected 405 Method Not Allowed errors caused by bots/crawlers making OPTIONS requests
+
+- [#528](https://github.com/nmi-agro/fdm/pull/528) [`6cf0fc4`](https://github.com/nmi-agro/fdm/commit/6cf0fc41b61755d14aa8dedb345fadb7b01bf2e9) Thanks [@SvenVw](https://github.com/SvenVw)! - Add Sentry metric for how often the error page is shown
+
+- Updated dependencies [[`534836a`](https://github.com/nmi-agro/fdm/commit/534836a7493201c77b5c7766c86290d7168e6f76), [`e9a3cd4`](https://github.com/nmi-agro/fdm/commit/e9a3cd4de585c2e05fc215ff0c5e758005c48f73)]:
+  - @nmi-agro/fdm-calculator@0.12.2
+  - @nmi-agro/fdm-core@0.30.1
+
 ## 0.28.6
 
 ### Patch Changes
