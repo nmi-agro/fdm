@@ -225,7 +225,7 @@ export default function RvoImportReviewPage() {
         const initialChoices: UserChoiceMap = {}
         rvoImportReviewData.forEach((item) => {
             const id = getItemId(item)
-            let defaultAction: ImportReviewAction = "NO_ACTION"
+            let defaultAction: ImportReviewAction
 
             switch (item.status) {
                 case RvoImportReviewStatus.NEW_REMOTE:
