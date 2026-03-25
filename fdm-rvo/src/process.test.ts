@@ -111,6 +111,10 @@ describe("processRvoImport", () => {
                 b_id: "local-1",
                 b_name: "Old Name",
             },
+            localCultivation: {
+                b_lu_catalogue: "nl_101",
+                b_lu: "cult-1",
+            },
             rvoField: {
                 type: "Feature",
                 geometry: { type: "Polygon", coordinates: [] },
@@ -149,9 +153,54 @@ describe("processRvoImport", () => {
             undefined,
             undefined, // b_bufferstrip (no mestData in test)
         )
-        // No cultivation change implies no cultivation update call unless localCultivation differs
+        // No cultivation change implies no cultivation update call unless localCultivation differs or is missing
         expect(removeCultivation).not.toHaveBeenCalled()
         expect(addCultivation).not.toHaveBeenCalled()
+    })
+
+    it("should add missing cultivation during UPDATE_FROM_REMOTE action", async () => {
+        const item: RvoImportReviewItem<any> = {
+            status: RvoImportReviewStatus.CONFLICT,
+            localField: {
+                b_id: "local-1",
+            },
+            // localCultivation is missing
+            rvoField: {
+                type: "Feature",
+                geometry: { type: "Polygon", coordinates: [] },
+                properties: {
+                    CropFieldID: "rvo-1",
+                    CropFieldDesignator: "Name",
+                    BeginDate: "2025-01-01",
+                    UseTitleCode: "01",
+                    CropTypeCode: "101",
+                    CropFieldVersion: "1",
+                    Country: "NL",
+                },
+            },
+            diffs: ["b_geometry"],
+        }
+        const choices = { "local-1": "UPDATE_FROM_REMOTE" as const }
+
+        await processRvoImport(
+            mockFdm,
+            principalId,
+            farmId,
+            [item],
+            choices,
+            year,
+        )
+
+        expect(updateField).toHaveBeenCalled()
+        expect(removeCultivation).not.toHaveBeenCalled()
+        expect(addCultivation).toHaveBeenCalledWith(
+            mockFdm,
+            principalId,
+            "nl_101",
+            "local-1",
+            expect.any(Date),
+            expect.any(Date),
+        )
     })
 
     it("should process UPDATE_FROM_REMOTE action with cultivation change", async () => {
