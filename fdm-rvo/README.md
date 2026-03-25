@@ -30,7 +30,6 @@ Ensure your `fdm-app` or consuming application has the following environment var
 
 ```env
 RVO_CLIENT_ID=<Your RVO Client ID>
-RVO_CLIENT_SECRET=<Your RVO Client Secret>
 RVO_REDIRECT_URI=<Your registered redirect URI with RVO>
 RVO_PKIO_PRIVATE_KEY=<Your PKIO Private Key for RVO Client Assertion>
 RVO_ENVIRONMENT=production # or acceptance

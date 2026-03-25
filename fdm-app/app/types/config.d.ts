@@ -36,7 +36,6 @@ export interface ServerConfig {
         }
         rvo: {
             clientId: string
-            clientSecret: string
             redirectUri: string
             clientName: string
             pkioPrivateKey: string
