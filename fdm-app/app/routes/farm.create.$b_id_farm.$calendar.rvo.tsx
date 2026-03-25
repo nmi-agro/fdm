@@ -484,6 +484,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
             RvoImportReviewData = JSON.parse(String(RvoImportReviewDataJson))
             userChoices = JSON.parse(String(userChoicesJson))
 
+            if (!Array.isArray(RvoImportReviewData)) {
+                throw new Error("Invalid review data format")
+            }
+
             const onFieldAdded = async (
                 tx: FdmType,
                 b_id: string,
