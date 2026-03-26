@@ -14,6 +14,11 @@ import {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
     getNutrientAdvice,
+    calculateNitrogenBalanceField,
+    collectInputForNitrogenBalance,
+    calculateNitrogenBalancesFieldToFarm,
+    calculateOrganicMatterBalanceField,
+    collectInputForOrganicMatterBalance,
     type NormFilling,
     type NutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
@@ -153,6 +158,7 @@ async function computePlanMetrics(
             p_id_catalogue: string
             p_app_amount: number
             p_app_date: string
+            p_app_method?: string | null
         }>
         fieldMetrics: FieldMetrics | null
     }>,
@@ -168,6 +174,26 @@ async function computePlanMetrics(
         year,
     )
     const fieldMetricsMap: Record<string, FieldMetrics> = {}
+
+    const timeframe = {
+        start: new Date(`${calendar}-01-01`),
+        end: new Date(`${calendar}-12-31`),
+    }
+
+    const [omInput, nInput] = await Promise.all([
+        collectInputForOrganicMatterBalance(
+            fdm,
+            principalId,
+            b_id_farm,
+            timeframe,
+        ).catch(() => null),
+        collectInputForNitrogenBalance(
+            fdm,
+            principalId,
+            b_id_farm,
+            timeframe,
+        ).catch(() => null),
+    ])
 
     const fieldResults = await Promise.allSettled(
         enrichedPlan
@@ -228,8 +254,8 @@ async function computePlanMetrics(
                             p_app_amount: app.p_app_amount,
                             p_app_date: new Date(app.p_app_date),
                             p_app_id: `plan-${field.b_id}-${i}`,
-                            p_app_method: null,
-                        }
+                            p_app_method: app.p_app_method ?? null,
+                        } as unknown as FertilizerApplication
                     })
 
                 let manureFilling: NormFilling = {
@@ -359,6 +385,65 @@ async function computePlanMetrics(
                     fertilizers,
                 })
 
+                let omBalance = field.fieldMetrics?.omBalance ?? null
+                if (omInput) {
+                    const fieldOmInput = omInput.fields.find(
+                        (f: any) => f.field.b_id === field.b_id,
+                    )
+                    if (fieldOmInput) {
+                        try {
+                            const omResult = calculateOrganicMatterBalanceField(
+                                {
+                                    fieldInput: {
+                                        ...fieldOmInput,
+                                        fertilizerApplications: syntheticApps,
+                                    },
+                                    fertilizerDetails:
+                                        omInput.fertilizerDetails,
+                                    cultivationDetails:
+                                        omInput.cultivationDetails,
+                                    timeFrame: timeframe,
+                                },
+                            )
+                            omBalance = omResult.balance
+                        } catch (e) {
+                            console.warn(
+                                `[computePlanMetrics] OM calc failed for ${field.b_id}:`,
+                                e,
+                            )
+                        }
+                    }
+                }
+
+                let nBalance = field.fieldMetrics?.nBalance ?? {
+                    balance: 0,
+                    target: 0,
+                    emission: { ammonia: { total: 0 }, nitrate: { total: 0 } },
+                }
+                if (nInput) {
+                    const fieldNInput = nInput.fields.find(
+                        (f: any) => f.field.b_id === field.b_id,
+                    )
+                    if (fieldNInput) {
+                        try {
+                            nBalance = calculateNitrogenBalanceField({
+                                fieldInput: {
+                                    ...fieldNInput,
+                                    fertilizerApplications: syntheticApps,
+                                },
+                                fertilizerDetails: nInput.fertilizerDetails,
+                                cultivationDetails: nInput.cultivationDetails,
+                                timeFrame: timeframe,
+                            })
+                        } catch (e) {
+                            console.warn(
+                                `[computePlanMetrics] N calc failed for ${field.b_id}:`,
+                                e,
+                            )
+                        }
+                    }
+                }
+
                 fieldMetricsMap[field.b_id] = {
                     normsFilling: {
                         manure: manureFilling,
@@ -366,20 +451,22 @@ async function computePlanMetrics(
                         phosphate: phosphateFilling,
                     },
                     norms: { manure, nitrogen, phosphate },
-                    nBalance: field.fieldMetrics?.nBalance ?? {
-                        balance: 0,
-                        target: 0,
-                        emission: {
-                            ammonia: { total: 0 },
-                            nitrate: { total: 0 },
-                        },
+                    nBalance: {
+                        balance: nBalance.balance,
+                        target: nBalance.target,
+                        emission: nBalance.emission,
                     },
-                    omBalance: field.fieldMetrics?.omBalance ?? null, // Stubbed for fallback
+                    omBalance,
                     eomSupplyPerHa,
                     advice,
                     proposedDose: proposedDose.dose,
                 }
-                return { b_id: field.b_id, b_area: field.b_area! }
+                return {
+                    b_id: field.b_id,
+                    b_area: field.b_area!,
+                    nBalance,
+                    fieldData: field,
+                }
             }),
     )
 
@@ -387,8 +474,13 @@ async function computePlanMetrics(
         .filter(
             (
                 r,
-            ): r is PromiseFulfilledResult<{ b_id: string; b_area: number }> =>
-                r.status === "fulfilled",
+            ): r is PromiseFulfilledResult<{
+                b_id: string
+                b_area: number
+                b_bufferstrip: boolean
+                nBalance: any
+                fieldData: any
+            }> => r.status === "fulfilled",
         )
         .map((r) => r.value)
         .filter((f) => fieldMetricsMap[f.b_id])
@@ -411,22 +503,16 @@ async function computePlanMetrics(
         })),
     )
 
-    // Calculate farm-level N-balance using weighted averages
-    let totalArea = 0
-    let totalBal = 0
-    let totalTarg = 0
-    for (const f of validFields) {
-        const area = f.b_area ?? 0
-        totalArea += area
-        totalBal += (fieldMetricsMap[f.b_id].nBalance.balance ?? 0) * area
-        totalTarg += (fieldMetricsMap[f.b_id].nBalance.target ?? 0) * area
-    }
-
-    const farmNBalance = {
-        balance: totalArea > 0 ? totalBal / totalArea : 0,
-        target: totalArea > 0 ? totalTarg / totalArea : 0,
-        emission: { ammonia: { total: 0 }, nitrate: { total: 0 } },
-    }
+    const farmNBalance = calculateNitrogenBalancesFieldToFarm(
+        validFields.map((f) => ({
+            b_id: f.b_id,
+            b_area: f.b_area,
+            b_bufferstrip: f.b_bufferstrip,
+            balance: f.nBalance,
+        })),
+        false,
+        [],
+    )
 
     return {
         fieldMetricsMap,
@@ -486,15 +572,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     field.b_id,
                     timeframe,
                 )
-                const mainCultivation = getDefaultCultivation(cultivations, calendar)
+                const mainCultivation = getDefaultCultivation(
+                    cultivations,
+                    calendar,
+                )
                 return {
                     b_id: field.b_id,
                     b_name: field.b_name || field.b_id,
                     b_area: field.b_area,
                     b_bufferstrip: field.b_bufferstrip,
-                    b_lu_catalogue: mainCultivation?.b_lu_catalogue || "Onbekend",
+                    b_lu_catalogue:
+                        mainCultivation?.b_lu_catalogue || "Onbekend",
                     b_lu_name: mainCultivation?.b_lu_name || "Onbekend gewas",
-                    b_lu_croprotation: mainCultivation?.b_lu_croprotation || null,
+                    b_lu_croprotation:
+                        mainCultivation?.b_lu_croprotation || null,
                 }
             }),
         )
@@ -573,7 +664,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
         }
 
-        const fertilizerParameterDescription = getFertilizerParametersDescription()
+        const fertilizerParameterDescription =
+            getFertilizerParametersDescription()
         const applicationMethods = fertilizerParameterDescription.find(
             (x: any) => x.parameter === "p_app_method_options",
         )
@@ -601,7 +693,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         ...app,
                         p_name_nl: fert?.p_name_nl || app.p_id_catalogue,
                         p_type: fert?.p_type || "other",
-                        p_app_method_name: methodMeta?.label ?? app.p_app_method,
+                        p_app_method_name:
+                            methodMeta?.label ?? app.p_app_method,
                     }
                 }),
                 fieldMetrics:
@@ -799,7 +892,8 @@ export default function GerritApp() {
 
     const blocker = useBlocker(
         ({ currentLocation, nextLocation }) =>
-            isAIGenerating && currentLocation.pathname !== nextLocation.pathname,
+            isAIGenerating &&
+            currentLocation.pathname !== nextLocation.pathname,
     )
 
     const plan = actionData?.intent === "generate" ? actionData.plan : null
@@ -959,13 +1053,14 @@ export default function GerritApp() {
                             <div className="bg-amber-50 border border-amber-200 p-8 rounded-xl">
                                 <Bot className="w-12 h-12 text-amber-600 mx-auto mb-4" />
                                 <h2 className="text-2xl font-bold text-amber-900 mb-2">
-                                    Gerrit is alleen beschikbaar voor 2025 en 2026
+                                    Gerrit is alleen beschikbaar voor 2025 en
+                                    2026
                                 </h2>
                                 <p className="text-amber-800 mb-6">
                                     Het AI-bemestingsplan van Gerrit kan
-                                    momenteel alleen worden gegenereerd voor 2025
-                                    en 2026. Schakel over naar een van deze jaren om
-                                    aan de slag te gaan.
+                                    momenteel alleen worden gegenereerd voor
+                                    2025 en 2026. Schakel over naar een van deze
+                                    jaren om aan de slag te gaan.
                                 </p>
                                 <div className="flex justify-center gap-4">
                                     <Button asChild size="lg">

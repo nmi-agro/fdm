@@ -44,7 +44,9 @@ export function getMainCultivation(cultivations: any[], calendarYear: string) {
     return sorted.find((c) => {
         const start = new Date(c.b_lu_start)
         const end = c.b_lu_end ? new Date(c.b_lu_end) : null
-        return end ? start <= targetDate && end >= targetDate : start <= targetDate
+        return end
+            ? start <= targetDate && end >= targetDate
+            : start <= targetDate
     })
 }
 
@@ -92,10 +94,14 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         f.b_id,
                         timeframe,
                     )
-                    const mainLu = getMainCultivation(cultivations, input.calendar)
-                    
+                    const mainLu = getMainCultivation(
+                        cultivations,
+                        input.calendar,
+                    )
+
                     const getSoilParam = (param: string) =>
-                        currentSoilData.find((d) => d.parameter === param)?.value ?? null
+                        currentSoilData.find((d) => d.parameter === param)
+                            ?.value ?? null
 
                     return {
                         b_id: f.b_id,
@@ -339,9 +345,21 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 .array(
                     z.object({
                         b_id: z.string().describe("The field ID"),
-                        b_lu_catalogue: z.string().describe("The crop catalogue ID (e.g., nl_265) for this field"),
-                        b_lu_name: z.string().describe("The name of the crop (e.g., Wintertarwe)"),
-                        b_lu_start: z.string().describe("The sowing or start date of the crop (YYYY-MM-DD)"),
+                        b_lu_catalogue: z
+                            .string()
+                            .describe(
+                                "The crop catalogue ID (e.g., nl_265) for this field",
+                            ),
+                        b_lu_name: z
+                            .string()
+                            .describe(
+                                "The name of the crop (e.g., Wintertarwe)",
+                            ),
+                        b_lu_start: z
+                            .string()
+                            .describe(
+                                "The sowing or start date of the crop (YYYY-MM-DD)",
+                            ),
                         applications: z.array(
                             z.object({
                                 p_id_catalogue: z.string(),
@@ -709,19 +727,31 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     if (fields.length <= 1) continue
 
                     const referenceField = fields[0]
-                    const referenceApps = [...referenceField.applications].sort((a, b) => {
-                        return a.p_id_catalogue.localeCompare(b.p_id_catalogue) ||
-                               a.p_app_amount - b.p_app_amount ||
-                               a.p_app_date.localeCompare(b.p_app_date)
-                    })
+                    const referenceApps = [...referenceField.applications].sort(
+                        (a, b) => {
+                            return (
+                                a.p_id_catalogue.localeCompare(
+                                    b.p_id_catalogue,
+                                ) ||
+                                a.p_app_amount - b.p_app_amount ||
+                                a.p_app_date.localeCompare(b.p_app_date)
+                            )
+                        },
+                    )
 
                     for (let i = 1; i < fields.length; i++) {
                         const currentField = fields[i]
-                        const currentApps = [...currentField.applications].sort((a, b) => {
-                            return a.p_id_catalogue.localeCompare(b.p_id_catalogue) ||
-                                   a.p_app_amount - b.p_app_amount ||
-                                   a.p_app_date.localeCompare(b.p_app_date)
-                        })
+                        const currentApps = [...currentField.applications].sort(
+                            (a, b) => {
+                                return (
+                                    a.p_id_catalogue.localeCompare(
+                                        b.p_id_catalogue,
+                                    ) ||
+                                    a.p_app_amount - b.p_app_amount ||
+                                    a.p_app_date.localeCompare(b.p_app_date)
+                                )
+                            },
+                        )
 
                         let mismatch = false
                         if (currentApps.length !== referenceApps.length) {
