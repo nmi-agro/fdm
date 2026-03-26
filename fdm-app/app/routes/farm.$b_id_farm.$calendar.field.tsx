@@ -47,34 +47,6 @@ export const meta: MetaFunction = () => {
     ]
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-    try {
-        const session = await getSession(request)
-        const formData = await request.formData()
-        const b_id = formData.get("b_id") as string
-        const b_bufferstrip = formData.get("b_bufferstrip") === "true"
-
-        await updateField(
-            fdm,
-            session.principal_id,
-            b_id,
-            undefined, // b_name
-            undefined, // b_id_source
-            undefined, // b_geometry
-            undefined, // b_start
-            undefined, // b_acquiring_method
-            undefined, // b_end
-            b_bufferstrip,
-        )
-
-        return dataWithSuccess(null, {
-            message: "Bufferstrook status bijgewerkt.",
-        })
-    } catch (error) {
-        throw handleActionError(error)
-    }
-}
-
 /**
  * Retrieves and processes farm and field options for the specified farm ID based on the current user session.
  *
@@ -367,4 +339,38 @@ export default function FarmFieldIndex() {
             </main>
         </SidebarInset>
     )
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+    try {
+        const session = await getSession(request)
+        const formData = await request.formData()
+        const b_id = formData.get("b_id")
+        if (!b_id || typeof b_id !== "string") {
+            throw data("missing: b_id", {
+                status: 400,
+                statusText: "missing: b_id",
+            })
+        }
+        const b_bufferstrip = formData.get("b_bufferstrip") === "true"
+
+        await updateField(
+            fdm,
+            session.principal_id,
+            b_id,
+            undefined, // b_name
+            undefined, // b_id_source
+            undefined, // b_geometry
+            undefined, // b_start
+            undefined, // b_acquiring_method
+            undefined, // b_end
+            b_bufferstrip,
+        )
+
+        return dataWithSuccess(null, {
+            message: "Bufferstrook status bijgewerkt.",
+        })
+    } catch (error) {
+        throw handleActionError(error)
+    }
 }
