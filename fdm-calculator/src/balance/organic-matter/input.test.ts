@@ -9,9 +9,13 @@ vi.mock("@nmi-agro/fdm-core", async () => {
         getFields: vi.fn(),
         getField: vi.fn(),
         getCultivations: vi.fn(),
+        getCultivationsForFarm: vi.fn(),
         getHarvests: vi.fn(),
+        getHarvestsForCultivations: vi.fn(),
         getSoilAnalyses: vi.fn(),
+        getSoilAnalysesForFarm: vi.fn(),
         getFertilizerApplications: vi.fn(),
+        getFertilizerApplicationsForFarm: vi.fn(),
         getFertilizers: vi.fn(),
         getCultivationsFromCatalogue: vi.fn(),
     }
@@ -31,10 +35,12 @@ describe("collectInputForOrganicMatterBalance", () => {
     it("should collect input for all fields in a farm", async () => {
         const mockFields = [{ b_id: "field1" }, { b_id: "field2" }]
         vi.spyOn(fdmCore, "getFields").mockResolvedValue(mockFields as any)
-        vi.spyOn(fdmCore, "getCultivations").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([])
+        vi.spyOn(fdmCore, "getCultivationsForFarm").mockResolvedValue({})
+        vi.spyOn(fdmCore, "getHarvestsForCultivations").mockResolvedValue({})
+        vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockResolvedValue({})
+        vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockResolvedValue(
+            {},
+        )
         vi.spyOn(fdmCore, "getFertilizers").mockResolvedValue([])
         vi.spyOn(fdmCore, "getCultivationsFromCatalogue").mockResolvedValue([])
 
@@ -102,18 +108,20 @@ describe("collectInputForOrganicMatterBalance", () => {
         const mockCultivation = { b_lu: "cult1" }
         const mockFertilizer = { p_id_catalogue: "fert1" }
         vi.spyOn(fdmCore, "getFields").mockResolvedValue([mockField] as any)
-        vi.spyOn(fdmCore, "getCultivations").mockResolvedValue([
-            mockCultivation,
-        ] as any)
+        vi.spyOn(fdmCore, "getCultivationsForFarm").mockResolvedValue({
+            field1: [mockCultivation],
+        } as any)
         vi.spyOn(fdmCore, "getFertilizers").mockResolvedValue([
             mockFertilizer,
         ] as any)
         vi.spyOn(fdmCore, "getCultivationsFromCatalogue").mockResolvedValue([
             mockCultivation,
         ] as any)
-        vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([])
+        vi.spyOn(fdmCore, "getHarvestsForCultivations").mockResolvedValue({})
+        vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockResolvedValue({})
+        vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockResolvedValue(
+            {},
+        )
 
         const result = await collectInputForOrganicMatterBalance(
             mockFdm,

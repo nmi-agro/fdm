@@ -5,6 +5,7 @@ import {
 import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
+import { splitBy } from "./bulk"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
@@ -13,6 +14,7 @@ import type {
     FertilizerApplication,
     FertilizerParameterDescription,
 } from "./fertilizer.d"
+import { buildFieldTimeframeCondition } from "./field"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
 
@@ -878,6 +880,7 @@ export async function getFertilizerApplication(
 
         const result = await fdm
             .select({
+                b_id: schema.fertilizerApplication.b_id,
                 p_id: schema.fertilizerApplication.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_name_nl: schema.fertilizersCatalogue.p_name_nl,
@@ -943,6 +946,7 @@ export async function getFertilizerApplications(
 
         return await fdm
             .select({
+                b_id: schema.fertilizerApplication.b_id,
                 p_id: schema.fertilizerApplication.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_name_nl: schema.fertilizersCatalogue.p_name_nl,
@@ -990,6 +994,97 @@ export async function getFertilizerApplications(
         throw handleError(err, "Exception for getFertilizerApplications", {
             b_id,
         })
+    }
+}
+
+export async function getFertilizerApplicationsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.fieldAcquiringTypeInsert["b_id_farm"],
+    timeframe?: Timeframe,
+) {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getFertilizerApplicationsForFarm",
+        )
+
+        const apps: FertilizerApplication[] = await fdm
+            .select({
+                b_id: schema.fertilizerApplication.b_id,
+                p_id: schema.fertilizerApplication.p_id,
+                p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
+                p_name_nl: schema.fertilizersCatalogue.p_name_nl,
+                p_app_amount: schema.fertilizerApplication.p_app_amount,
+                p_app_method: schema.fertilizerApplication.p_app_method,
+                p_app_date: schema.fertilizerApplication.p_app_date,
+                p_app_id: schema.fertilizerApplication.p_app_id,
+            })
+            .from(schema.fertilizerApplication)
+            .leftJoin(
+                schema.fertilizerPicking,
+                eq(
+                    schema.fertilizerPicking.p_id,
+                    schema.fertilizerApplication.p_id,
+                ),
+            )
+            .leftJoin(
+                schema.fertilizersCatalogue,
+                eq(
+                    schema.fertilizersCatalogue.p_id_catalogue,
+                    schema.fertilizerPicking.p_id_catalogue,
+                ),
+            )
+            .leftJoin(
+                schema.fieldAcquiring,
+                eq(
+                    schema.fieldAcquiring.b_id,
+                    schema.fertilizerApplication.b_id,
+                ),
+            )
+            .leftJoin(
+                schema.fieldDiscarding,
+                eq(
+                    schema.fieldDiscarding.b_id,
+                    schema.fertilizerApplication.b_id,
+                ),
+            )
+            .where(
+                and(
+                    eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                    buildFieldTimeframeCondition(timeframe),
+                    timeframe?.start
+                        ? gte(
+                              schema.fertilizerApplication.p_app_date,
+                              timeframe.start,
+                          )
+                        : undefined,
+                    timeframe?.end
+                        ? lte(
+                              schema.fertilizerApplication.p_app_date,
+                              timeframe.end,
+                          )
+                        : undefined,
+                ),
+            )
+            .orderBy(
+                asc(schema.fertilizerApplication.b_id),
+                desc(schema.fertilizerApplication.p_app_date),
+            )
+
+        return splitBy(apps, (app) => app.b_id)
+    } catch (err) {
+        throw handleError(
+            err,
+            "Exception for getFertilizerApplicationsForFarm",
+            {
+                b_id_farm,
+            },
+        )
     }
 }
 

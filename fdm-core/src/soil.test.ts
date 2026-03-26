@@ -10,6 +10,7 @@ import {
     addSoilAnalysis,
     getCurrentSoilData,
     getSoilAnalyses,
+    getSoilAnalysesForFarm,
     getSoilAnalysis,
     getSoilParametersDescription,
     removeSoilAnalysis,
@@ -21,7 +22,9 @@ type Polygon = schema.fieldsTypeInsert["b_geometry"]
 
 describe("Soil Analysis Functions", () => {
     let fdm: FdmServerType
+    let b_id_farm: string
     let b_id: string
+    let b_id_2: string
     let test_a_id: string
     let principal_id: string
 
@@ -39,7 +42,7 @@ describe("Soil Analysis Functions", () => {
         const farmAddress = "123 Farm Lane"
         const farmPostalCode = "12345"
         principal_id = createId()
-        const b_id_farm = await addFarm(
+        b_id_farm = await addFarm(
             fdm,
             principal_id,
             farmName,
@@ -75,6 +78,34 @@ describe("Soil Analysis Functions", () => {
             AcquireDate,
             acquiringMethod,
             DiscardingDate,
+        )
+        const fieldName2 = "Test Field 2"
+        const fieldIDSource2 = "test-field-id-2"
+        const fieldGeometry2: Polygon = {
+            type: "Polygon",
+            coordinates: [
+                [
+                    [30, 10],
+                    [40, 40],
+                    [20, 40],
+                    [10, 20],
+                    [30, 10],
+                ],
+            ],
+        }
+        const AcquireDate2 = new Date("2023-01-01")
+        const DiscardingDate2 = new Date("2023-12-31")
+        const acquiringMethod2 = "nl_01"
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            fieldName2,
+            fieldIDSource2,
+            fieldGeometry2,
+            AcquireDate2,
+            acquiringMethod2,
+            DiscardingDate2,
         )
     })
 
@@ -498,6 +529,45 @@ describe("Soil Analysis Functions", () => {
         // Test with no timeframe
         const analyses6 = await getSoilAnalyses(fdm, principal_id, b_id)
         expect(analyses6).toHaveLength(4)
+    })
+
+    it("should get all soil analyses for a farm", async () => {
+        // Add soil analyses with different sampling dates
+        const a1 = await getSoilAnalysis(
+            fdm,
+            principal_id,
+            await addSoilAnalysis(
+                fdm,
+                principal_id,
+                new Date("2023-04-20"),
+                "other",
+                b_id,
+                15,
+                new Date("2023-04-20"),
+            ),
+        )
+        const a2 = await getSoilAnalysis(
+            fdm,
+            principal_id,
+            await addSoilAnalysis(
+                fdm,
+                principal_id,
+                new Date("2023-06-30"),
+                "other",
+                b_id_2,
+                25,
+                new Date("2023-06-30"),
+            ),
+        )
+        const allAnalyses = await getSoilAnalysesForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+        expect(allAnalyses).toEqual({
+            [b_id]: [a1],
+            [b_id_2]: [a2],
+        })
     })
 
     it("should get current soil data", async () => {

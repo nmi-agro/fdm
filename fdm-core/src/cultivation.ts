@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
+import { splitBy } from "./bulk"
 import type {
     Cultivation,
     CultivationCatalogue,
@@ -23,6 +24,7 @@ import type {
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
+import { buildFieldTimeframeCondition } from "./field"
 import {
     addHarvest,
     getDefaultsForHarvestParameters,
@@ -504,6 +506,28 @@ export async function addCultivation(
     }
 }
 
+function selectCultivations(fdm: FdmType) {
+    return fdm.select({
+        b_lu: schema.cultivations.b_lu,
+        b_lu_catalogue: schema.cultivationsCatalogue.b_lu_catalogue,
+        b_lu_source: schema.cultivationsCatalogue.b_lu_source,
+        b_lu_name: schema.cultivationsCatalogue.b_lu_name,
+        b_lu_name_en: schema.cultivationsCatalogue.b_lu_name_en,
+        b_lu_hcat3: schema.cultivationsCatalogue.b_lu_hcat3,
+        b_lu_hcat3_name: schema.cultivationsCatalogue.b_lu_hcat3_name,
+        b_lu_croprotation: schema.cultivationsCatalogue.b_lu_croprotation,
+        b_lu_eom: schema.cultivationsCatalogue.b_lu_eom,
+        b_lu_eom_residues: schema.cultivationsCatalogue.b_lu_eom_residue,
+        b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
+        b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
+        b_lu_variety: schema.cultivations.b_lu_variety,
+        b_lu_start: schema.cultivationStarting.b_lu_start,
+        b_lu_end: schema.cultivationEnding.b_lu_end,
+        m_cropresidue: schema.cultivationEnding.m_cropresidue,
+        b_id: schema.cultivationStarting.b_id,
+    })
+}
+
 /**
  * Retrieves details of a specific cultivation after verifying access permissions.
  *
@@ -531,27 +555,7 @@ export async function getCultivation(
         )
 
         // Get properties of the requested cultivation
-        const cultivation = await fdm
-            .select({
-                b_lu: schema.cultivations.b_lu,
-                b_lu_catalogue: schema.cultivationsCatalogue.b_lu_catalogue,
-                b_lu_source: schema.cultivationsCatalogue.b_lu_source,
-                b_lu_name: schema.cultivationsCatalogue.b_lu_name,
-                b_lu_name_en: schema.cultivationsCatalogue.b_lu_name_en,
-                b_lu_hcat3: schema.cultivationsCatalogue.b_lu_hcat3,
-                b_lu_hcat3_name: schema.cultivationsCatalogue.b_lu_hcat3_name,
-                b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
-                b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
-                b_lu_eom: schema.cultivationsCatalogue.b_lu_eom,
-                b_lu_eom_residue: schema.cultivationsCatalogue.b_lu_eom_residue,
-                b_lu_croprotation:
-                    schema.cultivationsCatalogue.b_lu_croprotation,
-                b_lu_variety: schema.cultivations.b_lu_variety,
-                b_lu_start: schema.cultivationStarting.b_lu_start,
-                b_lu_end: schema.cultivationEnding.b_lu_end,
-                m_cropresidue: schema.cultivationEnding.m_cropresidue,
-                b_id: schema.cultivationStarting.b_id,
-            })
+        const cultivation = await selectCultivations(fdm)
             .from(schema.cultivations)
             .leftJoin(
                 schema.cultivationStarting,
@@ -617,27 +621,7 @@ export async function getCultivations(
 
         const timeframeCondition = buildCultivationTimeframeCondition(timeframe)
 
-        const cultivations = await fdm
-            .select({
-                b_lu: schema.cultivations.b_lu,
-                b_lu_catalogue: schema.cultivationsCatalogue.b_lu_catalogue,
-                b_lu_source: schema.cultivationsCatalogue.b_lu_source,
-                b_lu_name: schema.cultivationsCatalogue.b_lu_name,
-                b_lu_name_en: schema.cultivationsCatalogue.b_lu_name_en,
-                b_lu_hcat3: schema.cultivationsCatalogue.b_lu_hcat3,
-                b_lu_hcat3_name: schema.cultivationsCatalogue.b_lu_hcat3_name,
-                b_lu_croprotation:
-                    schema.cultivationsCatalogue.b_lu_croprotation,
-                b_lu_eom: schema.cultivationsCatalogue.b_lu_eom,
-                b_lu_eom_residue: schema.cultivationsCatalogue.b_lu_eom_residue,
-                b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
-                b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
-                b_lu_variety: schema.cultivations.b_lu_variety,
-                b_lu_start: schema.cultivationStarting.b_lu_start,
-                b_lu_end: schema.cultivationEnding.b_lu_end,
-                m_cropresidue: schema.cultivationEnding.m_cropresidue,
-                b_id: schema.cultivationStarting.b_id,
-            })
+        const cultivations = await selectCultivations(fdm)
             .from(schema.cultivations)
             .leftJoin(
                 schema.cultivationStarting,
@@ -670,6 +654,69 @@ export async function getCultivations(
         return cultivations
     } catch (err) {
         throw handleError(err, "Exception for getCultivations", { b_id })
+    }
+}
+
+export async function getCultivationsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.fieldAcquiringTypeSelect["b_id_farm"],
+    timeframe?: Timeframe,
+) {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getCultivationsForFarm",
+        )
+
+        const cultivations: Cultivation[] = await selectCultivations(fdm)
+            .from(schema.cultivations)
+            .leftJoin(
+                schema.cultivationStarting,
+                eq(schema.cultivationStarting.b_lu, schema.cultivations.b_lu),
+            )
+            .leftJoin(
+                schema.cultivationEnding,
+                eq(schema.cultivationEnding.b_lu, schema.cultivations.b_lu),
+            )
+            .leftJoin(
+                schema.cultivationsCatalogue,
+                eq(
+                    schema.cultivations.b_lu_catalogue,
+                    schema.cultivationsCatalogue.b_lu_catalogue,
+                ),
+            )
+            .leftJoin(
+                schema.fieldAcquiring,
+                eq(schema.cultivationStarting.b_id, schema.fieldAcquiring.b_id),
+            )
+            .leftJoin(
+                schema.fieldDiscarding,
+                eq(
+                    schema.cultivationStarting.b_id,
+                    schema.fieldDiscarding.b_id,
+                ),
+            )
+            .where(
+                and(
+                    buildCultivationTimeframeCondition(timeframe),
+                    buildFieldTimeframeCondition(timeframe),
+                    eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                ),
+            )
+            .orderBy(
+                asc(schema.cultivationStarting.b_id),
+                desc(schema.cultivationStarting.b_lu_start),
+                asc(schema.cultivationsCatalogue.b_lu_name),
+            )
+
+        return splitBy(cultivations, (cultivation) => cultivation.b_id)
+    } catch (err) {
+        throw handleError(err, "Exception for getCultivations", { b_id_farm })
     }
 }
 

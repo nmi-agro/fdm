@@ -43,6 +43,7 @@ export interface SoilAnalysis {
     a_zn_cc: schema.soilAnalysisTypeSelect["a_zn_cc"]
     b_gwl_class: schema.soilAnalysisTypeSelect["b_gwl_class"]
     b_soiltype_agr: schema.soilAnalysisTypeSelect["b_soiltype_agr"]
+    b_id: schema.soilSamplingTypeSelect["b_id"]
     b_id_sampling: schema.soilSamplingTypeSelect["b_id_sampling"]
     b_depth: schema.soilSamplingTypeSelect["b_depth"]
     b_sampling_date: schema.soilSamplingTypeSelect["b_sampling_date"]

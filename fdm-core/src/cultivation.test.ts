@@ -10,6 +10,7 @@ import {
     getCultivation,
     getCultivationPlan,
     getCultivations,
+    getCultivationsForFarm,
     getCultivationsFromCatalogue,
     getDefaultDatesOfCultivation,
     removeCultivation,
@@ -34,6 +35,7 @@ describe("Cultivation Data Model", () => {
     let b_lu_catalogue: string
     let b_id_farm: string
     let b_id: string
+    let b_id_2: string
     let b_lu: string
     let b_lu_start: Date
     let principal_id: string
@@ -73,6 +75,29 @@ describe("Cultivation Data Model", () => {
                 coordinates: [
                     [
                         [30, 10],
+                        [40, 40],
+                        [20, 40],
+                        [10, 20],
+                        [30, 10],
+                    ],
+                ],
+            },
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "test field 2",
+            "test source",
+            {
+                type: "Polygon",
+                coordinates: [
+                    [
+                        [30, 20],
                         [40, 40],
                         [20, 40],
                         [10, 20],
@@ -383,6 +408,75 @@ describe("Cultivation Data Model", () => {
             )
             expect(cultivations3.length).toBe(3)
             expect(cultivations3[0].b_lu_start).toEqual(new Date("2024-05-01"))
+        })
+
+        it("should get cultivations on a farm", async () => {
+            const c1_1 = await getCultivation(fdm, principal_id, b_lu)
+            const c1_2 = await getCultivation(
+                fdm,
+                principal_id,
+                await addCultivation(
+                    fdm,
+                    principal_id,
+                    b_lu_catalogue,
+                    b_id,
+                    new Date("2023-05-01"),
+                    new Date("2023-06-01"),
+                ),
+            )
+            const c1_3 = await getCultivation(
+                fdm,
+                principal_id,
+                await addCultivation(
+                    fdm,
+                    principal_id,
+                    b_lu_catalogue,
+                    b_id,
+                    new Date("2024-05-01"),
+                    new Date("2024-06-01"),
+                ),
+            )
+            const c2_1 = await getCultivation(
+                fdm,
+                principal_id,
+                await addCultivation(
+                    fdm,
+                    principal_id,
+                    b_lu_catalogue,
+                    b_id_2,
+                    new Date("2024-07-01"),
+                ),
+            )
+            const c2_2 = await getCultivation(
+                fdm,
+                principal_id,
+                await addCultivation(
+                    fdm,
+                    principal_id,
+                    b_lu_catalogue,
+                    b_id_2,
+                    new Date("2025-05-01"),
+                    new Date("2025-06-01"),
+                ),
+            )
+
+            const allCultivations = await getCultivationsForFarm(
+                fdm,
+                principal_id,
+                b_id_farm,
+            )
+
+            const cultivations1 = allCultivations[b_id]
+            const cultivations2 = allCultivations[b_id_2]
+
+            expect(cultivations1).toHaveLength(3)
+            expect(cultivations2).toHaveLength(2)
+
+            expect(cultivations1).toContainEqual(c1_1)
+            expect(cultivations1).toContainEqual(c1_2)
+            expect(cultivations1).toContainEqual(c1_3)
+            expect(cultivations2).toContainEqual(c2_1)
+            expect(cultivations2).toContainEqual(c2_2)
         })
 
         it("should remove a cultivation", async () => {

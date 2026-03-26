@@ -8,7 +8,6 @@ import {
     isNull,
     lte,
     or,
-    type SQL,
     sql,
 } from "drizzle-orm"
 import { checkPermission } from "./authorization"
@@ -257,44 +256,6 @@ export async function getFields(
             "getFields",
         )
 
-        let whereClause: SQL | undefined
-
-        if (timeframe?.start && timeframe.end) {
-            whereClause = and(
-                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-                and(
-                    // Check if the acquiring date is within the timeframe
-                    lte(schema.fieldAcquiring.b_start, timeframe.end),
-                ),
-                // Check if there is a discarding date and if it is within the timeframe
-                or(
-                    isNull(schema.fieldDiscarding.b_end),
-                    and(
-                        isNotNull(schema.fieldDiscarding.b_end),
-                        gte(schema.fieldDiscarding.b_end, timeframe.start),
-                    ),
-                ),
-            )
-        } else if (timeframe?.start) {
-            whereClause = and(
-                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-                or(
-                    isNull(schema.fieldDiscarding.b_end),
-                    and(
-                        isNotNull(schema.fieldDiscarding.b_end),
-                        gte(schema.fieldDiscarding.b_end, timeframe.start),
-                    ),
-                ),
-            )
-        } else if (timeframe?.end) {
-            whereClause = and(
-                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-                lte(schema.fieldAcquiring.b_start, timeframe.end),
-            )
-        } else {
-            whereClause = eq(schema.fieldAcquiring.b_id_farm, b_id_farm)
-        }
-
         // Get properties of the requested field
         const fields = await fdm
             .select({
@@ -321,7 +282,12 @@ export async function getFields(
                 schema.fieldDiscarding,
                 eq(schema.fields.b_id, schema.fieldDiscarding.b_id),
             )
-            .where(whereClause)
+            .where(
+                and(
+                    eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                    buildFieldTimeframeCondition(timeframe),
+                ),
+            )
             .orderBy(desc(sql<number>`ST_Area(b_geometry::geography)`))
 
         // Process the centroids into a tuple
@@ -715,4 +681,35 @@ export function determineIfFieldIsBuffer(
     const bufferAssumedByName = (b_name ?? "").toLowerCase().includes("buffer")
 
     return bufferAssumedByShape || bufferAssumedByName
+}
+
+export function buildFieldTimeframeCondition(timeframe: Timeframe | undefined) {
+    if (timeframe?.start && timeframe.end) {
+        return and(
+            and(
+                // Check if the acquiring date is within the timeframe
+                lte(schema.fieldAcquiring.b_start, timeframe.end),
+            ),
+            // Check if there is a discarding date and if it is within the timeframe
+            or(
+                isNull(schema.fieldDiscarding.b_end),
+                and(
+                    isNotNull(schema.fieldDiscarding.b_end),
+                    gte(schema.fieldDiscarding.b_end, timeframe.start),
+                ),
+            ),
+        )
+    }
+    if (timeframe?.start) {
+        return or(
+            isNull(schema.fieldDiscarding.b_end),
+            and(
+                isNotNull(schema.fieldDiscarding.b_end),
+                gte(schema.fieldDiscarding.b_end, timeframe.start),
+            ),
+        )
+    }
+    if (timeframe?.end) {
+        return lte(schema.fieldAcquiring.b_start, timeframe.end)
+    }
 }

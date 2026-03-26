@@ -21,6 +21,7 @@ import {
     getFertilizer,
     getFertilizerApplication,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizerParametersDescription,
     getFertilizers,
     getFertilizersFromCatalogue,
@@ -805,6 +806,7 @@ describe("Fertilizer Data Model", () => {
 
     describe("Fertilizer Application", () => {
         let b_id: string
+        let b_id_2: string
         let p_id: string
 
         beforeAll(async () => {
@@ -842,6 +844,29 @@ describe("Fertilizer Data Model", () => {
                 new Date("2023-01-01"),
                 "nl_01",
                 new Date("2024-01-01"),
+            )
+
+            b_id_2 = await addField(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "test field 2",
+                "test source",
+                {
+                    type: "Polygon",
+                    coordinates: [
+                        [
+                            [30, 10],
+                            [40, 50],
+                            [20, 40],
+                            [10, 20],
+                            [40, 10],
+                        ],
+                    ],
+                },
+                new Date("2024-01-01"),
+                "nl_01",
+                new Date("2024-12-31"),
             )
 
             // Add fertilizer to catalogue
@@ -1095,6 +1120,128 @@ describe("Fertilizer Data Model", () => {
                     timeframe.end.getTime(),
                 )
             })
+        })
+
+        it("should get fertilizer applications for a farm within a timeframe", async () => {
+            // Unlike the rest of the tests these can't be shared with other tests here
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Fertilizer Application Farm",
+                "123456",
+                "Heat Point 5",
+                "1234XY",
+            )
+
+            await enableFertilizerCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                b_id_farm,
+            )
+
+            const b_id = await addField(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "test field",
+                "test source",
+                {
+                    type: "Polygon",
+                    coordinates: [
+                        [
+                            [30, 10],
+                            [40, 40],
+                            [20, 40],
+                            [10, 20],
+                            [30, 10],
+                        ],
+                    ],
+                },
+                new Date("2023-01-01"),
+                "nl_01",
+                new Date("2024-01-01"),
+            )
+
+            const b_id_2 = await addField(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "test field 2",
+                "test source",
+                {
+                    type: "Polygon",
+                    coordinates: [
+                        [
+                            [30, 10],
+                            [40, 50],
+                            [20, 40],
+                            [10, 20],
+                            [40, 10],
+                        ],
+                    ],
+                },
+                new Date("2024-01-01"),
+                "nl_01",
+                new Date("2024-12-31"),
+            )
+
+            await getFertilizerApplication(
+                fdm,
+                principal_id,
+                await addFertilizerApplication(
+                    fdm,
+                    principal_id,
+                    b_id,
+                    p_id,
+                    100,
+                    "broadcasting",
+                    new Date("2024-03-15"),
+                ),
+            )
+            const app2_1 = await getFertilizerApplication(
+                fdm,
+                principal_id,
+                await addFertilizerApplication(
+                    fdm,
+                    principal_id,
+                    b_id_2,
+                    p_id,
+                    150,
+                    "injection",
+                    new Date("2024-04-18"),
+                ),
+            )
+            await getFertilizerApplication(
+                fdm,
+                principal_id,
+                await addFertilizerApplication(
+                    fdm,
+                    principal_id,
+                    b_id_2,
+                    p_id,
+                    200,
+                    "injection",
+                    new Date("2024-05-20"),
+                ),
+            )
+
+            const timeframe = {
+                start: new Date("2024-04-01"),
+                end: new Date("2024-05-01"),
+            }
+            const fertilizerApplications =
+                await getFertilizerApplicationsForFarm(
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                    timeframe,
+                )
+            const apps1 = fertilizerApplications[b_id]
+            const apps2 = fertilizerApplications[b_id_2]
+
+            expect(apps1).toBeUndefined()
+            expect(apps2).toEqual([app2_1])
         })
 
         it("should return an empty array if no fertilizer applications are found within a timeframe", async () => {

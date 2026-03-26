@@ -61,6 +61,7 @@ export interface Fertilizer {
 type FertilizerType = "manure" | "mineral" | "compost"
 
 export interface FertilizerApplication {
+    b_id: string
     p_id: string
     p_id_catalogue: string
     p_name_nl: string | null

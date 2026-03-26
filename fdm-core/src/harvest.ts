@@ -4,18 +4,20 @@
 // The current join structure is: cultivations (1) => cultivation_harvesting (M) => harvestables (1) => harvestable_sampling (1) => harvestable_analyses (1)
 
 import { Decimal } from "decimal.js"
-import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
+import { splitBy } from "./bulk"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
+import { convertHarvestParameters } from "./harvest-conversion"
 import type {
     Harvest,
+    HarvestableAnalysis,
     HarvestParameters,
     HarvestParametersDefault,
 } from "./harvest.d"
-import { convertHarvestParameters } from "./harvest-conversion"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
 
@@ -336,6 +338,139 @@ export async function getHarvests(
         return result
     } catch (err) {
         throw handleError(err, "Exception for getHarvests", { b_lu })
+    }
+}
+
+export async function getHarvestsForCultivations(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    cultivationIds: schema.cultivationHarvestingTypeSelect["b_lu"][],
+    timeframe?: Timeframe,
+) {
+    try {
+        await Promise.all(
+            cultivationIds.map((b_lu) =>
+                checkPermission(
+                    fdm,
+                    "cultivation",
+                    "read",
+                    b_lu,
+                    principal_id,
+                    "getHarvests",
+                ),
+            ),
+        )
+
+        const whereClause = and(
+            inArray(schema.cultivationHarvesting.b_lu, cultivationIds),
+            timeframe?.start
+                ? gte(
+                      schema.cultivationHarvesting.b_lu_harvest_date,
+                      timeframe.start,
+                  )
+                : undefined,
+            timeframe?.end
+                ? lte(
+                      schema.cultivationHarvesting.b_lu_harvest_date,
+                      timeframe.end,
+                  )
+                : undefined,
+        )
+
+        const harvests: (Pick<
+            Harvest,
+            "b_id_harvesting" | "b_lu_harvest_date" | "b_lu"
+        > & { b_id_harvestable: string })[] = await fdm
+            .select({
+                b_id_harvestable: schema.cultivationHarvesting.b_id_harvestable,
+                b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
+                b_lu_harvest_date:
+                    schema.cultivationHarvesting.b_lu_harvest_date,
+                b_lu: schema.cultivationHarvesting.b_lu,
+            })
+            .from(schema.cultivationHarvesting)
+            .where(whereClause)
+            .orderBy(
+                asc(schema.cultivationHarvesting.b_lu),
+                desc(schema.cultivationHarvesting.b_lu_harvest_date),
+            )
+
+        // Get properties of harvestable analyses for this harvesting
+        // `selectDistinctOn` ensures that only one of the harvestable analyses is selected
+        // The schema already maps one harvestable to a harvesting
+        const harvestableAnalyses: (HarvestableAnalysis & {
+            b_id_harvesting: string
+        })[] = await fdm
+            .selectDistinctOn([schema.cultivationHarvesting.b_id_harvesting], {
+                b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
+                b_id_harvestable_analysis:
+                    schema.harvestableAnalyses.b_id_harvestable_analysis,
+                b_lu_yield: schema.harvestableAnalyses.b_lu_yield,
+                b_lu_yield_fresh: schema.harvestableAnalyses.b_lu_yield_fresh,
+                b_lu_yield_bruto: schema.harvestableAnalyses.b_lu_yield_bruto,
+                b_lu_tarra: schema.harvestableAnalyses.b_lu_tarra,
+                b_lu_dm: schema.harvestableAnalyses.b_lu_dm,
+                b_lu_moist: schema.harvestableAnalyses.b_lu_moist,
+                b_lu_uww: schema.harvestableAnalyses.b_lu_uww,
+                b_lu_cp: schema.harvestableAnalyses.b_lu_cp,
+                b_lu_n_harvestable:
+                    schema.harvestableAnalyses.b_lu_n_harvestable,
+                b_lu_n_residue: schema.harvestableAnalyses.b_lu_n_residue,
+                b_lu_p_harvestable:
+                    schema.harvestableAnalyses.b_lu_p_harvestable,
+                b_lu_p_residue: schema.harvestableAnalyses.b_lu_p_residue,
+                b_lu_k_harvestable:
+                    schema.harvestableAnalyses.b_lu_k_harvestable,
+                b_lu_k_residue: schema.harvestableAnalyses.b_lu_k_residue,
+            })
+            .from(schema.harvestables)
+            .leftJoin(
+                schema.harvestableSampling,
+                eq(
+                    schema.harvestables.b_id_harvestable,
+                    schema.harvestableSampling.b_id_harvestable,
+                ),
+            )
+            .leftJoin(
+                schema.harvestableAnalyses,
+                eq(
+                    schema.harvestableSampling.b_id_harvestable_analysis,
+                    schema.harvestableAnalyses.b_id_harvestable_analysis,
+                ),
+            )
+            .leftJoin(
+                schema.cultivationHarvesting,
+                eq(
+                    schema.harvestableSampling.b_id_harvestable,
+                    schema.cultivationHarvesting.b_id_harvestable,
+                ),
+            )
+            .where(whereClause)
+
+        const harvestableAnalysesMap = new Map()
+        for (const analysis of harvestableAnalyses) {
+            harvestableAnalysesMap.set(analysis.b_id_harvesting, analysis)
+        }
+
+        // Get details of each harvest
+        const result: Harvest[] = harvests.map((harvest) => {
+            const analysis = harvestableAnalysesMap.get(harvest.b_id_harvesting)
+            return {
+                b_id_harvesting: harvest.b_id_harvesting,
+                b_lu_harvest_date: harvest.b_lu_harvest_date,
+                b_lu: harvest.b_lu,
+                harvestable: {
+                    b_id_harvestable: harvest.b_id_harvestable,
+                    harvestable_analyses: analysis ? [analysis] : [],
+                },
+            }
+        })
+
+        return splitBy(result, (harvesting) => harvesting.b_lu)
+    } catch (err) {
+        throw handleError(err, "Exception for getHarvestsForFarm", {
+            cultivationIds,
+        })
     }
 }
 
