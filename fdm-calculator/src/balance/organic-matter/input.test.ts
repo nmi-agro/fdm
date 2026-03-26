@@ -1,24 +1,34 @@
 import * as fdmCore from "@nmi-agro/fdm-core"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { collectInputForOrganicMatterBalance } from "./input"
+import type { OrganicMatterBalanceInput } from "./types"
+
+function mockedFdmCore() {
+    return [
+        "getFields",
+        "getField",
+        "getCultivationsForFarm",
+        "getHarvests",
+        "getHarvestsForCultivations",
+        "getSoilAnalyses",
+        "getCultivations",
+        "getSoilAnalysesForFarm",
+        "getFertilizerApplications",
+        "getFertilizerApplicationsForFarm",
+        "getFertilizers",
+        "getCultivationsFromCatalogue",
+    ] as const
+}
 
 vi.mock("@nmi-agro/fdm-core", async () => {
     const original = await vi.importActual("@nmi-agro/fdm-core")
-    return {
-        ...original,
-        getFields: vi.fn(),
-        getField: vi.fn(),
-        getCultivations: vi.fn(),
-        getCultivationsForFarm: vi.fn(),
-        getHarvests: vi.fn(),
-        getHarvestsForCultivations: vi.fn(),
-        getSoilAnalyses: vi.fn(),
-        getSoilAnalysesForFarm: vi.fn(),
-        getFertilizerApplications: vi.fn(),
-        getFertilizerApplicationsForFarm: vi.fn(),
-        getFertilizers: vi.fn(),
-        getCultivationsFromCatalogue: vi.fn(),
-    }
+    return mockedFdmCore().reduce(
+        (acc, name) => {
+            acc[name] = vi.fn()
+            return acc
+        },
+        { ...original },
+    )
 })
 
 describe("collectInputForOrganicMatterBalance", () => {
@@ -31,6 +41,12 @@ describe("collectInputForOrganicMatterBalance", () => {
         start: new Date("2023-01-01"),
         end: new Date("2023-12-31"),
     }
+
+    beforeEach(() =>
+        mockedFdmCore().forEach((name) => {
+            vi.spyOn(fdmCore, name).mockReset()
+        }),
+    )
 
     it("should collect input for all fields in a farm", async () => {
         const mockFields = [{ b_id: "field1" }, { b_id: "field2" }]
@@ -101,6 +117,49 @@ describe("collectInputForOrganicMatterBalance", () => {
                 "non-existent-field",
             ),
         ).rejects.toThrow("Field not found: non-existent-field")
+    })
+
+    it("should handle empty arrays from core functions correctly", async () => {
+        vi.spyOn(fdmCore, "getFields").mockResolvedValue([])
+        vi.spyOn(fdmCore, "getFertilizers").mockResolvedValue([])
+        vi.spyOn(fdmCore, "getCultivationsFromCatalogue").mockResolvedValue([])
+
+        const result = await collectInputForOrganicMatterBalance(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+
+        const expectedResult: OrganicMatterBalanceInput = {
+            fields: [],
+            fertilizerDetails: [],
+            cultivationDetails: [],
+            timeFrame: timeframe,
+        }
+
+        expect(result).toEqual(expectedResult)
+        expect(fdmCore.getFields).toHaveBeenCalledWith(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+        expect(fdmCore.getFertilizers).toHaveBeenCalledWith(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+        )
+        expect(fdmCore.getCultivationsFromCatalogue).toHaveBeenCalledWith(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+        )
+        // Ensure other calls that depend on fields are not made
+        expect(fdmCore.getCultivationsForFarm).not.toHaveBeenCalled()
+        expect(fdmCore.getHarvestsForCultivations).not.toHaveBeenCalled()
+        expect(fdmCore.getSoilAnalysesForFarm).not.toHaveBeenCalled()
+        expect(fdmCore.getFertilizerApplicationsForFarm).not.toHaveBeenCalled()
     })
 
     it("should correctly structure the output", async () => {

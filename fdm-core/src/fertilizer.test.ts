@@ -1,12 +1,4 @@
-import {
-    afterAll,
-    beforeAll,
-    beforeEach,
-    describe,
-    expect,
-    inject,
-    it,
-} from "vitest"
+import { afterAll, beforeEach, describe, expect, inject, it } from "vitest"
 import {
     disableFertilizerCatalogue,
     enableFertilizerCatalogue,
@@ -805,21 +797,30 @@ describe("Fertilizer Data Model", () => {
     })
 
     describe("Fertilizer Application", () => {
+        let b_id_farm: string
         let b_id: string
+        let b_id_2: string
         let p_id: string
 
-        beforeAll(async () => {
+        beforeEach(async () => {
             const farmName = "Test Farm"
             const farmBusinessId = "123456"
             const farmAddress = "123 Farm Lane"
             const farmPostalCode = "12345"
-            const b_id_farm = await addFarm(
+            b_id_farm = await addFarm(
                 fdm,
                 principal_id,
                 farmName,
                 farmBusinessId,
                 farmAddress,
                 farmPostalCode,
+            )
+
+            await enableFertilizerCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                b_id_farm,
             )
 
             b_id = await addField(
@@ -843,6 +844,29 @@ describe("Fertilizer Data Model", () => {
                 new Date("2023-01-01"),
                 "nl_01",
                 new Date("2024-01-01"),
+            )
+
+            b_id_2 = await addField(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "test field 2",
+                "test source",
+                {
+                    type: "Polygon",
+                    coordinates: [
+                        [
+                            [30, 10],
+                            [40, 50],
+                            [20, 40],
+                            [10, 20],
+                            [40, 10],
+                        ],
+                    ],
+                },
+                new Date("2024-01-01"),
+                "nl_01",
+                new Date("2024-12-31"),
             )
 
             // Add fertilizer to catalogue
@@ -1098,72 +1122,47 @@ describe("Fertilizer Data Model", () => {
             })
         })
 
+        it("should get fertilizer applications for a farm", async () => {
+            const app1_1 = await getFertilizerApplication(
+                fdm,
+                principal_id,
+                await addFertilizerApplication(
+                    fdm,
+                    principal_id,
+                    b_id,
+                    p_id,
+                    100,
+                    "broadcasting",
+                    new Date("2024-03-15"),
+                ),
+            )
+            const app2_1 = await getFertilizerApplication(
+                fdm,
+                principal_id,
+                await addFertilizerApplication(
+                    fdm,
+                    principal_id,
+                    b_id_2,
+                    p_id,
+                    150,
+                    "injection",
+                    new Date("2024-04-18"),
+                ),
+            )
+            const fertilizerApplications =
+                await getFertilizerApplicationsForFarm(
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                )
+            const apps1 = fertilizerApplications[b_id]
+            const apps2 = fertilizerApplications[b_id_2]
+
+            expect(apps1).toEqual([app1_1])
+            expect(apps2).toEqual([app2_1])
+        })
+
         it("should get fertilizer applications for a farm within a timeframe", async () => {
-            // Unlike in the other tests, the data can't be shared with other tests here.
-            // Values of farm and field IDs must be certain
-            // Could also be moved into the beforeEach block of "Fertilizer Application"
-            const b_id_farm = await addFarm(
-                fdm,
-                principal_id,
-                "Test Fertilizer Application Farm",
-                "123456",
-                "Heat Point 5",
-                "1234XY",
-            )
-
-            await enableFertilizerCatalogue(
-                fdm,
-                principal_id,
-                b_id_farm,
-                b_id_farm,
-            )
-
-            const b_id = await addField(
-                fdm,
-                principal_id,
-                b_id_farm,
-                "test field",
-                "test source",
-                {
-                    type: "Polygon",
-                    coordinates: [
-                        [
-                            [30, 10],
-                            [40, 40],
-                            [20, 40],
-                            [10, 20],
-                            [30, 10],
-                        ],
-                    ],
-                },
-                new Date("2023-01-01"),
-                "nl_01",
-                new Date("2024-01-01"),
-            )
-
-            const b_id_2 = await addField(
-                fdm,
-                principal_id,
-                b_id_farm,
-                "test field 2",
-                "test source",
-                {
-                    type: "Polygon",
-                    coordinates: [
-                        [
-                            [30, 10],
-                            [40, 50],
-                            [20, 40],
-                            [10, 20],
-                            [40, 10],
-                        ],
-                    ],
-                },
-                new Date("2024-01-01"),
-                "nl_01",
-                new Date("2024-12-31"),
-            )
-
             await getFertilizerApplication(
                 fdm,
                 principal_id,

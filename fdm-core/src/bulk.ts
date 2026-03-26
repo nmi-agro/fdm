@@ -8,6 +8,11 @@ export function splitBy<T>(
         let end = 0
         while (end < items.length) {
             const currentKey = fn(items[start])
+            if (result[currentKey]) {
+                throw new Error(
+                    `Key "${currentKey}" has been encountered twice`,
+                )
+            }
             for (; end < items.length; end++) {
                 if (fn(items[end]) !== currentKey) break
             }

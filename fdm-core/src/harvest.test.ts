@@ -247,9 +247,82 @@ describe("Harvest Data Model", () => {
             b_id_harvesting: b_id_harvesting,
             b_lu_harvest_date: new Date("2024-07-01"),
             b_lu: b_lu,
-            harvestable: {
-                ...harvests1[0].harvestable,
+            harvestable: harvests1[0].harvestable,
+        })
+    })
+
+    it("should retrieve harvests for a given timeframe by cultivation IDs", async () => {
+        const timeframe = {
+            start: new Date("2024-07-01"),
+            end: new Date("2024-07-31"),
+        }
+
+        const b_lu_2 = await addCultivation(
+            fdm,
+            principal_id,
+            `${b_lu_catalogue}-multiple`,
+            b_id,
+            b_lu_start,
+        )
+
+        b_id_harvesting = await addHarvest(
+            fdm,
+            principal_id,
+            b_lu,
+            new Date("2024-07-15"),
+            {
+                b_lu_yield_fresh: 10000,
+                b_lu_moist: 15,
+                b_lu_cp: 110,
             },
+        )
+
+        await addHarvest(fdm, principal_id, b_lu_2, new Date("2024-08-15"), {
+            b_lu_yield_bruto: 3500,
+            b_lu_tarra: 1500,
+            b_lu_uww: 20,
+            b_lu_n_harvestable: 120,
+        })
+
+        const b_id_harvesting_2_2 = await addHarvest(
+            fdm,
+            principal_id,
+            b_lu_2,
+            new Date("2024-07-15"),
+            {
+                b_lu_yield_bruto: 3000,
+                b_lu_tarra: 2500,
+                b_lu_uww: 30,
+                b_lu_n_harvestable: 110,
+            },
+        )
+
+        const harvestings = await getHarvestsForCultivations(
+            fdm,
+            principal_id,
+            [b_lu, b_lu_2],
+            timeframe,
+        )
+
+        // Verify the shape of the result at least
+        const harvests1 = harvestings[b_lu]
+        const harvests2 = harvestings[b_lu_2]
+
+        expect(harvests1).toHaveLength(1)
+        expect(harvests2).toHaveLength(1)
+
+        expect(harvests1[0]).toEqual({
+            b_id_harvesting: b_id_harvesting,
+            b_lu_harvest_date: new Date("2024-07-15"),
+            b_lu: b_lu,
+            harvestable: harvests1[0].harvestable,
+        })
+
+        expect(harvests2[0]).toEqual({
+            b_id_harvesting: b_id_harvesting_2_2,
+            b_lu_harvest_date: new Date("2024-07-15"),
+            b_lu: b_lu_2,
+            harvestable: harvests2[0].harvestable,
         })
     })
 

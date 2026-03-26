@@ -570,6 +570,49 @@ describe("Soil Analysis Functions", () => {
         })
     })
 
+    it("should get all soil analyses for a farm", async () => {
+        const timeframe = {
+            start: new Date("2023-06-01"),
+            end: new Date("2023-07-01"),
+        }
+        // Add soil analyses with different sampling dates
+        const a1 = await getSoilAnalysis(
+            fdm,
+            principal_id,
+            await addSoilAnalysis(
+                fdm,
+                principal_id,
+                new Date("2023-04-20"),
+                "other",
+                b_id,
+                15,
+                new Date("2023-04-20"),
+            ),
+        ) //
+        const a2 = await getSoilAnalysis(
+            fdm,
+            principal_id,
+            await addSoilAnalysis(
+                fdm,
+                principal_id,
+                new Date("2023-06-30"),
+                "other",
+                b_id_2,
+                25,
+                new Date("2023-06-30"),
+            ),
+        )
+        const allAnalyses = await getSoilAnalysesForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+        expect(allAnalyses).toEqual({
+            [b_id_2]: [a2],
+        })
+    })
+
     it("should get current soil data", async () => {
         const a_date_old = new Date("2024-01-02T00:00:00Z")
         const a_source = "other"

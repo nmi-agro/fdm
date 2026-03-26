@@ -352,7 +352,7 @@ describe("collectInputForNitrogenBalance", () => {
                 b_lu_hcat3_name: "Hcat3 Name",
                 b_lu_croprotation: "maize",
                 b_lu_eom: 1,
-                b_lu_eom_residues: 1,
+                b_lu_eom_residue: 1,
                 b_lu_harvestcat: "HC010",
                 b_lu_harvestable: "once",
                 b_lu_variety: "variety",
