@@ -13,7 +13,7 @@ export function GerritFeedback({ traceId }: { traceId: string }) {
     return (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
             <p className="text-sm font-medium text-foreground">
-                Was dit plan van Gerrit behulpzaam?
+                Is dit bemestingsplan van Gerrit behulpzaam?
             </p>
             <div className="flex gap-2" ref={triggerRef}>
                 <Button

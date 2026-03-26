@@ -1121,6 +1121,7 @@ export default function GerritApp() {
                                     onEditStrategy={() =>
                                         setShowStrategyForm(true)
                                     }
+                                    traceId={`gerrit-${farm.b_id_farm}-${calendar}`}
                                 />
                             )}
                         </div>
@@ -1136,9 +1137,6 @@ export default function GerritApp() {
                                         isSaving={isSaving}
                                         expandedRows={expandedRows}
                                         toggleRow={toggleRow}
-                                    />
-                                    <GerritFeedback
-                                        traceId={`gerrit-${farm.b_id_farm}-${calendar}`}
                                     />
                                 </>
                             ) : (
