@@ -97,8 +97,8 @@ export {
     getFertilizerApplications,
     getFertilizerParametersDescription,
     getFertilizers,
-    getFertilizersOfFarms,
     getFertilizersFromCatalogue,
+    getFertilizersFromCatalogueForFarms,
     removeFertilizer,
     removeFertilizerApplication,
     updateFertilizerApplication,
@@ -107,6 +107,7 @@ export {
 export type {
     Fertilizer,
     FertilizerApplication,
+    FertilizerCatalogue,
     FertilizerParameterDescription,
     FertilizerParameterDescriptionItem,
     FertilizerParameters,

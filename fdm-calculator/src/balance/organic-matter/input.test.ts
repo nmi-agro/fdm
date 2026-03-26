@@ -2,8 +2,8 @@ import type {
     Cultivation,
     CultivationCatalogue,
     FdmType,
-    Fertilizer,
     FertilizerApplication,
+    FertilizerCatalogue,
     Field,
     PrincipalId,
     SoilAnalysis,
@@ -26,7 +26,7 @@ vi.mock("@nmi-agro/fdm-core", async () => {
         getHarvests: vi.fn(),
         getSoilAnalyses: vi.fn(),
         getFertilizerApplications: vi.fn(),
-        getFertilizersOfFarms: vi.fn(),
+        getFertilizersFromCatalogueForFarms: vi.fn(),
         getCultivationsOfFarmsFromCatalogue: vi.fn(),
     }
 })
@@ -126,28 +126,28 @@ function createMockData() {
         mockFertilizerApplicationsData: [
             {
                 p_app_id: "fa-1",
-                p_id_catalogue: "fert-1",
+                p_id_catalogue: "fert-cat-1",
                 p_name_nl: "test-product",
                 p_app_amount: 100,
                 p_app_method: "broadcasting", // match one of ApplicationMethods
                 p_app_date: new Date(),
-                p_id: "fert-cat-1",
+                p_id: "fert-1",
             },
         ] as FertilizerApplication[],
         mockFertilizerApplicationsData2: [
             {
                 p_app_id: "fa-2",
-                p_id_catalogue: "fert-2",
+                p_id_catalogue: "fert-cat-2",
                 p_name_nl: "test-product",
                 p_app_amount: 100,
                 p_app_method: "broadcasting", // match one of ApplicationMethods
                 p_app_date: new Date(),
-                p_id: "fert-cat-2",
+                p_id: "fert-2",
             },
         ] as FertilizerApplication[],
         mockFertilizerDetailsData: [
             {
-                p_id: "fert-cat-1",
+                p_id_catalogue: "fert-cat-1",
                 p_n_rt: 5,
                 p_type: "manure",
                 p_no3_rt: 1,
@@ -155,10 +155,10 @@ function createMockData() {
                 p_s_rt: 0,
                 p_ef_nh3: 0.1,
             },
-        ] as Fertilizer[],
+        ] as FertilizerCatalogue[],
         mockFertilizerDetailsData2: [
             {
-                p_id: "fert-cat-2",
+                p_id_catalogue: "fert-cat-2",
                 p_n_rt: 5,
                 p_type: "manure",
                 p_no3_rt: 1,
@@ -166,7 +166,7 @@ function createMockData() {
                 p_s_rt: 0,
                 p_ef_nh3: 0.1,
             },
-        ] as Fertilizer[],
+        ] as FertilizerCatalogue[],
         mockCultivationDetailsData: [
             {
                 b_lu_catalogue: "cat-cult-1",
@@ -220,7 +220,10 @@ describe("collectInputForOrganicMatterBalance", () => {
         vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue(
             mockFertilizerApplicationsData,
         )
-        vi.spyOn(fdmCore, "getFertilizersOfFarms").mockResolvedValue({
+        vi.spyOn(
+            fdmCore,
+            "getFertilizersFromCatalogueForFarms",
+        ).mockResolvedValue({
             [b_id_farm]: mockFertilizerDetailsData,
         })
         vi.spyOn(
@@ -293,12 +296,15 @@ describe("collectInputForOrganicMatterBalance", () => {
     it("should correctly structure the output", async () => {
         const mockField = { b_id: "field1" }
         const mockCultivation = { b_lu: "cult1" }
-        const mockFertilizer = { p_id: "fert1", p_id_catalogue: "fert1" }
+        const mockFertilizer = { p_id: "fert-1", p_id_catalogue: "fert-cat-1" }
         vi.spyOn(fdmCore, "getFields").mockResolvedValue([mockField] as any)
         vi.spyOn(fdmCore, "getCultivations").mockResolvedValue([
             mockCultivation,
         ] as any)
-        vi.spyOn(fdmCore, "getFertilizersOfFarms").mockResolvedValue({
+        vi.spyOn(
+            fdmCore,
+            "getFertilizersFromCatalogueForFarms",
+        ).mockResolvedValue({
             [b_id_farm]: [mockFertilizer],
         } as any)
         vi.spyOn(
@@ -308,7 +314,7 @@ describe("collectInputForOrganicMatterBalance", () => {
         vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
         vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
         vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([
-            { p_id: "fert1" } as any,
+            { p_id_catalogue: "fert-cat-1" } as any,
         ])
 
         const result = await collectInputForOrganicMatterBalance(
@@ -322,7 +328,7 @@ describe("collectInputForOrganicMatterBalance", () => {
         expect(result).toHaveProperty("fertilizerDetails")
         expect(result).toHaveProperty("cultivationDetails")
         expect(result).toHaveProperty("timeFrame")
-        expect(result.fertilizerDetails[0].p_id_catalogue).toBe("fert1")
+        expect(result.fertilizerDetails[0].p_id_catalogue).toBe("fert-cat-1")
     })
 })
 
@@ -397,9 +403,10 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
             "test-farm-id": fertData1,
             "test-farm-id-2": fertData2,
         }
-        vi.spyOn(fdmCore, "getFertilizersOfFarms").mockResolvedValue(
-            allFertilizerDetails,
-        )
+        vi.spyOn(
+            fdmCore,
+            "getFertilizersFromCatalogueForFarms",
+        ).mockResolvedValue(allFertilizerDetails)
         const combinedCultivationDetails = [
             ...mockCultivationDetailsData,
             ...mockCultivationDetailsData2,
@@ -473,11 +480,14 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
         expect(
             fdmCore.getCultivationsOfFarmsFromCatalogue,
         ).toHaveBeenCalledTimes(1)
-        expect(fdmCore.getFertilizersOfFarms).toHaveBeenCalledWith(
-            mockFdm,
-            principal_id,
-            ["test-farm-id", "test-farm-id-2"],
-        )
-        expect(fdmCore.getFertilizersOfFarms).toHaveBeenCalledTimes(1)
+        expect(
+            fdmCore.getFertilizersFromCatalogueForFarms,
+        ).toHaveBeenCalledWith(mockFdm, principal_id, [
+            "test-farm-id",
+            "test-farm-id-2",
+        ])
+        expect(
+            fdmCore.getFertilizersFromCatalogueForFarms,
+        ).toHaveBeenCalledTimes(1)
     })
 })

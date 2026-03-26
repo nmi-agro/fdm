@@ -1,17 +1,13 @@
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import type * as schema from "./db/schema"
 
-export interface Fertilizer {
-    p_id: string
+export interface FertilizerCatalogue {
     p_id_catalogue: string
     p_source: string
     p_name_nl: string | null
     p_name_en: string | null
     p_description: string | null
     p_app_method_options: ApplicationMethods[] | null
-    p_app_amount: number | null
-    p_date_acquiring: Date | null
-    p_picking_date: Date | null
     p_dm: number | null
     p_density: number | null
     p_om: number | null
@@ -57,7 +53,16 @@ export interface Fertilizer {
     p_ef_nh3: number | null
     p_type: FertilizerType | null
     p_type_rvo: schema.fertilizersCatalogueTypeSelect["p_type_rvo"]
+    hash?: string | null
 }
+
+export interface Fertilizer extends FertilizerCatalogue {
+    p_id: string
+    p_date_acquiring: Date | null
+    p_picking_date: Date | null
+    p_app_amount: number | null
+}
+
 type FertilizerType = "manure" | "mineral" | "compost"
 
 export interface FertilizerApplication {

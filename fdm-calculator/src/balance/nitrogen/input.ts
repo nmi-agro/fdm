@@ -8,7 +8,7 @@ import {
     getCultivations,
     getCultivationsOfFarmsFromCatalogue,
     getFertilizerApplications,
-    getFertilizersOfFarms,
+    getFertilizersFromCatalogueForFarms,
     getField,
     getFields,
     getHarvests,
@@ -176,7 +176,7 @@ export async function collectInputForNitrogenBalanceForFarms(
                     principal_id,
                     farmIds,
                 )
-            const fertilizerDetails = await getFertilizersOfFarms(
+            const fertilizerDetails = await getFertilizersFromCatalogueForFarms(
                 tx,
                 principal_id,
                 farmIds,
@@ -210,13 +210,14 @@ export async function collectInputForNitrogenBalanceForFarms(
                         const fertilizerIds = new Set(
                             onlyFieldInput.flatMap((input) =>
                                 input.fertilizerApplications.map(
-                                    (app) => app.p_id,
+                                    (app) => app.p_id_catalogue,
                                 ),
                             ),
                         )
+
                         const fertilizerDetailsForThisFarm =
                             fertilizerDetails[b_id_farm]?.filter((fert) =>
-                                fertilizerIds.has(fert.p_id),
+                                fertilizerIds.has(fert.p_id_catalogue),
                             ) ?? []
 
                         return {

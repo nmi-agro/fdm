@@ -11,6 +11,7 @@ import {
     disableFertilizerCatalogue,
     enableFertilizerCatalogue,
 } from "./catalogues"
+import * as schema from "./db/schema"
 import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -25,7 +26,7 @@ import {
     getFertilizerParametersDescription,
     getFertilizers,
     getFertilizersFromCatalogue,
-    getFertilizersOfFarms,
+    getFertilizersFromCatalogueForFarms,
     removeFertilizer,
     removeFertilizerApplication,
     updateFertilizerApplication,
@@ -339,7 +340,7 @@ describe("Fertilizer Data Model", () => {
             expect(fertilizers.length).toBe(2)
         })
 
-        it("should get fertilizers for multiple farm IDs", async () => {
+        it("should get fertilizers from a list of farms", async () => {
             function makeFertilizer(name: string) {
                 const fert: Partial<
                     Parameters<typeof addFertilizerToCatalogue>[3]
@@ -419,10 +420,11 @@ describe("Fertilizer Data Model", () => {
                 makeFertilizer("Farm 2 Example Fertilizer 2"),
             )
             await addTestFertilizer(b_id_farm_2, farm_2_fert_2)
-            const map = await getFertilizersOfFarms(fdm, principal_id, [
-                b_id_farm,
-                b_id_farm_2,
-            ])
+            const map = await getFertilizersFromCatalogueForFarms(
+                fdm,
+                principal_id,
+                [b_id_farm, b_id_farm_2],
+            )
             expect(map[b_id_farm]).toBeDefined()
             expect(map[b_id_farm].map((fert) => fert.p_name_nl)).toEqual([
                 "Farm 1 Example Fertilizer 1",
@@ -435,12 +437,41 @@ describe("Fertilizer Data Model", () => {
             ])
         })
 
-        it("(getFertilizers) should rename the error if getFertilizersOfFarms throws an error", async () => {
-            const invalidFarmId = createId()
+        function mockFdmThatThrowsOnSelectionFromFertilizersCatalogue() {
+            return {
+                ...fdm,
+                select(...args: []) {
+                    return {
+                        ...fdm.select(...args),
+                        from(table: typeof schema.fertilizersCatalogue) {
+                            if (table !== schema.fertilizersCatalogue) {
+                                return fdm.select().from(table)
+                            }
+                            throw new Error("Error querying the database")
+                        },
+                    } as unknown
+                },
+            } as typeof fdm
+        }
 
+        it("(getFertilizersFromCatalogue) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
             expect(
-                getFertilizers(fdm, principal_id, invalidFarmId),
-            ).rejects.not.toThrowError("Exception for getFertilizers")
+                getFertilizersFromCatalogue(
+                    mockFdmThatThrowsOnSelectionFromFertilizersCatalogue(),
+                    principal_id,
+                    b_id_farm,
+                ),
+            ).rejects.not.toThrow("Exception for getFertilizersFromCatalogues")
+        })
+
+        it("(getFertilizersFromCatalogueForFarms) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
+            expect(
+                getFertilizersFromCatalogueForFarms(
+                    mockFdmThatThrowsOnSelectionFromFertilizersCatalogue(),
+                    principal_id,
+                    [b_id_farm],
+                ),
+            ).rejects.not.toThrow("Exception for getFertilizersFromCatalogues")
         })
 
         it("should remove a fertilizer", async () => {

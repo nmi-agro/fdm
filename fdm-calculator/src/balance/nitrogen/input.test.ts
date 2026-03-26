@@ -2,8 +2,8 @@ import type {
     Cultivation,
     CultivationCatalogue,
     FdmType,
-    Fertilizer,
     FertilizerApplication,
+    FertilizerCatalogue,
     Field,
     fdmSchema,
     Harvest,
@@ -14,7 +14,7 @@ import {
     getCultivations,
     getCultivationsOfFarmsFromCatalogue,
     getFertilizerApplications,
-    getFertilizersOfFarms,
+    getFertilizersFromCatalogueForFarms,
     getFields,
     getHarvests,
     getSoilAnalyses,
@@ -38,7 +38,7 @@ vi.mock("@nmi-agro/fdm-core", async () => {
         getHarvests: vi.fn(),
         getSoilAnalyses: vi.fn(),
         getFertilizerApplications: vi.fn(),
-        getFertilizersOfFarms: vi.fn(),
+        getFertilizersFromCatalogueForFarms: vi.fn(),
         getCultivationsFromCatalogue: vi.fn(),
         getCultivationsOfFarmsFromCatalogue: vi.fn(),
     }
@@ -55,7 +55,9 @@ const mockedGetCultivations = vi.mocked(getCultivations)
 const mockedGetHarvests = vi.mocked(getHarvests)
 const mockedGetSoilAnalyses = vi.mocked(getSoilAnalyses)
 const mockedGetFertilizerApplications = vi.mocked(getFertilizerApplications)
-const mockedGetFertilizersOfFarms = vi.mocked(getFertilizersOfFarms)
+const mockedGetFertilizersFromCatalogueForFarms = vi.mocked(
+    getFertilizersFromCatalogueForFarms,
+)
 const mockedCalculateAllFieldsNitrogenSupplyByDeposition = vi.mocked(
     calculateAllFieldsNitrogenSupplyByDeposition,
 )
@@ -169,28 +171,28 @@ function createMockData() {
         mockFertilizerApplicationsData: [
             {
                 p_app_id: "fa-1",
-                p_id_catalogue: "fert-1",
+                p_id_catalogue: "fert-cat-1",
                 p_name_nl: "test-product",
                 p_app_amount: 100,
                 p_app_method: "broadcasting", // match one of ApplicationMethods
                 p_app_date: new Date(),
-                p_id: "fert-cat-1",
+                p_id: "fert-1",
             },
         ] as FertilizerApplication[],
         mockFertilizerApplicationsData2: [
             {
                 p_app_id: "fa-2",
-                p_id_catalogue: "fert-2",
+                p_id_catalogue: "fert-cat-2",
                 p_name_nl: "test-product",
                 p_app_amount: 100,
                 p_app_method: "broadcasting", // match one of ApplicationMethods
                 p_app_date: new Date(),
-                p_id: "fert-cat-2",
+                p_id: "fert-2",
             },
         ] as FertilizerApplication[],
         mockFertilizerDetailsData: [
             {
-                p_id: "fert-cat-1",
+                p_id_catalogue: "fert-cat-1",
                 p_n_rt: 5,
                 p_type: "manure",
                 p_no3_rt: 1,
@@ -198,10 +200,10 @@ function createMockData() {
                 p_s_rt: 0,
                 p_ef_nh3: 0.1,
             },
-        ] as Fertilizer[],
+        ] as FertilizerCatalogue[],
         mockFertilizerDetailsData2: [
             {
-                p_id: "fert-cat-2",
+                p_id_catalogue: "fert-cat-2",
                 p_n_rt: 5,
                 p_type: "manure",
                 p_no3_rt: 1,
@@ -209,7 +211,7 @@ function createMockData() {
                 p_s_rt: 0,
                 p_ef_nh3: 0.1,
             },
-        ] as Fertilizer[],
+        ] as FertilizerCatalogue[],
         mockCultivationDetailsData: [
             {
                 b_lu_catalogue: "cat-cult-1",
@@ -279,9 +281,8 @@ describe("collectInputForNitrogenBalance", () => {
         )
         const allFertilizerDetails = mockFertilizerDetailsData.map((fert) => ({
             ...fert,
-            b_id_farm: "test-farm-id",
         }))
-        mockedGetFertilizersOfFarms.mockResolvedValue({
+        mockedGetFertilizersFromCatalogueForFarms.mockResolvedValue({
             [b_id_farm]: allFertilizerDetails,
         })
         mockedGetCultivationsOfFarmsFromCatalogue.mockResolvedValue(
@@ -357,7 +358,7 @@ describe("collectInputForNitrogenBalance", () => {
                 timeframe,
             )
         }
-        expect(mockedGetFertilizersOfFarms).toHaveBeenCalledWith(
+        expect(mockedGetFertilizersFromCatalogueForFarms).toHaveBeenCalledWith(
             mockFdm,
             principal_id,
             [b_id_farm],
@@ -437,7 +438,7 @@ describe("collectInputForNitrogenBalance", () => {
 
     it("should handle empty arrays from core functions correctly", async () => {
         mockedGetFields.mockResolvedValue([])
-        mockedGetFertilizersOfFarms.mockResolvedValue({})
+        mockedGetFertilizersFromCatalogueForFarms.mockResolvedValue({})
         mockedGetCultivationsOfFarmsFromCatalogue.mockResolvedValue([])
 
         const result = await collectInputForNitrogenBalance(
@@ -462,7 +463,7 @@ describe("collectInputForNitrogenBalance", () => {
             b_id_farm,
             timeframe,
         )
-        expect(mockedGetFertilizersOfFarms).toHaveBeenCalledWith(
+        expect(mockedGetFertilizersFromCatalogueForFarms).toHaveBeenCalledWith(
             mockFdm,
             principal_id,
             [b_id_farm],
@@ -548,7 +549,9 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
             "test-farm-id": fertData1,
             "test-farm-id-2": fertData2,
         }
-        mockedGetFertilizersOfFarms.mockResolvedValue(allFertilizerDetails)
+        mockedGetFertilizersFromCatalogueForFarms.mockResolvedValue(
+            allFertilizerDetails,
+        )
         const combinedCultivationDetails = [
             ...mockCultivationDetailsData,
             ...mockCultivationDetailsData2,
@@ -627,11 +630,13 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
         expect(mockedGetCultivationsOfFarmsFromCatalogue).toHaveBeenCalledTimes(
             1,
         )
-        expect(mockedGetFertilizersOfFarms).toHaveBeenCalledWith(
+        expect(mockedGetFertilizersFromCatalogueForFarms).toHaveBeenCalledWith(
             mockFdm,
             principal_id,
             ["test-farm-id", "test-farm-id-2"],
         )
-        expect(mockedGetFertilizersOfFarms).toHaveBeenCalledTimes(1)
+        expect(mockedGetFertilizersFromCatalogueForFarms).toHaveBeenCalledTimes(
+            1,
+        )
     })
 })
