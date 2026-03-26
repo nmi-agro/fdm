@@ -12,6 +12,18 @@ export interface Fertilizer {
     p_app_amount: number | null
     p_date_acquiring: Date | null
     p_picking_date: Date | null
+    p_dm: number | null
+    p_density: number | null
+    p_om: number | null
+    p_a: number | null
+    p_hc: number | null
+    p_eom: number | null
+    p_eoc: number | null
+    p_c_rt: number | null
+    p_c_of: number | null
+    p_c_if: number | null
+    p_c_fr: number | null
+    p_cn_of: number | null
     p_n_rt: number | null
     p_n_if: number | null
     p_n_of: number | null

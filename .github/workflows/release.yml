@@ -44,6 +44,7 @@ jobs:
       - name: Publish Snapshot
         if: github.ref == 'refs/heads/development'
         run: |
+          echo "//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}" >> .npmrc
           pnpm changeset version --snapshot
           pnpm changeset publish --tag development
         env:
@@ -68,6 +69,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         shell: bash
         run: |
+          echo "//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}" >> .npmrc
           # Build packages
           pnpm build --filter="!@nmi-agro/fdm-app"
           

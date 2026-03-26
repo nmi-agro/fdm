@@ -34,6 +34,12 @@ export interface ServerConfig {
         nmi?: {
             api_key: string
         }
+        rvo: {
+            clientId: string
+            redirectUri: string
+            clientName: string
+            pkioPrivateKey: string
+        }
         gemini?: {
             api_key: string
             model?: string

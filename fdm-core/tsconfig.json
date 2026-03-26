@@ -1,27 +1,10 @@
 {
+    "extends": "../tsconfig.packages.json",
     "compilerOptions": {
-        "target": "ES2022",
-        "useDefineForClassFields": true,
-        "module": "ESNext",
-        "lib": ["ES2022", "DOM", "DOM.Iterable"],
-        "skipLibCheck": true,
-
-        "moduleResolution": "bundler",
-        "allowImportingTsExtensions": true,
-        "isolatedModules": true,
-        "moduleDetection": "force",
-        "declaration": true,
-        "outDir": "./dist",
-        "emitDeclarationOnly": true,
-
-        "strict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noFallthroughCasesInSwitch": true,
-        "baseUrl": ".",
+        "noEmit": true,
         "paths": {
             "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"]
         }
     },
-    "include": ["./src/**/*"]
+    "include": ["src/**/*", "vitest.config.ts", "drizzle.config.ts"]
 }

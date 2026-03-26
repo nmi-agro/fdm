@@ -3,7 +3,8 @@
     "entryPoints": [
         "../fdm-core/src/index.ts",
         "../fdm-data/src/index.ts",
-        "../fdm-calculator/src/index.ts"
+        "../fdm-calculator/src/index.ts",
+        "../fdm-rvo/src/index.ts"
     ],
     "entryPointStrategy": "resolve",
     "plugin": ["typedoc-plugin-markdown"],

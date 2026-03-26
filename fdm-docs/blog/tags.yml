@@ -28,6 +28,11 @@ fdm-app:
   description: Posts related to the React web application to interact with FDM (@nmi-agro/fdm-app).
   permalink: /fdm-app
 
+fdm-rvo:
+  label: fdm-rvo
+  description: Posts related to the RVO Synchronization Logic for FDM (@nmi-agro/fdm-rvo).
+  permalink: /fdm-rvo
+
 update:
   label: Update
   description: General updates and improvements to the FDM ecosystem.

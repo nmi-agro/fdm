@@ -86,6 +86,7 @@ export default defineConfig((env) => {
                 "@nmi-agro/fdm-core",
                 "@nmi-agro/fdm-data",
                 "@nmi-agro/fdm-calculator",
+                "@nmi-agro/fdm-rvo",
                 "@nmi-agro/fdm-agents",
             ],
         },

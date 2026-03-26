@@ -244,7 +244,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             )
         }
 
-        Sentry.captureException(error)
+        // Server-side errors are already captured in Sentry via handleError / reportError.
+        // No need to capture again client-side.
         return (
             <ErrorBlock
                 status={error.status}
@@ -256,6 +257,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         )
     }
     if (error instanceof Error) {
+        // Client-side JS error — not captured server-side, so capture here.
         Sentry.captureException(error)
         return (
             <ErrorBlock

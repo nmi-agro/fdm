@@ -119,6 +119,11 @@ export {
 } from "./field"
 export type { Field } from "./field.d"
 export {
+    acquiringMethodOptions,
+    soilTypesOptions,
+    gwlClassesOptions,
+} from "./db/schema"
+export {
     getGrazingIntention,
     getGrazingIntentions,
     removeGrazingIntention,

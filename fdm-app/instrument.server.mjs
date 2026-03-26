@@ -11,8 +11,19 @@ if (process.env.PUBLIC_SENTRY_DSN) {
         profilesSampleRate: Number(
             process.env.PUBLIC_SENTRY_PROFILE_SAMPLE_RATE ?? 1,
         ),
-        ignoreErrors: [/BodyStreamBuffer was aborted/],
+        ignoreErrors: [
+            /BodyStreamBuffer was aborted/,
+            // Ignore expected 405 Method Not Allowed errors caused by bots/crawlers making OPTIONS requests
+            /Invalid request method "OPTIONS"/,
+        ],
         environment: process.env.NODE_ENV ?? "development",
         release: process.env.npm_package_version,
     })
+    console.log(
+        `[Sentry] Server SDK initialized (release: ${process.env.npm_package_version}, env: ${process.env.NODE_ENV ?? "development"})`,
+    )
+} else {
+    console.warn(
+        "[Sentry] PUBLIC_SENTRY_DSN is not set — server-side error reporting is disabled",
+    )
 }

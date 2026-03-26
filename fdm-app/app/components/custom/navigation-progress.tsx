@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useMatches, useNavigation } from "react-router"
 import { clientConfig } from "~/lib/config"
+import { normalizePage } from "~/lib/url-utils"
 
 /**
  * Shows a blurred overlay with a loading card when navigation takes longer than 500ms.
@@ -40,7 +41,7 @@ export function NavigationProgress() {
                     Sentry.withScope((scope) => {
                         scope.setTag(
                             "page",
-                            startPathnameRef.current ?? pathname,
+                            normalizePage(startPathnameRef.current ?? pathname),
                         )
                         Sentry.metrics.count("navigation_progress.shown", 1)
                     })
@@ -56,7 +57,7 @@ export function NavigationProgress() {
                     Sentry.withScope((scope) => {
                         scope.setTag(
                             "page",
-                            startPathnameRef.current ?? pathname,
+                            normalizePage(startPathnameRef.current ?? pathname),
                         )
                         Sentry.metrics.distribution(
                             "navigation_progress.duration_ms",

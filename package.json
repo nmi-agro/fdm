@@ -12,6 +12,7 @@
         "fdm-docs",
         "fdm-app",
         "fdm-calculator",
+        "fdm-rvo",
         "fdm-agents"
     ],
     "scripts": {
