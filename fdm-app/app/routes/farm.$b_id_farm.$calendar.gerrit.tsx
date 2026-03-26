@@ -759,8 +759,8 @@ export default function GerritApp() {
     const actionData = useActionData<typeof action>()
     const navigation = useNavigation()
 
-    const currentYear = new Date().getFullYear().toString()
-    const isCurrentYear = calendar === currentYear
+    const supportedYears = ["2025", "2026"]
+    const isSupportedYear = supportedYears.includes(calendar)
     const isGerritEnabled = useFeatureFlagEnabled("gerrit")
 
     const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
@@ -943,7 +943,7 @@ export default function GerritApp() {
         )
     }
 
-    if (!isCurrentYear) {
+    if (!isSupportedYear) {
         return (
             <>
                 <SidebarInset>
@@ -958,22 +958,30 @@ export default function GerritApp() {
                             <div className="bg-amber-50 border border-amber-200 p-8 rounded-xl">
                                 <Bot className="w-12 h-12 text-amber-600 mx-auto mb-4" />
                                 <h2 className="text-2xl font-bold text-amber-900 mb-2">
-                                    Gerrit is alleen beschikbaar voor{" "}
-                                    {currentYear}
+                                    Gerrit is alleen beschikbaar voor 2025 en 2026
                                 </h2>
                                 <p className="text-amber-800 mb-6">
                                     Het AI-bemestingsplan van Gerrit kan
-                                    momenteel alleen worden gegenereerd voor het
-                                    lopende kalenderjaar. Schakel over naar{" "}
-                                    {currentYear} om aan de slag te gaan.
+                                    momenteel alleen worden gegenereerd voor 2025
+                                    en 2026. Schakel over naar een van deze jaren om
+                                    aan de slag te gaan.
                                 </p>
-                                <Button asChild size="lg">
-                                    <a
-                                        href={`/farm/${farm.b_id_farm}/${currentYear}/gerrit`}
-                                    >
-                                        Switch naar {currentYear}
-                                    </a>
-                                </Button>
+                                <div className="flex justify-center gap-4">
+                                    <Button asChild size="lg">
+                                        <a
+                                            href={`/farm/${farm.b_id_farm}/2025/gerrit`}
+                                        >
+                                            Switch naar 2025
+                                        </a>
+                                    </Button>
+                                    <Button asChild size="lg">
+                                        <a
+                                            href={`/farm/${farm.b_id_farm}/2026/gerrit`}
+                                        >
+                                            Switch naar 2026
+                                        </a>
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </FarmContent>
