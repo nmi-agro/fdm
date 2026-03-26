@@ -103,6 +103,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate total ammonia emission for mineral fertilizers with calculated emission factor", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-1",
                 p_id_catalogue: "mineral-fertilizer-1",
                 p_app_amount: 1000, // kg / ha
@@ -135,6 +136,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate total ammonia emission for mineral fertilizers with predefined emission factor", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-2",
                 p_id_catalogue: "mineral-fertilizer-2",
                 p_app_amount: 500, // kg / ha
@@ -161,6 +163,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate total ammonia emission for manure fertilizers on grassland", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-3",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 2000, // kg / ha
@@ -188,6 +191,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate total ammonia emission for compost fertilizers on cropland", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-4",
                 p_id_catalogue: "compost-fertilizer",
                 p_app_amount: 1500, // kg / ha
@@ -215,6 +219,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate total ammonia emission for other fertilizers on bare soil", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-5",
                 p_id_catalogue: "other-fertilizer",
                 p_app_amount: 1000, // kg / ha
@@ -242,6 +247,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should aggregate emissions from multiple fertilizer types", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-1",
                 p_id_catalogue: "mineral-fertilizer-1",
                 p_app_amount: 1000,
@@ -251,6 +257,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
                 p_id: "min1",
             },
             {
+                b_id: "field-1",
                 p_app_id: "app-3",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 2000,
@@ -260,6 +267,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
                 p_id: "man1",
             },
             {
+                b_id: "field-1",
                 p_app_id: "app-4",
                 p_id_catalogue: "compost-fertilizer",
                 p_app_amount: 1500,
@@ -291,6 +299,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should throw an error if fertilizerDetail is missing", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-missing",
                 p_id_catalogue: "non-existent-fertilizer",
                 p_app_amount: 100,
@@ -354,6 +363,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate mineral ammonia emission factor correctly without inhibitor", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-7",
                 p_id_catalogue: "mineral-fertilizer-no-inhibitor",
                 p_app_amount: 1000,
@@ -393,6 +403,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for grassland - narrowband", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-8",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -415,6 +426,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for grassland - slotted coulter", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-9",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -437,6 +449,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for grassland - shallow injection", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-10",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -459,6 +472,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - incorporation 2 tracks", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-11",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -481,6 +495,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - narrowband", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-12",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -503,6 +518,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - slotted coulter", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-13",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -525,6 +541,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - shallow injection", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-14",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -547,6 +564,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - incorporation", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-15",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -569,6 +587,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - incorporation 2 tracks", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-16",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -591,6 +610,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - narrowband", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-17",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -613,6 +633,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - slotted coulter", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-18",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -635,6 +656,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - shallow injection", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-19",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -657,6 +679,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - incorporation", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-20",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -679,6 +702,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should handle unsupported application method for grassland", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-21",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -703,6 +727,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should handle unsupported application method for cropland", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-22",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -727,6 +752,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should handle unsupported application method for bare soil", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-23",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -751,6 +777,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should correctly identify grassland cultivation based on date range", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-24",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -774,6 +801,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should correctly identify cropland cultivation based on date range", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-25",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -797,6 +825,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should correctly identify bare soil when no cultivation is active", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-26",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -820,6 +849,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for grassland - injection", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-27",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -842,6 +872,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - injection", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-28",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -864,6 +895,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - injection", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-29",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -886,6 +918,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for grassland - spraying", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-30",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -908,6 +941,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - spraying", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-31",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -930,6 +964,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - spraying", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-32",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -952,6 +987,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for grassland - spoke wheel", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-33",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -974,6 +1010,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - spoke wheel", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-34",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -996,6 +1033,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - spoke wheel", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-35",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -1018,6 +1056,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for grassland - pocket placement", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-36",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -1040,6 +1079,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for cropland - pocket placement", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-37",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,
@@ -1062,6 +1102,7 @@ describe("calculateNitrogenEmissionViaAmmoniaByFertilizers", () => {
     it("should calculate manure ammonia emission factor correctly for bare soil - pocket placement", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field-1",
                 p_app_id: "app-38",
                 p_id_catalogue: "manure-fertilizer",
                 p_app_amount: 1000,

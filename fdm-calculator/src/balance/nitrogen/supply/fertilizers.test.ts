@@ -27,6 +27,7 @@ describe("calculateNitrogenSupplyByFertilizers", () => {
     it("should calculate nitrogen supply from all fertilizer types", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field1",
                 p_id_catalogue: "mineral1",
                 p_app_amount: 1000,
                 p_app_id: "app1",
@@ -36,6 +37,7 @@ describe("calculateNitrogenSupplyByFertilizers", () => {
                 p_app_date: new Date("2025-03-15"),
             },
             {
+                b_id: "field1",
                 p_id_catalogue: "manure1",
                 p_app_amount: 500,
                 p_app_id: "app2",
@@ -45,6 +47,7 @@ describe("calculateNitrogenSupplyByFertilizers", () => {
                 p_app_date: new Date("2025-03-15"),
             },
             {
+                b_id: "field1",
                 p_id_catalogue: "compost1",
                 p_app_amount: 250,
                 p_app_id: "app3",
@@ -54,6 +57,7 @@ describe("calculateNitrogenSupplyByFertilizers", () => {
                 p_app_date: new Date("2025-03-15"),
             },
             {
+                b_id: "field1",
                 p_id_catalogue: "other1",
                 p_app_amount: 100,
                 p_app_id: "app4",
@@ -130,6 +134,7 @@ describe("calculateNitrogenSupplyByFertilizers", () => {
     it("should handle missing fertilizer details gracefully", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field1",
                 p_id_catalogue: "mineral1",
                 p_app_amount: 1000,
                 p_app_id: "app1",
@@ -139,6 +144,7 @@ describe("calculateNitrogenSupplyByFertilizers", () => {
                 p_app_date: new Date("2025-03-15"),
             },
             {
+                b_id: "field1",
                 p_id_catalogue: "missing",
                 p_app_amount: 500,
                 p_app_id: "app2",
@@ -175,6 +181,7 @@ describe("calculateNitrogenSupplyByFertilizers", () => {
     it("should throw an error if any sub-function throws an error", () => {
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: "field1",
                 p_id_catalogue: "mineral1",
                 p_app_amount: 1000,
                 p_app_id: "app1",

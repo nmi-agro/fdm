@@ -99,6 +99,7 @@ function generateMockData(numberOfFields: number): OrganicMatterBalanceInput {
 
         const fertilizerApplications: FieldInput["fertilizerApplications"] = [
             {
+                b_id: fieldId,
                 p_app_id: `fa-${fieldId}-1`,
                 // Randomly pick one of the available fertilizer catalogue IDs
                 p_id_catalogue: "fert-cat-1",

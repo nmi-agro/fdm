@@ -89,6 +89,7 @@ describe("calculateNitrogenBalance", () => {
                     ],
                     fertilizerApplications: [
                         {
+                            b_id: "field1",
                             p_id_catalogue: "fertilizer1",
                             p_app_amount: 100,
                             p_app_id: "fertilizerApp1",
