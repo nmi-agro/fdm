@@ -59,7 +59,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
     const getFarmFieldsTool = new FunctionTool({
         name: "getFarmFields",
         description:
-            "Get the list of all fields belonging to the farm for the current year, including their main cultivation details.",
+            "Get the list of all fields belonging to the farm for the current year, including their main cultivation details and key soil properties (agricultural soil type, texture, groundwater class, organic matter).",
         parameters: z.object({
             b_id_farm: z.string().describe("The ID of the farm"),
             calendar: z.string().describe('The calendar year (e.g. "2025")'),
@@ -86,7 +86,17 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         f.b_id,
                         timeframe,
                     )
+                    const currentSoilData = await getCurrentSoilData(
+                        fdm,
+                        principalId,
+                        f.b_id,
+                        timeframe,
+                    )
                     const mainLu = getMainCultivation(cultivations, input.calendar)
+                    
+                    const getSoilParam = (param: string) =>
+                        currentSoilData.find((d) => d.parameter === param)?.value ?? null
+
                     return {
                         b_id: f.b_id,
                         b_name: f.b_name,
@@ -99,6 +109,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                   .toISOString()
                                   .split("T")[0]
                             : null,
+                        b_soiltype_agr: getSoilParam("b_soiltype_agr"),
+                        a_clay_mi: getSoilParam("a_clay_mi"),
+                        a_sand_mi: getSoilParam("a_sand_mi"),
+                        a_silt_mi: getSoilParam("a_silt_mi"),
+                        b_gwl_class: getSoilParam("b_gwl_class"),
+                        a_som_loi: getSoilParam("a_som_loi"),
                     }
                 }),
             )
