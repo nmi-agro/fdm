@@ -28,7 +28,11 @@ import Decimal from "decimal.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { collectInputForNitrogenBalance } from "./input"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
-import type { FieldInput, NitrogenBalanceInput } from "./types"
+import type {
+    FieldInput,
+    NitrogenBalanceInput,
+    NitrogenSupplyDeposition,
+} from "./types"
 
 // Mock the @nmi-agro/fdm-core module
 vi.mock("@nmi-agro/fdm-core", async () => {
@@ -515,6 +519,91 @@ describe("collectInputForNitrogenBalance", () => {
         expect(
             mockedCalculateAllFieldsNitrogenSupplyByDeposition,
         ).toHaveBeenCalledWith(expect.anything(), timeframe, expect.any(String))
+    })
+
+    it("should handle cultivation with no harvests", () => {
+        // Mock data
+        const mockFieldsData: Field[] = [
+            {
+                b_id: "field-1",
+                b_name: "Field 1",
+                b_id_farm: "test-farm-id",
+                b_id_source: "source-1",
+                b_geometry: { type: "Polygon", coordinates: [] },
+                b_centroid: [0, 0],
+                b_area: 10,
+                b_perimeter: 10,
+                b_start: new Date("2023-01-01"),
+                b_end: new Date("2023-12-31"),
+                b_acquiring_method: "purchase",
+                b_bufferstrip: false,
+            },
+        ]
+        const mockCultivationsData: Cultivation[] = [
+            {
+                b_lu: "cult-1",
+                b_lu_catalogue: "cat-cult-1",
+                m_cropresidue: false,
+                b_lu_start: new Date("2023-04-01"),
+                b_lu_end: new Date("2023-09-01"),
+                b_lu_source: "source",
+                b_lu_name: "Cultivation 1",
+                b_lu_name_en: "Cultivation 1",
+                b_lu_hcat3: "hcat3",
+                b_lu_hcat3_name: "Hcat3 Name",
+                b_lu_croprotation: "maize",
+                b_lu_eom: 1,
+                b_lu_eom_residue: 1,
+                b_lu_harvestcat: "HC010",
+                b_lu_harvestable: "once",
+                b_lu_variety: "variety",
+                b_id: "field-1",
+            },
+        ]
+        const mockDepositionSupplyMap = new Map([
+            ["field-1", { total: new Decimal(10) }],
+        ])
+
+        mockedGetFields.mockResolvedValue(mockFieldsData)
+        mockedGetFertilizers.mockResolvedValue([])
+        mockedGetCultivationsFromCatalogue.mockResolvedValue([])
+        mockedGetCultivationsForFarm.mockResolvedValue({
+            "field-1": mockCultivationsData,
+        })
+        mockedGetHarvestsForCultivations.mockResolvedValue({})
+        mockedGetFertilizerApplicationsForFarm.mockResolvedValue({})
+        mockedGetSoilAnalysesForFarm.mockResolvedValue({})
+        mockedCalculateAllFieldsNitrogenSupplyByDeposition.mockResolvedValue(
+            mockDepositionSupplyMap,
+        )
+
+        const timeFrame = {
+            start: new Date("2023-01-03"),
+            end: new Date("2023-12-31"),
+        }
+
+        expect(
+            collectInputForNitrogenBalance(
+                mockFdm,
+                principal_id,
+                b_id_farm,
+                timeFrame,
+            ),
+        ).resolves.toEqual({
+            fields: mockFieldsData.map((field) => ({
+                field: field,
+                cultivations: mockCultivationsData,
+                harvests: [],
+                fertilizerApplications: [],
+                soilAnalyses: [],
+                depositionSupply: mockDepositionSupplyMap.get(
+                    field.b_id,
+                ) as NitrogenSupplyDeposition,
+            })),
+            fertilizerDetails: [],
+            cultivationDetails: [],
+            timeFrame: timeFrame,
+        } satisfies NitrogenBalanceInput)
     })
 
     it("should throw an error if getFields fails", async () => {

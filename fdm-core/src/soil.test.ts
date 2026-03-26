@@ -576,7 +576,7 @@ describe("Soil Analysis Functions", () => {
             end: new Date("2023-07-01"),
         }
         // Add soil analyses with different sampling dates
-        const a1 = await getSoilAnalysis(
+        await getSoilAnalysis(
             fdm,
             principal_id,
             await addSoilAnalysis(
