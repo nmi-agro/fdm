@@ -122,6 +122,14 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const principalId = context.state.get("principalId") as PrincipalId
+            const calendar =
+                (context.state.get("calendar") as string) ||
+                new Date().getFullYear().toString()
+            const timeframe = {
+                start: new Date(`${calendar}-01-01`),
+                end: new Date(`${calendar}-12-31`),
+            }
+
             // nmiApiKey is injected server-side via context state — never exposed to the LLM.
             const nmiApiKey = context.state.get("nmiApiKey") as
                 | string
@@ -135,7 +143,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         fdm,
                         principalId,
                         b_id,
+                        timeframe,
                     )
+                    const mainLu = getMainCultivation(cultivations, calendar)
                     const currentSoilData = await getCurrentSoilData(
                         fdm,
                         principalId,
@@ -143,7 +153,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     )
 
                     const advice = await getNutrientAdvice(fdm, {
-                        b_lu_catalogue: cultivations[0]?.b_lu_catalogue || "",
+                        b_lu_catalogue: mainLu?.b_lu_catalogue || "",
                         b_centroid: field.b_centroid ?? [0, 0],
                         currentSoilData: currentSoilData,
                         nmiApiKey: nmiApiKey || "",

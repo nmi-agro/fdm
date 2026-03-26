@@ -1,9 +1,9 @@
 import { createFertilizerPlannerAgent } from "./agents/gerrit/agent"
 import { runOneShotAgent } from "./runners/one-shot"
+import { getMainCultivation } from "./tools/fertilizer-planner"
 import { z } from "zod"
 
-export { createFertilizerPlannerAgent }
-export { runOneShotAgent }
+export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
 export type { OneShotAgentResult } from "./runners/one-shot"
 
 export interface FertilizerPlanStrategies {
@@ -46,7 +46,8 @@ export function sanitizeAdditionalContext(raw: string): string {
     // 1. Remove markdown code blocks (e.g. ```) to prevent structure breaking
     const noCodeBlocks = raw.replace(/```/g, "'''")
     // 2. Remove XML/HTML-like tags to prevent injection into structural boundaries
-    const noTags = noCodeBlocks.replace(/<[^>]*>?/gm, '')
+    // We use a lookahead to ensure we only strip tags that don't look like mathematical comparisons (e.g. pH < 5.5)
+    const noTags = noCodeBlocks.replace(/<(?!\s)([^>]+)>/gm, "")
     // 3. Fallback generic removal of obvious system overrides
     const safeStr = noTags.replace(/^(IGNORE|SYSTEM:|OVERRIDE|INSTRUCTION:).*/gim, "[removed]")
     

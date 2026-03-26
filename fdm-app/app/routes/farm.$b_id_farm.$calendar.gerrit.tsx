@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
     buildFertilizerPlanPrompt,
     createFertilizerPlannerAgent,
+    getMainCultivation,
     type FarmFieldSummary,
     type OneShotAgentResult,
     runOneShotAgent,
@@ -84,6 +85,7 @@ import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
+import { getDefaultCultivation } from "../lib/cultivation-helpers"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -484,16 +486,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     field.b_id,
                     timeframe,
                 )
+                const mainCultivation = getDefaultCultivation(cultivations, calendar)
                 return {
                     b_id: field.b_id,
                     b_name: field.b_name || field.b_id,
                     b_area: field.b_area,
                     b_bufferstrip: field.b_bufferstrip,
-                    b_lu_catalogue:
-                        cultivations[0]?.b_lu_catalogue || "Onbekend",
-                    b_lu_name: cultivations[0]?.b_lu_name || "Onbekend gewas",
-                    b_lu_croprotation:
-                        cultivations[0]?.b_lu_croprotation || null,
+                    b_lu_catalogue: mainCultivation?.b_lu_catalogue || "Onbekend",
+                    b_lu_name: mainCultivation?.b_lu_name || "Onbekend gewas",
+                    b_lu_croprotation: mainCultivation?.b_lu_croprotation || null,
                 }
             }),
         )

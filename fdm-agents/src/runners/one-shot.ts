@@ -47,9 +47,19 @@ export async function runOneShotAgent(
             return
         }
 
+        // 1. Check for standard ADK/Gemini function call structure
+        const calls = obj.modelTurn?.parts?.filter((p: any) => !!p.functionCall)
+        if (calls && Array.isArray(calls)) {
+            for (const p of calls) {
+                if (p.functionCall?.name) {
+                    toolCalls.push(p.functionCall.name)
+                }
+            }
+        }
+
+        // 2. Fallback for other potential structures or raw tool calls
         const rawName = obj.functionCall?.name || obj.toolCall?.name
         if (typeof rawName === "string") {
-            // Remove literal brackets and quotes that sometimes appear in raw LLM tool responses
             const cleanName = rawName.replace(/[\[\]"]/g, "").trim()
             if (cleanName) {
                 toolCalls.push(cleanName)
