@@ -806,7 +806,6 @@ describe("Fertilizer Data Model", () => {
 
     describe("Fertilizer Application", () => {
         let b_id: string
-        let b_id_2: string
         let p_id: string
 
         beforeAll(async () => {
@@ -844,29 +843,6 @@ describe("Fertilizer Data Model", () => {
                 new Date("2023-01-01"),
                 "nl_01",
                 new Date("2024-01-01"),
-            )
-
-            b_id_2 = await addField(
-                fdm,
-                principal_id,
-                b_id_farm,
-                "test field 2",
-                "test source",
-                {
-                    type: "Polygon",
-                    coordinates: [
-                        [
-                            [30, 10],
-                            [40, 50],
-                            [20, 40],
-                            [10, 20],
-                            [40, 10],
-                        ],
-                    ],
-                },
-                new Date("2024-01-01"),
-                "nl_01",
-                new Date("2024-12-31"),
             )
 
             // Add fertilizer to catalogue
@@ -1123,7 +1099,9 @@ describe("Fertilizer Data Model", () => {
         })
 
         it("should get fertilizer applications for a farm within a timeframe", async () => {
-            // Unlike the rest of the tests these can't be shared with other tests here
+            // Unlike in the other tests, the data can't be shared with other tests here.
+            // Values of farm and field IDs must be certain
+            // Could also be moved into the beforeEach block of "Fertilizer Application"
             const b_id_farm = await addFarm(
                 fdm,
                 principal_id,
