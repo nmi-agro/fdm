@@ -152,6 +152,17 @@ export async function loader({
         const farmIds =
             searchParamFarmIds ?? farms.map((farm) => farm.b_id_farm)
 
+        const allFarmIds = new Set(farms.map((farm) => farm.b_id_farm))
+
+        if (farmIds.some((b_id_farm) => !allFarmIds.has(b_id_farm))) {
+            const statusText =
+                "You do not have permission to compute nitrogen balance for these farms"
+            throw data(statusText, {
+                status: 403,
+                statusText: statusText,
+            })
+        }
+
         async function getAsyncData(principal_id: string) {
             const inputs = await collectInputForNitrogenBalanceForFarms(
                 fdm,
