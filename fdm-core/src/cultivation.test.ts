@@ -29,6 +29,7 @@ import {
 import { addField } from "./field"
 import { addHarvest } from "./harvest"
 import { createId } from "./id"
+import { mockFdmThatThrowsOnSelectFrom } from "./test-util"
 
 describe("Cultivation Data Model", () => {
     let fdm: FdmServerType
@@ -267,28 +268,14 @@ describe("Cultivation Data Model", () => {
             })
         })
 
-        function mockFdmThatThrowsOnSelectionFromCultivationsCatalogue() {
-            return {
-                ...fdm,
-                select(...args: []) {
-                    return {
-                        ...fdm.select(...args),
-                        from(table: typeof schema.cultivationsCatalogue) {
-                            if (table !== schema.cultivationsCatalogue) {
-                                return fdm.select().from(table)
-                            }
-                            throw new Error("Error querying the database")
-                        },
-                    } as unknown
-                },
-            } as typeof fdm
-        }
-
         it("(getCultivationsFromCatalogue) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
             const failError = new Error("Should have thrown.")
             try {
                 await getCultivationsFromCatalogue(
-                    mockFdmThatThrowsOnSelectionFromCultivationsCatalogue(),
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.cultivationsCatalogue,
+                    ),
                     principal_id,
                     b_id_farm,
                 )
@@ -312,7 +299,10 @@ describe("Cultivation Data Model", () => {
             const failError = new Error("Should have thrown.")
             try {
                 await getCultivationsFromCatalogueForFarms(
-                    mockFdmThatThrowsOnSelectionFromCultivationsCatalogue(),
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.cultivationsCatalogue,
+                    ),
                     principal_id,
                     [b_id_farm],
                 )

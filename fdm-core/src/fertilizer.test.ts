@@ -34,6 +34,7 @@ import {
 } from "./fertilizer"
 import { addField } from "./field"
 import { createId } from "./id"
+import { mockFdmThatThrowsOnSelectFrom } from "./test-util"
 
 describe("Fertilizer Data Model", () => {
     let fdm: FdmServerType
@@ -464,28 +465,14 @@ describe("Fertilizer Data Model", () => {
             })
         })
 
-        function mockFdmThatThrowsOnSelectionFromFertilizersCatalogue() {
-            return {
-                ...fdm,
-                select(...args: []) {
-                    return {
-                        ...fdm.select(...args),
-                        from(table: typeof schema.fertilizersCatalogue) {
-                            if (table !== schema.fertilizersCatalogue) {
-                                return fdm.select().from(table)
-                            }
-                            throw new Error("Error querying the database")
-                        },
-                    } as unknown
-                },
-            } as typeof fdm
-        }
-
         it("(getFertilizersFromCatalogue) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
             const failError = new Error("Should have thrown.")
             try {
                 await getFertilizersFromCatalogue(
-                    mockFdmThatThrowsOnSelectionFromFertilizersCatalogue(),
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.fertilizersCatalogue,
+                    ),
                     principal_id,
                     b_id_farm,
                 )
@@ -509,7 +496,10 @@ describe("Fertilizer Data Model", () => {
             const failError = new Error("Should have thrown.")
             try {
                 await getFertilizersFromCatalogueForFarms(
-                    mockFdmThatThrowsOnSelectionFromFertilizersCatalogue(),
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.fertilizersCatalogue,
+                    ),
                     principal_id,
                     [b_id_farm],
                 )
