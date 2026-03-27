@@ -255,7 +255,10 @@ describe("collectInputForOrganicMatterBalance", () => {
         vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
         vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
         vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getFertilizers").mockResolvedValue([])
+        vi.spyOn(
+            fdmCore,
+            "getFertilizersFromCatalogueForFarms",
+        ).mockResolvedValue({})
         vi.spyOn(
             fdmCore,
             "getCultivationsOfFarmsFromCatalogue",
