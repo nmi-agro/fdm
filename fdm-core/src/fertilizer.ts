@@ -146,14 +146,12 @@ export async function getFertilizersFromCatalogueForFarms(
 
         // Join each farm's enabled catalogues together
         return Object.fromEntries(
-            Object.entries(enabledCataloguesByFarm).map(
-                ([b_id_farm, enabledCatalogues]) => [
-                    b_id_farm,
-                    enabledCatalogues.flatMap(
-                        ({ p_source }) => catalogues[p_source] ?? [],
-                    ),
-                ],
-            ),
+            farmIds.map((b_id_farm) => [
+                b_id_farm,
+                (enabledCataloguesByFarm[b_id_farm] ?? []).flatMap(
+                    (cat) => catalogues[cat.p_source] ?? [],
+                ),
+            ]),
         )
     } catch (err) {
         throw handleError(

@@ -447,11 +447,32 @@ describe("Fertilizer Data Model", () => {
                 undefined,
                 undefined,
             )
-            enableFertilizerCatalogue(
+            await enableFertilizerCatalogue(
                 fdm,
                 principal_id,
                 b_id_farm,
                 "invalid-catalogue",
+            )
+            expect(
+                await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),
+            ).toEqual([])
+            expect(
+                await getFertilizersFromCatalogueForFarms(fdm, principal_id, [
+                    b_id_farm,
+                ]),
+            ).toEqual({
+                [b_id_farm]: [],
+            })
+        })
+
+        it("should handle no enabled catalogues", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Enabled Catalogues",
+                undefined,
+                undefined,
+                undefined,
             )
             expect(
                 await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),

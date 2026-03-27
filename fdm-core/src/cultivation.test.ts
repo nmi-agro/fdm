@@ -246,11 +246,36 @@ describe("Cultivation Data Model", () => {
                 undefined,
                 undefined,
             )
-            enableCultivationCatalogue(
+            await enableCultivationCatalogue(
                 fdm,
                 principal_id,
                 b_id_farm,
                 "invalid-catalogue",
+            )
+            expect(
+                await getCultivationsFromCatalogue(
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                ),
+            ).toEqual([])
+            expect(
+                await getCultivationsFromCatalogueForFarms(fdm, principal_id, [
+                    b_id_farm,
+                ]),
+            ).toEqual({
+                [b_id_farm]: [],
+            })
+        })
+
+        it("should handle no enabled catalogues", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Cultivations In Catalogue",
+                undefined,
+                undefined,
+                undefined,
             )
             expect(
                 await getCultivationsFromCatalogue(

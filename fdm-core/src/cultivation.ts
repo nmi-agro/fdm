@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
+import { splitBy } from "./bulk"
 import type {
     Cultivation,
     CultivationCatalogue,
@@ -32,7 +33,6 @@ import {
 } from "./harvest"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
-import { splitBy } from "./bulk"
 
 /** Error message which will be replaced if getCultivationsFromCatalogue or getCultivationsFromCatalogueForFarms is rethrowing the error. */
 export const exceptionForGetCultivationsFromCatalogues =
@@ -155,14 +155,12 @@ export async function getCultivationsFromCatalogueForFarms(
 
         // Combine lists of cultivation catalogues enabled on each farm
         return Object.fromEntries(
-            Object.entries(cataloguesByFarm).map(
-                ([b_id_farm, enabledCatalogues]) => [
-                    b_id_farm,
-                    enabledCatalogues.flatMap(
-                        (cat) => catalogue[cat.b_lu_source] ?? [],
-                    ),
-                ],
-            ),
+            farmIds.map((b_id_farm) => [
+                b_id_farm,
+                (cataloguesByFarm[b_id_farm] ?? []).flatMap(
+                    (cat) => catalogue[cat.b_lu_source] ?? [],
+                ),
+            ]),
         )
     } catch (err) {
         throw handleError(
