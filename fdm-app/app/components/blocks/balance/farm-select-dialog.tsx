@@ -1,4 +1,3 @@
-import type { getFarms } from "@nmi-agro/fdm-core"
 import { useRef } from "react"
 import { useSearchParams } from "react-router"
 import { Button } from "~/components/ui/button"
@@ -29,7 +28,11 @@ export function FarmSelectDialog({
     farms,
     defaultSelectedFarmIds,
 }: {
-    farms: Awaited<ReturnType<typeof getFarms>>
+    farms: {
+        b_id_farm: string
+        b_name_farm: string | null
+        b_area_farm: number
+    }[]
     defaultSelectedFarmIds: string[]
 }) {
     const formRef = useRef<HTMLFormElement | null>(null)
@@ -48,8 +51,11 @@ export function FarmSelectDialog({
                         berekening.
                     </DialogDescription>
                 </DialogHeader>
-                <form ref={formRef} className="space-y-8">
-                    {farms.map((farm) => {
+                <form
+                    ref={formRef}
+                    className="space-y-4 max-h-50 overflow-y-scroll"
+                >
+                    {farms.flatMap((farm) => {
                         const b_id_farm = farm.b_id_farm
                         const currentValue = defaultSelectedFarmIds.includes(
                             farm.b_id_farm,
@@ -63,7 +69,12 @@ export function FarmSelectDialog({
                                     name={b_id_farm}
                                     defaultChecked={!!currentValue}
                                 />
-                                {farm.b_name_farm ?? "Onbekend"}
+                                <div className="grow">
+                                    {farm.b_name_farm ?? "Onbekend"}
+                                </div>
+                                <div className="text-muted-foreground">
+                                    {Math.round(farm.b_area_farm * 10) / 10} ha
+                                </div>
                             </div>
                         )
                     })}
