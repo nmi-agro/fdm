@@ -293,7 +293,7 @@ describe("Cultivation Data Model", () => {
             })
         })
 
-        it("(getCultivationsFromCatalogue) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
+        it("(getCultivationsFromCatalogue) should rename the error if getCultivationsFromCatalogues throws an error", async () => {
             const failError = new Error("Should have thrown.")
             try {
                 await getCultivationsFromCatalogue(
@@ -320,7 +320,7 @@ describe("Cultivation Data Model", () => {
             }
         })
 
-        it("(getCultivationsFromCatalogueForFarms) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
+        it("(getCultivationsFromCatalogueForFarms) should rename the error if getCultivationsFromCatalogues throws an error", async () => {
             const failError = new Error("Should have thrown.")
             try {
                 await getCultivationsFromCatalogueForFarms(
