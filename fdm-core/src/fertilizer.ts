@@ -179,8 +179,9 @@ export async function getFertilizersFromCatalogueForFarms(
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param catalogueIds Catalogues IDs to retrieve. These can be, for example, catalogue IDs found in fdm-data such as "baat", or farm IDs.
+ * @internal
  */
-export async function getFertilizersFromCatalogues(
+async function getFertilizersFromCatalogues(
     fdm: FdmType,
     catalogueIds: schema.fertilizersCatalogueTypeSelect["p_source"][],
 ): Promise<Record<FertilizerCatalogue["p_source"], FertilizerCatalogue[]>> {

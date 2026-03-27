@@ -187,6 +187,7 @@ export async function getCultivationsFromCatalogueForFarms(
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param catalogueIds The ID of the catalogues, such as "brp" or farm IDs.
  * @returns A Promise that resolves with a map from catalogue IDs to arrays of cultivations.
+ * @internal
  * @alpha
  */
 async function getCultivationsFromCatalogues(
