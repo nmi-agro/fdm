@@ -54,12 +54,14 @@ export async function getFertilizersFromCatalogue(
             .from(schema.fertilizerCatalogueEnabling)
             .where(eq(schema.fertilizerCatalogueEnabling.b_id_farm, b_id_farm))
 
-        const result = await getFertilizersFromCatalogues(
+        const catalogues = await getFertilizersFromCatalogues(
             fdm,
             enabledCatalogues.map(({ p_source }) => p_source),
         )
 
-        return result[b_id_farm] ?? []
+        return enabledCatalogues.flatMap(
+            ({ p_source }) => catalogues[p_source] ?? [],
+        )
     } catch (err) {
         throw handleError(
             err instanceof Error &&
@@ -203,24 +205,12 @@ export async function getFertilizersFromCatalogues(
 
         const fertilizersCatalogueExtended = fertilizersCatalogue.map(
             (result) => {
-                let p_type: "manure" | "mineral" | "compost" | null = null
-                if (result.p_type_rvo) {
-                    p_type = convertRvoTypeToFertilizerType(result.p_type_rvo)
-                } else {
-                    if (result.p_type_manure) {
-                        p_type = "manure"
-                    } else if (result.p_type_mineral) {
-                        p_type = "mineral"
-                    } else if (result.p_type_compost) {
-                        p_type = "compost"
-                    }
-                }
                 return {
                     ...result,
                     p_app_method_options: result.p_app_method_options as
                         | ApplicationMethods[]
                         | null,
-                    p_type: p_type,
+                    p_type: deriveFertilizerType(result),
                 }
             },
         )
@@ -516,22 +506,9 @@ export async function getFertilizer(
             throw new Error("Fertilizer not found")
         }
 
-        let p_type: "manure" | "mineral" | "compost" | null = null
-        if (result.p_type_rvo) {
-            p_type = convertRvoTypeToFertilizerType(result.p_type_rvo)
-        } else {
-            if (result.p_type_manure) {
-                p_type = "manure"
-            } else if (result.p_type_mineral) {
-                p_type = "mineral"
-            } else if (result.p_type_compost) {
-                p_type = "compost"
-            }
-        }
-
         return {
             ...result,
-            p_type: p_type,
+            p_type: deriveFertilizerType(result),
         }
     } catch (err) {
         throw handleError(err, "Exception for getFertilizer", {
@@ -790,22 +767,9 @@ export async function getFertilizers(
             .orderBy(asc(schema.fertilizersCatalogue.p_name_nl))
 
         return fertilizers.map((f: (typeof fertilizers)[number]) => {
-            let p_type: "manure" | "mineral" | "compost" | null = null
-            if (f.p_type_rvo) {
-                p_type = convertRvoTypeToFertilizerType(f.p_type_rvo)
-            } else {
-                if (f.p_type_manure) {
-                    p_type = "manure"
-                } else if (f.p_type_mineral) {
-                    p_type = "mineral"
-                } else if (f.p_type_compost) {
-                    p_type = "compost"
-                }
-            }
-
             return {
                 ...f,
-                p_type: p_type,
+                p_type: deriveFertilizerType(f),
             }
         })
     } catch (err) {
@@ -1529,5 +1493,30 @@ function convertRvoTypeToFertilizerType(
         return null
     }
 
+    return null
+}
+
+/**
+ * Determines the fertilizer type based on the fields of a fertilizer catalogue database entry.
+ *
+ * @param fertilizer Selected fertilizer catalogue row from the database, possibly joined with other tables
+ * @returns The fertilizer type ("manure", "mineral", "compost") or null if not classified.
+ * @internal
+ */
+function deriveFertilizerType(
+    fertilizer: Partial<schema.fertilizersCatalogueTypeSelect>,
+) {
+    if (fertilizer.p_type_rvo) {
+        return convertRvoTypeToFertilizerType(fertilizer.p_type_rvo)
+    }
+    if (fertilizer.p_type_manure) {
+        return "manure"
+    }
+    if (fertilizer.p_type_mineral) {
+        return "mineral"
+    }
+    if (fertilizer.p_type_compost) {
+        return "compost"
+    }
     return null
 }
