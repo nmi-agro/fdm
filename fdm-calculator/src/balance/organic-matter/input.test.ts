@@ -27,7 +27,7 @@ vi.mock("@nmi-agro/fdm-core", async () => {
         getSoilAnalyses: vi.fn(),
         getFertilizerApplications: vi.fn(),
         getFertilizersFromCatalogueForFarms: vi.fn(),
-        getCultivationsOfFarmsFromCatalogue: vi.fn(),
+        getCultivationsFromCatalogueForFarms: vi.fn(),
     }
 })
 
@@ -228,8 +228,8 @@ describe("collectInputForOrganicMatterBalance", () => {
         })
         vi.spyOn(
             fdmCore,
-            "getCultivationsOfFarmsFromCatalogue",
-        ).mockResolvedValue(mockCultivationDetailsData)
+            "getCultivationsFromCatalogueForFarms",
+        ).mockResolvedValue({ [b_id_farm]: mockCultivationDetailsData })
 
         const result = await collectInputForOrganicMatterBalance(
             mockFdm,
@@ -261,8 +261,8 @@ describe("collectInputForOrganicMatterBalance", () => {
         ).mockResolvedValue({})
         vi.spyOn(
             fdmCore,
-            "getCultivationsOfFarmsFromCatalogue",
-        ).mockResolvedValue([])
+            "getCultivationsFromCatalogueForFarms",
+        ).mockResolvedValue({})
 
         const result = await collectInputForOrganicMatterBalance(
             mockFdm,
@@ -312,8 +312,8 @@ describe("collectInputForOrganicMatterBalance", () => {
         } as any)
         vi.spyOn(
             fdmCore,
-            "getCultivationsOfFarmsFromCatalogue",
-        ).mockResolvedValue([mockCultivation] as any)
+            "getCultivationsFromCatalogueForFarms",
+        ).mockResolvedValue({ [b_id_farm]: [mockCultivation] } as any)
         vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
         vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
         vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([
@@ -410,14 +410,13 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
             fdmCore,
             "getFertilizersFromCatalogueForFarms",
         ).mockResolvedValue(allFertilizerDetails)
-        const combinedCultivationDetails = [
-            ...mockCultivationDetailsData,
-            ...mockCultivationDetailsData2,
-        ]
         vi.spyOn(
             fdmCore,
-            "getCultivationsOfFarmsFromCatalogue",
-        ).mockResolvedValue(combinedCultivationDetails)
+            "getCultivationsFromCatalogueForFarms",
+        ).mockResolvedValue({
+            "test-farm-id": mockCultivationDetailsData,
+            "test-farm-id-2": mockCultivationDetailsData2,
+        })
 
         const result = await collectInputForOrganicMatterBalanceForFarms(
             mockFdm,
@@ -475,13 +474,13 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
         expect(result).toEqual(expectedResult)
 
         expect(
-            fdmCore.getCultivationsOfFarmsFromCatalogue,
+            fdmCore.getCultivationsFromCatalogueForFarms,
         ).toHaveBeenCalledWith(mockFdm, principal_id, [
             "test-farm-id",
             "test-farm-id-2",
         ])
         expect(
-            fdmCore.getCultivationsOfFarmsFromCatalogue,
+            fdmCore.getCultivationsFromCatalogueForFarms,
         ).toHaveBeenCalledTimes(1)
         expect(
             fdmCore.getFertilizersFromCatalogueForFarms,

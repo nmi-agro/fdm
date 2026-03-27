@@ -6,7 +6,7 @@ import type {
 } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
-    getCultivationsOfFarmsFromCatalogue,
+    getCultivationsFromCatalogueForFarms,
     getFertilizerApplications,
     getFertilizersFromCatalogueForFarms,
     getField,
@@ -171,7 +171,7 @@ export async function collectInputForNitrogenBalanceForFarms(
         return await fdm.transaction(async (tx: FdmType) => {
             // Collect the details of the cultivations
             const cultivationDetails =
-                await getCultivationsOfFarmsFromCatalogue(
+                await getCultivationsFromCatalogueForFarms(
                     tx,
                     principal_id,
                     farmIds,
@@ -203,9 +203,12 @@ export async function collectInputForNitrogenBalanceForFarms(
                             ),
                         )
                         const cultivationDetailsForThisFarm =
-                            cultivationDetails.filter((cultivation) =>
-                                cultivationIds.has(cultivation.b_lu_catalogue),
-                            )
+                            cultivationDetails[b_id_farm]?.filter(
+                                (cultivation) =>
+                                    cultivationIds.has(
+                                        cultivation.b_lu_catalogue,
+                                    ),
+                            ) ?? []
 
                         const fertilizerIds = new Set(
                             onlyFieldInput.flatMap((input) =>

@@ -11,7 +11,7 @@ import {
     getCultivationPlan,
     getCultivations,
     getCultivationsFromCatalogue,
-    getCultivationsOfFarmsFromCatalogue,
+    getCultivationsFromCatalogueForFarms,
     getDefaultDatesOfCultivation,
     removeCultivation,
     updateCultivation,
@@ -214,24 +214,63 @@ describe("Cultivation Data Model", () => {
             ).toBeDefined()
         })
 
-        it("should get all cultivations of farms from catalogue", async () => {
-            const cultivations = await getCultivationsOfFarmsFromCatalogue(
+        it("should get all cultivations for farms from catalogue", async () => {
+            const cultivations = await getCultivationsFromCatalogueForFarms(
                 fdm,
                 principal_id,
                 [b_id_farm, b_id_farm_2],
             )
+            expect(cultivations[b_id_farm]).toBeDefined()
+            expect(cultivations[b_id_farm_2]).toBeDefined()
             expect(
-                cultivations.find(
+                cultivations[b_id_farm].find(
                     (cultivation) =>
                         cultivation.b_lu_catalogue === b_lu_catalogue,
                 ),
             ).toBeDefined()
             expect(
-                cultivations.find(
+                cultivations[b_id_farm_2].find(
                     (cultivation) =>
                         cultivation.b_lu_catalogue === b_lu_catalogue_2,
                 ),
             ).toBeDefined()
+        })
+
+        function mockFdmThatThrowsOnSelectionFromCultivationsCatalogue() {
+            return {
+                ...fdm,
+                select(...args: []) {
+                    return {
+                        ...fdm.select(...args),
+                        from(table: typeof schema.cultivationsCatalogue) {
+                            if (table !== schema.cultivationsCatalogue) {
+                                return fdm.select().from(table)
+                            }
+                            throw new Error("Error querying the database")
+                        },
+                    } as unknown
+                },
+            } as typeof fdm
+        }
+
+        it("(getCultivationsFromCatalogue) should rename the error if getCultivationsFromCatalogues throws an error", async () => {
+            expect(
+                getCultivationsFromCatalogue(
+                    mockFdmThatThrowsOnSelectionFromCultivationsCatalogue(),
+                    principal_id,
+                    b_id_farm,
+                ),
+            ).rejects.not.toThrow("Exception for getFertilizersFromCatalogues")
+        })
+
+        it("(getCultivationsFromCatalogueForFarms) should rename the error if getCultivationsFromCatalogues throws an error", async () => {
+            expect(
+                getCultivationsFromCatalogueForFarms(
+                    mockFdmThatThrowsOnSelectionFromCultivationsCatalogue(),
+                    principal_id,
+                    [b_id_farm],
+                ),
+            ).rejects.not.toThrow("Exception for getFertilizersFromCatalogues")
         })
 
         it("should add a new cultivation to the catalogue", async () => {

@@ -32,10 +32,11 @@ import {
 } from "./harvest"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
+import { splitBy } from "./bulk"
 
-/** Error message which will be replaced if getCultivationsFromCatalogue is rethrowing the error. */
-export const exceptionForGetCultivationsOfFarmsFromCatalogue =
-    "Exception for getCultivationsOfFarmsFromCatalogue"
+/** Error message which will be replaced if getCultivationsFromCatalogue or getCultivationsFromCatalogueForFarms is rethrowing the error. */
+export const exceptionForGetCultivationsFromCatalogues =
+    "Exception for getCultivationsFromCatalogues"
 
 /**
  * Retrieves cultivations available in the enabled catalogues for a farm.
@@ -46,11 +47,70 @@ export const exceptionForGetCultivationsOfFarmsFromCatalogue =
  * @returns A Promise that resolves with an array of cultivation catalogue entries.
  * @alpha
  */
-export async function getCultivationsOfFarmsFromCatalogue(
+export async function getCultivationsFromCatalogue(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<CultivationCatalogue[]> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getCultivationsOfFarmsFromCatalogue",
+        )
+
+        // Get enabled catalogues for the farm
+        const enabledCatalogues: Pick<
+            schema.cultivationCatalogueSelectingTypeSelect,
+            "b_lu_source"
+        >[] = await fdm
+            .selectDistinct({
+                b_lu_source: schema.cultivationCatalogueSelecting.b_lu_source,
+            })
+            .from(schema.cultivationCatalogueSelecting)
+            .where(
+                eq(schema.cultivationCatalogueSelecting.b_id_farm, b_id_farm),
+            )
+
+        const catalogueIds = enabledCatalogues.map((cat) => cat.b_lu_source)
+
+        const catalogue = await getCultivationsFromCatalogues(fdm, catalogueIds)
+
+        return catalogueIds.flatMap(
+            (b_lu_source) => catalogue[b_lu_source] ?? [],
+        )
+    } catch (err) {
+        throw handleError(
+            err instanceof Error &&
+                err.message === exceptionForGetCultivationsFromCatalogues
+                ? err.cause
+                : err,
+            "Exception for getCultivationsFromCatalogue",
+            {
+                principal_id,
+                b_id_farm,
+            },
+        )
+    }
+}
+
+/**
+ * Retrieves cultivations available in the enabled catalogues for multiple farms.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param farmIds The ID of the farms.
+ * @returns A Promise that resolves with a map from farm IDs to arrays of cultivation catalogues.
+ * @alpha
+ */
+export async function getCultivationsFromCatalogueForFarms(
     fdm: FdmType,
     principal_id: PrincipalId,
     farmIds: schema.farmsTypeSelect["b_id_farm"][],
-): Promise<CultivationCatalogue[]> {
+) {
     try {
         await Promise.all(
             farmIds.map((b_id_farm) =>
@@ -66,8 +126,12 @@ export async function getCultivationsOfFarmsFromCatalogue(
         )
 
         // Get enabled catalogues for the farm
-        const enabledCatalogues = await fdm
-            .select({
+        const enabledCatalogues: Pick<
+            schema.cultivationCatalogueSelectingTypeSelect,
+            "b_id_farm" | "b_lu_source"
+        >[] = await fdm
+            .selectDistinct({
+                b_id_farm: schema.cultivationCatalogueSelecting.b_id_farm,
                 b_lu_source: schema.cultivationCatalogueSelecting.b_lu_source,
             })
             .from(schema.cultivationCatalogueSelecting)
@@ -77,30 +141,36 @@ export async function getCultivationsOfFarmsFromCatalogue(
                     farmIds,
                 ),
             )
+            .orderBy(asc(schema.cultivationCatalogueSelecting.b_id_farm))
 
-        // If no catalogues are enabled, return empty array
-        if (enabledCatalogues.length === 0) {
-            return []
-        }
+        // Catalogues enabled on each farm
+        const cataloguesByFarm = splitBy(
+            enabledCatalogues,
+            (cat) => cat.b_id_farm,
+        )
 
-        // Get cultivations from enabled catalogues
-        const cultivationsCatalogue = await fdm
-            .select()
-            .from(schema.cultivationsCatalogue)
-            .where(
-                inArray(
-                    schema.cultivationsCatalogue.b_lu_source,
-                    enabledCatalogues.map(
-                        (c: { b_lu_source: string }) => c.b_lu_source,
+        const catalogue = await getCultivationsFromCatalogues(fdm, [
+            ...new Set(enabledCatalogues.map((cat) => cat.b_lu_source)),
+        ])
+
+        // Combine lists of cultivation catalogues enabled on each farm
+        return Object.fromEntries(
+            Object.entries(cataloguesByFarm).map(
+                ([b_id_farm, enabledCatalogues]) => [
+                    b_id_farm,
+                    enabledCatalogues.flatMap(
+                        (cat) => catalogue[cat.b_lu_source],
                     ),
-                ),
-            )
-
-        return cultivationsCatalogue
+                ],
+            ),
+        )
     } catch (err) {
         throw handleError(
-            err,
-            exceptionForGetCultivationsOfFarmsFromCatalogue,
+            err instanceof Error &&
+                err.message === exceptionForGetCultivationsFromCatalogues
+                ? err.cause
+                : err,
+            "Exception for getCultivationsFromCatalogueForFarms",
             {
                 principal_id,
                 farmIds,
@@ -109,32 +179,46 @@ export async function getCultivationsOfFarmsFromCatalogue(
     }
 }
 
-export async function getCultivationsFromCatalogue(
+/**
+ * Retrieves cultivations available in the given list of catalogues.
+ *
+ * No permission checks are performed. If a catalogue permission system is implemented in the future this may change.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param catalogueIds The ID of the catalogues, such as "brp" or farm IDs.
+ * @returns A Promise that resolves with a map from catalogue IDs to arrays of cultivations.
+ * @alpha
+ */
+async function getCultivationsFromCatalogues(
     fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: string,
+    catalogueIds: schema.cultivationCatalogueSelectingTypeSelect["b_lu_source"][],
 ) {
     try {
-        return await getCultivationsOfFarmsFromCatalogue(fdm, principal_id, [
-            b_id_farm,
-        ])
-    } catch (err) {
-        if (
-            (err as Error)?.message?.startsWith(
-                exceptionForGetCultivationsOfFarmsFromCatalogue,
-            )
-        ) {
-            const handledError = err as Error
-            throw handleError(
-                handledError.cause,
-                "Exception for getCultivationsFromCatalogue",
-                {
-                    principal_id,
-                    b_id_farm,
-                },
-            )
+        // If no catalogues are enabled, return empty array
+        if (catalogueIds.length === 0) {
+            return {}
         }
-        throw err
+
+        // Get cultivations from enabled catalogues
+        const cultivationsCatalogue: CultivationCatalogue[] = await fdm
+            .select()
+            .from(schema.cultivationsCatalogue)
+            .where(
+                inArray(schema.cultivationsCatalogue.b_lu_source, catalogueIds),
+            )
+            .orderBy(
+                asc(schema.cultivationsCatalogue.b_lu_source),
+                asc(schema.cultivationsCatalogue.b_lu_name),
+            )
+
+        return splitBy(
+            cultivationsCatalogue,
+            (cultivation) => cultivation.b_lu_source,
+        )
+    } catch (err) {
+        throw handleError(err, exceptionForGetCultivationsFromCatalogues, {
+            catalogueIds,
+        })
     }
 }
 
