@@ -53,23 +53,24 @@ type Organization = Awaited<
 type FarmResult = {
     farm: Farm
     owner: Awaited<ReturnType<typeof listPrincipalsForFarm>>[number] | undefined
-    fields: Awaited<ReturnType<typeof getFields>>
     totalArea: number
     organicMatterBalanceResult: OrganicMatterBalanceNumeric & {
         errorMessage?: string
     }
 }
+type FarmExtended = Farm & { b_area_farm: number }
 type AsyncData = {
     farmResults: FarmResult[]
     combinedResult: OrganicMatterBalanceNumeric
+    farms: FarmExtended[]
 }
 type LoaderData =
     | {
+          farmIds: string[]
           organization: Organization
           noFarms: true
       }
     | {
-          farms: Farm[]
           farmIds: string[]
           organization: Organization
           noFarms: false
@@ -143,12 +144,9 @@ export async function loader({
             return {
                 organization: organization,
                 noFarms: true,
+                farmIds: [],
             }
         }
-
-        const farmsMap = Object.fromEntries(
-            farms.map((farm) => [farm.b_id_farm, farm]),
-        )
 
         const farmIds =
             searchParamFarmIds ?? farms.map((farm) => farm.b_id_farm)
@@ -186,11 +184,38 @@ export async function loader({
                 rawFarmResultsMap[b_id_farm] ??= []
                 rawFarmResultsMap[b_id_farm].push(result)
             }
+
+            // Compute farms
+            const farmsExtended = await Promise.all(
+                farms.map(async (farm) => {
+                    const fields = await getFields(
+                        fdm,
+                        principal_id,
+                        farm.b_id_farm,
+                    )
+
+                    const b_area_farm = fields.reduce(
+                        (totalArea, field) => totalArea + (field.b_area ?? 0),
+                        0,
+                    )
+
+                    return {
+                        ...farm,
+                        b_area_farm: b_area_farm,
+                    }
+                }),
+            )
+
+            // Sort farms by descending area, which will in turn also cause the results to be sorted
+            farmsExtended.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)
+
             const farmResults = await Promise.all(
-                Object.entries(rawFarmResultsMap).map(
-                    async ([b_id_farm, fieldResults]) => {
-                        const farm = farmsMap[b_id_farm]
+                farmsExtended
+                    .filter((farm) => rawFarmResultsMap[farm.b_id_farm])
+                    .map(async (farm) => {
                         try {
+                            const fieldResults =
+                                rawFarmResultsMap[farm.b_id_farm]
                             const organicMatterBalanceResult =
                                 calculateOrganicMatterBalancesFieldToFarm(
                                     fieldResults,
@@ -212,17 +237,6 @@ export async function loader({
                                 (p) => p.role === "owner" && p.type === "user",
                             )
 
-                            const fields = await getFields(
-                                fdm,
-                                principal_id,
-                                farm.b_id_farm,
-                            )
-
-                            const totalArea = fields.reduce(
-                                (totalArea, field) =>
-                                    totalArea + (field.b_area ?? 0),
-                                0,
-                            )
                             if (organicMatterBalanceResult.hasErrors) {
                                 reportError(
                                     organicMatterBalanceResult.fieldErrorMessages.join(
@@ -243,8 +257,7 @@ export async function loader({
                             return {
                                 farm: farm,
                                 owner: owner,
-                                fields: fields,
-                                totalArea: totalArea,
+                                totalArea: farm.b_area_farm,
                                 organicMatterBalanceResult:
                                     organicMatterBalanceResult as OrganicMatterBalanceNumeric & {
                                         errorMessage?: string
@@ -254,8 +267,7 @@ export async function loader({
                             return {
                                 farm: farm,
                                 owner: undefined,
-                                fields: [],
-                                totalArea: 0,
+                                totalArea: farm.b_area_farm,
                                 organicMatterBalanceResult: {
                                     hasErrors: true,
                                     errorMessage:
@@ -267,11 +279,11 @@ export async function loader({
                                 },
                             }
                         }
-                    },
-                ),
+                    }),
             )
 
             return {
+                farms: farmsExtended,
                 farmResults: farmResults,
                 combinedResult: combinedResult,
             }
@@ -280,7 +292,6 @@ export async function loader({
         const asyncData = getAsyncData(organization.id)
 
         return {
-            farms: farms,
             farmIds: farmIds.sort(),
             organization: organization,
             noFarms: false,
@@ -334,7 +345,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
         )
     }
 
-    const { farms, farmIds, asyncData: asyncDataPromise } = loaderData
+    const { farmIds, asyncData: asyncDataPromise } = loaderData
 
     // Unlike most React hooks `use` may be called conditionally
     const asyncData = use(asyncDataPromise)
@@ -491,7 +502,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
                         <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
                             <p className="grow">Bedrijven</p>
                             <FarmSelectDialog
-                                farms={farms}
+                                farms={asyncData.farms}
                                 defaultSelectedFarmIds={farmIds}
                             />
                             <BufferStripInfo />
