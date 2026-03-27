@@ -159,7 +159,7 @@ export async function getCultivationsFromCatalogueForFarms(
                 ([b_id_farm, enabledCatalogues]) => [
                     b_id_farm,
                     enabledCatalogues.flatMap(
-                        (cat) => catalogue[cat.b_lu_source],
+                        (cat) => catalogue[cat.b_lu_source] ?? [],
                     ),
                 ],
             ),

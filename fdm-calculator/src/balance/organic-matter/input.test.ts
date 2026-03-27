@@ -296,6 +296,20 @@ describe("collectInputForOrganicMatterBalance", () => {
         ).rejects.toThrow("Field not found: non-existent-field")
     })
 
+    it("should throw an error if there is a specified field but also multiple specified farms", async () => {
+        await expect(
+            collectInputForOrganicMatterBalanceForFarms(
+                mockFdm,
+                principal_id,
+                ["some-farm", "some-other-farm"],
+                timeframe,
+                "some-field",
+            ),
+        ).rejects.toThrow(
+            "b_id can only be used when collecting input for a single farm",
+        )
+    })
+
     it("should correctly structure the output", async () => {
         const mockField = { b_id: "field1" }
         const mockCultivation = { b_lu: "cult1" }

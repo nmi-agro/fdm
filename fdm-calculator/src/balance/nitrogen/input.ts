@@ -168,6 +168,11 @@ export async function collectInputForNitrogenBalanceForFarms(
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<(NitrogenBalanceInput & { b_id_farm: string })[]> {
     try {
+        if (b_id && farmIds.length !== 1) {
+            throw new Error(
+                "b_id can only be used when collecting input for a single farm",
+            )
+        }
         return await fdm.transaction(async (tx: FdmType) => {
             // Collect the details of the cultivations
             const cultivationDetails =

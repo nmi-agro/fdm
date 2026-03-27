@@ -437,6 +437,33 @@ describe("Fertilizer Data Model", () => {
             ])
         })
 
+        it("should handle empty catalogues", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Cultivations In Catalogue",
+                undefined,
+                undefined,
+                undefined,
+            )
+            enableFertilizerCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "invalid-catalogue",
+            )
+            expect(
+                await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),
+            ).toEqual([])
+            expect(
+                await getFertilizersFromCatalogueForFarms(fdm, principal_id, [
+                    b_id_farm,
+                ]),
+            ).toEqual({
+                [b_id_farm]: [],
+            })
+        })
+
         function mockFdmThatThrowsOnSelectionFromFertilizersCatalogue() {
             return {
                 ...fdm,
@@ -455,23 +482,51 @@ describe("Fertilizer Data Model", () => {
         }
 
         it("(getFertilizersFromCatalogue) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
-            expect(
-                getFertilizersFromCatalogue(
+            const failError = new Error("Should have thrown.")
+            try {
+                await getFertilizersFromCatalogue(
                     mockFdmThatThrowsOnSelectionFromFertilizersCatalogue(),
                     principal_id,
                     b_id_farm,
-                ),
-            ).rejects.not.toThrow("Exception for getFertilizersFromCatalogues")
+                )
+                throw failError
+            } catch (e) {
+                expect(e).not.toBe(failError)
+                expect(e).toBeInstanceOf(Error)
+                expect((e as Error).message).toBe(
+                    "Exception for getFertilizersFromCatalogue",
+                )
+                const errorCause = (e as Error).cause
+                if (errorCause instanceof Error) {
+                    expect(errorCause.message).not.toBe(
+                        "Exception for getFertilizersFromCatalogues",
+                    )
+                }
+            }
         })
 
         it("(getFertilizersFromCatalogueForFarms) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
-            expect(
-                getFertilizersFromCatalogueForFarms(
+            const failError = new Error("Should have thrown.")
+            try {
+                await getFertilizersFromCatalogueForFarms(
                     mockFdmThatThrowsOnSelectionFromFertilizersCatalogue(),
                     principal_id,
                     [b_id_farm],
-                ),
-            ).rejects.not.toThrow("Exception for getFertilizersFromCatalogues")
+                )
+                throw failError
+            } catch (err) {
+                expect(err).not.toBe(failError)
+                expect(err).toBeInstanceOf(Error)
+                expect((err as Error).message).toBe(
+                    "Exception for getFertilizersFromCatalogueForFarms",
+                )
+                const errorCause = (err as Error).cause
+                if (errorCause instanceof Error) {
+                    expect(errorCause.message).not.toBe(
+                        "Exception for getFertilizersFromCatalogues",
+                    )
+                }
+            }
         })
 
         it("should remove a fertilizer", async () => {

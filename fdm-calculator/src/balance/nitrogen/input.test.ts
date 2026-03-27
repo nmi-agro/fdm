@@ -373,6 +373,20 @@ describe("collectInputForNitrogenBalance", () => {
         ).toHaveBeenCalledWith(expect.anything(), timeframe, expect.any(String))
     })
 
+    it("should throw an error if there is a specified field but also multiple specified farms", async () => {
+        await expect(
+            collectInputForNitrogenBalanceForFarms(
+                mockFdm,
+                principal_id,
+                ["some-farm", "some-other-farm"],
+                timeframe,
+                "some-field",
+            ),
+        ).rejects.toThrow(
+            "b_id can only be used when collecting input for a single farm",
+        )
+    })
+
     it("should throw an error if getFields fails", async () => {
         const errorMessage = "Failed to get fields"
         mockedGetFields.mockRejectedValue(new Error(errorMessage))

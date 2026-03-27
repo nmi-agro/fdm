@@ -141,6 +141,11 @@ export async function collectInputForOrganicMatterBalanceForFarms(
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<(OrganicMatterBalanceInput & { b_id_farm: string })[]> {
     try {
+        if (b_id && farmIds.length !== 1) {
+            throw new Error(
+                "b_id can only be used when collecting input for a single farm",
+            )
+        }
         // All data fetching is wrapped in a single database transaction to ensure consistency.
         return await fdm.transaction(async (tx: FdmType) => {
             const cultivationDetails =

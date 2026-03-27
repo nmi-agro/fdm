@@ -65,8 +65,7 @@ export async function getFertilizersFromCatalogue(
     } catch (err) {
         throw handleError(
             err instanceof Error &&
-                err.message ===
-                    "Exception for getFertilizersFromCatalogueForFarms"
+                err.message === "Exception for getFertilizersFromCatalogues"
                 ? err.cause
                 : err,
             "Exception for getFertilizersFromCatalogue",
@@ -159,8 +158,7 @@ export async function getFertilizersFromCatalogueForFarms(
     } catch (err) {
         throw handleError(
             err instanceof Error &&
-                err.message ===
-                    "Exception for getFertilizersFromCatalogueForFarms"
+                err.message === "Exception for getFertilizersFromCatalogues"
                 ? err.cause
                 : err,
             "Exception for getFertilizersFromCatalogueForFarms",
