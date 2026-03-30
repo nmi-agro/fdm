@@ -857,7 +857,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             })
 
             return redirectWithSuccess(
-                `farm/${b_id_farm}/${calendar}/rotation`,
+                `/farm/${b_id_farm}/${calendar}/rotation`,
                 "Gerrit's bemestingsplan is succesvol toegepast!",
             )
         } catch (e: unknown) {
