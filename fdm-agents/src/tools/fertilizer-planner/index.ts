@@ -386,6 +386,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             const calendar =
                 (context.state.get("calendar") as string) ||
                 new Date().getFullYear().toString()
+            const nmiApiKey = context.state.get("nmiApiKey") as
+                | string
+                | undefined
 
             if (!fdm || !principalId || !args.b_id_farm) {
                 throw new Error("Database connection or Farm ID missing")
@@ -433,18 +436,10 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     ) {
                         return {
                             b_id: fieldData.b_id,
+                            b_area: fieldInfo.b_area,
                             error: "Field is a buffer strip and cannot receive fertilizer applications.",
                             isValid: false,
-                            filling: {
-                                animalManureN: 0,
-                                workableN: 0,
-                                phosphate: 0,
-                            },
-                            norms: {
-                                animalManureN: 0,
-                                workableN: 0,
-                                phosphate: 0,
-                            },
+                            fieldMetrics: null,
                         }
                     }
 
@@ -570,35 +565,81 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
                     // Calculate nutrient doses from the proposed plan so the agent
                     // can compare what the plan provides against the nutrient advice.
-                    const proposedDose = calculateDose({
+                    const rawDose = calculateDose({
                         applications: proposedApps,
                         fertilizers,
                     }).dose
 
+                    // Fetch nutrient advice so the agent can compare dose vs advice
+                    // inside a single simulation step without a separate tool call.
+                    let advice = null
+                    if (nmiApiKey) {
+                        try {
+                            const currentSoilData = await getCurrentSoilData(
+                                fdm,
+                                principalId,
+                                fieldData.b_id,
+                            )
+                            advice = await getNutrientAdvice(fdm, {
+                                b_lu_catalogue:
+                                    fieldData.b_lu_catalogue || "",
+                                b_centroid: fieldInfo.b_centroid ?? [0, 0],
+                                currentSoilData,
+                                nmiApiKey,
+                                b_bufferstrip: fieldInfo.b_bufferstrip,
+                            })
+                        } catch {
+                            // advice remains null if the fetch fails
+                        }
+                    }
+
                     return {
                         b_id: fieldData.b_id,
                         b_area: fieldInfo.b_area,
-                        // Structured for aggregateNormFillingsToFarmLevel
-                        normsFilling: {
-                            manure: manureFilling,
-                            nitrogen: nitrogenFilling,
-                            phosphate: phosphateFilling,
-                        },
-                        // Structured for aggregateNormsToFarmLevel
-                        norms: {
-                            manure,
-                            nitrogen,
-                            phosphate,
-                        },
-                        // Proposed nutrient dose (kg/ha) for comparison with nutrient advice
-                        proposedDose,
-                        omBalance: omBalance?.balance,
-                        omBalanceError,
-                        eomSupplyPerHa:
-                            omBalance?.supply?.fertilizers?.total ?? null,
-                        nBalance: nBalance || null,
-                        nBalanceError,
                         isValid: true,
+                        fieldMetrics: {
+                            // Structured for aggregateNormFillingsToFarmLevel
+                            normsFilling: {
+                                manure: manureFilling,
+                                nitrogen: nitrogenFilling,
+                                phosphate: phosphateFilling,
+                            },
+                            // Structured for aggregateNormsToFarmLevel
+                            norms: {
+                                manure,
+                                nitrogen,
+                                phosphate,
+                            },
+                            // Proposed nutrient dose (kg/ha) for comparison with
+                            // nutrient advice. p_dose_nw (workable N) is the correct
+                            // field to compare against advice.d_n_req — d_n_req
+                            // expresses the agronomic N requirement in werkzame N.
+                            // p_dose_n (total N) is included for reference only.
+                            // p_dose_eoc is omitted as it is not a plant nutrient.
+                            proposedDose: {
+                                p_dose_n: rawDose.p_dose_n,
+                                p_dose_nw: rawDose.p_dose_nw,
+                                p_dose_p: rawDose.p_dose_p,
+                                p_dose_k: rawDose.p_dose_k,
+                                p_dose_s: rawDose.p_dose_s,
+                                p_dose_mg: rawDose.p_dose_mg,
+                                p_dose_ca: rawDose.p_dose_ca,
+                                p_dose_na: rawDose.p_dose_na,
+                                p_dose_cu: rawDose.p_dose_cu,
+                                p_dose_zn: rawDose.p_dose_zn,
+                                p_dose_b: rawDose.p_dose_b,
+                                p_dose_mn: rawDose.p_dose_mn,
+                                p_dose_mo: rawDose.p_dose_mo,
+                                p_dose_co: rawDose.p_dose_co,
+                            },
+                            omBalance: omBalance?.balance ?? null,
+                            omBalanceError,
+                            eomSupplyPerHa:
+                                omBalance?.supply?.fertilizers?.total ?? null,
+                            nBalance: nBalance || null,
+                            nBalanceError,
+                            advice,
+                        },
                     }
                 }),
             )
@@ -613,7 +654,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 validFieldResults.map((r: any) => ({
                     b_id: r.b_id,
                     b_area: r.b_area,
-                    norms: r.norms,
+                    norms: r.fieldMetrics.norms,
                 })),
             )
 
@@ -621,7 +662,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 validFieldResults.map((r: any) => ({
                     b_id: r.b_id,
                     b_area: r.b_area,
-                    normsFilling: r.normsFilling,
+                    normsFilling: r.fieldMetrics.normsFilling,
                 })),
             )
 
@@ -630,7 +671,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     b_id: r.b_id,
                     b_area: r.b_area,
                     b_bufferstrip: false,
-                    balance: r.nBalance || undefined,
+                    balance: r.fieldMetrics.nBalance || undefined,
                 })),
                 false,
                 [],
@@ -847,9 +888,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             }
 
             for (const r of validFieldResults) {
-                if (r.omBalance && r.omBalance < 0) {
+                if (r.fieldMetrics.omBalance && r.fieldMetrics.omBalance < 0) {
                     agronomicWarnings.push(
-                        `Strategy warning (Organic Matter): Field ${r.b_id} has a negative organic matter balance (${Math.round(r.omBalance)} kg EOM/ha). Consider applying compost or other fertilizer with a high EOM content.`,
+                        `Strategy warning (Organic Matter): Field ${r.b_id} has a negative organic matter balance (${Math.round(r.fieldMetrics.omBalance)} kg EOM/ha). Consider applying compost or other fertilizer with a high EOM content.`,
                     )
                 }
             }

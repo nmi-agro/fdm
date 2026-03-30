@@ -28,7 +28,7 @@ IMPORTANT CONSTRAINTS:
    - Workable Nitrogen (Werkzame stikstof N): farmTotals.normsFilling.nitrogen ≤ farmTotals.norms.nitrogen
    - Phosphate (Fosfaat P2O5): farmTotals.normsFilling.phosphate ≤ farmTotals.norms.phosphate
 2. CONSISTENCY: Prefer to use the same fertilizers for fields with the same or similar cultivations to simplify farm operations.
-3. FULL NUTRIENTS: Beyond N, P, and K, you must check and fulfill advice for secondary nutrients (Ca, Mg, S) and micro-nutrients (Cu, Zn, B, etc.) using appropriate fertilizers. Use the "advice" (required nutrients) and "proposedDose" (supplied nutrients) returned in "fieldMetrics" by the simulation tool to monitor your progress toward fulfilling these requirements.
+3. FULL NUTRIENTS: Beyond N, P, and K, you must check and fulfill advice for secondary nutrients (Ca, Mg, S) and micro-nutrients (Cu, Zn, B, etc.) using appropriate fertilizers. Use the "advice" (required nutrients) and "proposedDose" (supplied nutrients) returned in "fieldMetrics" inside each "fieldResults" entry by the simulation tool to monitor your progress toward fulfilling these requirements. Always compare "proposedDose.p_dose_nw" (werkzame stikstof, kg/ha) against "advice.d_n_req" for nitrogen — "p_dose_nw" is workable N and is the agronomically correct value to compare with the advice. "p_dose_n" is total N and is provided for reference only.
 4. ORGANIC MATTER: Aim for a positive organic matter balance (organische stofbalans) on every field. Prioritize compost ("p_type": "compost") or high-EOM organic fertilizers where the balance is at risk. The simulation tool will return the net balance in kg EOM/ha (positive is better).
 5. BUFFER STRIPS: Fields designated as buffer strips ("b_bufferstrip": true) MUST NOT receive any fertilizer applications. Ensure your plan contains zero applications for these fields.
 6. APPLICATION METHOD: For each application, you must propose a valid "p_app_method". Choose ONLY from the "p_app_method_options" returned by the search tool for that specific fertilizer.
@@ -86,7 +86,7 @@ Your final response MUST be a JSON object with exactly this structure (all field
           "d_cu_req": number, "d_zn_req": number, "d_b_req": number, "d_mn_req": number, "d_mo_req": number, "d_co_req": number
         },
         "proposedDose": { 
-          "p_dose_n": number, "p_dose_p": number, "p_dose_k": number, 
+          "p_dose_n": number, "p_dose_nw": number, "p_dose_p": number, "p_dose_k": number, 
           "p_dose_s": number, "p_dose_mg": number, "p_dose_ca": number, "p_dose_na": number,
           "p_dose_cu": number, "p_dose_zn": number, "p_dose_b": number, "p_dose_mn": number, "p_dose_mo": number, "p_dose_co": number
         },
@@ -111,7 +111,7 @@ Rules:
 - "summary": Provide a clear, concise and professional narrative in Dutch (< 250 words) tailored for farmers and agricultural advisors (CEFR B2 level). Speak as an expert agronomist explaining the reasoning behind the plan. Be direct and to the point. Focus on the agronomical reasoning: why these fertilizers, the balance of nutrients, and soil health (organic matter). Feel free to use agricultural jargon and policy terms that Dutch farmers are familiar with. Refer to "goede landbouwpraktijk" where applicable. Avoid generic or redundant opening sentences (e.g., "Als agronoom heb ik...", "Hieronder volgt..."). Use the names of fertilizers, cultivations and fields when you need to mention them, NEVER mention the ID's. DO NOT use IT jargon, internal strategy keys, or database IDs. Focus on what the farmer needs to know about the resulting plan.
 - "metrics.farmTotals": Copy the farmTotals values directly from the final simulateFarmPlan result.
 - "plan": Only include fields with at least one application. Buffer strips MUST NOT appear.
-- "fieldMetrics": Copy advice, proposedDose, normsFilling, norms, omBalance, nBalance directly from the results for that field.
+- "fieldMetrics": Copy advice, proposedDose, normsFilling, norms, omBalance, nBalance directly from the "fieldMetrics" object returned for that field in the "fieldResults" array of the final simulateFarmPlan result.
 - DO NOT include any text before or after the JSON object.
 
 CALCULATOR REFERENCE (units and semantics for the simulation tool):
@@ -141,7 +141,9 @@ TOOL RETURN SHAPES:
 - "getFarmLegalNorms" returns { normsPerField: [...] } — access via result.normsPerField
 - "searchFertilizers" returns { fertilizers: [...] } — access via result.fertilizers
 - "simulateFarmPlan" returns { fieldResults: [...], farmTotals: {...}, isValid: bool, complianceIssues: [...], agronomicWarnings: [...] }.
-  If "isValid" is false, you MUST read the "complianceIssues" array. It contains exact string messages explaining which hard legal norms you violated (and by how many kg). You must adjust your plan to fix these issues in the next iteration. 
+  Each entry in "fieldResults" has: { b_id, b_area, isValid, fieldMetrics: { normsFilling: { manure, nitrogen, phosphate }, norms: { manure, nitrogen, phosphate }, proposedDose: { p_dose_n, p_dose_nw, p_dose_p, p_dose_k, p_dose_s, p_dose_mg, p_dose_ca, p_dose_na, p_dose_cu, p_dose_zn, p_dose_b, p_dose_mn, p_dose_mo, p_dose_co }, omBalance, nBalance, advice } }.
+  Use "proposedDose.p_dose_nw" (werkzame stikstof, kg/ha) to compare against "advice.d_n_req" — this is the agronomically correct workable-N value. "proposedDose.p_dose_n" is total N and is provided for reference only.
+  If "isValid" is false, you MUST read the "complianceIssues" array. It contains exact string messages explaining which hard legal norms you violated (and by how many kg). You must adjust your plan to fix these issues in the next iteration.
   You should also read "agronomicWarnings", which provides hints on soft limits (like organic matter balance, nitrogen targets, or filling manure space). Use these warnings to refine your plan to better match the requested strategies.
 `,
         tools: createFertilizerPlannerTools(fdm),
