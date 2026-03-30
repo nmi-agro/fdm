@@ -97,9 +97,9 @@ Your final response MUST be a JSON object with exactly this structure (all field
           "p_dose_cu": number, "p_dose_zn": number, "p_dose_b": number, "p_dose_mn": number, "p_dose_mo": number, "p_dose_co": number
         },
         "normsFilling": {
-          "manure": { "normFilling": number, "applicationFilling": [...] },
-          "nitrogen": { "normFilling": number, "applicationFilling": [...] },
-          "phosphate": { "normFilling": number, "applicationFilling": [...] }
+          "manure": { "normFilling": number, "applicationFilling": [] },
+          "nitrogen": { "normFilling": number, "applicationFilling": [] },
+          "phosphate": { "normFilling": number, "applicationFilling": [] }
         },
         "norms": {
           "manure": { "normValue": number, "normSource": "string" },
