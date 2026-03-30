@@ -632,6 +632,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 b_id_farm,
                 calendar,
                 nmiApiKey: serverConfig.integrations.nmi?.api_key,
+                strategies,
+                additionalContext: additionalContext ?? "",
             }
 
             const startTime = Date.now()
@@ -967,7 +969,10 @@ export default function GerritApp() {
         try {
             localStorage.setItem(key, "true")
         } catch (err) {
-            console.warn("[Gerrit] Could not persist disclaimer acceptance:", err)
+            console.warn(
+                "[Gerrit] Could not persist disclaimer acceptance:",
+                err,
+            )
         }
         setHasAcceptedDisclaimer(true)
     }
