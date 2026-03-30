@@ -802,6 +802,38 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 }
             }
 
+            if (args.strategies?.reduceAmmoniaEmissions) {
+                // NH3 emission factor threshold: 0.30 (30 %) separates
+                // low-emission methods (injection / incorporation ≤ 0.24) from
+                // high-emission methods (broadcasting / spraying ≥ 0.68). The
+                // emission value is sourced from the already-computed per-field
+                // nitrogen balance (emission.ammonia.fertilizers.total), which
+                // internally uses calculateNitrogenEmissionViaAmmoniaByFertilizers.
+                const NH3_EMISSION_FACTOR_THRESHOLD = 0.3
+                for (const result of fieldResults) {
+                    if (!result.nBalance) continue
+                    const nh3FromFertilizers: number =
+                        result.nBalance.emission?.ammonia?.fertilizers?.total ??
+                        0
+                    const nFromFertilizers: number =
+                        result.nBalance.supply?.fertilizers?.total ?? 0
+                    if (nFromFertilizers > 0) {
+                        // Emission values are negative (losses); supply is positive.
+                        const avgEmissionFactor =
+                            Math.abs(nh3FromFertilizers) / nFromFertilizers
+                        if (avgEmissionFactor > NH3_EMISSION_FACTOR_THRESHOLD) {
+                            const fieldData = args.fields.find(
+                                (f: SimulationField) =>
+                                    f.b_id === result.b_id,
+                            )
+                            agronomicWarnings.push(
+                                `Strategy warning (Reduce Ammonia Emissions): Field ${result.b_id}${fieldData ? ` (${fieldData.b_lu_name})` : ""} has a high weighted-average NH3 emission factor (${Math.round(avgEmissionFactor * 100)}%, threshold: ${NH3_EMISSION_FACTOR_THRESHOLD * 100}%). Consider switching to low-emission application methods (e.g., injection or incorporation) instead of broadcasting or spraying.`,
+                            )
+                        }
+                    }
+                }
+            }
+
             if (args.strategies?.fillManureSpace) {
                 if (farmFillingsKg.manure < farmNormsKg.manure * 0.95) {
                     // warn if less than 95% full
