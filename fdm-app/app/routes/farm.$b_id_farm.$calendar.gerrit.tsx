@@ -855,8 +855,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
             })
 
             return redirectWithSuccess(
-                "./rotation/fertilizer",
-                "Gerrit's plan is succesvol toegepast!",
+                `farm/${b_id_farm}/${calendar}/rotation`,
+                "Gerrit's bemestingsplan is succesvol toegepast!",
             )
         } catch (e: unknown) {
             console.error("Save failed:", e)
