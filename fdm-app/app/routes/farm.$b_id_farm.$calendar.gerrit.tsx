@@ -789,6 +789,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         try {
             const plan = JSON.parse(planStr)
+            if (!plan?.plan || !Array.isArray(plan.plan)) {
+                return dataWithError(null, "Ongeldig bemestingsplan.")
+            }
             const fertilizers = await getFertilizers(
                 fdm,
                 session.principal_id,
