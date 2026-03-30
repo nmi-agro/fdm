@@ -14,11 +14,17 @@ export function createFertilizerPlannerAgent(
     apiKey?: string,
     model?: string,
 ) {
+    const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
+    if (!resolvedKey) {
+        throw new Error(
+            "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
+        )
+    }
     return new LlmAgent({
         name: "Gerrit",
         description:
             "Expert Dutch Agronomist for fertilizer application planning.",
-        model: createDefaultModel(apiKey, model),
+        model: createDefaultModel(resolvedKey, model),
         instruction: `You are Gerrit, an expert Dutch Agronomist.
 Your goal is to create a legally compliant and agronomically sound fertilizer plan for the entire farm.
 

@@ -37,7 +37,12 @@ export function GerritLoading() {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
+                    className="flex items-center gap-3 text-sm text-muted-foreground"
+                >
                     <Spinner className="h-4 w-4 shrink-0 text-primary" />
                     <span>
                         Dit kan enkele minuten tot een kwartier duren,

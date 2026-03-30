@@ -356,23 +356,6 @@ jobs:
     # Docker Hub image that `container-job` executes in
     container: node:${{ matrix.node-version }}-bookworm-slim
 
-    # Service containers to run with `container-job`
-    services:
-      # Label used to access the service container
-      postgres:
-        # Docker Hub image with postgis extension
-        image: postgis/postgis:17-3.5
-        # Provide the password for postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        # Set health checks to wait until postgres has started
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       # Include dependencies for codecov
       - name: Install system dependencies
@@ -419,17 +402,6 @@ jobs:
       - name: Run tests with coverage
         run: pnpm test-coverage
         working-directory: ./fdm-agents
-        env:
-          # The hostname used to communicate with the PostgreSQL service container
-          POSTGRES_HOST: postgres
-          # The default PostgreSQL port
-          POSTGRES_PORT: 5432
-          # the default usernam
-          POSTGRES_USER: postgres
-          # the default password
-          POSTGRES_PASSWORD: postgres
-          # the default database
-          POSTGRES_DB: postgres
 
       - name: fdm-agents - Upload results to Codecov
         uses: codecov/codecov-action@v5

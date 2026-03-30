@@ -175,6 +175,11 @@ async function computePlanMetrics(
     fertilizers: Awaited<ReturnType<typeof getFertilizers>>,
     nmiApiKey?: string,
 ) {
+    if (!["2025", "2026"].includes(calendar)) {
+        console.warn(
+            `[computePlanMetrics] Unsupported calendar value "${calendar}"; falling back to "2025".`,
+        )
+    }
     const year = (["2025", "2026"].includes(calendar) ? calendar : "2025") as
         | "2025"
         | "2026"
@@ -1124,10 +1129,6 @@ export default function GerritApp() {
         )
     }
 
-    const isGenerating =
-        navigation.state === "submitting" &&
-        navigation.formData?.get("intent") === "generate"
-
     return (
         <>
             <SidebarInset>
@@ -1166,7 +1167,7 @@ export default function GerritApp() {
 
                         {/* ── Right column ── */}
                         <div className="lg:col-span-2 space-y-6">
-                            {isGenerating ? (
+                            {isAIGenerating ? (
                                 <GerritLoading />
                             ) : plan ? (
                                 <>

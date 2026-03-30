@@ -174,8 +174,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         b_id,
                     )
 
+                    if (!mainLu) {
+                        return { b_id, advice: null }
+                    }
+
                     const advice = await getNutrientAdvice(fdm, {
-                        b_lu_catalogue: mainLu?.b_lu_catalogue || "",
+                        b_lu_catalogue: mainLu.b_lu_catalogue,
                         b_centroid: field.b_centroid ?? [0, 0],
                         currentSoilData: currentSoilData,
                         nmiApiKey: nmiApiKey || "",
@@ -439,6 +443,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             b_area: fieldInfo.b_area,
                             error: "Field is a buffer strip and cannot receive fertilizer applications.",
                             isValid: false,
+                            isBufferStripViolation: true,
                             fieldMetrics: null,
                         }
                     }
@@ -690,7 +695,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             )
 
             const hasBufferStripViolations = fieldResults.some(
-                (r: any) => !r.isValid && r.error,
+                (r: any) => r.isBufferStripViolation === true,
             )
 
             const complianceIssues: string[] = []
@@ -698,7 +703,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             if (hasBufferStripViolations) {
                 const bufferFields = fieldResults
-                    .filter((r: any) => !r.isValid && r.error)
+                    .filter((r: any) => r.isBufferStripViolation === true)
                     .map((r: any) => r.b_id)
                 complianceIssues.push(
                     `Buffer strip violation: Fields [${bufferFields.join(", ")}] are buffer strips and cannot receive fertilizers.`,

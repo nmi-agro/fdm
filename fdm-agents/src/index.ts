@@ -129,14 +129,14 @@ export async function generateFarmFertilizerPlan(
     fieldsSummary?: FarmFieldSummary[],
 ) {
     const validatedStrategies = FertilizerPlanStrategiesSchema.parse(strategies)
-    const safeContext = additionalContext ?? "None"
+    const providedContext = additionalContext ?? "None"
 
     const agent = createFertilizerPlannerAgent(fdm, geminiApiKey)
     const input = buildFertilizerPlanPrompt(
         farmData,
         validatedStrategies,
         calendar,
-        safeContext,
+        providedContext,
         fieldsSummary,
     )
     return (await runOneShotAgent(
@@ -148,7 +148,7 @@ export async function generateFarmFertilizerPlan(
             calendar, 
             nmiApiKey,
             strategies: validatedStrategies,
-            additionalContext: safeContext
+            additionalContext: providedContext
         },
         posthog,
     )).result
