@@ -31,6 +31,21 @@ export async function extractErrorMessage(e: unknown): Promise<string> {
     return String(e)
 }
 
+function toSafeLogValue(value: unknown): unknown {
+    if (value instanceof Error) {
+        return { name: value.name, message: value.message, stack: value.stack }
+    }
+    try {
+        return JSON.parse(JSON.stringify(value))
+    } catch {
+        try {
+            return String(value)
+        } catch {
+            return "[unserializable]"
+        }
+    }
+}
+
 export function reportError(
     error: unknown,
     tags: Record<string, string> = {},
@@ -44,13 +59,11 @@ export function reportError(
     try {
         console.error(`Error (code: ${errorId}):`, error, context ?? "")
     } catch {
-        // Some error objects (e.g. from DB/AI clients) have broken property
-        // descriptors that cause util.inspect to crash. Fall back to safe serialization.
-        const safeError =
-            error instanceof Error
-                ? { name: error.name, message: error.message, stack: error.stack }
-                : String(error)
-        console.error(`Error (code: ${errorId}):`, safeError, context ?? "")
+        const safeError = toSafeLogValue(error)
+        const safeContext = toSafeLogValue(context ?? "")
+        try {
+            console.error(`Error (code: ${errorId}):`, safeError, safeContext)
+        } catch {}
     }
 
     if (Sentry.getClient()) {
