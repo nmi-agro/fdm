@@ -137,7 +137,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         fdm,
         session.principal_id,
         b_id_farm,
-        parseInt(calendar),
+        Number.parseInt(calendar),
     )
 
     return {
@@ -902,7 +902,7 @@ export default function GerritApp() {
 
     // Check if Gerrit is currently generating a plan
     const isAIGenerating =
-        navigation.state !== "idle" &&
+        navigation.state === "submitting" &&
         navigation.formData?.get("intent") === "generate"
 
     useBeforeUnload(
@@ -953,14 +953,22 @@ export default function GerritApp() {
 
     useEffect(() => {
         const key = `gerrit_disclaimer_accepted_${farm.b_id_farm}`
-        const accepted = localStorage.getItem(key) === "true"
-        setHasAcceptedDisclaimer(accepted)
+        try {
+            const accepted = localStorage.getItem(key) === "true"
+            setHasAcceptedDisclaimer(accepted)
+        } catch {
+            setHasAcceptedDisclaimer(false)
+        }
     }, [farm.b_id_farm])
 
     const handleAcceptDisclaimer = () => {
         if (!isCheckboxChecked) return
         const key = `gerrit_disclaimer_accepted_${farm.b_id_farm}`
-        localStorage.setItem(key, "true")
+        try {
+            localStorage.setItem(key, "true")
+        } catch (err) {
+            console.warn("[Gerrit] Could not persist disclaimer acceptance:", err)
+        }
         setHasAcceptedDisclaimer(true)
     }
 
