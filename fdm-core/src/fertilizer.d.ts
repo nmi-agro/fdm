@@ -31,7 +31,7 @@ export interface Fertilizer {
     p_no3_rt: number | null
     p_nh4_rt: number | null
     p_p_rt: number | null
-    p_k_rt: number | nulll
+    p_k_rt: number | null
     p_mg_rt: number | null
     p_ca_rt: number | null
     p_ne: number | null
