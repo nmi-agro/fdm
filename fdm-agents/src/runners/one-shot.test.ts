@@ -39,7 +39,7 @@ describe("runOneShotAgent", () => {
         ;(stringifyContent as any).mockReturnValue("The plan is ready.")
 
         const result = await runOneShotAgent(mockAgent, "Generate plan")
-        expect(result).toBe("The plan is ready.")
+        expect(result.result).toBe("The plan is ready.")
     })
 
     it("should throw an error if the model returns an error code", async () => {

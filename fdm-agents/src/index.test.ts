@@ -14,6 +14,7 @@ describe("fdm-agents index", () => {
                 reduceAmmoniaEmissions: true,
                 keepNitrogenBalanceBelowTarget: false,
                 workOnRotationLevel: true,
+                isDerogation: false,
             }
             expect(FertilizerPlanStrategiesSchema.parse(valid)).toEqual(valid)
         })
@@ -64,6 +65,7 @@ describe("fdm-agents index", () => {
                 reduceAmmoniaEmissions: false,
                 keepNitrogenBalanceBelowTarget: true,
                 workOnRotationLevel: false,
+                isDerogation: false,
             }
             const calendar = "2025"
             const additionalContext = "Please use organic compost."
@@ -87,6 +89,7 @@ describe("fdm-agents index", () => {
                 reduceAmmoniaEmissions: false,
                 keepNitrogenBalanceBelowTarget: false,
                 workOnRotationLevel: false,
+                isDerogation: false,
             }
             const fieldsSummary = [
                 {
