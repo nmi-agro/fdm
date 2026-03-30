@@ -2,7 +2,7 @@
 
 The **FDM Agents** package provides a framework for strategic decision support using Agentic AI. The core philosophy of the FDM Agents is to assist and improve decision-making. While it currently features a single specialized agent, **Gerrit**, the architecture is designed to host a suite of autonomous assistants that help farmers, advisors, and policy makers navigate complex decisions in farm management.
 
-## Philosophy: Usefull Assistance
+## Philosophy: Useful Assistance
 
 The FDM Agents are designed to be a collaborative partner. Rather than a "black box" that outputs a fixed result, the agent provides a transparent reasoning process:
 
@@ -26,15 +26,15 @@ The FDM Agents framework is built to be extensible. Future iterations will intro
 
 The FDM Agents package follows a "separation of concerns" architecture known as the **Reasoner-Verifier Architecture**:
 
-1.  **Reasoning (The LLM)**: The LLM (Gemini) acts as the brain. It formulates strategies, selects fertilizers, and iterates on the plan based on feedback.
-2.  **Deterministic Calculation (The Tools)**: All legal and agronomic calculations are handled by the `fdm-calculator` through a set of TypeScript tools. The LLM never performs arithmetic itself; instead, it asks the **Verifier** (the tools) for the exact results of its proposed actions.
+1. **Reasoning (The LLM)**: The LLM (Gemini) acts as the brain. It formulates strategies, selects fertilizers, and iterates on the plan based on feedback.
+2. **Deterministic Calculation (The Tools)**: All legal and agronomic calculations are handled by the `fdm-calculator` through a set of TypeScript tools. The LLM never performs arithmetic itself; instead, it asks the **Verifier** (the tools) for the exact results of its proposed actions.
 
 ### Available Tools
 
 - **`getFarmFields`**: Retrieves all fields for a farm, identifying the "main cultivation" for the year based on the **May 15th rule**.
 - **`getFarmNutrientAdvice`**: Fetches detailed agronomic requirements (N, P, K, and other nutrients) based on soil analyses and cultivation.
 - **`getFarmLegalNorms`**: Retrieves the three primary legal limits: Animal Manure N, Workable N, and Phosphate.
-- **`searchFertilizers`**: Searches the farm's inventory and the catalogue for of available fertilizers.
+- **`searchFertilizers`**: Searches the farm's inventory and the catalogue of available fertilizers.
 - **`simulateFarmPlan`**: The core validation tool. It simulates a proposed plan and returns detailed metrics, including:
   - **`complianceIssues`**: Hard legal violations (e.g., exceeding a norm or fertilizing a buffer strip).
   - **`agronomicWarnings`**: Deviations from chosen strategies (e.g., negative organic matter balance).
