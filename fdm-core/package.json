@@ -70,7 +70,7 @@
         "better-auth": "catalog:",
         "decimal.js": "^10.6.0",
         "drizzle-orm": "catalog:",
-        "nanoid": "^5.1.6",
+        "nanoid": "^5.1.7",
         "postgres": "^3.4.8",
         "safe-stable-stringify": "^2.5.0",
         "unique-username-generator": "^1.5.1",
