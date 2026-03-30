@@ -7,12 +7,20 @@ export interface OneShotAgentResult {
     toolCalls?: string[]
 }
 
+export class AgentTimeoutError extends Error {
+    constructor(timeoutMs: number) {
+        super(`Agent timed out after ${timeoutMs / 1000}s`)
+        this.name = "AgentTimeoutError"
+    }
+}
+
 /**
  * Common runner for one-shot agent execution in fdm-agents.
  * @param agent The agent instance to run.
  * @param input The user input string.
  * @param context Extra context to provide to the agent (e.g. fdm, principalId).
  * @param posthog Optional PostHog client and distinctId for tracking.
+ * @param timeoutMs Maximum milliseconds to wait for the agent to complete (default: 20 minutes). Throws AgentTimeoutError on expiry.
  * @returns The final response and token usage from the agent.
  */
 export async function runOneShotAgent(
@@ -20,6 +28,7 @@ export async function runOneShotAgent(
     input: string,
     context: Record<string, any> = {},
     posthog?: { client: any; distinctId: string },
+    timeoutMs = 20 * 60 * 1000,
 ): Promise<OneShotAgentResult> {
     const runner = new InMemoryRunner({ agent, appName: "fdm-agents" })
 
@@ -71,33 +80,49 @@ export async function runOneShotAgent(
         }
     }
 
-    for await (const event of stream) {
-        // Surface model errors immediately instead of silently returning empty string.
-        // When Gemini returns a non-200 (e.g. 400), the LlmAgent emits an event
-        // with errorCode/errorMessage but no content.
-        if (event.errorCode) {
-            throw new Error(
-                `Gemini API error [${event.errorCode}]: ${event.errorMessage ?? "unknown error"}`,
-            )
-        }
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
+            () => reject(new AgentTimeoutError(timeoutMs)),
+            timeoutMs,
+        )
+    })
 
-        // Accumulate usage metadata across all events.
-        const usage = event.usageMetadata
-        if (usage) {
-            inputTokens += usage.promptTokenCount ?? 0
-            outputTokens += usage.candidatesTokenCount ?? 0
-            totalTokens += usage.totalTokenCount ?? 0
-        }
+    const streamPromise = (async () => {
+        for await (const event of stream) {
+            // Surface model errors immediately instead of silently returning empty string.
+            // When Gemini returns a non-200 (e.g. 400), the LlmAgent emits an event
+            // with errorCode/errorMessage but no content.
+            if (event.errorCode) {
+                throw new Error(
+                    `Gemini API error [${event.errorCode}]: ${event.errorMessage ?? "unknown error"}`,
+                )
+            }
 
-        extractToolCalls(event)
+            // Accumulate usage metadata across all events.
+            const usage = event.usageMetadata
+            if (usage) {
+                inputTokens += usage.promptTokenCount ?? 0
+                outputTokens += usage.candidatesTokenCount ?? 0
+                totalTokens += usage.totalTokenCount ?? 0
+            }
 
-        // Only capture the final text response, not intermediate reasoning or tool calls.
-        if (isFinalResponse(event)) {
-            const text = stringifyContent(event)
-            if (text) {
-                finalResponse = text
+            extractToolCalls(event)
+
+            // Only capture the final text response, not intermediate reasoning or tool calls.
+            if (isFinalResponse(event)) {
+                const text = stringifyContent(event)
+                if (text) {
+                    finalResponse = text
+                }
             }
         }
+    })()
+
+    try {
+        await Promise.race([streamPromise, timeoutPromise])
+    } finally {
+        clearTimeout(timeoutHandle)
     }
 
     const uniqueToolCalls = [...new Set(toolCalls)]

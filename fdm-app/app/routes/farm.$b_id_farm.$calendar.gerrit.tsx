@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+    AgentTimeoutError,
     buildFertilizerPlanPrompt,
     createFertilizerPlannerAgent,
     type FarmFieldSummary,
@@ -656,6 +657,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 usageData = agentResult.usage
                 toolCalls = agentResult.toolCalls
             } catch (err: unknown) {
+                if (err instanceof AgentTimeoutError) {
+                    return dataWithError(
+                        null,
+                        "Het duurde te lang om een plan te genereren. Probeer het opnieuw.",
+                    )
+                }
                 return dataWithError(
                     null,
                     err instanceof Error
