@@ -119,7 +119,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const farm = farms.find((f) => f.b_id_farm === b_id_farm)
 
     if (!farm) {
-        return redirect("./farm")
+        return redirect("/farm")
     }
 
     const farmOptions = farms.map((f) => ({
@@ -384,7 +384,9 @@ async function computePlanMetrics(
                     }
                 }
 
-                let nBalance: ReturnType<typeof calculateNitrogenBalanceField> | null = null
+                let nBalance: ReturnType<
+                    typeof calculateNitrogenBalanceField
+                > | null = null
                 if (nInput) {
                     const fieldNInput = nInput.fields.find(
                         (f: any) => f.field.b_id === field.b_id,
@@ -445,7 +447,9 @@ async function computePlanMetrics(
                 b_id: string
                 b_area: number
                 b_bufferstrip: boolean
-                nBalance: ReturnType<typeof calculateNitrogenBalanceField> | null
+                nBalance: ReturnType<
+                    typeof calculateNitrogenBalanceField
+                > | null
                 fieldData: any
             }> => r.status === "fulfilled",
         )
