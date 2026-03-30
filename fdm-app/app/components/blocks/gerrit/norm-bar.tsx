@@ -9,8 +9,8 @@ export function NormBar({
     filling: number
     norm: number
 }) {
-    const pct = norm > 0 ? (filling / norm) * 100 : 0
-    const over = filling > norm
+    const over = norm > 0 ? filling > norm : filling > 0
+    const pct = norm > 0 ? (filling / norm) * 100 : filling > 0 ? 100 : 0
     return (
         <div className="space-y-1.5">
             <div className="flex justify-between items-center gap-2">
@@ -24,7 +24,7 @@ export function NormBar({
                 </span>
             </div>
             <Progress
-                value={Math.min(pct, 100)}
+                value={Math.max(0, Math.min(pct, 100))}
                 colorBar={over ? "red-500" : "green-500"}
                 className="h-2"
             />
