@@ -49,7 +49,9 @@ describe("runOneShotAgent", () => {
 
         mockRunEphemeral.mockReturnValue(mockStream)
 
-        await expect(runOneShotAgent(mockAgent, "Generate plan")).rejects.toThrow("Gemini API error [400]: Bad Request")
+        await expect(
+            runOneShotAgent(mockAgent, "Generate plan"),
+        ).rejects.toThrow("Gemini API error [400]: Bad Request")
     })
 
     it("should capture an event in PostHog if provided", async () => {
@@ -66,7 +68,7 @@ describe("runOneShotAgent", () => {
             principalId: "p-1",
             b_id_farm: "f-1",
             strategies: { isOrganic: true },
-            additionalContext: "None"
+            additionalContext: "None",
         }
 
         await runOneShotAgent(mockAgent, "Generate plan", context, mockPosthog)
@@ -176,7 +178,9 @@ describe("runOneShotAgent", () => {
         ;(stringifyContent as any).mockReturnValue("Done.")
 
         const result = await runOneShotAgent(mockAgent, "Generate plan")
-        expect(result.toolCalls?.filter((n) => n === "searchFertilizers")).toHaveLength(1)
+        expect(
+            result.toolCalls?.filter((n) => n === "searchFertilizers"),
+        ).toHaveLength(1)
     })
 
     it("should handle PostHog capture failure gracefully", async () => {

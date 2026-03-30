@@ -871,10 +871,11 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 for (const result of fieldResults) {
                     if (!result.fieldMetrics?.nBalance) continue
                     const nh3FromFertilizers: number =
-                        result.fieldMetrics.nBalance.emission?.ammonia?.fertilizers?.total ??
-                        0
+                        result.fieldMetrics.nBalance.emission?.ammonia
+                            ?.fertilizers?.total ?? 0
                     const nFromFertilizers: number =
-                        result.fieldMetrics.nBalance.supply?.fertilizers?.total ?? 0
+                        result.fieldMetrics.nBalance.supply?.fertilizers
+                            ?.total ?? 0
                     if (nFromFertilizers > 0) {
                         // Emission values are negative (losses); supply is positive.
                         const avgEmissionFactor =

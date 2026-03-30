@@ -15,4 +15,4 @@ export type {
     OrganicMatterBalanceFieldNumeric,
     OrganicMatterBalanceFieldResultNumeric,
     OrganicMatterBalanceInput,
-} from '@nmi-agro/fdm-calculator';
+} from "@nmi-agro/fdm-calculator"

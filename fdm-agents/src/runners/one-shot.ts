@@ -3,7 +3,11 @@ import type { BaseAgent } from "@google/adk"
 
 export interface OneShotAgentResult {
     result: string
-    usage: { inputTokens: number; outputTokens: number; totalTokens: number } | null
+    usage: {
+        inputTokens: number
+        outputTokens: number
+        totalTokens: number
+    } | null
     toolCalls?: string[]
 }
 
@@ -150,7 +154,8 @@ export async function runOneShotAgent(
 
     return {
         result: finalResponse,
-        usage: totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
+        usage:
+            totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
         toolCalls: uniqueToolCalls,
     }
 }

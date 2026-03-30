@@ -14,7 +14,7 @@ describe("Gerrit Agent", () => {
     it("should create a Fertilizer Planner Agent with correct name", () => {
         const mockFdm = {} as any
         const agent = createFertilizerPlannerAgent(mockFdm, "fake-api-key")
-        
+
         expect(agent.name).toBe("Gerrit")
         expect(agent.description).toContain("Dutch Agronomist")
     })

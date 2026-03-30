@@ -37,7 +37,9 @@ describe("fdm-agents index", () => {
                 isOrganic: "yes",
                 fillManureSpace: false,
             }
-            expect(() => FertilizerPlanStrategiesSchema.parse(invalid)).toThrow()
+            expect(() =>
+                FertilizerPlanStrategiesSchema.parse(invalid),
+            ).toThrow()
         })
     })
 
@@ -82,16 +84,21 @@ describe("fdm-agents index", () => {
             }
             const calendar = "2025"
             const additionalContext = "Please use organic compost."
-            
-            const prompt = buildFertilizerPlanPrompt(farmData, strategies, calendar, additionalContext)
-            
+
+            const prompt = buildFertilizerPlanPrompt(
+                farmData,
+                strategies,
+                calendar,
+                additionalContext,
+            )
+
             expect(prompt).toContain('farm "farm-123"')
             expect(prompt).toContain('year "2025"')
-            expect(prompt).toContain('Organic Farming: YES')
-            expect(prompt).toContain('Keep Nitrogen Balance Below Target: YES')
-            expect(prompt).toContain('--- BEGIN ADDITIONAL USER CONTEXT ---')
-            expect(prompt).toContain('Please use organic compost.')
-            expect(prompt).toContain('--- END ADDITIONAL USER CONTEXT ---')
+            expect(prompt).toContain("Organic Farming: YES")
+            expect(prompt).toContain("Keep Nitrogen Balance Below Target: YES")
+            expect(prompt).toContain("--- BEGIN ADDITIONAL USER CONTEXT ---")
+            expect(prompt).toContain("Please use organic compost.")
+            expect(prompt).toContain("--- END ADDITIONAL USER CONTEXT ---")
         })
 
         it("should include field summary if provided", () => {
@@ -115,13 +122,21 @@ describe("fdm-agents index", () => {
                     b_soiltype_agr: null,
                     b_gwl_class: null,
                     a_som_loi: null,
-                }
+                },
             ]
-            
-            const prompt = buildFertilizerPlanPrompt(farmData, strategies, "2025", undefined, fieldsSummary)
-            
+
+            const prompt = buildFertilizerPlanPrompt(
+                farmData,
+                strategies,
+                "2025",
+                undefined,
+                fieldsSummary,
+            )
+
             expect(prompt).toContain("FARM FIELDS (1 fields")
-            expect(prompt).toContain("- b_id: field-1 | Name: Kavel 1 | Area: 10.50 ha")
+            expect(prompt).toContain(
+                "- b_id: field-1 | Name: Kavel 1 | Area: 10.50 ha",
+            )
         })
     })
 })
@@ -165,7 +180,9 @@ describe("generateFarmFertilizerPlan", () => {
         expect(runOneShotAgent).toHaveBeenCalledWith(
             expect.anything(),
             expect.stringContaining("farm-1"),
-            expect.objectContaining({ additionalContext: "Use organic fertilizers" }),
+            expect.objectContaining({
+                additionalContext: "Use organic fertilizers",
+            }),
             undefined,
         )
     })

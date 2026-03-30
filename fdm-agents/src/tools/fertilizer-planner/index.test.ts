@@ -212,22 +212,22 @@ function setupDefaultMocks() {
             .fn()
             .mockResolvedValue({ normValue: 230, normSource: "NL-2025" }),
     })
-    ;(createUncachedFunctionsForFertilizerApplicationFilling as any).mockReturnValue(
-        {
-            collectInputForFertilizerApplicationFilling: vi
-                .fn()
-                .mockResolvedValue({}),
-            calculateFertilizerApplicationFillingForManure: vi
-                .fn()
-                .mockResolvedValue({ normFilling: 10, applicationFilling: [] }),
-            calculateFertilizerApplicationFillingForNitrogen: vi
-                .fn()
-                .mockResolvedValue({ normFilling: 20, applicationFilling: [] }),
-            calculateFertilizerApplicationFillingForPhosphate: vi
-                .fn()
-                .mockResolvedValue({ normFilling: 5, applicationFilling: [] }),
-        },
-    )
+    ;(
+        createUncachedFunctionsForFertilizerApplicationFilling as any
+    ).mockReturnValue({
+        collectInputForFertilizerApplicationFilling: vi
+            .fn()
+            .mockResolvedValue({}),
+        calculateFertilizerApplicationFillingForManure: vi
+            .fn()
+            .mockResolvedValue({ normFilling: 10, applicationFilling: [] }),
+        calculateFertilizerApplicationFillingForNitrogen: vi
+            .fn()
+            .mockResolvedValue({ normFilling: 20, applicationFilling: [] }),
+        calculateFertilizerApplicationFillingForPhosphate: vi
+            .fn()
+            .mockResolvedValue({ normFilling: 5, applicationFilling: [] }),
+    })
     ;(calculateOrganicMatterBalanceField as any).mockReturnValue({
         balance: 100,
         supply: { fertilizers: { total: 50 } },
@@ -487,7 +487,11 @@ describe("tool execute functions", () => {
         it("should filter by p_type", async () => {
             ;(getFertilizers as any).mockResolvedValue([
                 mockFertilizer,
-                { ...mockFertilizer, p_id_catalogue: "manure-1", p_type: "manure" },
+                {
+                    ...mockFertilizer,
+                    p_id_catalogue: "manure-1",
+                    p_type: "manure",
+                },
             ])
             const result = await getTool("searchFertilizers").execute(
                 { b_id_farm: "farm-1", p_type: "manure" },
@@ -528,10 +532,7 @@ describe("tool execute functions", () => {
     describe("simulateFarmPlan", () => {
         it("should throw when context is missing", async () => {
             await expect(
-                getTool("simulateFarmPlan").execute(
-                    makeSimInput(),
-                    undefined,
-                ),
+                getTool("simulateFarmPlan").execute(makeSimInput(), undefined),
             ).rejects.toThrow("Context is required")
         })
 
@@ -568,14 +569,19 @@ describe("tool execute functions", () => {
                 makeContext(),
             )
             expect(result.isValid).toBe(false)
-            expect(result.complianceIssues[0]).toContain("Buffer strip violation")
+            expect(result.complianceIssues[0]).toContain(
+                "Buffer strip violation",
+            )
             expect(result.fieldResults[0].isBufferStripViolation).toBe(true)
         })
 
         it("should throw when fertilizer is not found in inventory", async () => {
             ;(getFertilizers as any).mockResolvedValue([])
             await expect(
-                getTool("simulateFarmPlan").execute(makeSimInput(), makeContext()),
+                getTool("simulateFarmPlan").execute(
+                    makeSimInput(),
+                    makeContext(),
+                ),
             ).rejects.toThrow("not found in farm inventory")
         })
 
@@ -704,13 +710,14 @@ describe("tool execute functions", () => {
         })
 
         it("should warn for rotation level mismatch between fields with same crop", async () => {
-            ;(getField as any).mockImplementation((_fdm: any, _pid: any, b_id: string) =>
-                Promise.resolve({
-                    b_id,
-                    b_area: 10,
-                    b_bufferstrip: false,
-                    b_centroid: [5.2, 52.1],
-                }),
+            ;(getField as any).mockImplementation(
+                (_fdm: any, _pid: any, b_id: string) =>
+                    Promise.resolve({
+                        b_id,
+                        b_area: 10,
+                        b_bufferstrip: false,
+                        b_centroid: [5.2, 52.1],
+                    }),
             )
             const result = await getTool("simulateFarmPlan").execute(
                 makeSimInput({
@@ -756,13 +763,14 @@ describe("tool execute functions", () => {
         })
 
         it("should normalize grassland codes under rotation level strategy", async () => {
-            ;(getField as any).mockImplementation((_fdm: any, _pid: any, b_id: string) =>
-                Promise.resolve({
-                    b_id,
-                    b_area: 10,
-                    b_bufferstrip: false,
-                    b_centroid: [5.2, 52.1],
-                }),
+            ;(getField as any).mockImplementation(
+                (_fdm: any, _pid: any, b_id: string) =>
+                    Promise.resolve({
+                        b_id,
+                        b_area: 10,
+                        b_bufferstrip: false,
+                        b_centroid: [5.2, 52.1],
+                    }),
             )
             const result = await getTool("simulateFarmPlan").execute(
                 makeSimInput({
