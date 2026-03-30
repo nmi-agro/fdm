@@ -457,13 +457,26 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                     `Fertilizer ${app.p_id_catalogue} not found in farm inventory.`,
                                 )
                             }
+                            const allowedMethods =
+                                fertilizer.p_app_method_options ?? []
+                            if (
+                                !app.p_app_method ||
+                                (allowedMethods.length > 0 &&
+                                    !allowedMethods.includes(
+                                        app.p_app_method as any,
+                                    ))
+                            ) {
+                                throw new Error(
+                                    `Invalid application method for ${fertilizer.p_name_nl ?? app.p_id_catalogue}. Allowed methods: ${allowedMethods.join(", ") || "none"}.`,
+                                )
+                            }
                             return {
                                 p_app_id: `synth-${fieldData.b_id}-${idx}`,
                                 p_id: fertilizer.p_id,
                                 p_id_catalogue: app.p_id_catalogue,
                                 p_app_amount: app.p_app_amount,
                                 p_app_date: new Date(app.p_app_date),
-                                p_app_method: app.p_app_method ?? null,
+                                p_app_method: app.p_app_method,
                             } as unknown as FertilizerApplication
                         },
                     )
@@ -581,8 +594,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                 fieldData.b_id,
                             )
                             advice = await getNutrientAdvice(fdm, {
-                                b_lu_catalogue:
-                                    fieldData.b_lu_catalogue || "",
+                                b_lu_catalogue: fieldData.b_lu_catalogue || "",
                                 b_centroid: fieldInfo.b_centroid ?? [0, 0],
                                 currentSoilData,
                                 nmiApiKey,
@@ -864,8 +876,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             Math.abs(nh3FromFertilizers) / nFromFertilizers
                         if (avgEmissionFactor > NH3_EMISSION_FACTOR_THRESHOLD) {
                             const fieldData = args.fields.find(
-                                (f: SimulationField) =>
-                                    f.b_id === result.b_id,
+                                (f: SimulationField) => f.b_id === result.b_id,
                             )
                             agronomicWarnings.push(
                                 `Strategy warning (Reduce Ammonia Emissions): Field ${result.b_id}${fieldData ? ` (${fieldData.b_lu_name})` : ""} has a high weighted-average NH3 emission factor (${Math.round(avgEmissionFactor * 100)}%, threshold: ${NH3_EMISSION_FACTOR_THRESHOLD * 100}%). Consider switching to low-emission application methods (e.g., injection or incorporation) instead of broadcasting or spraying.`,
