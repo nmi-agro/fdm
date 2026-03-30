@@ -169,7 +169,7 @@ export function PlanTable({
                         Voorgesteld bemestingsplan
                     </CardTitle>
                     <CardDescription>
-                        Klik op een rij voor perceeldetails (normen, N-balans,
+                        Klik op een rij of gebruik de uitklapknop voor perceeldetails (normen, N-balans,
                         organische stofbalans).
                     </CardDescription>
                 </div>
@@ -397,12 +397,34 @@ export function PlanTable({
                                                                     </TooltipProvider>
                                                                 )
                                                             })()}
-                                                        {hasMetrics &&
-                                                            (isExpanded ? (
-                                                                <ChevronUp className="h-4 w-4 text-muted-foreground ml-1" />
-                                                            ) : (
-                                                                <ChevronDown className="h-4 w-4 text-muted-foreground ml-1" />
-                                                            ))}
+                                                        {hasMetrics && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    toggleRow(
+                                                                        row.original
+                                                                            .b_id,
+                                                                    )
+                                                                }}
+                                                                aria-expanded={
+                                                                    isExpanded
+                                                                }
+                                                                aria-controls={`details-${row.original.b_id}`}
+                                                                aria-label={
+                                                                    isExpanded
+                                                                        ? "Verberg perceeldetails"
+                                                                        : "Toon perceeldetails"
+                                                                }
+                                                                className="rounded p-0.5 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ml-1"
+                                                            >
+                                                                {isExpanded ? (
+                                                                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                                                ) : (
+                                                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                                                )}
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -414,7 +436,7 @@ export function PlanTable({
                                                         }
                                                         className="py-4 px-6"
                                                     >
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+                                                        <div id={`details-${row.original.b_id}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
                                                             {/* ── Normen ── */}
                                                             {normsFilling &&
                                                                 norms && (
