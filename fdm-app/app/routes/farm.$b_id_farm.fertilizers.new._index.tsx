@@ -15,7 +15,7 @@ import {
     CommandList,
 } from "~/components/ui/command"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { getRvoMappings } from "~/components/blocks/fertilizer/utils"
+import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"

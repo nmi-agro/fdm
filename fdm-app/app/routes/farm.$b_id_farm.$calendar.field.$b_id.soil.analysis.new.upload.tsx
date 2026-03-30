@@ -16,7 +16,7 @@ import {
     FormSchema,
     SoilAnalysisUploadForm,
 } from "~/components/blocks/soil/form-upload"
-import { extractSoilAnalysis } from "~/integrations/nmi"
+import { extractSoilAnalysis } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"

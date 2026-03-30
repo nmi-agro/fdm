@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs } from "react-router"
-import { extractBulkSoilAnalyses } from "~/integrations/nmi"
+import { extractBulkSoilAnalyses } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 
 /**

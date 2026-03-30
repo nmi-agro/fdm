@@ -1,5 +1,11 @@
 # Changelog fdm-core
 
+## 0.30.1
+
+### Patch Changes
+
+- [#528](https://github.com/nmi-agro/fdm/pull/528) [`e9a3cd4`](https://github.com/nmi-agro/fdm/commit/e9a3cd4de585c2e05fc215ff0c5e758005c48f73) Thanks [@SvenVw](https://github.com/SvenVw)! - Set `emailVerified` to `true` when using social sign-ins
+
 ## 0.30.0
 
 ### Minor Changes

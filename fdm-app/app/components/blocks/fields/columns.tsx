@@ -20,6 +20,7 @@ import {
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { DataTableColumnHeader } from "./column-header"
+import { BufferStripCheckbox } from "./buffer-strip-checkbox"
 
 export type FieldExtended = {
     b_id: string
@@ -37,6 +38,7 @@ export type FieldExtended = {
     a_som_loi: number
     b_soiltype_agr: string
     b_area: number
+    b_bufferstrip: boolean
     has_write_permission: boolean
 }
 
@@ -172,6 +174,16 @@ export const columns: ColumnDef<FieldExtended>[] = [
         enableHiding: true, // Enable hiding for mobile
     },
     {
+        accessorKey: "b_bufferstrip",
+        header: ({ column }) => {
+            return (
+                <DataTableColumnHeader column={column} title="Bufferstrook" />
+            )
+        },
+        cell: (props) => <BufferStripCheckbox {...props} />,
+        enableHiding: true, // Enable hiding for mobile
+    },
+    {
         accessorKey: "a_som_loi",
         enableSorting: true,
         sortingFn: "alphanumeric",
@@ -183,7 +195,9 @@ export const columns: ColumnDef<FieldExtended>[] = [
             const field = row.original
             return (
                 <p className="text-muted-foreground">
-                    {`${field.a_som_loi.toFixed(2)} %`}
+                    {field.a_som_loi !== null && field.a_som_loi !== undefined
+                        ? `${field.a_som_loi.toFixed(2)} %`
+                        : "-"}
                 </p>
             )
         },

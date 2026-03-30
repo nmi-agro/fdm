@@ -1,10 +1,18 @@
 {
     "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "rootDir": "./src",
+        "outDir": "./dist",
+        "paths": {}
+    },
     "exclude": [
         "**/*.test.ts",
         "**/*.spec.ts",
         "src/setup-test.ts",
         "src/test-utils.ts",
-        "src/global-setup.ts"
+        "src/global-setup.ts",
+        "vitest.config.ts",
+        "drizzle.config.ts"
     ]
 }
