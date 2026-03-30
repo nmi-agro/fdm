@@ -10,6 +10,7 @@ export const GerritFormSchema = z.object({
         .string()
         .transform((val) => val === "true"),
     workOnRotationLevel: z.coerce.string().transform((val) => val === "true"),
+    isDerogation: z.coerce.string().optional().transform((val) => val === "true"),
     additionalContext: z
         .string()
         .max(1000, "Maximaal 1000 karakters toegestaan.")
@@ -26,6 +27,7 @@ export const STRATEGY_LABELS: Record<string, string> = {
     reduceAmmoniaEmissions: "Ammoniakemssies verminderen",
     keepNitrogenBalanceBelowTarget: "Inzetten op doelsturing",
     workOnRotationLevel: "Bouwplanniveau",
+    isDerogation: "Derogatie",
 }
 
 export const GEMINI_MODELS = [

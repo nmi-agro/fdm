@@ -27,14 +27,17 @@ interface StrategyFormProps {
     form: UseFormReturn<GerritFormValues>
     isGenerating: boolean
     additionalContextValue: string | undefined
+    calendar: string
 }
 
 export function StrategyForm({
     form,
     isGenerating,
     additionalContextValue,
+    calendar,
 }: StrategyFormProps) {
     const additionalContextLength = additionalContextValue?.length ?? 0
+    const showDerogation = parseInt(calendar) < 2026
 
     return (
         <Card className="h-fit sticky top-6">
@@ -59,63 +62,75 @@ export function StrategyForm({
                                 "reduceAmmoniaEmissions",
                                 "keepNitrogenBalanceBelowTarget",
                                 "workOnRotationLevel",
-                            ].map((name) => (
-                                <div
-                                    key={name}
-                                    className="flex items-start justify-between gap-4"
-                                >
-                                    <div className="space-y-1">
-                                        <Label
-                                            htmlFor={name}
-                                            className="text-base"
-                                        >
-                                            {STRATEGY_LABELS[name]}
-                                        </Label>
-                                        <p className="text-sm text-muted-foreground leading-snug">
-                                            {name === "isOrganic" &&
-                                                "Geen gebruik van minerale kunstmeststoffen."}
-                                            {name === "fillManureSpace" &&
-                                                "Volledig opvullen van de gebruiksruimte voor dierlijke mest."}
-                                            {name ===
-                                                "reduceAmmoniaEmissions" &&
-                                                "Gebruik emissiearme meststoffen en technieken."}
-                                            {name ===
-                                                "keepNitrogenBalanceBelowTarget" &&
-                                                "Stikstofoverschot beperken tot onder de doelwaarde."}
-                                            {name === "workOnRotationLevel" &&
-                                                "Percelen met hetzelfde gewas krijgen dezelfde bemesting."}
-                                        </p>
+                                "isDerogation",
+                            ]
+                                .filter(
+                                    (name) =>
+                                        name !== "isDerogation" ||
+                                        showDerogation,
+                                )
+                                .map((name) => (
+                                    <div
+                                        key={name}
+                                        className="flex items-start justify-between gap-4"
+                                    >
+                                        <div className="space-y-1">
+                                            <Label
+                                                htmlFor={name}
+                                                className="text-base"
+                                            >
+                                                {STRATEGY_LABELS[name]}
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground leading-snug">
+                                                {name === "isOrganic" &&
+                                                    "Geen gebruik van kunstmest."}
+                                                {name === "fillManureSpace" &&
+                                                    "Volledig opvullen van de gebruiksruimte voor dierlijke mest."}
+                                                {name ===
+                                                    "reduceAmmoniaEmissions" &&
+                                                    "Gebruik emissiearme meststoffen en technieken."}
+                                                {name ===
+                                                    "keepNitrogenBalanceBelowTarget" &&
+                                                    "Stikstofoverschot beperken tot onder de doelwaarde."}
+                                                {name ===
+                                                    "workOnRotationLevel" &&
+                                                    "Percelen met hetzelfde gewas krijgen dezelfde bemesting."}
+                                                {name === "isDerogation" &&
+                                                    "Geen gebruik van fosfaathoudende minerale meststoffen."}
+                                            </p>
+                                        </div>
+                                        <Controller
+                                            name={
+                                                name as keyof GerritFormValues
+                                            }
+                                            control={form.control}
+                                            render={({ field }) => (
+                                                <>
+                                                    <Switch
+                                                        id={name}
+                                                        checked={
+                                                            field.value as boolean
+                                                        }
+                                                        onCheckedChange={
+                                                            field.onChange
+                                                        }
+                                                        className="mt-1"
+                                                        disabled={isGenerating}
+                                                    />
+                                                    <input
+                                                        type="hidden"
+                                                        name={name}
+                                                        value={
+                                                            field.value
+                                                                ? "true"
+                                                                : "false"
+                                                        }
+                                                    />
+                                                </>
+                                            )}
+                                        />
                                     </div>
-                                    <Controller
-                                        name={name as keyof GerritFormValues}
-                                        control={form.control}
-                                        render={({ field }) => (
-                                            <>
-                                                <Switch
-                                                    id={name}
-                                                    checked={
-                                                        field.value as boolean
-                                                    }
-                                                    onCheckedChange={
-                                                        field.onChange
-                                                    }
-                                                    className="mt-1"
-                                                    disabled={isGenerating}
-                                                />
-                                                <input
-                                                    type="hidden"
-                                                    name={name}
-                                                    value={
-                                                        field.value
-                                                            ? "true"
-                                                            : "false"
-                                                    }
-                                                />
-                                            </>
-                                        )}
-                                    />
-                                </div>
-                            ))}
+                                ))}
                         </div>
                         <div className="space-y-3 pt-2">
                             <div className="flex justify-between items-end">

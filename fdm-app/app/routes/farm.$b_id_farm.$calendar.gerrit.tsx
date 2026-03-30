@@ -34,6 +34,7 @@ import {
     getFertilizers,
     getField,
     getFields,
+    isDerogationGrantedForYear,
     isOrganicCertificationValid,
     type PrincipalId,
     removeFertilizerApplication,
@@ -134,6 +135,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         timeframe.start ?? new Date(),
     )
 
+    const isDerogationFarm = await isDerogationGrantedForYear(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        parseInt(calendar),
+    )
+
     return {
         farm: {
             b_id_farm: farm.b_id_farm,
@@ -144,6 +152,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         defaultStrategies: {
             isOrganic: isOrganicFarm,
             fillManureSpace: !isOrganicFarm,
+            isDerogation: isDerogationFarm,
         },
     }
 }
@@ -556,6 +565,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             keepNitrogenBalanceBelowTarget:
                 formValues.keepNitrogenBalanceBelowTarget,
             workOnRotationLevel: formValues.workOnRotationLevel,
+            isDerogation: formValues.isDerogation ?? false,
         }
         const additionalContext = formValues.additionalContext
         const modelName = formValues.geminiModel
@@ -1132,6 +1142,7 @@ export default function GerritApp() {
                                     additionalContextValue={
                                         additionalContextValue
                                     }
+                                    calendar={calendar}
                                 />
                             ) : (
                                 <SummaryCards
