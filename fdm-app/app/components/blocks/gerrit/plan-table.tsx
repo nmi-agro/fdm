@@ -15,7 +15,6 @@ import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
@@ -231,10 +230,7 @@ export function PlanTable({
                                     const nBalance =
                                         row.original.fieldMetrics?.nBalance
                                     const omBalance =
-                                        row.original.fieldMetrics?.omBalance
-                                    const eomSupplyPerHa =
-                                        row.original.fieldMetrics
-                                            ?.eomSupplyPerHa
+                                        row.original.fieldMetrics?.omBalance                                  
 
                                     return (
                                         <Fragment key={row.id}>

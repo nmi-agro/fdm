@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import { runOneShotAgent } from "./one-shot"
-import { InMemoryRunner } from "@google/adk"
 
 // Mock ADK
 const mockRunEphemeral = vi.fn()
