@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-agents",
     "private": false,
-    "version": "0.12.1",
+    "version": "0.1.0",
     "description": "AI Agent for Fertilizer Planning",
     "license": "MIT",
     "type": "module",
@@ -22,7 +22,7 @@
     },
     "dependencies": {
         "@google/adk": "^0.5.0",
-        "@google/genai": "latest",
+        "@google/genai": "^1.46.0",
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/fdm-data": "workspace:^",
