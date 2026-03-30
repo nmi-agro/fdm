@@ -836,10 +836,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                                 f.p_id_catalogue === app.p_id_catalogue,
                         )
                         if (!fertilizer) {
-                            console.warn(
-                                `Fertilizer ${app.p_id_catalogue} not found in inventory, skipping.`,
+                            throw new Error(
+                                `Meststof ${app.p_id_catalogue} niet gevonden in inventaris.`,
                             )
-                            continue
                         }
 
                         await addFertilizerApplication(
