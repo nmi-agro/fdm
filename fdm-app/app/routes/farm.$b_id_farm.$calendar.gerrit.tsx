@@ -566,16 +566,25 @@ export async function action({ request, params }: ActionFunctionArgs) {
         )
         const fieldsData = await Promise.all(
             rawFields.map(async (field) => {
-                const cultivations = await getCultivations(
-                    fdm,
-                    session.principal_id,
-                    field.b_id,
-                    timeframe,
-                )
+                const [cultivations, soilData] = await Promise.all([
+                    getCultivations(
+                        fdm,
+                        session.principal_id,
+                        field.b_id,
+                        timeframe,
+                    ),
+                    getCurrentSoilData(
+                        fdm,
+                        session.principal_id,
+                        field.b_id,
+                    ),
+                ])
                 const mainCultivation = getDefaultCultivation(
                     cultivations,
                     calendar,
                 )
+                const getSoilParam = (param: string) =>
+                    soilData.find((d) => d.parameter === param)?.value ?? null
                 return {
                     b_id: field.b_id,
                     b_name: field.b_name || field.b_id,
@@ -586,6 +595,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     b_lu_name: mainCultivation?.b_lu_name || "Onbekend gewas",
                     b_lu_croprotation:
                         mainCultivation?.b_lu_croprotation || null,
+                    b_soiltype_agr: getSoilParam("b_soiltype_agr") as string | null,
+                    b_gwl_class: getSoilParam("b_gwl_class") as string | null,
+                    a_som_loi: getSoilParam("a_som_loi") as number | null,
                 }
             }),
         )
@@ -596,6 +608,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             b_bufferstrip: f.b_bufferstrip ?? false,
             b_lu_catalogue: f.b_lu_catalogue,
             b_lu_name: f.b_lu_name,
+            b_soiltype_agr: f.b_soiltype_agr,
+            b_gwl_class: f.b_gwl_class,
+            a_som_loi: f.a_som_loi,
         }))
         const fertilizers = await getFertilizers(
             fdm,
