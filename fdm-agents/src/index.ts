@@ -55,9 +55,17 @@ export function sanitizeAdditionalContext(raw: string): string {
     // 2. Remove XML/HTML-like tags to prevent injection into structural boundaries
     // We use a lookahead to ensure we only strip tags that don't look like mathematical comparisons (e.g. pH < 5.5)
     const noTags = noCodeBlocks.replace(/<(?!\s)([^>]+)>/gm, "")
-    // 3. Fallback generic removal of obvious system overrides
-    const safeStr = noTags.replace(/^(IGNORE|SYSTEM:|OVERRIDE|INSTRUCTION:).*/gim, "[removed]")
-    
+    // 3. Remove the explicit prompt-boundary markers used below
+    const noDelimiters = noTags.replace(
+        /---\s*(BEGIN|END)\s+ADDITIONAL USER CONTEXT\s*---/gim,
+        "[removed]",
+    )
+    // 4. Fallback generic removal of obvious system overrides
+    const safeStr = noDelimiters.replace(
+        /^\s*(IGNORE|SYSTEM:|OVERRIDE|INSTRUCTION:).*/gim,
+        "[removed]",
+    )
+
     return safeStr.trim().slice(0, 1000)
 }
 
@@ -139,17 +147,19 @@ export async function generateFarmFertilizerPlan(
         providedContext,
         fieldsSummary,
     )
-    return (await runOneShotAgent(
-        agent,
-        input,
-        { 
-            principalId, 
-            b_id_farm: farmData.b_id_farm, 
-            calendar, 
-            nmiApiKey,
-            strategies: validatedStrategies,
-            additionalContext: providedContext
-        },
-        posthog,
-    )).result
+    return (
+        await runOneShotAgent(
+            agent,
+            input,
+            {
+                principalId,
+                b_id_farm: farmData.b_id_farm,
+                calendar,
+                nmiApiKey,
+                strategies: validatedStrategies,
+                additionalContext: providedContext,
+            },
+            posthog,
+        )
+    ).result
 }
