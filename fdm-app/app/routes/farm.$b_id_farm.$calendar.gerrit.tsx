@@ -57,7 +57,7 @@ import { getValidatedFormData, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import type { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
-import { GerritLoading } from "~/components/blocks/gerrit/gerrit-loading"
+import { GerritLoading } from "~/components/blocks/gerrit/loading"
 import { GerritOnboarding } from "~/components/blocks/gerrit/onboarding"
 import { PlanTable } from "~/components/blocks/gerrit/plan-table"
 import {

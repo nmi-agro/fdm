@@ -9,7 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import { GerritFeedback } from "./gerrit-feedback"
+import { GerritFeedback } from "./feedback"
 import { NormBar } from "./norm-bar"
 import type { FarmTotals } from "./types"
 
