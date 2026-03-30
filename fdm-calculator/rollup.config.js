@@ -24,7 +24,7 @@ export default {
         commonjs(),
         esbuild({
             minify: isProd, // Use esbuild's minifier in production
-            target: "node20",
+            target: "node24",
         }),
 
         {

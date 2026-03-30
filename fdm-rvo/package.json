@@ -72,6 +72,9 @@
         "typescript": "catalog:",
         "vitest": "catalog:"
     },
+    "engines": {
+        "node": ">=24.0.0"
+    },
     "packageManager": "pnpm@10.33.0",
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
