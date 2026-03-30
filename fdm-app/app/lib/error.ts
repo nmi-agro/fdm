@@ -41,7 +41,17 @@ export function reportError(
             .match(/.{1,4}/g)
             ?.join("-") || createErrorId() // Format as XXXX-XXXX
 
-    console.error(`Error (code: ${errorId}):`, error, context ?? "")
+    try {
+        console.error(`Error (code: ${errorId}):`, error, context ?? "")
+    } catch {
+        // Some error objects (e.g. from DB/AI clients) have broken property
+        // descriptors that cause util.inspect to crash. Fall back to safe serialization.
+        const safeError =
+            error instanceof Error
+                ? { name: error.name, message: error.message, stack: error.stack }
+                : String(error)
+        console.error(`Error (code: ${errorId}):`, safeError, context ?? "")
+    }
 
     if (Sentry.getClient()) {
         Sentry.captureException(error, {

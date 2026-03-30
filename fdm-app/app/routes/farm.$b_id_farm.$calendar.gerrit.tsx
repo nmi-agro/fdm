@@ -86,6 +86,7 @@ import { Card } from "~/components/ui/card"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
+import { handleActionError } from "~/lib/error"
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 import { fdm } from "~/lib/fdm.server"
@@ -547,6 +548,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
         }
 
+        try {
         const strategies = {
             isOrganic: formValues.isOrganic,
             fillManureSpace: formValues.fillManureSpace,
@@ -773,6 +775,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             },
             strategies,
         })
+        } catch (e: unknown) {
+            return handleActionError(e)
+        }
     }
 
     if (intent === "accept") {
