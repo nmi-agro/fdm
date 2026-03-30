@@ -864,12 +864,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 // internally uses calculateNitrogenEmissionViaAmmoniaByFertilizers.
                 const NH3_EMISSION_FACTOR_THRESHOLD = 0.3
                 for (const result of fieldResults) {
-                    if (!result.nBalance) continue
+                    if (!result.fieldMetrics?.nBalance) continue
                     const nh3FromFertilizers: number =
-                        result.nBalance.emission?.ammonia?.fertilizers?.total ??
+                        result.fieldMetrics.nBalance.emission?.ammonia?.fertilizers?.total ??
                         0
                     const nFromFertilizers: number =
-                        result.nBalance.supply?.fertilizers?.total ?? 0
+                        result.fieldMetrics.nBalance.supply?.fertilizers?.total ?? 0
                     if (nFromFertilizers > 0) {
                         // Emission values are negative (losses); supply is positive.
                         const avgEmissionFactor =
