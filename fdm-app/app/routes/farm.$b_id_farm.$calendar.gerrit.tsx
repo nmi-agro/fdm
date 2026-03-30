@@ -159,11 +159,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 async function computePlanMetrics(
     principalId: PrincipalId,
+    b_id_farm: string,
     calendar: string,
     enrichedPlan: Array<{
         b_id: string
         b_lu_catalogue?: string
         b_area: number | null
+        b_bufferstrip: boolean
         applications: Array<{
             p_id_catalogue: string
             p_app_amount: number
@@ -474,6 +476,7 @@ async function computePlanMetrics(
                 return {
                     b_id: field.b_id,
                     b_area: field.b_area!,
+                    b_bufferstrip: field.b_bufferstrip,
                     nBalance,
                     fieldData: field,
                 }
@@ -708,6 +711,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 b_lu_name: fd.b_lu_name,
                 b_lu_croprotation: fd.b_lu_croprotation,
                 b_area: fd.b_area,
+                b_bufferstrip: fd.b_bufferstrip ?? false,
                 applications: (proposedField?.applications || []).map((app) => {
                     const fert = fertilizers.find(
                         (f: Fertilizer) =>
@@ -732,6 +736,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const serverMetrics = await computePlanMetrics(
             session.principal_id,
+            b_id_farm,
             calendar,
             enrichedPlan,
             fertilizers,
