@@ -101,7 +101,9 @@ const columns = [
             return (
                 <div className="flex flex-col gap-1.5">
                     {apps.map((app, i) => (
-                        <TooltipProvider key={i}>
+                        <TooltipProvider
+                            key={`${app.p_id_catalogue}-${app.p_app_date}-${app.p_app_amount}-${app.p_app_method ?? ""}`}
+                        >
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Badge
@@ -230,7 +232,7 @@ export function PlanTable({
                                     const nBalance =
                                         row.original.fieldMetrics?.nBalance
                                     const omBalance =
-                                        row.original.fieldMetrics?.omBalance                                  
+                                        row.original.fieldMetrics?.omBalance
 
                                     return (
                                         <Fragment key={row.id}>
@@ -727,39 +729,96 @@ export function PlanTable({
                                                                                             fill,
                                                                                             ref,
                                                                                         }) => {
-                                                                                            const noReq = ref === 0
-                                                                                            const pct = noReq
-                                                                                                ? null
-                                                                                                : Math.round((fill / ref) * 100)
-                                                                                            const isUnder = pct !== null && pct < 90
-                                                                                            const isExceed = pct !== null && pct > 110
-                                                                                            const colorClass = noReq
-                                                                                                ? "bg-amber-100 text-amber-700 border-amber-200"
-                                                                                                : isUnder
-                                                                                                  ? "bg-red-100 text-red-700 border-red-200"
-                                                                                                  : isExceed
+                                                                                            const noReq =
+                                                                                                ref ===
+                                                                                                0
+                                                                                            const pct =
+                                                                                                noReq
+                                                                                                    ? null
+                                                                                                    : Math.round(
+                                                                                                          (fill /
+                                                                                                              ref) *
+                                                                                                              100,
+                                                                                                      )
+                                                                                            const isUnder =
+                                                                                                pct !==
+                                                                                                    null &&
+                                                                                                pct <
+                                                                                                    90
+                                                                                            const isExceed =
+                                                                                                pct !==
+                                                                                                    null &&
+                                                                                                pct >
+                                                                                                    110
+                                                                                            const colorClass =
+                                                                                                noReq
                                                                                                     ? "bg-amber-100 text-amber-700 border-amber-200"
-                                                                                                    : "bg-green-100 text-green-700 border-green-200"
+                                                                                                    : isUnder
+                                                                                                      ? "bg-red-100 text-red-700 border-red-200"
+                                                                                                      : isExceed
+                                                                                                        ? "bg-amber-100 text-amber-700 border-amber-200"
+                                                                                                        : "bg-green-100 text-green-700 border-green-200"
 
                                                                                             return (
-                                                                                                <Tooltip key={key}>
-                                                                                                    <TooltipTrigger asChild>
-                                                                                                        <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums cursor-default ${colorClass}`}>
-                                                                                                            {key}{" "}
-                                                                                                            {noReq ? `+${Math.round(fill)} kg/ha` : `${pct}%`}
+                                                                                                <Tooltip
+                                                                                                    key={
+                                                                                                        key
+                                                                                                    }
+                                                                                                >
+                                                                                                    <TooltipTrigger
+                                                                                                        asChild
+                                                                                                    >
+                                                                                                        <span
+                                                                                                            className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums cursor-default ${colorClass}`}
+                                                                                                        >
+                                                                                                            {
+                                                                                                                key
+                                                                                                            }{" "}
+                                                                                                            {noReq
+                                                                                                                ? `+${Math.round(fill)} kg/ha`
+                                                                                                                : `${pct}%`}
                                                                                                         </span>
                                                                                                     </TooltipTrigger>
-                                                                                                    <TooltipContent side="top" className="text-xs">
+                                                                                                    <TooltipContent
+                                                                                                        side="top"
+                                                                                                        className="text-xs"
+                                                                                                    >
                                                                                                         <div className="space-y-1">
                                                                                                             <p className="font-semibold">
-                                                                                                                {key === "N" ? "Stikstof" : key === "P" ? "Fosfaat" : key === "K" ? "Kali" : key}
+                                                                                                                {key ===
+                                                                                                                "N"
+                                                                                                                    ? "Stikstof"
+                                                                                                                    : key ===
+                                                                                                                        "P"
+                                                                                                                      ? "Fosfaat"
+                                                                                                                      : key ===
+                                                                                                                          "K"
+                                                                                                                        ? "Kali"
+                                                                                                                        : key}
                                                                                                             </p>
                                                                                                             {noReq ? (
-                                                                                                                <p>Geen advies, wel aanvoer</p>
+                                                                                                                <p>
+                                                                                                                    Geen
+                                                                                                                    advies,
+                                                                                                                    wel
+                                                                                                                    aanvoer
+                                                                                                                </p>
                                                                                                             ) : (
                                                                                                                 <>
-                                                                                                                    <p>Advies: {Math.round(ref)} kg/ha</p>
-                                                                                                                    <p>Aangevoerd: {Math.round(fill)} kg/ha</p>
+                                                                                                                    <p>
+                                                                                                                        Advies:{" "}
+                                                                                                                        {Math.round(
+                                                                                                                            ref,
+                                                                                                                        )}{" "}
+                                                                                                                        kg/ha
+                                                                                                                    </p>
+                                                                                                                    <p>
+                                                                                                                        Aangevoerd:{" "}
+                                                                                                                        {Math.round(
+                                                                                                                            fill,
+                                                                                                                        )}{" "}
+                                                                                                                        kg/ha
+                                                                                                                    </p>
                                                                                                                 </>
                                                                                                             )}
                                                                                                         </div>
