@@ -85,11 +85,23 @@ export async function runOneShotAgent(
     }
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    const closeStream = async () => {
+        const iterator = stream as AsyncIterator<unknown> & {
+            return?: () => Promise<unknown>
+        }
+        if (typeof iterator.return === "function") {
+            try {
+                await iterator.return()
+            } catch {
+                // best effort
+            }
+        }
+    }
     const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(
-            () => reject(new AgentTimeoutError(timeoutMs)),
-            timeoutMs,
-        )
+        timeoutHandle = setTimeout(() => {
+            void closeStream()
+            reject(new AgentTimeoutError(timeoutMs))
+        }, timeoutMs)
     })
 
     const streamPromise = (async () => {
