@@ -730,33 +730,37 @@ export async function action({ request, params }: ActionFunctionArgs) {
             const latencySeconds = (Date.now() - startTime) / 1000
             const posthog = PostHogClient()
             if (posthog) {
-                posthog.capture({
-                    distinctId: session.principal_id,
-                    event: "$ai_generation",
-                    properties: {
-                        $ai_model: modelName,
-                        $ai_latency: latencySeconds,
-                        $ai_input_tokens: usageData?.inputTokens ?? null,
-                        $ai_output_tokens: usageData?.outputTokens ?? null,
-                        $ai_total_tokens: usageData?.totalTokens ?? null,
-                        $ai_input: [
-                            { role: "user", content: prompt.slice(0, 2000) },
-                        ],
-                        $ai_output_choices: [
-                            {
-                                role: "assistant",
-                                content: rawResult.slice(0, 2000),
-                            },
-                        ],
-                        $ai_tools_called: toolCalls || [],
-                        $ai_tool_call_count: toolCalls?.length || 0,
-                        $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
-                        b_id_farm,
-                        calendar,
-                        field_count: fieldsData.length,
-                    },
-                })
-                await posthog.flush()
+                try {
+                    posthog.capture({
+                        distinctId: session.principal_id,
+                        event: "$ai_generation",
+                        properties: {
+                            $ai_model: modelName,
+                            $ai_latency: latencySeconds,
+                            $ai_input_tokens: usageData?.inputTokens ?? null,
+                            $ai_output_tokens: usageData?.outputTokens ?? null,
+                            $ai_total_tokens: usageData?.totalTokens ?? null,
+                            $ai_input: [
+                                { role: "user", content: prompt.slice(0, 2000) },
+                            ],
+                            $ai_output_choices: [
+                                {
+                                    role: "assistant",
+                                    content: rawResult.slice(0, 2000),
+                                },
+                            ],
+                            $ai_tools_called: toolCalls || [],
+                            $ai_tool_call_count: toolCalls?.length || 0,
+                            $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
+                            b_id_farm,
+                            calendar,
+                            field_count: fieldsData.length,
+                        },
+                    })
+                    await posthog.flush()
+                } catch (e) {
+                    console.error("[gerrit] PostHog tracking failed:", e)
+                }
             }
 
             return data({
