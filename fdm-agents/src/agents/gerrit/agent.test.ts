@@ -22,11 +22,19 @@ describe("Gerrit Agent", () => {
     it("should have instruction containing critical constraints", () => {
         const mockFdm = {} as any
         const agent = createFertilizerPlannerAgent(mockFdm, "fake-api-key")
-        
-        // Check for some keywords in the large instruction string
+
         expect(agent.instruction).toContain("LEGAL NORMS")
         expect(agent.instruction).toContain("BUFFER STRIPS")
         expect(agent.instruction).toContain("ROTATION LEVEL")
         expect(agent.instruction).toContain("SECURITY & CONTEXT BOUNDARIES")
+    })
+
+    it("should throw when no API key is provided and GEMINI_API_KEY env is not set", () => {
+        const mockFdm = {} as any
+        vi.stubEnv("GEMINI_API_KEY", "")
+        expect(() => createFertilizerPlannerAgent(mockFdm)).toThrow(
+            "Missing Gemini API key",
+        )
+        vi.unstubAllEnvs()
     })
 })

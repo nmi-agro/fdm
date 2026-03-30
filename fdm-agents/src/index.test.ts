@@ -1,9 +1,22 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
     FertilizerPlanStrategiesSchema,
     sanitizeAdditionalContext,
     buildFertilizerPlanPrompt,
+    generateFarmFertilizerPlan,
 } from "./index"
+
+vi.mock("./agents/gerrit/agent", () => ({
+    createFertilizerPlannerAgent: vi.fn().mockReturnValue({ name: "Gerrit" }),
+}))
+
+vi.mock("./runners/one-shot", () => ({
+    runOneShotAgent: vi.fn().mockResolvedValue({
+        result: '{"summary":"test"}',
+        usage: null,
+        toolCalls: [],
+    }),
+}))
 
 describe("fdm-agents index", () => {
     describe("FertilizerPlanStrategiesSchema", () => {
@@ -99,6 +112,9 @@ describe("fdm-agents index", () => {
                     b_bufferstrip: false,
                     b_lu_catalogue: "nl_123",
                     b_lu_name: "Gras",
+                    b_soiltype_agr: null,
+                    b_gwl_class: null,
+                    a_som_loi: null,
                 }
             ]
             
@@ -107,5 +123,69 @@ describe("fdm-agents index", () => {
             expect(prompt).toContain("FARM FIELDS (1 fields")
             expect(prompt).toContain("- b_id: field-1 | Name: Kavel 1 | Area: 10.50 ha")
         })
+    })
+})
+
+describe("generateFarmFertilizerPlan", () => {
+    const baseStrategies = {
+        isOrganic: false,
+        fillManureSpace: false,
+        reduceAmmoniaEmissions: false,
+        keepNitrogenBalanceBelowTarget: false,
+        workOnRotationLevel: false,
+        isDerogation: false,
+    }
+
+    it("should call runOneShotAgent and return result string", async () => {
+        const mockFdm = {} as any
+        const result = await generateFarmFertilizerPlan(
+            mockFdm,
+            "principal-1" as any,
+            { b_id_farm: "farm-1" },
+            baseStrategies,
+            "2025",
+            "fake-api-key",
+        )
+        expect(result).toBe('{"summary":"test"}')
+    })
+
+    it("should pass sanitized additionalContext when provided", async () => {
+        const { runOneShotAgent } = await import("./runners/one-shot")
+        const mockFdm = {} as any
+        await generateFarmFertilizerPlan(
+            mockFdm,
+            "principal-1" as any,
+            { b_id_farm: "farm-1" },
+            baseStrategies,
+            "2025",
+            "fake-api-key",
+            undefined,
+            "Use organic fertilizers",
+        )
+        expect(runOneShotAgent).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.stringContaining("farm-1"),
+            expect.objectContaining({ additionalContext: "Use organic fertilizers" }),
+            undefined,
+        )
+    })
+
+    it("should default additionalContext to 'None' when not provided", async () => {
+        const { runOneShotAgent } = await import("./runners/one-shot")
+        const mockFdm = {} as any
+        await generateFarmFertilizerPlan(
+            mockFdm,
+            "principal-1" as any,
+            { b_id_farm: "farm-1" },
+            baseStrategies,
+            "2025",
+            "fake-api-key",
+        )
+        expect(runOneShotAgent).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            expect.objectContaining({ additionalContext: "None" }),
+            undefined,
+        )
     })
 })

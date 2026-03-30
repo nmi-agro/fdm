@@ -83,4 +83,127 @@ describe("runOneShotAgent", () => {
             }),
         })
     })
+
+    it("should accumulate usage metadata from stream events", async () => {
+        const mockStream = (async function* () {
+            yield {
+                usageMetadata: {
+                    promptTokenCount: 100,
+                    candidatesTokenCount: 50,
+                    totalTokenCount: 150,
+                },
+            }
+            yield { type: "final" }
+        })()
+
+        mockRunEphemeral.mockReturnValue(mockStream)
+        ;(isFinalResponse as any).mockImplementation(
+            (e: any) => e.type === "final",
+        )
+        ;(stringifyContent as any).mockReturnValue("Done.")
+
+        const result = await runOneShotAgent(mockAgent, "Generate plan")
+        expect(result.usage).toEqual({
+            inputTokens: 100,
+            outputTokens: 50,
+            totalTokens: 150,
+        })
+    })
+
+    it("should return null usage when no usage metadata is present", async () => {
+        const mockStream = (async function* () {
+            yield { type: "final" }
+        })()
+
+        mockRunEphemeral.mockReturnValue(mockStream)
+        ;(isFinalResponse as any).mockReturnValue(true)
+        ;(stringifyContent as any).mockReturnValue("Done.")
+
+        const result = await runOneShotAgent(mockAgent, "Generate plan")
+        expect(result.usage).toBeNull()
+    })
+
+    it("should extract tool call names from modelTurn.parts", async () => {
+        const mockStream = (async function* () {
+            yield {
+                modelTurn: {
+                    parts: [
+                        { functionCall: { name: "getFarmFields" } },
+                        { text: "thinking..." },
+                    ],
+                },
+            }
+            yield { type: "final" }
+        })()
+
+        mockRunEphemeral.mockReturnValue(mockStream)
+        ;(isFinalResponse as any).mockImplementation(
+            (e: any) => e.type === "final",
+        )
+        ;(stringifyContent as any).mockReturnValue("Done.")
+
+        const result = await runOneShotAgent(mockAgent, "Generate plan")
+        expect(result.toolCalls).toContain("getFarmFields")
+    })
+
+    it("should extract tool call names from direct functionCall property", async () => {
+        const mockStream = (async function* () {
+            yield { functionCall: { name: "simulateFarmPlan" } }
+            yield { type: "final" }
+        })()
+
+        mockRunEphemeral.mockReturnValue(mockStream)
+        ;(isFinalResponse as any).mockImplementation(
+            (e: any) => e.type === "final",
+        )
+        ;(stringifyContent as any).mockReturnValue("Done.")
+
+        const result = await runOneShotAgent(mockAgent, "Generate plan")
+        expect(result.toolCalls).toContain("simulateFarmPlan")
+    })
+
+    it("should deduplicate repeated tool call names", async () => {
+        const mockStream = (async function* () {
+            yield { functionCall: { name: "searchFertilizers" } }
+            yield { functionCall: { name: "searchFertilizers" } }
+            yield { type: "final" }
+        })()
+
+        mockRunEphemeral.mockReturnValue(mockStream)
+        ;(isFinalResponse as any).mockImplementation(
+            (e: any) => e.type === "final",
+        )
+        ;(stringifyContent as any).mockReturnValue("Done.")
+
+        const result = await runOneShotAgent(mockAgent, "Generate plan")
+        expect(result.toolCalls?.filter((n) => n === "searchFertilizers")).toHaveLength(1)
+    })
+
+    it("should handle PostHog capture failure gracefully", async () => {
+        const failingPosthog = {
+            client: {
+                capture: vi.fn().mockImplementation(() => {
+                    throw new Error("PostHog unavailable")
+                }),
+            },
+            distinctId: "user-1",
+        }
+
+        const mockStream = (async function* () {
+            yield { type: "final" }
+        })()
+
+        mockRunEphemeral.mockReturnValue(mockStream)
+        ;(isFinalResponse as any).mockReturnValue(true)
+        ;(stringifyContent as any).mockReturnValue("Done.")
+
+        // Should not throw even though PostHog throws
+        const result = await runOneShotAgent(
+            mockAgent,
+            "Generate plan",
+            {},
+            failingPosthog,
+        )
+        expect(result.result).toBe("Done.")
+    })
 })
