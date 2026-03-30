@@ -39,7 +39,7 @@ export interface FieldMetrics {
     nBalance: Pick<
         NitrogenBalanceFieldNumeric,
         "balance" | "target" | "emission"
-    >
+    > | null
     omBalance: number | null
     eomSupplyPerHa?: number
     advice: NutrientAdvice | null
@@ -70,5 +70,5 @@ export interface FarmTotals {
         balance: number
         target: number
         emission: { ammonia: { total: number }; nitrate: { total: number } }
-    }
+    } | null
 }

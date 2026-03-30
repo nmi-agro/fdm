@@ -215,9 +215,9 @@ async function computePlanMetrics(
         enrichedPlan
             .filter((f) => f.b_area)
             .map(async (field) => {
-                let manure = { normValue: 170, normSource: "default" }
-                let nitrogen = { normValue: 0, normSource: "default" }
-                let phosphate = { normValue: 0, normSource: "default" }
+                let manure: { normValue: number; normSource: string }
+                let nitrogen: { normValue: number; normSource: string }
+                let phosphate: { normValue: number; normSource: string }
                 try {
                     const normsInput = await normFuncs.collectInputForNorms(
                         fdm,
@@ -256,6 +256,7 @@ async function computePlanMetrics(
                         `[computePlanMetrics] Norm calc failed for ${field.b_id}:`,
                         err,
                     )
+                    throw err
                 }
 
                 const syntheticApps: FertilizerApplication[] =
@@ -319,38 +320,10 @@ async function computePlanMetrics(
                     phosphateFilling = phosphateResult
                 } catch (err) {
                     console.warn(
-                        `[computePlanMetrics] Filling calc failed for ${field.b_id}, fallback:`,
+                        `[computePlanMetrics] Filling calc failed for ${field.b_id}:`,
                         err,
                     )
-                    let mFill = 0
-                    let nFill = 0
-                    let pFill = 0
-                    for (const app of field.applications) {
-                        const fert = fertilizers.find(
-                            (f: Fertilizer) =>
-                                f.p_id_catalogue === app.p_id_catalogue,
-                        )
-                        if (!fert) continue
-                        const amount = app.p_app_amount ?? 0
-                        if (fert.p_type === "manure")
-                            mFill += (amount * (fert.p_n_rt ?? 0)) / 1000
-                        nFill +=
-                            (amount * (fert.p_n_rt ?? 0) * (fert.p_n_wc ?? 0)) /
-                            1000
-                        pFill += (amount * (fert.p_p_rt ?? 0)) / 1000
-                    }
-                    manureFilling = {
-                        normFilling: mFill,
-                        applicationFilling: [],
-                    }
-                    nitrogenFilling = {
-                        normFilling: nFill,
-                        applicationFilling: [],
-                    }
-                    phosphateFilling = {
-                        normFilling: pFill,
-                        applicationFilling: [],
-                    }
+                    throw err
                 }
 
                 // Fetch NMI nutrient advice per field
@@ -411,11 +384,7 @@ async function computePlanMetrics(
                     }
                 }
 
-                let nBalance = field.fieldMetrics?.nBalance ?? {
-                    balance: 0,
-                    target: 0,
-                    emission: { ammonia: { total: 0 }, nitrate: { total: 0 } },
-                }
+                let nBalance: ReturnType<typeof calculateNitrogenBalanceField> | null = null
                 if (nInput) {
                     const fieldNInput = nInput.fields.find(
                         (f: any) => f.field.b_id === field.b_id,
@@ -447,11 +416,13 @@ async function computePlanMetrics(
                         phosphate: phosphateFilling,
                     },
                     norms: { manure, nitrogen, phosphate },
-                    nBalance: {
-                        balance: nBalance.balance,
-                        target: nBalance.target,
-                        emission: nBalance.emission,
-                    },
+                    nBalance: nBalance
+                        ? {
+                              balance: nBalance.balance,
+                              target: nBalance.target,
+                              emission: nBalance.emission,
+                          }
+                        : null,
                     omBalance,
                     advice,
                     proposedDose: proposedDose.dose,
@@ -474,7 +445,7 @@ async function computePlanMetrics(
                 b_id: string
                 b_area: number
                 b_bufferstrip: boolean
-                nBalance: any
+                nBalance: ReturnType<typeof calculateNitrogenBalanceField> | null
                 fieldData: any
             }> => r.status === "fulfilled",
         )
@@ -499,16 +470,20 @@ async function computePlanMetrics(
         })),
     )
 
-    const farmNBalance = calculateNitrogenBalancesFieldToFarm(
-        validFields.map((f) => ({
-            b_id: f.b_id,
-            b_area: f.b_area,
-            b_bufferstrip: f.b_bufferstrip,
-            balance: f.nBalance,
-        })),
-        false,
-        [],
-    )
+    const fieldsWithNBalance = validFields.filter((f) => f.nBalance !== null)
+    const farmNBalance =
+        fieldsWithNBalance.length > 0
+            ? calculateNitrogenBalancesFieldToFarm(
+                  fieldsWithNBalance.map((f) => ({
+                      b_id: f.b_id,
+                      b_area: f.b_area,
+                      b_bufferstrip: f.b_bufferstrip,
+                      balance: f.nBalance!,
+                  })),
+                  false,
+                  [],
+              )
+            : null
 
     return {
         fieldMetricsMap,

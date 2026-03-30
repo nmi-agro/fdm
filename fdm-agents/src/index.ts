@@ -6,6 +6,7 @@ import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
 
 export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
 export type { OneShotAgentResult } from "./runners/one-shot"
+export { AgentTimeoutError } from "./runners/one-shot"
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */
