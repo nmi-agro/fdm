@@ -338,6 +338,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     reduceAmmoniaEmissions: z.boolean().optional(),
                     keepNitrogenBalanceBelowTarget: z.boolean().optional(),
                     workOnRotationLevel: z.boolean().optional(),
+                    isDerogation: z.boolean().optional(),
                 })
                 .optional()
                 .describe("User strategies to enforce in warnings"),
@@ -694,6 +695,26 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 }
             }
 
+            if (args.strategies?.isDerogation) {
+                for (const field of args.fields) {
+                    for (const app of field.applications) {
+                        const fert = fertilizers.find(
+                            (f: Fertilizer) =>
+                                f.p_id_catalogue === app.p_id_catalogue,
+                        )
+                        if (
+                            fert?.p_type === "mineral" &&
+                            fert.p_p_rt != null &&
+                            fert.p_p_rt > 0
+                        ) {
+                            complianceIssues.push(
+                                `Strategy violation (Derogation): Plan includes a mineral fertilizer with phosphate (${fert.p_id_catalogue} on field ${field.b_id}), which is not allowed under derogation rules.`,
+                            )
+                        }
+                    }
+                }
+            }
+
             if (args.strategies?.keepNitrogenBalanceBelowTarget) {
                 if (
                     farmNBalance.balance &&
@@ -852,6 +873,7 @@ interface SimulationArgs {
         reduceAmmoniaEmissions?: boolean
         keepNitrogenBalanceBelowTarget?: boolean
         workOnRotationLevel?: boolean
+        isDerogation?: boolean
     }
     fields: SimulationField[]
 }

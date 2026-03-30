@@ -17,6 +17,8 @@ export interface FertilizerPlanStrategies {
     keepNitrogenBalanceBelowTarget: boolean
     /** Whether to apply the same plan to all fields with the same cultivation (bouwplan level) */
     workOnRotationLevel: boolean
+    /** Whether the farm operates under derogation (prohibits mineral fertilizers containing phosphate) */
+    isDerogation: boolean
 }
 
 /** Schema for validating FertilizerPlanStrategies — all fields must be explicit booleans. */
@@ -26,6 +28,7 @@ export const FertilizerPlanStrategiesSchema = z.object({
     reduceAmmoniaEmissions: z.boolean(),
     keepNitrogenBalanceBelowTarget: z.boolean(),
     workOnRotationLevel: z.boolean(),
+    isDerogation: z.boolean(),
 })
 
 /** Compact field summary injected into the initial prompt for faster agent orientation. */
@@ -101,6 +104,7 @@ STRATEGIES TO ENFORCE:
 - Reduce NH3 Emissions: ${validatedStrategies.reduceAmmoniaEmissions ? "YES (Prioritize fertilizers and methods with lower ammonia emission factors for the farm as a whole)" : "NO"}
 - Keep Nitrogen Balance Below Target: ${validatedStrategies.keepNitrogenBalanceBelowTarget ? "YES (Ensure the farm-level N balance surplus stays below the farm-level environmental target. Individual fields may exceed their target if compensated by others)" : "NO"}
 - Work on Rotation Level (Bouwplan): ${validatedStrategies.workOnRotationLevel ? "YES (All fields sharing the same b_lu_catalogue MUST receive identical applications — same products, amounts, dates and methods)" : "NO"}
+- Derogation: ${validatedStrategies.isDerogation ? "YES (No mineral fertilizers containing phosphate allowed)" : "NO"}
 
 --- BEGIN ADDITIONAL USER CONTEXT ---
 ${safeContext}
