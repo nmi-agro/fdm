@@ -37,7 +37,7 @@ export function StrategyForm({
     calendar,
 }: StrategyFormProps) {
     const additionalContextLength = additionalContextValue?.length ?? 0
-    const showDerogation = parseInt(calendar) < 2026
+    const showDerogation = Number.parseInt(calendar) < 2026
 
     return (
         <Card className="h-fit sticky top-6">
