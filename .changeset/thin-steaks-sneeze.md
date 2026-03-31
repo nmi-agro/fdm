@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-calculator": minor
 ---
 
-Added nitrogen and organic matter balance input collection for multiple farms which can reduce the number of database lookups when analyzing balance of farms in a region.
+Added `collectInputForNitrogenBalanceForFarms` and `collectInputForOrganicMatterBalanceForFarms` to collect balance inputs for multiple farms, reducing database lookups by deduplicating catalogue queries across farms. The functions use a composable pattern: first fetch enabled catalogues for all farms in one query, then fetch catalogue items once per unique catalogue, then process each farm individually.
