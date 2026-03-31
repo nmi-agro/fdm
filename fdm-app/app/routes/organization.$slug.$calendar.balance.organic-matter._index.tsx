@@ -81,7 +81,7 @@ type LoaderData =
 export const meta: MetaFunction = () => {
     return [
         {
-            title: `Organische Stof | Organisatie | Nutriëntenbalans| ${clientConfig.name}`,
+            title: `Organische stof | Organisatie | Nutriëntenbalans| ${clientConfig.name}`,
         },
         {
             name: "description",
@@ -319,7 +319,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
     return (
         <main className="p-8 space-y-4">
             <h2 className="text-2xl font-bold tracking-tight">
-                Organische Stof
+                Organische stof
             </h2>
             <Suspense
                 key={`${loaderData.organization.id},${farmIds.join(",")}`}
