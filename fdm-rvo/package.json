@@ -37,6 +37,12 @@
                 "types": "./dist/utils.d.ts",
                 "default": "./dist/utils.js"
             }
+        },
+        "./shapefile": {
+            "import": {
+                "types": "./dist/shapefile.d.ts",
+                "default": "./dist/shapefile.js"
+            }
         }
     },
     "files": [
@@ -57,13 +63,18 @@
         "@turf/bbox": "^7.3.4",
         "@turf/helpers": "^7.3.4",
         "@turf/intersect": "^7.3.4",
+        "@turf/turf": "^7.3.4",
         "@turf/union": "^7.3.4",
+        "geojson": "^0.5.0",
+        "proj4": "^2.20.4",
+        "shpjs": "^6.2.0",
         "zod": "^4.3.6"
     },
     "devDependencies": {
         "@nmi-agro/fdm-core": "workspace:*",
         "@rollup/plugin-commonjs": "catalog:",
         "@rollup/plugin-node-resolve": "catalog:",
+        "@types/geojson": "^7946.0.16",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
         "rollup": "catalog:",

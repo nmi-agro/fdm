@@ -6,15 +6,9 @@ settings:
 
 catalogs:
   default:
-    '@dotenvx/dotenvx':
-      specifier: ^1.54.1
-      version: 1.57.2
     '@rollup/plugin-commonjs':
       specifier: ^29.0.2
       version: 29.0.2
-    '@rollup/plugin-json':
-      specifier: ^6.1.0
-      version: 6.1.0
     '@rollup/plugin-node-resolve':
       specifier: ^16.0.3
       version: 16.0.3
@@ -24,36 +18,18 @@ catalogs:
     '@vitest/coverage-v8':
       specifier: 4.1.0
       version: 4.1.0
-    better-auth:
-      specifier: ^1.5.4
-      version: 1.5.5
-    drizzle-kit:
-      specifier: ^0.31.9
-      version: 0.31.10
-    drizzle-orm:
-      specifier: ^0.45.1
-      version: 0.45.1
     rollup:
       specifier: ^4.59.0
       version: 4.60.0
     rollup-plugin-esbuild:
       specifier: ^6.2.1
       version: 6.2.1
-    rollup-plugin-polyfill-node:
-      specifier: ^0.13.0
-      version: 0.13.0
     typedoc:
       specifier: ^0.28.17
       version: 0.28.18
-    typedoc-plugin-missing-exports:
-      specifier: ^4.1.2
-      version: 4.1.2
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
-    vite:
-      specifier: ^7.3.1
-      version: 7.3.1
     vitest:
       specifier: ^4.1.0
       version: 4.1.1
@@ -603,9 +579,21 @@ importers:
       '@turf/intersect':
         specifier: ^7.3.4
         version: 7.3.4
+      '@turf/turf':
+        specifier: ^7.3.4
+        version: 7.3.4
       '@turf/union':
         specifier: ^7.3.4
         version: 7.3.4
+      geojson:
+        specifier: ^0.5.0
+        version: 0.5.0
+      proj4:
+        specifier: ^2.20.4
+        version: 2.20.4
+      shpjs:
+        specifier: ^6.2.0
+        version: 6.2.0
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -616,6 +604,9 @@ importers:
       '@rollup/plugin-node-resolve':
         specifier: 'catalog:'
         version: 16.0.3(rollup@4.60.0)
+      '@types/geojson':
+        specifier: ^7946.0.16
+        version: 7946.0.16
       '@types/node':
         specifier: 'catalog:'
         version: 25.5.0
@@ -7419,6 +7410,10 @@ packages:
 
   geojson-polygon-self-intersections@1.2.2:
     resolution: {integrity: sha512-6XRNF4CsRHYmR9z5YuIk5f/aOototnDf0dgMqYGcS7y1l57ttt6MAIAxl3rXyas6lq1HEbTuLMh4PgvO+OV42w==}
+
+  geojson@0.5.0:
+    resolution: {integrity: sha512-/Bx5lEn+qRF4TfQ5aLu6NH+UKtvIv7Lhc487y/c8BdludrCTpiWf9wyI0RTyqg49MFefIAvFDuEi5Dfd/zgNxQ==}
+    engines: {node: '>= 0.10'}
 
   geokdbush@2.0.1:
     resolution: {integrity: sha512-0M8so1Qx6+jJ1xpirpCNrgUsWAzIcQ3LrLmh0KJPBYI3gH7vy70nY5zEEjSp9Tn0nBt6Q2Fh922oL08lfib4Zg==}
@@ -19941,6 +19936,8 @@ snapshots:
   geojson-polygon-self-intersections@1.2.2:
     dependencies:
       rbush: 2.0.2
+
+  geojson@0.5.0: {}
 
   geokdbush@2.0.1:
     dependencies:

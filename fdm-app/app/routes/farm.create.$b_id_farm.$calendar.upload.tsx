@@ -1,33 +1,59 @@
+import { MijnPercelenUploadForm } from "@/app/components/blocks/mijnpercelen/form-upload"
 import {
-    addCultivation,
-    addField,
     addSoilAnalysis,
-    getDefaultDatesOfCultivation,
+    type FdmType,
+    type Field,
+    getCultivations,
+    getCultivationsFromCatalogue,
     getFarm,
+    getFields,
 } from "@nmi-agro/fdm-core"
+import { getItemId } from "@nmi-agro/fdm-rvo/utils"
+import type {
+    ImportReviewAction,
+    RvoImportReviewItem,
+    UserChoiceMap,
+} from "@nmi-agro/fdm-rvo/types"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
-import * as turf from "@turf/turf"
-import type { Feature, FeatureCollection, Polygon } from "geojson"
-import proj4 from "proj4"
+import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
 import type {
     ActionFunctionArgs,
     LoaderFunctionArgs,
     MetaFunction,
 } from "react-router"
-import { data, useLoaderData } from "react-router"
-import { dataWithWarning, redirectWithSuccess } from "remix-toast"
-import { combine, parseDbf, parseShp } from "shpjs"
-import { MijnPercelenUploadForm } from "@/app/components/blocks/mijnpercelen/form-upload"
+import {
+    data,
+    Form,
+    redirect,
+    useActionData,
+    useLoaderData,
+    useLocation,
+    useNavigation,
+} from "react-router"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
+import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
+import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"
+import {
+    getNmiApiKey,
+    getSoilParameterEstimates,
+} from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleActionError } from "~/lib/error"
+import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import {
+    compareFields,
+    getRvoFieldsFromShapefile,
+    processRvoImport,
+} from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -72,56 +98,196 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function UploadMijnPercelenPage() {
     const { b_id_farm, calendar, b_name_farm } = useLoaderData<typeof loader>()
+    const navigation = useNavigation()
+    const location = useLocation()
+
+    const [rvoImportReviewData, setRvoImportReviewData] =
+        useState<RvoImportReviewItem<Field>[]>()
+    const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
+
+    const actionData = useActionData<typeof action>()
+
+    const handleChoiceChange = (id: string, action: ImportReviewAction) => {
+        setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
+    }
+
+    const actionRvoImportReviewData = actionData?.RvoImportReviewData
+
+    const isSaving =
+        navigation.state === "submitting" &&
+        navigation.formData?.get("intent") === "save_fields"
+
+    useEffect(() => {
+        if (actionRvoImportReviewData) {
+            setRvoImportReviewData(actionRvoImportReviewData)
+        }
+    }, [actionRvoImportReviewData])
+
+    useEffect(() => {
+        // Initialize user choices with defaults
+        const initialChoices: UserChoiceMap = {}
+
+        if (rvoImportReviewData) {
+            rvoImportReviewData.forEach((item) => {
+                const id = getItemId(item)
+                let defaultAction: ImportReviewAction
+
+                switch (item.status) {
+                    case "NEW_REMOTE":
+                        defaultAction = "ADD_REMOTE"
+                        break
+                    // In creation wizard, other statuses are unlikely but good to handle defaults
+                    default:
+                        defaultAction = "NO_ACTION"
+                        break
+                }
+                initialChoices[id] = defaultAction
+            })
+        }
+        setUserChoices(initialChoices)
+    }, [rvoImportReviewData])
+
+    // Warn the user before refreshing or leaving when data is present
+    const expectedRedirectPath = `/farm/create/${b_id_farm}/${calendar}/fields`
+    useEffect(() => {
+        if (rvoImportReviewData && rvoImportReviewData.length > 0) {
+            const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+                if (location.pathname.startsWith(expectedRedirectPath)) return
+                e.preventDefault()
+                e.returnValue =
+                    "Als u de pagina ververst, wordt de verbinding met RVO verbroken en moet u opnieuw inloggen met eHerkenning. Wilt u doorgaan?"
+                return e.returnValue
+            }
+            window.addEventListener("beforeunload", handleBeforeUnload)
+            return () =>
+                window.removeEventListener("beforeunload", handleBeforeUnload)
+        }
+    }, [location.pathname, expectedRedirectPath, rvoImportReviewData])
 
     return (
         <SidebarInset>
             <Header action={undefined}>
                 <HeaderFarmCreate b_name_farm={b_name_farm} />
             </Header>
-            <main>
-                <div className="flex h-screen items-center justify-center">
-                    <MijnPercelenUploadForm
-                        b_id_farm={b_id_farm}
-                        calendar={calendar}
-                    />
-                </div>
+            <main className="flex-1 overflow-auto">
+                {!rvoImportReviewData ? (
+                    <div className="flex h-screen items-center justify-center">
+                        <MijnPercelenUploadForm
+                            b_id_farm={b_id_farm}
+                            calendar={calendar}
+                        />
+                    </div>
+                ) : (
+                    <>
+                        {actionData?.message && (
+                            <div className="p-6">
+                                <Alert
+                                    variant={
+                                        actionData.success
+                                            ? "default"
+                                            : "destructive"
+                                    }
+                                >
+                                    <AlertTitle>
+                                        {actionData.success ? "Succes" : "Fout"}
+                                    </AlertTitle>
+                                    <AlertDescription>
+                                        {actionData.message}
+                                    </AlertDescription>
+                                </Alert>
+                            </div>
+                        )}
+                        <FarmTitle
+                            title="Verwerken van geïmporteerde percelen"
+                            description="Controleer de percelen opgehaald vanuit RVO. Deze worden toegevoegd aan uw nieuwe bedrijf."
+                        />
+
+                        <FarmContent>
+                            <div className="flex flex-col space-y-4 pb-10">
+                                <div className="flex justify-end">
+                                    <Form method="post">
+                                        <input
+                                            type="hidden"
+                                            name="intent"
+                                            value="save_fields"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="userChoices"
+                                            value={JSON.stringify(userChoices)}
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="RvoImportReviewDataJson"
+                                            value={JSON.stringify(
+                                                rvoImportReviewData,
+                                            )}
+                                        />
+                                        <Button
+                                            type="submit"
+                                            disabled={isSaving}
+                                        >
+                                            {isSaving ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Opslaan...
+                                                </>
+                                            ) : (
+                                                "Opslaan en verder"
+                                            )}
+                                        </Button>
+                                    </Form>
+                                </div>
+                                <div className="w-full">
+                                    <RvoImportReviewTable
+                                        data={rvoImportReviewData}
+                                        userChoices={userChoices}
+                                        onChoiceChange={handleChoiceChange}
+                                    />
+                                </div>
+                            </div>
+                        </FarmContent>
+                    </>
+                )}
             </main>
         </SidebarInset>
     )
 }
 
-interface RvoProperties {
-    SECTORID: string
-    SECTORVER: number
-    NEN3610ID: string
-    VOLGNR: number
-    NAAM: string | null | undefined
-    BEGINDAT: number
-    EINDDAT: number
-    GEWASCODE: string
-    GEWASOMSCH: string
-    TITEL: string
-    TITELOMSCH: string
-}
-
-export async function action({ request, params }: ActionFunctionArgs) {
-    const fileStorage = createFsFileStorage("./uploads/shapefiles")
+export async function action({ request, params }: ActionFunctionArgs): Promise<
+    | Response
+    | {
+          success?: boolean
+          message?: string
+          RvoImportReviewData?: RvoImportReviewItem<Field>[]
+      }
+> {
     const storageKeys: string[] = []
-
+    const fileStorage = createFsFileStorage("./uploads/shapefiles")
     try {
-        // Get the Id and name of the farm
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", {
-                status: 400,
-                statusText: "Farm ID is required",
-            })
+        const { b_id_farm, calendar: yearString } = params
+        if (!b_id_farm || !yearString) {
+            throw data(
+                {
+                    message: "b_id_farm and calendar are required",
+                    success: false,
+                },
+                {
+                    status: 400,
+                },
+            )
+        }
+        const year = Number(yearString)
+        if (!Number.isInteger(year)) {
+            throw data(
+                { message: "Ongeldig kalenderjaar", success: false },
+                { status: 400 },
+            )
         }
 
         const session = await getSession(request)
-        const calendar = await getCalendar(params)
-        const nmiApiKey = getNmiApiKey()
 
+        // Parse form data with streaming
         const uploadHandler = async (fileUpload: FileUpload) => {
             const storageKey = crypto.randomUUID()
             storageKeys.push(storageKey)
@@ -132,169 +298,149 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
             return file
         }
-
         const formData = await parseFormData(
             request,
             { maxFileSize: 5 * 1024 * 1024 },
             uploadHandler,
         )
-        const files = formData.getAll("shapefile") as File[]
+        const intent = formData.get("intent")
 
-        const shp_file = files.find((f) => f.name.endsWith(".shp"))
-        const shx_file = files.find((f) => f.name.endsWith(".shx"))
-        const dbf_file = files.find((f) => f.name.endsWith(".dbf"))
-        const prj_file = files.find((f) => f.name.endsWith(".prj"))
-
-        if (!shp_file || !shx_file || !dbf_file || !prj_file) {
-            return dataWithWarning(
-                {},
-                "Een .shp, .shx, .dbf en .prj bestand zijn verplicht.",
+        if (intent === "upload") {
+            // Prepare existing fields for comparison
+            const fields = await getFields(fdm, session.principal_id, b_id_farm)
+            const fieldsExtended = await Promise.all(
+                fields.map(async (field) => ({
+                    ...field,
+                    cultivations: await getCultivations(
+                        fdm,
+                        session.principal_id,
+                        field.b_id,
+                    ),
+                })),
             )
-        }
-
-        const shpBuffer = await shp_file.arrayBuffer()
-        const shxBuffer = await shx_file.arrayBuffer()
-        const dbfBuffer = await dbf_file.arrayBuffer()
-        const prj_text = await prj_file.text()
-
-        let shapefile: FeatureCollection<Polygon, RvoProperties>
-        try {
-            shapefile = (await combine([
-                parseShp(shpBuffer, shxBuffer),
-                parseDbf(dbfBuffer),
-            ])) as FeatureCollection<Polygon, RvoProperties>
-        } catch (_error) {
-            return dataWithWarning({}, "Shapefile is ongeldig.")
-        }
-
-        if (shapefile.features.length === 0) {
-            return dataWithWarning({}, "Shapefile bevat geen percelen.")
-        }
-
-        const source_proj = prj_text
-        const dest_proj = "EPSG:4326"
-
-        const converter = proj4(source_proj, dest_proj)
-
-        const features = shapefile.features.map(
-            (feature: Feature<Polygon, RvoProperties>) => {
-                const new_coords = feature.geometry.coordinates.map(
-                    (ring: number[][]) => {
-                        return ring.map((coord: number[]) => {
-                            return converter.forward(coord)
-                        })
-                    },
-                )
-                feature.geometry.coordinates = new_coords
-                return feature
-            },
-        )
-
-        let unnamedCount = 0
-        for (const feature of features) {
-            const { properties, geometry } = feature
-            const {
-                SECTORID,
-                SECTORVER,
-                NEN3610ID,
-                VOLGNR,
-                NAAM,
-                BEGINDAT,
-                EINDDAT,
-                GEWASCODE,
-                GEWASOMSCH,
-                TITEL,
-                TITELOMSCH,
-            } = properties
-
-            if (
-                !SECTORID ||
-                !SECTORVER ||
-                !NEN3610ID ||
-                !VOLGNR ||
-                NAAM === undefined ||
-                !BEGINDAT ||
-                !EINDDAT ||
-                !GEWASCODE ||
-                !GEWASOMSCH ||
-                !TITEL ||
-                !TITELOMSCH
-            ) {
-                return dataWithWarning(
-                    {},
-                    "De shapefile bevat niet de vereiste RVO attributen.",
-                )
-            }
-
-            const b_geometry = turf.polygon(geometry.coordinates)
-            const trimmedNaam = typeof NAAM === "string" ? NAAM.trim() : ""
-            const b_name = trimmedNaam || `Naamloos perceel ${++unnamedCount}`
-            const b_start = new Date(BEGINDAT)
-            const b_end = EINDDAT === 253402297199 ? null : new Date(EINDDAT)
-            const b_lu_catalogue = `nl_${GEWASCODE}`
-            const b_acquiring_method = `nl_${TITEL}`
-            const b_id_source = SECTORID
-
-            const fieldId = await addField(
+            const cultivationsCatalogue = await getCultivationsFromCatalogue(
                 fdm,
                 session.principal_id,
                 b_id_farm,
-                b_name,
-                b_id_source,
-                b_geometry.geometry,
-                b_start,
-                b_acquiring_method,
-                b_end,
             )
 
-            const cultivationDefaultDates = await getDefaultDatesOfCultivation(
-                fdm,
-                session.principal_id,
-                b_id_farm,
-                b_lu_catalogue,
-                Number(calendar),
-            )
-            const b_lu_start = cultivationDefaultDates.b_lu_start
-            const b_lu_end = cultivationDefaultDates.b_lu_end
-            await addCultivation(
-                fdm,
-                session.principal_id,
-                b_lu_catalogue,
-                fieldId,
-                b_lu_start,
-                b_lu_end,
+            const files = formData.getAll("shapefile") as File[]
+
+            const shp_file = files.find((f) => f.name.endsWith(".shp"))
+            const shx_file = files.find((f) => f.name.endsWith(".shx"))
+            const dbf_file = files.find((f) => f.name.endsWith(".dbf"))
+            const prj_file = files.find((f) => f.name.endsWith(".prj"))
+
+            if (!shp_file || !shx_file || !dbf_file || !prj_file) {
+                const message =
+                    "Een .shp, .shx, .dbf en .prj bestand zijn verplicht."
+                return {
+                    message: message,
+                    success: false,
+                    RvoImportReviewData: undefined,
+                }
+            }
+
+            const rvoFields = await getRvoFieldsFromShapefile(
+                shp_file,
+                shx_file,
+                dbf_file,
+                prj_file,
             )
 
-            if (nmiApiKey) {
-                const estimates = await getSoilParameterEstimates(
-                    b_geometry,
-                    nmiApiKey,
-                )
+            const RvoImportReviewData = compareFields(
+                fieldsExtended,
+                rvoFields,
+                year,
+                cultivationsCatalogue,
+            )
 
-                await addSoilAnalysis(
-                    fdm,
-                    session.principal_id,
-                    undefined,
-                    estimates.a_source,
-                    fieldId,
-                    estimates.a_depth_lower,
-                    undefined,
-                    estimates,
-                )
+            return {
+                RvoImportReviewData: RvoImportReviewData,
+                message: "Percelen zijn klaar voor beeordeling! 🎉",
+                success: true,
             }
         }
 
-        return redirectWithSuccess(
-            `/farm/create/${b_id_farm}/${calendar}/fields`,
-            {
-                message: "Percelen zijn succesvol geïmporteerd! 🎉",
-            },
-        )
-    } catch (error) {
-        throw handleActionError(error)
+        if (intent === "save_fields") {
+            const RvoImportReviewDataJson = formData.get(
+                "RvoImportReviewDataJson",
+            )
+            const userChoicesJson = formData.get("userChoices")
+
+            let rvoImportReviewData: RvoImportReviewItem<any>[] = []
+            let userChoices: UserChoiceMap = {}
+
+            if (!RvoImportReviewDataJson || !userChoicesJson) {
+                return {
+                    success: false,
+                    message:
+                        "Geen data gevonden om te verwerken. Start de RVO import opnieuw.",
+                    RvoImportReviewData: undefined,
+                }
+            }
+
+            rvoImportReviewData = JSON.parse(String(RvoImportReviewDataJson))
+            userChoices = JSON.parse(String(userChoicesJson))
+
+            if (!Array.isArray(rvoImportReviewData)) {
+                throw new Error("Invalid review data format")
+            }
+
+            const onFieldAdded = async (
+                tx: FdmType,
+                b_id: string,
+                geometry: any,
+            ) => {
+                const nmiApiKey = getNmiApiKey()
+                if (nmiApiKey) {
+                    try {
+                        const soilEstimates = await getSoilParameterEstimates(
+                            geometry,
+                            nmiApiKey,
+                        )
+                        await addSoilAnalysis(
+                            tx,
+                            session.principal_id,
+                            undefined,
+                            "nl-other-nmi",
+                            b_id,
+                            soilEstimates.a_depth_lower ?? 30,
+                            undefined,
+                            soilEstimates,
+                            soilEstimates.a_depth_upper,
+                        )
+                    } catch (e) {
+                        console.warn(
+                            `Failed to fetch soil estimates for field ${b_id}:`,
+                            e,
+                        )
+                    }
+                }
+            }
+
+            await processRvoImport(
+                fdm,
+                session.principal_id,
+                b_id_farm,
+                rvoImportReviewData,
+                userChoices,
+                year,
+                onFieldAdded,
+            )
+            return redirect(`/farm/create/${b_id_farm}/${yearString}/fields`)
+        }
+
+        return {}
+    } catch (e: any) {
+        console.error("Error at saving RVO fields: ", e)
+        return {
+            success: false,
+            message: `Error at saving RVO fields: ${await extractErrorMessage(e)}`,
+        }
     } finally {
-        for (const key of storageKeys) {
-            await fileStorage.remove(key)
+        for (const storageKey of storageKeys) {
+            fileStorage.remove(storageKey)
         }
     }
 }

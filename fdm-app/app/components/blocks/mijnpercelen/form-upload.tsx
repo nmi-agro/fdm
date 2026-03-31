@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { parseShapefileGeoJsonProperties } from "@nmi-agro/fdm-rvo/shapefile"
 import {
     AlertCircle,
     CheckCircle,
@@ -7,9 +8,9 @@ import {
     FlaskConical,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { useWatch } from "react-hook-form"
 import { Form, NavLink, useActionData, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { parseDbf } from "shpjs"
 import { toast as notify } from "sonner"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
@@ -36,7 +37,6 @@ import {
     FormMessage,
 } from "~/components/ui/form"
 import { Spinner } from "~/components/ui/spinner"
-
 import { MijnPercelenUploadAnimation } from "./upload-animation"
 
 type UploadState = "idle" | "animating" | "success" | "error"
@@ -60,6 +60,7 @@ export function MijnPercelenUploadForm({
         mode: "onTouched",
         resolver: zodResolver(FormSchema),
         defaultValues: {
+            intent: "upload",
             shapefile: [],
         },
     })
@@ -111,7 +112,11 @@ export function MijnPercelenUploadForm({
         }
     }, [uploadState, form.reset])
 
-    const selectedFiles = form.watch("shapefile")
+    const selectedFiles = useWatch({
+        control: form.control,
+        name: "shapefile",
+        defaultValue: [],
+    })
 
     const selectedFileExtensions = selectedFiles.map((file) =>
         getFileExtension(file.name),
@@ -135,8 +140,7 @@ export function MijnPercelenUploadForm({
         )
         if (dbfFile) {
             try {
-                const dbfBuffer = await dbfFile.arrayBuffer()
-                const dbfData = parseDbf(dbfBuffer) as any[]
+                const dbfData = await parseShapefileGeoJsonProperties(dbfFile)
                 let unnamedCount = 0
                 const names = dbfData.map((row) => {
                     const trimmedNaam =
@@ -271,6 +275,11 @@ export function MijnPercelenUploadForm({
                                 encType="multipart/form-data"
                             >
                                 <fieldset disabled={isSubmitting}>
+                                    <input
+                                        name="intent"
+                                        type="hidden"
+                                        value="upload"
+                                    />
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 gap-4">
                                             <FormField
@@ -457,6 +466,7 @@ function RequiredFilesStatus({
 
 const fileSizeLimit = 5 * 1024 * 1024 // 5MB
 export const FormSchema = z.object({
+    intent: z.string().optional(),
     shapefile: z
         .array(z.instanceof(File))
         .refine(
