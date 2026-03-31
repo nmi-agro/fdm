@@ -3,11 +3,12 @@ import {
     type CatalogueFertilizerItem,
     hashFertilizer,
 } from "@nmi-agro/fdm-data"
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
 import { getEnabledFertilizerCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
+import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
 import type {
@@ -39,7 +40,7 @@ export async function getFertilizersFromCatalogue(
             principal_id,
             b_id_farm,
         )
-        return await getFertilizersFromCatalogues(fdm, catalogueIds)
+        return await getFertilizersFromCatalogues(fdm, principal_id, catalogueIds)
     } catch (err) {
         throw handleError(
             err,
@@ -52,19 +53,58 @@ export async function getFertilizersFromCatalogue(
 /**
  * Retrieves all fertilizers from the catalogues whose source IDs are given.
  *
- * No permission checks are performed. This can change in the future if a permission system specific to the catalogue is implemented.
+ * Only catalogue sources that are enabled for farms accessible by the given principal are returned.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
  * @param catalogueIds Catalogue source IDs to retrieve fertilizers from, such as "baat" or "srm".
  * @returns A Promise that resolves with a flat array of fertilizer catalogue entries across all given catalogues.
  * @alpha
  */
 export async function getFertilizersFromCatalogues(
     fdm: FdmType,
+    principal_id: PrincipalId,
     catalogueIds: schema.fertilizersCatalogueTypeSelect["p_source"][],
 ): Promise<FertilizerCatalogue[]> {
     try {
         if (catalogueIds.length === 0) {
+            return []
+        }
+
+        // Filter to only catalogue sources that are enabled for farms the principal can access
+        const authorizedRows = await fdm
+            .selectDistinct({
+                p_source: schema.fertilizerCatalogueEnabling.p_source,
+            })
+            .from(schema.fertilizerCatalogueEnabling)
+            .innerJoin(
+                authZSchema.role,
+                and(
+                    eq(authZSchema.role.resource, "farm"),
+                    eq(
+                        authZSchema.role.resource_id,
+                        schema.fertilizerCatalogueEnabling.b_id_farm,
+                    ),
+                    inArray(
+                        authZSchema.role.principal_id,
+                        [principal_id].flat(),
+                    ),
+                    isNull(authZSchema.role.deleted),
+                ),
+            )
+            .where(
+                inArray(
+                    schema.fertilizerCatalogueEnabling.p_source,
+                    catalogueIds,
+                ),
+            )
+        const authorizedSources = new Set(
+            authorizedRows.map((r: { p_source: string }) => r.p_source),
+        )
+        const filteredCatalogueIds = catalogueIds.filter((id) =>
+            authorizedSources.has(id),
+        )
+        if (filteredCatalogueIds.length === 0) {
             return []
         }
 
@@ -75,7 +115,7 @@ export async function getFertilizersFromCatalogues(
                 .where(
                     inArray(
                         schema.fertilizersCatalogue.p_source,
-                        catalogueIds,
+                        filteredCatalogueIds,
                     ),
                 )
                 .orderBy(

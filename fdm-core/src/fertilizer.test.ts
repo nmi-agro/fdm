@@ -438,6 +438,7 @@ describe("Fertilizer Data Model", () => {
             ]
             const allFertilizers = await getFertilizersFromCatalogues(
                 fdm,
+                principal_id,
                 allSources,
             )
             const farm1Sources = new Set(farmCatalogues[b_id_farm])
@@ -525,6 +526,7 @@ describe("Fertilizer Data Model", () => {
                         fdm,
                         schema.fertilizersCatalogue,
                     ),
+                    principal_id,
                     [b_id_farm],
                 )
                 throw failError

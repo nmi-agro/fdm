@@ -506,6 +506,7 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
         expect(fdmCore.getCultivationsFromCatalogues).toHaveBeenCalledTimes(1)
         expect(fdmCore.getFertilizersFromCatalogues).toHaveBeenCalledWith(
             mockFdm,
+            principal_id,
             expect.arrayContaining(["test-farm-id", "test-farm-id-2"]),
         )
         expect(fdmCore.getFertilizersFromCatalogues).toHaveBeenCalledTimes(1)

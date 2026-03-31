@@ -240,14 +240,19 @@ export async function loader({
                                             (result) => result.errorMessage,
                                         ) as string[],
                                 )
-                            const farmPrincipals = await listPrincipalsForFarm(
-                                fdm,
-                                principal_id,
-                                farm.b_id_farm,
-                            )
-                            const owner = farmPrincipals.find(
-                                (p) => p.role === "owner" && p.type === "user",
-                            )
+                            let owner: Awaited<ReturnType<typeof listPrincipalsForFarm>>[number] | undefined
+                            try {
+                                const farmPrincipals = await listPrincipalsForFarm(
+                                    fdm,
+                                    principal_id,
+                                    farm.b_id_farm,
+                                )
+                                owner = farmPrincipals.find(
+                                    (p) => p.role === "owner" && p.type === "user",
+                                )
+                            } catch {
+                                owner = undefined
+                            }
 
                             if (nitrogenBalanceResult.hasErrors) {
                                 reportError(
@@ -370,8 +375,29 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
         ({ nitrogenBalanceResult }) => nitrogenBalanceResult.hasErrors,
     )
 
+    const orgAverage = Number.isFinite(resolvedNitrogenBalanceResult.balance)
+        ? (resolvedNitrogenBalanceResult.balance as number)
+        : undefined
+
     const createFarmRow = (farmResult: (typeof farmResults)[number]) => {
         const balanceResult = farmResult.nitrogenBalanceResult
+        const farmBalance = Number.isFinite(balanceResult.balance)
+            ? (balanceResult.balance as number)
+            : undefined
+        const delta =
+            farmBalance !== undefined && orgAverage !== undefined
+                ? farmBalance - orgAverage
+                : undefined
+        const deltaFormatted =
+            delta !== undefined
+                ? `${delta >= 0 ? "+" : ""}${(Math.round(delta * 10) / 10).toFixed(1)}`
+                : undefined
+        const deltaClass =
+            delta === undefined
+                ? "text-orange-500"
+                : delta < 0
+                  ? "text-green-600"
+                  : "text-red-600"
         return (
             <div
                 className="flex items-center grow"
@@ -399,9 +425,23 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                         {Math.round(farmResult.totalArea * 10) / 10} ha
                     </p>
                 </div>
-                <div className="ml-auto font-medium">
+                <div className="ml-auto font-medium text-right">
                     {!balanceResult.hasErrors ? (
-                        `${balanceResult.balance} / ${balanceResult.target}`
+                        <>
+                            <span>{`${balanceResult.balance} / ${balanceResult.target}`}</span>
+                            {deltaFormatted !== undefined && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className={`block text-xs cursor-default ${deltaClass}`}>
+                                            {deltaFormatted}
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {`Verschil t.o.v. het organisatiegemiddelde (${(Math.round((orgAverage ?? 0) * 10) / 10).toFixed(1)} kg N / ha)`}
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </>
                     ) : (
                         <NavLink
                             to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/nitrogen`}

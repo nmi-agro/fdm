@@ -665,6 +665,7 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
         expect(mockedgetCultivationsFromCatalogues).toHaveBeenCalledTimes(1)
         expect(mockedgetFertilizersFromCatalogues).toHaveBeenCalledWith(
             mockFdm,
+            principal_id,
             expect.arrayContaining(["test-farm-id", "test-farm-id-2"]),
         )
         expect(mockedgetFertilizersFromCatalogues).toHaveBeenCalledTimes(1)

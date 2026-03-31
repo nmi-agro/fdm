@@ -163,18 +163,20 @@ export async function collectInputForOrganicMatterBalanceForFarms(
 ): Promise<(OrganicMatterBalanceInput & { b_id_farm: string })[]> {
     try {
         return await fdm.transaction(async (tx: FdmType) => {
+            const uniqueFarmIds = [...new Set(farmIds)]
+
             // Step 1: Get enabled catalogue sources for all farms in a single batch query
             const [farmCultivationCatalogues, farmFertilizerCatalogues] =
                 await Promise.all([
                     getEnabledCultivationCataloguesForFarms(
                         tx,
                         principal_id,
-                        farmIds,
+                        uniqueFarmIds,
                     ),
                     getEnabledFertilizerCataloguesForFarms(
                         tx,
                         principal_id,
-                        farmIds,
+                        uniqueFarmIds,
                     ),
                 ])
 
@@ -191,71 +193,77 @@ export async function collectInputForOrganicMatterBalanceForFarms(
             ]
             const [allCultivations, allFertilizers] = await Promise.all([
                 getCultivationsFromCatalogues(tx, uniqueCultivationSources),
-                getFertilizersFromCatalogues(tx, uniqueFertilizerSources),
+                getFertilizersFromCatalogues(tx, principal_id, uniqueFertilizerSources),
             ])
 
             // Step 3: Process each farm using the pre-fetched catalogue data
-            return await Promise.all(
-                farmIds.map(async (b_id_farm) => {
-                    try {
-                        const onlyFieldInput =
-                            await collectInputForOrganicMatterBalanceForFarm(
-                                tx,
-                                principal_id,
-                                b_id_farm,
-                                timeframe,
-                            )
-
-                        // Filter catalogue items to only those referenced by this farm's fields
-                        const farmCultivationSources = new Set(
-                            farmCultivationCatalogues[b_id_farm] ?? [],
-                        )
-                        const cultivationIds = new Set(
-                            onlyFieldInput.flatMap((input) =>
-                                input.cultivations.map(
-                                    (cultivation) => cultivation.b_lu_catalogue,
-                                ),
-                            ),
-                        )
-                        const cultivationDetailsForThisFarm =
-                            allCultivations.filter(
-                                (c) =>
-                                    farmCultivationSources.has(c.b_lu_source) &&
-                                    cultivationIds.has(c.b_lu_catalogue),
-                            )
-
-                        const farmFertilizerSources = new Set(
-                            farmFertilizerCatalogues[b_id_farm] ?? [],
-                        )
-                        const fertilizerIds = new Set(
-                            onlyFieldInput.flatMap((input) =>
-                                input.fertilizerApplications.map(
-                                    (app) => app.p_id_catalogue,
-                                ),
-                            ),
-                        )
-                        const fertilizerDetailsForThisFarm =
-                            allFertilizers.filter(
-                                (f) =>
-                                    farmFertilizerSources.has(f.p_source) &&
-                                    fertilizerIds.has(f.p_id_catalogue),
-                            )
-
-                        return {
-                            b_id_farm: b_id_farm,
-                            fields: onlyFieldInput,
-                            fertilizerDetails: fertilizerDetailsForThisFarm,
-                            cultivationDetails: cultivationDetailsForThisFarm,
-                            timeFrame: timeframe,
-                        }
-                    } catch (error) {
-                        throw handleOrganicMatterBalanceInputCollectionError(
-                            error,
+            const farmSettled = await Promise.allSettled(
+                uniqueFarmIds.map(async (b_id_farm) => {
+                    const onlyFieldInput =
+                        await collectInputForOrganicMatterBalanceForFarm(
+                            tx,
+                            principal_id,
                             b_id_farm,
+                            timeframe,
                         )
+
+                    // Filter catalogue items to only those referenced by this farm's fields
+                    const farmCultivationSources = new Set(
+                        farmCultivationCatalogues[b_id_farm] ?? [],
+                    )
+                    const cultivationIds = new Set(
+                        onlyFieldInput.flatMap((input) =>
+                            input.cultivations.map(
+                                (cultivation) => cultivation.b_lu_catalogue,
+                            ),
+                        ),
+                    )
+                    const cultivationDetailsForThisFarm =
+                        allCultivations.filter(
+                            (c) =>
+                                farmCultivationSources.has(c.b_lu_source) &&
+                                cultivationIds.has(c.b_lu_catalogue),
+                        )
+
+                    const farmFertilizerSources = new Set(
+                        farmFertilizerCatalogues[b_id_farm] ?? [],
+                    )
+                    const fertilizerIds = new Set(
+                        onlyFieldInput.flatMap((input) =>
+                            input.fertilizerApplications.map(
+                                (app) => app.p_id_catalogue,
+                            ),
+                        ),
+                    )
+                    const fertilizerDetailsForThisFarm =
+                        allFertilizers.filter(
+                            (f) =>
+                                farmFertilizerSources.has(f.p_source) &&
+                                fertilizerIds.has(f.p_id_catalogue),
+                        )
+
+                    return {
+                        b_id_farm: b_id_farm,
+                        fields: onlyFieldInput,
+                        fertilizerDetails: fertilizerDetailsForThisFarm,
+                        cultivationDetails: cultivationDetailsForThisFarm,
+                        timeFrame: timeframe,
                     }
                 }),
             )
+            return farmSettled
+                .filter((result) => {
+                    if (result.status === "rejected") {
+                        console.error(
+                            handleOrganicMatterBalanceInputCollectionError(
+                                result.reason,
+                            ).message,
+                        )
+                        return false
+                    }
+                    return true
+                })
+                .map((result) => (result as PromiseFulfilledResult<OrganicMatterBalanceInput & { b_id_farm: string }>).value)
         })
     } catch (error) {
         throw handleOrganicMatterBalanceInputCollectionError(error)
