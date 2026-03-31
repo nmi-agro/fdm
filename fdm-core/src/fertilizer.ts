@@ -6,7 +6,7 @@ import {
 import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
-import { splitBy } from "./bulk"
+import { getEnabledFertilizerCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
@@ -34,188 +34,62 @@ export async function getFertilizersFromCatalogue(
     b_id_farm: schema.farmsTypeSelect["b_id_farm"],
 ): Promise<FertilizerCatalogue[]> {
     try {
-        await checkPermission(
+        const catalogueIds = await getEnabledFertilizerCatalogues(
             fdm,
-            "farm",
-            "read",
-            b_id_farm,
             principal_id,
-            "getFertilizersFromCatalogue",
+            b_id_farm,
         )
-
-        // Get enabled catalogues for the farm
-        const enabledCatalogues: Pick<
-            schema.fertilizerCatalogueEnablingTypeSelect,
-            "p_source"
-        >[] = await fdm
-            .select({
-                p_source: schema.fertilizerCatalogueEnabling.p_source,
-            })
-            .from(schema.fertilizerCatalogueEnabling)
-            .where(eq(schema.fertilizerCatalogueEnabling.b_id_farm, b_id_farm))
-
-        const catalogues = await getFertilizersFromCatalogues(
-            fdm,
-            enabledCatalogues.map(({ p_source }) => p_source),
-        )
-
-        return enabledCatalogues.flatMap(
-            ({ p_source }) => catalogues[p_source] ?? [],
-        )
+        return await getFertilizersFromCatalogues(fdm, catalogueIds)
     } catch (err) {
         throw handleError(
-            err instanceof Error &&
-                err.message === "Exception for getFertilizersFromCatalogues"
-                ? err.cause
-                : err,
+            err,
             "Exception for getFertilizersFromCatalogue",
-            {
-                principal_id,
-                b_id_farm,
-            },
+            { principal_id, b_id_farm },
         )
     }
 }
 
 /**
- * Retrieves all fertilizers from the enabled catalogues for multiple farms.
- *
- * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
- * @param principal_id The ID of the principal making the request.
- * @param farmIds The IDs of the farms.
- * @returns A Promise that resolves with a map from b_id_farm to an array of catalogue fertilizers.
- * @alpha
- */
-export async function getFertilizersFromCatalogueForFarms(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    farmIds: string[],
-): Promise<
-    Record<
-        schema.fertilizerCatalogueEnablingTypeSelect["b_id_farm"],
-        FertilizerCatalogue[]
-    >
-> {
-    try {
-        // Check read permission for all of the farms
-        await Promise.all(
-            farmIds.map((b_id_farm) =>
-                checkPermission(
-                    fdm,
-                    "farm",
-                    "read",
-                    b_id_farm,
-                    principal_id,
-                    "getFertilizersFromCatalogue",
-                ),
-            ),
-        )
-
-        // Get enabled catalogues for the farms
-        const allEnabledCatalogues: schema.fertilizerCatalogueEnablingTypeSelect[] =
-            await fdm
-                .select({
-                    b_id_farm: schema.fertilizerCatalogueEnabling.b_id_farm,
-                    p_source: schema.fertilizerCatalogueEnabling.p_source,
-                })
-                .from(schema.fertilizerCatalogueEnabling)
-                .where(
-                    inArray(
-                        schema.fertilizerCatalogueEnabling.b_id_farm,
-                        farmIds,
-                    ),
-                )
-                .orderBy(
-                    asc(schema.fertilizerCatalogueEnabling.b_id_farm),
-                    asc(schema.fertilizerCatalogueEnabling.p_source),
-                )
-
-        const enabledCatalogues = [
-            ...new Set(allEnabledCatalogues.map(({ p_source }) => p_source)),
-        ]
-
-        const enabledCataloguesByFarm = splitBy(
-            allEnabledCatalogues,
-            ({ b_id_farm }) => b_id_farm,
-        )
-
-        const catalogues = await getFertilizersFromCatalogues(
-            fdm,
-            enabledCatalogues,
-        )
-
-        // Join each farm's enabled catalogues together
-        return Object.fromEntries(
-            farmIds.map((b_id_farm) => [
-                b_id_farm,
-                (enabledCataloguesByFarm[b_id_farm] ?? []).flatMap(
-                    (cat) => catalogues[cat.p_source] ?? [],
-                ),
-            ]),
-        )
-    } catch (err) {
-        throw handleError(
-            err instanceof Error &&
-                err.message === "Exception for getFertilizersFromCatalogues"
-                ? err.cause
-                : err,
-            "Exception for getFertilizersFromCatalogueForFarms",
-            {
-                principal_id,
-                farmIds,
-            },
-        )
-    }
-}
-
-/**
- * Retrieves all fertilizers from the list catalogues whose IDs are given.
+ * Retrieves all fertilizers from the catalogues whose source IDs are given.
  *
  * No permission checks are performed. This can change in the future if a permission system specific to the catalogue is implemented.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
- * @param catalogueIds Catalogues IDs to retrieve. These can be, for example, catalogue IDs found in fdm-data such as "baat", or farm IDs.
- * @internal
+ * @param catalogueIds Catalogue source IDs to retrieve fertilizers from, such as "baat" or "srm".
+ * @returns A Promise that resolves with a flat array of fertilizer catalogue entries across all given catalogues.
+ * @alpha
  */
-async function getFertilizersFromCatalogues(
+export async function getFertilizersFromCatalogues(
     fdm: FdmType,
     catalogueIds: schema.fertilizersCatalogueTypeSelect["p_source"][],
-): Promise<Record<FertilizerCatalogue["p_source"], FertilizerCatalogue[]>> {
+): Promise<FertilizerCatalogue[]> {
     try {
-        // If no catalogues are enabled, return empty array
         if (catalogueIds.length === 0) {
-            return {}
+            return []
         }
 
-        // Get fertilizers from enabled catalogues
         const fertilizersCatalogue: schema.fertilizersCatalogueTypeSelect[] =
             await fdm
                 .select()
                 .from(schema.fertilizersCatalogue)
                 .where(
-                    inArray(schema.fertilizersCatalogue.p_source, catalogueIds),
+                    inArray(
+                        schema.fertilizersCatalogue.p_source,
+                        catalogueIds,
+                    ),
                 )
                 .orderBy(
                     asc(schema.fertilizersCatalogue.p_source),
                     asc(schema.fertilizersCatalogue.p_name_nl),
                 )
 
-        const fertilizersCatalogueExtended = fertilizersCatalogue.map(
-            (result) => {
-                return {
-                    ...result,
-                    p_app_method_options: result.p_app_method_options as
-                        | ApplicationMethods[]
-                        | null,
-                    p_type: deriveFertilizerType(result),
-                }
-            },
-        )
-
-        return splitBy(
-            fertilizersCatalogueExtended,
-            (fertilizer) => fertilizer.p_source,
-        )
+        return fertilizersCatalogue.map((result) => ({
+            ...result,
+            p_app_method_options: result.p_app_method_options as
+                | ApplicationMethods[]
+                | null,
+            p_type: deriveFertilizerType(result),
+        }))
     } catch (err) {
         throw handleError(err, "Exception for getFertilizersFromCatalogues", {
             catalogueIds,

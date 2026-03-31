@@ -4,7 +4,7 @@ import {
     hashCultivation,
     hashFertilizer,
 } from "@nmi-agro/fdm-data"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
 import * as schema from "./db/schema"
@@ -95,6 +95,116 @@ export async function getEnabledCultivationCatalogues(
         )
     }
 }
+
+/**
+ * Gets all enabled fertilizer catalogues for multiple farms.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param farmIds The IDs of the farms.
+ * @returns A Promise that resolves to a record mapping each farm ID to an array of its enabled fertilizer catalogue sources.
+ * @throws If retrieving the catalogues fails.
+ */
+export async function getEnabledFertilizerCataloguesForFarms(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    farmIds: schema.farmsTypeSelect["b_id_farm"][],
+): Promise<Record<string, string[]>> {
+    try {
+        await Promise.all(
+            farmIds.map((b_id_farm) =>
+                checkPermission(
+                    fdm,
+                    "farm",
+                    "read",
+                    b_id_farm,
+                    principal_id,
+                    "getEnabledFertilizerCataloguesForFarms",
+                ),
+            ),
+        )
+        const rows = await fdm
+            .select({
+                b_id_farm: schema.fertilizerCatalogueEnabling.b_id_farm,
+                p_source: schema.fertilizerCatalogueEnabling.p_source,
+            })
+            .from(schema.fertilizerCatalogueEnabling)
+            .where(
+                inArray(schema.fertilizerCatalogueEnabling.b_id_farm, farmIds),
+            )
+
+        const result: Record<string, string[]> = Object.fromEntries(
+            farmIds.map((id) => [id, [] as string[]]),
+        )
+        for (const row of rows) {
+            result[row.b_id_farm].push(row.p_source)
+        }
+        return result
+    } catch (err) {
+        throw handleError(
+            err,
+            "Exception for getEnabledFertilizerCataloguesForFarms",
+            { principal_id, farmIds },
+        )
+    }
+}
+
+/**
+ * Gets all enabled cultivation catalogues for multiple farms.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param farmIds The IDs of the farms.
+ * @returns A Promise that resolves to a record mapping each farm ID to an array of its enabled cultivation catalogue sources.
+ * @throws If retrieving the catalogues fails.
+ */
+export async function getEnabledCultivationCataloguesForFarms(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    farmIds: schema.farmsTypeSelect["b_id_farm"][],
+): Promise<Record<string, string[]>> {
+    try {
+        await Promise.all(
+            farmIds.map((b_id_farm) =>
+                checkPermission(
+                    fdm,
+                    "farm",
+                    "read",
+                    b_id_farm,
+                    principal_id,
+                    "getEnabledCultivationCataloguesForFarms",
+                ),
+            ),
+        )
+        const rows = await fdm
+            .select({
+                b_id_farm: schema.cultivationCatalogueSelecting.b_id_farm,
+                b_lu_source: schema.cultivationCatalogueSelecting.b_lu_source,
+            })
+            .from(schema.cultivationCatalogueSelecting)
+            .where(
+                inArray(
+                    schema.cultivationCatalogueSelecting.b_id_farm,
+                    farmIds,
+                ),
+            )
+
+        const result: Record<string, string[]> = Object.fromEntries(
+            farmIds.map((id) => [id, [] as string[]]),
+        )
+        for (const row of rows) {
+            result[row.b_id_farm].push(row.b_lu_source)
+        }
+        return result
+    } catch (err) {
+        throw handleError(
+            err,
+            "Exception for getEnabledCultivationCataloguesForFarms",
+            { principal_id, farmIds },
+        )
+    }
+}
+
 
 /**
  * Enables a fertilizer catalogue for a farm.

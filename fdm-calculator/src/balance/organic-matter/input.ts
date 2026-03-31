@@ -6,9 +6,13 @@ import type {
 } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
-    getCultivationsFromCatalogueForFarms,
+    getCultivationsFromCatalogues,
+    getCultivationsFromCatalogue,
+    getEnabledCultivationCataloguesForFarms,
+    getEnabledFertilizerCataloguesForFarms,
     getFertilizerApplications,
-    getFertilizersFromCatalogueForFarms,
+    getFertilizersFromCatalogues,
+    getFertilizersFromCatalogue,
     getField,
     getFields,
     getSoilAnalyses,
@@ -133,33 +137,64 @@ async function collectInputForOrganicMatterBalanceForFarm(
  *
  * @alpha
  */
+/**
+ * Collects all necessary input data from an FDM instance to calculate the organic matter balance for multiple farms.
+ *
+ * This function acts as a data-gathering layer, interacting with the FDM core to fetch
+ * all records required for the organic matter balance calculation. It retrieves data for the given farms
+ * and timeframe, including field details, cultivation history, soil analyses, and fertilizer applications.
+ * It fetches the complete fertilizer and cultivation catalogues for all farms in batch to minimise
+ * database round-trips.
+ *
+ * @param fdm - The FDM instance, used for all database interactions.
+ * @param principal_id - The ID of the user or service principal requesting the data, for authorization purposes.
+ * @param farmIds - The unique identifiers for the farms.
+ * @param timeframe - The time period (start and end dates) for which to collect the data.
+ * @returns A promise that resolves with an array of `OrganicMatterBalanceInput` objects with b_id_farm containing all the structured data.
+ * @throws {Error} Throws an error if any of the database queries fail or if a specified field is not found.
+ *
+ * @alpha
+ */
 export async function collectInputForOrganicMatterBalanceForFarms(
     fdm: FdmType,
     principal_id: PrincipalId,
     farmIds: fdmSchema.farmsTypeSelect["b_id_farm"][],
     timeframe: Timeframe,
-    b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<(OrganicMatterBalanceInput & { b_id_farm: string })[]> {
     try {
-        if (b_id && farmIds.length !== 1) {
-            throw new Error(
-                "b_id can only be used when collecting input for a single farm",
-            )
-        }
-        // All data fetching is wrapped in a single database transaction to ensure consistency.
         return await fdm.transaction(async (tx: FdmType) => {
-            const cultivationDetails =
-                await getCultivationsFromCatalogueForFarms(
-                    tx,
-                    principal_id,
-                    farmIds,
-                )
-            const fertilizerDetails = await getFertilizersFromCatalogueForFarms(
-                tx,
-                principal_id,
-                farmIds,
-            )
+            // Step 1: Get enabled catalogue sources for all farms in a single batch query
+            const [farmCultivationCatalogues, farmFertilizerCatalogues] =
+                await Promise.all([
+                    getEnabledCultivationCataloguesForFarms(
+                        tx,
+                        principal_id,
+                        farmIds,
+                    ),
+                    getEnabledFertilizerCataloguesForFarms(
+                        tx,
+                        principal_id,
+                        farmIds,
+                    ),
+                ])
 
+            // Step 2: Deduplicate catalogue sources across farms and fetch items once
+            const uniqueCultivationSources = [
+                ...new Set(
+                    Object.values(farmCultivationCatalogues).flat(),
+                ),
+            ]
+            const uniqueFertilizerSources = [
+                ...new Set(
+                    Object.values(farmFertilizerCatalogues).flat(),
+                ),
+            ]
+            const [allCultivations, allFertilizers] = await Promise.all([
+                getCultivationsFromCatalogues(tx, uniqueCultivationSources),
+                getFertilizersFromCatalogues(tx, uniqueFertilizerSources),
+            ])
+
+            // Step 3: Process each farm using the pre-fetched catalogue data
             return await Promise.all(
                 farmIds.map(async (b_id_farm) => {
                     try {
@@ -169,12 +204,12 @@ export async function collectInputForOrganicMatterBalanceForFarms(
                                 principal_id,
                                 b_id_farm,
                                 timeframe,
-                                b_id,
                             )
 
-                        // 3. Fetch farm-level catalogue data.
-                        // These details are fetched once for the entire farm and reused for each field.
-                        // Required cultivation and fertilizer details for this farm should be extracted to not break the cache
+                        // Filter catalogue items to only those referenced by this farm's fields
+                        const farmCultivationSources = new Set(
+                            farmCultivationCatalogues[b_id_farm] ?? [],
+                        )
                         const cultivationIds = new Set(
                             onlyFieldInput.flatMap((input) =>
                                 input.cultivations.map(
@@ -183,13 +218,15 @@ export async function collectInputForOrganicMatterBalanceForFarms(
                             ),
                         )
                         const cultivationDetailsForThisFarm =
-                            cultivationDetails[b_id_farm]?.filter(
-                                (cultivation) =>
-                                    cultivationIds.has(
-                                        cultivation.b_lu_catalogue,
-                                    ),
-                            ) ?? []
+                            allCultivations.filter(
+                                (c) =>
+                                    farmCultivationSources.has(c.b_lu_source) &&
+                                    cultivationIds.has(c.b_lu_catalogue),
+                            )
 
+                        const farmFertilizerSources = new Set(
+                            farmFertilizerCatalogues[b_id_farm] ?? [],
+                        )
                         const fertilizerIds = new Set(
                             onlyFieldInput.flatMap((input) =>
                                 input.fertilizerApplications.map(
@@ -197,13 +234,13 @@ export async function collectInputForOrganicMatterBalanceForFarms(
                                 ),
                             ),
                         )
-
                         const fertilizerDetailsForThisFarm =
-                            fertilizerDetails[b_id_farm]?.filter((fert) =>
-                                fertilizerIds.has(fert.p_id_catalogue),
-                            ) ?? []
+                            allFertilizers.filter(
+                                (f) =>
+                                    farmFertilizerSources.has(f.p_source) &&
+                                    fertilizerIds.has(f.p_id_catalogue),
+                            )
 
-                        // 4. Assemble the final input object.
                         return {
                             b_id_farm: b_id_farm,
                             fields: onlyFieldInput,
@@ -254,15 +291,36 @@ export async function collectInputForOrganicMatterBalance(
     timeframe: Timeframe,
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ) {
-    return (
-        await collectInputForOrganicMatterBalanceForFarms(
-            fdm,
-            principal_id,
-            [b_id_farm],
-            timeframe,
-            b_id,
-        )
-    )[0]
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            const cultivationDetails = await getCultivationsFromCatalogue(
+                tx,
+                principal_id,
+                b_id_farm,
+            )
+            const fertilizerDetails = await getFertilizersFromCatalogue(
+                tx,
+                principal_id,
+                b_id_farm,
+            )
+            const fields = await collectInputForOrganicMatterBalanceForFarm(
+                tx,
+                principal_id,
+                b_id_farm,
+                timeframe,
+                b_id,
+            )
+            return {
+                b_id_farm,
+                fields,
+                fertilizerDetails,
+                cultivationDetails,
+                timeFrame: timeframe,
+            }
+        })
+    } catch (error) {
+        throw handleOrganicMatterBalanceInputCollectionError(error)
+    }
 }
 
 export const handleOrganicMatterBalanceInputCollectionError =

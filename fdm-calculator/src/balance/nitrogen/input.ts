@@ -6,9 +6,13 @@ import type {
 } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
-    getCultivationsFromCatalogueForFarms,
+    getCultivationsFromCatalogues,
+    getCultivationsFromCatalogue,
+    getEnabledCultivationCataloguesForFarms,
+    getEnabledFertilizerCataloguesForFarms,
     getFertilizerApplications,
-    getFertilizersFromCatalogueForFarms,
+    getFertilizersFromCatalogues,
+    getFertilizersFromCatalogue,
     getField,
     getFields,
     getHarvests,
@@ -146,15 +150,13 @@ async function collectInputForNitrogenBalanceForFarm(
  *
  * This function orchestrates the retrieval of data related to fields, cultivations,
  * harvests, soil analyses, fertilizer applications, fertilizer details, and cultivation details
- * within a specified farm and timeframe. It fetches data from the FDM database and structures
- * it into a `NitrogenBalanceInput` object.
+ * across multiple farms and a timeframe. It fetches data from the FDM database and structures
+ * it into an array of `NitrogenBalanceInput` objects.
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
- * @param b_id_farm - The ID of the farm for which to collect the nitrogen balance input.
+ * @param farmIds - The IDs of the farms for which to collect the nitrogen balance input.
  * @param timeframe - The timeframe for which to collect the data.
- * @param b_id - Optional. If provided, the data collection will be limited to this specific field ID. Otherwise, data for all fields in the farm will be collected.
- * **Do not** provide this if collecting input for multiple farms, it will yield an unusable input.
  * @returns A promise that resolves with an array of `NitrogenBalanceInput` objects with b_id_farm containing all the necessary data.
  * @throws {Error} - Throws an error if data collection or processing fails.
  *
@@ -165,28 +167,41 @@ export async function collectInputForNitrogenBalanceForFarms(
     principal_id: PrincipalId,
     farmIds: fdmSchema.farmsTypeSelect["b_id_farm"][],
     timeframe: Timeframe,
-    b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<(NitrogenBalanceInput & { b_id_farm: string })[]> {
     try {
-        if (b_id && farmIds.length !== 1) {
-            throw new Error(
-                "b_id can only be used when collecting input for a single farm",
-            )
-        }
         return await fdm.transaction(async (tx: FdmType) => {
-            // Collect the details of the cultivations
-            const cultivationDetails =
-                await getCultivationsFromCatalogueForFarms(
-                    tx,
-                    principal_id,
-                    farmIds,
-                )
-            const fertilizerDetails = await getFertilizersFromCatalogueForFarms(
-                tx,
-                principal_id,
-                farmIds,
-            )
+            // Step 1: Get enabled catalogue sources for all farms in a single batch query
+            const [farmCultivationCatalogues, farmFertilizerCatalogues] =
+                await Promise.all([
+                    getEnabledCultivationCataloguesForFarms(
+                        tx,
+                        principal_id,
+                        farmIds,
+                    ),
+                    getEnabledFertilizerCataloguesForFarms(
+                        tx,
+                        principal_id,
+                        farmIds,
+                    ),
+                ])
 
+            // Step 2: Deduplicate catalogue sources across farms and fetch items once
+            const uniqueCultivationSources = [
+                ...new Set(
+                    Object.values(farmCultivationCatalogues).flat(),
+                ),
+            ]
+            const uniqueFertilizerSources = [
+                ...new Set(
+                    Object.values(farmFertilizerCatalogues).flat(),
+                ),
+            ]
+            const [allCultivations, allFertilizers] = await Promise.all([
+                getCultivationsFromCatalogues(tx, uniqueCultivationSources),
+                getFertilizersFromCatalogues(tx, uniqueFertilizerSources),
+            ])
+
+            // Step 3: Process each farm using the pre-fetched catalogue data
             return await Promise.all(
                 farmIds.map(async (b_id_farm) => {
                     try {
@@ -196,10 +211,12 @@ export async function collectInputForNitrogenBalanceForFarms(
                                 principal_id,
                                 b_id_farm,
                                 timeframe,
-                                b_id,
                             )
 
-                        // Required cultivation and fertilizer details for this farm should be extracted to not break the cache
+                        // Filter catalogue items to only those referenced by this farm's fields
+                        const farmCultivationSources = new Set(
+                            farmCultivationCatalogues[b_id_farm] ?? [],
+                        )
                         const cultivationIds = new Set(
                             onlyFieldInput.flatMap((input) =>
                                 input.cultivations.map(
@@ -208,13 +225,15 @@ export async function collectInputForNitrogenBalanceForFarms(
                             ),
                         )
                         const cultivationDetailsForThisFarm =
-                            cultivationDetails[b_id_farm]?.filter(
-                                (cultivation) =>
-                                    cultivationIds.has(
-                                        cultivation.b_lu_catalogue,
-                                    ),
-                            ) ?? []
+                            allCultivations.filter(
+                                (c) =>
+                                    farmCultivationSources.has(c.b_lu_source) &&
+                                    cultivationIds.has(c.b_lu_catalogue),
+                            )
 
+                        const farmFertilizerSources = new Set(
+                            farmFertilizerCatalogues[b_id_farm] ?? [],
+                        )
                         const fertilizerIds = new Set(
                             onlyFieldInput.flatMap((input) =>
                                 input.fertilizerApplications.map(
@@ -222,11 +241,12 @@ export async function collectInputForNitrogenBalanceForFarms(
                                 ),
                             ),
                         )
-
                         const fertilizerDetailsForThisFarm =
-                            fertilizerDetails[b_id_farm]?.filter((fert) =>
-                                fertilizerIds.has(fert.p_id_catalogue),
-                            ) ?? []
+                            allFertilizers.filter(
+                                (f) =>
+                                    farmFertilizerSources.has(f.p_source) &&
+                                    fertilizerIds.has(f.p_id_catalogue),
+                            )
 
                         return {
                             b_id_farm: b_id_farm,
@@ -274,15 +294,36 @@ export async function collectInputForNitrogenBalance(
     timeframe: Timeframe,
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<NitrogenBalanceInput> {
-    return (
-        await collectInputForNitrogenBalanceForFarms(
-            fdm,
-            principal_id,
-            [b_id_farm],
-            timeframe,
-            b_id,
-        )
-    )[0]
+    try {
+        return await fdm.transaction(async (tx: FdmType) => {
+            const cultivationDetails = await getCultivationsFromCatalogue(
+                tx,
+                principal_id,
+                b_id_farm,
+            )
+            const fertilizerDetails = await getFertilizersFromCatalogue(
+                tx,
+                principal_id,
+                b_id_farm,
+            )
+            const fields = await collectInputForNitrogenBalanceForFarm(
+                tx,
+                principal_id,
+                b_id_farm,
+                timeframe,
+                b_id,
+            )
+            return {
+                b_id_farm,
+                fields,
+                fertilizerDetails,
+                cultivationDetails,
+                timeFrame: timeframe,
+            }
+        })
+    } catch (error) {
+        throw handleNitrogenBalanceInputCollectionError(error)
+    }
 }
 
 export const handleNitrogenBalanceInputCollectionError =

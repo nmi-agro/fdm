@@ -10,6 +10,7 @@ import {
 import {
     disableFertilizerCatalogue,
     enableFertilizerCatalogue,
+    getEnabledFertilizerCataloguesForFarms,
 } from "./catalogues"
 import * as schema from "./db/schema"
 import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
@@ -25,8 +26,8 @@ import {
     getFertilizerApplications,
     getFertilizerParametersDescription,
     getFertilizers,
+    getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
-    getFertilizersFromCatalogueForFarms,
     removeFertilizer,
     removeFertilizerApplication,
     updateFertilizerApplication,
@@ -421,18 +422,41 @@ describe("Fertilizer Data Model", () => {
                 makeFertilizer("Farm 2 Example Fertilizer 2"),
             )
             await addTestFertilizer(b_id_farm_2, farm_2_fert_2)
-            const map = await getFertilizersFromCatalogueForFarms(
+            const farmCatalogues = await getEnabledFertilizerCataloguesForFarms(
                 fdm,
                 principal_id,
                 [b_id_farm, b_id_farm_2],
             )
-            expect(map[b_id_farm]).toBeDefined()
-            expect(map[b_id_farm].map((fert) => fert.p_name_nl)).toEqual([
+            expect(farmCatalogues[b_id_farm]).toBeDefined()
+            expect(farmCatalogues[b_id_farm_2]).toBeDefined()
+
+            const allSources = [
+                ...new Set([
+                    ...farmCatalogues[b_id_farm],
+                    ...farmCatalogues[b_id_farm_2],
+                ]),
+            ]
+            const allFertilizers = await getFertilizersFromCatalogues(
+                fdm,
+                allSources,
+            )
+            const farm1Sources = new Set(farmCatalogues[b_id_farm])
+            const farm1Fertilizers = allFertilizers.filter((f) =>
+                farm1Sources.has(f.p_source),
+            )
+            expect(
+                farm1Fertilizers.map((fert) => fert.p_name_nl),
+            ).toEqual([
                 "Farm 1 Example Fertilizer 1",
                 "Farm 1 Example Fertilizer 2",
             ])
-            expect(map[b_id_farm_2]).toBeDefined()
-            expect(map[b_id_farm_2].map((fert) => fert.p_name_nl)).toEqual([
+            const farm2Sources = new Set(farmCatalogues[b_id_farm_2])
+            const farm2Fertilizers = allFertilizers.filter((f) =>
+                farm2Sources.has(f.p_source),
+            )
+            expect(
+                farm2Fertilizers.map((fert) => fert.p_name_nl),
+            ).toEqual([
                 "Farm 2 Example Fertilizer 1",
                 "Farm 2 Example Fertilizer 2",
             ])
@@ -456,13 +480,6 @@ describe("Fertilizer Data Model", () => {
             expect(
                 await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),
             ).toEqual([])
-            expect(
-                await getFertilizersFromCatalogueForFarms(fdm, principal_id, [
-                    b_id_farm,
-                ]),
-            ).toEqual({
-                [b_id_farm]: [],
-            })
         })
 
         it("should handle no enabled catalogues", async () => {
@@ -477,16 +494,9 @@ describe("Fertilizer Data Model", () => {
             expect(
                 await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),
             ).toEqual([])
-            expect(
-                await getFertilizersFromCatalogueForFarms(fdm, principal_id, [
-                    b_id_farm,
-                ]),
-            ).toEqual({
-                [b_id_farm]: [],
-            })
         })
 
-        it("(getFertilizersFromCatalogue) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
+        it("(getFertilizersFromCatalogue) should wrap errors with the correct message", async () => {
             const failError = new Error("Should have thrown.")
             try {
                 await getFertilizersFromCatalogue(
@@ -504,24 +514,17 @@ describe("Fertilizer Data Model", () => {
                 expect((e as Error).message).toBe(
                     "Exception for getFertilizersFromCatalogue",
                 )
-                const errorCause = (e as Error).cause
-                if (errorCause instanceof Error) {
-                    expect(errorCause.message).not.toBe(
-                        "Exception for getFertilizersFromCatalogues",
-                    )
-                }
             }
         })
 
-        it("(getFertilizersFromCatalogueForFarms) should rename the error if getFertilizersFromCatalogues throws an error", async () => {
+        it("(getFertilizersFromCatalogues) should wrap errors with the correct message", async () => {
             const failError = new Error("Should have thrown.")
             try {
-                await getFertilizersFromCatalogueForFarms(
+                await getFertilizersFromCatalogues(
                     mockFdmThatThrowsOnSelectFrom(
                         fdm,
                         schema.fertilizersCatalogue,
                     ),
-                    principal_id,
                     [b_id_farm],
                 )
                 throw failError
@@ -529,14 +532,8 @@ describe("Fertilizer Data Model", () => {
                 expect(err).not.toBe(failError)
                 expect(err).toBeInstanceOf(Error)
                 expect((err as Error).message).toBe(
-                    "Exception for getFertilizersFromCatalogueForFarms",
+                    "Exception for getFertilizersFromCatalogues",
                 )
-                const errorCause = (err as Error).cause
-                if (errorCause instanceof Error) {
-                    expect(errorCause.message).not.toBe(
-                        "Exception for getFertilizersFromCatalogues",
-                    )
-                }
             }
         })
 

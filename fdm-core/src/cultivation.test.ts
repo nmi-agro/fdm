@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, inject, it } from "vitest"
 import {
     enableCultivationCatalogue,
     enableFertilizerCatalogue,
+    getEnabledCultivationCataloguesForFarms,
 } from "./catalogues"
 import {
     addCultivation,
@@ -10,8 +11,8 @@ import {
     getCultivation,
     getCultivationPlan,
     getCultivations,
+    getCultivationsFromCatalogues,
     getCultivationsFromCatalogue,
-    getCultivationsFromCatalogueForFarms,
     getDefaultDatesOfCultivation,
     removeCultivation,
     updateCultivation,
@@ -215,24 +216,39 @@ describe("Cultivation Data Model", () => {
             ).toBeDefined()
         })
 
-        it("should get all cultivations for farms from catalogue", async () => {
-            const cultivations = await getCultivationsFromCatalogueForFarms(
+        it("should get all cultivations for farms from catalogue using composable functions", async () => {
+            const farmCatalogues = await getEnabledCultivationCataloguesForFarms(
                 fdm,
                 principal_id,
                 [b_id_farm, b_id_farm_2],
             )
-            expect(cultivations[b_id_farm]).toBeDefined()
-            expect(cultivations[b_id_farm_2]).toBeDefined()
+            expect(farmCatalogues[b_id_farm]).toBeDefined()
+            expect(farmCatalogues[b_id_farm_2]).toBeDefined()
+
+            const allSources = [
+                ...new Set([
+                    ...farmCatalogues[b_id_farm],
+                    ...farmCatalogues[b_id_farm_2],
+                ]),
+            ]
+            const cultivations = await getCultivationsFromCatalogues(
+                fdm,
+                allSources,
+            )
+            const farmSources1 = new Set(farmCatalogues[b_id_farm])
             expect(
-                cultivations[b_id_farm].find(
-                    (cultivation) =>
-                        cultivation.b_lu_catalogue === b_lu_catalogue,
+                cultivations.find(
+                    (c) =>
+                        c.b_lu_catalogue === b_lu_catalogue &&
+                        farmSources1.has(c.b_lu_source),
                 ),
             ).toBeDefined()
+            const farmSources2 = new Set(farmCatalogues[b_id_farm_2])
             expect(
-                cultivations[b_id_farm_2].find(
-                    (cultivation) =>
-                        cultivation.b_lu_catalogue === b_lu_catalogue_2,
+                cultivations.find(
+                    (c) =>
+                        c.b_lu_catalogue === b_lu_catalogue_2 &&
+                        farmSources2.has(c.b_lu_source),
                 ),
             ).toBeDefined()
         })
@@ -259,13 +275,6 @@ describe("Cultivation Data Model", () => {
                     b_id_farm,
                 ),
             ).toEqual([])
-            expect(
-                await getCultivationsFromCatalogueForFarms(fdm, principal_id, [
-                    b_id_farm,
-                ]),
-            ).toEqual({
-                [b_id_farm]: [],
-            })
         })
 
         it("should handle no enabled catalogues", async () => {
@@ -284,16 +293,9 @@ describe("Cultivation Data Model", () => {
                     b_id_farm,
                 ),
             ).toEqual([])
-            expect(
-                await getCultivationsFromCatalogueForFarms(fdm, principal_id, [
-                    b_id_farm,
-                ]),
-            ).toEqual({
-                [b_id_farm]: [],
-            })
         })
 
-        it("(getCultivationsFromCatalogue) should rename the error if getCultivationsFromCatalogues throws an error", async () => {
+        it("(getCultivationsFromCatalogue) should wrap errors with the correct message", async () => {
             const failError = new Error("Should have thrown.")
             try {
                 await getCultivationsFromCatalogue(
@@ -311,39 +313,26 @@ describe("Cultivation Data Model", () => {
                 expect((e as Error).message).toBe(
                     "Exception for getCultivationsFromCatalogue",
                 )
-                const errorCause = (e as Error).cause
-                if (errorCause instanceof Error) {
-                    expect(errorCause.message).not.toBe(
-                        "Exception for getCultivationsFromCatalogues",
-                    )
-                }
             }
         })
 
-        it("(getCultivationsFromCatalogueForFarms) should rename the error if getCultivationsFromCatalogues throws an error", async () => {
+        it("(getCultivationsFromCatalogues) should wrap errors with the correct message", async () => {
             const failError = new Error("Should have thrown.")
             try {
-                await getCultivationsFromCatalogueForFarms(
+                await getCultivationsFromCatalogues(
                     mockFdmThatThrowsOnSelectFrom(
                         fdm,
                         schema.cultivationsCatalogue,
                     ),
-                    principal_id,
-                    [b_id_farm],
+                    [b_lu_source],
                 )
                 throw failError
             } catch (err) {
                 expect(err).not.toBe(failError)
                 expect(err).toBeInstanceOf(Error)
                 expect((err as Error).message).toBe(
-                    "Exception for getCultivationsFromCatalogueForFarms",
+                    "Exception for getCultivationsFromCatalogues",
                 )
-                const errorCause = (err as Error).cause
-                if (errorCause instanceof Error) {
-                    expect(errorCause.message).not.toBe(
-                        "Exception for getCultivationsFromCatalogues",
-                    )
-                }
             }
         })
 
