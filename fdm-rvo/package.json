@@ -67,7 +67,6 @@
         "@turf/union": "^7.3.4",
         "geojson": "^0.5.0",
         "proj4": "^2.20.4",
-        "shpjs": "^6.2.0",
         "zod": "^4.3.6"
     },
     "devDependencies": {
