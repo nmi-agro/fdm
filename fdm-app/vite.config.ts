@@ -78,7 +78,7 @@ export default defineConfig((env) => {
         },
         build: {
             sourcemap: true,
-            target: "ES2022",
+            target: "baseline-widely-available",
         },
         optimizeDeps: {
             exclude: [
