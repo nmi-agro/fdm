@@ -11,7 +11,6 @@ import {
     ExternalLink,
     FileUp,
     FlaskConical,
-    Github,
     History,
     Info,
     Landmark,
@@ -28,6 +27,7 @@ import {
     Target,
     Users,
 } from "lucide-react"
+import { SiGithub } from "@icons-pack/react-simple-icons"
 import { useEffect, useRef, useState } from "react"
 import { FormProvider } from "react-hook-form"
 import type {
@@ -1585,7 +1585,7 @@ export default function SignIn() {
                                             className="hover:text-primary flex items-center gap-2"
                                         >
                                             GitHub Repository{" "}
-                                            <Github className="h-3 w-3" />
+                                            <SiGithub className="h-3 w-3" />
                                         </a>
                                     </li>
                                     <li>
