@@ -25,6 +25,7 @@ import {
     UserRoundCheck,
     CloudDownload,
 } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState } from "react"
 import {
     data,
@@ -155,6 +156,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmDashboardIndex() {
     const loaderData = useLoaderData<typeof loader>()
+    const isRvoEnabled = useFeatureFlagEnabled("rvo")
 
     const calendar = useCalendarStore((state) => state.calendar)
     const setCalendar = useCalendarStore((state) => state.setCalendar)
@@ -449,7 +451,8 @@ export default function FarmDashboardIndex() {
                                             </CardHeader>
                                         </Card>
                                     </NavLink>
-                                    {loaderData.isRvoConfigured && (
+                                    {loaderData.isRvoConfigured &&
+                                        isRvoEnabled !== false && (
                                         <NavLink
                                             to={`${calendar}/rvo`}
                                             className={cn(

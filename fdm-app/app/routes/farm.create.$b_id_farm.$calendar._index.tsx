@@ -1,5 +1,6 @@
 import { getFarm } from "@nmi-agro/fdm-core"
 import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { data, NavLink, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
@@ -63,6 +64,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function ChooseFieldImportMethod() {
     const { farm, isRvoConfigured } = useLoaderData<typeof loader>()
+    const isRvoEnabled = useFeatureFlagEnabled("rvo")
+    const showRvoOption = isRvoConfigured && isRvoEnabled !== false
 
     return (
         <SidebarInset>
@@ -80,12 +83,12 @@ export default function ChooseFieldImportMethod() {
                     <div
                         className={cn(
                             "grid gap-8",
-                            isRvoConfigured
+                            showRvoOption
                                 ? "md:grid-cols-3"
                                 : "md:grid-cols-2",
                         )}
                     >
-                        {isRvoConfigured && (
+                        {showRvoOption && (
                             <Card className="flex flex-col">
                                 <CardHeader className="items-center text-center">
                                     <DownloadCloud className="w-12 h-12 mb-4" />
