@@ -42,7 +42,8 @@ import {
     DialogTrigger,
     DialogClose,
 } from "~/components/ui/dialog"
-import { AlertTriangle, Loader2 } from "lucide-react"
+import { AlertTriangle, CloudDownload, Loader2 } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useEffect, useState } from "react"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -228,6 +229,8 @@ export default function RvoImportReviewPage() {
     const navigation = useNavigation()
     const location = useLocation()
 
+    const isRvoEnabled = useFeatureFlagEnabled("rvo")
+
     const isImporting =
         navigation.state === "submitting" &&
         navigation.formData?.get("intent") === "start_import"
@@ -298,6 +301,39 @@ export default function RvoImportReviewPage() {
         { add: 0, remove: 0, update: 0, close: 0 },
     )
     const hasChanges = Object.values(changes).some((count) => count > 0)
+
+    if (isRvoEnabled === false) {
+        return (
+            <SidebarInset>
+                <Header
+                    action={{
+                        to: `/farm/${b_id_farm}`,
+                        label: "Terug naar bedrijf",
+                        disabled: false,
+                    }}
+                >
+                    <HeaderFarm b_id_farm={b_id_farm} farmOptions={farms} />
+                </Header>
+                <FarmContent>
+                    <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
+                        <div className="bg-primary/10 border border-primary/20 p-8 rounded-xl">
+                            <CloudDownload className="w-12 h-12 text-primary mx-auto mb-4" />
+                            <h2 className="text-2xl font-bold text-foreground mb-2">
+                                Percelen ophalen bij RVO is nog niet beschikbaar
+                                voor je.
+                            </h2>
+                            <p className="text-muted-foreground mb-6">
+                                Deze functionaliteit is momenteel in ontwikkeling
+                                en is nog niet voor iedereen beschikbaar. Neem
+                                contact op met Ondersteuning als je hier vragen
+                                over hebt.
+                            </p>
+                        </div>
+                    </div>
+                </FarmContent>
+            </SidebarInset>
+        )
+    }
 
     if (error) {
         return (
