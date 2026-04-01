@@ -1,8 +1,11 @@
 import {
     type FdmType,
     getCultivations,
+    getCultivationsForFarm,
     getCurrentSoilData,
+    getCurrentSoilDataForFarm,
     getField,
+    getFields,
     getGrazingIntention,
     isDerogationGrantedForYear,
     type PrincipalId,
@@ -91,4 +94,86 @@ export async function collectNL2025InputForNorms(
         cultivations: cultivations,
         soilAnalysis: soilAnalysisPicked,
     }
+}
+
+/**
+ * Collects all necessary input data from the FDM to calculate the Dutch (NL) norms for the year 2025.
+ *
+ * This function orchestrates fetching data for a given farm, its fields, cultivations, and soil analyses,
+ * and structures it into a format suitable for the various NL 2025 norm calculation functions.
+ *
+ * @param fdm - An initialized FdmType instance for data access.
+ * @param principal_id - The ID of the principal initiating the data collection.
+ * @param b_id_farm - The unique identifier of the farm, for whose fields to collect data.
+ * @returns A promise that resolves to an array `NL2025NormsInput` objects, each containing all the
+ *   structured data required for the norm calculations for a field.
+ */
+export async function collectNL2025InputForNormsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: string,
+): Promise<NL2025NormsInput[]> {
+    // Create timeframe for 2025
+    const year = 2025
+    const startOfYear = new Date(year, 0, 1)
+    const endOfYear = new Date(year, 11, 31)
+    const timeframe2025: Timeframe = { start: startOfYear, end: endOfYear }
+    const timeframe2025Cultivation: Timeframe = {
+        start: new Date(year - 1, 0, 1),
+        end: endOfYear,
+    }
+
+    // 1. Get the details for the fields
+    const fields = await getFields(fdm, principal_id, b_id_farm)
+
+    // 2. Get the details for the farm
+    const is_derogatie_bedrijf = await isDerogationGrantedForYear(
+        fdm,
+        principal_id,
+        b_id_farm,
+        year,
+    )
+
+    // 3. Get the grazing intention for the farm
+    const has_grazing_intention = await getGrazingIntention(
+        fdm,
+        principal_id,
+        b_id_farm,
+        year,
+    )
+
+    // 4. Get the details of the cultivations
+    const cultivations = await getCultivationsForFarm(
+        fdm,
+        principal_id,
+        b_id_farm,
+        timeframe2025Cultivation,
+    )
+
+    // 4. Get the details of the soil analyses
+    const soilAnalysis = await getCurrentSoilDataForFarm(
+        fdm,
+        principal_id,
+        b_id_farm,
+        timeframe2025,
+    )
+
+    return fields.map((field) => ({
+        farm: {
+            is_derogatie_bedrijf,
+            has_grazing_intention,
+        },
+        field: field,
+        cultivations: cultivations[field.b_id] ?? [],
+        soilAnalysis: {
+            a_p_cc:
+                (soilAnalysis[field.b_id]?.find(
+                    (x: { parameter: string }) => x.parameter === "a_p_cc",
+                )?.value as number | null) ?? null,
+            a_p_al:
+                (soilAnalysis[field.b_id]?.find(
+                    (x: { parameter: string }) => x.parameter === "a_p_cc",
+                )?.value as number | null) ?? null,
+        },
+    }))
 }

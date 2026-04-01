@@ -94,6 +94,7 @@ describe("calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm", ()
         amount: number,
         appId: string,
     ): FertilizerApplication => ({
+        b_id: "field-1",
         p_app_id: appId,
         p_id: appId,
         p_id_catalogue: fertilizerId,

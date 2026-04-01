@@ -597,6 +597,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
     it("should calculate norm filling correctly for a single application with known nitrogen content", async () => {
         const applications: FertilizerApplication[] = [
             {
+                b_id: "field-1",
                 p_app_id: "app1",
                 p_app_date: new Date("2026-05-01"),
                 p_app_amount: 1000,
@@ -662,7 +663,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]
@@ -693,6 +694,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
     it("should calculate norm filling correctly for multiple applications", async () => {
         const applications: FertilizerApplication[] = [
             {
+                b_id: "field-1",
                 p_app_id: "app1",
                 p_app_date: new Date("2026-05-01"),
                 p_app_amount: 1000,
@@ -702,6 +704,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_app_method: null,
             },
             {
+                b_id: "field-1",
                 p_app_id: "app2",
                 p_app_date: new Date("2026-03-15"),
                 p_app_amount: 500,
@@ -767,7 +770,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
             {
                 p_id: "fert2",
@@ -824,7 +827,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]
@@ -861,6 +864,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
     it("should use table11Mestcodes for nitrogen content if p_n_rt is 0", async () => {
         const applications: FertilizerApplication[] = [
             {
+                b_id: "field-1",
                 p_app_id: "app1",
                 p_app_date: new Date("2026-05-01"),
                 p_app_amount: 1000,
@@ -926,7 +930,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]
@@ -958,6 +962,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
         vi.mocked(getRegion).mockResolvedValue("klei")
         const applications: FertilizerApplication[] = [
             {
+                b_id: "field-1",
                 p_app_id: "app1",
                 p_app_date: new Date("2026-05-01"),
                 p_app_amount: 1000,
@@ -991,6 +996,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
         vi.mocked(getRegion).mockResolvedValue("zand_nwc")
         const applications: FertilizerApplication[] = [
             {
+                b_id: "field-1",
                 p_app_id: "app1",
                 p_app_date: new Date("2026-05-01"),
                 p_app_amount: 1000,
@@ -1056,7 +1062,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]
@@ -1090,6 +1096,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
         vi.mocked(getRegion).mockResolvedValue("klei") // Soil type for bouwland rule
         const applications: FertilizerApplication[] = [
             {
+                b_id: "field-1",
                 p_app_id: "app1",
                 p_app_date: new Date("2026-10-15"), // Sep 1 to Jan 31 period
                 p_app_amount: 1000,
@@ -1155,7 +1162,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]

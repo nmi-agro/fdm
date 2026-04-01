@@ -173,6 +173,7 @@ export { lookupPrincipal } from "./principal"
 export {
     addSoilAnalysis,
     getCurrentSoilData,
+    getCurrentSoilDataForFarm,
     getSoilAnalyses,
     getSoilAnalysesForFarm,
     getSoilAnalysis,

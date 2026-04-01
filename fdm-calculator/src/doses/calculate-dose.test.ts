@@ -21,6 +21,7 @@ const initialDose = {
 }
 
 const baseApplication: FertilizerApplication = {
+    b_id: "field-1",
     p_app_id: "app1",
     p_id_catalogue: "fert1",
     p_app_amount: 100,

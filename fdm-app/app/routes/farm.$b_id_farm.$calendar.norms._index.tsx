@@ -148,96 +148,117 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         calendar,
                     )
 
-                const fieldNormPromises = fields.map(async (field) => {
-                    try {
-                        // Collect the input for norms
-                        const input =
-                            await functionsForNorms.collectInputForNorms(
-                                fdm,
-                                session.principal_id,
-                                field.b_id,
-                            )
+                const inputs =
+                    await functionsForNorms.collectInputForNormsForFarm(
+                        fdm,
+                        session.principal_id,
+                        b_id_farm,
+                    )
 
-                        // Calculate the norms first
-                        const [normManure, normPhosphate, normNitrogen] =
-                            await Promise.all([
-                                functionsForNorms.calculateNormForManure(
-                                    fdm,
-                                    input,
-                                ),
-                                functionsForNorms.calculateNormForPhosphate(
-                                    fdm,
-                                    input,
-                                ),
-                                functionsForNorms.calculateNormForNitrogen(
-                                    fdm,
-                                    input,
-                                ),
-                            ])
+                const partialFillingInput =
+                    await functionsForFilling.collectInputForFertilizerApplicationFillingForFarm(
+                        fdm,
+                        session.principal_id,
+                        b_id_farm,
+                    )
 
-                        // Collect the input for fillings, using the calculated phosphate norm
-                        const fillingInput =
-                            await functionsForFilling.collectInputForFertilizerApplicationFilling(
-                                fdm,
-                                session.principal_id,
-                                field.b_id,
-                                normPhosphate.normValue, // Pass the calculated fosfaatgebruiksnorm
-                            )
+                if (
+                    fields.length !== inputs.length ||
+                    inputs.length !== partialFillingInput.length
+                ) {
+                    throw new Error(
+                        "Data might have changed during data collection",
+                    )
+                }
 
-                        // Calculate the fillings
-                        const [
-                            fillingManure,
-                            fillingPhosphate,
-                            fillingNitrogen,
-                        ] = await Promise.all([
-                            functionsForFilling.calculateFertilizerApplicationFillingForManure(
-                                fdm,
-                                fillingInput,
-                            ),
-                            functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(
-                                fdm,
-                                fillingInput,
-                            ),
-                            functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(
-                                fdm,
-                                fillingInput,
-                            ),
-                        ])
-
-                        return {
-                            b_id: field.b_id,
-                            b_area: field.b_area,
-                            norms: {
-                                manure: normManure,
-                                phosphate: normPhosphate,
-                                nitrogen: normNitrogen,
-                            },
-                            normsFilling: {
-                                manure: fillingManure,
-                                phosphate: fillingPhosphate,
-                                nitrogen: fillingNitrogen,
-                            },
-                        }
-                    } catch (error) {
-                        hasFieldNormErrors = true
-                        const fieldName =
-                            fields.find((f) => f.b_id === field.b_id)?.b_name ||
-                            `Perceel ${field.b_id}`
-                        fieldErrorMessages.push(
-                            `${fieldName}: ${String(error).replace(
-                                "Error: ",
-                                "",
-                            )}`,
-                        )
-                        return {
-                            b_id: field.b_id,
-                            b_area: field.b_area,
-                            errorMessage: String(error).replace("Error: ", ""),
-                        }
+                const BATCH_SIZE = 50
+                const results: PromiseSettledResult<{
+                    b_id: string
+                    b_area: number | null
+                    norms: {
+                        manure: any
+                        phosphate: any
+                        nitrogen: any
                     }
-                })
+                    normsFilling: {
+                        manure: NormFilling
+                        phosphate: NormFilling
+                        nitrogen: NormFilling
+                    }
+                }>[] = []
+                for (let i = 0; i < inputs.length; i += BATCH_SIZE) {
+                    results.push(
+                        ...(await Promise.allSettled(
+                            inputs
+                                .slice(i, i + BATCH_SIZE)
+                                .map(async (input, batchOffset) => {
+                                    const field = fields[i + batchOffset]
 
-                const results = await Promise.allSettled(fieldNormPromises)
+                                    // Calculate the norms first
+                                    const [
+                                        normManure,
+                                        normPhosphate,
+                                        normNitrogen,
+                                    ] = await Promise.all([
+                                        functionsForNorms.calculateNormForManure(
+                                            fdm,
+                                            input,
+                                        ),
+                                        functionsForNorms.calculateNormForPhosphate(
+                                            fdm,
+                                            input,
+                                        ),
+                                        functionsForNorms.calculateNormForNitrogen(
+                                            fdm,
+                                            input,
+                                        ),
+                                    ])
+
+                                    // Collect the input for fillings, using the calculated phosphate norm
+                                    const fillingInput = {
+                                        ...partialFillingInput[i + batchOffset],
+                                        fosfaatgebruiksnorm:
+                                            normPhosphate.normValue,
+                                    }
+
+                                    // Calculate the fillings
+                                    const [
+                                        fillingManure,
+                                        fillingPhosphate,
+                                        fillingNitrogen,
+                                    ] = await Promise.all([
+                                        functionsForFilling.calculateFertilizerApplicationFillingForManure(
+                                            fdm,
+                                            fillingInput,
+                                        ),
+                                        functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(
+                                            fdm,
+                                            fillingInput,
+                                        ),
+                                        functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(
+                                            fdm,
+                                            fillingInput,
+                                        ),
+                                    ])
+
+                                    return {
+                                        b_id: field.b_id,
+                                        b_area: field.b_area ?? 0,
+                                        norms: {
+                                            manure: normManure,
+                                            phosphate: normPhosphate,
+                                            nitrogen: normNitrogen,
+                                        },
+                                        normsFilling: {
+                                            manure: fillingManure,
+                                            phosphate: fillingPhosphate,
+                                            nitrogen: fillingNitrogen,
+                                        },
+                                    }
+                                }),
+                        )),
+                    )
+                }
 
                 fieldNorms = results.map((result) => {
                     if (result.status === "fulfilled") {
