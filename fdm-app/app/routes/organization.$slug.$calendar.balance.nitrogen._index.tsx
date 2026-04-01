@@ -220,75 +220,79 @@ export async function loader({
             // Sort farms by descending area, which will in turn also cause the results to be sorted
             farmsExtended.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)
 
+            const selectedFarmIds = new Set(farmIds)
             const farmResults = await Promise.all(
-                farmsExtended.map(async (farm) => {
-                    const fieldResults = rawFarmResultsMap[farm.b_id_farm]
-                    if (!fieldResults || fieldResults.length === 0) {
-                        return {
-                            farm: farm,
-                            totalArea: farm.b_area_farm,
-                            nitrogenBalanceResult: {
-                                hasErrors: true,
-                                errorMessage: "Geen veldgegevens beschikbaar",
-                            } as NitrogenBalanceNumeric & {
-                                errorMessage?: string
-                            },
-                        }
-                    }
-                    try {
-                        const nitrogenBalanceResult =
-                            calculateNitrogenBalancesFieldToFarm(
-                                fieldResults,
-                                fieldResults.some(
-                                    (result) => result.errorMessage,
-                                ),
-                                fieldResults
-                                    .filter((result) => result.errorMessage)
-                                    .map(
-                                        (result) => result.errorMessage,
-                                    ) as string[],
-                            )
-                        if (nitrogenBalanceResult.hasErrors) {
-                            reportError(
-                                nitrogenBalanceResult.fieldErrorMessages.join(
-                                    ",\n",
-                                ),
-                                {
-                                    page: "organization/{slug}/{calendar}/balance/nitrogen/_index",
-                                    scope: "loader",
-                                },
-                                {
-                                    b_id_farm: farm.b_id_farm,
-                                    timeframe,
-                                    userId: session.principal_id,
-                                },
-                            )
-                        }
-
-                        return {
-                            farm: farm,
-                            totalArea: farm.b_area_farm,
-                            nitrogenBalanceResult:
-                                nitrogenBalanceResult as NitrogenBalanceNumeric & {
+                farmsExtended
+                    .filter((farm) => selectedFarmIds.has(farm.b_id_farm))
+                    .map(async (farm) => {
+                        const fieldResults = rawFarmResultsMap[farm.b_id_farm]
+                        if (!fieldResults || fieldResults.length === 0) {
+                            return {
+                                farm: farm,
+                                totalArea: farm.b_area_farm,
+                                nitrogenBalanceResult: {
+                                    hasErrors: true,
+                                    errorMessage:
+                                        "Geen veldgegevens beschikbaar",
+                                } as NitrogenBalanceNumeric & {
                                     errorMessage?: string
                                 },
+                            }
                         }
-                    } catch (error) {
-                        return {
-                            farm: farm,
-                            totalArea: farm.b_area_farm,
-                            nitrogenBalanceResult: {
-                                hasErrors: true,
-                                errorMessage:
-                                    error instanceof Error
-                                        ? error.message
-                                        : String(error),
-                            } as NitrogenBalanceNumeric & {
-                                errorMessage?: string
-                            },
+                        try {
+                            const nitrogenBalanceResult =
+                                calculateNitrogenBalancesFieldToFarm(
+                                    fieldResults,
+                                    fieldResults.some(
+                                        (result) => result.errorMessage,
+                                    ),
+                                    fieldResults
+                                        .filter((result) => result.errorMessage)
+                                        .map(
+                                            (result) => result.errorMessage,
+                                        ) as string[],
+                                )
+                            if (nitrogenBalanceResult.hasErrors) {
+                                reportError(
+                                    nitrogenBalanceResult.fieldErrorMessages.join(
+                                        ",\n",
+                                    ),
+                                    {
+                                        page: "organization/{slug}/{calendar}/balance/nitrogen/_index",
+                                        scope: "loader",
+                                    },
+                                    {
+                                        b_id_farm: farm.b_id_farm,
+                                        timeframe,
+                                        userId: session.principal_id,
+                                    },
+                                )
+                            }
+
+                            return {
+                                farm: farm,
+                                totalArea: farm.b_area_farm,
+                                nitrogenBalanceResult:
+                                    nitrogenBalanceResult as NitrogenBalanceNumeric & {
+                                        errorMessage?: string
+                                    },
+                            }
+                        } catch (error) {
+                            return {
+                                farm: farm,
+                                totalArea: farm.b_area_farm,
+                                nitrogenBalanceResult: {
+                                    hasErrors: true,
+                                    errorMessage:
+                                        error instanceof Error
+                                            ? error.message
+                                            : String(error),
+                                } as NitrogenBalanceNumeric & {
+                                    errorMessage?: string
+                                },
+                            }
                         }
-                    }
-                }),
+                    }),
             )
 
             return {
@@ -392,7 +396,9 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                 className="flex items-center grow"
                 key={farmResult.farm.b_id_farm}
             >
-                {Number.isFinite(balanceResult.balance) ? (
+                {balanceResult.hasErrors ? (
+                    <CircleAlert className="text-orange-500 bg-orange-100 p-0 rounded-full w-6 h-6" />
+                ) : Number.isFinite(balanceResult.balance) ? (
                     balanceResult.balance <= balanceResult.target ? (
                         <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full w-6 h-6" />
                     ) : (

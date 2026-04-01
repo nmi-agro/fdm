@@ -445,9 +445,7 @@ describe("Fertilizer Data Model", () => {
             const farm1Fertilizers = allFertilizers.filter((f) =>
                 farm1Sources.has(f.p_source),
             )
-            expect(
-                farm1Fertilizers.map((fert) => fert.p_name_nl),
-            ).toEqual([
+            expect(farm1Fertilizers.map((fert) => fert.p_name_nl)).toEqual([
                 "Farm 1 Example Fertilizer 1",
                 "Farm 1 Example Fertilizer 2",
             ])
@@ -455,15 +453,13 @@ describe("Fertilizer Data Model", () => {
             const farm2Fertilizers = allFertilizers.filter((f) =>
                 farm2Sources.has(f.p_source),
             )
-            expect(
-                farm2Fertilizers.map((fert) => fert.p_name_nl),
-            ).toEqual([
+            expect(farm2Fertilizers.map((fert) => fert.p_name_nl)).toEqual([
                 "Farm 2 Example Fertilizer 1",
                 "Farm 2 Example Fertilizer 2",
             ])
         })
 
-        it("should handle empty catalogues", async () => {
+        it("should return empty array when enabled catalogue source has no entries", async () => {
             const b_id_farm = await addFarm(
                 fdm,
                 principal_id,

@@ -147,8 +147,9 @@ export async function loader({
             }
         }
 
-        const farmIds =
-            searchParamFarmIds ?? farms.map((farm) => farm.b_id_farm)
+        const farmIds = searchParamFarmIds
+            ? [...new Set(searchParamFarmIds)]
+            : farms.map((farm) => farm.b_id_farm)
 
         const allFarmIds = new Set(farms.map((farm) => farm.b_id_farm))
 
@@ -219,11 +220,12 @@ export async function loader({
             // Sort farms by descending area, which will in turn also cause the results to be sorted
             farmsExtended.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)
 
+            const selectedFarmIds = new Set(farmIds)
             const farmResults = await Promise.all(
                 farmsExtended
+                    .filter((farm) => selectedFarmIds.has(farm.b_id_farm))
                     .map(async (farm) => {
-                        const fieldResults =
-                            rawFarmResultsMap[farm.b_id_farm]
+                        const fieldResults = rawFarmResultsMap[farm.b_id_farm]
                         if (!fieldResults || fieldResults.length === 0) {
                             return {
                                 farm: farm,
@@ -364,11 +366,6 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
 
     const { combinedResult: resolvedOrganicMatterBalanceResult, farmResults } =
         asyncData
-    const farmChartBalanceData =
-        resolvedOrganicMatterBalanceResult as unknown as {
-            supply: number
-            removal: number
-        } & OrganicMatterBalanceNumeric
     const hasErrors = farmResults.some(
         ({ organicMatterBalanceResult }) =>
             organicMatterBalanceResult.hasErrors,
@@ -433,7 +430,9 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
                             {deltaFormatted !== undefined && (
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <span className={`block text-xs cursor-default ${deltaClass}`}>
+                                        <span
+                                            className={`block text-xs cursor-default ${deltaClass}`}
+                                        >
                                             {deltaFormatted}
                                         </span>
                                     </TooltipTrigger>
@@ -541,8 +540,10 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
                     </CardHeader>
                     <CardContent className="pl-2">
                         <OrganicMatterBalanceChart
-                            supply={farmChartBalanceData.supply}
-                            degradation={farmChartBalanceData.degradation}
+                            supply={resolvedOrganicMatterBalanceResult.supply}
+                            degradation={
+                                resolvedOrganicMatterBalanceResult.degradation
+                            }
                         />
                     </CardContent>
                 </Card>
