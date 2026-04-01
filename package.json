@@ -12,15 +12,16 @@
         "fdm-docs",
         "fdm-app",
         "fdm-calculator",
-        "fdm-rvo"
+        "fdm-rvo",
+        "fdm-agents"
     ],
     "scripts": {
-        "test": "turbo run test-coverage --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-calculator",
+        "test": "turbo run test-coverage --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents",
         "build": "turbo run build",
         "build-docs": "turbo run build-docs",
         "watch": "turbo run watch",
         "changeset": "changeset",
-        "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator && changeset publish ",
+        "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents && changeset publish ",
         "format-and-lint": "biome check .",
         "format-and-lint:fix": "biome check . --write",
         "format-and-lint:fix-unsafe": "biome check . --write --unsafe"
@@ -61,6 +62,9 @@
             "esbuild",
             "prisma",
             "protobufjs"
+        ],
+        "ignoredBuiltDependencies": [
+            "sqlite3"
         ]
     }
 }

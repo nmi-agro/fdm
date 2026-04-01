@@ -74,6 +74,7 @@ export default defineConfig((env) => {
                 "posthog-js",
                 "posthog-js/react",
                 "@geomatico/maplibre-cog-protocol",
+                "@nmi-agro/fdm-agents",
             ],
         },
         build: {
@@ -86,6 +87,7 @@ export default defineConfig((env) => {
                 "@nmi-agro/fdm-data",
                 "@nmi-agro/fdm-calculator",
                 "@nmi-agro/fdm-rvo",
+                "@nmi-agro/fdm-agents",
             ],
         },
     }

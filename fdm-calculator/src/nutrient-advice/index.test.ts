@@ -141,7 +141,8 @@ describe("requestNutrientAdvice", () => {
             ok: false,
             status: 500,
             statusText: "Internal Server Error",
-        } as Response)
+            text: vi.fn().mockResolvedValue(""),
+        } as unknown as Response)
 
         const inputs: NutrientAdviceInputs = {
             b_lu_catalogue: "nl_2014",

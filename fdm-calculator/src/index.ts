@@ -3,8 +3,8 @@ export const fdmCalculator = pkg
 export {
     calculateNitrogenBalance,
     calculateNitrogenBalanceField,
-    calculateNitrogenBalanceForFarms,
     calculateNitrogenBalancesFieldToFarm,
+    calculateNitrogenBalanceForFarms,
     getNitrogenBalanceField,
 } from "./balance/nitrogen/index"
 export {
@@ -58,6 +58,7 @@ export { getDoseForField } from "./doses/get-dose-field"
 export {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
+    createUncachedFunctionsForFertilizerApplicationFilling,
 } from "./norms"
 export type {
     AggregatedNormFillingsToFarmLevel,

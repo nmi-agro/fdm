@@ -24,3 +24,7 @@ If you are a developer who wants to contribute to the FDM project, the **[Contri
 ## FDM App
 
 The **[FDM App](./fdm-app/01-introduction-to-fdm-app.md)** section provides a brief introduction to the `fdm-app`, which is a practical, working example of an application that is built with the FDM.
+
+## FDM Agents
+
+The **[FDM Agents](./fdm-agents/index.md)** section explains how to use Agentic AI for strategic nutrient management. Here you will find details about Gerrit, the expert agronomist agent, and the architecture that ensures legal and agronomic compliance.

@@ -5,6 +5,7 @@ packages:
   - fdm-docs
   - fdm-app
   - fdm-rvo
+  - fdm-agents
 
 catalog:
   '@dotenvx/dotenvx': ^1.59.1
