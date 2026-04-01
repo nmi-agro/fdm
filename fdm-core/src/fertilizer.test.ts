@@ -362,7 +362,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_nl: name,
                     p_name_en: name,
                     p_description: `This is ${name}`,
-                    p_type: ["manure", "mineral", "compost", "other"][
+                    p_type: (["manure", "mineral", "compost", null] as const)[
                         Math.floor(Math.random() * 4)
                     ],
                     p_type_rvo: "10",

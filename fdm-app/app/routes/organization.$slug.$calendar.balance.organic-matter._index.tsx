@@ -5,7 +5,7 @@ import {
     type OrganicMatterBalanceFieldResultNumeric,
     type OrganicMatterBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
-import { getFarms, getFields, listPrincipalsForFarm } from "@nmi-agro/fdm-core"
+import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
     ArrowDownToLine,
     ArrowRightLeft,
@@ -52,7 +52,6 @@ type Organization = Awaited<
 >[number]
 type FarmResult = {
     farm: Farm
-    owner: Awaited<ReturnType<typeof listPrincipalsForFarm>>[number] | undefined
     totalArea: number
     organicMatterBalanceResult: OrganicMatterBalanceNumeric & {
         errorMessage?: string
@@ -222,11 +221,23 @@ export async function loader({
 
             const farmResults = await Promise.all(
                 farmsExtended
-                    .filter((farm) => rawFarmResultsMap[farm.b_id_farm])
                     .map(async (farm) => {
+                        const fieldResults =
+                            rawFarmResultsMap[farm.b_id_farm]
+                        if (!fieldResults || fieldResults.length === 0) {
+                            return {
+                                farm: farm,
+                                totalArea: farm.b_area_farm,
+                                organicMatterBalanceResult: {
+                                    hasErrors: true,
+                                    errorMessage:
+                                        "Geen veldgegevens beschikbaar",
+                                } as OrganicMatterBalanceNumeric & {
+                                    errorMessage?: string
+                                },
+                            }
+                        }
                         try {
-                            const fieldResults =
-                                rawFarmResultsMap[farm.b_id_farm]
                             const organicMatterBalanceResult =
                                 calculateOrganicMatterBalancesFieldToFarm(
                                     fieldResults,
@@ -239,19 +250,6 @@ export async function loader({
                                             (result) => result.errorMessage,
                                         ) as string[],
                                 )
-                            let owner: Awaited<ReturnType<typeof listPrincipalsForFarm>>[number] | undefined
-                            try {
-                                const farmPrincipals = await listPrincipalsForFarm(
-                                    fdm,
-                                    principal_id,
-                                    farm.b_id_farm,
-                                )
-                                owner = farmPrincipals.find(
-                                    (p) => p.role === "owner" && p.type === "user",
-                                )
-                            } catch {
-                                owner = undefined
-                            }
 
                             if (organicMatterBalanceResult.hasErrors) {
                                 reportError(
@@ -272,7 +270,6 @@ export async function loader({
 
                             return {
                                 farm: farm,
-                                owner: owner,
                                 totalArea: farm.b_area_farm,
                                 organicMatterBalanceResult:
                                     organicMatterBalanceResult as OrganicMatterBalanceNumeric & {
@@ -282,7 +279,6 @@ export async function loader({
                         } catch (error) {
                             return {
                                 farm: farm,
-                                owner: undefined,
                                 totalArea: farm.b_area_farm,
                                 organicMatterBalanceResult: {
                                     hasErrors: true,
@@ -401,8 +397,8 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
             delta === undefined
                 ? "text-orange-500"
                 : delta < 0
-                  ? "text-green-600"
-                  : "text-red-600"
+                  ? "text-red-600"
+                  : "text-green-600"
         return (
             <div
                 className="flex items-center grow"
