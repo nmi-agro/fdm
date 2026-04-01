@@ -11,14 +11,14 @@ import {
     aggregateNormFillingsToFarmLevel,
     aggregateNormsToFarmLevel,
     calculateDose,
+    calculateNitrogenBalanceField,
+    calculateNitrogenBalancesFieldToFarm,
+    calculateOrganicMatterBalanceField,
+    collectInputForNitrogenBalance,
+    collectInputForOrganicMatterBalance,
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
     getNutrientAdvice,
-    calculateNitrogenBalanceField,
-    collectInputForNitrogenBalance,
-    calculateNitrogenBalancesFieldToFarm,
-    calculateOrganicMatterBalanceField,
-    collectInputForOrganicMatterBalance,
     type NormFilling,
     type NutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
@@ -40,6 +40,7 @@ import {
     removeFertilizerApplication,
 } from "@nmi-agro/fdm-core"
 import { Bot } from "lucide-react"
+import posthog from "posthog-js"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useEffect, useState } from "react"
 import {
@@ -86,9 +87,9 @@ import { Card } from "~/components/ui/card"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
-import { handleActionError } from "~/lib/error"
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
+import { handleActionError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 import { getDefaultCultivation } from "../lib/cultivation-helpers"
@@ -511,6 +512,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const formData = await request.formData()
     const intent = formData.get("intent")
 
+    // If Gerrit is explicitly disabled for this user reject the request
+    if (!(posthog.featureFlags.isFeatureEnabled("gerrit") ?? true)) {
+        throw data(null, {
+            status: 403,
+            statusText: "Feature is not enabled for this user",
+        })
+    }
+
     if (intent === "generate") {
         const { errors, data: formValues } = await getValidatedFormData<
             z.infer<typeof GerritFormSchema>
@@ -741,7 +750,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             $ai_output_tokens: usageData?.outputTokens ?? null,
                             $ai_total_tokens: usageData?.totalTokens ?? null,
                             $ai_input: [
-                                { role: "user", content: prompt.slice(0, 2000) },
+                                {
+                                    role: "user",
+                                    content: prompt.slice(0, 2000),
+                                },
                             ],
                             $ai_output_choices: [
                                 {
@@ -876,7 +888,7 @@ export default function GerritApp() {
 
     const supportedYears = ["2025", "2026"]
     const isSupportedYear = supportedYears.includes(calendar)
-    const isGerritEnabled = useFeatureFlagEnabled("gerrit")
+    const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
 
     const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
         mode: "onTouched",
