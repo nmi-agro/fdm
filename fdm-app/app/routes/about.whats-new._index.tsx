@@ -24,6 +24,21 @@ export const meta: MetaFunction = () => {
 
 export const changelogEntries: ChangelogEntry[] = [
     {
+        version: "v0.29.0",
+        date: "1 april 2026",
+        title: "Verbeterd meststoffenbeheer, balansoverzicht per organisatie en bufferstrook in perceelstabel",
+        description:
+            "Deze release vernieuwt de weergave en het beheer van meststoffen, voegt een stikstof- en organische stofbalansoverzicht op organisatieniveau toe en maakt het instellen van bufferstroken per perceel eenvoudiger.",
+        items: [
+            "Verbeterd meststoffenbeheer: De meststoffenpagina en het formulier voor het toevoegen van een meststof zijn vernieuwd. De tabel toont nu aanvullende nutriënten en eigenschappen zoals DS, OS, MgO, CaO, Na₂O, SO₃ en sporenelementen. Via de knop 'Kolommen' kiest u zelf welke kolommen u wilt zien. Het selecteren van een catalogusmeststof gaat nu via een doorzoekbare lijst in plaats van een grid van meststoffen. Standaard- en eigen meststoffen zijn visueel van elkaar onderscheiden. De invoervelden in het formulier zijn overzichtelijker ingedeeld. De zijbalk berekent de werkzame stikstof direct terwijl u gegevens invult.",
+            "Meststof als sjabloon gebruiken: Via de optie 'Gebruik als sjabloon' maakt u direct een nieuwe meststof aan op basis van een bestaande meststof vanuit de detailpagina. De rijen in de meststoftabel zijn nu klikbaar en brengen u direct naar de detailpagina.",
+            "Balansoverzicht op organisatieniveau: De stikstofbalans en organische stofbalans zijn nu ook beschikbaar op organisatieniveau. In één overzicht ziet u de resultaten voor alle bedrijven in de organisatie. U kunt individuele bedrijven uitsluiten van het overzicht.",
+            "Bufferstrook instellen per perceel: In de perceelstabel is een kolom met aankruisvakjes toegevoegd waarmee u per perceel kunt aangeven of het een bufferstrook is, zonder naar de afzonderlijke perceelspagina te navigeren.",
+            "Gewasresten: De optie om gewasresten in te voeren is niet zichtbaar als dat niet relevant voor het het geselecteerde gewas is. Dit voorkomt het invoeren van gegevens die geen effect hebben op de organische stofbalans.",
+            "Focusknop in Atlas: Er is een knop toegevoegd waarmee u de kaart in de Atlas direct kunt centreren op de percelen van uw bedrijf. Tijdens het toevoegen van percelen wordt het focusgebied automatisch bijgewerkt wanneer u een nieuw perceel selecteert.",
+        ],
+    },
+    {
         version: "v0.28.0",
         date: "4 maart 2026",
         title: "Meerdere bodemanalyses uploaden, direct bewerken in bouwplantabel en uitnodigingen",
