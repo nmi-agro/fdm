@@ -19,7 +19,7 @@ import { fdm } from "~/lib/fdm.server"
 // Meta
 export const meta: MetaFunction = () => {
     return [
-        { title: `Organische Stof | Nutriëntenbalans| ${clientConfig.name}` },
+        { title: `Organische stof | Nutriëntenbalans| ${clientConfig.name}` },
         {
             name: "description",
             content: "Bekijk de organische stofbalans van je bedrijf.",

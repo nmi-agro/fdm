@@ -10,7 +10,10 @@ import {
 import {
     disableFertilizerCatalogue,
     enableFertilizerCatalogue,
+    getEnabledFertilizerCataloguesForFarms,
 } from "./catalogues"
+import * as schema from "./db/schema"
+import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.d"
@@ -23,6 +26,7 @@ import {
     getFertilizerApplications,
     getFertilizerParametersDescription,
     getFertilizers,
+    getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
     removeFertilizer,
     removeFertilizerApplication,
@@ -31,11 +35,13 @@ import {
 } from "./fertilizer"
 import { addField } from "./field"
 import { createId } from "./id"
+import { mockFdmThatThrowsOnSelectFrom } from "./test-util"
 
 describe("Fertilizer Data Model", () => {
     let fdm: FdmServerType
     let principal_id: string
     let b_id_farm: string
+    let b_id_farm_2: string
 
     beforeEach(async () => {
         const host = inject("host")
@@ -58,8 +64,22 @@ describe("Fertilizer Data Model", () => {
             farmAddress,
             farmPostalCode,
         )
+        b_id_farm_2 = await addFarm(
+            fdm,
+            principal_id,
+            farmName,
+            farmBusinessId,
+            farmAddress,
+            farmPostalCode,
+        )
 
         await enableFertilizerCatalogue(fdm, principal_id, b_id_farm, b_id_farm)
+        await enableFertilizerCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm_2,
+            b_id_farm_2,
+        )
     })
 
     afterAll(async () => {})
@@ -320,6 +340,199 @@ describe("Fertilizer Data Model", () => {
                 b_id_farm,
             )
             expect(fertilizers.length).toBe(2)
+        })
+
+        it("should get fertilizers from a list of farms", async () => {
+            function makeFertilizer(name: string) {
+                const fert: Partial<
+                    Parameters<typeof addFertilizerToCatalogue>[3]
+                > = Object.fromEntries(
+                    Object.keys(fertilizersCatalogue)
+                        .filter((key) => key.startsWith("p_"))
+                        .map((key) => [key, Math.random()]),
+                )
+                const randomAppMethod = () =>
+                    applicationMethodOptions[
+                        Math.floor(
+                            Math.random() * applicationMethodOptions.length,
+                        )
+                    ].value
+                Object.assign(fert, {
+                    p_id_catalogue: createId(),
+                    p_name_nl: name,
+                    p_name_en: name,
+                    p_description: `This is ${name}`,
+                    p_type: (["manure", "mineral", "compost", null] as const)[
+                        Math.floor(Math.random() * 4)
+                    ],
+                    p_type_rvo: "10",
+                    p_app_method_options: [
+                        ...new Set([
+                            randomAppMethod(),
+                            randomAppMethod(),
+                            randomAppMethod(),
+                            randomAppMethod(),
+                        ]),
+                    ],
+                })
+                return fert as Parameters<typeof addFertilizerToCatalogue>[3]
+            }
+            async function addTestFertilizer(
+                b_id_farm: string,
+                p_id_catalogue: string,
+            ) {
+                const p_acquiring_amount = 1000
+                const p_acquiring_date = new Date()
+
+                // Add two fertilizers to the farm
+                await addFertilizer(
+                    fdm,
+                    principal_id,
+                    p_id_catalogue,
+                    b_id_farm,
+                    p_acquiring_amount,
+                    p_acquiring_date,
+                )
+            }
+            const farm_1_fert_1 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                makeFertilizer("Farm 1 Example Fertilizer 1"),
+            )
+            await addTestFertilizer(b_id_farm, farm_1_fert_1)
+            const farm_2_fert_1 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm_2,
+                makeFertilizer("Farm 2 Example Fertilizer 1"),
+            )
+            await addTestFertilizer(b_id_farm_2, farm_2_fert_1)
+            const farm_1_fert_2 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                makeFertilizer("Farm 1 Example Fertilizer 2"),
+            )
+            await addTestFertilizer(b_id_farm, farm_1_fert_2)
+            const farm_2_fert_2 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm_2,
+                makeFertilizer("Farm 2 Example Fertilizer 2"),
+            )
+            await addTestFertilizer(b_id_farm_2, farm_2_fert_2)
+            const farmCatalogues = await getEnabledFertilizerCataloguesForFarms(
+                fdm,
+                principal_id,
+                [b_id_farm, b_id_farm_2],
+            )
+            expect(farmCatalogues[b_id_farm]).toBeDefined()
+            expect(farmCatalogues[b_id_farm_2]).toBeDefined()
+
+            const allSources = [
+                ...new Set([
+                    ...farmCatalogues[b_id_farm],
+                    ...farmCatalogues[b_id_farm_2],
+                ]),
+            ]
+            const allFertilizers = await getFertilizersFromCatalogues(
+                fdm,
+                principal_id,
+                allSources,
+            )
+            const farm1Sources = new Set(farmCatalogues[b_id_farm])
+            const farm1Fertilizers = allFertilizers.filter((f) =>
+                farm1Sources.has(f.p_source),
+            )
+            expect(farm1Fertilizers.map((fert) => fert.p_name_nl)).toEqual([
+                "Farm 1 Example Fertilizer 1",
+                "Farm 1 Example Fertilizer 2",
+            ])
+            const farm2Sources = new Set(farmCatalogues[b_id_farm_2])
+            const farm2Fertilizers = allFertilizers.filter((f) =>
+                farm2Sources.has(f.p_source),
+            )
+            expect(farm2Fertilizers.map((fert) => fert.p_name_nl)).toEqual([
+                "Farm 2 Example Fertilizer 1",
+                "Farm 2 Example Fertilizer 2",
+            ])
+        })
+
+        it("should return empty array when enabled catalogue source has no entries", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Cultivations In Catalogue",
+                undefined,
+                undefined,
+                undefined,
+            )
+            await enableFertilizerCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "invalid-catalogue",
+            )
+            expect(
+                await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),
+            ).toEqual([])
+        })
+
+        it("should handle no enabled catalogues", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Enabled Catalogues",
+                undefined,
+                undefined,
+                undefined,
+            )
+            expect(
+                await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),
+            ).toEqual([])
+        })
+
+        it("(getFertilizersFromCatalogue) should wrap errors with the correct message", async () => {
+            const failError = new Error("Should have thrown.")
+            try {
+                await getFertilizersFromCatalogue(
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.fertilizersCatalogue,
+                    ),
+                    principal_id,
+                    b_id_farm,
+                )
+                throw failError
+            } catch (e) {
+                expect(e).not.toBe(failError)
+                expect(e).toBeInstanceOf(Error)
+                expect((e as Error).message).toBe(
+                    "Exception for getFertilizersFromCatalogue",
+                )
+            }
+        })
+
+        it("(getFertilizersFromCatalogues) should wrap errors with the correct message", async () => {
+            const failError = new Error("Should have thrown.")
+            try {
+                await getFertilizersFromCatalogues(
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.fertilizersCatalogue,
+                    ),
+                    principal_id,
+                    [b_id_farm],
+                )
+                throw failError
+            } catch (err) {
+                expect(err).not.toBe(failError)
+                expect(err).toBeInstanceOf(Error)
+                expect((err as Error).message).toBe(
+                    "Exception for getFertilizersFromCatalogues",
+                )
+            }
         })
 
         it("should remove a fertilizer", async () => {

@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
+import { getEnabledCultivationCatalogues } from "./catalogues"
 import type {
     Cultivation,
     CultivationCatalogue,
@@ -48,48 +49,53 @@ export async function getCultivationsFromCatalogue(
     b_id_farm: schema.farmsTypeSelect["b_id_farm"],
 ): Promise<CultivationCatalogue[]> {
     try {
-        await checkPermission(
+        const catalogueIds = await getEnabledCultivationCatalogues(
             fdm,
-            "farm",
-            "read",
-            b_id_farm,
             principal_id,
-            "getCultivationsFromCatalogue",
+            b_id_farm,
         )
+        return await getCultivationsFromCatalogues(fdm, catalogueIds)
+    } catch (err) {
+        throw handleError(
+            err,
+            "Exception for getCultivationsFromCatalogue",
+            { principal_id, b_id_farm },
+        )
+    }
+}
 
-        // Get enabled catalogues for the farm
-        const enabledCatalogues = await fdm
-            .select({
-                b_lu_source: schema.cultivationCatalogueSelecting.b_lu_source,
-            })
-            .from(schema.cultivationCatalogueSelecting)
-            .where(
-                eq(schema.cultivationCatalogueSelecting.b_id_farm, b_id_farm),
-            )
-
-        // If no catalogues are enabled, return empty array
-        if (enabledCatalogues.length === 0) {
+/**
+ * Retrieves cultivations available in the given list of catalogues.
+ *
+ * No permission checks are performed. If a catalogue permission system is implemented in the future this may change.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param catalogueIds The source IDs of the catalogues to retrieve cultivations from, such as "brp".
+ * @returns A Promise that resolves with a flat array of cultivation catalogue entries across all given catalogues.
+ * @alpha
+ */
+export async function getCultivationsFromCatalogues(
+    fdm: FdmType,
+    catalogueIds: schema.cultivationCatalogueSelectingTypeSelect["b_lu_source"][],
+): Promise<CultivationCatalogue[]> {
+    try {
+        if (catalogueIds.length === 0) {
             return []
         }
 
-        // Get cultivations from enabled catalogues
-        const cultivationsCatalogue = await fdm
+        return fdm
             .select()
             .from(schema.cultivationsCatalogue)
             .where(
-                inArray(
-                    schema.cultivationsCatalogue.b_lu_source,
-                    enabledCatalogues.map(
-                        (c: { b_lu_source: string }) => c.b_lu_source,
-                    ),
-                ),
+                inArray(schema.cultivationsCatalogue.b_lu_source, catalogueIds),
             )
-
-        return cultivationsCatalogue
+            .orderBy(
+                asc(schema.cultivationsCatalogue.b_lu_source),
+                asc(schema.cultivationsCatalogue.b_lu_name),
+            )
     } catch (err) {
-        throw handleError(err, "Exception for getCultivationsFromCatalogue", {
-            principal_id,
-            b_id_farm,
+        throw handleError(err, "Exception for getCultivationsFromCatalogues", {
+            catalogueIds,
         })
     }
 }

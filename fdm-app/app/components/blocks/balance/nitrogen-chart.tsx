@@ -424,7 +424,7 @@ function buildChartDataAndLegend({
 }
 
 export function NitrogenBalanceChart(
-    props: { balanceData: { balance: number; removal: number } } & (
+    props: (
         | { type: "farm"; balanceData: FarmBalanceData; fieldInput: unknown }
         | {
               type: "field"

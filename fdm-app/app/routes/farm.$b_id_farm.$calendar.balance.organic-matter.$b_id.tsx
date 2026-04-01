@@ -40,7 +40,7 @@ import { useCalendarStore } from "~/store/calendar"
 export const meta: MetaFunction = () => {
     return [
         {
-            title: `Organische Stof | Perceel | Nutriëntenbalans| ${clientConfig.name}`,
+            title: `Organische stof | Perceel | Nutriëntenbalans| ${clientConfig.name}`,
         },
         {
             name: "description",
