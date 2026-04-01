@@ -34,39 +34,84 @@ import type {
 export async function calculateOrganicMatterBalance(
     fdm: FdmType,
     organicMatterBalanceInput: OrganicMatterBalanceInput,
-): Promise<OrganicMatterBalanceNumeric> {
-    // Destructure input for easier access.
-    const { fields, fertilizerDetails, cultivationDetails, timeFrame } =
-        organicMatterBalanceInput
+) {
+    return calculateOrganicMatterBalanceForFarms(fdm, [
+        {
+            ...organicMatterBalanceInput,
+            b_id_farm:
+                (
+                    organicMatterBalanceInput as OrganicMatterBalanceInput & {
+                        b_id_farm?: string
+                    }
+                ).b_id_farm ?? "farm",
+        },
+    ])
+}
 
+/**
+ * Calculates the organic matter balance for multiple farms, aggregating results from all its fields.
+ *
+ * This function serves as the main entry point for the organic matter balance calculation.
+ * It takes a comprehensive set of input data for a farm, processes each field in batches
+ * to calculate its individual balance, and then aggregates these results into farm-level balances.
+ * The final output is a numeric representation of the balance, suitable for display or further analysis.
+ *
+ * @param fdm - The FDM instance for database access (caching).
+ * @param organicMatterBalanceInput - The complete dataset required for the calculation, including all fields,
+ *   fertilizer catalogues, and cultivation catalogues for the farm.
+ * @returns A promise that resolves to the aggregated `OrganicMatterBalanceNumeric` object for the farm.
+ * @throws {Error} Throws an error if the calculation process fails for any reason.
+ */
+export async function calculateOrganicMatterBalanceForFarms(
+    fdm: FdmType,
+    inputs: (OrganicMatterBalanceInput & { b_id_farm: string })[],
+) {
+    const fieldInputs: (OrganicMatterBalanceFieldInput & {
+        b_id_farm: string
+    })[] = inputs.flatMap((input) =>
+        input.fields.map((field) => ({
+            b_id_farm: input.b_id_farm,
+            fieldInput: field,
+            fertilizerDetails: input.fertilizerDetails,
+            cultivationDetails: input.cultivationDetails,
+            timeFrame: input.timeFrame,
+        })),
+    )
+    return calculateOrganicMatterBalanceBatched(fdm, fieldInputs)
+}
+
+export async function calculateOrganicMatterBalanceBatched(
+    fdm: FdmType,
+    fieldInputs: (OrganicMatterBalanceFieldInput & { b_id_farm: string })[],
+): Promise<OrganicMatterBalanceNumeric> {
     // Process fields in batches to avoid overwhelming the system with concurrent promises,
     // especially for farms with a large number of fields.
     const fieldsWithBalanceResults: OrganicMatterBalanceFieldResultNumeric[] =
         []
     const batchSize = 50
 
-    for (let i = 0; i < fields.length; i += batchSize) {
-        const batch = fields.slice(i, i + batchSize)
+    for (let i = 0; i < fieldInputs.length; i += batchSize) {
+        const batch = fieldInputs.slice(i, i + batchSize)
         const batchResults = await Promise.all(
             batch.map(async (fieldInput) => {
                 try {
-                    const balance = await getOrganicMatterBalanceField(fdm, {
+                    const balance = await getOrganicMatterBalanceField(
+                        fdm,
                         fieldInput,
-                        fertilizerDetails,
-                        cultivationDetails,
-                        timeFrame,
-                    })
+                    )
                     return {
-                        b_id: fieldInput.field.b_id,
-                        b_area: fieldInput.field.b_area ?? 0,
-                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        b_id: fieldInput.fieldInput.field.b_id,
+                        b_area: fieldInput.fieldInput.field.b_area ?? 0,
+                        b_bufferstrip:
+                            fieldInput.fieldInput.field.b_bufferstrip ?? false,
                         balance,
                     }
                 } catch (error) {
                     return {
-                        b_id: fieldInput.field.b_id,
-                        b_area: fieldInput.field.b_area ?? 0,
-                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        b_id: fieldInput.fieldInput.field.b_id,
+                        b_area: fieldInput.fieldInput.field.b_area ?? 0,
+                        b_bufferstrip:
+                            fieldInput.fieldInput.field.b_bufferstrip ?? false,
                         errorMessage:
                             error instanceof Error
                                 ? error.message

@@ -8,25 +8,18 @@ import {
     getFields,
     listPrincipalsForFarm,
 } from "@nmi-agro/fdm-core"
-import { data, NavLink, useLoaderData } from "react-router"
+import { data, useLoaderData } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { columns, type FarmExtended } from "~/components/blocks/farms/columns"
 import { DataTable } from "~/components/blocks/farms/table"
-import { Button } from "~/components/ui/button"
-import {
-    Empty,
-    EmptyContent,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyTitle,
-} from "~/components/ui/empty"
+import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { auth } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import type { Route } from "./+types/organization.$slug.$calendar.farms"
+import type { Route } from "./+types/organization.$slug.$calendar.farms._index"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
@@ -250,27 +243,12 @@ export default function OrganizationFarmsPage() {
                         <DataTable columns={columns} data={data} />
                     </div>
                 ) : (
-                    <Empty className="border-none">
-                        <EmptyHeader>
-                            <EmptyTitle>
-                                Het lijkt erop dat jouw organisatie tot geen
-                                bedrijven toegang heeft. :(
-                            </EmptyTitle>
-                            <EmptyDescription>
-                                Neem contact op met bedrijven om toegang tot hen
-                                te krijgen.
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
-                            <Button asChild>
-                                <NavLink
-                                    to={`/organization/${organization.slug}`}
-                                >
-                                    Naar dashboard
-                                </NavLink>
-                            </Button>
-                        </EmptyContent>
-                    </Empty>
+                    <NoFarmsMessage
+                        action={{
+                            label: "Naar dashboard",
+                            to: `/organization/${organization.slug}`,
+                        }}
+                    />
                 )}
             </FarmContent>
         </main>

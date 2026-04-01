@@ -37,7 +37,7 @@ import { fdm } from "~/lib/fdm.server"
 export const meta: MetaFunction = () => {
     return [
         {
-            title: `Organische Stof | Bedrijf | Nutriëntenbalans| ${clientConfig.name}`,
+            title: `Organische stof | Bedrijf | Nutriëntenbalans| ${clientConfig.name}`,
         },
         {
             name: "description",

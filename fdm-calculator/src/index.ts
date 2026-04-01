@@ -3,9 +3,14 @@ export const fdmCalculator = pkg
 export {
     calculateNitrogenBalance,
     calculateNitrogenBalanceField,
+    calculateNitrogenBalanceForFarms,
+    calculateNitrogenBalancesFieldToFarm,
     getNitrogenBalanceField,
 } from "./balance/nitrogen/index"
-export { collectInputForNitrogenBalance } from "./balance/nitrogen/input"
+export {
+    collectInputForNitrogenBalance,
+    collectInputForNitrogenBalanceForFarms,
+} from "./balance/nitrogen/input"
 export type {
     FieldInput,
     NitrogenBalanceFieldInput,
@@ -28,9 +33,14 @@ export type {
 export {
     calculateOrganicMatterBalance,
     calculateOrganicMatterBalanceField,
+    calculateOrganicMatterBalanceForFarms,
+    calculateOrganicMatterBalancesFieldToFarm,
     getOrganicMatterBalanceField,
 } from "./balance/organic-matter/index"
-export { collectInputForOrganicMatterBalance } from "./balance/organic-matter/input"
+export {
+    collectInputForOrganicMatterBalance,
+    collectInputForOrganicMatterBalanceForFarms,
+} from "./balance/organic-matter/input"
 export type {
     OrganicMatterBalanceFieldNumeric,
     OrganicMatterBalanceFieldResultNumeric,
