@@ -203,6 +203,14 @@ export const FormSchema = z
                 .lte(30000, "Waarde moet kleiner of gelijk aan 30000 zijn")
                 .optional(),
         ),
+        a_nmin_cc: z.preprocess(
+            (val) => (val === "" ? undefined : val),
+            z.coerce
+                .number()
+                .gte(0, "Waarde moet groter of gelijk aan 0 zijn")
+                .lte(500, "Waarde moet kleiner of gelijk aan 500 zijn")
+                .optional(),
+        ),
         a_nh4_cc: z.preprocess(
             (val) => (val === "" ? undefined : val),
             z.coerce
