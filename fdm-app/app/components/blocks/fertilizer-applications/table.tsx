@@ -64,6 +64,10 @@ export const mappers = {
         (application) =>
             `${createDateKey(application.p_app_date)}#${application.p_app_amount?.toPrecision(4)}`,
     ),
+    mapBySimilarAndOrder: createMapper(
+        (application, i) =>
+            `${createDateKey(application.p_app_date)}#${application.p_app_amount?.toPrecision(4)}#${i}`,
+    ),
     mapEach: createMapper((application) => application.p_app_id),
 } as const
 
@@ -176,7 +180,11 @@ export function DataTable({
     returnUrl: string
 }) {
     const records = useMemo(
-        () => groupAndOrderFertApps(fertilizerApplications, "mapBySimilar"),
+        () =>
+            groupAndOrderFertApps(
+                fertilizerApplications,
+                "mapBySimilarAndOrder",
+            ),
         [fertilizerApplications],
     )
 
