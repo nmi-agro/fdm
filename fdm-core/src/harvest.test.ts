@@ -1147,8 +1147,8 @@ describe("getHarvestsForFarm", () => {
         expect(result.has(b_lu_2)).toBe(true)
         expect(result.get(b_lu)).toHaveLength(1)
         expect(result.get(b_lu_2)).toHaveLength(1)
-        expect(result.get(b_lu)![0].b_lu).toBe(b_lu)
-        expect(result.get(b_lu_2)![0].b_lu).toBe(b_lu_2)
+        expect(result.get(b_lu)?.[0].b_lu).toBe(b_lu)
+        expect(result.get(b_lu_2)?.[0].b_lu).toBe(b_lu_2)
     })
 
     it("should include nested harvestable and harvestable_analyses", async () => {

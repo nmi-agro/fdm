@@ -1,4 +1,4 @@
-import { Square, Circle, Triangle, Diamond } from "lucide-react"
+import { Circle, Diamond, Square, Triangle } from "lucide-react"
 
 export function FertilizerIcon({ p_type }: { p_type: string }) {
     if (p_type === "manure")

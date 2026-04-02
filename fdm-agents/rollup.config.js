@@ -1,8 +1,8 @@
 import commonjs from "@rollup/plugin-commonjs"
-import resolve from "@rollup/plugin-node-resolve"
 import json from "@rollup/plugin-json"
-import esbuild from "rollup-plugin-esbuild"
+import resolve from "@rollup/plugin-node-resolve"
 import dts from "rollup-plugin-dts"
+import esbuild from "rollup-plugin-esbuild"
 import packageJson from "./package.json" with { type: "json" }
 
 const isProd = process.env.NODE_ENV === "production"

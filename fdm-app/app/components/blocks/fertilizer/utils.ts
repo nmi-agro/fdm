@@ -1,4 +1,4 @@
-import { type Fertilizer } from "@nmi-agro/fdm-core"
+import type { Fertilizer } from "@nmi-agro/fdm-core"
 import type { z } from "zod"
 import type { FormSchema } from "./formschema"
 

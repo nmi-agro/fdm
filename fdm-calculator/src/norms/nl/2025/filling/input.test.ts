@@ -189,7 +189,11 @@ describe("collectNL2025InputForFertilizerApplicationFillingForFarm", () => {
         vi.clearAllMocks()
 
         vi.mocked(getFields).mockResolvedValue([
-            { b_id: mockFieldId, b_id_farm: mockFarmId, b_centroid: [10, 20] } as Field,
+            {
+                b_id: mockFieldId,
+                b_id_farm: mockFarmId,
+                b_centroid: [10, 20],
+            } as Field,
         ])
         vi.mocked(getGrazingIntention).mockResolvedValue(true)
         vi.mocked(isOrganicCertificationValid).mockResolvedValue(false)
@@ -200,19 +204,27 @@ describe("collectNL2025InputForFertilizerApplicationFillingForFarm", () => {
             new Map([[mockFieldId, [{ b_lu: "cult1" }] as Cultivation[]]]),
         )
         vi.mocked(getFertilizerApplicationsForFarm).mockResolvedValue(
-            new Map([[mockFieldId, [{ p_app_id: "app1", p_app_amount: 1000 }] as FertilizerApplication[]]]),
+            new Map([
+                [
+                    mockFieldId,
+                    [
+                        { p_app_id: "app1", p_app_amount: 1000 },
+                    ] as FertilizerApplication[],
+                ],
+            ]),
         )
     })
 
     it("should collect farm filling input correctly", async () => {
         const fosfaatgebruiksnormByField = new Map([[mockFieldId, 100]])
 
-        const result = await collectNL2025InputForFertilizerApplicationFillingForFarm(
-            mockFdm,
-            mockPrincipalId,
-            mockFarmId,
-            fosfaatgebruiksnormByField,
-        )
+        const result =
+            await collectNL2025InputForFertilizerApplicationFillingForFarm(
+                mockFdm,
+                mockPrincipalId,
+                mockFarmId,
+                fosfaatgebruiksnormByField,
+            )
 
         expect(result).toBeInstanceOf(Map)
         expect(result.has(mockFieldId)).toBe(true)
@@ -225,9 +237,26 @@ describe("collectNL2025InputForFertilizerApplicationFillingForFarm", () => {
         expect(fieldInput.b_centroid).toEqual([10, 20])
         expect(fieldInput.fertilizers).toHaveLength(1)
 
-        const timeframe2025 = { start: new Date(2025, 0, 1), end: new Date(2025, 11, 31, 23, 59, 59, 999) }
-        expect(getFields).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId)
-        expect(getCultivationsForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2025)
-        expect(getFertilizerApplicationsForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2025)
+        const timeframe2025 = {
+            start: new Date(2025, 0, 1),
+            end: new Date(2025, 11, 31, 23, 59, 59, 999),
+        }
+        expect(getFields).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+        )
+        expect(getCultivationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2025,
+        )
+        expect(getFertilizerApplicationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2025,
+        )
     })
 })

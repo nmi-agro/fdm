@@ -783,7 +783,7 @@ describe("calculateNL2025StikstofGebruiksNorm", () => {
                         {
                             omschrijving: "zero_period",
                             // Use explicit zero values that would fail with !! check
-                            period_start_month: 0 as any, 
+                            period_start_month: 0 as any,
                             period_start_day: 0 as any,
                             period_end_month: 12,
                             period_end_day: 31,
@@ -799,10 +799,15 @@ describe("calculateNL2025StikstofGebruiksNorm", () => {
                 } as any,
             ]
 
-            const spy = vi.spyOn(StikstofData, "nitrogenStandardsData", "get").mockReturnValue(mockData as any)
+            const spy = vi
+                .spyOn(StikstofData, "nitrogenStandardsData", "get")
+                .mockReturnValue(mockData as any)
 
             const mockInput: NL2025NormsInput = {
-                farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
+                farm: {
+                    is_derogatie_bedrijf: false,
+                    has_grazing_intention: false,
+                },
                 field: { b_id: "1", b_centroid: kleiCentroid } as Field,
                 cultivations: [
                     {
@@ -815,7 +820,7 @@ describe("calculateNL2025StikstofGebruiksNorm", () => {
             }
 
             const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
-            
+
             // Should match the 200 norm from the sub_type with zero-valued periods
             expect(result.normValue).toBe(200)
             expect(result.normSource).toContain("Zero Test Crop")

@@ -138,7 +138,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         fdm,
         session.principal_id,
         b_id_farm,
-        Number.parseInt(calendar),
+        Number.parseInt(calendar, 10),
     )
 
     return {
@@ -637,7 +637,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             const startTime = Date.now()
             let rawResult = ""
             let usageData: OneShotAgentResult["usage"] = null
-            let toolCalls: string[] | undefined = undefined
+            let toolCalls: string[] | undefined
 
             try {
                 const agentResult = await runOneShotAgent(
@@ -1175,14 +1175,12 @@ export default function GerritApp() {
                             {isAIGenerating ? (
                                 <GerritLoading />
                             ) : plan ? (
-                                <>
-                                    <PlanTable
-                                        plan={plan}
-                                        isSaving={isSaving}
-                                        expandedRows={expandedRows}
-                                        toggleRow={toggleRow}
-                                    />
-                                </>
+                                <PlanTable
+                                    plan={plan}
+                                    isSaving={isSaving}
+                                    expandedRows={expandedRows}
+                                    toggleRow={toggleRow}
+                                />
                             ) : (
                                 <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
                                     <div className="bg-primary/10 p-6 rounded-full mb-6">

@@ -9,8 +9,8 @@ import {
     updateField,
 } from "@nmi-agro/fdm-core"
 import {
-    data,
     type ActionFunctionArgs,
+    data,
     type LoaderFunctionArgs,
     type MetaFunction,
     NavLink,

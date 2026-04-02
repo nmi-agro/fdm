@@ -67,8 +67,12 @@ export function SummaryCards({
                                     <span className="text-xs text-muted-foreground">
                                         Balans op bedrijfsniveau
                                     </span>
-                                    <span className={`text-xs font-semibold tabular-nums ${farmTotals.nBalance.balance <= farmTotals.nBalance.target ? "text-green-600" : "text-red-600"}`}>
-                                        {Math.round(farmTotals.nBalance.balance)}{" "}
+                                    <span
+                                        className={`text-xs font-semibold tabular-nums ${farmTotals.nBalance.balance <= farmTotals.nBalance.target ? "text-green-600" : "text-red-600"}`}
+                                    >
+                                        {Math.round(
+                                            farmTotals.nBalance.balance,
+                                        )}{" "}
                                         kg N/ha
                                     </span>
                                 </div>

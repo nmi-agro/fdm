@@ -155,10 +155,8 @@ describe("createFunctionsForFertilizerApplicationFilling", () => {
 
 describe("createUncachedFunctionsForFertilizerApplicationFilling", () => {
     it("should return the correct uncached functions for NL region and year 2025", () => {
-        const functions = createUncachedFunctionsForFertilizerApplicationFilling(
-            "NL",
-            "2025",
-        )
+        const functions =
+            createUncachedFunctionsForFertilizerApplicationFilling("NL", "2025")
         expect(functions.collectInputForFertilizerApplicationFilling).toBe(
             collectNL2025InputForFertilizerApplicationFilling,
         )
@@ -170,17 +168,17 @@ describe("createUncachedFunctionsForFertilizerApplicationFilling", () => {
         )
         expect(
             functions.calculateFertilizerApplicationFillingForPhosphate,
-        ).toBe(calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm)
+        ).toBe(
+            calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
+        )
         expect(functions.aggregateNormFillingsToFarmLevel).toBe(
             aggregateNormFillingsToFarmLevel,
         )
     })
 
     it("should return the correct uncached functions for NL region and year 2026", () => {
-        const functions = createUncachedFunctionsForFertilizerApplicationFilling(
-            "NL",
-            "2026",
-        )
+        const functions =
+            createUncachedFunctionsForFertilizerApplicationFilling("NL", "2026")
         expect(functions.collectInputForFertilizerApplicationFilling).toBe(
             collectNL2026InputForFertilizerApplicationFilling,
         )
@@ -192,7 +190,9 @@ describe("createUncachedFunctionsForFertilizerApplicationFilling", () => {
         )
         expect(
             functions.calculateFertilizerApplicationFillingForPhosphate,
-        ).toBe(calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm)
+        ).toBe(
+            calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+        )
         expect(functions.aggregateNormFillingsToFarmLevel).toBe(
             aggregateNormFillingsToFarmLevel,
         )
@@ -201,14 +201,20 @@ describe("createUncachedFunctionsForFertilizerApplicationFilling", () => {
     it("should throw an error for an unsupported year", () => {
         expect(() =>
             //@ts-expect-error
-            createUncachedFunctionsForFertilizerApplicationFilling("NL", "2024"),
+            createUncachedFunctionsForFertilizerApplicationFilling(
+                "NL",
+                "2024",
+            ),
         ).toThrow("Year not supported")
     })
 
     it("should throw an error for an unsupported region", () => {
         expect(() =>
             //@ts-expect-error
-            createUncachedFunctionsForFertilizerApplicationFilling("BE", "2025"),
+            createUncachedFunctionsForFertilizerApplicationFilling(
+                "BE",
+                "2025",
+            ),
         ).toThrow("Region not supported")
     })
 })

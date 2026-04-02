@@ -205,7 +205,6 @@ export async function getEnabledCultivationCataloguesForFarms(
     }
 }
 
-
 /**
  * Enables a fertilizer catalogue for a farm.
  *

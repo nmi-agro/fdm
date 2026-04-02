@@ -12,8 +12,8 @@ import {
     getCultivationPlan,
     getCultivations,
     getCultivationsForFarm,
-    getCultivationsFromCatalogues,
     getCultivationsFromCatalogue,
+    getCultivationsFromCatalogues,
     getDefaultDatesOfCultivation,
     removeCultivation,
     updateCultivation,
@@ -218,11 +218,12 @@ describe("Cultivation Data Model", () => {
         })
 
         it("should get all cultivations for farms from catalogue using composable functions", async () => {
-            const farmCatalogues = await getEnabledCultivationCataloguesForFarms(
-                fdm,
-                principal_id,
-                [b_id_farm, b_id_farm_2],
-            )
+            const farmCatalogues =
+                await getEnabledCultivationCataloguesForFarms(
+                    fdm,
+                    principal_id,
+                    [b_id_farm, b_id_farm_2],
+                )
             expect(farmCatalogues[b_id_farm]).toBeDefined()
             expect(farmCatalogues[b_id_farm_2]).toBeDefined()
 
@@ -2661,8 +2662,8 @@ describe("getCultivationsForFarm", () => {
         expect(result.has(b_id_2)).toBe(true)
         expect(result.get(b_id)).toHaveLength(1)
         expect(result.get(b_id_2)).toHaveLength(1)
-        expect(result.get(b_id)![0].b_id).toBe(b_id)
-        expect(result.get(b_id_2)![0].b_id).toBe(b_id_2)
+        expect(result.get(b_id)?.[0].b_id).toBe(b_id)
+        expect(result.get(b_id_2)?.[0].b_id).toBe(b_id_2)
     })
 
     it("should return an empty Map when the farm has no cultivations", async () => {

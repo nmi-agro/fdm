@@ -424,14 +424,13 @@ function buildChartDataAndLegend({
 }
 
 export function NitrogenBalanceChart(
-    props: (
+    props:
         | { type: "farm"; balanceData: FarmBalanceData; fieldInput: unknown }
         | {
               type: "field"
               balanceData: FieldBalanceData
               fieldInput: FieldInput
-          }
-    ),
+          },
 ) {
     const { type, balanceData, fieldInput } = props
     const [tooltipFocus, setTooltipFocus] = useState<string>()

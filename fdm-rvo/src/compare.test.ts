@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest"
+import { describe, expect, it } from "vitest"
 import { compareFields } from "./compare"
-import { RvoImportReviewStatus, type RvoField } from "./types"
+import { type RvoField, RvoImportReviewStatus } from "./types"
 
 // Shared helpers used across all describe blocks
 const createLocalField = (overrides: Partial<any> = {}): any => ({
@@ -392,7 +392,10 @@ describe("compareFields Edge Cases", () => {
     })
 
     it("should set rvoCultivation to undefined for NEW_REMOTE when CropTypeCode is missing", () => {
-        const rvo = createRvoField({ CropFieldID: "new-no-crop", CropTypeCode: "" })
+        const rvo = createRvoField({
+            CropFieldID: "new-no-crop",
+            CropTypeCode: "",
+        })
         const result = compareFields([], [rvo], calendar, [])
 
         expect(result).toHaveLength(1)

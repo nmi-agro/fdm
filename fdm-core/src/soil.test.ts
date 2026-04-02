@@ -989,8 +989,8 @@ describe("getSoilAnalysesForFarm", () => {
         expect(result.has(b_id_2)).toBe(true)
         expect(result.get(b_id)).toHaveLength(1)
         expect(result.get(b_id_2)).toHaveLength(1)
-        expect(result.get(b_id)![0].a_p_al).toBe(10)
-        expect(result.get(b_id_2)![0].a_p_al).toBe(20)
+        expect(result.get(b_id)?.[0].a_p_al).toBe(10)
+        expect(result.get(b_id_2)?.[0].a_p_al).toBe(20)
     })
 
     it("should return an empty Map when the farm has no soil analyses", async () => {
@@ -1198,7 +1198,9 @@ describe("getCurrentSoilDataForFarm", () => {
         expect(result.has(b_id_2)).toBe(true)
         const field1Data = result.get(b_id)!
         expect(field1Data.find((x) => x.parameter === "a_p_al")?.value).toBe(10)
-        expect(field1Data.find((x) => x.parameter === "a_p_cc")?.value).toBe(1.5)
+        expect(field1Data.find((x) => x.parameter === "a_p_cc")?.value).toBe(
+            1.5,
+        )
         const field2Data = result.get(b_id_2)!
         expect(field2Data.find((x) => x.parameter === "a_p_al")?.value).toBe(20)
     })

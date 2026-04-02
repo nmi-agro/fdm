@@ -406,8 +406,7 @@ export async function getHarvestsForFarm(
 
         const rows = await fdm
             .select({
-                b_id_harvesting:
-                    schema.cultivationHarvesting.b_id_harvesting,
+                b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
                 b_lu_harvest_date:
                     schema.cultivationHarvesting.b_lu_harvest_date,
                 b_lu: schema.cultivationHarvesting.b_lu,
@@ -456,29 +455,18 @@ export async function getHarvestsForFarm(
             )
             .innerJoin(
                 schema.cultivations,
-                eq(
-                    schema.cultivations.b_lu,
-                    schema.cultivationHarvesting.b_lu,
-                ),
+                eq(schema.cultivations.b_lu, schema.cultivationHarvesting.b_lu),
             )
             .innerJoin(
                 schema.cultivationStarting,
-                eq(
-                    schema.cultivationStarting.b_lu,
-                    schema.cultivations.b_lu,
-                ),
+                eq(schema.cultivationStarting.b_lu, schema.cultivations.b_lu),
             )
             .innerJoin(
                 schema.fieldAcquiring,
-                eq(
-                    schema.fieldAcquiring.b_id,
-                    schema.cultivationStarting.b_id,
-                ),
+                eq(schema.fieldAcquiring.b_id, schema.cultivationStarting.b_id),
             )
             .where(whereClause)
-            .orderBy(
-                desc(schema.cultivationHarvesting.b_lu_harvest_date),
-            )
+            .orderBy(desc(schema.cultivationHarvesting.b_lu_harvest_date))
 
         // Reconstruct nested Harvest objects, grouping analyses by harvest ID, then by cultivation ID
         const harvestsById = new Map<string, Harvest>()

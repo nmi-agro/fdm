@@ -10,9 +10,9 @@ import {
     Sprout,
     Square,
 } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState } from "react"
 import { NavLink, useLocation, useSearchParams } from "react-router"
-import { useFeatureFlagEnabled } from "posthog-js/react"
 import { getCalendarSelection } from "@/app/lib/calendar"
 import { useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"

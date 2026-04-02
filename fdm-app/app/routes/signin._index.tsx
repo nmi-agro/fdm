@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { SiGithub } from "@icons-pack/react-simple-icons"
 import { AnimatePresence, motion, useScroll } from "framer-motion"
 import {
     ArrowDown,
@@ -27,7 +28,6 @@ import {
     Target,
     Users,
 } from "lucide-react"
-import { SiGithub } from "@icons-pack/react-simple-icons"
 import { useEffect, useRef, useState } from "react"
 import { FormProvider } from "react-hook-form"
 import type {

@@ -7,14 +7,14 @@ import type {
 import {
     getCultivations,
     getCultivationsForFarm,
-    getCultivationsFromCatalogues,
     getCultivationsFromCatalogue,
+    getCultivationsFromCatalogues,
     getEnabledCultivationCataloguesForFarms,
     getEnabledFertilizerCataloguesForFarms,
     getFertilizerApplications,
     getFertilizerApplicationsForFarm,
-    getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
+    getFertilizersFromCatalogues,
     getField,
     getFields,
     getSoilAnalyses,
@@ -96,15 +96,37 @@ async function collectInputForOrganicMatterBalanceForFarm(
                     field.b_id,
                     timeframe,
                 )
-                return [{ field, cultivations, fertilizerApplications, soilAnalyses }]
+                return [
+                    {
+                        field,
+                        cultivations,
+                        fertilizerApplications,
+                        soilAnalyses,
+                    },
+                ]
             }
 
             // Farm-level path: fetch all data per farm in parallel
             const [cultivationsByField, soilByField, fertAppsByField] =
                 await Promise.all([
-                    getCultivationsForFarm(tx, principal_id, b_id_farm, timeframe),
-                    getSoilAnalysesForFarm(tx, principal_id, b_id_farm, timeframe),
-                    getFertilizerApplicationsForFarm(tx, principal_id, b_id_farm, timeframe),
+                    getCultivationsForFarm(
+                        tx,
+                        principal_id,
+                        b_id_farm,
+                        timeframe,
+                    ),
+                    getSoilAnalysesForFarm(
+                        tx,
+                        principal_id,
+                        b_id_farm,
+                        timeframe,
+                    ),
+                    getFertilizerApplicationsForFarm(
+                        tx,
+                        principal_id,
+                        b_id_farm,
+                        timeframe,
+                    ),
                 ])
 
             // Assemble per-field results from the Maps (pure in-memory, no queries)
@@ -188,18 +210,18 @@ export async function collectInputForOrganicMatterBalanceForFarms(
 
             // Step 2: Deduplicate catalogue sources across farms and fetch items once
             const uniqueCultivationSources = [
-                ...new Set(
-                    Object.values(farmCultivationCatalogues).flat(),
-                ),
+                ...new Set(Object.values(farmCultivationCatalogues).flat()),
             ]
             const uniqueFertilizerSources = [
-                ...new Set(
-                    Object.values(farmFertilizerCatalogues).flat(),
-                ),
+                ...new Set(Object.values(farmFertilizerCatalogues).flat()),
             ]
             const [allCultivations, allFertilizers] = await Promise.all([
                 getCultivationsFromCatalogues(tx, uniqueCultivationSources),
-                getFertilizersFromCatalogues(tx, principal_id, uniqueFertilizerSources),
+                getFertilizersFromCatalogues(
+                    tx,
+                    principal_id,
+                    uniqueFertilizerSources,
+                ),
             ])
 
             // Step 3: Process each farm using the pre-fetched catalogue data
@@ -241,12 +263,11 @@ export async function collectInputForOrganicMatterBalanceForFarms(
                             ),
                         ),
                     )
-                    const fertilizerDetailsForThisFarm =
-                        allFertilizers.filter(
-                            (f) =>
-                                farmFertilizerSources.has(f.p_source) &&
-                                fertilizerIds.has(f.p_id_catalogue),
-                        )
+                    const fertilizerDetailsForThisFarm = allFertilizers.filter(
+                        (f) =>
+                            farmFertilizerSources.has(f.p_source) &&
+                            fertilizerIds.has(f.p_id_catalogue),
+                    )
 
                     return {
                         b_id_farm: b_id_farm,
@@ -269,7 +290,16 @@ export async function collectInputForOrganicMatterBalanceForFarms(
                     }
                     return true
                 })
-                .map((result) => (result as PromiseFulfilledResult<OrganicMatterBalanceInput & { b_id_farm: string }>).value)
+                .map(
+                    (result) =>
+                        (
+                            result as PromiseFulfilledResult<
+                                OrganicMatterBalanceInput & {
+                                    b_id_farm: string
+                                }
+                            >
+                        ).value,
+                )
         })
     } catch (error) {
         throw handleOrganicMatterBalanceInputCollectionError(error)

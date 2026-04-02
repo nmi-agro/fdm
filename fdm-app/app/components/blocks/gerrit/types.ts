@@ -1,11 +1,11 @@
 import type {
-    NormFilling,
-    NutrientAdvice,
-    GebruiksnormResult,
     AggregatedNormFillingsToFarmLevel,
     AggregatedNormsToFarmLevel,
-    NitrogenBalanceFieldNumeric,
     Dose,
+    GebruiksnormResult,
+    NitrogenBalanceFieldNumeric,
+    NormFilling,
+    NutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
 
 export interface ParsedPlanApplication {

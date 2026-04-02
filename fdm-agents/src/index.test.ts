@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
 import {
-    FertilizerPlanStrategiesSchema,
-    sanitizeAdditionalContext,
     buildFertilizerPlanPrompt,
+    FertilizerPlanStrategiesSchema,
     generateFarmFertilizerPlan,
+    sanitizeAdditionalContext,
 } from "./index"
 
 vi.mock("./agents/gerrit/agent", () => ({
@@ -45,7 +45,7 @@ describe("fdm-agents index", () => {
 
     describe("sanitizeAdditionalContext", () => {
         it("should trim whitespace and slice to 1000 chars", () => {
-            const longInput = "  " + "a".repeat(1100) + "  "
+            const longInput = `  ${"a".repeat(1100)}  `
             const result = sanitizeAdditionalContext(longInput)
             expect(result).toHaveLength(1000)
             expect(result).not.toContain(" ")

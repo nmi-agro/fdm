@@ -56,11 +56,10 @@ export async function getCultivationsFromCatalogue(
         )
         return await getCultivationsFromCatalogues(fdm, catalogueIds)
     } catch (err) {
-        throw handleError(
-            err,
-            "Exception for getCultivationsFromCatalogue",
-            { principal_id, b_id_farm },
-        )
+        throw handleError(err, "Exception for getCultivationsFromCatalogue", {
+            principal_id,
+            b_id_farm,
+        })
     }
 }
 
@@ -750,10 +749,7 @@ export async function getCultivationsForFarm(
             )
             .innerJoin(
                 schema.fieldAcquiring,
-                eq(
-                    schema.fieldAcquiring.b_id,
-                    schema.cultivationStarting.b_id,
-                ),
+                eq(schema.fieldAcquiring.b_id, schema.cultivationStarting.b_id),
             )
             .where(
                 timeframeCondition

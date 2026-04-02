@@ -7,14 +7,14 @@ import type {
 import {
     getCultivations,
     getCultivationsForFarm,
-    getCultivationsFromCatalogues,
     getCultivationsFromCatalogue,
+    getCultivationsFromCatalogues,
     getEnabledCultivationCataloguesForFarms,
     getEnabledFertilizerCataloguesForFarms,
     getFertilizerApplications,
     getFertilizerApplicationsForFarm,
-    getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
+    getFertilizersFromCatalogues,
     getField,
     getFields,
     getHarvests,
@@ -137,19 +137,29 @@ async function collectInputForNitrogenBalanceForFarm(
             }
 
             // Farm-level path: fetch all data per farm in parallel
-            const [cultivationsByField, soilByField, fertAppsByField, harvestsByField] =
-                await Promise.all([
-                    getCultivationsForFarm(tx, principal_id, b_id_farm, timeframe),
-                    getSoilAnalysesForFarm(tx, principal_id, b_id_farm, timeframe),
-                    getFertilizerApplicationsForFarm(tx, principal_id, b_id_farm, timeframe),
-                    getHarvestsForFarm(tx, principal_id, b_id_farm, timeframe),
-                ])
+            const [
+                cultivationsByField,
+                soilByField,
+                fertAppsByField,
+                harvestsByField,
+            ] = await Promise.all([
+                getCultivationsForFarm(tx, principal_id, b_id_farm, timeframe),
+                getSoilAnalysesForFarm(tx, principal_id, b_id_farm, timeframe),
+                getFertilizerApplicationsForFarm(
+                    tx,
+                    principal_id,
+                    b_id_farm,
+                    timeframe,
+                ),
+                getHarvestsForFarm(tx, principal_id, b_id_farm, timeframe),
+            ])
 
             // Assemble per-field results from the Maps (pure in-memory, no queries)
             return farmFields.map((field) => {
                 const cultivations = cultivationsByField.get(field.b_id) ?? []
-                const harvests = cultivations
-                    .flatMap((c) => harvestsByField.get(c.b_lu) ?? [])
+                const harvests = cultivations.flatMap(
+                    (c) => harvestsByField.get(c.b_lu) ?? [],
+                )
 
                 return {
                     field,
@@ -212,18 +222,18 @@ export async function collectInputForNitrogenBalanceForFarms(
 
             // Step 2: Deduplicate catalogue sources across farms and fetch items once
             const uniqueCultivationSources = [
-                ...new Set(
-                    Object.values(farmCultivationCatalogues).flat(),
-                ),
+                ...new Set(Object.values(farmCultivationCatalogues).flat()),
             ]
             const uniqueFertilizerSources = [
-                ...new Set(
-                    Object.values(farmFertilizerCatalogues).flat(),
-                ),
+                ...new Set(Object.values(farmFertilizerCatalogues).flat()),
             ]
             const [allCultivations, allFertilizers] = await Promise.all([
                 getCultivationsFromCatalogues(tx, uniqueCultivationSources),
-                getFertilizersFromCatalogues(tx, principal_id, uniqueFertilizerSources),
+                getFertilizersFromCatalogues(
+                    tx,
+                    principal_id,
+                    uniqueFertilizerSources,
+                ),
             ])
 
             // Step 3: Process each farm using the pre-fetched catalogue data
@@ -265,12 +275,11 @@ export async function collectInputForNitrogenBalanceForFarms(
                             ),
                         ),
                     )
-                    const fertilizerDetailsForThisFarm =
-                        allFertilizers.filter(
-                            (f) =>
-                                farmFertilizerSources.has(f.p_source) &&
-                                fertilizerIds.has(f.p_id_catalogue),
-                        )
+                    const fertilizerDetailsForThisFarm = allFertilizers.filter(
+                        (f) =>
+                            farmFertilizerSources.has(f.p_source) &&
+                            fertilizerIds.has(f.p_id_catalogue),
+                    )
 
                     return {
                         b_id_farm: b_id_farm,
@@ -293,7 +302,14 @@ export async function collectInputForNitrogenBalanceForFarms(
                     }
                     return true
                 })
-                .map((result) => (result as PromiseFulfilledResult<NitrogenBalanceInput & { b_id_farm: string }>).value)
+                .map(
+                    (result) =>
+                        (
+                            result as PromiseFulfilledResult<
+                                NitrogenBalanceInput & { b_id_farm: string }
+                            >
+                        ).value,
+                )
         })
     } catch (error) {
         throw handleNitrogenBalanceInputCollectionError(error)

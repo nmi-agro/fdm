@@ -8,7 +8,6 @@ import {
     useSearchParams,
 } from "react-router"
 import { redirectWithError } from "remix-toast"
-import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest"
-import { fetchRvoFields } from "./data"
 import type { RvoClient } from "@nmi-agro/rvo-connector"
+import { describe, expect, it, vi } from "vitest"
+import { fetchRvoFields } from "./data"
 
 // A simple square polygon used as test geometry
 const POLYGON_A = {
@@ -136,12 +136,19 @@ describe("fetchRvoFields", () => {
         ]
 
         const mockClient = {
-            opvragenBedrijfspercelen: vi.fn().mockResolvedValue({ features: mockFeatures }),
-            opvragenRegelingspercelenMest: vi.fn().mockResolvedValue({ features: mockMestFeatures }),
+            opvragenBedrijfspercelen: vi
+                .fn()
+                .mockResolvedValue({ features: mockFeatures }),
+            opvragenRegelingspercelenMest: vi
+                .fn()
+                .mockResolvedValue({ features: mockMestFeatures }),
         } as unknown as RvoClient
 
         const result = await fetchRvoFields(mockClient, "2024", "12345678")
-        expect(result[0].properties.mestData).toMatchObject({ MESTFieldid: "mest-1", Fielddesignator: "My Field" })
+        expect(result[0].properties.mestData).toMatchObject({
+            MESTFieldid: "mest-1",
+            Fielddesignator: "My Field",
+        })
     })
 
     it("should not merge mestData if geometries do not overlap sufficiently", async () => {
@@ -173,8 +180,12 @@ describe("fetchRvoFields", () => {
         ]
 
         const mockClient = {
-            opvragenBedrijfspercelen: vi.fn().mockResolvedValue({ features: mockFeatures }),
-            opvragenRegelingspercelenMest: vi.fn().mockResolvedValue({ features: mockMestFeatures }),
+            opvragenBedrijfspercelen: vi
+                .fn()
+                .mockResolvedValue({ features: mockFeatures }),
+            opvragenRegelingspercelenMest: vi
+                .fn()
+                .mockResolvedValue({ features: mockMestFeatures }),
         } as unknown as RvoClient
 
         const result = await fetchRvoFields(mockClient, "2024", "12345678")
@@ -234,4 +245,3 @@ describe("fetchRvoFields", () => {
         ).rejects.toThrow()
     })
 })
-

@@ -1,4 +1,7 @@
-import { getFertilizerParametersDescription, type Fertilizer } from "@nmi-agro/fdm-core"
+import {
+    type Fertilizer,
+    getFertilizerParametersDescription,
+} from "@nmi-agro/fdm-core"
 
 /**
  * Retrieves RVO label and type mappings used across fertilizer forms and summaries.

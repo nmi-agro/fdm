@@ -1,7 +1,7 @@
 import { LlmAgent } from "@google/adk"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
-import type { FdmType } from "@nmi-agro/fdm-core"
 
 /**
  * Creates the Fertilizer Application Planner Agent: "Gerrit"

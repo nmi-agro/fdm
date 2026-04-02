@@ -142,7 +142,12 @@ export async function collectNL2026InputForFertilizerApplicationFillingForFarm(
         ),
         getFertilizers(fdm, principal_id, b_id_farm),
         getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
-        getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
+        getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe2026,
+        ),
     ])
 
     const result = new Map<string, NL2026NormsFillingInput>()
@@ -153,7 +158,8 @@ export async function collectNL2026InputForFertilizerApplicationFillingForFarm(
             fertilizers,
             has_organic_certification,
             has_grazing_intention,
-            fosfaatgebruiksnorm: fosfaatgebruiksnormByField.get(field.b_id) ?? 0,
+            fosfaatgebruiksnorm:
+                fosfaatgebruiksnormByField.get(field.b_id) ?? 0,
             b_centroid: field.b_centroid,
         })
     }

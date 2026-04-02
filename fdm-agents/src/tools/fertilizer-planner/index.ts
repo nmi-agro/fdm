@@ -1,31 +1,31 @@
-import { FunctionTool, type Context } from "@google/adk"
-import { z } from "zod"
+import { type Context, FunctionTool } from "@google/adk"
 import {
-    getNutrientAdvice,
+    aggregateNormFillingsToFarmLevel,
+    aggregateNormsToFarmLevel,
+    calculateDose,
+    calculateNitrogenBalanceField,
+    calculateNitrogenBalancesFieldToFarm,
+    calculateOrganicMatterBalanceField,
+    collectInputForNitrogenBalance,
+    collectInputForOrganicMatterBalance,
     createFunctionsForNorms,
     createUncachedFunctionsForFertilizerApplicationFilling,
-    calculateOrganicMatterBalanceField,
-    collectInputForOrganicMatterBalance,
-    calculateNitrogenBalanceField,
-    collectInputForNitrogenBalance,
-    calculateNitrogenBalancesFieldToFarm,
-    calculateDose,
-    aggregateNormsToFarmLevel,
-    aggregateNormFillingsToFarmLevel,
+    getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
+import type {
+    FdmType,
+    Fertilizer,
+    FertilizerApplication,
+    PrincipalId,
+} from "@nmi-agro/fdm-core"
 import {
-    getFertilizers,
     getCultivations,
     getCurrentSoilData,
+    getFertilizers,
     getField,
     getFields,
 } from "@nmi-agro/fdm-core"
-import type {
-    FdmType,
-    PrincipalId,
-    Fertilizer,
-    FertilizerApplication,
-} from "@nmi-agro/fdm-core"
+import { z } from "zod"
 
 interface AdviceArgs {
     b_ids: string[]

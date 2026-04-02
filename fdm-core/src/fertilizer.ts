@@ -40,13 +40,16 @@ export async function getFertilizersFromCatalogue(
             principal_id,
             b_id_farm,
         )
-        return await getFertilizersFromCatalogues(fdm, principal_id, catalogueIds)
-    } catch (err) {
-        throw handleError(
-            err,
-            "Exception for getFertilizersFromCatalogue",
-            { principal_id, b_id_farm },
+        return await getFertilizersFromCatalogues(
+            fdm,
+            principal_id,
+            catalogueIds,
         )
+    } catch (err) {
+        throw handleError(err, "Exception for getFertilizersFromCatalogue", {
+            principal_id,
+            b_id_farm,
+        })
     }
 }
 
@@ -1123,14 +1126,20 @@ export async function getFertilizerApplicationsForFarm(
             if (existing) {
                 existing.push(fertilizerApplication as FertilizerApplication)
             } else {
-                result.set(b_id, [fertilizerApplication as FertilizerApplication])
+                result.set(b_id, [
+                    fertilizerApplication as FertilizerApplication,
+                ])
             }
         }
         return result
     } catch (err) {
-        throw handleError(err, "Exception for getFertilizerApplicationsForFarm", {
-            b_id_farm,
-        })
+        throw handleError(
+            err,
+            "Exception for getFertilizerApplicationsForFarm",
+            {
+                b_id_farm,
+            },
+        )
     }
 }
 

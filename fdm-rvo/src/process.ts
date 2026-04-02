@@ -1,12 +1,12 @@
 import {
-    addField,
-    updateField,
-    removeField,
-    addCultivation,
-    removeCultivation,
-    getDefaultDatesOfCultivation,
     acquiringMethodOptions,
+    addCultivation,
+    addField,
     type FdmType,
+    getDefaultDatesOfCultivation,
+    removeCultivation,
+    removeField,
+    updateField,
 } from "@nmi-agro/fdm-core"
 import type { RvoImportReviewItem, UserChoiceMap } from "./types"
 import { getItemId } from "./utils"

@@ -5,7 +5,7 @@ import type {
     Field,
 } from "@nmi-agro/fdm-core"
 import * as fdmCore from "@nmi-agro/fdm-core"
-import { describe, expect, it, vi, beforeEach } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
     collectNL2026InputForNorms,
     collectNL2026InputForNormsForFarm,

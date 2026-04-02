@@ -131,7 +131,12 @@ export async function collectNL2025InputForNormsForFarm(
         getFields(fdm, principal_id, b_id_farm, timeframe2025Cultivation),
         isDerogationGrantedForYear(fdm, principal_id, b_id_farm, year),
         getGrazingIntention(fdm, principal_id, b_id_farm, year),
-        getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2025Cultivation),
+        getCultivationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe2025Cultivation,
+        ),
         getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe2025),
     ])
 
@@ -140,19 +145,19 @@ export async function collectNL2025InputForNormsForFarm(
         const soilAnalysis = soilDataByField.get(field.b_id) ?? []
         const soilAnalysisPicked = {
             a_p_cc:
-                (Array.isArray(soilAnalysis)
+                ((Array.isArray(soilAnalysis)
                     ? soilAnalysis.find(
                           (x: { parameter: string }) =>
                               x.parameter === "a_p_cc",
                       )?.value
-                    : null) as number | null ?? null,
+                    : null) as number | null) ?? null,
             a_p_al:
-                (Array.isArray(soilAnalysis)
+                ((Array.isArray(soilAnalysis)
                     ? soilAnalysis.find(
                           (x: { parameter: string }) =>
                               x.parameter === "a_p_al",
                       )?.value
-                    : null) as number | null ?? null,
+                    : null) as number | null) ?? null,
         }
         result.set(field.b_id, {
             farm: { is_derogatie_bedrijf, has_grazing_intention },

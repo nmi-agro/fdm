@@ -14,7 +14,7 @@
 
 /** {@inheritDoc fdmServer} */
 import * as fdmSchema from "./db/schema"
-export { fdmSchema }
+
 export type { FdmAuth } from "./authentication"
 // export { createFdmLocal } from './fdm-local'
 export {
@@ -50,8 +50,8 @@ export {
     getCultivationPlan,
     getCultivations,
     getCultivationsForFarm,
-    getCultivationsFromCatalogues,
     getCultivationsFromCatalogue,
+    getCultivationsFromCatalogues,
     getDefaultDatesOfCultivation,
     removeCultivation,
     updateCultivation,
@@ -61,6 +61,11 @@ export type {
     CultivationCatalogue,
     CultivationPlan,
 } from "./cultivation.d"
+export {
+    acquiringMethodOptions,
+    gwlClassesOptions,
+    soilTypesOptions,
+} from "./db/schema"
 export type {
     invitationTypeInsert,
     invitationTypeSelect,
@@ -101,8 +106,8 @@ export {
     getFertilizerApplicationsForFarm,
     getFertilizerParametersDescription,
     getFertilizers,
-    getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
+    getFertilizersFromCatalogues,
     removeFertilizer,
     removeFertilizerApplication,
     updateFertilizerApplication,
@@ -125,11 +130,6 @@ export {
     updateField,
 } from "./field"
 export type { Field } from "./field.d"
-export {
-    acquiringMethodOptions,
-    soilTypesOptions,
-    gwlClassesOptions,
-} from "./db/schema"
 export {
     getGrazingIntention,
     getGrazingIntentions,
@@ -193,3 +193,4 @@ export type {
     SoilParameters,
 } from "./soil.d"
 export type { Timeframe } from "./timeframe.d"
+export { fdmSchema }

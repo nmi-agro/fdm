@@ -1,5 +1,5 @@
-import { InMemoryRunner, isFinalResponse, stringifyContent } from "@google/adk"
 import type { BaseAgent } from "@google/adk"
+import { InMemoryRunner, isFinalResponse, stringifyContent } from "@google/adk"
 
 export interface OneShotAgentResult {
     result: string
@@ -73,7 +73,7 @@ export async function runOneShotAgent(
         // 2. Fallback for other potential structures or raw tool calls
         const rawName = obj.functionCall?.name || obj.toolCall?.name
         if (typeof rawName === "string") {
-            const cleanName = rawName.replace(/[\[\]"]/g, "").trim()
+            const cleanName = rawName.replace(/[[\]"]/g, "").trim()
             if (cleanName) {
                 toolCalls.push(cleanName)
             }

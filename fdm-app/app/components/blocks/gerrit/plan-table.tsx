@@ -100,7 +100,7 @@ const columns = [
                 )
             return (
                 <div className="flex flex-col gap-1.5">
-                    {apps.map((app, i) => (
+                    {apps.map((app, _i) => (
                         <TooltipProvider
                             key={`${app.p_id_catalogue}-${app.p_app_date}-${app.p_app_amount}-${app.p_app_method ?? ""}`}
                         >
@@ -169,8 +169,9 @@ export function PlanTable({
                         Voorgesteld bemestingsplan
                     </CardTitle>
                     <CardDescription>
-                        Klik op een rij of gebruik de uitklapknop voor perceeldetails (normen, N-balans,
-                        organische stofbalans).
+                        Klik op een rij of gebruik de uitklapknop voor
+                        perceeldetails (normen, N-balans, organische
+                        stofbalans).
                     </CardDescription>
                 </div>
                 <Form method="post">
@@ -400,10 +401,13 @@ export function PlanTable({
                                                         {hasMetrics && (
                                                             <button
                                                                 type="button"
-                                                                onClick={(e) => {
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
                                                                     e.stopPropagation()
                                                                     toggleRow(
-                                                                        row.original
+                                                                        row
+                                                                            .original
                                                                             .b_id,
                                                                     )
                                                                 }}
@@ -436,7 +440,10 @@ export function PlanTable({
                                                         }
                                                         className="py-4 px-6"
                                                     >
-                                                        <div id={`details-${row.original.b_id}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+                                                        <div
+                                                            id={`details-${row.original.b_id}`}
+                                                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3"
+                                                        >
                                                             {/* ── Normen ── */}
                                                             {normsFilling &&
                                                                 norms && (

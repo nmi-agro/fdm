@@ -1,14 +1,13 @@
 import type { Field } from "@nmi-agro/fdm-core"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { calculateNL2026StikstofGebruiksNorm } from "./stikstofgebruiksnorm"
+
+import * as StikstofData from "./stikstofgebruiksnorm-data"
 import type {
     NitrogenStandard,
     NL2026NormsInput,
     NL2026NormsInputForCultivation,
 } from "./types"
-
-import * as StikstofData from "./stikstofgebruiksnorm-data"
-import { vi } from "vitest"
 
 describe("calculateNL2026StikstofGebruiksNorm", () => {
     it("should return the correct norm for grasland (beweiden)", async () => {
@@ -740,7 +739,9 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
                 } as any,
             ]
 
-            const spy = vi.spyOn(StikstofData, "nitrogenStandardsData", "get").mockReturnValue(mockData as any)
+            const spy = vi
+                .spyOn(StikstofData, "nitrogenStandardsData", "get")
+                .mockReturnValue(mockData as any)
 
             const mockInput: NL2026NormsInput = {
                 farm: { has_grazing_intention: false },

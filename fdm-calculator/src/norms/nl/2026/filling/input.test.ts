@@ -186,7 +186,11 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
         vi.clearAllMocks()
 
         vi.mocked(getFields).mockResolvedValue([
-            { b_id: mockFieldId, b_id_farm: mockFarmId, b_centroid: [10, 20] } as Field,
+            {
+                b_id: mockFieldId,
+                b_id_farm: mockFarmId,
+                b_centroid: [10, 20],
+            } as Field,
         ])
         vi.mocked(getGrazingIntention).mockResolvedValue(false)
         vi.mocked(isOrganicCertificationValid).mockResolvedValue(true)
@@ -197,19 +201,27 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
             new Map([[mockFieldId, [{ b_lu: "cult1" }] as Cultivation[]]]),
         )
         vi.mocked(getFertilizerApplicationsForFarm).mockResolvedValue(
-            new Map([[mockFieldId, [{ p_app_id: "app1", p_app_amount: 1000 }] as FertilizerApplication[]]]),
+            new Map([
+                [
+                    mockFieldId,
+                    [
+                        { p_app_id: "app1", p_app_amount: 1000 },
+                    ] as FertilizerApplication[],
+                ],
+            ]),
         )
     })
 
     it("should collect farm filling input correctly", async () => {
         const fosfaatgebruiksnormByField = new Map([[mockFieldId, 120]])
 
-        const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
-            mockFdm,
-            mockPrincipalId,
-            mockFarmId,
-            fosfaatgebruiksnormByField,
-        )
+        const result =
+            await collectNL2026InputForFertilizerApplicationFillingForFarm(
+                mockFdm,
+                mockPrincipalId,
+                mockFarmId,
+                fosfaatgebruiksnormByField,
+            )
 
         expect(result).toBeInstanceOf(Map)
         expect(result.has(mockFieldId)).toBe(true)
@@ -222,39 +234,82 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
         expect(fieldInput.b_centroid).toEqual([10, 20])
         expect(fieldInput.fertilizers).toHaveLength(1)
 
-        const timeframe2026 = { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31, 23, 59, 59, 999) }
-        expect(getFields).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId)
-        expect(getCultivationsForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2026)
-        expect(getFertilizerApplicationsForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2026)
+        const timeframe2026 = {
+            start: new Date(2026, 0, 1),
+            end: new Date(2026, 11, 31, 23, 59, 59, 999),
+        }
+        expect(getFields).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+        )
+        expect(getCultivationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2026,
+        )
+        expect(getFertilizerApplicationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2026,
+        )
     })
 
     it("should handle multiple fields with independent fosfaatgebruiksnorm values", async () => {
         const mockFieldId2 = "field789"
         vi.mocked(getFields).mockResolvedValue([
-            { b_id: mockFieldId, b_id_farm: mockFarmId, b_centroid: [10, 20] } as Field,
-            { b_id: mockFieldId2, b_id_farm: mockFarmId, b_centroid: [11, 21] } as Field,
+            {
+                b_id: mockFieldId,
+                b_id_farm: mockFarmId,
+                b_centroid: [10, 20],
+            } as Field,
+            {
+                b_id: mockFieldId2,
+                b_id_farm: mockFarmId,
+                b_centroid: [11, 21],
+            } as Field,
         ])
-        vi.mocked(getCultivationsForFarm).mockResolvedValue(new Map([
-            [mockFieldId, [{ b_lu: "cult1" }] as Cultivation[]],
-            [mockFieldId2, [{ b_lu: "cult2" }] as Cultivation[]],
-        ]))
-        vi.mocked(getFertilizerApplicationsForFarm).mockResolvedValue(new Map([
-            [mockFieldId, [{ p_app_id: "app1", p_app_amount: 500 }] as FertilizerApplication[]],
-            [mockFieldId2, [{ p_app_id: "app2", p_app_amount: 800 }] as FertilizerApplication[]],
-        ]))
-
-        const fosfaatgebruiksnormByField = new Map([[mockFieldId, 80], [mockFieldId2, 95]])
-
-        const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
-            mockFdm,
-            mockPrincipalId,
-            mockFarmId,
-            fosfaatgebruiksnormByField,
+        vi.mocked(getCultivationsForFarm).mockResolvedValue(
+            new Map([
+                [mockFieldId, [{ b_lu: "cult1" }] as Cultivation[]],
+                [mockFieldId2, [{ b_lu: "cult2" }] as Cultivation[]],
+            ]),
+        )
+        vi.mocked(getFertilizerApplicationsForFarm).mockResolvedValue(
+            new Map([
+                [
+                    mockFieldId,
+                    [
+                        { p_app_id: "app1", p_app_amount: 500 },
+                    ] as FertilizerApplication[],
+                ],
+                [
+                    mockFieldId2,
+                    [
+                        { p_app_id: "app2", p_app_amount: 800 },
+                    ] as FertilizerApplication[],
+                ],
+            ]),
         )
 
+        const fosfaatgebruiksnormByField = new Map([
+            [mockFieldId, 80],
+            [mockFieldId2, 95],
+        ])
+
+        const result =
+            await collectNL2026InputForFertilizerApplicationFillingForFarm(
+                mockFdm,
+                mockPrincipalId,
+                mockFarmId,
+                fosfaatgebruiksnormByField,
+            )
+
         expect(result.size).toBe(2)
-        expect(result.get(mockFieldId)!.fosfaatgebruiksnorm).toBe(80)
-        expect(result.get(mockFieldId2)!.fosfaatgebruiksnorm).toBe(95)
+        expect(result.get(mockFieldId)?.fosfaatgebruiksnorm).toBe(80)
+        expect(result.get(mockFieldId2)?.fosfaatgebruiksnorm).toBe(95)
     })
 
     it("should default to empty arrays when farm maps have no entry for a field", async () => {
@@ -263,19 +318,24 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
 
         const fosfaatgebruiksnormByField = new Map([[mockFieldId, 60]])
 
-        const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
-            mockFdm,
-            mockPrincipalId,
-            mockFarmId,
-            fosfaatgebruiksnormByField,
-        )
+        const result =
+            await collectNL2026InputForFertilizerApplicationFillingForFarm(
+                mockFdm,
+                mockPrincipalId,
+                mockFarmId,
+                fosfaatgebruiksnormByField,
+            )
 
         const fieldInput = result.get(mockFieldId)!
         expect(fieldInput.cultivations).toEqual([])
         expect(fieldInput.applications).toEqual([])
         expect(fieldInput.has_grazing_intention).toBe(false)
         expect(fieldInput.has_organic_certification).toBe(true)
-        expect(getFields).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId)
+        expect(getFields).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+        )
         expect(getCultivationsForFarm).toHaveBeenCalled()
         expect(getFertilizerApplicationsForFarm).toHaveBeenCalled()
     })

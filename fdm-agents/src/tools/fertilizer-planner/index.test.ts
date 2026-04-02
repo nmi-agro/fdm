@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest"
-import { getMainCultivation, createFertilizerPlannerTools } from "./index"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { createFertilizerPlannerTools, getMainCultivation } from "./index"
 
 // ---------------------------------------------------------------------------
 // Mock @google/adk so FunctionTool exposes execute() directly
@@ -56,25 +56,25 @@ vi.mock("@nmi-agro/fdm-calculator", () => ({
 }))
 
 import {
-    getFields,
-    getCultivations,
-    getCurrentSoilData,
-    getField,
-    getFertilizers,
-} from "@nmi-agro/fdm-core"
-import {
-    getNutrientAdvice,
+    aggregateNormFillingsToFarmLevel,
+    aggregateNormsToFarmLevel,
+    calculateDose,
+    calculateNitrogenBalanceField,
+    calculateNitrogenBalancesFieldToFarm,
+    calculateOrganicMatterBalanceField,
+    collectInputForNitrogenBalance,
+    collectInputForOrganicMatterBalance,
     createFunctionsForNorms,
     createUncachedFunctionsForFertilizerApplicationFilling,
-    calculateOrganicMatterBalanceField,
-    collectInputForOrganicMatterBalance,
-    calculateNitrogenBalanceField,
-    collectInputForNitrogenBalance,
-    calculateNitrogenBalancesFieldToFarm,
-    calculateDose,
-    aggregateNormsToFarmLevel,
-    aggregateNormFillingsToFarmLevel,
+    getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
+import {
+    getCultivations,
+    getCurrentSoilData,
+    getFertilizers,
+    getField,
+    getFields,
+} from "@nmi-agro/fdm-core"
 
 // ---------------------------------------------------------------------------
 // Shared fixtures

@@ -1,75 +1,77 @@
 import {
+    addSoilAnalysis,
+    type FdmType,
+    getCultivations,
+    getCultivationsFromCatalogue,
+    getFarm,
+    getFarms,
+    getFields,
+} from "@nmi-agro/fdm-core"
+import {
+    type ImportReviewAction,
+    type RvoImportReviewItem,
+    RvoImportReviewStatus,
+    type UserChoiceMap,
+} from "@nmi-agro/fdm-rvo/types"
+import { getItemId } from "@nmi-agro/fdm-rvo/utils"
+import { AlertTriangle, CloudDownload, Loader2 } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
+import { useEffect, useState } from "react"
+import {
     type ActionFunctionArgs,
+    data,
     Form,
     type LoaderFunctionArgs,
     type MetaFunction,
     redirect,
     useActionData,
     useLoaderData,
+    useLocation,
     useNavigation,
     useParams,
-    useLocation,
-    data,
 } from "react-router"
-import { getSession } from "~/lib/auth.server"
-import { extractErrorMessage } from "~/lib/error"
-import { fdm } from "~/lib/fdm.server"
-import {
-    generateAuthUrl,
-    fetchRvoFields,
-    compareFields,
-    exchangeToken,
-    processRvoImport,
-} from "~/lib/rvo.server"
-import {
-    type RvoImportReviewItem,
-    RvoImportReviewStatus,
-    type UserChoiceMap,
-    type ImportReviewAction,
-} from "@nmi-agro/fdm-rvo/types"
-import { getItemId } from "@nmi-agro/fdm-rvo/utils"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { Header } from "~/components/blocks/header/base"
+import { HeaderFarm } from "~/components/blocks/header/farm"
+import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
+import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
-import { getFields, getFarm, getFarms } from "@nmi-agro/fdm-core"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
+import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-    DialogClose,
 } from "~/components/ui/dialog"
-import { AlertTriangle, CloudDownload, Loader2 } from "lucide-react"
-import { useFeatureFlagEnabled } from "posthog-js/react"
-import { useEffect, useState } from "react"
-import { FarmContent } from "~/components/blocks/farm/farm-content"
-import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { Header } from "~/components/blocks/header/base"
-import { HeaderFarm } from "~/components/blocks/header/farm"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
+import {
+    getNmiApiKey,
+    getSoilParameterEstimates,
+} from "~/integrations/nmi.server"
 import {
     createConfiguredRvoClient,
     createRvoState,
     getRvoCredentials,
     verifyRvoState,
 } from "~/integrations/rvo.server"
-import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
-import {
-    getNmiApiKey,
-    getSoilParameterEstimates,
-} from "~/integrations/nmi.server"
-import {
-    addSoilAnalysis,
-    getCultivations,
-    getCultivationsFromCatalogue,
-    type FdmType,
-} from "@nmi-agro/fdm-core"
-import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
+import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
+import { extractErrorMessage } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
+import {
+    compareFields,
+    exchangeToken,
+    fetchRvoFields,
+    generateAuthUrl,
+    processRvoImport,
+} from "~/lib/rvo.server"
 
 export const meta: MetaFunction = ({ params }) => {
     return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]
@@ -118,7 +120,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             // CSRF Verification
             await verifyRvoState(request, state, b_id_farm)
 
-            if (!farm || !farm.b_businessid_farm) {
+            if (!farm?.b_businessid_farm) {
                 throw new Response("b_businessid_farm is not available", {
                     status: 400,
                 })
@@ -323,10 +325,10 @@ export default function RvoImportReviewPage() {
                                 voor je.
                             </h2>
                             <p className="text-muted-foreground mb-6">
-                                Deze functionaliteit is momenteel in ontwikkeling
-                                en is nog niet voor iedereen beschikbaar. Neem
-                                contact op met Ondersteuning als je hier vragen
-                                over hebt.
+                                Deze functionaliteit is momenteel in
+                                ontwikkeling en is nog niet voor iedereen
+                                beschikbaar. Neem contact op met Ondersteuning
+                                als je hier vragen over hebt.
                             </p>
                         </div>
                     </div>

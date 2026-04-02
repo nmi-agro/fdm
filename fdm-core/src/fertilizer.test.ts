@@ -27,8 +27,8 @@ import {
     getFertilizerApplicationsForFarm,
     getFertilizerParametersDescription,
     getFertilizers,
-    getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
+    getFertilizersFromCatalogues,
     removeFertilizer,
     removeFertilizerApplication,
     updateFertilizerApplication,
@@ -1571,8 +1571,8 @@ describe("getFertilizerApplicationsForFarm", () => {
         expect(result.has(b_id_2)).toBe(true)
         expect(result.get(b_id)).toHaveLength(1)
         expect(result.get(b_id_2)).toHaveLength(1)
-        expect(result.get(b_id)![0].p_app_amount).toBe(100)
-        expect(result.get(b_id_2)![0].p_app_amount).toBe(200)
+        expect(result.get(b_id)?.[0].p_app_amount).toBe(100)
+        expect(result.get(b_id_2)?.[0].p_app_amount).toBe(200)
     })
 
     it("should return an empty Map when the farm has no fertilizer applications", async () => {
@@ -1701,5 +1701,4 @@ describe("getFertilizerApplicationsForFarm", () => {
             "Principal does not have permission to perform this action",
         )
     })
-
 })

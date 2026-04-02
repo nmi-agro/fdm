@@ -117,7 +117,12 @@ export async function collectNL2026InputForNormsForFarm(
     ] = await Promise.all([
         getFields(fdm, principal_id, b_id_farm, timeframe2026Cultivation),
         getGrazingIntention(fdm, principal_id, b_id_farm, year),
-        getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2026Cultivation),
+        getCultivationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe2026Cultivation,
+        ),
         getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe2026),
     ])
 
@@ -126,19 +131,19 @@ export async function collectNL2026InputForNormsForFarm(
         const soilAnalysis = soilDataByField.get(field.b_id) ?? []
         const soilAnalysisPicked = {
             a_p_cc:
-                (Array.isArray(soilAnalysis)
+                ((Array.isArray(soilAnalysis)
                     ? soilAnalysis.find(
                           (x: { parameter: string }) =>
                               x.parameter === "a_p_cc",
                       )?.value
-                    : null) as number | null ?? null,
+                    : null) as number | null) ?? null,
             a_p_al:
-                (Array.isArray(soilAnalysis)
+                ((Array.isArray(soilAnalysis)
                     ? soilAnalysis.find(
                           (x: { parameter: string }) =>
                               x.parameter === "a_p_al",
                       )?.value
-                    : null) as number | null ?? null,
+                    : null) as number | null) ?? null,
         }
         result.set(field.b_id, {
             farm: { has_grazing_intention },

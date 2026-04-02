@@ -1,11 +1,6 @@
 import { Bot } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Spinner } from "~/components/ui/spinner"
 
 export function GerritLoading() {
