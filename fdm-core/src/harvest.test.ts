@@ -1260,48 +1260,6 @@ describe("getHarvestsForFarm", () => {
         expect(result.has(other_b_lu)).toBe(false)
     })
 
-    it("should filter harvests when only timeframe start is provided", async () => {
-        await addHarvest(fdm, principal_id, b_lu, new Date("2024-08-01"), {
-            b_lu_yield_fresh: 5000,
-            b_lu_moist: 15,
-            b_lu_cp: 110,
-        })
-
-        const timeframe = {
-            start: new Date("2024-01-01"),
-            end: new Date("2024-12-31"),
-        }
-        const result = await getHarvestsForFarm(
-            fdm,
-            principal_id,
-            b_id_farm,
-            timeframe,
-        )
-
-        expect(result.has(b_lu)).toBe(true)
-    })
-
-    it("should filter harvests when only timeframe end is provided", async () => {
-        await addHarvest(fdm, principal_id, b_lu, new Date("2024-08-01"), {
-            b_lu_yield_fresh: 5000,
-            b_lu_moist: 15,
-            b_lu_cp: 110,
-        })
-
-        const timeframe = {
-            start: new Date("2024-01-01"),
-            end: new Date("2024-12-31"),
-        }
-        const result = await getHarvestsForFarm(
-            fdm,
-            principal_id,
-            b_id_farm,
-            timeframe,
-        )
-
-        expect(result.has(b_lu)).toBe(true)
-    })
-
     it("should throw when principal does not have permission", async () => {
         const unauthorized_principal = createId()
         await expect(
