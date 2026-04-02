@@ -335,7 +335,7 @@ export default function FarmBalanceNitrogenOverviewBlock() {
         <main className="p-8 space-y-4">
             <h2 className="text-2xl font-bold tracking-tight">Stikstof</h2>
             <Suspense
-                key={`${loaderData.organization.id},${location.search}}`}
+                key={`${loaderData.organization.id},${location.search}`}
                 fallback={<NitrogenBalanceFallback />}
             >
                 <OrganizationFarmBalanceNitrogenOverview {...loaderData} />

@@ -84,18 +84,7 @@ async function calculateNitrogenBalanceBatched(
         const errorMessage = "No fields in input"
         return {
             errorMessage,
-            ...calculateNitrogenBalancesFieldToFarm(
-                [
-                    {
-                        b_id: "",
-                        b_area: 0,
-                        b_bufferstrip: false,
-                        errorMessage: errorMessage,
-                    },
-                ],
-                true,
-                [errorMessage],
-            ),
+            ...calculateNitrogenBalancesFieldToFarm([], true, [errorMessage]),
         }
     }
 

@@ -309,9 +309,7 @@ export async function loader({
             )
 
             return {
-                farmIds: farms
-                    .filter((farm) => farmIdsSet.has(farm.b_id_farm))
-                    .map((farm) => farm.b_id_farm),
+                farmIds: farmIds,
                 farms: farmsExtended,
                 farmResults: farmResults,
                 combinedResult: combinedResult,
@@ -340,7 +338,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
                 Organische stof
             </h2>
             <Suspense
-                key={`${loaderData.organization.id},${location.search}}`}
+                key={`${loaderData.organization.id},${location.search}`}
                 fallback={<NitrogenBalanceFallback />}
             >
                 <OrganizationFarmBalanceOrganicMatterOverview {...loaderData} />

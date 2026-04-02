@@ -250,19 +250,18 @@ describe("calculateNitrogenBalance", () => {
     })
 
     it("should return correct error message for no fields in input", async () => {
-        expect(
-            (
-                await calculateNitrogenBalance(mockFdm, {
-                    fertilizerDetails: [],
-                    cultivationDetails: [],
-                    fields: [],
-                    timeFrame: {
-                        start: new Date("2023-01-01"),
-                        end: new Date("2023-12-31"),
-                    },
-                })
-            ).fieldErrorMessages,
-        ).toContain("No fields in input")
+        const result = await calculateNitrogenBalance(mockFdm, {
+            fertilizerDetails: [],
+            cultivationDetails: [],
+            fields: [],
+            timeFrame: {
+                start: new Date("2023-01-01"),
+                end: new Date("2023-12-31"),
+            },
+        })
+
+        expect(result.errorMessage).toBe("No fields in input")
+        expect(result.fieldErrorMessages).toContain("No fields in input")
     })
 
     it("should ignore buffer strips in farm-level aggregation", () => {
