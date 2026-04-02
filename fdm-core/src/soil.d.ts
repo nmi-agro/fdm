@@ -3,8 +3,8 @@ import type * as schema from "./db/schema"
 export interface SoilAnalysis {
     a_id: schema.soilAnalysisTypeSelect["a_id"]
     a_date: schema.soilAnalysisTypeSelect["a_date"]
-    a_depth_upper: schema.soilAnalysisTypeSelect["a_depth_upper"]
-    a_depth_lower: schema.soilAnalysisTypeSelect["a_depth_lower"]
+    a_depth_upper: schema.soilSamplingTypeSelect["a_depth_upper"]
+    a_depth_lower: schema.soilSamplingTypeSelect["a_depth_lower"]
     a_source: schema.soilAnalysisTypeSelect["a_source"]
     a_al_ox: schema.soilAnalysisTypeSelect["a_al_ox"]
     a_c_of: schema.soilAnalysisTypeSelect["a_c_of"]
@@ -44,9 +44,8 @@ export interface SoilAnalysis {
     b_gwl_class: schema.soilAnalysisTypeSelect["b_gwl_class"]
     b_soiltype_agr: schema.soilAnalysisTypeSelect["b_soiltype_agr"]
     b_id_sampling: schema.soilSamplingTypeSelect["b_id_sampling"]
-    b_depth: schema.soilSamplingTypeSelect["b_depth"]
     b_sampling_date: schema.soilSamplingTypeSelect["b_sampling_date"]
-    b_sampling_geometry: schema.soilSamplingTypeSelect["b_sampling_geometry"]
+    b_sampling_geometry?: schema.soilSamplingTypeSelect["b_sampling_geometry"]
 }
 
 export type SoilParameters =

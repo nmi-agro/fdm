@@ -680,6 +680,113 @@ export async function getCultivations(
 }
 
 /**
+ * Retrieves all cultivations for every field on a farm.
+ *
+ * Instead of issuing one query per field, this function joins through
+ * `fieldAcquiring` so that all cultivations for the farm are fetched at once.
+ * A single farm-level permission check is performed instead of one per field.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param timeframe Optional timeframe to filter cultivations.
+ * @returns A Promise resolving to a Map keyed by field ID (`b_id`), with arrays of {@link Cultivation} as values.
+ * @alpha
+ */
+export async function getCultivationsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    timeframe?: Timeframe,
+): Promise<Map<string, Cultivation[]>> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getCultivationsForFarm",
+        )
+
+        const timeframeCondition = buildCultivationTimeframeCondition(timeframe)
+
+        const rows = await fdm
+            .select({
+                b_lu: schema.cultivations.b_lu,
+                b_lu_catalogue: schema.cultivationsCatalogue.b_lu_catalogue,
+                b_lu_source: schema.cultivationsCatalogue.b_lu_source,
+                b_lu_name: schema.cultivationsCatalogue.b_lu_name,
+                b_lu_name_en: schema.cultivationsCatalogue.b_lu_name_en,
+                b_lu_hcat3: schema.cultivationsCatalogue.b_lu_hcat3,
+                b_lu_hcat3_name: schema.cultivationsCatalogue.b_lu_hcat3_name,
+                b_lu_croprotation:
+                    schema.cultivationsCatalogue.b_lu_croprotation,
+                b_lu_eom: schema.cultivationsCatalogue.b_lu_eom,
+                b_lu_eom_residue: schema.cultivationsCatalogue.b_lu_eom_residue,
+                b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
+                b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
+                b_lu_variety: schema.cultivations.b_lu_variety,
+                b_lu_start: schema.cultivationStarting.b_lu_start,
+                b_lu_end: schema.cultivationEnding.b_lu_end,
+                m_cropresidue: schema.cultivationEnding.m_cropresidue,
+                b_id: schema.cultivationStarting.b_id,
+            })
+            .from(schema.cultivations)
+            .leftJoin(
+                schema.cultivationStarting,
+                eq(schema.cultivationStarting.b_lu, schema.cultivations.b_lu),
+            )
+            .leftJoin(
+                schema.cultivationEnding,
+                eq(schema.cultivationEnding.b_lu, schema.cultivations.b_lu),
+            )
+            .leftJoin(
+                schema.cultivationsCatalogue,
+                eq(
+                    schema.cultivations.b_lu_catalogue,
+                    schema.cultivationsCatalogue.b_lu_catalogue,
+                ),
+            )
+            .innerJoin(
+                schema.fieldAcquiring,
+                eq(
+                    schema.fieldAcquiring.b_id,
+                    schema.cultivationStarting.b_id,
+                ),
+            )
+            .where(
+                timeframeCondition
+                    ? and(
+                          eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                          timeframeCondition,
+                      )
+                    : eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+            )
+            .orderBy(
+                desc(schema.cultivationStarting.b_lu_start),
+                asc(schema.cultivationsCatalogue.b_lu_name),
+            )
+
+        const result = new Map<string, Cultivation[]>()
+        for (const row of rows) {
+            if (!row.b_id) continue
+            const existing = result.get(row.b_id)
+            if (existing) {
+                existing.push(row)
+            } else {
+                result.set(row.b_id, [row])
+            }
+        }
+        return result
+    } catch (err) {
+        throw handleError(err, "Exception for getCultivationsForFarm", {
+            b_id_farm,
+        })
+    }
+}
+
+/**
  * Retrieves a comprehensive cultivation plan for a specified farm.
  *
  * This function aggregates cultivation data from multiple related tables and returns an array of cultivation

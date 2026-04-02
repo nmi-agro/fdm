@@ -340,6 +340,204 @@ export async function getHarvests(
 }
 
 /**
+ * Retrieves all harvests for every cultivation on a farm.
+ *
+ * Instead of issuing multiple queries per cultivation, this function performs a single
+ * joined query across `cultivationHarvesting`, `harvestables`, `harvestableSampling`,
+ * `harvestableAnalyses`, `cultivationStarting`, and `fieldAcquiring` so that all
+ * harvest data for the farm is fetched at once.
+ * A single farm-level permission check is performed instead of one per cultivation.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param timeframe Optional timeframe to filter by harvest date.
+ * @returns A Promise resolving to a Map keyed by cultivation ID (`b_lu`), with arrays of {@link Harvest} as values.
+ * @alpha
+ */
+export async function getHarvestsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    timeframe?: Timeframe,
+): Promise<Map<string, Harvest[]>> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getHarvestsForFarm",
+        )
+
+        let whereClause: SQL | undefined
+        if (timeframe?.start && timeframe?.end) {
+            whereClause = and(
+                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                gte(
+                    schema.cultivationHarvesting.b_lu_harvest_date,
+                    timeframe.start,
+                ),
+                lte(
+                    schema.cultivationHarvesting.b_lu_harvest_date,
+                    timeframe.end,
+                ),
+            )
+        } else if (timeframe?.start) {
+            whereClause = and(
+                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                gte(
+                    schema.cultivationHarvesting.b_lu_harvest_date,
+                    timeframe.start,
+                ),
+            )
+        } else if (timeframe?.end) {
+            whereClause = and(
+                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                lte(
+                    schema.cultivationHarvesting.b_lu_harvest_date,
+                    timeframe.end,
+                ),
+            )
+        } else {
+            whereClause = eq(schema.fieldAcquiring.b_id_farm, b_id_farm)
+        }
+
+        const rows = await fdm
+            .select({
+                b_id_harvesting:
+                    schema.cultivationHarvesting.b_id_harvesting,
+                b_lu_harvest_date:
+                    schema.cultivationHarvesting.b_lu_harvest_date,
+                b_lu: schema.cultivationHarvesting.b_lu,
+                b_id_harvestable: schema.harvestables.b_id_harvestable,
+                b_id_harvestable_analysis:
+                    schema.harvestableAnalyses.b_id_harvestable_analysis,
+                b_lu_yield: schema.harvestableAnalyses.b_lu_yield,
+                b_lu_yield_fresh: schema.harvestableAnalyses.b_lu_yield_fresh,
+                b_lu_yield_bruto: schema.harvestableAnalyses.b_lu_yield_bruto,
+                b_lu_tarra: schema.harvestableAnalyses.b_lu_tarra,
+                b_lu_dm: schema.harvestableAnalyses.b_lu_dm,
+                b_lu_moist: schema.harvestableAnalyses.b_lu_moist,
+                b_lu_uww: schema.harvestableAnalyses.b_lu_uww,
+                b_lu_cp: schema.harvestableAnalyses.b_lu_cp,
+                b_lu_n_harvestable:
+                    schema.harvestableAnalyses.b_lu_n_harvestable,
+                b_lu_n_residue: schema.harvestableAnalyses.b_lu_n_residue,
+                b_lu_p_harvestable:
+                    schema.harvestableAnalyses.b_lu_p_harvestable,
+                b_lu_p_residue: schema.harvestableAnalyses.b_lu_p_residue,
+                b_lu_k_harvestable:
+                    schema.harvestableAnalyses.b_lu_k_harvestable,
+                b_lu_k_residue: schema.harvestableAnalyses.b_lu_k_residue,
+            })
+            .from(schema.cultivationHarvesting)
+            .leftJoin(
+                schema.harvestables,
+                eq(
+                    schema.harvestables.b_id_harvestable,
+                    schema.cultivationHarvesting.b_id_harvestable,
+                ),
+            )
+            .leftJoin(
+                schema.harvestableSampling,
+                eq(
+                    schema.harvestableSampling.b_id_harvestable,
+                    schema.harvestables.b_id_harvestable,
+                ),
+            )
+            .leftJoin(
+                schema.harvestableAnalyses,
+                eq(
+                    schema.harvestableAnalyses.b_id_harvestable_analysis,
+                    schema.harvestableSampling.b_id_harvestable_analysis,
+                ),
+            )
+            .innerJoin(
+                schema.cultivations,
+                eq(
+                    schema.cultivations.b_lu,
+                    schema.cultivationHarvesting.b_lu,
+                ),
+            )
+            .innerJoin(
+                schema.cultivationStarting,
+                eq(
+                    schema.cultivationStarting.b_lu,
+                    schema.cultivations.b_lu,
+                ),
+            )
+            .innerJoin(
+                schema.fieldAcquiring,
+                eq(
+                    schema.fieldAcquiring.b_id,
+                    schema.cultivationStarting.b_id,
+                ),
+            )
+            .where(whereClause)
+            .orderBy(
+                desc(schema.cultivationHarvesting.b_lu_harvest_date),
+            )
+
+        // Reconstruct nested Harvest objects, grouping analyses by harvest ID, then by cultivation ID
+        const harvestsById = new Map<string, Harvest>()
+        for (const row of rows) {
+            if (!row.b_lu) continue
+
+            let harvest = harvestsById.get(row.b_id_harvesting)
+            if (!harvest) {
+                harvest = {
+                    b_id_harvesting: row.b_id_harvesting,
+                    b_lu_harvest_date: row.b_lu_harvest_date,
+                    b_lu: row.b_lu,
+                    harvestable: {
+                        b_id_harvestable: row.b_id_harvestable ?? "",
+                        harvestable_analyses: [],
+                    },
+                }
+                harvestsById.set(row.b_id_harvesting, harvest)
+            }
+
+            if (row.b_id_harvestable_analysis) {
+                harvest.harvestable.harvestable_analyses.push({
+                    b_id_harvestable_analysis: row.b_id_harvestable_analysis,
+                    b_lu_yield: row.b_lu_yield,
+                    b_lu_yield_fresh: row.b_lu_yield_fresh,
+                    b_lu_yield_bruto: row.b_lu_yield_bruto,
+                    b_lu_tarra: row.b_lu_tarra,
+                    b_lu_dm: row.b_lu_dm,
+                    b_lu_moist: row.b_lu_moist,
+                    b_lu_uww: row.b_lu_uww,
+                    b_lu_cp: row.b_lu_cp,
+                    b_lu_n_harvestable: row.b_lu_n_harvestable,
+                    b_lu_n_residue: row.b_lu_n_residue,
+                    b_lu_p_harvestable: row.b_lu_p_harvestable,
+                    b_lu_p_residue: row.b_lu_p_residue,
+                    b_lu_k_harvestable: row.b_lu_k_harvestable,
+                    b_lu_k_residue: row.b_lu_k_residue,
+                })
+            }
+        }
+
+        const result = new Map<string, Harvest[]>()
+        for (const harvest of harvestsById.values()) {
+            const existing = result.get(harvest.b_lu)
+            if (existing) {
+                existing.push(harvest)
+            } else {
+                result.set(harvest.b_lu, [harvest])
+            }
+        }
+        return result
+    } catch (err) {
+        throw handleError(err, "Exception for getHarvestsForFarm", {
+            b_id_farm,
+        })
+    }
+}
+
+/**
  * Removes a harvest record along with its related sampling, analyses, and harvestable entries.
  *
  * This asynchronous function verifies that the principal has write permission on the specified harvest.

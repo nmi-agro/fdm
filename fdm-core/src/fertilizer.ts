@@ -1030,6 +1030,111 @@ export async function getFertilizerApplications(
 }
 
 /**
+ * Retrieves all fertilizer applications for every field on a farm.
+ *
+ * Instead of issuing one query per field, this function joins through
+ * `fieldAcquiring` so that all fertilizer applications for the farm are fetched at once.
+ * A single farm-level permission check is performed instead of one per field.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param timeframe Optional timeframe to filter fertilizer applications.
+ * @returns A Promise resolving to a Map keyed by field ID (`b_id`), with arrays of {@link FertilizerApplication} as values.
+ * @alpha
+ */
+export async function getFertilizerApplicationsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    timeframe?: Timeframe,
+): Promise<Map<string, FertilizerApplication[]>> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getFertilizerApplicationsForFarm",
+        )
+
+        const rows = await fdm
+            .select({
+                p_id: schema.fertilizerApplication.p_id,
+                p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
+                p_name_nl: schema.fertilizersCatalogue.p_name_nl,
+                p_app_amount: schema.fertilizerApplication.p_app_amount,
+                p_app_method: schema.fertilizerApplication.p_app_method,
+                p_app_date: schema.fertilizerApplication.p_app_date,
+                p_app_id: schema.fertilizerApplication.p_app_id,
+                // extra field for grouping – not part of FertilizerApplication type
+                b_id: schema.fertilizerApplication.b_id,
+            })
+            .from(schema.fertilizerApplication)
+            .leftJoin(
+                schema.fertilizerPicking,
+                eq(
+                    schema.fertilizerPicking.p_id,
+                    schema.fertilizerApplication.p_id,
+                ),
+            )
+            .leftJoin(
+                schema.fertilizersCatalogue,
+                eq(
+                    schema.fertilizersCatalogue.p_id_catalogue,
+                    schema.fertilizerPicking.p_id_catalogue,
+                ),
+            )
+            .innerJoin(
+                schema.fieldAcquiring,
+                eq(
+                    schema.fieldAcquiring.b_id,
+                    schema.fertilizerApplication.b_id,
+                ),
+            )
+            .where(
+                timeframe
+                    ? and(
+                          eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                          timeframe.start
+                              ? gte(
+                                    schema.fertilizerApplication.p_app_date,
+                                    timeframe.start,
+                                )
+                              : undefined,
+                          timeframe.end
+                              ? lte(
+                                    schema.fertilizerApplication.p_app_date,
+                                    timeframe.end,
+                                )
+                              : undefined,
+                      )
+                    : eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+            )
+            .orderBy(desc(schema.fertilizerApplication.p_app_date))
+
+        const result = new Map<string, FertilizerApplication[]>()
+        for (const row of rows) {
+            if (!row.b_id) continue
+            // b_id is used for grouping only and is not part of FertilizerApplication
+            const { b_id, ...fertilizerApplication } = row
+            const existing = result.get(b_id)
+            if (existing) {
+                existing.push(fertilizerApplication as FertilizerApplication)
+            } else {
+                result.set(b_id, [fertilizerApplication as FertilizerApplication])
+            }
+        }
+        return result
+    } catch (err) {
+        throw handleError(err, "Exception for getFertilizerApplicationsForFarm", {
+            b_id_farm,
+        })
+    }
+}
+
+/**
  * Retrieves a description of the available fertilizer parameters.
  *
  * This function returns an array of objects, each describing a fertilizer parameter.

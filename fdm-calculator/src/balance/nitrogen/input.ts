@@ -6,17 +6,21 @@ import type {
 } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
+    getCultivationsForFarm,
     getCultivationsFromCatalogues,
     getCultivationsFromCatalogue,
     getEnabledCultivationCataloguesForFarms,
     getEnabledFertilizerCataloguesForFarms,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
     getField,
     getFields,
     getHarvests,
+    getHarvestsForFarm,
     getSoilAnalyses,
+    getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import { handleInputCollectionError } from "../shared/errors"
@@ -80,64 +84,83 @@ async function collectInputForNitrogenBalanceForFarm(
                     fdmPublicDataUrl,
                 )
 
-            // Collect the details per field
-            return await Promise.all(
-                farmFields.map(async (field) => {
-                    // Collect the cultivations of the field
-                    const cultivations = await getCultivations(
-                        tx,
-                        principal_id,
-                        field.b_id,
-                        timeframe,
-                    )
+            if (b_id) {
+                // Single-field path: use the existing per-field functions (only 1 field, no optimisation needed)
+                const field = farmFields[0]
+                const cultivations = await getCultivations(
+                    tx,
+                    principal_id,
+                    field.b_id,
+                    timeframe,
+                )
 
-                    // Collect the harvests of the cultivations
-                    // Collect a promise per cultivation
-                    const harvestPromises = cultivations.map(
-                        async (cultivation) => {
-                            return await getHarvests(
-                                tx,
-                                principal_id,
-                                cultivation.b_lu,
-                                timeframe,
-                            )
-                        },
-                    )
-
-                    // Wait for all, then flatten the resulting arrays into one list
-                    const harvestArrays = await Promise.all(harvestPromises)
-                    const harvests = harvestArrays.flat()
-                    const harvestsFiltered = harvests.filter(
-                        (harvest) => harvest.b_lu !== undefined,
-                    )
-
-                    // Get the soil analyses of the field
-                    const soilAnalyses = await getSoilAnalyses(
-                        tx,
-                        principal_id,
-                        field.b_id,
-                        timeframe,
-                    )
-
-                    // Get the fertilizer applications of the field
-                    const fertilizerApplications =
-                        await getFertilizerApplications(
+                const harvestPromises = cultivations.map(
+                    async (cultivation) => {
+                        return await getHarvests(
                             tx,
                             principal_id,
-                            field.b_id,
+                            cultivation.b_lu,
                             timeframe,
                         )
+                    },
+                )
+                const harvestArrays = await Promise.all(harvestPromises)
+                const harvests = harvestArrays.flat()
+                const harvestsFiltered = harvests.filter(
+                    (harvest) => harvest.b_lu !== undefined,
+                )
 
-                    return {
-                        field: field,
-                        cultivations: cultivations,
+                const soilAnalyses = await getSoilAnalyses(
+                    tx,
+                    principal_id,
+                    field.b_id,
+                    timeframe,
+                )
+
+                const fertilizerApplications = await getFertilizerApplications(
+                    tx,
+                    principal_id,
+                    field.b_id,
+                    timeframe,
+                )
+
+                return [
+                    {
+                        field,
+                        cultivations,
                         harvests: harvestsFiltered,
-                        fertilizerApplications: fertilizerApplications,
-                        soilAnalyses: soilAnalyses,
+                        fertilizerApplications,
+                        soilAnalyses,
                         depositionSupply: depositionByField.get(field.b_id),
-                    }
-                }),
-            )
+                    },
+                ]
+            }
+
+            // Farm-level path: fetch all data per farm in parallel
+            const [cultivationsByField, soilByField, fertAppsByField, harvestsByField] =
+                await Promise.all([
+                    getCultivationsForFarm(tx, principal_id, b_id_farm, timeframe),
+                    getSoilAnalysesForFarm(tx, principal_id, b_id_farm, timeframe),
+                    getFertilizerApplicationsForFarm(tx, principal_id, b_id_farm, timeframe),
+                    getHarvestsForFarm(tx, principal_id, b_id_farm, timeframe),
+                ])
+
+            // Assemble per-field results from the Maps (pure in-memory, no queries)
+            return farmFields.map((field) => {
+                const cultivations = cultivationsByField.get(field.b_id) ?? []
+                const harvests = cultivations
+                    .flatMap((c) => harvestsByField.get(c.b_lu) ?? [])
+
+                return {
+                    field,
+                    cultivations,
+                    harvests,
+                    fertilizerApplications:
+                        fertAppsByField.get(field.b_id) ?? [],
+                    soilAnalyses: soilByField.get(field.b_id) ?? [],
+                    depositionSupply: depositionByField.get(field.b_id),
+                }
+            })
         })
     } catch (error) {
         throw handleNitrogenBalanceInputCollectionError(error, b_id_farm)
@@ -172,7 +195,7 @@ export async function collectInputForNitrogenBalanceForFarms(
         return await fdm.transaction(async (tx: FdmType) => {
             const uniqueFarmIds = [...new Set(farmIds)]
 
-            // Step 1: Get enabled catalogue sources for all farms in a single batch query
+            // Step 1: Get enabled catalogue sources for all farms
             const [farmCultivationCatalogues, farmFertilizerCatalogues] =
                 await Promise.all([
                     getEnabledCultivationCataloguesForFarms(
