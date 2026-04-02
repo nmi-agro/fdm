@@ -1,9 +1,12 @@
 import type { FdmType, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
+    getCultivationsForFarm,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizers,
     getField,
+    getFields,
     getGrazingIntention,
     isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
@@ -95,4 +98,64 @@ export async function collectNL2026InputForFertilizerApplicationFilling(
         fosfaatgebruiksnorm: fosfaatgebruiksnorm,
         b_centroid: b_centroid,
     }
+}
+
+/**
+ * Collects all necessary input data for the NL 2026 norms filling for every field on a farm.
+ *
+ * Farm-level data (`getGrazingIntention`, `isOrganicCertificationValid`, `getFertilizers`) is
+ * fetched once. Per-field data (`getCultivations`, `getFertilizerApplications`) is fetched in
+ * two farm-level queries.
+ *
+ * @param fdm - The FdmType instance for interacting with the Farm Data Model.
+ * @param principal_id - The ID of the principal performing the calculation.
+ * @param b_id_farm - The ID of the farm for which to collect data.
+ * @param fosfaatgebruiksnormByField - A Map from field ID to the phosphate usage norm (kg/ha) for that field.
+ * @returns A promise that resolves to a `Map<b_id, NL2026NormsFillingInput>` keyed by field ID.
+ */
+export async function collectNL2026InputForFertilizerApplicationFillingForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: string,
+    fosfaatgebruiksnormByField: Map<string, number>,
+): Promise<Map<string, NL2026NormsFillingInput>> {
+    const year = 2026
+    const startOfYear = new Date(year, 0, 1)
+    const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999)
+    const timeframe2026: Timeframe = { start: startOfYear, end: endOfYear }
+
+    const [
+        farmFields,
+        has_grazing_intention,
+        has_organic_certification,
+        fertilizers,
+        cultivationsByField,
+        applicationsByField,
+    ] = await Promise.all([
+        getFields(fdm, principal_id, b_id_farm),
+        getGrazingIntention(fdm, principal_id, b_id_farm, year),
+        isOrganicCertificationValid(
+            fdm,
+            principal_id,
+            b_id_farm,
+            new Date(year, 4, 15),
+        ),
+        getFertilizers(fdm, principal_id, b_id_farm),
+        getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
+        getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
+    ])
+
+    const result = new Map<string, NL2026NormsFillingInput>()
+    for (const field of farmFields) {
+        result.set(field.b_id, {
+            cultivations: cultivationsByField.get(field.b_id) ?? [],
+            applications: applicationsByField.get(field.b_id) ?? [],
+            fertilizers,
+            has_organic_certification,
+            has_grazing_intention,
+            fosfaatgebruiksnorm: fosfaatgebruiksnormByField.get(field.b_id) ?? 0,
+            b_centroid: field.b_centroid,
+        })
+    }
+    return result
 }

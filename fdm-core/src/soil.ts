@@ -722,6 +722,187 @@ export async function getCurrentSoilData(
 }
 
 /**
+ * Retrieves the most recent soil data for every field on a farm.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param principal_id - The identifier of the principal performing the operation.
+ * @param b_id_farm - The identifier of the farm.
+ * @param timeframe - Optional timeframe to exclude analyses with a sampling date after `timeframe.end`.
+ * @returns A Map where each key is a field ID (`b_id`) and each value is the current soil data for that field.
+ */
+export async function getCurrentSoilDataForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    timeframe?: Timeframe,
+): Promise<Map<string, CurrentSoilData | []>> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getCurrentSoilDataForFarm",
+        )
+
+        let whereClause: SQL | undefined
+        if (timeframe?.end) {
+            whereClause = and(
+                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                or(
+                    lte(schema.soilSampling.b_sampling_date, timeframe.end),
+                    isNull(schema.soilSampling.b_sampling_date),
+                ),
+            )
+        } else {
+            whereClause = eq(schema.fieldAcquiring.b_id_farm, b_id_farm)
+        }
+
+        const rows = await fdm
+            .select({
+                b_id: schema.fieldAcquiring.b_id,
+                a_id: schema.soilAnalysis.a_id,
+                a_source: schema.soilAnalysis.a_source,
+                a_al_ox: schema.soilAnalysis.a_al_ox,
+                a_c_of: schema.soilAnalysis.a_c_of,
+                a_ca_co: schema.soilAnalysis.a_ca_co,
+                a_ca_co_po: schema.soilAnalysis.a_ca_co_po,
+                a_caco3_if: schema.soilAnalysis.a_caco3_if,
+                a_cec_co: schema.soilAnalysis.a_cec_co,
+                a_clay_mi: schema.soilAnalysis.a_clay_mi,
+                a_cn_fr: schema.soilAnalysis.a_cn_fr,
+                a_com_fr: schema.soilAnalysis.a_com_fr,
+                a_cu_cc: schema.soilAnalysis.a_cu_cc,
+                a_density_sa: schema.soilAnalysis.a_density_sa,
+                a_fe_ox: schema.soilAnalysis.a_fe_ox,
+                a_k_cc: schema.soilAnalysis.a_k_cc,
+                a_k_co: schema.soilAnalysis.a_k_co,
+                a_k_co_po: schema.soilAnalysis.a_k_co_po,
+                a_mg_cc: schema.soilAnalysis.a_mg_cc,
+                a_mg_co: schema.soilAnalysis.a_mg_co,
+                a_mg_co_po: schema.soilAnalysis.a_mg_co_po,
+                a_n_pmn: schema.soilAnalysis.a_n_pmn,
+                a_n_rt: schema.soilAnalysis.a_n_rt,
+                a_nh4_cc: schema.soilAnalysis.a_nh4_cc,
+                a_nmin_cc: schema.soilAnalysis.a_nmin_cc,
+                a_no3_cc: schema.soilAnalysis.a_no3_cc,
+                a_p_al: schema.soilAnalysis.a_p_al,
+                a_p_cc: schema.soilAnalysis.a_p_cc,
+                a_p_ox: schema.soilAnalysis.a_p_ox,
+                a_p_rt: schema.soilAnalysis.a_p_rt,
+                a_p_sg: schema.soilAnalysis.a_p_sg,
+                a_p_wa: schema.soilAnalysis.a_p_wa,
+                a_ph_cc: schema.soilAnalysis.a_ph_cc,
+                a_s_rt: schema.soilAnalysis.a_s_rt,
+                a_sand_mi: schema.soilAnalysis.a_sand_mi,
+                a_silt_mi: schema.soilAnalysis.a_silt_mi,
+                a_som_loi: schema.soilAnalysis.a_som_loi,
+                a_zn_cc: schema.soilAnalysis.a_zn_cc,
+                b_gwl_class: schema.soilAnalysis.b_gwl_class,
+                b_soiltype_agr: schema.soilAnalysis.b_soiltype_agr,
+                b_sampling_date: schema.soilSampling.b_sampling_date,
+                a_depth_upper: schema.soilSampling.a_depth_upper,
+                a_depth_lower: schema.soilSampling.a_depth_lower,
+            })
+            .from(schema.soilAnalysis)
+            .innerJoin(
+                schema.soilSampling,
+                eq(schema.soilAnalysis.a_id, schema.soilSampling.a_id),
+            )
+            .innerJoin(
+                schema.fieldAcquiring,
+                eq(schema.soilSampling.b_id, schema.fieldAcquiring.b_id),
+            )
+            .where(whereClause)
+            .orderBy(
+                schema.fieldAcquiring.b_id,
+                sql`${schema.soilSampling.b_sampling_date} DESC NULLS LAST`,
+            )
+
+        const parameters: SoilParameters[] = [
+            "a_al_ox",
+            "a_c_of",
+            "a_ca_co",
+            "a_ca_co_po",
+            "a_caco3_if",
+            "a_cec_co",
+            "a_clay_mi",
+            "a_cn_fr",
+            "a_com_fr",
+            "a_cu_cc",
+            "a_density_sa",
+            "a_fe_ox",
+            "a_k_cc",
+            "a_k_co",
+            "a_k_co_po",
+            "a_mg_cc",
+            "a_mg_co",
+            "a_mg_co_po",
+            "a_n_pmn",
+            "a_n_rt",
+            "a_nh4_cc",
+            "a_nmin_cc",
+            "a_no3_cc",
+            "a_p_al",
+            "a_p_cc",
+            "a_p_ox",
+            "a_p_rt",
+            "a_p_sg",
+            "a_p_wa",
+            "a_ph_cc",
+            "a_s_rt",
+            "a_sand_mi",
+            "a_silt_mi",
+            "a_som_loi",
+            "a_zn_cc",
+            "b_gwl_class",
+            "b_soiltype_agr",
+        ]
+
+        // Group rows by b_id and apply per-parameter most-recent-non-null logic
+        const rowsByField = new Map<string, typeof rows>()
+        for (const row of rows) {
+            const existing = rowsByField.get(row.b_id)
+            if (existing) {
+                existing.push(row)
+            } else {
+                rowsByField.set(row.b_id, [row])
+            }
+        }
+
+        const result = new Map<string, CurrentSoilData | []>()
+        for (const [b_id, fieldRows] of rowsByField) {
+            const currentSoilData = parameters
+                .map((parameter) => {
+                    const analysis = fieldRows.find(
+                        (a: Record<string, unknown>) =>
+                            a[parameter as keyof typeof a] !== null,
+                    )
+                    if (!analysis) return null
+                    return {
+                        parameter,
+                        value: analysis[parameter as keyof typeof analysis],
+                        a_id: analysis.a_id,
+                        b_sampling_date: analysis.b_sampling_date,
+                        a_depth_upper: analysis.a_depth_upper,
+                        a_depth_lower: analysis.a_depth_lower,
+                        a_source: analysis.a_source,
+                    }
+                })
+                .filter((item) => item !== null)
+            result.set(b_id, currentSoilData as CurrentSoilData)
+        }
+
+        return result
+    } catch (err) {
+        throw handleError(err, "Exception for getCurrentSoilDataForFarm", {
+            b_id_farm,
+        })
+    }
+}
+
+/**
  * Retrieves a description of the available soil parameters.
  *
  * This function returns an array of objects, each describing a soil parameter.
