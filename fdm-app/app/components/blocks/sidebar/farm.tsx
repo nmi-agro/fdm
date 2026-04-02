@@ -367,7 +367,6 @@ export function SidebarFarm({
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
-
         </TooltipProvider>
     )
 }
@@ -376,7 +375,7 @@ export function SidebarLabs() {
     const farmId = useFarmStore((state) => state.farmId)
     const selectedCalendar = useCalendarStore((state) => state.calendar)
     const location = useLocation()
-    const isGerritEnabled = useFeatureFlagEnabled("gerrit")
+    const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
 
     const isFarmSelected = farmId && farmId !== "undefined"
     if (!isFarmSelected) return null
