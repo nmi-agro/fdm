@@ -166,9 +166,12 @@ function FarmBalanceNitrogenOverview({
                     <CardContent>
                         <div className="text-muted-foreground">
                             <p>
-                                Er is helaas wat misgegaan. Probeer opnieuw of
-                                neem contact op met Ondersteuning en deel de
-                                volgende foutmelding:
+                                {resolvedNitrogenBalanceResult.errorMessage ===
+                                "No fields in input"
+                                    ? "Geen percelen gevonden in dit bedrijf."
+                                    : "Er is helaas wat misgegaan."}{" "}
+                                Probeer opnieuw of neem contact op met
+                                Ondersteuning en deel de volgende foutmelding:
                             </p>
                             <div className="mt-8 w-full max-w-2xl">
                                 <pre className="bg-gray-200 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm text-gray-800 dark:text-gray-200">

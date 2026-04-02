@@ -23,6 +23,7 @@ import {
     type MetaFunction,
     NavLink,
     useLoaderData,
+    useLocation,
     useParams,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
@@ -61,18 +62,17 @@ type FarmResult = {
 }
 type FarmExtended = Farm & { b_area_farm: number }
 type AsyncData = {
+    farmIds: string[]
     farmResults: FarmResult[]
     combinedResult: NitrogenBalanceNumeric
     farms: FarmExtended[]
 }
 type LoaderData =
     | {
-          farmIds: string[]
           organization: Organization
           noFarms: true
       }
     | {
-          farmIds: string[]
           organization: Organization
           noFarms: false
           asyncData: Promise<AsyncData>
@@ -144,16 +144,14 @@ export async function loader({
             return {
                 organization: organization,
                 noFarms: true,
-                farmIds: [],
             }
         }
 
-        const farmIds =
-            searchParamFarmIds ?? farms.map((farm) => farm.b_id_farm)
-
         const allFarmIds = new Set(farms.map((farm) => farm.b_id_farm))
 
-        if (farmIds.some((b_id_farm) => !allFarmIds.has(b_id_farm))) {
+        if (
+            searchParamFarmIds?.some((b_id_farm) => !allFarmIds.has(b_id_farm))
+        ) {
             const statusText =
                 "You do not have permission to compute nitrogen balance for these farms"
             throw data(statusText, {
@@ -163,6 +161,53 @@ export async function loader({
         }
 
         async function getAsyncData(principal_id: string) {
+            const farmIdsSet = new Set(searchParamFarmIds ?? [])
+
+            // Compute farms
+            const farmsExtended = await Promise.all(
+                farms.map(async (farm) => {
+                    const fields = await getFields(
+                        fdm,
+                        principal_id,
+                        farm.b_id_farm,
+                    )
+
+                    const b_area_farm = fields.reduce(
+                        (totalArea, field) => totalArea + (field.b_area ?? 0),
+                        0,
+                    )
+
+                    return {
+                        ...farm,
+                        hasFields: fields.length > 0,
+                        b_area_farm: b_area_farm,
+                    }
+                }),
+            )
+
+            // Sort farms by descending area, which will in turn also cause the results to be sorted
+            farmsExtended.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)
+
+            // Update farmIds selection if it was missing
+            if (farmIdsSet.size === 0) {
+                for (const farm of farmsExtended) {
+                    if (farm.hasFields) {
+                        farmIdsSet.add(farm.b_id_farm)
+                    }
+                }
+
+                // If farmIds is still empty (none of the farms have fields) add all farm IDs
+                if (farmIdsSet.size === 0) {
+                    for (const farm of farmsExtended) {
+                        farmIdsSet.add(farm.b_id_farm)
+                    }
+                }
+            }
+
+            const farmIds = farmsExtended
+                .filter((farm) => farmIdsSet.has(farm.b_id_farm))
+                .map((farm) => farm.b_id_farm)
+
             const inputs = await collectInputForNitrogenBalanceForFarms(
                 fdm,
                 principal_id,
@@ -196,30 +241,6 @@ export async function loader({
                 rawFarmResultsMap[b_id_farm].push(result)
             }
 
-            // Compute farms
-            const farmsExtended = await Promise.all(
-                farms.map(async (farm) => {
-                    const fields = await getFields(
-                        fdm,
-                        principal_id,
-                        farm.b_id_farm,
-                    )
-
-                    const b_area_farm = fields.reduce(
-                        (totalArea, field) => totalArea + (field.b_area ?? 0),
-                        0,
-                    )
-
-                    return {
-                        ...farm,
-                        b_area_farm: b_area_farm,
-                    }
-                }),
-            )
-
-            // Sort farms by descending area, which will in turn also cause the results to be sorted
-            farmsExtended.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)
-
             const selectedFarmIds = new Set(farmIds)
             const farmResults = await Promise.all(
                 farmsExtended
@@ -232,8 +253,7 @@ export async function loader({
                                 totalArea: farm.b_area_farm,
                                 nitrogenBalanceResult: {
                                     hasErrors: true,
-                                    errorMessage:
-                                        "Geen veldgegevens beschikbaar",
+                                    errorMessage: "No fields in input",
                                 } as NitrogenBalanceNumeric & {
                                     errorMessage?: string
                                 },
@@ -296,6 +316,7 @@ export async function loader({
             )
 
             return {
+                farmIds: farmIds,
                 farms: farmsExtended,
                 farmResults: farmResults,
                 combinedResult: combinedResult,
@@ -305,7 +326,6 @@ export async function loader({
         const asyncData = getAsyncData(organization.id)
 
         return {
-            farmIds: farmIds.sort(),
             organization: organization,
             noFarms: false,
             asyncData: asyncData,
@@ -317,12 +337,12 @@ export async function loader({
 
 export default function FarmBalanceNitrogenOverviewBlock() {
     const loaderData = useLoaderData<typeof loader>()
-    const farmIds = !loaderData.noFarms ? loaderData.farmIds : []
+    const location = useLocation()
     return (
         <main className="p-8 space-y-4">
             <h2 className="text-2xl font-bold tracking-tight">Stikstof</h2>
             <Suspense
-                key={`${loaderData.organization.id},${farmIds.join(",")}`}
+                key={`${loaderData.organization.id},${location.search}`}
                 fallback={<NitrogenBalanceFallback />}
             >
                 <OrganizationFarmBalanceNitrogenOverview {...loaderData} />
@@ -356,7 +376,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
         )
     }
 
-    const { farmIds, asyncData: asyncDataPromise } = loaderData
+    const { asyncData: asyncDataPromise } = loaderData
 
     // Unlike most React hooks `use` may be called conditionally
     const asyncData = use(asyncDataPromise)
@@ -444,7 +464,10 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                             to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/nitrogen`}
                         >
                             <p className="text-sm text-end text-orange-500 hover:underline">
-                                {"Bekijk foutmelding"}
+                                {balanceResult.errorMessage ===
+                                "No fields in input"
+                                    ? "Geen percelen"
+                                    : "Bekijk foutmelding"}
                             </p>
                         </NavLink>
                     )}
@@ -587,7 +610,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                             <p className="grow">Bedrijven</p>
                             <FarmSelectDialog
                                 farms={asyncData.farms}
-                                defaultSelectedFarmIds={farmIds}
+                                defaultSelectedFarmIds={asyncData.farmIds}
                             />
                             <BufferStripInfo />
                         </CardTitle>

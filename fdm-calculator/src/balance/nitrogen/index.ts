@@ -79,6 +79,15 @@ async function calculateNitrogenBalanceBatched(
     fdm: FdmType,
     fieldInputs: NitrogenBalanceFieldInput[],
 ): Promise<NitrogenBalanceNumeric> {
+    // Fail early if no fields are in input
+    if (fieldInputs.length === 0) {
+        const errorMessage = "No fields in input"
+        return {
+            errorMessage,
+            ...calculateNitrogenBalancesFieldToFarm([], true, [errorMessage]),
+        }
+    }
+
     const fieldsWithBalanceResults: NitrogenBalanceFieldResultNumeric[] = []
     const batchSize = 50
 
