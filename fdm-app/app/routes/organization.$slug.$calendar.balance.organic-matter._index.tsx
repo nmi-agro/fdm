@@ -232,8 +232,7 @@ export async function loader({
                                 totalArea: farm.b_area_farm,
                                 organicMatterBalanceResult: {
                                     hasErrors: true,
-                                    errorMessage:
-                                        "Geen veldgegevens beschikbaar",
+                                    errorMessage: "No fields in input",
                                 } as OrganicMatterBalanceNumeric & {
                                     errorMessage?: string
                                 },
@@ -447,7 +446,10 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
                             to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/organic-matter`}
                         >
                             <p className="text-sm text-end text-orange-500 hover:underline">
-                                {"Bekijk foutmelding"}
+                                {balanceResult.errorMessage ===
+                                "No fields in input"
+                                    ? "Geen percelen"
+                                    : "Bekijk foutmelding"}
                             </p>
                         </NavLink>
                     )}

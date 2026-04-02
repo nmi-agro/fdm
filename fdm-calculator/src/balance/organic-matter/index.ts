@@ -84,6 +84,26 @@ export async function calculateOrganicMatterBalanceBatched(
     fdm: FdmType,
     fieldInputs: (OrganicMatterBalanceFieldInput & { b_id_farm: string })[],
 ): Promise<OrganicMatterBalanceNumeric> {
+    // Fail early if no fields are in input
+    if (fieldInputs.length === 0) {
+        const errorMessage = "No fields in input"
+        return {
+            errorMessage,
+            ...calculateOrganicMatterBalancesFieldToFarm(
+                [
+                    {
+                        b_id: "",
+                        b_area: 0,
+                        b_bufferstrip: false,
+                        errorMessage: errorMessage,
+                    },
+                ],
+                true,
+                [errorMessage],
+            ),
+        }
+    }
+
     // Process fields in batches to avoid overwhelming the system with concurrent promises,
     // especially for farms with a large number of fields.
     const fieldsWithBalanceResults: OrganicMatterBalanceFieldResultNumeric[] =
