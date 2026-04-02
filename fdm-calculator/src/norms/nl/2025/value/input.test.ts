@@ -5,7 +5,7 @@ import type {
     Field,
 } from "@nmi-agro/fdm-core"
 import * as fdmCore from "@nmi-agro/fdm-core"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi, beforeEach } from "vitest"
 import {
     collectNL2025InputForNorms,
     collectNL2025InputForNormsForFarm,
@@ -105,6 +105,10 @@ describe("collectNL2025InputForNorms", () => {
 })
 
 describe("collectNL2025InputForNormsForFarm", () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
     it("should collect farm input correctly", async () => {
         const mockFdm = {} as FdmType
         const mockPrincipalId = "principal-1"
@@ -147,11 +151,32 @@ describe("collectNL2025InputForNormsForFarm", () => {
         expect(fieldInput.cultivations).toBe(mockCultivations)
         expect(fieldInput.soilAnalysis).toEqual({ a_p_cc: 1.0, a_p_al: 20 })
 
-        const timeframe2025 = { start: new Date(2025, 0, 1), end: new Date(2025, 11, 31) }
-        const timeframe2025Cultivation = { start: new Date(2024, 0, 1), end: new Date(2025, 11, 31) }
-        expect(fdmCore.getFields).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2025Cultivation)
-        expect(fdmCore.getCultivationsForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2025Cultivation)
-        expect(fdmCore.getCurrentSoilDataForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2025)
+        const timeframe2025 = {
+            start: new Date(2025, 0, 1),
+            end: new Date(2025, 11, 31),
+        }
+        const timeframe2025Cultivation = {
+            start: new Date(2024, 0, 1),
+            end: new Date(2025, 11, 31),
+        }
+        expect(fdmCore.getFields).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2025Cultivation,
+        )
+        expect(fdmCore.getCultivationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2025Cultivation,
+        )
+        expect(fdmCore.getCurrentSoilDataForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2025,
+        )
         expect(fdmCore.getCultivations).not.toHaveBeenCalled()
         expect(fdmCore.getCurrentSoilData).not.toHaveBeenCalled()
     })
