@@ -6,25 +6,34 @@ import type {
     Field,
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { collectNL2026InputForFertilizerApplicationFilling } from "./input"
+import {
+    collectNL2026InputForFertilizerApplicationFilling,
+    collectNL2026InputForFertilizerApplicationFillingForFarm,
+} from "./input"
 import type { NL2026NormsFillingInput } from "./types"
 
 // Mock the entire @nmi-agro/fdm-core module
 vi.mock("@nmi-agro/fdm-core", () => ({
     getField: vi.fn(),
+    getFields: vi.fn(),
     getGrazingIntention: vi.fn(),
     isOrganicCertificationValid: vi.fn(),
     getCultivations: vi.fn(),
+    getCultivationsForFarm: vi.fn(),
     getFertilizerApplications: vi.fn(),
+    getFertilizerApplicationsForFarm: vi.fn(),
     getFertilizers: vi.fn(),
 }))
 
 // Import the mocked functions
 import {
     getCultivations,
+    getCultivationsForFarm,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizers,
     getField,
+    getFields,
     getGrazingIntention,
     isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
@@ -164,5 +173,55 @@ describe("collectNL2026InputForFertilizerApplicationFilling", () => {
         ).rejects.toThrow(
             `Field with id ${mockFieldId} not found for principal ${mockPrincipalId}`,
         )
+    })
+})
+
+describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
+    const mockFdm = {} as FdmType
+    const mockPrincipalId = "principal123"
+    const mockFarmId = "farm789"
+    const mockFieldId = "field456"
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+
+        vi.mocked(getFields).mockResolvedValue([
+            { b_id: mockFieldId, b_id_farm: mockFarmId, b_centroid: [10, 20] } as Field,
+        ])
+        vi.mocked(getGrazingIntention).mockResolvedValue(false)
+        vi.mocked(isOrganicCertificationValid).mockResolvedValue(true)
+        vi.mocked(getFertilizers).mockResolvedValue([
+            { p_id: "fert1", p_n_rt: 5 },
+        ] as unknown as Fertilizer[])
+        vi.mocked(getCultivationsForFarm).mockResolvedValue(
+            new Map([[mockFieldId, [{ b_lu: "cult1" }] as Cultivation[]]]),
+        )
+        vi.mocked(getFertilizerApplicationsForFarm).mockResolvedValue(
+            new Map([[mockFieldId, [{ p_app_id: "app1", p_app_amount: 1000 }] as FertilizerApplication[]]]),
+        )
+    })
+
+    it("should collect farm filling input correctly", async () => {
+        const fosfaatgebruiksnormByField = new Map([[mockFieldId, 120]])
+
+        const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            fosfaatgebruiksnormByField,
+        )
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.has(mockFieldId)).toBe(true)
+        const fieldInput = result.get(mockFieldId)!
+        expect(fieldInput.has_grazing_intention).toBe(false)
+        expect(fieldInput.has_organic_certification).toBe(true)
+        expect(fieldInput.fosfaatgebruiksnorm).toBe(120)
+        expect(fieldInput.cultivations).toHaveLength(1)
+        expect(fieldInput.applications).toHaveLength(1)
+
+        expect(getFields).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId)
+        expect(getCultivationsForFarm).toHaveBeenCalled()
+        expect(getFertilizerApplicationsForFarm).toHaveBeenCalled()
     })
 })

@@ -21,6 +21,7 @@ import {
     getFertilizerApplicationsForFarm,
     getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
+    getField,
     getFields,
     getHarvests,
     getHarvestsForFarm,
@@ -41,6 +42,7 @@ vi.mock("@nmi-agro/fdm-core", async () => {
     const actual = await vi.importActual("@nmi-agro/fdm-core")
     return {
         ...actual,
+        getField: vi.fn(),
         getFields: vi.fn(),
         getCultivations: vi.fn(),
         getCultivationsForFarm: vi.fn(),
@@ -65,6 +67,7 @@ vi.mock("./supply/deposition", () => ({
 }))
 
 // Import mocks after vi.mock call
+const mockedGetField = vi.mocked(getField)
 const mockedGetFields = vi.mocked(getFields)
 const mockedGetCultivations = vi.mocked(getCultivations)
 const mockedGetCultivationsForFarm = vi.mocked(getCultivationsForFarm)
@@ -528,6 +531,49 @@ describe("collectInputForNitrogenBalance", () => {
         expect(mockedGetHarvests).not.toHaveBeenCalled()
         expect(mockedGetSoilAnalyses).not.toHaveBeenCalled()
         expect(mockedGetFertilizerApplications).not.toHaveBeenCalled()
+    })
+
+    it("should use single-field path when b_id is provided", async () => {
+        const {
+            mockFieldsData,
+            mockCultivationsData,
+            mockHarvestsData,
+            mockSoilAnalysesData,
+            mockFertilizerApplicationsData,
+            mockFertilizerDetailsData,
+            mockCultivationDetailsData,
+            mockDepositionSupplyMap,
+        } = createMockData()
+        const singleField = mockFieldsData[0]
+
+        mockedGetField.mockResolvedValue(singleField)
+        mockedGetCultivations.mockResolvedValue(mockCultivationsData)
+        mockedGetHarvests.mockResolvedValue(mockHarvestsData)
+        mockedGetSoilAnalyses.mockResolvedValue(mockSoilAnalysesData)
+        mockedGetFertilizerApplications.mockResolvedValue(mockFertilizerApplicationsData)
+        mockedGetFertilizersFromCatalogue.mockResolvedValue(mockFertilizerDetailsData as any)
+        mockedGetCultivationsFromCatalogue.mockResolvedValue(mockCultivationDetailsData as any)
+        mockedCalculateAllFieldsNitrogenSupplyByDeposition.mockResolvedValue(mockDepositionSupplyMap)
+
+        const result = await collectInputForNitrogenBalance(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+            singleField.b_id,
+        )
+
+        expect(result.fields).toHaveLength(1)
+        expect(result.fields[0].field).toBe(singleField)
+        expect(mockedGetCultivations).toHaveBeenCalled()
+        expect(mockedGetHarvests).toHaveBeenCalled()
+        expect(mockedGetSoilAnalyses).toHaveBeenCalled()
+        expect(mockedGetFertilizerApplications).toHaveBeenCalled()
+        // Farm-level batch functions must not be called
+        expect(mockedGetCultivationsForFarm).not.toHaveBeenCalled()
+        expect(mockedGetHarvestsForFarm).not.toHaveBeenCalled()
+        expect(mockedGetSoilAnalysesForFarm).not.toHaveBeenCalled()
+        expect(mockedGetFertilizerApplicationsForFarm).not.toHaveBeenCalled()
     })
 })
 

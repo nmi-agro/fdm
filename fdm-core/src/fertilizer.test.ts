@@ -1701,4 +1701,26 @@ describe("getFertilizerApplicationsForFarm", () => {
             "Principal does not have permission to perform this action",
         )
     })
+
+    it("should filter applications when only timeframe start is provided", async () => {
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id,
+            p_id,
+            100,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+
+        const timeframe = { start: new Date("2024-01-01") }
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+    })
 })

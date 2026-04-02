@@ -9,6 +9,7 @@ import { createId } from "./id"
 import {
     addSoilAnalysis,
     getCurrentSoilData,
+    getCurrentSoilDataForFarm,
     getSoilAnalyses,
     getSoilAnalysesForFarm,
     getSoilAnalysis,
@@ -1095,6 +1096,165 @@ describe("getSoilAnalysesForFarm", () => {
         const unauthorized_principal = createId()
         await expect(
             getSoilAnalysesForFarm(fdm, unauthorized_principal, b_id_farm),
+        ).rejects.toThrowError(
+            "Principal does not have permission to perform this action",
+        )
+    })
+})
+
+describe("getCurrentSoilDataForFarm", () => {
+    let fdm: FdmServerType
+    let principal_id: string
+    let b_id_farm: string
+    let b_id: string
+    let b_id_2: string
+
+    const geometry: schema.fieldsTypeInsert["b_geometry"] = {
+        type: "Polygon",
+        coordinates: [
+            [
+                [30, 10],
+                [40, 40],
+                [20, 40],
+                [10, 20],
+                [30, 10],
+            ],
+        ],
+    }
+
+    beforeEach(async () => {
+        const host = inject("host")
+        const port = inject("port")
+        const user = inject("user")
+        const password = inject("password")
+        const database = inject("database")
+        fdm = createFdmServer(host, port, user, password, database)
+
+        principal_id = createId()
+        b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Test Farm",
+            "123456",
+            "123 Farm Lane",
+            "12345",
+        )
+
+        b_id = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 1",
+            "src1",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 2",
+            "src2",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+    })
+
+    it("should return a Map with current soil data grouped by field ID", async () => {
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2023-05-01"),
+            "other",
+            b_id,
+            30,
+            new Date("2023-05-01"),
+            { a_p_al: 10, a_p_cc: 1.5 },
+        )
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2023-06-01"),
+            "other",
+            b_id_2,
+            30,
+            new Date("2023-06-01"),
+            { a_p_al: 20 },
+        )
+
+        const result = await getCurrentSoilDataForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(true)
+        const field1Data = result.get(b_id)!
+        expect(field1Data.find((x) => x.parameter === "a_p_al")?.value).toBe(10)
+        expect(field1Data.find((x) => x.parameter === "a_p_cc")?.value).toBe(1.5)
+        const field2Data = result.get(b_id_2)!
+        expect(field2Data.find((x) => x.parameter === "a_p_al")?.value).toBe(20)
+    })
+
+    it("should return an empty Map when the farm has no soil analyses", async () => {
+        const result = await getCurrentSoilDataForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.size).toBe(0)
+    })
+
+    it("should only include analyses within the given timeframe", async () => {
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2023-05-01"),
+            "other",
+            b_id,
+            30,
+            new Date("2023-05-01"),
+            { a_p_al: 10 },
+        )
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2026-06-01"),
+            "other",
+            b_id_2,
+            30,
+            new Date("2026-06-01"),
+            { a_p_al: 20 },
+        )
+
+        const timeframe = {
+            start: new Date("2023-01-01"),
+            end: new Date("2023-12-31"),
+        }
+        const result = await getCurrentSoilDataForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(false)
+    })
+
+    it("should throw when principal does not have permission", async () => {
+        const unauthorized_principal = createId()
+        await expect(
+            getCurrentSoilDataForFarm(fdm, unauthorized_principal, b_id_farm),
         ).rejects.toThrowError(
             "Principal does not have permission to perform this action",
         )
