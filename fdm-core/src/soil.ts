@@ -545,7 +545,7 @@ export async function getSoilAnalysesForFarm(
                 a_ca_co_po: row.a_ca_co_po,
                 a_caco3_if: row.a_caco3_if,
                 a_cec_co: row.a_cec_co,
-                a_clay_mi: row.clay_mi,
+                a_clay_mi: row.a_clay_mi,
                 a_cn_fr: row.a_cn_fr,
                 a_com_fr: row.a_com_fr,
                 a_cu_cc: row.a_cu_cc,
@@ -741,7 +741,7 @@ export async function getCurrentSoilDataForFarm(
     principal_id: PrincipalId,
     b_id_farm: schema.farmsTypeSelect["b_id_farm"],
     timeframe?: Timeframe,
-): Promise<Map<string, CurrentSoilData | []>> {
+): Promise<Map<string, CurrentSoilData>> {
     try {
         await checkPermission(
             fdm,
@@ -839,7 +839,7 @@ export async function getCurrentSoilDataForFarm(
             }
         }
 
-        const result = new Map<string, CurrentSoilData | []>()
+        const result = new Map<string, CurrentSoilData>()
         for (const [b_id, fieldRows] of rowsByField) {
             const currentSoilData = parameters
                 .map((parameter) => {

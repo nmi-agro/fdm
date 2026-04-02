@@ -128,7 +128,7 @@ export async function collectNL2025InputForNormsForFarm(
         cultivationsByField,
         soilDataByField,
     ] = await Promise.all([
-        getFields(fdm, principal_id, b_id_farm),
+        getFields(fdm, principal_id, b_id_farm, timeframe2025Cultivation),
         isDerogationGrantedForYear(fdm, principal_id, b_id_farm, year),
         getGrazingIntention(fdm, principal_id, b_id_farm, year),
         getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2025Cultivation),

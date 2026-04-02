@@ -394,15 +394,19 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
                           mockFieldsData.map((f) => [f.b_id, mockCultivationsData]),
                       ),
         )
-        vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockResolvedValue(
-            new Map([
-                ...mockFieldsData.map(
-                    (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
-                ),
-                ...mockFieldsData2.map(
-                    (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
-                ),
-            ]) as any,
+        vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockImplementation(
+            async (_1, _2, b_id_farm) =>
+                b_id_farm === "test-farm-id-2"
+                    ? new Map(
+                          mockFieldsData2.map(
+                              (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
+                          ),
+                      ) as any
+                    : new Map(
+                          mockFieldsData.map(
+                              (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
+                          ),
+                      ) as any,
         )
         vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockImplementation(
             async (_1, _2, b_id_farm) =>

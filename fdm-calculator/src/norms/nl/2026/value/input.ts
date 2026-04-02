@@ -115,7 +115,7 @@ export async function collectNL2026InputForNormsForFarm(
         cultivationsByField,
         soilDataByField,
     ] = await Promise.all([
-        getFields(fdm, principal_id, b_id_farm),
+        getFields(fdm, principal_id, b_id_farm, timeframe2026Cultivation),
         getGrazingIntention(fdm, principal_id, b_id_farm, year),
         getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2026Cultivation),
         getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe2026),

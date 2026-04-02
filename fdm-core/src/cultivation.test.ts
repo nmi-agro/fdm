@@ -2769,4 +2769,13 @@ describe("getCultivationsForFarm", () => {
         expect(result.has(b_id)).toBe(true)
         expect(result.has(other_b_id)).toBe(false)
     })
+
+    it("should throw when principal does not have permission", async () => {
+        const unauthorized_principal = createId()
+        await expect(
+            getCultivationsForFarm(fdm, unauthorized_principal, b_id_farm),
+        ).rejects.toThrowError(
+            "Principal does not have permission to perform this action",
+        )
+    })
 })

@@ -10,6 +10,6 @@ New functions (all return a `Map` keyed by field or cultivation ID):
 - `getSoilAnalysesForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_id, SoilAnalysis[]>`
 - `getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_id, FertilizerApplication[]>`
 - `getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_lu, Harvest[]>`
-- `getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_id, CurrentSoilData | []>`
+- `getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_id, CurrentSoilData>`
 
 Each function performs a single farm-level permission check and retrieves all data for the farm in one query, grouping results in memory by field or cultivation ID.
