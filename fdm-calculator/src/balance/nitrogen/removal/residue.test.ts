@@ -31,14 +31,14 @@ describe("calculateNitrogenRemovalByResidue", () => {
         ],
     ])
 
-    it("should return 0 if no crop residues are left", () => {
+    it("should return 0 if crop residues are left on the field", () => {
         const cultivations: FieldInput["cultivations"] = [
             {
                 b_lu: "cultivation1",
                 b_lu_catalogue: "catalogue1",
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
-                m_cropresidue: false, // No residue left
+                m_cropresidue: true, // Residues left on field, not removed
                 b_lu_name: "Cultivation 1",
                 b_lu_croprotation: "cereal",
             },
@@ -64,7 +64,7 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_catalogue: "catalogue1",
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
-                m_cropresidue: true,
+                m_cropresidue: false, // Residues removed from field
                 b_lu_name: "Cultivation 1",
                 b_lu_croprotation: "cereal",
             },
@@ -116,7 +116,7 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_catalogue: "catalogue1",
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
-                m_cropresidue: true,
+                m_cropresidue: false, // Residues removed from field
                 b_lu_name: "Cultivation 1",
                 b_lu_croprotation: "cereal",
             },
@@ -185,7 +185,7 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_catalogue: "catalogue1",
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
-                m_cropresidue: true,
+                m_cropresidue: false, // Residues removed from field
                 b_lu_name: "Cultivation 1",
                 b_lu_croprotation: "cereal",
             },
@@ -228,7 +228,7 @@ describe("calculateNitrogenRemovalByResidue", () => {
         )
     })
 
-    it("should handle null m_cropresidue as false", () => {
+    it("should calculate nitrogen removal when m_cropresidue is null", () => {
         const cultivations: FieldInput["cultivations"] = [
             {
                 b_lu: "cultivation1",
@@ -248,10 +248,8 @@ describe("calculateNitrogenRemovalByResidue", () => {
             cultivationDetailsMap,
         )
 
-        expect(result).toEqual({
-            total: new Decimal(0),
-            cultivations: [{ id: "cultivation1", value: new Decimal(0) }],
-        })
+        expect(result.total.toNumber()).toBeCloseTo(-3) //Approximation due to floating point
+        expect(result.cultivations[0].value.toNumber()).toBeCloseTo(-3) //Approximation due to floating point
     })
 
     it("should handle empty harvestable_analyses array", () => {
@@ -261,7 +259,7 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_catalogue: "catalogue1",
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
-                m_cropresidue: true,
+                m_cropresidue: false, // Residues removed from field
                 b_lu_name: "Cultivation 1",
                 b_lu_croprotation: "cereal",
             },
@@ -295,7 +293,7 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_catalogue: "catalogue2",
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
-                m_cropresidue: true,
+                m_cropresidue: false, // Residues removed from field
                 b_lu_name: "test",
                 b_lu_croprotation: null,
             },
