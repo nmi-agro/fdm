@@ -1,5 +1,28 @@
 # fdm-calculator
 
+## 0.13.0
+
+### Minor Changes
+
+- [#547](https://github.com/nmi-agro/fdm/pull/547) [`0f359ad`](https://github.com/nmi-agro/fdm/commit/0f359adc81efdac957fadab687ac1d61c8ddfc05) Thanks [@SvenVw](https://github.com/SvenVw)! - Replace per-field query loops with farm-level batch queries in all input collectors for balances and norms, eliminating N+1 database round-trips for large farms.
+
+- [#534](https://github.com/nmi-agro/fdm/pull/534) [`2c9d6e9`](https://github.com/nmi-agro/fdm/commit/2c9d6e9fea5a2eabab44ca4bf67951825a3b6aa5) Thanks [@SvenVw](https://github.com/SvenVw)! - Add new public API exports for uncached norm-filling calculations and nitrogen balance aggregation:
+  - **`createUncachedFunctionsForFertilizerApplicationFilling`:** Creates calculation functions that bypass the fdm database cache layer. Intended for evaluating proposed (not yet persisted) fertilizer plans where caching provides no benefit and direct calculation is preferred.
+  - **`calculateNitrogenBalancesFieldToFarm`:** Aggregates field-level nitrogen balances up to the farm level.
+
+- [#515](https://github.com/nmi-agro/fdm/pull/515) [`ae7d3c9`](https://github.com/nmi-agro/fdm/commit/ae7d3c98be19fb2cd3abf8b5de37f0e5312fd557) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added `collectInputForNitrogenBalanceForFarms` and `collectInputForOrganicMatterBalanceForFarms` to collect balance inputs for multiple farms, reducing database lookups by deduplicating catalogue queries across farms. The functions use a composable pattern: first fetch enabled catalogues for all farms in one query, then fetch catalogue items once per unique catalogue, then process each farm individually.
+
+### Patch Changes
+
+- [#548](https://github.com/nmi-agro/fdm/pull/548) [`c570b8a`](https://github.com/nmi-agro/fdm/commit/c570b8a51bb22e513b4c07b0e9efdd072807dd5c) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix nitrogen removal for crop residues: residues left on the field are no longer counted as removed, while residues removed from the field are.
+
+- [#535](https://github.com/nmi-agro/fdm/pull/535) [`6b00be9`](https://github.com/nmi-agro/fdm/commit/6b00be9c0999b3510a3af86b64d2002ee66ecc1b) Thanks [@SvenVw](https://github.com/SvenVw)! - Set minimum node.js version to v24
+
+- [#503](https://github.com/nmi-agro/fdm/pull/503) [`71dcf8a`](https://github.com/nmi-agro/fdm/commit/71dcf8a15801d4faf476c18bbc4f2eb6b488c823) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix falsy checks to correctly preserve `0` and `false` values in calculations, ensuring accurate results when valid zero or false inputs are provided.
+
+- Updated dependencies [[`ae7d3c9`](https://github.com/nmi-agro/fdm/commit/ae7d3c98be19fb2cd3abf8b5de37f0e5312fd557), [`69122ba`](https://github.com/nmi-agro/fdm/commit/69122ba66cdb6eb791e0fb51acd0f042d8ac7a71), [`0f359ad`](https://github.com/nmi-agro/fdm/commit/0f359adc81efdac957fadab687ac1d61c8ddfc05), [`6b00be9`](https://github.com/nmi-agro/fdm/commit/6b00be9c0999b3510a3af86b64d2002ee66ecc1b), [`21ef50a`](https://github.com/nmi-agro/fdm/commit/21ef50aa3c9e2b59366b1d27183cf9306c8dbe33), [`2fb53de`](https://github.com/nmi-agro/fdm/commit/2fb53dee72bee18b6db11de2939699e2d567f336)]:
+  - @nmi-agro/fdm-core@0.31.0
+
 ## 0.12.2
 
 ### Patch Changes

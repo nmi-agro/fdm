@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-core",
     "private": false,
-    "version": "0.30.1",
+    "version": "0.31.0",
     "description": "Interface for the Farm Data Model",
     "license": "MIT",
     "homepage": "https://svenvw.github.io/fdm/",
@@ -46,7 +46,7 @@
     },
     "devDependencies": {
         "@dotenvx/dotenvx": "catalog:",
-        "@nmi-agro/fdm-data": "workspace:^0.19.2",
+        "@nmi-agro/fdm-data": "workspace:^0.19.3",
         "@rollup/plugin-commonjs": "catalog:",
         "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",

@@ -1,5 +1,61 @@
 # Changelog fdm-app
 
+## 0.29.0
+
+### Minor Changes
+
+- [#506](https://github.com/nmi-agro/fdm/pull/506) [`63fd7b8`](https://github.com/nmi-agro/fdm/commit/63fd7b863458a3b1b92c82c4a62ed7161d8ae167) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users get an option to focus the atlas onto their farm fields. Newly selected fields are also included in the focus area if the user is currently creating new fields.
+
+- [#374](https://github.com/nmi-agro/fdm/pull/374) [`fd0a675`](https://github.com/nmi-agro/fdm/commit/fd0a675dc39300c23c3eabbae86d79ecbbb7b47c) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the option to import fields from RVO in farm create wizard and also at the fields page of the farm
+
+- [#507](https://github.com/nmi-agro/fdm/pull/507) [`00723fb`](https://github.com/nmi-agro/fdm/commit/00723fb37a4296162d0db04fec5a1d02edf21700) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added header breadcrumbs for soil analysis upload and also made sure there is a back button on those pages.
+
+- [#534](https://github.com/nmi-agro/fdm/pull/534) [`2c9d6e9`](https://github.com/nmi-agro/fdm/commit/2c9d6e9fea5a2eabab44ca4bf67951825a3b6aa5) Thanks [@SvenVw](https://github.com/SvenVw)! - Add **Gerrit** as a Labs feature — an AI-powered fertilizer application planning assistant backed by the `fdm-agents` package.
+  - New farm sidebar entry and dedicated route (`/farm/:b_id_farm/:calendar/gerrit`).
+  - **Strategy form:** Users configure planning strategies (organic, derogation, fill manure space, NH₃ reduction, nitrogen balance target, rotation-level / bouwplan).
+  - **Plan table:** Displays the generated fertilizer plan per field with fertilizer type icons, application method, and amounts.
+  - **Summary cards & norm progress bars:** Live overview of farm-level N, P, and manure norm consumption.
+  - **Feedback button:** Lets users rate and comment on Gerrit's output.
+  - **Feature flag:** Gerrit can be enabled/disabled via the `GERRIT_ENABLED` environment variable.
+  - **PostHog logging:** Tool usage, strategies, and additional context are logged for product analytics.
+
+- [#515](https://github.com/nmi-agro/fdm/pull/515) [`ae7d3c9`](https://github.com/nmi-agro/fdm/commit/ae7d3c98be19fb2cd3abf8b5de37f0e5312fd557) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added organization-level nitrogen and organic matter balance plots with option to exclude certain farms from the calculation.
+
+- [#532](https://github.com/nmi-agro/fdm/pull/532) [`1d6e079`](https://github.com/nmi-agro/fdm/commit/1d6e0792fe29cd5bff623789bb872a5d2491652b) Thanks [@SvenVw](https://github.com/SvenVw)! - Add at the fields table a column with a checkbox to indicate and update the bufferstrip status of a field
+
+- [#519](https://github.com/nmi-agro/fdm/pull/519) [`69122ba`](https://github.com/nmi-agro/fdm/commit/69122ba66cdb6eb791e0fb51acd0f042d8ac7a71) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - The option to add crop residue to a cultivation is no longer available if the crop has no effective organic matter residue.
+
+- [#504](https://github.com/nmi-agro/fdm/pull/504) [`d9ab3cd`](https://github.com/nmi-agro/fdm/commit/d9ab3cda82f3af44b644a188ee8272f1fdec2e40) Thanks [@SvenVw](https://github.com/SvenVw)! - Improved the UI/UX and code quality of the fertilizers pages with the following:
+  - **Fertilizer Table:** Added all nutrient columns (DS, OS, MgO, CaO, Na₂O, SO₃, trace elements, and N-efficiency). Columns are hidden by default and manageable via a new "Kolommen" dropdown.
+  - **Searchable Catalogue:** Replaced the card grid with a searchable catalogue picker. It distinguishes between standard and custom fertilizers with subtle tagging and uses color-coded RVO category badges. The search index now includes RVO category names.
+  - **Modernized Form:** Migrated the fertilizer form to the latest `Field` component system. Implemented a 3-column grid for numeric fields and optimized the application method section.
+  - **Improved Sidebar ("Samenvatting"):** Added a professional summary sidebar that calculates "Werkzame N" live and displays key analytics in a clean monochromatic format.
+  - **Mobile Optimizations:** Added a smart floating action bar on mobile that hides when the main save button is visible. Reduced excessive padding across all fertilizer pages.
+  - **Better Navigation:** Entire table rows are now clickable. Fixed the "Make a copy" feature (now "Gebruik als sjabloon") with reliable pathing and friendly guidance.
+  - **Refactoring:** Extracted shared logic for defaults and payload building into `utils.ts`.
+  - **Component Consolidation:** Merged duplicate form pages into a single reusable `FarmNewFertilizerBlock`.
+  - **Server/Client Safety:** Correctly separated server-side action logic from client-side utility helpers to prevent build errors.
+  - **Consistency:** Aligned typography, card styling, and badge usage with the rest of the application.
+
+### Patch Changes
+
+- [#542](https://github.com/nmi-agro/fdm/pull/542) [`ca10985`](https://github.com/nmi-agro/fdm/commit/ca1098523fb15454f215f49715012585a1f65e31) Thanks [@SvenVw](https://github.com/SvenVw)! - Add feature flag to manage access to RVO import of fields
+
+- [#535](https://github.com/nmi-agro/fdm/pull/535) [`6b00be9`](https://github.com/nmi-agro/fdm/commit/6b00be9c0999b3510a3af86b64d2002ee66ecc1b) Thanks [@SvenVw](https://github.com/SvenVw)! - Set minimum node.js version to v24
+
+- [#545](https://github.com/nmi-agro/fdm/pull/545) [`9b0312a`](https://github.com/nmi-agro/fdm/commit/9b0312aeb160c1c6fa5ea6a1825b00db5a57b6fe) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added server-side authorization for Gerrit.
+
+- [#499](https://github.com/nmi-agro/fdm/pull/499) [`21ef50a`](https://github.com/nmi-agro/fdm/commit/21ef50aa3c9e2b59366b1d27183cf9306c8dbe33) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Updated better-auth to 1.5.
+
+- [#541](https://github.com/nmi-agro/fdm/pull/541) [`c0d31b1`](https://github.com/nmi-agro/fdm/commit/c0d31b108de88a5ae02f9644d0e1604ace6c97dc) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix that `a_nmin_cc` is stored when filled in for soil analysis
+
+- Updated dependencies [[`c570b8a`](https://github.com/nmi-agro/fdm/commit/c570b8a51bb22e513b4c07b0e9efdd072807dd5c), [`ae7d3c9`](https://github.com/nmi-agro/fdm/commit/ae7d3c98be19fb2cd3abf8b5de37f0e5312fd557), [`69122ba`](https://github.com/nmi-agro/fdm/commit/69122ba66cdb6eb791e0fb51acd0f042d8ac7a71), [`0f359ad`](https://github.com/nmi-agro/fdm/commit/0f359adc81efdac957fadab687ac1d61c8ddfc05), [`0f359ad`](https://github.com/nmi-agro/fdm/commit/0f359adc81efdac957fadab687ac1d61c8ddfc05), [`6e1dcea`](https://github.com/nmi-agro/fdm/commit/6e1dceacdbbe2adf3daea171924bba8e26c3dcde), [`6b00be9`](https://github.com/nmi-agro/fdm/commit/6b00be9c0999b3510a3af86b64d2002ee66ecc1b), [`21ef50a`](https://github.com/nmi-agro/fdm/commit/21ef50aa3c9e2b59366b1d27183cf9306c8dbe33), [`2fb53de`](https://github.com/nmi-agro/fdm/commit/2fb53dee72bee18b6db11de2939699e2d567f336), [`2c9d6e9`](https://github.com/nmi-agro/fdm/commit/2c9d6e9fea5a2eabab44ca4bf67951825a3b6aa5), [`7e07507`](https://github.com/nmi-agro/fdm/commit/7e07507a30fa3876a969346e6cef8d310d318bdc), [`2c9d6e9`](https://github.com/nmi-agro/fdm/commit/2c9d6e9fea5a2eabab44ca4bf67951825a3b6aa5), [`4463c5b`](https://github.com/nmi-agro/fdm/commit/4463c5b49b6c297ceb1ce9222aafa231dcdb01de), [`71dcf8a`](https://github.com/nmi-agro/fdm/commit/71dcf8a15801d4faf476c18bbc4f2eb6b488c823), [`b57842f`](https://github.com/nmi-agro/fdm/commit/b57842f9c8217867057a76c8c10766048bf1e6a2), [`ae7d3c9`](https://github.com/nmi-agro/fdm/commit/ae7d3c98be19fb2cd3abf8b5de37f0e5312fd557)]:
+  - @nmi-agro/fdm-calculator@0.13.0
+  - @nmi-agro/fdm-core@0.31.0
+  - @nmi-agro/fdm-data@0.19.3
+  - @nmi-agro/fdm-agents@0.2.0
+  - @nmi-agro/fdm-rvo@0.2.0
+
 ## 0.28.7
 
 ### Patch Changes
