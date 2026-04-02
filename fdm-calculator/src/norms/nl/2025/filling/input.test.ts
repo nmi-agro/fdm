@@ -6,25 +6,34 @@ import type {
     Field,
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { collectNL2025InputForFertilizerApplicationFilling } from "./input"
+import {
+    collectNL2025InputForFertilizerApplicationFilling,
+    collectNL2025InputForFertilizerApplicationFillingForFarm,
+} from "./input"
 import type { NL2025NormsFillingInput } from "./types"
 
 // Mock the entire @nmi-agro/fdm-core module
 vi.mock("@nmi-agro/fdm-core", () => ({
     getField: vi.fn(),
+    getFields: vi.fn(),
     getGrazingIntention: vi.fn(),
     isOrganicCertificationValid: vi.fn(),
     getCultivations: vi.fn(),
+    getCultivationsForFarm: vi.fn(),
     getFertilizerApplications: vi.fn(),
+    getFertilizerApplicationsForFarm: vi.fn(),
     getFertilizers: vi.fn(),
 }))
 
 // Import the mocked functions
 import {
     getCultivations,
+    getCultivationsForFarm,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizers,
     getField,
+    getFields,
     getGrazingIntention,
     isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
@@ -168,4 +177,86 @@ describe("collectNL2025InputForFertilizerApplicationFilling", () => {
     // - No fertilizers
     // - Different grazing intention / organic certification status
     // - Empty b_centroid (if getField returns a field without centroid, though current mock ensures it has one)
+})
+
+describe("collectNL2025InputForFertilizerApplicationFillingForFarm", () => {
+    const mockFdm = {} as FdmType
+    const mockPrincipalId = "principal123"
+    const mockFarmId = "farm789"
+    const mockFieldId = "field456"
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+
+        vi.mocked(getFields).mockResolvedValue([
+            {
+                b_id: mockFieldId,
+                b_id_farm: mockFarmId,
+                b_centroid: [10, 20],
+            } as Field,
+        ])
+        vi.mocked(getGrazingIntention).mockResolvedValue(true)
+        vi.mocked(isOrganicCertificationValid).mockResolvedValue(false)
+        vi.mocked(getFertilizers).mockResolvedValue([
+            { p_id: "fert1", p_n_rt: 5 },
+        ] as unknown as Fertilizer[])
+        vi.mocked(getCultivationsForFarm).mockResolvedValue(
+            new Map([[mockFieldId, [{ b_lu: "cult1" }] as Cultivation[]]]),
+        )
+        vi.mocked(getFertilizerApplicationsForFarm).mockResolvedValue(
+            new Map([
+                [
+                    mockFieldId,
+                    [
+                        { p_app_id: "app1", p_app_amount: 1000 },
+                    ] as FertilizerApplication[],
+                ],
+            ]),
+        )
+    })
+
+    it("should collect farm filling input correctly", async () => {
+        const fosfaatgebruiksnormByField = new Map([[mockFieldId, 100]])
+
+        const result =
+            await collectNL2025InputForFertilizerApplicationFillingForFarm(
+                mockFdm,
+                mockPrincipalId,
+                mockFarmId,
+                fosfaatgebruiksnormByField,
+            )
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.has(mockFieldId)).toBe(true)
+        const fieldInput = result.get(mockFieldId)!
+        expect(fieldInput.has_grazing_intention).toBe(true)
+        expect(fieldInput.has_organic_certification).toBe(false)
+        expect(fieldInput.fosfaatgebruiksnorm).toBe(100)
+        expect(fieldInput.cultivations).toHaveLength(1)
+        expect(fieldInput.applications).toHaveLength(1)
+        expect(fieldInput.b_centroid).toEqual([10, 20])
+        expect(fieldInput.fertilizers).toHaveLength(1)
+
+        const timeframe2025 = {
+            start: new Date(2025, 0, 1),
+            end: new Date(2025, 11, 31, 23, 59, 59, 999),
+        }
+        expect(getFields).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+        )
+        expect(getCultivationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2025,
+        )
+        expect(getFertilizerApplicationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            mockPrincipalId,
+            mockFarmId,
+            timeframe2025,
+        )
+    })
 })

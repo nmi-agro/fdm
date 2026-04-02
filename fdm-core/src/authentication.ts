@@ -1,3 +1,4 @@
+import type { GoogleOptions, MicrosoftOptions, User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
 import { magicLink, organization, username } from "better-auth/plugins"
@@ -25,6 +26,7 @@ export type BetterAuth = FdmAuth
  * @param microsoft Optional configuration for Microsoft authentication. If provided, users can sign up and sign in with their Microsoft accounts.
  * @param sendMagicLinkEmail Optional function to send magic link emails. If provided, the magic link plugin will use this function to send emails.
  * @param emailAndPassword Optional boolean indicating whether to enable email and password authentication. Defaults to false.
+ * @param sendWelcomeEmail Optional function to send welcome emails. If provided, after an user is created, this function will be called to send a welcome email to them.
  * @returns The configured authentication instance.
  * @throws {Error} If required environment variables are missing or if role assignment fails.
  */
@@ -38,20 +40,15 @@ export function createFdmAuth(
         code: string,
     ) => Promise<void>,
     emailAndPassword?: boolean,
+    sendWelcomeEmail?: (user: User) => Promise<void>,
 ) {
     // Setup social auth providers
-    let googleAuth
+    let googleAuth: GoogleOptions | undefined
     if (google) {
         googleAuth = {
             clientId: google?.clientId,
             clientSecret: google?.clientSecret,
-            mapProfileToUser: async (profile: {
-                name: string
-                email: string
-                picture: string
-                given_name: string
-                family_name: string
-            }) => {
+            mapProfileToUser: async (profile) => {
                 return {
                     name: profile.name,
                     email: profile.email,
@@ -69,7 +66,7 @@ export function createFdmAuth(
         }
     }
 
-    let microsoftAuth
+    let microsoftAuth: MicrosoftOptions | undefined
     if (microsoft) {
         microsoftAuth = {
             clientId: microsoft.clientId,
@@ -151,21 +148,22 @@ export function createFdmAuth(
         plugins: [
             username(),
             organization({
-                organizationCreation: {
-                    disabled: false, // Set to true to disable organization creation
-                    beforeCreate: async ({ organization }) => {
+                organizationHooks: {
+                    beforeCreateOrganization: async ({ organization }) => {
                         return {
                             data: {
                                 ...organization,
                                 metadata: {
-                                    isVerified: false,
                                     description: "",
                                     ...(organization.metadata || {}),
+                                    // isVerified is forced to be false and cannot be overridden
+                                    isVerified: false,
                                 },
                             },
                         }
                     },
                 },
+                allowUserToCreateOrganization: true,
             }),
             magicLink({
                 expiresIn: 60 * 15,
@@ -207,26 +205,37 @@ export function createFdmAuth(
         databaseHooks: {
             user: {
                 create: {
-                    after: async (user) => {
+                    after: async (incomingUser) => {
                         // Check if username is created after signup, otherwise add an username (typically when signed up with magic link)
-                        const userName = await fdm
+                        const dbUsernames = await fdm
                             .select({
                                 username: authNSchema.user.username,
                             })
                             .from(authNSchema.user)
-                            .where(eq(authNSchema.user.id, user.id))
+                            .where(eq(authNSchema.user.id, incomingUser.id))
                             .limit(1)
 
-                        if (userName.length > 0 && !userName[0].username) {
+                        let username: string | undefined =
+                            dbUsernames.length > 0
+                                ? dbUsernames[0].username
+                                : undefined
+
+                        if (!username || username.trim().length === 0) {
+                            username = await createUsername(
+                                fdm,
+                                incomingUser.email,
+                            )
                             await fdm
                                 .update(authNSchema.user)
                                 .set({
-                                    username: await createUsername(
-                                        fdm,
-                                        user.email,
-                                    ),
+                                    username: username,
                                 })
-                                .where(eq(authNSchema.user.id, user.id))
+                                .where(eq(authNSchema.user.id, incomingUser.id))
+                        }
+
+                        const user = {
+                            ...incomingUser,
+                            name: username,
                         }
 
                         // Auto-accept pending invitations if email is already verified (e.g. social login)
@@ -240,6 +249,18 @@ export function createFdmAuth(
                             } catch (err) {
                                 console.warn(
                                     "autoAcceptInvitationsForNewUser failed for user",
+                                    user.id,
+                                    err,
+                                )
+                            }
+                        }
+
+                        if (sendWelcomeEmail) {
+                            try {
+                                await sendWelcomeEmail(user)
+                            } catch (err) {
+                                console.warn(
+                                    "sendWelcomeEmail failed for user",
                                     user.id,
                                     err,
                                 )

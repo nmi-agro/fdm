@@ -32,35 +32,87 @@ import type {
 export async function calculateNitrogenBalance(
     fdm: FdmType,
     nitrogenBalanceInput: NitrogenBalanceInput,
+) {
+    return calculateNitrogenBalanceForFarms(fdm, [
+        {
+            ...nitrogenBalanceInput,
+            b_id_farm:
+                (
+                    nitrogenBalanceInput as NitrogenBalanceInput & {
+                        b_id_farm?: string
+                    }
+                ).b_id_farm ?? "farm",
+        },
+    ])
+}
+
+/**
+ * Calculates the nitrogen balance for all the farms.
+ *
+ * This function orchestrates the nitrogen balance calculation for all fields on multiple farms.
+ * It calls `getNitrogenBalanceField` for each field and then aggregates the results
+ * using `calculateNitrogenBalancesFieldToFarm`.
+ *
+ * @param fdm - The FDM instance for database access (caching).
+ * @param nitrogenBalanceInput - The input data for the nitrogen balance calculation, including all fields.
+ * @returns A promise that resolves an array where each item is the aggregated nitrogen balance of a farm,
+ * including the b_id_farm.
+ */
+export async function calculateNitrogenBalanceForFarms(
+    fdm: FdmType,
+    inputs: (NitrogenBalanceInput & { b_id_farm: string })[],
+) {
+    const fieldInputs: (NitrogenBalanceFieldInput & { b_id_farm: string })[] =
+        inputs.flatMap((input) =>
+            input.fields.map((field) => ({
+                b_id_farm: input.b_id_farm,
+                fieldInput: field,
+                fertilizerDetails: input.fertilizerDetails,
+                cultivationDetails: input.cultivationDetails,
+                timeFrame: input.timeFrame,
+            })),
+        )
+    return calculateNitrogenBalanceBatched(fdm, fieldInputs)
+}
+
+async function calculateNitrogenBalanceBatched(
+    fdm: FdmType,
+    fieldInputs: NitrogenBalanceFieldInput[],
 ): Promise<NitrogenBalanceNumeric> {
-    const { fields, fertilizerDetails, cultivationDetails, timeFrame } =
-        nitrogenBalanceInput
+    // Fail early if no fields are in input
+    if (fieldInputs.length === 0) {
+        const errorMessage = "No fields in input"
+        return {
+            errorMessage,
+            ...calculateNitrogenBalancesFieldToFarm([], true, [errorMessage]),
+        }
+    }
 
     const fieldsWithBalanceResults: NitrogenBalanceFieldResultNumeric[] = []
     const batchSize = 50
 
-    for (let i = 0; i < fields.length; i += batchSize) {
-        const batch = fields.slice(i, i + batchSize)
+    for (let i = 0; i < fieldInputs.length; i += batchSize) {
+        const batch = fieldInputs.slice(i, i + batchSize)
         const batchResults = await Promise.all(
             batch.map(async (fieldInput) => {
                 try {
-                    const balance = await getNitrogenBalanceField(fdm, {
+                    const balance = await getNitrogenBalanceField(
+                        fdm,
                         fieldInput,
-                        fertilizerDetails,
-                        cultivationDetails,
-                        timeFrame,
-                    })
+                    )
                     return {
-                        b_id: fieldInput.field.b_id,
-                        b_area: fieldInput.field.b_area ?? 0,
-                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        b_id: fieldInput.fieldInput.field.b_id,
+                        b_area: fieldInput.fieldInput.field.b_area ?? 0,
+                        b_bufferstrip:
+                            fieldInput.fieldInput.field.b_bufferstrip ?? false,
                         balance,
                     }
                 } catch (error) {
                     return {
-                        b_id: fieldInput.field.b_id,
-                        b_area: fieldInput.field.b_area ?? 0,
-                        b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+                        b_id: fieldInput.fieldInput.field.b_id,
+                        b_area: fieldInput.fieldInput.field.b_area ?? 0,
+                        b_bufferstrip:
+                            fieldInput.fieldInput.field.b_bufferstrip ?? false,
                         errorMessage:
                             error instanceof Error
                                 ? error.message

@@ -14,10 +14,10 @@ import type {
  * 1. The `m_cropresidue` flag for the cultivation is true, indicating that residues were incorporated into the soil.
  * 2. The cultivation's end date (`b_lu_end`) falls within the specified calculation timeframe.
  *
- * The EOM value for residues is sourced from the cultivation catalogue (`b_lu_eom_residues`).
+ * The EOM value for residues is sourced from the cultivation catalogue (`b_lu_eom_residue`).
  *
  * @param cultivations - An array of cultivation records for the field.
- * @param cultivationDetailsMap - A map containing detailed information for each cultivation type, including its `b_lu_eom_residues` value.
+ * @param cultivationDetailsMap - A map containing detailed information for each cultivation type, including its `b_lu_eom_residue` value.
  * @param timeFrame - The start and end dates for the calculation period.
  * @returns An object containing the total EOM supplied by all qualifying residues and a detailed list of contributions per cultivation.
  */
@@ -36,10 +36,7 @@ export function calculateOrganicMatterSupplyByResidues(
 
         // Proceed only if the cultivation type has a defined EOM value for residues
         // and the 'm_cropresidue' flag is explicitly set to true.
-        if (
-            cultivationDetail?.b_lu_eom_residues != null &&
-            cult.m_cropresidue
-        ) {
+        if (cultivationDetail?.b_lu_eom_residue != null && cult.m_cropresidue) {
             // Ensure the cultivation ended within the calculation timeframe.
             const terminationDate = cult.b_lu_end
                 ? new Date(cult.b_lu_end)
@@ -49,10 +46,8 @@ export function calculateOrganicMatterSupplyByResidues(
                 terminationDate >= timeFrame.start &&
                 terminationDate <= timeFrame.end
             ) {
-                // `b_lu_eom_residues` is the annual EOM supply from residues in kg/ha/year.
-                const omSupply = new Decimal(
-                    cultivationDetail.b_lu_eom_residues,
-                )
+                // `b_lu_eom_residue` is the annual EOM supply from residues in kg/ha/year.
+                const omSupply = new Decimal(cultivationDetail.b_lu_eom_residue)
 
                 // Add the supply from this residue to the total.
                 total = total.plus(omSupply)

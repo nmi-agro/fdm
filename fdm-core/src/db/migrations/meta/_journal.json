@@ -169,6 +169,20 @@
             "when": 1771594531138,
             "tag": "0023_v0-30-0-1",
             "breakpoints": true
+        },
+        {
+            "idx": 24,
+            "version": "7",
+            "when": 1773142528110,
+            "tag": "0024_better-auth-1-5-4",
+            "breakpoints": true
+        },
+        {
+            "idx": 25,
+            "version": "7",
+            "when": 1773751940467,
+            "tag": "0025_rename-b-lu-eom-residue",
+            "breakpoints": true
         }
     ]
 }

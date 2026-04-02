@@ -6,8 +6,10 @@ import {
     getFertilizerApplications,
     getFertilizers,
     getFields,
+    updateField,
 } from "@nmi-agro/fdm-core"
 import {
+    type ActionFunctionArgs,
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
@@ -16,6 +18,7 @@ import {
     redirect,
     useLoaderData,
 } from "react-router"
+import { dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { columns } from "~/components/blocks/fields/columns"
@@ -28,7 +31,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
@@ -336,4 +339,38 @@ export default function FarmFieldIndex() {
             </main>
         </SidebarInset>
     )
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+    try {
+        const session = await getSession(request)
+        const formData = await request.formData()
+        const b_id = formData.get("b_id")
+        if (!b_id || typeof b_id !== "string") {
+            throw data("missing: b_id", {
+                status: 400,
+                statusText: "missing: b_id",
+            })
+        }
+        const b_bufferstrip = formData.get("b_bufferstrip") === "true"
+
+        await updateField(
+            fdm,
+            session.principal_id,
+            b_id,
+            undefined, // b_name
+            undefined, // b_id_source
+            undefined, // b_geometry
+            undefined, // b_start
+            undefined, // b_acquiring_method
+            undefined, // b_end
+            b_bufferstrip,
+        )
+
+        return dataWithSuccess(null, {
+            message: "Bufferstrook status bijgewerkt.",
+        })
+    } catch (error) {
+        throw handleActionError(error)
+    }
 }

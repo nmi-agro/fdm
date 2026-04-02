@@ -284,7 +284,7 @@ describe("Farm Functions", () => {
             expect(invitation?.status).toBe("pending")
 
             // Accept the invitation so subsequent tests (updateRole, revoke) work
-            await acceptInvitation(fdm, invitation!.invitation_id, target_id)
+            await acceptInvitation(fdm, invitation?.invitation_id, target_id)
 
             // Now the role should be granted
             const principals = await listPrincipalsForResource(

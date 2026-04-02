@@ -24,7 +24,10 @@ import {
 import { endMonth } from "~/lib/calendar"
 import { useCalendarStore } from "~/store/calendar"
 
-function parseDateString(dateString: string, calendarYear: number): Date | undefined {
+function parseDateString(
+    dateString: string,
+    calendarYear: number,
+): Date | undefined {
     if (!dateString) {
         return undefined
     }
@@ -60,8 +63,13 @@ function parseDateString(dateString: string, calendarYear: number): Date | undef
 }
 
 // Parses Dutch numeric date format DD-MM, DD-MM-YY or DD-MM-YYYY.
-function parseDutchNumericDate(text: string, targetYear: number): Date | undefined {
-    const match = text.trim().match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?$/)
+function parseDutchNumericDate(
+    text: string,
+    targetYear: number,
+): Date | undefined {
+    const match = text
+        .trim()
+        .match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?$/)
     if (!match) {
         return undefined
     }
@@ -141,7 +149,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
             setValue("") // Clear input value
             setIsInputValid(true)
         }
-    }, [form, name, date])
+    }, [form, name, date, referenceDate])
 
     React.useEffect(() => {
         if (disabled && open) {
@@ -176,7 +184,10 @@ export function DatePicker<TFieldValues extends FieldValues>({
                                         return
                                     }
 
-                                    const newDate = parseDateString(text, calendarYear)
+                                    const newDate = parseDateString(
+                                        text,
+                                        calendarYear,
+                                    )
                                     if (newDate && isValidDate(newDate)) {
                                         setDate(newDate)
                                         setMonth(newDate)

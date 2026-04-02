@@ -26,7 +26,7 @@ import {
     FormSchemaModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
 import { FertilizerApplicationMetricsCard } from "~/components/blocks/fertilizer-applications/metrics"
-import { getNmiApiKey } from "~/integrations/nmi"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"

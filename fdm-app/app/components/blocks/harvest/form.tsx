@@ -6,8 +6,8 @@ import { CircleQuestionMark } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Controller } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
-import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { UseRemixFormReturn } from "remix-hook-form"
+import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { DatePicker } from "~/components/custom/date-picker-v2"
@@ -198,7 +198,14 @@ function useHarvestRemixForm({
             form.setValue("b_lu_harvest_date", getDefaultHarvestDate())
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [calendar])
+    }, [
+        form.setValue,
+        example_b_lu_harvest_date,
+        getDefaultHarvestDate,
+        form.getFieldState,
+        form.getValues,
+        b_lu_harvest_date,
+    ])
 
     return form
 }

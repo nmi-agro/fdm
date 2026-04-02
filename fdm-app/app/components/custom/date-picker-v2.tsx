@@ -26,8 +26,8 @@ import {
     PopoverTrigger,
 } from "~/components/ui/popover"
 import { endMonth } from "~/lib/calendar"
-import { useCalendarStore } from "~/store/calendar"
 import { cn } from "~/lib/utils"
+import { useCalendarStore } from "~/store/calendar"
 
 type DatePickerProps = {
     label: string | undefined
@@ -185,7 +185,10 @@ function formatDate(date: Date | undefined) {
     return format(date, "PPP", { locale: nl })
 }
 
-function parseDateText(date: string | Date | undefined, calendarYear?: number): Date | undefined {
+function parseDateText(
+    date: string | Date | undefined,
+    calendarYear?: number,
+): Date | undefined {
     if (date instanceof Date) {
         return date
     }
@@ -237,8 +240,13 @@ function parseDateText(date: string | Date | undefined, calendarYear?: number): 
 
 // Parses Dutch numeric date format DD-MM, DD-MM-YY or DD-MM-YYYY.
 // Returns undefined when the input doesn't match or produces an invalid date.
-function parseDutchNumericDate(text: string, targetYear: number): Date | undefined {
-    const match = text.trim().match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?$/)
+function parseDutchNumericDate(
+    text: string,
+    targetYear: number,
+): Date | undefined {
+    const match = text
+        .trim()
+        .match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?$/)
     if (!match) {
         return undefined
     }

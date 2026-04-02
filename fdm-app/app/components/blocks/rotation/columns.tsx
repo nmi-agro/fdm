@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { ChevronRight } from "lucide-react"
 import React from "react"
-import { NavLink, useFetcher } from "react-router-dom"
+import { NavLink } from "react-router-dom"
 import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
@@ -12,13 +12,13 @@ import {
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { ScrollArea } from "~/components/ui/scroll-area"
-import { Spinner } from "~/components/ui/spinner"
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import { DataTableColumnHeader } from "./column-header"
+import { CropResidueCheckbox } from "./crop-residue-checkbox"
 import { DateRangeDisplay } from "./date-range-display"
 import { TableDateSelector } from "./date-selector"
 import { FertilizerDisplay } from "./fertilizer-display"
@@ -33,6 +33,7 @@ export type CropRow = {
     b_lu: string[]
     b_lu_name: string
     m_cropresidue: "all" | "some" | "none"
+    b_lu_eom_residue: number | null
     b_lu_variety: Record<string, number>
     b_lu_variety_options: { label: string; value: string }[] | null
     b_lu_croprotation: string
@@ -54,6 +55,7 @@ export type FieldRow = {
     a_som_loi: string | number
     b_soiltype_agr: string | number
     m_cropresidue: "all" | "some" | "none"
+    b_lu_eom_residue: number | null
     m_cropresidue_ending: [Date, boolean][]
     b_lu_variety: Record<string, number>
     b_lu_croprotation: string
@@ -261,74 +263,10 @@ export const columns: ColumnDef<RotationExtended>[] = [
             return <DataTableColumnHeader column={column} title="Gewasresten" />
         },
         enableHiding: true, // Enable hiding for mobile
-        cell: ({ cell, row }) => {
-            const fetcher = useFetcher()
-
-            const submit = (value: boolean) => {
-                const fieldIds = (
-                    row.original.type === "crop"
-                        ? row.original.fields
-                        : [row.original]
-                )
-                    .map((field) => encodeURIComponent(field.b_id))
-                    .join(",")
-                const cultivationIds = encodeURIComponent(
-                    ((row.getParentRow()?.original ?? row.original) as CropRow)
-                        .b_lu_catalogue,
-                )
-                return fetcher.submit(
-                    {
-                        m_cropresidue: value,
-                    },
-                    {
-                        method: "POST",
-                        action: `?cultivationIds=${cultivationIds}&fieldIds=${fieldIds}`,
-                    },
-                )
-            }
-
-            const inputId = `${cell.id}_checkbox`
-
-            const checkedState = (
-                {
-                    all: true,
-                    some: "indeterminate",
-                    none: false,
-                } as const
-            )[row.original.m_cropresidue]
-
-            return fetcher.state !== "idle" ? (
-                <Spinner />
-            ) : (
-                <div className="flex flex-row items-center gap-1 text-muted-foreground">
-                    {row.original.canModify ? (
-                        <Checkbox
-                            id={inputId}
-                            checked={checkedState}
-                            onCheckedChange={(value) => submit(!!value)}
-                        />
-                    ) : (
-                        <Checkbox
-                            id={inputId}
-                            checked={checkedState}
-                            disabled={true}
-                        />
-                    )}
-                    <label htmlFor={inputId}>
-                        {" "}
-                        {
-                            (
-                                {
-                                    all: "Ja",
-                                    some: "Gedeeltelijk",
-                                    none: "Nee",
-                                } as const
-                            )[row.original.m_cropresidue]
-                        }
-                    </label>
-                </div>
-            )
-        },
+        cell: (props) =>
+            (props.row.original.b_lu_eom_residue ?? 0) !== 0 && (
+                <CropResidueCheckbox {...props} />
+            ),
     },
     {
         accessorKey: "fertilizers",

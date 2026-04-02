@@ -8,6 +8,44 @@ const errorIdSize = 8 // Number of characters in ID
 
 export const createErrorId = customAlphabet(customErrorAlphabet, errorIdSize)
 
+/**
+ * Extracts a human-readable error message from any thrown value.
+ *
+ * React Router loaders/actions can throw `Response` objects (e.g. via
+ * `throw new Response("msg", { status: 400 })`). These are valid `Error`
+ * values in a try/catch, but `.message` is `undefined` on them — only `.text()`
+ * returns the body string. This helper handles all three cases:
+ *   1. `Response` → await `.text()`, fallback to `HTTP <status>`
+ *   2. `Error`    → `.message`
+ *   3. anything   → `String(e)`
+ */
+export async function extractErrorMessage(e: unknown): Promise<string> {
+    if (e instanceof Response) {
+        try {
+            return (await e.text()) || `HTTP ${e.status}`
+        } catch {
+            return `HTTP ${e.status}`
+        }
+    }
+    if (e instanceof Error) return e.message
+    return String(e)
+}
+
+function toSafeLogValue(value: unknown): unknown {
+    if (value instanceof Error) {
+        return { name: value.name, message: value.message, stack: value.stack }
+    }
+    try {
+        return JSON.parse(JSON.stringify(value))
+    } catch {
+        try {
+            return String(value)
+        } catch {
+            return "[unserializable]"
+        }
+    }
+}
+
 export function reportError(
     error: unknown,
     tags: Record<string, string> = {},
@@ -18,7 +56,15 @@ export function reportError(
             .match(/.{1,4}/g)
             ?.join("-") || createErrorId() // Format as XXXX-XXXX
 
-    console.error(`Error (code: ${errorId}):`, error, context ?? "")
+    try {
+        console.error(`Error (code: ${errorId}):`, error, context ?? "")
+    } catch {
+        const safeError = toSafeLogValue(error)
+        const safeContext = toSafeLogValue(context ?? "")
+        try {
+            console.error(`Error (code: ${errorId}):`, safeError, safeContext)
+        } catch {}
+    }
 
     if (Sentry.getClient()) {
         Sentry.captureException(error, {

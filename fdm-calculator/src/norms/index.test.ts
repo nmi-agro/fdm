@@ -6,19 +6,38 @@ import {
 import {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
+    createUncachedFunctionsForFertilizerApplicationFilling,
 } from "./index"
-import { getNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2025/filling/dierlijke-mest-gebruiksnorm"
-import { getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2025/filling/fosfaatgebruiksnorm"
+import {
+    calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+    getNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+} from "./nl/2025/filling/dierlijke-mest-gebruiksnorm"
+import {
+    calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
+    getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
+} from "./nl/2025/filling/fosfaatgebruiksnorm"
 import { collectNL2025InputForFertilizerApplicationFilling } from "./nl/2025/filling/input"
-import { getNL2025FertilizerApplicationFillingForStikstofGebruiksNorm } from "./nl/2025/filling/stikstofgebruiksnorm"
+import {
+    calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm,
+    getNL2025FertilizerApplicationFillingForStikstofGebruiksNorm,
+} from "./nl/2025/filling/stikstofgebruiksnorm"
 import { getNL2025DierlijkeMestGebruiksNorm } from "./nl/2025/value/dierlijke-mest-gebruiksnorm"
 import { getNL2025FosfaatGebruiksNorm } from "./nl/2025/value/fosfaatgebruiksnorm"
 import { collectNL2025InputForNorms } from "./nl/2025/value/input"
 import { getNL2025StikstofGebruiksNorm } from "./nl/2025/value/stikstofgebruiksnorm"
-import { getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2026/filling/dierlijke-mest-gebruiksnorm"
-import { getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2026/filling/fosfaatgebruiksnorm"
+import {
+    calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+    getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+} from "./nl/2026/filling/dierlijke-mest-gebruiksnorm"
+import {
+    calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+    getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+} from "./nl/2026/filling/fosfaatgebruiksnorm"
 import { collectNL2026InputForFertilizerApplicationFilling } from "./nl/2026/filling/input"
-import { getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm } from "./nl/2026/filling/stikstofgebruiksnorm"
+import {
+    calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
+    getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
+} from "./nl/2026/filling/stikstofgebruiksnorm"
 import { getNL2026DierlijkeMestGebruiksNorm } from "./nl/2026/value/dierlijke-mest-gebruiksnorm"
 import { getNL2026FosfaatGebruiksNorm } from "./nl/2026/value/fosfaatgebruiksnorm"
 import { collectNL2026InputForNorms } from "./nl/2026/value/input"
@@ -130,6 +149,72 @@ describe("createFunctionsForFertilizerApplicationFilling", () => {
         expect(() =>
             //@ts-expect-error
             createFunctionsForFertilizerApplicationFilling("BE", "2025"),
+        ).toThrow("Region not supported")
+    })
+})
+
+describe("createUncachedFunctionsForFertilizerApplicationFilling", () => {
+    it("should return the correct uncached functions for NL region and year 2025", () => {
+        const functions =
+            createUncachedFunctionsForFertilizerApplicationFilling("NL", "2025")
+        expect(functions.collectInputForFertilizerApplicationFilling).toBe(
+            collectNL2025InputForFertilizerApplicationFilling,
+        )
+        expect(functions.calculateFertilizerApplicationFillingForNitrogen).toBe(
+            calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm,
+        )
+        expect(functions.calculateFertilizerApplicationFillingForManure).toBe(
+            calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+        )
+        expect(
+            functions.calculateFertilizerApplicationFillingForPhosphate,
+        ).toBe(
+            calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
+        )
+        expect(functions.aggregateNormFillingsToFarmLevel).toBe(
+            aggregateNormFillingsToFarmLevel,
+        )
+    })
+
+    it("should return the correct uncached functions for NL region and year 2026", () => {
+        const functions =
+            createUncachedFunctionsForFertilizerApplicationFilling("NL", "2026")
+        expect(functions.collectInputForFertilizerApplicationFilling).toBe(
+            collectNL2026InputForFertilizerApplicationFilling,
+        )
+        expect(functions.calculateFertilizerApplicationFillingForNitrogen).toBe(
+            calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
+        )
+        expect(functions.calculateFertilizerApplicationFillingForManure).toBe(
+            calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+        )
+        expect(
+            functions.calculateFertilizerApplicationFillingForPhosphate,
+        ).toBe(
+            calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+        )
+        expect(functions.aggregateNormFillingsToFarmLevel).toBe(
+            aggregateNormFillingsToFarmLevel,
+        )
+    })
+
+    it("should throw an error for an unsupported year", () => {
+        expect(() =>
+            //@ts-expect-error
+            createUncachedFunctionsForFertilizerApplicationFilling(
+                "NL",
+                "2024",
+            ),
+        ).toThrow("Year not supported")
+    })
+
+    it("should throw an error for an unsupported region", () => {
+        expect(() =>
+            //@ts-expect-error
+            createUncachedFunctionsForFertilizerApplicationFilling(
+                "BE",
+                "2025",
+            ),
         ).toThrow("Region not supported")
     })
 })

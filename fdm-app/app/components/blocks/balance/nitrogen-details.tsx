@@ -142,8 +142,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                                             fa.p_app_id === app.id,
                                     )
                                 if (
-                                    !application ||
-                                    !application.p_name_nl ||
+                                    !application?.p_name_nl ||
                                     !application.p_app_date
                                 ) {
                                     console.error(
@@ -536,8 +535,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                                             fa.p_app_id === app.id,
                                     )
                                 if (
-                                    !application ||
-                                    !application.p_name_nl ||
+                                    !application?.p_name_nl ||
                                     !application.p_app_date
                                 ) {
                                     console.error(

@@ -121,7 +121,7 @@ class GeocoderControlClass implements IControl {
 
         this._geocoder.on("result", (e: { result: GeocoderResult }) => {
             try {
-                if (!e.result || !e.result.center) {
+                if (!e.result?.center) {
                     console.warn("Invalid geocoder result:", e.result)
                     return
                 }

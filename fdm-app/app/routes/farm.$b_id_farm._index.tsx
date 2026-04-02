@@ -1,9 +1,15 @@
 import { cowHead } from "@lucide/lab"
-import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import {
+    checkPermission,
+    getFarm,
+    getFarms,
+    getFields,
+} from "@nmi-agro/fdm-core"
 import {
     ArrowRightLeft,
     BookOpenText,
     ChevronUp,
+    CloudDownload,
     DownloadIcon,
     FileStack,
     Home,
@@ -19,6 +25,7 @@ import {
     Trash2,
     UserRoundCheck,
 } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState } from "react"
 import {
     data,
@@ -49,11 +56,13 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { getRvoCredentials } from "~/integrations/rvo.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
@@ -116,6 +125,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Find unique roles
         const roles = [...new Set(farm.roles.map((role) => role.role))]
 
+        const farmWritePermission = await checkPermission(
+            fdm,
+            "farm",
+            "write",
+            b_id_farm,
+            session.principal_id,
+            new URL(request.url).pathname,
+            false,
+        )
+
+        const rvoCredentials = getRvoCredentials()
+        const isRvoConfigured = rvoCredentials !== undefined
+
         // Return the farm ID and session info
         return {
             b_id_farm: b_id_farm,
@@ -124,6 +146,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             farmArea: Math.round(farmArea),
             farmOptions: farmOptions,
             roles: roles,
+            farmWritePermission,
+            isRvoConfigured,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -132,6 +156,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmDashboardIndex() {
     const loaderData = useLoaderData<typeof loader>()
+    const isRvoEnabled = useFeatureFlagEnabled("rvo")
 
     const calendar = useCalendarStore((state) => state.calendar)
     const setCalendar = useCalendarStore((state) => state.setCalendar)
@@ -426,6 +451,46 @@ export default function FarmDashboardIndex() {
                                             </CardHeader>
                                         </Card>
                                     </NavLink>
+                                    {loaderData.isRvoConfigured &&
+                                        isRvoEnabled !== false && (
+                                            <NavLink
+                                                to={`${calendar}/rvo`}
+                                                className={cn(
+                                                    !loaderData.farmWritePermission &&
+                                                        "pointer-events-none opacity-50",
+                                                )}
+                                                aria-disabled={
+                                                    !loaderData.farmWritePermission ||
+                                                    undefined
+                                                }
+                                                tabIndex={
+                                                    !loaderData.farmWritePermission
+                                                        ? -1
+                                                        : undefined
+                                                }
+                                            >
+                                                <Card className="transition-all hover:shadow-md h-full">
+                                                    <CardHeader>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="rounded-lg bg-muted p-3">
+                                                                <CloudDownload className="h-6 w-6 text-primary" />
+                                                            </div>
+                                                            <div>
+                                                                <CardTitle>
+                                                                    Ophalen bij
+                                                                    RVO
+                                                                </CardTitle>
+                                                                <CardDescription>
+                                                                    Importeer
+                                                                    percelen
+                                                                    vanuit RVO.
+                                                                </CardDescription>
+                                                            </div>
+                                                        </div>
+                                                    </CardHeader>
+                                                </Card>
+                                            </NavLink>
+                                        )}
                                     <NavLink to={`${calendar}/field/new`}>
                                         <Card className="transition-all hover:shadow-md h-full">
                                             <CardHeader>

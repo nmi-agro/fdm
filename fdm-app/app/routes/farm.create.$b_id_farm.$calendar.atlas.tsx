@@ -7,7 +7,7 @@ import {
     getFarm,
     getFields,
 } from "@nmi-agro/fdm-core"
-import { simplify } from "@turf/turf"
+import { featureCollection, simplify } from "@turf/turf"
 import type {
     Feature,
     FeatureCollection,
@@ -16,10 +16,11 @@ import type {
     Polygon,
 } from "geojson"
 import maplibregl from "maplibre-gl"
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import {
     Layer,
     Map as MapGL,
+    type MapRef,
     type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
@@ -54,7 +55,10 @@ import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Skeleton } from "~/components/ui/skeleton"
 import { getMapStyle } from "~/integrations/map"
-import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi"
+import {
+    getNmiApiKey,
+    getSoilParameterEstimates,
+} from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -226,6 +230,8 @@ export default function Index() {
     const [showFields, setShowFields] = useState(true)
     const layerLayout = { visibility: showFields ? "visible" : "none" } as const
 
+    const mapRef = useRef<MapRef>(null)
+
     return (
         <SidebarInset>
             <Header action={undefined}>
@@ -260,6 +266,7 @@ export default function Index() {
                         {() => (
                             <MapGL
                                 {...viewState}
+                                ref={mapRef}
                                 style={{
                                     height: "calc(100vh - 64px - 147px)",
                                     width: "100%",
@@ -306,6 +313,28 @@ export default function Index() {
                                     onToggleFields={() =>
                                         setShowFields(!showFields)
                                     }
+                                    showFlyToFields={
+                                        fieldsSaved.features.length +
+                                            selectedFieldsData.features.length >
+                                        0
+                                            ? true
+                                            : undefined
+                                    }
+                                    onFlyToFields={() => {
+                                        const overallViewState = getViewState(
+                                            featureCollection([
+                                                ...fieldsSaved.features,
+                                                ...selectedFieldsData.features,
+                                            ]),
+                                        )
+                                        setViewState(overallViewState)
+                                        if (overallViewState.bounds) {
+                                            mapRef.current?.fitBounds(
+                                                overallViewState.bounds,
+                                                overallViewState.fitBoundsOptions,
+                                            )
+                                        }
+                                    }}
                                 />
 
                                 <MapTilerAttribution />

@@ -57,7 +57,7 @@ import { AccessFormSchema } from "~/lib/schemas/access.schema"
 // Meta
 export const meta: MetaFunction = () => {
     return [
-        { title: `Bedrijf | ${clientConfig.name}` },
+        { title: `Bedrijven | ${clientConfig.name}` },
         {
             name: "description",
             content: "Beheer uw landbouwbedrijf en percelen.",

@@ -11,26 +11,28 @@
         "fdm-data",
         "fdm-docs",
         "fdm-app",
-        "fdm-calculator"
+        "fdm-calculator",
+        "fdm-rvo",
+        "fdm-agents"
     ],
     "scripts": {
-        "test": "turbo run test-coverage --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-calculator",
+        "test": "turbo run test-coverage --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents",
         "build": "turbo run build",
         "build-docs": "turbo run build-docs",
         "watch": "turbo run watch",
         "changeset": "changeset",
-        "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator && changeset publish ",
+        "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents && changeset publish ",
         "format-and-lint": "biome check .",
         "format-and-lint:fix": "biome check . --write",
         "format-and-lint:fix-unsafe": "biome check . --write --unsafe"
     },
     "devDependencies": {
-        "@biomejs/biome": "^2.4.5",
-        "@changesets/changelog-github": "^0.5.2",
+        "@biomejs/biome": "^2.4.10",
+        "@changesets/changelog-github": "^0.6.0",
         "@changesets/cli": "^2.30.0",
-        "turbo": "^2.8.13"
+        "turbo": "^2.9.3"
     },
-    "packageManager": "pnpm@10.30.3",
+    "packageManager": "pnpm@10.33.0",
     "pnpm": {
         "packageExtensions": {
             "vite-plugin-dts": {
@@ -50,6 +52,7 @@
         "onlyBuiltDependencies": [
             "@biomejs/biome",
             "@geomatico/maplibre-cog-protocol",
+            "@prisma/engines",
             "@sentry-internal/node-cpu-profiler",
             "@sentry/cli",
             "@swc/core",
@@ -57,7 +60,11 @@
             "core-js",
             "core-js-pure",
             "esbuild",
+            "prisma",
             "protobufjs"
+        ],
+        "ignoredBuiltDependencies": [
+            "sqlite3"
         ]
     }
 }

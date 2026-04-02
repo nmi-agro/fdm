@@ -718,4 +718,5 @@ export type NitrogenBalanceNumeric = {
     fields: NitrogenBalanceFieldResultNumeric[]
     hasErrors: boolean
     fieldErrorMessages: string[]
+    errorMessage?: string
 }

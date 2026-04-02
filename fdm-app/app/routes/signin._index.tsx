@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { SiGithub } from "@icons-pack/react-simple-icons"
 import { AnimatePresence, motion, useScroll } from "framer-motion"
 import {
     ArrowDown,
@@ -11,7 +12,6 @@ import {
     ExternalLink,
     FileUp,
     FlaskConical,
-    Github,
     History,
     Info,
     Landmark,
@@ -1585,7 +1585,7 @@ export default function SignIn() {
                                             className="hover:text-primary flex items-center gap-2"
                                         >
                                             GitHub Repository{" "}
-                                            <Github className="h-3 w-3" />
+                                            <SiGithub className="h-3 w-3" />
                                         </a>
                                     </li>
                                     <li>

@@ -30,7 +30,7 @@ class Semaphore {
                     this.queue.splice(idx, 1)
                 }
                 // No slot was ever granted, so active is not incremented.
-                reject(signal!.reason)
+                reject(signal?.reason)
             }
             this.queue.push(onRelease)
             signal?.addEventListener("abort", onAbort, { once: true })

@@ -8,7 +8,6 @@ import {
     useSearchParams,
 } from "react-router"
 import { redirectWithError } from "remix-toast"
-import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"
@@ -94,7 +93,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 /**
- * Renders the layout for managing farm settings.
+ * Renders the layout for adding a new fertilizer.
  *
  * This component displays a sidebar that includes the farm header, navigation options, and a link to farm fields.
  * It also renders a main section containing the farm title, description, nested routes via an Outlet, and a notification toaster.
@@ -132,14 +131,8 @@ export default function FarmFertilizerBlock({ params }: Route.ComponentProps) {
                     fertilizerOptions={[]}
                 />
             </Header>
-            <main className="mx-auto max-w-4xl">
-                <FarmTitle
-                    title={"Meststof toevoegen"}
-                    description={
-                        "Voeg een meststof toe om deze te gebruiken op dit bedrijf."
-                    }
-                />
-                <div className="space-y-6 p-10 pb-0">
+            <main>
+                <div className="space-y-6">
                     <Outlet />
                 </div>
             </main>

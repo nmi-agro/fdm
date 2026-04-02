@@ -1,8 +1,11 @@
 import {
     type FdmType,
     getCultivations,
+    getCultivationsForFarm,
     getCurrentSoilData,
+    getCurrentSoilDataForFarm,
     getField,
+    getFields,
     getGrazingIntention,
     type PrincipalId,
     type Timeframe,
@@ -79,4 +82,75 @@ export async function collectNL2026InputForNorms(
         cultivations: cultivations,
         soilAnalysis: soilAnalysisPicked,
     }
+}
+
+/**
+ * Collects all necessary input data for the NL 2026 norms for every field on a farm.
+ *
+ * Farm-level data (`getGrazingIntention`) is fetched once. Per-field data
+ * (`getCultivations`, `getCurrentSoilData`) is fetched in two farm-level queries.
+ *
+ * @param fdm - An initialized FdmType instance for data access.
+ * @param principal_id - The ID of the principal initiating the data collection.
+ * @param b_id_farm - The unique identifier of the farm.
+ * @returns A promise that resolves to a `Map<b_id, NL2026NormsInput>` keyed by field ID.
+ */
+export async function collectNL2026InputForNormsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: string,
+): Promise<Map<string, NL2026NormsInput>> {
+    const year = 2026
+    const startOfYear = new Date(year, 0, 1)
+    const endOfYear = new Date(year, 11, 31)
+    const timeframe2026: Timeframe = { start: startOfYear, end: endOfYear }
+    const timeframe2026Cultivation: Timeframe = {
+        start: new Date(year - 1, 0, 1),
+        end: endOfYear,
+    }
+
+    const [
+        farmFields,
+        has_grazing_intention,
+        cultivationsByField,
+        soilDataByField,
+    ] = await Promise.all([
+        getFields(fdm, principal_id, b_id_farm, timeframe2026Cultivation),
+        getGrazingIntention(fdm, principal_id, b_id_farm, year),
+        getCultivationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe2026Cultivation,
+        ),
+        getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe2026),
+    ])
+
+    const result = new Map<string, NL2026NormsInput>()
+    for (const field of farmFields) {
+        const soilAnalysis = soilDataByField.get(field.b_id) ?? []
+        const soilAnalysisPicked = {
+            a_p_cc:
+                ((Array.isArray(soilAnalysis)
+                    ? soilAnalysis.find(
+                          (x: { parameter: string }) =>
+                              x.parameter === "a_p_cc",
+                      )?.value
+                    : null) as number | null) ?? null,
+            a_p_al:
+                ((Array.isArray(soilAnalysis)
+                    ? soilAnalysis.find(
+                          (x: { parameter: string }) =>
+                              x.parameter === "a_p_al",
+                      )?.value
+                    : null) as number | null) ?? null,
+        }
+        result.set(field.b_id, {
+            farm: { has_grazing_intention },
+            field,
+            cultivations: cultivationsByField.get(field.b_id) ?? [],
+            soilAnalysis: soilAnalysisPicked,
+        })
+    }
+    return result
 }

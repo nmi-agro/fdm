@@ -49,13 +49,13 @@ function generateMockData(numberOfFields: number): OrganicMatterBalanceInput {
             b_lu_catalogue: "cat-cult-1",
             b_lu_croprotation: "maize",
             b_lu_eom: 1500,
-            b_lu_eom_residues: 200,
+            b_lu_eom_residue: 200,
         },
         {
             b_lu_catalogue: "cat-cult-2",
             b_lu_croprotation: "grass",
             b_lu_eom: 800,
-            b_lu_eom_residues: 100,
+            b_lu_eom_residue: 100,
         },
     ]
 

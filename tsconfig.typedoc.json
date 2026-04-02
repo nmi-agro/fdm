@@ -12,7 +12,8 @@
     "include": [
         "fdm-core/src/**/*",
         "fdm-data/src/**/*",
-        "fdm-calculator/src/**/*"
+        "fdm-calculator/src/**/*",
+        "fdm-rvo/src/**/*"
     ],
     "exclude": ["node_modules", "**/*.test.ts", "**/dist", "**/build"]
 }

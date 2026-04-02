@@ -1,16 +1,20 @@
 import {
+    type ApplicationMethods,
     type CatalogueFertilizerItem,
     hashFertilizer,
 } from "@nmi-agro/fdm-data"
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
+import { getEnabledFertilizerCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
+import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
 import type {
     Fertilizer,
     FertilizerApplication,
+    FertilizerCatalogue,
     FertilizerParameterDescription,
 } from "./fertilizer.d"
 import { createId } from "./id"
@@ -29,49 +33,109 @@ export async function getFertilizersFromCatalogue(
     fdm: FdmType,
     principal_id: PrincipalId,
     b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-): Promise<schema.fertilizersCatalogueTypeSelect[]> {
+): Promise<FertilizerCatalogue[]> {
     try {
-        await checkPermission(
+        const catalogueIds = await getEnabledFertilizerCatalogues(
             fdm,
-            "farm",
-            "read",
-            b_id_farm,
             principal_id,
-            "getFertilizersFromCatalogue",
+            b_id_farm,
         )
-
-        // Get enabled catalogues for the farm
-        const enabledCatalogues = await fdm
-            .select({
-                p_source: schema.fertilizerCatalogueEnabling.p_source,
-            })
-            .from(schema.fertilizerCatalogueEnabling)
-            .where(eq(schema.fertilizerCatalogueEnabling.b_id_farm, b_id_farm))
-
-        // If no catalogues are enabled, return empty array
-        if (enabledCatalogues.length === 0) {
-            return []
-        }
-
-        // Get fertilizers from enabled catalogues
-        const fertilizersCatalogue = await fdm
-            .select()
-            .from(schema.fertilizersCatalogue)
-            .where(
-                inArray(
-                    schema.fertilizersCatalogue.p_source,
-                    enabledCatalogues.map(
-                        (c: { p_source: string }) => c.p_source,
-                    ),
-                ),
-            )
-            .orderBy(asc(schema.fertilizersCatalogue.p_name_nl))
-
-        return fertilizersCatalogue
+        return await getFertilizersFromCatalogues(
+            fdm,
+            principal_id,
+            catalogueIds,
+        )
     } catch (err) {
         throw handleError(err, "Exception for getFertilizersFromCatalogue", {
             principal_id,
             b_id_farm,
+        })
+    }
+}
+
+/**
+ * Retrieves all fertilizers from the catalogues whose source IDs are given.
+ *
+ * Only catalogue sources that are enabled for farms accessible by the given principal are returned.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param catalogueIds Catalogue source IDs to retrieve fertilizers from, such as "baat" or "srm".
+ * @returns A Promise that resolves with a flat array of fertilizer catalogue entries across all given catalogues.
+ * @alpha
+ */
+export async function getFertilizersFromCatalogues(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    catalogueIds: schema.fertilizersCatalogueTypeSelect["p_source"][],
+): Promise<FertilizerCatalogue[]> {
+    try {
+        if (catalogueIds.length === 0) {
+            return []
+        }
+
+        // Filter to only catalogue sources that are enabled for farms the principal can access
+        const authorizedRows = await fdm
+            .selectDistinct({
+                p_source: schema.fertilizerCatalogueEnabling.p_source,
+            })
+            .from(schema.fertilizerCatalogueEnabling)
+            .innerJoin(
+                authZSchema.role,
+                and(
+                    eq(authZSchema.role.resource, "farm"),
+                    eq(
+                        authZSchema.role.resource_id,
+                        schema.fertilizerCatalogueEnabling.b_id_farm,
+                    ),
+                    inArray(
+                        authZSchema.role.principal_id,
+                        [principal_id].flat(),
+                    ),
+                    isNull(authZSchema.role.deleted),
+                ),
+            )
+            .where(
+                inArray(
+                    schema.fertilizerCatalogueEnabling.p_source,
+                    catalogueIds,
+                ),
+            )
+        const authorizedSources = new Set(
+            authorizedRows.map((r: { p_source: string }) => r.p_source),
+        )
+        const filteredCatalogueIds = catalogueIds.filter((id) =>
+            authorizedSources.has(id),
+        )
+        if (filteredCatalogueIds.length === 0) {
+            return []
+        }
+
+        const fertilizersCatalogue: schema.fertilizersCatalogueTypeSelect[] =
+            await fdm
+                .select()
+                .from(schema.fertilizersCatalogue)
+                .where(
+                    inArray(
+                        schema.fertilizersCatalogue.p_source,
+                        filteredCatalogueIds,
+                    ),
+                )
+                .orderBy(
+                    asc(schema.fertilizersCatalogue.p_source),
+                    asc(schema.fertilizersCatalogue.p_name_nl),
+                )
+
+        return fertilizersCatalogue.map((result) => ({
+            ...result,
+            p_app_method_options: result.p_app_method_options as
+                | ApplicationMethods[]
+                | null,
+            p_type: deriveFertilizerType(result),
+        }))
+    } catch (err) {
+        throw handleError(err, "Exception for getFertilizersFromCatalogues", {
+            catalogueIds,
         })
     }
 }
@@ -356,22 +420,9 @@ export async function getFertilizer(
             throw new Error("Fertilizer not found")
         }
 
-        let p_type: "manure" | "mineral" | "compost" | null = null
-        if (result.p_type_rvo) {
-            p_type = convertRvoTypeToFertilizerType(result.p_type_rvo)
-        } else {
-            if (result.p_type_manure) {
-                p_type = "manure"
-            } else if (result.p_type_mineral) {
-                p_type = "mineral"
-            } else if (result.p_type_compost) {
-                p_type = "compost"
-            }
-        }
-
         return {
             ...result,
-            p_type: p_type,
+            p_type: deriveFertilizerType(result),
         }
     } catch (err) {
         throw handleError(err, "Exception for getFertilizer", {
@@ -536,7 +587,7 @@ export async function getFertilizers(
     fdm: FdmType,
     principal_id: PrincipalId,
     b_id_farm: schema.fertilizerAcquiringTypeSelect["b_id_farm"],
-): Promise<Fertilizer[]> {
+) {
     try {
         await checkPermission(
             fdm,
@@ -549,6 +600,7 @@ export async function getFertilizers(
 
         const fertilizers = await fdm
             .select({
+                b_id_farm: schema.fertilizerAcquiring.b_id_farm,
                 p_id: schema.fertilizers.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_source: schema.fertilizersCatalogue.p_source,
@@ -629,22 +681,9 @@ export async function getFertilizers(
             .orderBy(asc(schema.fertilizersCatalogue.p_name_nl))
 
         return fertilizers.map((f: (typeof fertilizers)[number]) => {
-            let p_type: "manure" | "mineral" | "compost" | null = null
-            if (f.p_type_rvo) {
-                p_type = convertRvoTypeToFertilizerType(f.p_type_rvo)
-            } else {
-                if (f.p_type_manure) {
-                    p_type = "manure"
-                } else if (f.p_type_mineral) {
-                    p_type = "mineral"
-                } else if (f.p_type_compost) {
-                    p_type = "compost"
-                }
-            }
-
             return {
                 ...f,
-                p_type: p_type,
+                p_type: deriveFertilizerType(f),
             }
         })
     } catch (err) {
@@ -990,6 +1029,117 @@ export async function getFertilizerApplications(
         throw handleError(err, "Exception for getFertilizerApplications", {
             b_id,
         })
+    }
+}
+
+/**
+ * Retrieves all fertilizer applications for every field on a farm.
+ *
+ * Instead of issuing one query per field, this function joins through
+ * `fieldAcquiring` so that all fertilizer applications for the farm are fetched at once.
+ * A single farm-level permission check is performed instead of one per field.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param timeframe Optional timeframe to filter fertilizer applications.
+ * @returns A Promise resolving to a Map keyed by field ID (`b_id`), with arrays of {@link FertilizerApplication} as values.
+ * @alpha
+ */
+export async function getFertilizerApplicationsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    timeframe?: Timeframe,
+): Promise<Map<string, FertilizerApplication[]>> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getFertilizerApplicationsForFarm",
+        )
+
+        const rows = await fdm
+            .select({
+                p_id: schema.fertilizerApplication.p_id,
+                p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
+                p_name_nl: schema.fertilizersCatalogue.p_name_nl,
+                p_app_amount: schema.fertilizerApplication.p_app_amount,
+                p_app_method: schema.fertilizerApplication.p_app_method,
+                p_app_date: schema.fertilizerApplication.p_app_date,
+                p_app_id: schema.fertilizerApplication.p_app_id,
+                // extra field for grouping – not part of FertilizerApplication type
+                b_id: schema.fertilizerApplication.b_id,
+            })
+            .from(schema.fertilizerApplication)
+            .leftJoin(
+                schema.fertilizerPicking,
+                eq(
+                    schema.fertilizerPicking.p_id,
+                    schema.fertilizerApplication.p_id,
+                ),
+            )
+            .leftJoin(
+                schema.fertilizersCatalogue,
+                eq(
+                    schema.fertilizersCatalogue.p_id_catalogue,
+                    schema.fertilizerPicking.p_id_catalogue,
+                ),
+            )
+            .innerJoin(
+                schema.fieldAcquiring,
+                eq(
+                    schema.fieldAcquiring.b_id,
+                    schema.fertilizerApplication.b_id,
+                ),
+            )
+            .where(
+                timeframe
+                    ? and(
+                          eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                          timeframe.start
+                              ? gte(
+                                    schema.fertilizerApplication.p_app_date,
+                                    timeframe.start,
+                                )
+                              : undefined,
+                          timeframe.end
+                              ? lte(
+                                    schema.fertilizerApplication.p_app_date,
+                                    timeframe.end,
+                                )
+                              : undefined,
+                      )
+                    : eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+            )
+            .orderBy(desc(schema.fertilizerApplication.p_app_date))
+
+        const result = new Map<string, FertilizerApplication[]>()
+        for (const row of rows) {
+            if (!row.b_id) continue
+            // b_id is used for grouping only and is not part of FertilizerApplication
+            const { b_id, ...fertilizerApplication } = row
+            const existing = result.get(b_id)
+            if (existing) {
+                existing.push(fertilizerApplication as FertilizerApplication)
+            } else {
+                result.set(b_id, [
+                    fertilizerApplication as FertilizerApplication,
+                ])
+            }
+        }
+        return result
+    } catch (err) {
+        throw handleError(
+            err,
+            "Exception for getFertilizerApplicationsForFarm",
+            {
+                b_id_farm,
+            },
+        )
     }
 }
 
@@ -1368,5 +1518,30 @@ function convertRvoTypeToFertilizerType(
         return null
     }
 
+    return null
+}
+
+/**
+ * Determines the fertilizer type based on the fields of a fertilizer catalogue database entry.
+ *
+ * @param fertilizer Selected fertilizer catalogue row from the database, possibly joined with other tables
+ * @returns The fertilizer type ("manure", "mineral", "compost") or null if not classified.
+ * @internal
+ */
+function deriveFertilizerType(
+    fertilizer: Partial<schema.fertilizersCatalogueTypeSelect>,
+) {
+    if (fertilizer.p_type_rvo) {
+        return convertRvoTypeToFertilizerType(fertilizer.p_type_rvo)
+    }
+    if (fertilizer.p_type_manure) {
+        return "manure"
+    }
+    if (fertilizer.p_type_mineral) {
+        return "mineral"
+    }
+    if (fertilizer.p_type_compost) {
+        return "compost"
+    }
     return null
 }

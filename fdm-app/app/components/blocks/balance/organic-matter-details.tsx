@@ -55,8 +55,7 @@ const OrganicMatterBalanceDetails: React.FC<
                                             fa.p_app_id === app.id,
                                     )
                                 if (
-                                    !application ||
-                                    !application.p_name_nl ||
+                                    !application?.p_name_nl ||
                                     !application.p_app_date
                                 ) {
                                     return null

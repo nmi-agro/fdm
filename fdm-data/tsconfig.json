@@ -1,24 +1,8 @@
 {
+    "extends": "../tsconfig.packages.json",
     "compilerOptions": {
-        "target": "ES2022",
-        "useDefineForClassFields": true,
-        "module": "ESNext",
-        "lib": ["ES2022", "DOM", "DOM.Iterable"],
-        "skipLibCheck": true,
-
-        "moduleResolution": "bundler",
-        "allowImportingTsExtensions": true,
-        "isolatedModules": true,
-        "moduleDetection": "force",
-        "emitDeclarationOnly": true,
-        "declaration": true,
-        "outDir": "./dist",
-
-        "strict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noFallthroughCasesInSwitch": true,
+        "noEmit": true,
         "resolveJsonModule": true
     },
-    "include": ["./src/**/*"]
+    "include": ["src/**/*", "vitest.config.ts"]
 }

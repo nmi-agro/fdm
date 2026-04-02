@@ -87,14 +87,17 @@ export async function setCachedCalculation<T_Input extends object, T_Output>(
     result: T_Output,
 ) {
     // Inserts a new cache record. If a record with the same calculation_hash already exists,
-    // this operation will likely cause a unique constraint violation error, as upsert was removed.
-    await fdm.insert(calculationCacheTable).values({
-        calculation_hash: calculationHash,
-        calculation_function: calculationFunctionName,
-        calculator_version: calculatorVersion,
-        input: input,
-        result: result,
-    })
+    // skip the insert — the stored result is identical since the hash is deterministic.
+    await fdm
+        .insert(calculationCacheTable)
+        .values({
+            calculation_hash: calculationHash,
+            calculation_function: calculationFunctionName,
+            calculator_version: calculatorVersion,
+            input: input,
+            result: result,
+        })
+        .onConflictDoNothing()
 }
 
 /**

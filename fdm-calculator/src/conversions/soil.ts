@@ -11,9 +11,9 @@ import { Decimal } from "decimal.js"
  * @param a_som_loi - The soil organic matter content as a percentage (%).
  */
 export function calculateOrganicCarbon(
-    a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"],
+    a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"] | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_c_of"] {
-    if (!a_som_loi) {
+    if (a_som_loi === null || a_som_loi === undefined) {
         return null
     }
 
@@ -38,9 +38,9 @@ export function calculateOrganicCarbon(
  * @param a_c_of - The organic carbon content of the soil (g C / kg soil).
  */
 export function calculateOrganicMatter(
-    a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"],
+    a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"] | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_som_loi"] {
-    if (!a_c_of) {
+    if (a_c_of === null || a_c_of === undefined) {
         return null
     }
 
@@ -67,10 +67,10 @@ export function calculateOrganicMatter(
  * @param a_n_rt - The total nitrogen content of the soil (mg N / kg soil).
  */
 export function calculateCarbonNitrogenRatio(
-    a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"],
-    a_n_rt: fdmSchema.soilAnalysisTypeSelect["a_n_rt"],
+    a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"] | undefined,
+    a_n_rt: fdmSchema.soilAnalysisTypeSelect["a_n_rt"] | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_cn_fr"] {
-    if (!a_c_of || !a_n_rt) {
+    if (a_c_of === null || a_c_of === undefined || !a_n_rt) {
         return null
     }
 
@@ -100,10 +100,16 @@ export function calculateCarbonNitrogenRatio(
  * @param b_soiltype_agr - The agricultural soil type classification.
  */
 export function calculateBulkDensity(
-    a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"],
-    b_soiltype_agr: fdmSchema.soilAnalysisTypeSelect["b_soiltype_agr"],
+    a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"] | undefined,
+    b_soiltype_agr:
+        | fdmSchema.soilAnalysisTypeSelect["b_soiltype_agr"]
+        | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_density_sa"] {
-    if (!a_som_loi || !b_soiltype_agr) {
+    if (
+        a_som_loi === null ||
+        a_som_loi === undefined ||
+        b_soiltype_agr == null
+    ) {
         return null
     }
 
