@@ -3,7 +3,7 @@ slug: release-march-2026
 title: March 2026 Release
 authors: [svenverweij]
 tags: [release, fdm-app, fdm-core, fdm-calculator, fdm-data, fdm-rvo, fdm-agents]
-date: 2026-04-01
+date: 2026-04-02
 ---
 
 The March 2026 release introduces two new packages — `fdm-rvo` for connecting to the Dutch RVO agricultural registry and `fdm-agents` with an AI-assisted fertilizer planning tool in Labs — alongside a substantial rework of the fertilizer management interface, organization-level balance visualizations, and several data quality corrections in the fertilizer catalogue.
@@ -67,6 +67,8 @@ The fertilizer catalogue view and the add-fertilizer workflow have been substant
 
     These are composable: callers can first fetch catalogues, then pass them into the item-retrieval functions, enabling deduplication across multiple farms.
 
+*   **Farm-level batch query functions:** New functions retrieve all data for a farm in a single query, eliminating N+1 round-trips when processing all fields of a farm at once.
+
 ### AI Fertilizer Planning Assistant (Labs)
 
 A new package, `@nmi-agro/fdm-agents`, introduces an AI-based tool for supporting fertilizer planning decisions. The initial release includes **Gerrit**, an assistant designed to propose fertilizer application plans at the field and farm level.
@@ -79,7 +81,7 @@ The feature is available as a Labs feature and can be enabled through a dedicate
 
 ### Navigation and UI Improvements
 
-*   **Soil analysis:** The soil analysis pages now include header breadcrumbs and a back button, making navigation between analyses and field details more consistent.
+*   **Soil analysis:** The soil analysis pages now include header breadcrumbs and a back button, making navigation between analyses, uploads, and field details more consistent.
 *   **Crop residue:** The crop residue option in the rotation table is now disabled when the selected crop has no effective organic matter residue, preventing entries that would have no effect on the organic matter balance.
 *   **Fields table:** A buffer strip checkbox column has been added to the fields table, making it straightforward to check or update the buffer strip designation for each individual field.
 *   **Atlas:** A button has been added to focus the Atlas map on the farm's own fields. When in the process of adding new fields, the focus area also updates to include newly selected parcels.
@@ -92,6 +94,8 @@ The feature is available as a Labs feature and can be enabled through a dedicate
 *   **Calculator bug fix:** A falsy-value check in the calculator has been corrected to preserve `0` and `false` as valid inputs. Previously, a field with a legitimate value of zero — such as zero organic matter content or zero nitrogen supply — could be treated as missing, leading to incorrect results in downstream calculations.
 *   **GeoTIFF reliability:** Processing of GeoTIFF files now uses hybrid buffer loading (files ≤2 MB are buffered in memory), concurrency throttling via a semaphore, and exponential backoff with a 10-second timeout, reducing the frequency of intermittent fetch errors.
 *   **Fertilizer type:** Missing parameters have been added to the `Fertilizer` type in fdm-core, improving type completeness.
+*   **Calculator batch queries:** All input collectors for balances and norms now use farm-level batch queries instead of per-field loops, eliminating N+1 database round-trips for large farms.
+*   **Crop residue nitrogen removal:** A bug in the nitrogen balance has been fixed: residues left on the field are no longer counted as removed nitrogen, while residues that are removed from the field are now counted correctly.
 
 ---
 

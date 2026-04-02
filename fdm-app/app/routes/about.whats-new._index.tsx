@@ -25,7 +25,7 @@ export const meta: MetaFunction = () => {
 export const changelogEntries: ChangelogEntry[] = [
     {
         version: "v0.29.0",
-        date: "1 april 2026",
+        date: "2 april 2026",
         title: "Verbeterd meststoffenbeheer, balansoverzicht per organisatie en bufferstrook in perceelstabel",
         description:
             "Deze release vernieuwt de weergave en het beheer van meststoffen, voegt een stikstof- en organische stofbalansoverzicht op organisatieniveau toe en maakt het instellen van bufferstroken per perceel eenvoudiger.",
@@ -36,6 +36,8 @@ export const changelogEntries: ChangelogEntry[] = [
             "Bufferstrook instellen per perceel: In de perceelstabel is een kolom met aankruisvakjes toegevoegd waarmee u per perceel kunt aangeven of het een bufferstrook is, zonder naar de afzonderlijke perceelspagina te navigeren.",
             "Gewasresten: De optie om gewasresten in te voeren is niet zichtbaar als dat niet relevant voor het het geselecteerde gewas is. Dit voorkomt het invoeren van gegevens die geen effect hebben op de organische stofbalans.",
             "Focusknop in Atlas: Er is een knop toegevoegd waarmee u de kaart in de Atlas direct kunt centreren op de percelen van uw bedrijf. Tijdens het toevoegen van percelen wordt het focusgebied automatisch bijgewerkt wanneer u een nieuw perceel selecteert.",
+            "Correctie stikstofafvoer gewasresten: Een fout in de stikstofbalans is hersteld. Gewasresten die op het perceel achterblijven worden niet langer als afgevoerde stikstof meegenomen; gewasresten die worden afgevoerd worden nu meegenomen in de afvoer.",
+            "Prestatieverbeteringen: Pagina's en berekeningen voor grote bedrijven laden sneller doordat gegevens per bedrijf in één databasequery worden opgehaald in plaats van per perceel.",
         ],
     },
     {
