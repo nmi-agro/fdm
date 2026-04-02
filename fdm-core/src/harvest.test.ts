@@ -1237,11 +1237,17 @@ describe("getHarvestsForFarm", () => {
             new Date("2024-03-01"),
         )
 
-        await addHarvest(fdm, principal_id, other_b_lu, new Date("2024-08-01"), {
-            b_lu_yield_fresh: 9999,
-            b_lu_moist: 15,
-            b_lu_cp: 110,
-        })
+        await addHarvest(
+            fdm,
+            principal_id,
+            other_b_lu,
+            new Date("2024-08-01"),
+            {
+                b_lu_yield_fresh: 9999,
+                b_lu_moist: 15,
+                b_lu_cp: 110,
+            },
+        )
         await addHarvest(fdm, principal_id, b_lu, new Date("2024-08-01"), {
             b_lu_yield_fresh: 5000,
             b_lu_moist: 15,
@@ -1261,7 +1267,10 @@ describe("getHarvestsForFarm", () => {
             b_lu_cp: 110,
         })
 
-        const timeframe = { start: new Date("2024-01-01") }
+        const timeframe = {
+            start: new Date("2024-01-01"),
+            end: new Date("2024-12-31"),
+        }
         const result = await getHarvestsForFarm(
             fdm,
             principal_id,
@@ -1279,7 +1288,10 @@ describe("getHarvestsForFarm", () => {
             b_lu_cp: 110,
         })
 
-        const timeframe = { end: new Date("2024-12-31") }
+        const timeframe = {
+            start: new Date("2024-01-01"),
+            end: new Date("2024-12-31"),
+        }
         const result = await getHarvestsForFarm(
             fdm,
             principal_id,

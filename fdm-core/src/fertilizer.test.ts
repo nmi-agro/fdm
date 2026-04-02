@@ -1713,7 +1713,10 @@ describe("getFertilizerApplicationsForFarm", () => {
             new Date("2024-03-15"),
         )
 
-        const timeframe = { start: new Date("2024-01-01") }
+        const timeframe = {
+            start: new Date("2024-01-01"),
+            end: new Date("2024-12-31"),
+        }
         const result = await getFertilizerApplicationsForFarm(
             fdm,
             principal_id,
