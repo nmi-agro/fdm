@@ -24,6 +24,7 @@ import {
     getFertilizer,
     getFertilizerApplication,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizerParametersDescription,
     getFertilizers,
     getFertilizersFromCatalogues,
@@ -1404,5 +1405,287 @@ describe("getFertilizerParametersDescription", () => {
                 expect(description).toHaveProperty("options")
             }
         }
+    })
+})
+
+describe("getFertilizerApplicationsForFarm", () => {
+    let fdm: FdmServerType
+    let principal_id: string
+    let b_id_farm: string
+    let b_id: string
+    let b_id_2: string
+    let p_id: string
+
+    const geometry = {
+        type: "Polygon" as const,
+        coordinates: [
+            [
+                [30, 10],
+                [40, 40],
+                [20, 40],
+                [10, 20],
+                [30, 10],
+            ],
+        ],
+    }
+
+    const fertilizerCatalogueProps = {
+        p_name_nl: "Test Fertilizer",
+        p_name_en: "Test Fertilizer EN",
+        p_description: "desc",
+        p_app_method_options: [] as [],
+        p_dm: 37,
+        p_density: 20,
+        p_om: 20,
+        p_a: 30,
+        p_hc: 40,
+        p_eom: 50,
+        p_eoc: 60,
+        p_c_rt: 70,
+        p_c_of: 80,
+        p_c_if: 90,
+        p_c_fr: 100,
+        p_cn_of: 110,
+        p_n_rt: 120,
+        p_n_if: 130,
+        p_n_of: 140,
+        p_n_wc: 150,
+        p_no3_rt: 400,
+        p_nh4_rt: 410,
+        p_p_rt: 160,
+        p_k_rt: 170,
+        p_mg_rt: 180,
+        p_ca_rt: 190,
+        p_ne: 200,
+        p_s_rt: 210,
+        p_s_wc: 220,
+        p_cu_rt: 230,
+        p_zn_rt: 240,
+        p_na_rt: 250,
+        p_si_rt: 260,
+        p_b_rt: 270,
+        p_mn_rt: 280,
+        p_ni_rt: 290,
+        p_fe_rt: 300,
+        p_mo_rt: 310,
+        p_co_rt: 320,
+        p_as_rt: 330,
+        p_cd_rt: 340,
+        p_cr_rt: 350,
+        p_cr_vi: 360,
+        p_pb_rt: 370,
+        p_hg_rt: 380,
+        p_cl_rt: 390,
+        p_ef_nh3: 0.8,
+        p_type: "mineral" as const,
+        p_type_rvo: "115" as const,
+    }
+
+    beforeEach(async () => {
+        const host = inject("host")
+        const port = inject("port")
+        const user = inject("user")
+        const password = inject("password")
+        const database = inject("database")
+        fdm = createFdmServer(host, port, user, password, database)
+
+        principal_id = createId()
+        b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Test Farm",
+            "123456",
+            "123 Farm Lane",
+            "12345",
+        )
+
+        b_id = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 1",
+            "src1",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 2",
+            "src2",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+
+        await enableFertilizerCatalogue(fdm, principal_id, b_id_farm, b_id_farm)
+        const p_id_catalogue = await addFertilizerToCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm,
+            fertilizerCatalogueProps,
+        )
+        p_id = await addFertilizer(
+            fdm,
+            principal_id,
+            p_id_catalogue,
+            b_id_farm,
+            1000,
+            new Date("2024-01-01"),
+        )
+    })
+
+    it("should return a Map with applications grouped by field ID", async () => {
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id,
+            p_id,
+            100,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id_2,
+            p_id,
+            200,
+            "injection",
+            new Date("2024-04-01"),
+        )
+
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(true)
+        expect(result.get(b_id)).toHaveLength(1)
+        expect(result.get(b_id_2)).toHaveLength(1)
+        expect(result.get(b_id)![0].p_app_amount).toBe(100)
+        expect(result.get(b_id_2)![0].p_app_amount).toBe(200)
+    })
+
+    it("should return an empty Map when the farm has no fertilizer applications", async () => {
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+        expect(result).toBeInstanceOf(Map)
+        expect(result.size).toBe(0)
+    })
+
+    it("should only return applications within the given timeframe", async () => {
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id,
+            p_id,
+            100,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id_2,
+            p_id,
+            200,
+            "injection",
+            new Date("2025-06-01"),
+        )
+
+        const timeframe = {
+            start: new Date("2024-01-01"),
+            end: new Date("2024-12-31"),
+        }
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(false)
+    })
+
+    it("should not include applications from other farms", async () => {
+        const other_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Other Farm",
+            "654321",
+            "456 Other Lane",
+            "67890",
+        )
+        const other_b_id = await addField(
+            fdm,
+            principal_id,
+            other_farm,
+            "other field",
+            "src3",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+        await enableFertilizerCatalogue(
+            fdm,
+            principal_id,
+            other_farm,
+            other_farm,
+        )
+        const other_p_id_catalogue = await addFertilizerToCatalogue(
+            fdm,
+            principal_id,
+            other_farm,
+            fertilizerCatalogueProps,
+        )
+        const other_p_id = await addFertilizer(
+            fdm,
+            principal_id,
+            other_p_id_catalogue,
+            other_farm,
+            500,
+            new Date("2024-01-01"),
+        )
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            other_b_id,
+            other_p_id,
+            999,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id,
+            p_id,
+            100,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(other_b_id)).toBe(false)
     })
 })

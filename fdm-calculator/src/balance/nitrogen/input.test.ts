@@ -12,16 +12,20 @@ import type {
 } from "@nmi-agro/fdm-core"
 import {
     getCultivations,
+    getCultivationsForFarm,
     getCultivationsFromCatalogues,
     getCultivationsFromCatalogue,
     getEnabledCultivationCataloguesForFarms,
     getEnabledFertilizerCataloguesForFarms,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizersFromCatalogues,
     getFertilizersFromCatalogue,
     getFields,
     getHarvests,
+    getHarvestsForFarm,
     getSoilAnalyses,
+    getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -39,9 +43,13 @@ vi.mock("@nmi-agro/fdm-core", async () => {
         ...actual,
         getFields: vi.fn(),
         getCultivations: vi.fn(),
+        getCultivationsForFarm: vi.fn(),
         getHarvests: vi.fn(),
+        getHarvestsForFarm: vi.fn(),
         getSoilAnalyses: vi.fn(),
+        getSoilAnalysesForFarm: vi.fn(),
         getFertilizerApplications: vi.fn(),
+        getFertilizerApplicationsForFarm: vi.fn(),
         getCultivationsFromCatalogue: vi.fn(),
         getFertilizersFromCatalogue: vi.fn(),
         getEnabledCultivationCataloguesForFarms: vi.fn(),
@@ -59,9 +67,13 @@ vi.mock("./supply/deposition", () => ({
 // Import mocks after vi.mock call
 const mockedGetFields = vi.mocked(getFields)
 const mockedGetCultivations = vi.mocked(getCultivations)
+const mockedGetCultivationsForFarm = vi.mocked(getCultivationsForFarm)
 const mockedGetHarvests = vi.mocked(getHarvests)
+const mockedGetHarvestsForFarm = vi.mocked(getHarvestsForFarm)
 const mockedGetSoilAnalyses = vi.mocked(getSoilAnalyses)
+const mockedGetSoilAnalysesForFarm = vi.mocked(getSoilAnalysesForFarm)
 const mockedGetFertilizerApplications = vi.mocked(getFertilizerApplications)
+const mockedGetFertilizerApplicationsForFarm = vi.mocked(getFertilizerApplicationsForFarm)
 const mockedGetCultivationsFromCatalogue = vi.mocked(getCultivationsFromCatalogue)
 const mockedGetFertilizersFromCatalogue = vi.mocked(getFertilizersFromCatalogue)
 const mockedGetEnabledCultivationCataloguesForFarms = vi.mocked(
@@ -284,11 +296,23 @@ describe("collectInputForNitrogenBalance", () => {
             mockDepositionSupplyMap,
         } = createMockData()
         mockedGetFields.mockResolvedValue(mockFieldsData)
-        mockedGetCultivations.mockResolvedValue(mockCultivationsData)
-        mockedGetHarvests.mockResolvedValue(mockHarvestsData) // For simplicity, same harvests for all cultivations
-        mockedGetSoilAnalyses.mockResolvedValue(mockSoilAnalysesData)
-        mockedGetFertilizerApplications.mockResolvedValue(
-            mockFertilizerApplicationsData,
+        mockedGetCultivationsForFarm.mockResolvedValue(
+            new Map(
+                mockFieldsData.map((f) => [f.b_id, mockCultivationsData]),
+            ),
+        )
+        mockedGetHarvestsForFarm.mockResolvedValue(
+            new Map([["cult-1", mockHarvestsData]]),
+        )
+        mockedGetSoilAnalysesForFarm.mockResolvedValue(
+            new Map(
+                mockFieldsData.map((f) => [f.b_id, mockSoilAnalysesData]),
+            ),
+        )
+        mockedGetFertilizerApplicationsForFarm.mockResolvedValue(
+            new Map(
+                mockFieldsData.map((f) => [f.b_id, mockFertilizerApplicationsData]),
+            ),
         )
         const allFertilizerDetails = mockFertilizerDetailsData.map((fert) => ({
             ...fert,
@@ -340,35 +364,34 @@ describe("collectInputForNitrogenBalance", () => {
             b_id_farm,
             timeframe,
         )
-        for (const field of mockFieldsData) {
-            expect(mockedGetCultivations).toHaveBeenCalledWith(
-                mockFdm,
-                principal_id,
-                field.b_id,
-                timeframe,
-            )
-            // For each cultivation, getHarvests is called
-            for (const cultivation of mockCultivationsData) {
-                expect(mockedGetHarvests).toHaveBeenCalledWith(
-                    mockFdm,
-                    principal_id,
-                    cultivation.b_lu,
-                    timeframe,
-                )
-            }
-            expect(mockedGetSoilAnalyses).toHaveBeenCalledWith(
-                mockFdm,
-                principal_id,
-                field.b_id,
-                timeframe,
-            )
-            expect(mockedGetFertilizerApplications).toHaveBeenCalledWith(
-                mockFdm,
-                principal_id,
-                field.b_id,
-                timeframe,
-            )
-        }
+        expect(mockedGetCultivationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+        expect(mockedGetHarvestsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+        expect(mockedGetSoilAnalysesForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+        expect(mockedGetFertilizerApplicationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+        expect(mockedGetCultivations).not.toHaveBeenCalled()
+        expect(mockedGetHarvests).not.toHaveBeenCalled()
+        expect(mockedGetSoilAnalyses).not.toHaveBeenCalled()
+        expect(mockedGetFertilizerApplications).not.toHaveBeenCalled()
         expect(mockedGetFertilizersFromCatalogue).toHaveBeenCalledWith(
             mockFdm,
             principal_id,
@@ -398,7 +421,7 @@ describe("collectInputForNitrogenBalance", () => {
         ).rejects.toThrow(errorMessage)
     })
 
-    it("should throw an error if getCultivations fails for a field", async () => {
+    it("should throw an error if getCultivationsForFarm fails", async () => {
         const mockFieldsData: Field[] = [
             {
                 b_id: "field-1",
@@ -418,7 +441,10 @@ describe("collectInputForNitrogenBalance", () => {
         mockedGetFields.mockResolvedValue(mockFieldsData)
 
         const errorMessage = "Failed to get cultivations"
-        mockedGetCultivations.mockRejectedValue(new Error(errorMessage))
+        mockedGetCultivationsForFarm.mockRejectedValue(new Error(errorMessage))
+        mockedGetSoilAnalysesForFarm.mockResolvedValue(new Map())
+        mockedGetFertilizerApplicationsForFarm.mockResolvedValue(new Map())
+        mockedGetHarvestsForFarm.mockResolvedValue(new Map())
 
         await expect(
             collectInputForNitrogenBalance(
@@ -449,8 +475,15 @@ describe("collectInputForNitrogenBalance", () => {
 
     it("should handle empty arrays from core functions correctly", async () => {
         mockedGetFields.mockResolvedValue([])
+        mockedGetCultivationsForFarm.mockResolvedValue(new Map())
+        mockedGetSoilAnalysesForFarm.mockResolvedValue(new Map())
+        mockedGetFertilizerApplicationsForFarm.mockResolvedValue(new Map())
+        mockedGetHarvestsForFarm.mockResolvedValue(new Map())
         mockedGetFertilizersFromCatalogue.mockResolvedValue([])
         mockedGetCultivationsFromCatalogue.mockResolvedValue([])
+        mockedCalculateAllFieldsNitrogenSupplyByDeposition.mockResolvedValue(
+            new Map(),
+        )
 
         const result = await collectInputForNitrogenBalance(
             mockFdm,
@@ -484,7 +517,13 @@ describe("collectInputForNitrogenBalance", () => {
             principal_id,
             b_id_farm,
         )
-        // Ensure other calls that depend on fields are not made
+        // Batch functions are called; per-field functions must not be called
+        expect(mockedGetCultivationsForFarm).toHaveBeenCalledWith(
+            mockFdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
         expect(mockedGetCultivations).not.toHaveBeenCalled()
         expect(mockedGetHarvests).not.toHaveBeenCalled()
         expect(mockedGetSoilAnalyses).not.toHaveBeenCalled()
@@ -535,18 +574,47 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
         mockedGetFields.mockImplementation(async (_1, _2, b_id_farm) =>
             b_id_farm === "test-farm-id-2" ? mockFieldsData2 : mockFieldsData,
         )
-        mockedGetCultivations.mockImplementation(async (_1, _2, b_id) =>
-            b_id.startsWith("2-")
-                ? mockCultivationsData2
-                : mockCultivationsData,
+        mockedGetCultivationsForFarm.mockImplementation(
+            async (_1, _2, b_id_farm) =>
+                b_id_farm === "test-farm-id-2"
+                    ? new Map(
+                          mockFieldsData2.map((f) => [f.b_id, mockCultivationsData2]),
+                      )
+                    : new Map(
+                          mockFieldsData.map((f) => [f.b_id, mockCultivationsData]),
+                      ),
         )
-        mockedGetHarvests.mockResolvedValue(mockHarvestsData) // For simplicity, same harvests for all cultivations
-        mockedGetSoilAnalyses.mockResolvedValue(mockSoilAnalysesData)
-        mockedGetFertilizerApplications.mockImplementation(
-            async (_1, _2, b_id) =>
-                b_id.startsWith("2-")
-                    ? mockFertilizerApplicationsData2
-                    : mockFertilizerApplicationsData,
+        mockedGetHarvestsForFarm.mockImplementation(
+            async (_1, _2, b_id_farm) =>
+                b_id_farm === "test-farm-id-2"
+                    ? new Map([["cult-2", mockHarvestsData]])
+                    : new Map([["cult-1", mockHarvestsData]]),
+        )
+        mockedGetSoilAnalysesForFarm.mockResolvedValue(
+            new Map([
+                ...mockFieldsData.map(
+                    (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
+                ),
+                ...mockFieldsData2.map(
+                    (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
+                ),
+            ]),
+        )
+        mockedGetFertilizerApplicationsForFarm.mockImplementation(
+            async (_1, _2, b_id_farm) =>
+                b_id_farm === "test-farm-id-2"
+                    ? new Map(
+                          mockFieldsData2.map((f) => [
+                              f.b_id,
+                              mockFertilizerApplicationsData2,
+                          ]),
+                      )
+                    : new Map(
+                          mockFieldsData.map((f) => [
+                              f.b_id,
+                              mockFertilizerApplicationsData,
+                          ]),
+                      ),
         )
         const cultDetailsWithSource1 = mockCultivationDetailsData.map((c) => ({
             ...c,

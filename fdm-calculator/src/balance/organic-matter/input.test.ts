@@ -23,9 +23,12 @@ vi.mock("@nmi-agro/fdm-core", async () => {
         ...original,
         getFields: vi.fn(),
         getCultivations: vi.fn(),
+        getCultivationsForFarm: vi.fn(),
         getHarvests: vi.fn(),
         getSoilAnalyses: vi.fn(),
+        getSoilAnalysesForFarm: vi.fn(),
         getFertilizerApplications: vi.fn(),
+        getFertilizerApplicationsForFarm: vi.fn(),
         getCultivationsFromCatalogue: vi.fn(),
         getFertilizersFromCatalogue: vi.fn(),
         getEnabledCultivationCataloguesForFarms: vi.fn(),
@@ -216,13 +219,24 @@ describe("collectInputForOrganicMatterBalance", () => {
             mockCultivationDetailsData,
         } = createMockData()
         vi.spyOn(fdmCore, "getFields").mockResolvedValue(mockFields as any)
-        vi.spyOn(fdmCore, "getCultivations").mockResolvedValue(
-            mockCultivationsData,
+        vi.spyOn(fdmCore, "getCultivationsForFarm").mockResolvedValue(
+            new Map(
+                (mockFields as any[]).map((f: { b_id: string }) => [
+                    f.b_id,
+                    mockCultivationsData,
+                ]),
+            ) as any,
         )
-        vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue(
-            mockFertilizerApplicationsData,
+        vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockResolvedValue(
+            new Map() as any,
+        )
+        vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockResolvedValue(
+            new Map(
+                (mockFields as any[]).map((f: { b_id: string }) => [
+                    f.b_id,
+                    mockFertilizerApplicationsData,
+                ]),
+            ) as any,
         )
         vi.spyOn(fdmCore, "getFertilizersFromCatalogue").mockResolvedValue(
             mockFertilizerDetailsData as any,
@@ -295,20 +309,21 @@ describe("collectInputForOrganicMatterBalance", () => {
         const mockCultivation = { b_lu: "cult1" }
         const mockFertilizer = { p_id: "fert-1", p_id_catalogue: "fert-cat-1" }
         vi.spyOn(fdmCore, "getFields").mockResolvedValue([mockField] as any)
-        vi.spyOn(fdmCore, "getCultivations").mockResolvedValue([
-            mockCultivation,
-        ] as any)
+        vi.spyOn(fdmCore, "getCultivationsForFarm").mockResolvedValue(
+            new Map([["field1", [mockCultivation]]]) as any,
+        )
+        vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockResolvedValue(
+            new Map() as any,
+        )
+        vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockResolvedValue(
+            new Map([["field1", [{ p_id_catalogue: "fert-cat-1" }]]]) as any,
+        )
         vi.spyOn(fdmCore, "getFertilizersFromCatalogue").mockResolvedValue([
             mockFertilizer,
         ] as any)
         vi.spyOn(fdmCore, "getCultivationsFromCatalogue").mockResolvedValue([
             mockCultivation,
         ] as any)
-        vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
-        vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([
-            { p_id_catalogue: "fert-cat-1" } as any,
-        ])
 
         const result = await collectInputForOrganicMatterBalance(
             mockFdm,
@@ -369,20 +384,41 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
                     ? mockFieldsData2
                     : mockFieldsData,
         )
-        vi.spyOn(fdmCore, "getCultivations").mockImplementation(
-            async (_1, _2, b_id) =>
-                b_id.startsWith("2-")
-                    ? mockCultivationsData2
-                    : mockCultivationsData,
+        vi.spyOn(fdmCore, "getCultivationsForFarm").mockImplementation(
+            async (_1, _2, b_id_farm) =>
+                b_id_farm === "test-farm-id-2"
+                    ? new Map(
+                          mockFieldsData2.map((f) => [f.b_id, mockCultivationsData2]),
+                      )
+                    : new Map(
+                          mockFieldsData.map((f) => [f.b_id, mockCultivationsData]),
+                      ),
         )
-        vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue(
-            mockSoilAnalysesData,
+        vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockResolvedValue(
+            new Map([
+                ...mockFieldsData.map(
+                    (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
+                ),
+                ...mockFieldsData2.map(
+                    (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
+                ),
+            ]) as any,
         )
-        vi.spyOn(fdmCore, "getFertilizerApplications").mockImplementation(
-            async (_1, _2, b_id) =>
-                b_id.startsWith("2-")
-                    ? mockFertilizerApplicationsData2
-                    : mockFertilizerApplicationsData,
+        vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockImplementation(
+            async (_1, _2, b_id_farm) =>
+                b_id_farm === "test-farm-id-2"
+                    ? new Map(
+                          mockFieldsData2.map((f) => [
+                              f.b_id,
+                              mockFertilizerApplicationsData2,
+                          ]),
+                      )
+                    : new Map(
+                          mockFieldsData.map((f) => [
+                              f.b_id,
+                              mockFertilizerApplicationsData,
+                          ]),
+                      ),
         )
         const cultDetailsWithSource1 = mockCultivationDetailsData.map((c) => ({
             ...c,

@@ -13,6 +13,7 @@ import {
     getDefaultsForHarvestParameters,
     getHarvest,
     getHarvests,
+    getHarvestsForFarm,
     getParametersForHarvestCat,
     updateHarvest,
 } from "./harvest"
@@ -1004,5 +1005,252 @@ describe("getDefaultsForHarvestParameters", () => {
             mockCultivationsCatalogue,
         )
         expect(defaults).toEqual({})
+    })
+})
+
+describe("getHarvestsForFarm", () => {
+    let fdm: FdmServerType
+    let principal_id: string
+    let b_id_farm: string
+    let b_id: string
+    let b_id_2: string
+    let b_lu: string
+    let b_lu_2: string
+    let b_lu_catalogue: string
+    let b_lu_source: string
+
+    const geometry = {
+        type: "Polygon" as const,
+        coordinates: [
+            [
+                [30, 10],
+                [40, 40],
+                [20, 40],
+                [10, 20],
+                [30, 10],
+            ],
+        ],
+    }
+
+    beforeEach(async () => {
+        const host = inject("host")
+        const port = inject("port")
+        const user = inject("user")
+        const password = inject("password")
+        const database = inject("database")
+        fdm = createFdmServer(host, port, user, password, database)
+
+        principal_id = createId()
+        b_lu_source = "custom"
+        b_lu_catalogue = createId()
+
+        b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Test Farm",
+            "123456",
+            "123 Farm Lane",
+            "12345",
+        )
+
+        b_id = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 1",
+            "src1",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 2",
+            "src2",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+
+        await enableCultivationCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm,
+            b_lu_source,
+        )
+
+        await addCultivationToCatalogue(fdm, {
+            b_lu_catalogue,
+            b_lu_source,
+            b_lu_name: "Wheat",
+            b_lu_name_en: "Wheat",
+            b_lu_harvestable: "once",
+            b_lu_hcat3: "1",
+            b_lu_hcat3_name: "test",
+            b_lu_croprotation: "cereal",
+            b_lu_harvestcat: "HC050",
+            b_lu_yield: 6000,
+            b_lu_dm: 500,
+            b_lu_hi: 0.4,
+            b_lu_n_harvestable: 4,
+            b_lu_n_residue: 2,
+            b_n_fixation: 0,
+            b_lu_rest_oravib: false,
+            b_lu_variety_options: null,
+            b_lu_start_default: "03-01",
+            b_lu_eom: null,
+            b_lu_eom_residue: null,
+            b_date_harvest_default: "09-15",
+        })
+
+        b_lu = await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            b_id,
+            new Date("2024-03-01"),
+        )
+
+        b_lu_2 = await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            b_id_2,
+            new Date("2024-04-01"),
+        )
+    })
+
+    it("should return a Map with harvests grouped by cultivation ID", async () => {
+        const harvestDate1 = new Date("2024-08-01")
+        const harvestDate2 = new Date("2024-09-01")
+
+        await addHarvest(fdm, principal_id, b_lu, harvestDate1, {
+            b_lu_yield_fresh: 5000,
+            b_lu_moist: 15,
+            b_lu_cp: 110,
+        })
+        await addHarvest(fdm, principal_id, b_lu_2, harvestDate2, {
+            b_lu_yield_fresh: 6000,
+            b_lu_moist: 15,
+            b_lu_cp: 110,
+        })
+
+        const result = await getHarvestsForFarm(fdm, principal_id, b_id_farm)
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.has(b_lu)).toBe(true)
+        expect(result.has(b_lu_2)).toBe(true)
+        expect(result.get(b_lu)).toHaveLength(1)
+        expect(result.get(b_lu_2)).toHaveLength(1)
+        expect(result.get(b_lu)![0].b_lu).toBe(b_lu)
+        expect(result.get(b_lu_2)![0].b_lu).toBe(b_lu_2)
+    })
+
+    it("should include nested harvestable and harvestable_analyses", async () => {
+        await addHarvest(fdm, principal_id, b_lu, new Date("2024-08-01"), {
+            b_lu_yield_fresh: 5000,
+            b_lu_moist: 15,
+            b_lu_cp: 110,
+        })
+
+        const result = await getHarvestsForFarm(fdm, principal_id, b_id_farm)
+
+        const harvests = result.get(b_lu)!
+        expect(harvests).toHaveLength(1)
+        expect(harvests[0].harvestable).toBeDefined()
+        expect(harvests[0].harvestable.b_id_harvestable).toBeDefined()
+        expect(harvests[0].harvestable.harvestable_analyses).toHaveLength(1)
+        expect(
+            harvests[0].harvestable.harvestable_analyses[0].b_lu_yield_fresh,
+        ).toBe(5000)
+    })
+
+    it("should return an empty Map when the farm has no harvests", async () => {
+        const result = await getHarvestsForFarm(fdm, principal_id, b_id_farm)
+        expect(result).toBeInstanceOf(Map)
+        expect(result.size).toBe(0)
+    })
+
+    it("should only return harvests within the given timeframe", async () => {
+        await addHarvest(fdm, principal_id, b_lu, new Date("2024-08-01"), {
+            b_lu_yield_fresh: 5000,
+            b_lu_moist: 15,
+            b_lu_cp: 110,
+        })
+        await addHarvest(fdm, principal_id, b_lu_2, new Date("2025-08-01"), {
+            b_lu_yield_fresh: 6000,
+            b_lu_moist: 15,
+            b_lu_cp: 110,
+        })
+
+        const timeframe = {
+            start: new Date("2024-01-01"),
+            end: new Date("2024-12-31"),
+        }
+        const result = await getHarvestsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+
+        expect(result.has(b_lu)).toBe(true)
+        expect(result.has(b_lu_2)).toBe(false)
+    })
+
+    it("should not include harvests from other farms", async () => {
+        const other_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Other Farm",
+            "654321",
+            "456 Other Lane",
+            "67890",
+        )
+        const other_b_id = await addField(
+            fdm,
+            principal_id,
+            other_farm,
+            "other field",
+            "src3",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+        await enableCultivationCatalogue(
+            fdm,
+            principal_id,
+            other_farm,
+            b_lu_source,
+        )
+        const other_b_lu = await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            other_b_id,
+            new Date("2024-03-01"),
+        )
+
+        await addHarvest(fdm, principal_id, other_b_lu, new Date("2024-08-01"), {
+            b_lu_yield_fresh: 9999,
+            b_lu_moist: 15,
+            b_lu_cp: 110,
+        })
+        await addHarvest(fdm, principal_id, b_lu, new Date("2024-08-01"), {
+            b_lu_yield_fresh: 5000,
+            b_lu_moist: 15,
+            b_lu_cp: 110,
+        })
+
+        const result = await getHarvestsForFarm(fdm, principal_id, b_id_farm)
+
+        expect(result.has(b_lu)).toBe(true)
+        expect(result.has(other_b_lu)).toBe(false)
     })
 })

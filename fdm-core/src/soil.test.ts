@@ -10,6 +10,7 @@ import {
     addSoilAnalysis,
     getCurrentSoilData,
     getSoilAnalyses,
+    getSoilAnalysesForFarm,
     getSoilAnalysis,
     getSoilParametersDescription,
     removeSoilAnalysis,
@@ -888,5 +889,205 @@ describe("getSoilParametersDescription", () => {
                 expect(description).toHaveProperty("options")
             }
         }
+    })
+})
+
+describe("getSoilAnalysesForFarm", () => {
+    let fdm: FdmServerType
+    let principal_id: string
+    let b_id_farm: string
+    let b_id: string
+    let b_id_2: string
+
+    const geometry: schema.fieldsTypeInsert["b_geometry"] = {
+        type: "Polygon",
+        coordinates: [
+            [
+                [30, 10],
+                [40, 40],
+                [20, 40],
+                [10, 20],
+                [30, 10],
+            ],
+        ],
+    }
+
+    beforeEach(async () => {
+        const host = inject("host")
+        const port = inject("port")
+        const user = inject("user")
+        const password = inject("password")
+        const database = inject("database")
+        fdm = createFdmServer(host, port, user, password, database)
+
+        principal_id = createId()
+        b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Test Farm",
+            "123456",
+            "123 Farm Lane",
+            "12345",
+        )
+
+        b_id = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 1",
+            "src1",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 2",
+            "src2",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+    })
+
+    it("should return a Map with analyses grouped by field ID", async () => {
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2023-05-01"),
+            "other",
+            b_id,
+            30,
+            new Date("2023-05-01"),
+            { a_p_al: 10 },
+        )
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2023-06-01"),
+            "other",
+            b_id_2,
+            30,
+            new Date("2023-06-01"),
+            { a_p_al: 20 },
+        )
+
+        const result = await getSoilAnalysesForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(true)
+        expect(result.get(b_id)).toHaveLength(1)
+        expect(result.get(b_id_2)).toHaveLength(1)
+        expect(result.get(b_id)![0].a_p_al).toBe(10)
+        expect(result.get(b_id_2)![0].a_p_al).toBe(20)
+    })
+
+    it("should return an empty Map when the farm has no soil analyses", async () => {
+        const result = await getSoilAnalysesForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+        expect(result).toBeInstanceOf(Map)
+        expect(result.size).toBe(0)
+    })
+
+    it("should only return analyses within the given timeframe", async () => {
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2023-05-01"),
+            "other",
+            b_id,
+            30,
+            new Date("2023-05-01"),
+            { a_p_al: 10 },
+        )
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2025-05-01"),
+            "other",
+            b_id_2,
+            30,
+            new Date("2025-05-01"),
+            { a_p_al: 20 },
+        )
+
+        const timeframe = {
+            start: new Date("2023-01-01"),
+            end: new Date("2023-12-31"),
+        }
+        const result = await getSoilAnalysesForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(false)
+    })
+
+    it("should not include analyses from other farms", async () => {
+        const other_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Other Farm",
+            "654321",
+            "456 Other Lane",
+            "67890",
+        )
+        const other_b_id = await addField(
+            fdm,
+            principal_id,
+            other_farm,
+            "other field",
+            "src3",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2023-05-01"),
+            "other",
+            other_b_id,
+            30,
+            new Date("2023-05-01"),
+            { a_p_al: 99 },
+        )
+        await addSoilAnalysis(
+            fdm,
+            principal_id,
+            new Date("2023-06-01"),
+            "other",
+            b_id,
+            30,
+            new Date("2023-06-01"),
+            { a_p_al: 10 },
+        )
+
+        const result = await getSoilAnalysesForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(other_b_id)).toBe(false)
     })
 })
