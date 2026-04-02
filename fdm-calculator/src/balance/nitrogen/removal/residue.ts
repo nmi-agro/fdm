@@ -40,7 +40,7 @@ export function calculateNitrogenRemovalByResidue(
         }
 
         // If crop residues are left or if this is not known return 0 for the amount of Nitrogen removed by crop residues
-        if (cultivation.m_cropresidue) {
+        if (cultivation.m_cropresidue !== false) {
             return {
                 id: cultivation.b_lu,
                 value: new Decimal(0),

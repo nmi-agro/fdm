@@ -228,7 +228,7 @@ describe("calculateNitrogenRemovalByResidue", () => {
         )
     })
 
-    it("should calculate nitrogen removal when m_cropresidue is null", () => {
+    it("should handle null m_cropresidue as not removed (return 0)", () => {
         const cultivations: FieldInput["cultivations"] = [
             {
                 b_lu: "cultivation1",
@@ -248,8 +248,10 @@ describe("calculateNitrogenRemovalByResidue", () => {
             cultivationDetailsMap,
         )
 
-        expect(result.total.toNumber()).toBeCloseTo(-3) //Approximation due to floating point
-        expect(result.cultivations[0].value.toNumber()).toBeCloseTo(-3) //Approximation due to floating point
+        expect(result).toEqual({
+            total: new Decimal(0),
+            cultivations: [{ id: "cultivation1", value: new Decimal(0) }],
+        })
     })
 
     it("should handle empty harvestable_analyses array", () => {
