@@ -1301,4 +1301,13 @@ describe("getHarvestsForFarm", () => {
 
         expect(result.has(b_lu)).toBe(true)
     })
+
+    it("should throw when principal does not have permission", async () => {
+        const unauthorized_principal = createId()
+        await expect(
+            getHarvestsForFarm(fdm, unauthorized_principal, b_id_farm),
+        ).rejects.toThrowError(
+            "Principal does not have permission to perform this action",
+        )
+    })
 })

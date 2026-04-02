@@ -135,5 +135,13 @@ describe("collectNL2026InputForNormsForFarm", () => {
         expect(fieldInput.field).toBe(mockField)
         expect(fieldInput.cultivations).toBe(mockCultivations)
         expect(fieldInput.soilAnalysis).toEqual({ a_p_cc: 2.5, a_p_al: 30 })
+
+        const timeframe2026 = { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) }
+        const timeframe2026Cultivation = { start: new Date(2025, 0, 1), end: new Date(2026, 11, 31) }
+        expect(fdmCore.getFields).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2026Cultivation)
+        expect(fdmCore.getCultivationsForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2026Cultivation)
+        expect(fdmCore.getCurrentSoilDataForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2026)
+        expect(fdmCore.getCultivations).not.toHaveBeenCalled()
+        expect(fdmCore.getCurrentSoilData).not.toHaveBeenCalled()
     })
 })

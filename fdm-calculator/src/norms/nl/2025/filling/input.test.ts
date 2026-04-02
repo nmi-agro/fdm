@@ -222,9 +222,12 @@ describe("collectNL2025InputForFertilizerApplicationFillingForFarm", () => {
         expect(fieldInput.fosfaatgebruiksnorm).toBe(100)
         expect(fieldInput.cultivations).toHaveLength(1)
         expect(fieldInput.applications).toHaveLength(1)
+        expect(fieldInput.b_centroid).toEqual([10, 20])
+        expect(fieldInput.fertilizers).toHaveLength(1)
 
+        const timeframe2025 = { start: new Date(2025, 0, 1), end: new Date(2025, 11, 31, 23, 59, 59, 999) }
         expect(getFields).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId)
-        expect(getCultivationsForFarm).toHaveBeenCalled()
-        expect(getFertilizerApplicationsForFarm).toHaveBeenCalled()
+        expect(getCultivationsForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2025)
+        expect(getFertilizerApplicationsForFarm).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFarmId, timeframe2025)
     })
 })
