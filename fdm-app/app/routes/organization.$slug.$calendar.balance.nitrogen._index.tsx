@@ -195,6 +195,13 @@ export async function loader({
                         farmIdsSet.add(farm.b_id_farm)
                     }
                 }
+
+                // If farmIds is still empty (none of the farms have fields) add all farm IDs
+                if (farmIdsSet.size === 0) {
+                    for (const farm of farmsExtended) {
+                        farmIdsSet.add(farm.b_id_farm)
+                    }
+                }
             }
 
             const farmIds = farmsExtended
