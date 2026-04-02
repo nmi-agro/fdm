@@ -40,7 +40,6 @@ import {
     removeFertilizerApplication,
 } from "@nmi-agro/fdm-core"
 import { Bot } from "lucide-react"
-import posthog from "posthog-js"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useEffect, useState } from "react"
 import {
@@ -512,8 +511,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const formData = await request.formData()
     const intent = formData.get("intent")
 
+    const posthog = PostHogClient()
+
     // If Gerrit is explicitly disabled for this user reject the request
-    if (!(posthog.featureFlags.isFeatureEnabled("gerrit") ?? true)) {
+    const isGerritEnabled =
+        (await posthog?.isFeatureEnabled("gerrit", session.principal_id)) ??
+        true
+    if (!isGerritEnabled) {
         throw data(null, {
             status: 403,
             statusText: "Feature is not enabled for this user",
@@ -737,7 +741,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
 
             const latencySeconds = (Date.now() - startTime) / 1000
-            const posthog = PostHogClient()
             if (posthog) {
                 try {
                     posthog.capture({
