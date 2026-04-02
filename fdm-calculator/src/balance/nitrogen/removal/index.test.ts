@@ -66,9 +66,9 @@ describe("calculateNitrogenRemoval", () => {
             cultivationDetailsMap,
         )
 
-        expect(result.total.toNumber()).toBeCloseTo(-23) // -20 from harvest + -3 from residue
+        expect(result.total.toNumber()).toBeCloseTo(-20) // -20 from harvest
         expect(result.harvests.total.toNumber()).toBeCloseTo(-20)
-        expect(result.residues.total.toNumber()).toBeCloseTo(-3)
+        expect(result.residues.total.toNumber()).toBeCloseTo(0) // No nitrogen removed by residues since m_cropresidue is true
     })
 
     it("should handle cases with no harvests or residues", () => {
@@ -76,7 +76,7 @@ describe("calculateNitrogenRemoval", () => {
             {
                 b_lu: "cultivation1",
                 b_lu_catalogue: "catalogue1",
-                m_cropresidue: false,
+                m_cropresidue: true, // Residues left on field, not removed
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
                 b_lu_name: "Cultivation 1",
