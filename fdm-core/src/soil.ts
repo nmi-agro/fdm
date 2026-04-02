@@ -535,13 +535,57 @@ export async function getSoilAnalysesForFarm(
         const result = new Map<string, SoilAnalysis[]>()
         for (const row of rows) {
             if (!row.b_id) continue
-            // b_id is used for grouping only and is not part of SoilAnalysis
-            const { b_id, ...soilAnalysis } = row
-            const existing = result.get(b_id)
+            const soilAnalysis: SoilAnalysis = {
+                a_id: row.a_id,
+                a_date: row.a_date,
+                a_source: row.a_source,
+                a_al_ox: row.a_al_ox,
+                a_c_of: row.a_c_of,
+                a_ca_co: row.a_ca_co,
+                a_ca_co_po: row.a_ca_co_po,
+                a_caco3_if: row.a_caco3_if,
+                a_cec_co: row.a_cec_co,
+                a_clay_mi: row.clay_mi,
+                a_cn_fr: row.a_cn_fr,
+                a_com_fr: row.a_com_fr,
+                a_cu_cc: row.a_cu_cc,
+                a_density_sa: row.a_density_sa,
+                a_fe_ox: row.a_fe_ox,
+                a_k_cc: row.a_k_cc,
+                a_k_co: row.a_k_co,
+                a_k_co_po: row.a_k_co_po,
+                a_mg_cc: row.a_mg_cc,
+                a_mg_co: row.a_mg_co,
+                a_mg_co_po: row.a_mg_co_po,
+                a_n_pmn: row.a_n_pmn,
+                a_n_rt: row.a_n_rt,
+                a_nh4_cc: row.a_nh4_cc,
+                a_nmin_cc: row.a_nmin_cc,
+                a_no3_cc: row.a_no3_cc,
+                a_p_al: row.a_p_al,
+                a_p_cc: row.a_p_cc,
+                a_p_ox: row.a_p_ox,
+                a_p_rt: row.a_p_rt,
+                a_p_sg: row.a_p_sg,
+                a_p_wa: row.a_p_wa,
+                a_ph_cc: row.a_ph_cc,
+                a_s_rt: row.a_s_rt,
+                a_sand_mi: row.a_sand_mi,
+                a_silt_mi: row.a_silt_mi,
+                a_som_loi: row.a_som_loi,
+                a_zn_cc: row.a_zn_cc,
+                b_gwl_class: row.b_gwl_class,
+                b_soiltype_agr: row.b_soiltype_agr,
+                b_id_sampling: row.b_id_sampling,
+                a_depth_upper: row.a_depth_upper,
+                a_depth_lower: row.a_depth_lower,
+                b_sampling_date: row.b_sampling_date,
+            }
+            const existing = result.get(row.b_id)
             if (existing) {
-                existing.push(soilAnalysis as SoilAnalysis)
+                existing.push(soilAnalysis)
             } else {
-                result.set(b_id, [soilAnalysis as SoilAnalysis])
+                result.set(row.b_id, [soilAnalysis])
             }
         }
         return result
@@ -655,45 +699,7 @@ export async function getCurrentSoilData(
                 sql`${schema.soilSampling.b_sampling_date} DESC NULLS LAST`,
             )
 
-        const parameters: SoilParameters[] = [
-            "a_al_ox",
-            "a_c_of",
-            "a_ca_co",
-            "a_ca_co_po",
-            "a_caco3_if",
-            "a_cec_co",
-            "a_clay_mi",
-            "a_cn_fr",
-            "a_com_fr",
-            "a_cu_cc",
-            "a_density_sa",
-            "a_fe_ox",
-            "a_k_cc",
-            "a_k_co",
-            "a_k_co_po",
-            "a_mg_cc",
-            "a_mg_co",
-            "a_mg_co_po",
-            "a_n_pmn",
-            "a_n_rt",
-            "a_nh4_cc",
-            "a_nmin_cc",
-            "a_no3_cc",
-            "a_p_al",
-            "a_p_cc",
-            "a_p_ox",
-            "a_p_rt",
-            "a_p_sg",
-            "a_p_wa",
-            "a_ph_cc",
-            "a_s_rt",
-            "a_sand_mi",
-            "a_silt_mi",
-            "a_som_loi",
-            "a_zn_cc",
-            "b_gwl_class",
-            "b_soiltype_agr",
-        ]
+        const parameters: SoilParameters[] = SOIL_PARAMETERS
 
         const currentSoilData = parameters
             .map((parameter) => {
@@ -820,45 +826,7 @@ export async function getCurrentSoilDataForFarm(
                 sql`${schema.soilSampling.b_sampling_date} DESC NULLS LAST`,
             )
 
-        const parameters: SoilParameters[] = [
-            "a_al_ox",
-            "a_c_of",
-            "a_ca_co",
-            "a_ca_co_po",
-            "a_caco3_if",
-            "a_cec_co",
-            "a_clay_mi",
-            "a_cn_fr",
-            "a_com_fr",
-            "a_cu_cc",
-            "a_density_sa",
-            "a_fe_ox",
-            "a_k_cc",
-            "a_k_co",
-            "a_k_co_po",
-            "a_mg_cc",
-            "a_mg_co",
-            "a_mg_co_po",
-            "a_n_pmn",
-            "a_n_rt",
-            "a_nh4_cc",
-            "a_nmin_cc",
-            "a_no3_cc",
-            "a_p_al",
-            "a_p_cc",
-            "a_p_ox",
-            "a_p_rt",
-            "a_p_sg",
-            "a_p_wa",
-            "a_ph_cc",
-            "a_s_rt",
-            "a_sand_mi",
-            "a_silt_mi",
-            "a_som_loi",
-            "a_zn_cc",
-            "b_gwl_class",
-            "b_soiltype_agr",
-        ]
+        const parameters: SoilParameters[] = SOIL_PARAMETERS
 
         // Group rows by b_id and apply per-parameter most-recent-non-null logic
         const rowsByField = new Map<string, typeof rows>()
@@ -1220,3 +1188,43 @@ export function getSoilParametersDescription(
 
     return soilParameterDescription
 }
+
+const SOIL_PARAMETERS: SoilParameters[] = [
+    "a_al_ox",
+    "a_c_of",
+    "a_ca_co",
+    "a_ca_co_po",
+    "a_caco3_if",
+    "a_cec_co",
+    "a_clay_mi",
+    "a_cn_fr",
+    "a_com_fr",
+    "a_cu_cc",
+    "a_density_sa",
+    "a_fe_ox",
+    "a_k_cc",
+    "a_k_co",
+    "a_k_co_po",
+    "a_mg_cc",
+    "a_mg_co",
+    "a_mg_co_po",
+    "a_n_pmn",
+    "a_n_rt",
+    "a_nh4_cc",
+    "a_nmin_cc",
+    "a_no3_cc",
+    "a_p_al",
+    "a_p_cc",
+    "a_p_ox",
+    "a_p_rt",
+    "a_p_sg",
+    "a_p_wa",
+    "a_ph_cc",
+    "a_s_rt",
+    "a_sand_mi",
+    "a_silt_mi",
+    "a_som_loi",
+    "a_zn_cc",
+    "b_gwl_class",
+    "b_soiltype_agr",
+]

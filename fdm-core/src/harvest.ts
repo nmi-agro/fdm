@@ -480,47 +480,53 @@ export async function getHarvestsForFarm(
                 desc(schema.cultivationHarvesting.b_lu_harvest_date),
             )
 
-        // Reconstruct nested Harvest objects and group by cultivation ID
-        const result = new Map<string, Harvest[]>()
+        // Reconstruct nested Harvest objects, grouping analyses by harvest ID, then by cultivation ID
+        const harvestsById = new Map<string, Harvest>()
         for (const row of rows) {
             if (!row.b_lu) continue
 
-            const harvest: Harvest = {
-                b_id_harvesting: row.b_id_harvesting,
-                b_lu_harvest_date: row.b_lu_harvest_date,
-                b_lu: row.b_lu,
-                harvestable: {
-                    b_id_harvestable: row.b_id_harvestable ?? "",
-                    harvestable_analyses: row.b_id_harvestable_analysis
-                        ? [
-                              {
-                                  b_id_harvestable_analysis:
-                                      row.b_id_harvestable_analysis,
-                                  b_lu_yield: row.b_lu_yield,
-                                  b_lu_yield_fresh: row.b_lu_yield_fresh,
-                                  b_lu_yield_bruto: row.b_lu_yield_bruto,
-                                  b_lu_tarra: row.b_lu_tarra,
-                                  b_lu_dm: row.b_lu_dm,
-                                  b_lu_moist: row.b_lu_moist,
-                                  b_lu_uww: row.b_lu_uww,
-                                  b_lu_cp: row.b_lu_cp,
-                                  b_lu_n_harvestable: row.b_lu_n_harvestable,
-                                  b_lu_n_residue: row.b_lu_n_residue,
-                                  b_lu_p_harvestable: row.b_lu_p_harvestable,
-                                  b_lu_p_residue: row.b_lu_p_residue,
-                                  b_lu_k_harvestable: row.b_lu_k_harvestable,
-                                  b_lu_k_residue: row.b_lu_k_residue,
-                              },
-                          ]
-                        : [],
-                },
+            let harvest = harvestsById.get(row.b_id_harvesting)
+            if (!harvest) {
+                harvest = {
+                    b_id_harvesting: row.b_id_harvesting,
+                    b_lu_harvest_date: row.b_lu_harvest_date,
+                    b_lu: row.b_lu,
+                    harvestable: {
+                        b_id_harvestable: row.b_id_harvestable ?? "",
+                        harvestable_analyses: [],
+                    },
+                }
+                harvestsById.set(row.b_id_harvesting, harvest)
             }
 
-            const existing = result.get(row.b_lu)
+            if (row.b_id_harvestable_analysis) {
+                harvest.harvestable.harvestable_analyses.push({
+                    b_id_harvestable_analysis: row.b_id_harvestable_analysis,
+                    b_lu_yield: row.b_lu_yield,
+                    b_lu_yield_fresh: row.b_lu_yield_fresh,
+                    b_lu_yield_bruto: row.b_lu_yield_bruto,
+                    b_lu_tarra: row.b_lu_tarra,
+                    b_lu_dm: row.b_lu_dm,
+                    b_lu_moist: row.b_lu_moist,
+                    b_lu_uww: row.b_lu_uww,
+                    b_lu_cp: row.b_lu_cp,
+                    b_lu_n_harvestable: row.b_lu_n_harvestable,
+                    b_lu_n_residue: row.b_lu_n_residue,
+                    b_lu_p_harvestable: row.b_lu_p_harvestable,
+                    b_lu_p_residue: row.b_lu_p_residue,
+                    b_lu_k_harvestable: row.b_lu_k_harvestable,
+                    b_lu_k_residue: row.b_lu_k_residue,
+                })
+            }
+        }
+
+        const result = new Map<string, Harvest[]>()
+        for (const harvest of harvestsById.values()) {
+            const existing = result.get(harvest.b_lu)
             if (existing) {
                 existing.push(harvest)
             } else {
-                result.set(row.b_lu, [harvest])
+                result.set(harvest.b_lu, [harvest])
             }
         }
         return result

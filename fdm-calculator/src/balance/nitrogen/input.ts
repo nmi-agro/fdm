@@ -150,7 +150,6 @@ async function collectInputForNitrogenBalanceForFarm(
                 const cultivations = cultivationsByField.get(field.b_id) ?? []
                 const harvests = cultivations
                     .flatMap((c) => harvestsByField.get(c.b_lu) ?? [])
-                    .filter((harvest) => harvest.b_lu !== undefined)
 
                 return {
                     field,
