@@ -1,5 +1,14 @@
 # fdm-calculator
 
+## 0.13.1
+
+### Patch Changes
+
+- [#552](https://github.com/nmi-agro/fdm/pull/552) [`45718ae`](https://github.com/nmi-agro/fdm/commit/45718ae5288f59797612d8a382f042598ecec163) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fix type error in tests where errors are expected to be catched
+
+- Updated dependencies [[`9dfd545`](https://github.com/nmi-agro/fdm/commit/9dfd545b834f90492d3599a0e82fe66978e56889)]:
+  - @nmi-agro/fdm-core@0.31.1
+
 ## 0.13.0
 
 ### Minor Changes
