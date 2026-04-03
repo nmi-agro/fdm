@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { processRvoImport } from "./process"
 import {
-    addField,
-    updateField,
-    removeField,
     addCultivation,
-    removeCultivation,
+    addField,
     getDefaultDatesOfCultivation,
+    removeCultivation,
+    removeField,
+    updateField,
 } from "@nmi-agro/fdm-core"
-import { RvoImportReviewStatus, type RvoImportReviewItem } from "./types"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { processRvoImport } from "./process"
+import { type RvoImportReviewItem, RvoImportReviewStatus } from "./types"
 
 // Mock fdm-core
 vi.mock("@nmi-agro/fdm-core", () => ({
@@ -21,8 +21,14 @@ vi.mock("@nmi-agro/fdm-core", () => ({
     acquiringMethodOptions: [
         { value: "nl_01", label: "Eigendom" },
         { value: "nl_02", label: "Reguliere pacht" },
-        { value: "nl_03", label: "In gebruik van een terreinbeherende organisatie" },
-        { value: "nl_04", label: "Tijdelijk gebruik in het kader van landinrichting" },
+        {
+            value: "nl_03",
+            label: "In gebruik van een terreinbeherende organisatie",
+        },
+        {
+            value: "nl_04",
+            label: "Tijdelijk gebruik in het kader van landinrichting",
+        },
         { value: "nl_07", label: "Overige exploitatievormen" },
         { value: "nl_09", label: "Erfpacht" },
         { value: "nl_10", label: "Pacht van geringe oppervlakten" },
@@ -37,7 +43,9 @@ vi.mock("@nmi-agro/fdm-core", () => ({
 
 describe("processRvoImport", () => {
     const mockFdm = {
-        transaction: vi.fn(async (cb: (tx: any) => Promise<any>) => cb(mockFdm)),
+        transaction: vi.fn(async (cb: (tx: any) => Promise<any>) =>
+            cb(mockFdm),
+        ),
     } as any
     const principalId = "user-1"
     const farmId = "farm-1"

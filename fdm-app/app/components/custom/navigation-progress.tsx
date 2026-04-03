@@ -54,17 +54,17 @@ export function NavigationProgress() {
         if (show && startTimeRef.current !== null) {
             const duration = Date.now() - startTimeRef.current
             if (clientConfig.analytics.sentry) {
-                    Sentry.withScope((scope) => {
-                        scope.setTag(
-                            "page",
-                            normalizePage(startPathnameRef.current ?? pathname),
-                        )
-                        Sentry.metrics.distribution(
-                            "navigation_progress.duration_ms",
-                            duration,
-                        )
-                    })
-                }
+                Sentry.withScope((scope) => {
+                    scope.setTag(
+                        "page",
+                        normalizePage(startPathnameRef.current ?? pathname),
+                    )
+                    Sentry.metrics.distribution(
+                        "navigation_progress.duration_ms",
+                        duration,
+                    )
+                })
+            }
         }
         setShow(false)
         startTimeRef.current = null

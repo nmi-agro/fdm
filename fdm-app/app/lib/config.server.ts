@@ -45,6 +45,14 @@ export const serverConfig: ServerConfig = {
             clientName: String(process.env.RVO_CLIENT_NAME),
             pkioPrivateKey: String(process.env.RVO_PKIO_PRIVATE_KEY),
         },
+        ...(process.env.GEMINI_API_KEY
+            ? {
+                  gemini: {
+                      api_key: process.env.GEMINI_API_KEY,
+                      model: process.env.GEMINI_MODEL,
+                  },
+              }
+            : {}),
     },
 
     // Analytics

@@ -1,25 +1,21 @@
+import type {
+    ImportReviewAction,
+    RvoImportReviewItem,
+    UserChoiceMap,
+} from "@nmi-agro/fdm-rvo/types"
+import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import {
     type ColumnDef,
     flexRender,
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import type {
-    RvoImportReviewItem,
-    ImportReviewAction,
-    UserChoiceMap,
-} from "@nmi-agro/fdm-rvo/types"
-import { getItemId } from "@nmi-agro/fdm-rvo/utils"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "~/components/ui/table"
+import { area } from "@turf/turf"
+import { format, parseISO } from "date-fns"
+import { Archive, ArrowLeftRight, Check, Plus, Trash2, X } from "lucide-react"
+import { useMemo } from "react"
+import { clientConfig } from "@/app/lib/config"
 import { Badge } from "~/components/ui/badge"
-import { Check, Plus, Trash2, ArrowLeftRight, X, Archive } from "lucide-react"
 import {
     Select,
     SelectContent,
@@ -28,17 +24,21 @@ import {
     SelectValue,
 } from "~/components/ui/select"
 import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "~/components/ui/table"
+import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
-import { area } from "@turf/turf"
-import { format, parseISO } from "date-fns"
-import { cn } from "~/lib/utils"
 import { acquiringMethodOptions } from "~/lib/constants"
-import { useMemo } from "react"
-import { clientConfig } from "@/app/lib/config"
+import { cn } from "~/lib/utils"
 
 declare module "@tanstack/react-table" {
     interface TableMeta<TData extends object> {
@@ -67,7 +67,7 @@ function formatDate(dateString?: string | Date) {
 function formatArea(geometry: any) {
     if (!geometry) return "-"
     const a = area(geometry)
-    return (a / 10000).toFixed(2) + " ha"
+    return `${(a / 10000).toFixed(2)} ha`
 }
 
 // Helper to render diff cells

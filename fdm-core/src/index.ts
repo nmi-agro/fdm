@@ -14,7 +14,7 @@
 
 /** {@inheritDoc fdmServer} */
 import * as fdmSchema from "./db/schema"
-export { fdmSchema }
+
 export type { FdmAuth } from "./authentication"
 // export { createFdmLocal } from './fdm-local'
 export {
@@ -36,7 +36,9 @@ export {
     enableCultivationCatalogue,
     enableFertilizerCatalogue,
     getEnabledCultivationCatalogues,
+    getEnabledCultivationCataloguesForFarms,
     getEnabledFertilizerCatalogues,
+    getEnabledFertilizerCataloguesForFarms,
     isCultivationCatalogueEnabled,
     isFertilizerCatalogueEnabled,
     syncCatalogues,
@@ -47,7 +49,9 @@ export {
     getCultivation,
     getCultivationPlan,
     getCultivations,
+    getCultivationsForFarm,
     getCultivationsFromCatalogue,
+    getCultivationsFromCatalogues,
     getDefaultDatesOfCultivation,
     removeCultivation,
     updateCultivation,
@@ -57,6 +61,11 @@ export type {
     CultivationCatalogue,
     CultivationPlan,
 } from "./cultivation.d"
+export {
+    acquiringMethodOptions,
+    gwlClassesOptions,
+    soilTypesOptions,
+} from "./db/schema"
 export type {
     invitationTypeInsert,
     invitationTypeSelect,
@@ -94,9 +103,11 @@ export {
     getFertilizer,
     getFertilizerApplication,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizerParametersDescription,
     getFertilizers,
     getFertilizersFromCatalogue,
+    getFertilizersFromCatalogues,
     removeFertilizer,
     removeFertilizerApplication,
     updateFertilizerApplication,
@@ -105,6 +116,7 @@ export {
 export type {
     Fertilizer,
     FertilizerApplication,
+    FertilizerCatalogue,
     FertilizerParameterDescription,
     FertilizerParameterDescriptionItem,
     FertilizerParameters,
@@ -119,11 +131,6 @@ export {
 } from "./field"
 export type { Field } from "./field.d"
 export {
-    acquiringMethodOptions,
-    soilTypesOptions,
-    gwlClassesOptions,
-} from "./db/schema"
-export {
     getGrazingIntention,
     getGrazingIntentions,
     removeGrazingIntention,
@@ -135,6 +142,7 @@ export {
     getHarvest,
     getHarvestableTypeOfCultivation,
     getHarvests,
+    getHarvestsForFarm,
     getParametersForHarvestCat,
     removeHarvest,
     updateHarvest,
@@ -170,7 +178,9 @@ export { lookupPrincipal } from "./principal"
 export {
     addSoilAnalysis,
     getCurrentSoilData,
+    getCurrentSoilDataForFarm,
     getSoilAnalyses,
+    getSoilAnalysesForFarm,
     getSoilAnalysis,
     getSoilParametersDescription,
     removeSoilAnalysis,
@@ -183,3 +193,4 @@ export type {
     SoilParameters,
 } from "./soil.d"
 export type { Timeframe } from "./timeframe.d"
+export { fdmSchema }

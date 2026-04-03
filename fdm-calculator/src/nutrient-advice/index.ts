@@ -98,8 +98,9 @@ export async function requestNutrientAdvice({
         )
 
         if (!responseApi.ok) {
+            const errorText = await responseApi.text().catch(() => "")
             throw new Error(
-                `Request to NMI API failed with status ${responseApi.status}: ${responseApi.statusText}`,
+                `Request to NMI API failed with status ${responseApi.status}: ${responseApi.statusText} - ${errorText}`,
             )
         }
 

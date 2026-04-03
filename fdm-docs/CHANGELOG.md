@@ -1,5 +1,17 @@
 # fdm-docs
 
+## 0.11.0
+
+### Minor Changes
+
+- [#374](https://github.com/nmi-agro/fdm/pull/374) [`81dd1b6`](https://github.com/nmi-agro/fdm/commit/81dd1b684fb10f188ebfb7aa769c4027c69f991f) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the reference for fdm-rvo
+
+- [#534](https://github.com/nmi-agro/fdm/pull/534) [`2c9d6e9`](https://github.com/nmi-agro/fdm/commit/2c9d6e9fea5a2eabab44ca4bf67951825a3b6aa5) Thanks [@SvenVw](https://github.com/SvenVw)! - Add documentation section for `fdm-agents`, covering the Gerrit fertilizer application planner agent: architecture (Reasoner-Verifier), usage examples, planning strategies, security model, and future expansion plans.
+
+### Patch Changes
+
+- [#535](https://github.com/nmi-agro/fdm/pull/535) [`6b00be9`](https://github.com/nmi-agro/fdm/commit/6b00be9c0999b3510a3af86b64d2002ee66ecc1b) Thanks [@SvenVw](https://github.com/SvenVw)! - Set minimum node.js version to v24
+
 ## 0.10.0
 
 ### Minor Changes

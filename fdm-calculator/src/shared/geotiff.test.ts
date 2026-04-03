@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { getTiff, getGeoTiffValue } from "./geotiff"
 import * as geotiff from "geotiff"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { getGeoTiffValue, getTiff } from "./geotiff"
 
 // Mock the geotiff module
 vi.mock("geotiff", () => ({
@@ -58,7 +58,11 @@ describe("geotiff module", () => {
 
             expect(fetchMock).toHaveBeenCalledTimes(1) // Only HEAD
             expect(geotiff.fromUrl).toHaveBeenCalledTimes(1)
-            expect(geotiff.fromUrl).toHaveBeenCalledWith(url, undefined, expect.any(AbortSignal))
+            expect(geotiff.fromUrl).toHaveBeenCalledWith(
+                url,
+                undefined,
+                expect.any(AbortSignal),
+            )
         })
 
         it("should load unknown size file using fromUrl", async () => {
@@ -75,7 +79,11 @@ describe("geotiff module", () => {
 
             expect(fetchMock).toHaveBeenCalledTimes(1) // Only HEAD
             expect(geotiff.fromUrl).toHaveBeenCalledTimes(1)
-            expect(geotiff.fromUrl).toHaveBeenCalledWith(url, undefined, expect.any(AbortSignal))
+            expect(geotiff.fromUrl).toHaveBeenCalledWith(
+                url,
+                undefined,
+                expect.any(AbortSignal),
+            )
         })
 
         it("should cache successful requests", async () => {
@@ -144,7 +152,11 @@ describe("geotiff module", () => {
             await getTiff(url)
 
             // HEAD non-ok should warn and fall through to fromUrl, not throw
-            expect(geotiff.fromUrl).toHaveBeenCalledWith(url, undefined, expect.any(AbortSignal))
+            expect(geotiff.fromUrl).toHaveBeenCalledWith(
+                url,
+                undefined,
+                expect.any(AbortSignal),
+            )
         })
 
         it("should throw if GET request for small file fails", async () => {
@@ -305,7 +317,11 @@ describe("geotiff module", () => {
 
             // Launch 10 blocking calls — each acquire()s a slot synchronously before yielding
             const blockingPromises = Array.from({ length: 10 }).map((_, i) =>
-                getGeoTiffValue(`http://example.com/blocking-abort-${i}.tif`, 50, 50),
+                getGeoTiffValue(
+                    `http://example.com/blocking-abort-${i}.tif`,
+                    50,
+                    50,
+                ),
             )
 
             // Semaphore is now full (active === 10). Queue the 11th with an abort controller.

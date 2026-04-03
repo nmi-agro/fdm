@@ -1,16 +1,16 @@
-import bbox from "@turf/bbox"
 import type {
-    Field,
     Cultivation,
     CultivationCatalogue,
+    Field,
 } from "@nmi-agro/fdm-core"
+import bbox from "@turf/bbox"
 import {
-    type RvoField,
-    RvoImportReviewStatus,
-    type RvoImportReviewItem,
     type FieldDiff,
+    type RvoField,
+    type RvoImportReviewItem,
+    RvoImportReviewStatus,
 } from "./types"
-import { calculateIoU, bboxOverlap } from "./utils"
+import { bboxOverlap, calculateIoU } from "./utils"
 
 // Threshold for IoU (Intersection over Union) to consider fields "the same" spatially.
 // A value of 0.99 means the intersection area must be at least 99% of the union area.
@@ -156,7 +156,8 @@ export function compareFields(
         // Optimization: Fast BBox overlap check before accurate IoU; exclude already-matched locals
         const candidates = remainingLocals.filter(
             (l) =>
-                !matchedLocalIds.has(l.field.b_id) && bboxOverlap(l.bbox, rvoBbox),
+                !matchedLocalIds.has(l.field.b_id) &&
+                bboxOverlap(l.bbox, rvoBbox),
         )
 
         // Find the best spatial match among candidates

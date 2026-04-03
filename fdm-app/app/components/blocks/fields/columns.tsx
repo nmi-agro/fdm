@@ -19,8 +19,8 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { DataTableColumnHeader } from "./column-header"
 import { BufferStripCheckbox } from "./buffer-strip-checkbox"
+import { DataTableColumnHeader } from "./column-header"
 
 export type FieldExtended = {
     b_id: string

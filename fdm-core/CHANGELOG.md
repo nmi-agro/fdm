@@ -1,5 +1,35 @@
 # Changelog fdm-core
 
+## 0.31.0
+
+### Minor Changes
+
+- [#515](https://github.com/nmi-agro/fdm/pull/515) [`ae7d3c9`](https://github.com/nmi-agro/fdm/commit/ae7d3c98be19fb2cd3abf8b5de37f0e5312fd557) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added `getEnabledCultivationCataloguesForFarms` and `getEnabledFertilizerCataloguesForFarms` to retrieve the enabled catalogues for multiple farms in one query. Added `getCultivationsFromCatalogues` and `getFertilizersFromCatalogues` to fetch catalogue items for a given list of catalogue source IDs. These composable building blocks replace the removed `getCultivationsFromCatalogueForFarms` and `getFertilizersFromCatalogueForFarms` functions.
+
+- [#519](https://github.com/nmi-agro/fdm/pull/519) [`69122ba`](https://github.com/nmi-agro/fdm/commit/69122ba66cdb6eb791e0fb51acd0f042d8ac7a71) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Renamed CultivationCatalogue's `b_lu_eom_residues` to `b_lu_eom_residue` to make it consistent with fdm-data.
+
+- [#547](https://github.com/nmi-agro/fdm/pull/547) [`0f359ad`](https://github.com/nmi-agro/fdm/commit/0f359adc81efdac957fadab687ac1d61c8ddfc05) Thanks [@SvenVw](https://github.com/SvenVw)! - Add farm-level batch query functions to avoid N+1 database round-trips when processing all fields of a farm at once.
+
+  New functions (all return a `Map` keyed by field or cultivation ID):
+  - `getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_id, Cultivation[]>`
+  - `getSoilAnalysesForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_id, SoilAnalysis[]>`
+  - `getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_id, FertilizerApplication[]>`
+  - `getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_lu, Harvest[]>`
+  - `getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe?)` → `Map<b_id, CurrentSoilData>`
+
+  Each function performs a single farm-level permission check and retrieves all data for the farm in one query, grouping results in memory by field or cultivation ID.
+
+### Patch Changes
+
+- [#535](https://github.com/nmi-agro/fdm/pull/535) [`6b00be9`](https://github.com/nmi-agro/fdm/commit/6b00be9c0999b3510a3af86b64d2002ee66ecc1b) Thanks [@SvenVw](https://github.com/SvenVw)! - Set minimum node.js version to v24
+
+- [#499](https://github.com/nmi-agro/fdm/pull/499) [`21ef50a`](https://github.com/nmi-agro/fdm/commit/21ef50aa3c9e2b59366b1d27183cf9306c8dbe33) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Updated better-auth to 1.5.
+
+- [#504](https://github.com/nmi-agro/fdm/pull/504) [`2fb53de`](https://github.com/nmi-agro/fdm/commit/2fb53dee72bee18b6db11de2939699e2d567f336) Thanks [@SvenVw](https://github.com/SvenVw)! - Add missing parameters to Fertilizer type
+
+- Updated dependencies [[`6e1dcea`](https://github.com/nmi-agro/fdm/commit/6e1dceacdbbe2adf3daea171924bba8e26c3dcde), [`6b00be9`](https://github.com/nmi-agro/fdm/commit/6b00be9c0999b3510a3af86b64d2002ee66ecc1b), [`7e07507`](https://github.com/nmi-agro/fdm/commit/7e07507a30fa3876a969346e6cef8d310d318bdc), [`4463c5b`](https://github.com/nmi-agro/fdm/commit/4463c5b49b6c297ceb1ce9222aafa231dcdb01de)]:
+  - @nmi-agro/fdm-data@0.19.3
+
 ## 0.30.1
 
 ### Patch Changes

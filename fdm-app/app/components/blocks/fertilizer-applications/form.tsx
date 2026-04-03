@@ -9,8 +9,6 @@ import type { Navigation } from "react-router"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
-import { useCalendarStore } from "~/store/calendar"
-import { getContextualDate } from "~/lib/calendar"
 import { Combobox } from "~/components/custom/combobox"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -30,6 +28,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
+import { getContextualDate } from "~/lib/calendar"
+import { useCalendarStore } from "~/store/calendar"
 import {
     type FieldFertilizerFormValues,
     FormSchema,
@@ -132,6 +132,8 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         exampleFertilizerApplication,
         fertilizerApplication?.p_app_date,
         form.setValue,
+        form.getValues,
+        form.getFieldState,
     ])
 
     const fieldFertilizerFormStore = useFieldFertilizerFormStore()

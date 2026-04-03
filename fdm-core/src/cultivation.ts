@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.d"
+import { getEnabledCultivationCatalogues } from "./catalogues"
 import type {
     Cultivation,
     CultivationCatalogue,
@@ -48,48 +49,52 @@ export async function getCultivationsFromCatalogue(
     b_id_farm: schema.farmsTypeSelect["b_id_farm"],
 ): Promise<CultivationCatalogue[]> {
     try {
-        await checkPermission(
+        const catalogueIds = await getEnabledCultivationCatalogues(
             fdm,
-            "farm",
-            "read",
-            b_id_farm,
             principal_id,
-            "getCultivationsFromCatalogue",
+            b_id_farm,
         )
-
-        // Get enabled catalogues for the farm
-        const enabledCatalogues = await fdm
-            .select({
-                b_lu_source: schema.cultivationCatalogueSelecting.b_lu_source,
-            })
-            .from(schema.cultivationCatalogueSelecting)
-            .where(
-                eq(schema.cultivationCatalogueSelecting.b_id_farm, b_id_farm),
-            )
-
-        // If no catalogues are enabled, return empty array
-        if (enabledCatalogues.length === 0) {
-            return []
-        }
-
-        // Get cultivations from enabled catalogues
-        const cultivationsCatalogue = await fdm
-            .select()
-            .from(schema.cultivationsCatalogue)
-            .where(
-                inArray(
-                    schema.cultivationsCatalogue.b_lu_source,
-                    enabledCatalogues.map(
-                        (c: { b_lu_source: string }) => c.b_lu_source,
-                    ),
-                ),
-            )
-
-        return cultivationsCatalogue
+        return await getCultivationsFromCatalogues(fdm, catalogueIds)
     } catch (err) {
         throw handleError(err, "Exception for getCultivationsFromCatalogue", {
             principal_id,
             b_id_farm,
+        })
+    }
+}
+
+/**
+ * Retrieves cultivations available in the given list of catalogues.
+ *
+ * No permission checks are performed. If a catalogue permission system is implemented in the future this may change.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param catalogueIds The source IDs of the catalogues to retrieve cultivations from, such as "brp".
+ * @returns A Promise that resolves with a flat array of cultivation catalogue entries across all given catalogues.
+ * @alpha
+ */
+export async function getCultivationsFromCatalogues(
+    fdm: FdmType,
+    catalogueIds: schema.cultivationCatalogueSelectingTypeSelect["b_lu_source"][],
+): Promise<CultivationCatalogue[]> {
+    try {
+        if (catalogueIds.length === 0) {
+            return []
+        }
+
+        return fdm
+            .select()
+            .from(schema.cultivationsCatalogue)
+            .where(
+                inArray(schema.cultivationsCatalogue.b_lu_source, catalogueIds),
+            )
+            .orderBy(
+                asc(schema.cultivationsCatalogue.b_lu_source),
+                asc(schema.cultivationsCatalogue.b_lu_name),
+            )
+    } catch (err) {
+        throw handleError(err, "Exception for getCultivationsFromCatalogues", {
+            catalogueIds,
         })
     }
 }
@@ -670,6 +675,110 @@ export async function getCultivations(
         return cultivations
     } catch (err) {
         throw handleError(err, "Exception for getCultivations", { b_id })
+    }
+}
+
+/**
+ * Retrieves all cultivations for every field on a farm.
+ *
+ * Instead of issuing one query per field, this function joins through
+ * `fieldAcquiring` so that all cultivations for the farm are fetched at once.
+ * A single farm-level permission check is performed instead of one per field.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param timeframe Optional timeframe to filter cultivations.
+ * @returns A Promise resolving to a Map keyed by field ID (`b_id`), with arrays of {@link Cultivation} as values.
+ * @alpha
+ */
+export async function getCultivationsForFarm(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    timeframe?: Timeframe,
+): Promise<Map<string, Cultivation[]>> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getCultivationsForFarm",
+        )
+
+        const timeframeCondition = buildCultivationTimeframeCondition(timeframe)
+
+        const rows = await fdm
+            .select({
+                b_lu: schema.cultivations.b_lu,
+                b_lu_catalogue: schema.cultivationsCatalogue.b_lu_catalogue,
+                b_lu_source: schema.cultivationsCatalogue.b_lu_source,
+                b_lu_name: schema.cultivationsCatalogue.b_lu_name,
+                b_lu_name_en: schema.cultivationsCatalogue.b_lu_name_en,
+                b_lu_hcat3: schema.cultivationsCatalogue.b_lu_hcat3,
+                b_lu_hcat3_name: schema.cultivationsCatalogue.b_lu_hcat3_name,
+                b_lu_croprotation:
+                    schema.cultivationsCatalogue.b_lu_croprotation,
+                b_lu_eom: schema.cultivationsCatalogue.b_lu_eom,
+                b_lu_eom_residue: schema.cultivationsCatalogue.b_lu_eom_residue,
+                b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
+                b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
+                b_lu_variety: schema.cultivations.b_lu_variety,
+                b_lu_start: schema.cultivationStarting.b_lu_start,
+                b_lu_end: schema.cultivationEnding.b_lu_end,
+                m_cropresidue: schema.cultivationEnding.m_cropresidue,
+                b_id: schema.cultivationStarting.b_id,
+            })
+            .from(schema.cultivations)
+            .leftJoin(
+                schema.cultivationStarting,
+                eq(schema.cultivationStarting.b_lu, schema.cultivations.b_lu),
+            )
+            .leftJoin(
+                schema.cultivationEnding,
+                eq(schema.cultivationEnding.b_lu, schema.cultivations.b_lu),
+            )
+            .leftJoin(
+                schema.cultivationsCatalogue,
+                eq(
+                    schema.cultivations.b_lu_catalogue,
+                    schema.cultivationsCatalogue.b_lu_catalogue,
+                ),
+            )
+            .innerJoin(
+                schema.fieldAcquiring,
+                eq(schema.fieldAcquiring.b_id, schema.cultivationStarting.b_id),
+            )
+            .where(
+                timeframeCondition
+                    ? and(
+                          eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+                          timeframeCondition,
+                      )
+                    : eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+            )
+            .orderBy(
+                desc(schema.cultivationStarting.b_lu_start),
+                asc(schema.cultivationsCatalogue.b_lu_name),
+            )
+
+        const result = new Map<string, Cultivation[]>()
+        for (const row of rows) {
+            if (!row.b_id) continue
+            const existing = result.get(row.b_id)
+            if (existing) {
+                existing.push(row)
+            } else {
+                result.set(row.b_id, [row])
+            }
+        }
+        return result
+    } catch (err) {
+        throw handleError(err, "Exception for getCultivationsForFarm", {
+            b_id_farm,
+        })
     }
 }
 

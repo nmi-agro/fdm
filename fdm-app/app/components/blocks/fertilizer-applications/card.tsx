@@ -5,7 +5,6 @@ import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useFetcher, useLocation, useNavigation, useParams } from "react-router"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
-import { useCalendarStore } from "~/store/calendar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
@@ -17,6 +16,7 @@ import {
     DialogTrigger,
 } from "~/components/ui/dialog"
 import { cn } from "~/lib/utils"
+import { useCalendarStore } from "~/store/calendar"
 import { FertilizerApplicationForm } from "./form"
 import { FertilizerApplicationsList } from "./list"
 import type { FertilizerApplication, FertilizerOption } from "./types.d"

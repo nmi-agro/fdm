@@ -40,6 +40,10 @@ export interface ServerConfig {
             clientName: string
             pkioPrivateKey: string
         }
+        gemini?: {
+            api_key: string
+            model?: string
+        }
     }
     analytics: {
         sentry?: {

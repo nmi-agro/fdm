@@ -31,6 +31,21 @@ export async function extractErrorMessage(e: unknown): Promise<string> {
     return String(e)
 }
 
+function toSafeLogValue(value: unknown): unknown {
+    if (value instanceof Error) {
+        return { name: value.name, message: value.message, stack: value.stack }
+    }
+    try {
+        return JSON.parse(JSON.stringify(value))
+    } catch {
+        try {
+            return String(value)
+        } catch {
+            return "[unserializable]"
+        }
+    }
+}
+
 export function reportError(
     error: unknown,
     tags: Record<string, string> = {},
@@ -41,7 +56,15 @@ export function reportError(
             .match(/.{1,4}/g)
             ?.join("-") || createErrorId() // Format as XXXX-XXXX
 
-    console.error(`Error (code: ${errorId}):`, error, context ?? "")
+    try {
+        console.error(`Error (code: ${errorId}):`, error, context ?? "")
+    } catch {
+        const safeError = toSafeLogValue(error)
+        const safeContext = toSafeLogValue(context ?? "")
+        try {
+            console.error(`Error (code: ${errorId}):`, safeError, safeContext)
+        } catch {}
+    }
 
     if (Sentry.getClient()) {
         Sentry.captureException(error, {

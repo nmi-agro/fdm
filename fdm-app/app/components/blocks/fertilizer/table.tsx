@@ -6,8 +6,8 @@ import {
     getFilteredRowModel,
     getSortedRowModel,
     type SortingState,
-    type VisibilityState,
     useReactTable,
+    type VisibilityState,
 } from "@tanstack/react-table"
 import { Plus } from "lucide-react"
 import { useState } from "react"

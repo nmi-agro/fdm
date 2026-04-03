@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest"
-import { createRvoClient, generateAuthUrl, exchangeToken } from "./auth"
 import { RvoClient } from "@nmi-agro/rvo-connector"
+import { describe, expect, it, vi } from "vitest"
+import { createRvoClient, exchangeToken, generateAuthUrl } from "./auth"
 
 // Mock the external library
 vi.mock("@nmi-agro/rvo-connector", () => {
@@ -26,7 +26,10 @@ describe("auth", () => {
         const url = generateAuthUrl(mockClient, "state123")
         expect(mockClient.getAuthorizationUrl).toHaveBeenCalledWith({
             state: "state123",
-            services: ["opvragenBedrijfspercelen", "opvragenRegelingspercelenMest"],
+            services: [
+                "opvragenBedrijfspercelen",
+                "opvragenRegelingspercelenMest",
+            ],
         })
         expect(url).toBe("https://example.com/auth")
     })

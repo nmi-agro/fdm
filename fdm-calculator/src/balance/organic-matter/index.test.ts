@@ -1,8 +1,10 @@
+import type { FdmType } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { describe, expect, it, vi } from "vitest"
 import * as shared from "../shared/soil"
 import * as degradation from "./degradation"
 import {
+    calculateOrganicMatterBalance,
     calculateOrganicMatterBalanceField,
     calculateOrganicMatterBalancesFieldToFarm,
 } from "./index"
@@ -31,6 +33,34 @@ describe("Organic Matter Balance Calculation", () => {
     const mockCultivations: FieldInput["cultivations"] = []
     const mockFertilizerApplications: FieldInput["fertilizerApplications"] = []
     const mockSoilAnalyses: FieldInput["soilAnalyses"] = []
+
+    describe("calculateOrganicMatterBalance", () => {
+        // Mock FdmType
+        const mockFdm = {
+            select: () => mockFdm,
+            from: () => mockFdm,
+            where: () => mockFdm,
+            limit: () => mockFdm,
+            execute: async () => [], // Simulate cache miss
+            insert: () => mockFdm,
+            values: async () => undefined,
+        } as unknown as FdmType
+
+        it("should return correct error message for no fields in input", async () => {
+            const result = await calculateOrganicMatterBalance(mockFdm, {
+                fertilizerDetails: [],
+                cultivationDetails: [],
+                fields: [],
+                timeFrame: {
+                    start: new Date("2023-01-01"),
+                    end: new Date("2023-12-31"),
+                },
+            })
+
+            expect(result.errorMessage).toBe("No fields in input")
+            expect(result.fieldErrorMessages).toContain("No fields in input")
+        })
+    })
 
     describe("calculateOrganicMatterBalanceField", () => {
         it("should calculate balance as supply - degradation", () => {

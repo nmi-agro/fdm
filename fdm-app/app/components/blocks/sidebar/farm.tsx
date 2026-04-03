@@ -1,5 +1,6 @@
 import type { getFarm } from "@nmi-agro/fdm-core"
 import {
+    Bot,
     Calendar,
     Check,
     ChevronRight,
@@ -9,6 +10,7 @@ import {
     Sprout,
     Square,
 } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState } from "react"
 import { NavLink, useLocation, useSearchParams } from "react-router"
 import { getCalendarSelection } from "@/app/lib/calendar"
@@ -366,5 +368,43 @@ export function SidebarFarm({
                 </SidebarGroupContent>
             </SidebarGroup>
         </TooltipProvider>
+    )
+}
+
+export function SidebarLabs() {
+    const farmId = useFarmStore((state) => state.farmId)
+    const selectedCalendar = useCalendarStore((state) => state.calendar)
+    const location = useLocation()
+    const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
+
+    const isFarmSelected = farmId && farmId !== "undefined"
+    if (!isFarmSelected) return null
+
+    if (!isGerritEnabled) return null
+
+    return (
+        <SidebarGroup>
+            <SidebarGroupLabel>Labs</SidebarGroupLabel>
+            <SidebarGroupContent>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname.includes(
+                                `/farm/${farmId}/${selectedCalendar}/gerrit`,
+                            )}
+                            tooltip="Gerrit's Bemestingsplan"
+                        >
+                            <NavLink
+                                to={`/farm/${farmId}/${selectedCalendar}/gerrit`}
+                            >
+                                <Bot />
+                                <span>Gerrit</span>
+                            </NavLink>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroupContent>
+        </SidebarGroup>
     )
 }

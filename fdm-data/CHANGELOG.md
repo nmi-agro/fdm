@@ -1,5 +1,24 @@
 # fdm-data
 
+## 0.19.3
+
+### Patch Changes
+
+- [#529](https://github.com/nmi-agro/fdm/pull/529) [`6e1dcea`](https://github.com/nmi-agro/fdm/commit/6e1dceacdbbe2adf3daea171924bba8e26c3dcde) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix `p_ca_rt` for Kalksalpeter (BAAT027)
+
+- [#535](https://github.com/nmi-agro/fdm/pull/535) [`6b00be9`](https://github.com/nmi-agro/fdm/commit/6b00be9c0999b3510a3af86b64d2002ee66ecc1b) Thanks [@SvenVw](https://github.com/SvenVw)! - Set minimum node.js version to v24
+
+- [#529](https://github.com/nmi-agro/fdm/pull/529) [`7e07507`](https://github.com/nmi-agro/fdm/commit/7e07507a30fa3876a969346e6cef8d310d318bdc) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the option `broadcasting` to `p_app_method_options` for 'vaste mesten' and 'compost'
+
+- [#529](https://github.com/nmi-agro/fdm/pull/529) [`4463c5b`](https://github.com/nmi-agro/fdm/commit/4463c5b49b6c297ceb1ce9222aafa231dcdb01de) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix incorrect `p_dm`, `p_density`, `p_ef_nh3`, `p_om`, and `p_c_of` values for liquid mineral fertilizers in the BAAT catalogue.
+
+  Five liquid fertilizers had physically incorrect values. Four had `p_dm: 5`, while BAAT004 was still marked as a solid with `p_dm: 999`; all five had `p_density: 1`. Additionally, BAAT003 had unpopulated emission and organic matter fields inconsistent with BAAT057 (same product), and BAAT059 had an incorrect N-split and concentration.
+  - **BAAT003** Ammoniumnitraatureanoplossing (UAN): `p_dm` 5→750 g/kg, `p_density` 1→1.3 kg/L, `p_ef_nh3` null→0.0375, `p_om` 0→32.1429, `p_c_of` 0→16.0714 — aligned with BAAT057 (same product)
+  - **BAAT004** Ammoniumpolyfosfaat APP 10-34-0: `p_dm` 999→560 g/kg, `p_density` 1→1.39 kg/L, application methods corrected to `spoke wheel||spraying`
+  - **BAAT044** NTS 27: `p_dm` 5→345 g/kg, `p_density` 1→1.32 kg/L
+  - **BAAT057** Urean (vloeibaar, UAN): `p_dm` 5→750 g/kg, `p_density` 1→1.3 kg/L
+  - **BAAT059** Ureum 20% (vloeibaar): corrected from solid urea values to a 20% pure urea solution — name updated, `p_dm` 5→429 g/kg, `p_density` 1→1.09 kg/L, `p_n_rt`/`p_n_of` 460→200 g/kg, `p_no3_rt`/`p_nh4_rt`/`p_n_if` set to 0 (all-organic N), `p_om` and `p_c_of` recalculated proportionally, `p_ef_nh3` retained at 0.075
+
 ## 0.19.2
 
 ### Patch Changes

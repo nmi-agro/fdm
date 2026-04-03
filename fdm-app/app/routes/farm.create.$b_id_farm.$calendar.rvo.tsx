@@ -1,64 +1,67 @@
 import {
+    addSoilAnalysis,
+    type Cultivation,
+    type FdmType,
+    type Field,
+    getCultivationsFromCatalogue,
+    getFarm,
+} from "@nmi-agro/fdm-core"
+import type {
+    ImportReviewAction,
+    RvoImportReviewItem,
+    UserChoiceMap,
+} from "@nmi-agro/fdm-rvo/types"
+import { getItemId } from "@nmi-agro/fdm-rvo/utils"
+import { AlertTriangle, CloudDownload, Loader2 } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
+import { useEffect, useState } from "react"
+import {
     type ActionFunctionArgs,
+    data,
     Form,
     type LoaderFunctionArgs,
     type MetaFunction,
     redirect,
     useActionData,
     useLoaderData,
-    useNavigation,
     useLocation,
-    data,
+    useNavigation,
 } from "react-router"
-import { getSession } from "~/lib/auth.server"
-import { extractErrorMessage } from "~/lib/error"
-import { fdm } from "~/lib/fdm.server"
-import {
-    generateAuthUrl,
-    fetchRvoFields,
-    compareFields,
-    exchangeToken,
-    processRvoImport,
-} from "~/lib/rvo.server"
-import type {
-    RvoImportReviewItem,
-    ImportReviewAction,
-    UserChoiceMap,
-} from "@nmi-agro/fdm-rvo/types"
-import { getItemId } from "@nmi-agro/fdm-rvo/utils"
-import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
-import { type Cultivation, type Field, getFarm } from "@nmi-agro/fdm-core"
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
-import { AlertTriangle, Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
+import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
+import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import {
     BreadcrumbItem,
-    BreadcrumbSeparator,
     BreadcrumbLink,
+    BreadcrumbSeparator,
 } from "~/components/ui/breadcrumb"
-import {
-    getRvoCredentials,
-    createConfiguredRvoClient,
-    createRvoState,
-    verifyRvoState,
-} from "~/integrations/rvo.server"
-import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
+import { Button } from "~/components/ui/button"
+import { SidebarInset } from "~/components/ui/sidebar"
 import {
     getNmiApiKey,
     getSoilParameterEstimates,
 } from "~/integrations/nmi.server"
 import {
-    addSoilAnalysis,
-    getCultivationsFromCatalogue,
-    type FdmType,
-} from "@nmi-agro/fdm-core"
-import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
+    createConfiguredRvoClient,
+    createRvoState,
+    getRvoCredentials,
+    verifyRvoState,
+} from "~/integrations/rvo.server"
+import { getSession } from "~/lib/auth.server"
+import { extractErrorMessage } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
+import {
+    compareFields,
+    exchangeToken,
+    fetchRvoFields,
+    generateAuthUrl,
+    processRvoImport,
+} from "~/lib/rvo.server"
 
 export const meta: MetaFunction = ({ params }) => {
     const b_id_farm = params.b_id_farm
@@ -108,7 +111,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             // CSRF Verification
             await verifyRvoState(request, state, b_id_farm)
 
-            if (!farm || !farm.b_businessid_farm) {
+            if (!farm?.b_businessid_farm) {
                 throw new Response(
                     "Geen KvK-nummer gevonden voor dit bedrijf.",
                     { status: 400 },
@@ -202,6 +205,8 @@ export default function RvoImportCreatePage() {
     const navigation = useNavigation()
     const location = useLocation()
 
+    const isRvoEnabled = useFeatureFlagEnabled("rvo")
+
     const isImporting =
         navigation.state === "submitting" &&
         navigation.formData?.get("intent") === "start_import"
@@ -249,6 +254,33 @@ export default function RvoImportCreatePage() {
 
     const handleChoiceChange = (id: string, action: ImportReviewAction) => {
         setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
+    }
+
+    if (isRvoEnabled === false) {
+        return (
+            <SidebarInset>
+                <Header action={undefined}>
+                    <HeaderFarmCreate b_name_farm={b_name_farm} />
+                </Header>
+                <FarmContent>
+                    <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
+                        <div className="bg-primary/10 border border-primary/20 p-8 rounded-xl">
+                            <CloudDownload className="w-12 h-12 text-primary mx-auto mb-4" />
+                            <h2 className="text-2xl font-bold text-foreground mb-2">
+                                Percelen ophalen bij RVO is nog niet beschikbaar
+                                voor je.
+                            </h2>
+                            <p className="text-muted-foreground mb-6">
+                                Deze functionaliteit is momenteel in
+                                ontwikkeling en is nog niet voor iedereen
+                                beschikbaar. Neem contact op met Ondersteuning
+                                als je hier vragen over hebt.
+                            </p>
+                        </div>
+                    </div>
+                </FarmContent>
+            </SidebarInset>
+        )
     }
 
     if (error) {

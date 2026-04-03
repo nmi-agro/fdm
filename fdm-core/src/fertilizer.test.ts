@@ -10,7 +10,10 @@ import {
 import {
     disableFertilizerCatalogue,
     enableFertilizerCatalogue,
+    getEnabledFertilizerCataloguesForFarms,
 } from "./catalogues"
+import * as schema from "./db/schema"
+import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.d"
@@ -21,9 +24,11 @@ import {
     getFertilizer,
     getFertilizerApplication,
     getFertilizerApplications,
+    getFertilizerApplicationsForFarm,
     getFertilizerParametersDescription,
     getFertilizers,
     getFertilizersFromCatalogue,
+    getFertilizersFromCatalogues,
     removeFertilizer,
     removeFertilizerApplication,
     updateFertilizerApplication,
@@ -31,11 +36,13 @@ import {
 } from "./fertilizer"
 import { addField } from "./field"
 import { createId } from "./id"
+import { mockFdmThatThrowsOnSelectFrom } from "./test-util"
 
 describe("Fertilizer Data Model", () => {
     let fdm: FdmServerType
     let principal_id: string
     let b_id_farm: string
+    let b_id_farm_2: string
 
     beforeEach(async () => {
         const host = inject("host")
@@ -58,8 +65,22 @@ describe("Fertilizer Data Model", () => {
             farmAddress,
             farmPostalCode,
         )
+        b_id_farm_2 = await addFarm(
+            fdm,
+            principal_id,
+            farmName,
+            farmBusinessId,
+            farmAddress,
+            farmPostalCode,
+        )
 
         await enableFertilizerCatalogue(fdm, principal_id, b_id_farm, b_id_farm)
+        await enableFertilizerCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm_2,
+            b_id_farm_2,
+        )
     })
 
     afterAll(async () => {})
@@ -320,6 +341,199 @@ describe("Fertilizer Data Model", () => {
                 b_id_farm,
             )
             expect(fertilizers.length).toBe(2)
+        })
+
+        it("should get fertilizers from a list of farms", async () => {
+            function makeFertilizer(name: string) {
+                const fert: Partial<
+                    Parameters<typeof addFertilizerToCatalogue>[3]
+                > = Object.fromEntries(
+                    Object.keys(fertilizersCatalogue)
+                        .filter((key) => key.startsWith("p_"))
+                        .map((key) => [key, Math.random()]),
+                )
+                const randomAppMethod = () =>
+                    applicationMethodOptions[
+                        Math.floor(
+                            Math.random() * applicationMethodOptions.length,
+                        )
+                    ].value
+                Object.assign(fert, {
+                    p_id_catalogue: createId(),
+                    p_name_nl: name,
+                    p_name_en: name,
+                    p_description: `This is ${name}`,
+                    p_type: (["manure", "mineral", "compost", null] as const)[
+                        Math.floor(Math.random() * 4)
+                    ],
+                    p_type_rvo: "10",
+                    p_app_method_options: [
+                        ...new Set([
+                            randomAppMethod(),
+                            randomAppMethod(),
+                            randomAppMethod(),
+                            randomAppMethod(),
+                        ]),
+                    ],
+                })
+                return fert as Parameters<typeof addFertilizerToCatalogue>[3]
+            }
+            async function addTestFertilizer(
+                b_id_farm: string,
+                p_id_catalogue: string,
+            ) {
+                const p_acquiring_amount = 1000
+                const p_acquiring_date = new Date()
+
+                // Add two fertilizers to the farm
+                await addFertilizer(
+                    fdm,
+                    principal_id,
+                    p_id_catalogue,
+                    b_id_farm,
+                    p_acquiring_amount,
+                    p_acquiring_date,
+                )
+            }
+            const farm_1_fert_1 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                makeFertilizer("Farm 1 Example Fertilizer 1"),
+            )
+            await addTestFertilizer(b_id_farm, farm_1_fert_1)
+            const farm_2_fert_1 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm_2,
+                makeFertilizer("Farm 2 Example Fertilizer 1"),
+            )
+            await addTestFertilizer(b_id_farm_2, farm_2_fert_1)
+            const farm_1_fert_2 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                makeFertilizer("Farm 1 Example Fertilizer 2"),
+            )
+            await addTestFertilizer(b_id_farm, farm_1_fert_2)
+            const farm_2_fert_2 = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm_2,
+                makeFertilizer("Farm 2 Example Fertilizer 2"),
+            )
+            await addTestFertilizer(b_id_farm_2, farm_2_fert_2)
+            const farmCatalogues = await getEnabledFertilizerCataloguesForFarms(
+                fdm,
+                principal_id,
+                [b_id_farm, b_id_farm_2],
+            )
+            expect(farmCatalogues[b_id_farm]).toBeDefined()
+            expect(farmCatalogues[b_id_farm_2]).toBeDefined()
+
+            const allSources = [
+                ...new Set([
+                    ...farmCatalogues[b_id_farm],
+                    ...farmCatalogues[b_id_farm_2],
+                ]),
+            ]
+            const allFertilizers = await getFertilizersFromCatalogues(
+                fdm,
+                principal_id,
+                allSources,
+            )
+            const farm1Sources = new Set(farmCatalogues[b_id_farm])
+            const farm1Fertilizers = allFertilizers.filter((f) =>
+                farm1Sources.has(f.p_source),
+            )
+            expect(farm1Fertilizers.map((fert) => fert.p_name_nl)).toEqual([
+                "Farm 1 Example Fertilizer 1",
+                "Farm 1 Example Fertilizer 2",
+            ])
+            const farm2Sources = new Set(farmCatalogues[b_id_farm_2])
+            const farm2Fertilizers = allFertilizers.filter((f) =>
+                farm2Sources.has(f.p_source),
+            )
+            expect(farm2Fertilizers.map((fert) => fert.p_name_nl)).toEqual([
+                "Farm 2 Example Fertilizer 1",
+                "Farm 2 Example Fertilizer 2",
+            ])
+        })
+
+        it("should return empty array when enabled catalogue source has no entries", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Cultivations In Catalogue",
+                undefined,
+                undefined,
+                undefined,
+            )
+            await enableFertilizerCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "invalid-catalogue",
+            )
+            expect(
+                await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),
+            ).toEqual([])
+        })
+
+        it("should handle no enabled catalogues", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Enabled Catalogues",
+                undefined,
+                undefined,
+                undefined,
+            )
+            expect(
+                await getFertilizersFromCatalogue(fdm, principal_id, b_id_farm),
+            ).toEqual([])
+        })
+
+        it("(getFertilizersFromCatalogue) should wrap errors with the correct message", async () => {
+            const failError = new Error("Should have thrown.")
+            try {
+                await getFertilizersFromCatalogue(
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.fertilizersCatalogue,
+                    ),
+                    principal_id,
+                    b_id_farm,
+                )
+                throw failError
+            } catch (e) {
+                expect(e).not.toBe(failError)
+                expect(e).toBeInstanceOf(Error)
+                expect((e as Error).message).toBe(
+                    "Exception for getFertilizersFromCatalogue",
+                )
+            }
+        })
+
+        it("(getFertilizersFromCatalogues) should wrap errors with the correct message", async () => {
+            const failError = new Error("Should have thrown.")
+            try {
+                await getFertilizersFromCatalogues(
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.fertilizersCatalogue,
+                    ),
+                    principal_id,
+                    [b_id_farm],
+                )
+                throw failError
+            } catch (err) {
+                expect(err).not.toBe(failError)
+                expect(err).toBeInstanceOf(Error)
+                expect((err as Error).message).toBe(
+                    "Exception for getFertilizersFromCatalogues",
+                )
+            }
         })
 
         it("should remove a fertilizer", async () => {
@@ -1191,5 +1405,300 @@ describe("getFertilizerParametersDescription", () => {
                 expect(description).toHaveProperty("options")
             }
         }
+    })
+})
+
+describe("getFertilizerApplicationsForFarm", () => {
+    let fdm: FdmServerType
+    let principal_id: string
+    let b_id_farm: string
+    let b_id: string
+    let b_id_2: string
+    let p_id: string
+
+    const geometry = {
+        type: "Polygon" as const,
+        coordinates: [
+            [
+                [30, 10],
+                [40, 40],
+                [20, 40],
+                [10, 20],
+                [30, 10],
+            ],
+        ],
+    }
+
+    const fertilizerCatalogueProps = {
+        p_name_nl: "Test Fertilizer",
+        p_name_en: "Test Fertilizer EN",
+        p_description: "desc",
+        p_app_method_options: [] as [],
+        p_dm: 37,
+        p_density: 20,
+        p_om: 20,
+        p_a: 30,
+        p_hc: 40,
+        p_eom: 50,
+        p_eoc: 60,
+        p_c_rt: 70,
+        p_c_of: 80,
+        p_c_if: 90,
+        p_c_fr: 100,
+        p_cn_of: 110,
+        p_n_rt: 120,
+        p_n_if: 130,
+        p_n_of: 140,
+        p_n_wc: 150,
+        p_no3_rt: 400,
+        p_nh4_rt: 410,
+        p_p_rt: 160,
+        p_k_rt: 170,
+        p_mg_rt: 180,
+        p_ca_rt: 190,
+        p_ne: 200,
+        p_s_rt: 210,
+        p_s_wc: 220,
+        p_cu_rt: 230,
+        p_zn_rt: 240,
+        p_na_rt: 250,
+        p_si_rt: 260,
+        p_b_rt: 270,
+        p_mn_rt: 280,
+        p_ni_rt: 290,
+        p_fe_rt: 300,
+        p_mo_rt: 310,
+        p_co_rt: 320,
+        p_as_rt: 330,
+        p_cd_rt: 340,
+        p_cr_rt: 350,
+        p_cr_vi: 360,
+        p_pb_rt: 370,
+        p_hg_rt: 380,
+        p_cl_rt: 390,
+        p_ef_nh3: 0.8,
+        p_type: "mineral" as const,
+        p_type_rvo: "115" as const,
+    }
+
+    beforeEach(async () => {
+        const host = inject("host")
+        const port = inject("port")
+        const user = inject("user")
+        const password = inject("password")
+        const database = inject("database")
+        fdm = createFdmServer(host, port, user, password, database)
+
+        principal_id = createId()
+        b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Test Farm",
+            "123456",
+            "123 Farm Lane",
+            "12345",
+        )
+
+        b_id = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 1",
+            "src1",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field 2",
+            "src2",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+
+        await enableFertilizerCatalogue(fdm, principal_id, b_id_farm, b_id_farm)
+        const p_id_catalogue = await addFertilizerToCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm,
+            fertilizerCatalogueProps,
+        )
+        p_id = await addFertilizer(
+            fdm,
+            principal_id,
+            p_id_catalogue,
+            b_id_farm,
+            1000,
+            new Date("2024-01-01"),
+        )
+    })
+
+    it("should return a Map with applications grouped by field ID", async () => {
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id,
+            p_id,
+            100,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id_2,
+            p_id,
+            200,
+            "injection",
+            new Date("2024-04-01"),
+        )
+
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(true)
+        expect(result.get(b_id)).toHaveLength(1)
+        expect(result.get(b_id_2)).toHaveLength(1)
+        expect(result.get(b_id)?.[0].p_app_amount).toBe(100)
+        expect(result.get(b_id_2)?.[0].p_app_amount).toBe(200)
+    })
+
+    it("should return an empty Map when the farm has no fertilizer applications", async () => {
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+        expect(result).toBeInstanceOf(Map)
+        expect(result.size).toBe(0)
+    })
+
+    it("should only return applications within the given timeframe", async () => {
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id,
+            p_id,
+            100,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id_2,
+            p_id,
+            200,
+            "injection",
+            new Date("2025-06-01"),
+        )
+
+        const timeframe = {
+            start: new Date("2024-01-01"),
+            end: new Date("2024-12-31"),
+        }
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(false)
+    })
+
+    it("should not include applications from other farms", async () => {
+        const other_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Other Farm",
+            "654321",
+            "456 Other Lane",
+            "67890",
+        )
+        const other_b_id = await addField(
+            fdm,
+            principal_id,
+            other_farm,
+            "other field",
+            "src3",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2025-12-31"),
+        )
+        await enableFertilizerCatalogue(
+            fdm,
+            principal_id,
+            other_farm,
+            other_farm,
+        )
+        const other_p_id_catalogue = await addFertilizerToCatalogue(
+            fdm,
+            principal_id,
+            other_farm,
+            fertilizerCatalogueProps,
+        )
+        const other_p_id = await addFertilizer(
+            fdm,
+            principal_id,
+            other_p_id_catalogue,
+            other_farm,
+            500,
+            new Date("2024-01-01"),
+        )
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            other_b_id,
+            other_p_id,
+            999,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+        await addFertilizerApplication(
+            fdm,
+            principal_id,
+            b_id,
+            p_id,
+            100,
+            "broadcasting",
+            new Date("2024-03-15"),
+        )
+
+        const result = await getFertilizerApplicationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(other_b_id)).toBe(false)
+    })
+
+    it("should throw when principal does not have permission", async () => {
+        const unauthorized_principal = createId()
+        await expect(
+            getFertilizerApplicationsForFarm(
+                fdm,
+                unauthorized_principal,
+                b_id_farm,
+            ),
+        ).rejects.toThrowError(
+            "Principal does not have permission to perform this action",
+        )
     })
 })

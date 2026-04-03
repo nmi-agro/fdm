@@ -662,7 +662,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]
@@ -767,7 +767,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
             {
                 p_id: "fert2",
@@ -824,7 +824,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]
@@ -926,7 +926,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]
@@ -1056,7 +1056,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]
@@ -1155,7 +1155,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
                 p_c_of: null,
                 p_c_if: null,
                 p_c_fr: null,
-                p_cn_of: null
+                p_cn_of: null,
             },
         ]
         const b_centroid: [number, number] = [0, 0]

@@ -1,8 +1,8 @@
-import { RvoClient } from "@nmi-agro/rvo-connector"
+import type { RvoClient } from "@nmi-agro/rvo-connector"
 import bbox from "@turf/bbox"
-import { RvoFieldSchema, type RvoField } from "./types"
 import { z } from "zod"
-import { calculateIoU, bboxOverlap } from "./utils"
+import { type RvoField, RvoFieldSchema } from "./types"
+import { bboxOverlap, calculateIoU } from "./utils"
 
 // Minimum IoU to consider a MEST feature as matching a bedrijfsperceel.
 // Set high (0.95) because both datasets represent the same physical parcel in RVO —

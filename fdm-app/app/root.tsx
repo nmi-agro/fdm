@@ -95,6 +95,11 @@ export function Layout() {
                     api_host: "/ingest",
                     ui_host: posthogConfig.host,
                     person_profiles: "always",
+                    bootstrap: {
+                        featureFlags: {
+                            gerrit: false,
+                        },
+                    },
                     loaded: () => {},
                 })
             } catch (error) {

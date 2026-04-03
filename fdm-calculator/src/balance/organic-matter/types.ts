@@ -353,4 +353,5 @@ export type OrganicMatterBalanceNumeric = {
     fields: OrganicMatterBalanceFieldResultNumeric[]
     hasErrors: boolean
     fieldErrorMessages: string[]
+    errorMessage?: string
 }

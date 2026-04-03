@@ -24,6 +24,23 @@ export const meta: MetaFunction = () => {
 
 export const changelogEntries: ChangelogEntry[] = [
     {
+        version: "v0.29.0",
+        date: "2 april 2026",
+        title: "Verbeterd meststoffenbeheer, balansoverzicht per organisatie en bufferstrook in perceelstabel",
+        description:
+            "Deze release vernieuwt de weergave en het beheer van meststoffen, voegt een stikstof- en organische stofbalansoverzicht op organisatieniveau toe en maakt het instellen van bufferstroken per perceel eenvoudiger.",
+        items: [
+            "Verbeterd meststoffenbeheer: De meststoffenpagina en het formulier voor het toevoegen van een meststof zijn vernieuwd. De tabel toont nu aanvullende nutriënten en eigenschappen zoals DS, OS, MgO, CaO, Na₂O, SO₃ en sporenelementen. Via de knop 'Kolommen' kiest u zelf welke kolommen u wilt zien. Het selecteren van een catalogusmeststof gaat nu via een doorzoekbare lijst in plaats van een grid van meststoffen. Standaard- en eigen meststoffen zijn visueel van elkaar onderscheiden. De invoervelden in het formulier zijn overzichtelijker ingedeeld. De zijbalk berekent de werkzame stikstof direct terwijl u gegevens invult.",
+            "Meststof als sjabloon gebruiken: Via de optie 'Gebruik als sjabloon' maakt u direct een nieuwe meststof aan op basis van een bestaande meststof vanuit de detailpagina. De rijen in de meststoftabel zijn nu klikbaar en brengen u direct naar de detailpagina.",
+            "Balansoverzicht op organisatieniveau: De stikstofbalans en organische stofbalans zijn nu ook beschikbaar op organisatieniveau. In één overzicht ziet u de resultaten voor alle bedrijven in de organisatie. U kunt individuele bedrijven uitsluiten van het overzicht.",
+            "Bufferstrook instellen per perceel: In de perceelstabel is een kolom met aankruisvakjes toegevoegd waarmee u per perceel kunt aangeven of het een bufferstrook is, zonder naar de afzonderlijke perceelspagina te navigeren.",
+            "Gewasresten: De optie om gewasresten in te voeren is niet zichtbaar als dat niet relevant voor het het geselecteerde gewas is. Dit voorkomt het invoeren van gegevens die geen effect hebben op de organische stofbalans.",
+            "Focusknop in Atlas: Er is een knop toegevoegd waarmee u de kaart in de Atlas direct kunt centreren op de percelen van uw bedrijf. Tijdens het toevoegen van percelen wordt het focusgebied automatisch bijgewerkt wanneer u een nieuw perceel selecteert.",
+            "Correctie stikstofafvoer gewasresten: Een fout in de stikstofbalans is hersteld. Gewasresten die op het perceel achterblijven worden niet langer als afgevoerde stikstof meegenomen; gewasresten die worden afgevoerd worden nu meegenomen in de afvoer.",
+            "Prestatieverbeteringen: Pagina's en berekeningen voor grote bedrijven laden sneller doordat gegevens per bedrijf in één databasequery worden opgehaald in plaats van per perceel.",
+        ],
+    },
+    {
         version: "v0.28.0",
         date: "4 maart 2026",
         title: "Meerdere bodemanalyses uploaden, direct bewerken in bouwplantabel en uitnodigingen",
@@ -84,10 +101,10 @@ export const changelogEntries: ChangelogEntry[] = [
         date: "27 november 2025",
         title: "Nieuw: Bouwplan & OS Balans. Oogstregistratie is verbeterd",
         description:
-            "Deze update introduceert de Organische Stof Balans voor inzicht in bodemgezondheid, een nieuw Bouwplan pagina voor efficiënt gewasbeheer, en voegt nitraatuitspoeling toe aan de stikstofbalans.",
+            "Deze update introduceert de Organische stofbalans voor inzicht in bodemgezondheid, een nieuw Bouwplan pagina voor efficiënt gewasbeheer, en voegt nitraatuitspoeling toe aan de stikstofbalans.",
         items: [
             "Bouwplan & Bulkacties: De nieuwe bouwplanpagina biedt een centraal overzicht van alle teelten op uw bedrijf. U kunt hier niet alleen uw bouwplan inzien, maar ook direct acties uitvoeren voor meerdere percelen tegelijk, zoals het toevoegen van een bemesting of oogst voor alle percelen met hetzelfde gewas.",
-            "OS Balans: Met de nieuwe 'Organische Stof Balans' krijgt u inzicht in de aanvoer van effectieve organische stof (EOS) uit gewassen, gewasresten en meststoffen, en de afbraak van organische stof. Dit helpt u bij het maken van plannen voor een gezonde bodem op de lange termijn.",
+            "OS Balans: Met de nieuwe 'Organische stofbalans' krijgt u inzicht in de aanvoer van effectieve organische stof (EOS) uit gewassen, gewasresten en meststoffen, en de afbraak van organische stof. Dit helpt u bij het maken van plannen voor een gezonde bodem op de lange termijn.",
             "Verbeterde Oogstregistratie: Het registreren van oogsten is slimmer en nauwkeuriger geworden. Het formulier vraagt nu specifiek om de parameters die relevant zijn voor het gekozen gewas (zoals vers opbrengst, tarra, droge stof, etc.). Voor niet-oogstbare gewassen (zoals groene braak) wordt de optie om te oogsten verborgen.",
             "Nitraatuitspoeling in Stikstofbalans: De stikstofbalans geeft nu een completer beeld door ook nitraatuitspoeling (NO3) inzichtelijk te maken, naast de al bestaande ammoniakemissie (NH3). De grafiek maakt nu ook onderscheid tussen deze twee emissiestromen.",
             "Kaartlagen Beheren: Op de kaarten is een nieuwe knop toegevoegd waarmee u de perceelslaag eenvoudig kunt verbergen of tonen, zodat u de basiskaart eronder beter kunt zien als u dat wilt.",

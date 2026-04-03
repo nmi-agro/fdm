@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-core",
     "private": false,
-    "version": "0.30.1",
+    "version": "0.31.0",
     "description": "Interface for the Farm Data Model",
     "license": "MIT",
     "homepage": "https://svenvw.github.io/fdm/",
@@ -46,7 +46,7 @@
     },
     "devDependencies": {
         "@dotenvx/dotenvx": "catalog:",
-        "@nmi-agro/fdm-data": "workspace:^0.19.2",
+        "@nmi-agro/fdm-data": "workspace:^0.19.3",
         "@rollup/plugin-commonjs": "catalog:",
         "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
@@ -64,19 +64,22 @@
         "vitest": "catalog:"
     },
     "dependencies": {
-        "@electric-sql/pglite": "^0.3.16",
+        "@electric-sql/pglite": "^0.4.2",
         "@nmi-agro/fdm-data": "workspace:*",
         "@types/geojson": "^7946.0.16",
         "better-auth": "catalog:",
         "decimal.js": "^10.6.0",
         "drizzle-orm": "catalog:",
-        "nanoid": "^5.1.6",
+        "nanoid": "^5.1.7",
         "postgres": "^3.4.8",
         "safe-stable-stringify": "^2.5.0",
         "unique-username-generator": "^1.5.1",
         "validator": "^13.15.26"
     },
-    "packageManager": "pnpm@10.32.1",
+    "packageManager": "pnpm@10.33.0",
+    "engines": {
+        "node": ">=24.0.0"
+    },
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
     }

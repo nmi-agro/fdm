@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { ChevronRight } from "lucide-react"
 import React from "react"
-import { NavLink, useFetcher } from "react-router-dom"
+import { NavLink } from "react-router-dom"
 import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
@@ -12,20 +12,19 @@ import {
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { ScrollArea } from "~/components/ui/scroll-area"
-import { Spinner } from "~/components/ui/spinner"
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import { DataTableColumnHeader } from "./column-header"
+import { CropResidueCheckbox } from "./crop-residue-checkbox"
 import { DateRangeDisplay } from "./date-range-display"
 import { TableDateSelector } from "./date-selector"
 import { FertilizerDisplay } from "./fertilizer-display"
 import { HarvestDatesDisplay } from "./harvest-dates-display"
 import { NameCell } from "./name-cell"
 import { TableVarietySelector } from "./variety-selector"
-import { CropResidueCheckbox } from "./crop-residue-checkbox"
 
 export type CropRow = {
     type: "crop"

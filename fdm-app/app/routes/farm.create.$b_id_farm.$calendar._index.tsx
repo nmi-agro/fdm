@@ -1,5 +1,6 @@
 import { getFarm } from "@nmi-agro/fdm-core"
 import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { data, NavLink, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
@@ -19,11 +20,11 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { clientConfig } from "~/lib/config"
-import { getSession } from "../lib/auth.server"
-import { fdm } from "~/lib/fdm.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
+import { clientConfig } from "~/lib/config"
+import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
+import { getSession } from "../lib/auth.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -63,6 +64,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function ChooseFieldImportMethod() {
     const { farm, isRvoConfigured } = useLoaderData<typeof loader>()
+    const isRvoEnabled = useFeatureFlagEnabled("rvo")
+    const showRvoOption = isRvoConfigured && isRvoEnabled !== false
 
     return (
         <SidebarInset>
@@ -80,19 +83,17 @@ export default function ChooseFieldImportMethod() {
                     <div
                         className={cn(
                             "grid gap-8",
-                            isRvoConfigured
-                                ? "md:grid-cols-3"
-                                : "md:grid-cols-2",
+                            showRvoOption ? "md:grid-cols-3" : "md:grid-cols-2",
                         )}
                     >
-                        {isRvoConfigured && (
+                        {showRvoOption && (
                             <Card className="flex flex-col">
                                 <CardHeader className="items-center text-center">
                                     <DownloadCloud className="w-12 h-12 mb-4" />
                                     <CardTitle>Importeren vanuit RVO</CardTitle>
                                     <CardDescription>
-                                        Importeer je percelen door via eHerkenning
-                                        toestemming te geven.
+                                        Importeer je percelen door via
+                                        eHerkenning toestemming te geven.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="grow flex flex-col justify-between">
@@ -110,18 +111,18 @@ export default function ChooseFieldImportMethod() {
                                                 <ol className="list-decimal list-inside space-y-2">
                                                     <li>
                                                         U heeft een geldig
-                                                        KvK-nummer gekoppeld aan uw
-                                                        account.
+                                                        KvK-nummer gekoppeld aan
+                                                        uw account.
                                                     </li>
                                                     <li>
                                                         U heeft een eHerkenning
-                                                        account met machtiging voor
-                                                        dit KvK-nummer.
+                                                        account met machtiging
+                                                        voor dit KvK-nummer.
                                                     </li>
                                                     <li>
-                                                        U geeft ons toestemming om
-                                                        perceelsgegevens op te
-                                                        halen.
+                                                        U geeft ons toestemming
+                                                        om perceelsgegevens op
+                                                        te halen.
                                                     </li>
                                                 </ol>
                                             </AccordionContent>

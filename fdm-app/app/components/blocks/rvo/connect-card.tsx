@@ -1,4 +1,7 @@
-import { Link, Form } from "react-router"
+import { CheckCircle2, ExternalLink, FlaskConical, Loader2 } from "lucide-react"
+import { Form, Link } from "react-router"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
+import { Button } from "~/components/ui/button"
 import {
     Card,
     CardContent,
@@ -7,14 +10,6 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
-import {
-    Loader2,
-    FlaskConical,
-    CheckCircle2,
-    ExternalLink,
-} from "lucide-react"
 
 interface RvoConnectCardProps {
     b_businessid_farm: string | null

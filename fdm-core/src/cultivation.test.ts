@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, inject, it } from "vitest"
 import {
     enableCultivationCatalogue,
     enableFertilizerCatalogue,
+    getEnabledCultivationCataloguesForFarms,
 } from "./catalogues"
 import {
     addCultivation,
@@ -10,7 +11,9 @@ import {
     getCultivation,
     getCultivationPlan,
     getCultivations,
+    getCultivationsForFarm,
     getCultivationsFromCatalogue,
+    getCultivationsFromCatalogues,
     getDefaultDatesOfCultivation,
     removeCultivation,
     updateCultivation,
@@ -28,16 +31,21 @@ import {
 import { addField } from "./field"
 import { addHarvest } from "./harvest"
 import { createId } from "./id"
+import { mockFdmThatThrowsOnSelectFrom } from "./test-util"
 
 describe("Cultivation Data Model", () => {
     let fdm: FdmServerType
     let b_lu_catalogue: string
+    let b_lu_catalogue_2: string
     let b_id_farm: string
+    let b_id_farm_2: string
     let b_id: string
+    let b_id_2: string
     let b_lu: string
     let b_lu_start: Date
     let principal_id: string
     let b_lu_source: string
+    let b_lu_source_2: string
 
     beforeEach(async () => {
         const host = inject("host")
@@ -48,11 +56,15 @@ describe("Cultivation Data Model", () => {
         fdm = createFdmServer(host, port, user, password, database)
 
         b_lu_catalogue = createId()
+        b_lu_catalogue_2 = createId()
         const farmName = "Test Farm"
+        const farmName2 = "Test Farm 2"
         const farmBusinessId = "123456"
         const farmAddress = "123 Farm Lane"
         const farmPostalCode = "12345"
         principal_id = createId()
+
+        // Farm 1
         b_id_farm = await addFarm(
             fdm,
             principal_id,
@@ -92,6 +104,46 @@ describe("Cultivation Data Model", () => {
             b_id_farm,
             b_lu_source,
         )
+
+        b_id_farm_2 = await addFarm(
+            fdm,
+            principal_id,
+            farmName2,
+            farmBusinessId,
+            farmAddress,
+            farmPostalCode,
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm_2,
+            "test field 2",
+            "test source",
+            {
+                type: "Polygon",
+                coordinates: [
+                    [
+                        [30, 10],
+                        [40, 40],
+                        [20, 40],
+                        [10, 20],
+                        [30, 10],
+                    ],
+                ],
+            },
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+
+        b_lu_source_2 = "custom-2"
+        await enableCultivationCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm_2,
+            b_lu_source_2,
+        )
     })
 
     afterAll(async () => {
@@ -101,10 +153,7 @@ describe("Cultivation Data Model", () => {
     describe("Cultivation CRUD", () => {
         beforeEach(async () => {
             // Ensure catalogue entry exists before each test
-            await addCultivationToCatalogue(fdm, {
-                b_lu_catalogue,
-                b_lu_source: b_lu_source,
-                b_lu_name: "test-name",
+            const details = {
                 b_lu_name_en: "test-name-en",
                 b_lu_harvestable: "once",
                 b_lu_hcat3: "test-hcat3",
@@ -120,9 +169,21 @@ describe("Cultivation Data Model", () => {
                 b_lu_eom: 100,
                 b_lu_eom_residue: 50,
                 b_lu_rest_oravib: false,
-                b_lu_variety_options: ["variety1", "variety2"],
+                b_lu_variety_options: ["variety1", "variety2"] as string[],
                 b_lu_start_default: "03-01",
                 b_date_harvest_default: "09-15",
+            } as const
+            await addCultivationToCatalogue(fdm, {
+                ...details,
+                b_lu_catalogue,
+                b_lu_source: b_lu_source,
+                b_lu_name: "test-name",
+            })
+            await addCultivationToCatalogue(fdm, {
+                ...details,
+                b_lu_catalogue: b_lu_catalogue_2,
+                b_lu_source: b_lu_source_2,
+                b_lu_name: "test-name-2",
             })
 
             b_lu_start = new Date("2024-01-01")
@@ -133,6 +194,13 @@ describe("Cultivation Data Model", () => {
                 b_id,
                 b_lu_start,
             )
+            await addCultivation(
+                fdm,
+                principal_id,
+                b_lu_catalogue_2,
+                b_id_2,
+                b_lu_start,
+            )
         })
 
         it("should get cultivations from catalogue", async () => {
@@ -141,7 +209,133 @@ describe("Cultivation Data Model", () => {
                 principal_id,
                 b_id_farm,
             )
-            expect(cultivations).toBeDefined()
+            expect(
+                cultivations.find(
+                    (cultivation) =>
+                        cultivation.b_lu_catalogue === b_lu_catalogue,
+                ),
+            ).toBeDefined()
+        })
+
+        it("should get all cultivations for farms from catalogue using composable functions", async () => {
+            const farmCatalogues =
+                await getEnabledCultivationCataloguesForFarms(
+                    fdm,
+                    principal_id,
+                    [b_id_farm, b_id_farm_2],
+                )
+            expect(farmCatalogues[b_id_farm]).toBeDefined()
+            expect(farmCatalogues[b_id_farm_2]).toBeDefined()
+
+            const allSources = [
+                ...new Set([
+                    ...farmCatalogues[b_id_farm],
+                    ...farmCatalogues[b_id_farm_2],
+                ]),
+            ]
+            const cultivations = await getCultivationsFromCatalogues(
+                fdm,
+                allSources,
+            )
+            const farmSources1 = new Set(farmCatalogues[b_id_farm])
+            expect(
+                cultivations.find(
+                    (c) =>
+                        c.b_lu_catalogue === b_lu_catalogue &&
+                        farmSources1.has(c.b_lu_source),
+                ),
+            ).toBeDefined()
+            const farmSources2 = new Set(farmCatalogues[b_id_farm_2])
+            expect(
+                cultivations.find(
+                    (c) =>
+                        c.b_lu_catalogue === b_lu_catalogue_2 &&
+                        farmSources2.has(c.b_lu_source),
+                ),
+            ).toBeDefined()
+        })
+
+        it("should handle empty catalogues", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Cultivations In Catalogue",
+                undefined,
+                undefined,
+                undefined,
+            )
+            await enableCultivationCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "invalid-catalogue",
+            )
+            expect(
+                await getCultivationsFromCatalogue(
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                ),
+            ).toEqual([])
+        })
+
+        it("should handle no enabled catalogues", async () => {
+            const b_id_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Test Farm No Cultivations In Catalogue",
+                undefined,
+                undefined,
+                undefined,
+            )
+            expect(
+                await getCultivationsFromCatalogue(
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                ),
+            ).toEqual([])
+        })
+
+        it("(getCultivationsFromCatalogue) should wrap errors with the correct message", async () => {
+            const failError = new Error("Should have thrown.")
+            try {
+                await getCultivationsFromCatalogue(
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.cultivationsCatalogue,
+                    ),
+                    principal_id,
+                    b_id_farm,
+                )
+                throw failError
+            } catch (e) {
+                expect(e).not.toBe(failError)
+                expect(e).toBeInstanceOf(Error)
+                expect((e as Error).message).toBe(
+                    "Exception for getCultivationsFromCatalogue",
+                )
+            }
+        })
+
+        it("(getCultivationsFromCatalogues) should wrap errors with the correct message", async () => {
+            const failError = new Error("Should have thrown.")
+            try {
+                await getCultivationsFromCatalogues(
+                    mockFdmThatThrowsOnSelectFrom(
+                        fdm,
+                        schema.cultivationsCatalogue,
+                    ),
+                    [b_lu_source],
+                )
+                throw failError
+            } catch (err) {
+                expect(err).not.toBe(failError)
+                expect(err).toBeInstanceOf(Error)
+                expect((err as Error).message).toBe(
+                    "Exception for getCultivationsFromCatalogues",
+                )
+            }
         })
 
         it("should add a new cultivation to the catalogue", async () => {
@@ -2339,5 +2533,250 @@ describe("buildCultivationTimeframeCondition", () => {
             timeframe,
         )
         expect(cultivations.length).toBe(0)
+    })
+})
+
+describe("getCultivationsForFarm", () => {
+    let fdm: FdmType
+    let principal_id: string
+    let b_id_farm: string
+    let b_id: string
+    let b_id_2: string
+    let b_lu_catalogue: string
+    let b_lu_source: string
+
+    beforeEach(async () => {
+        const host = inject("host")
+        const port = inject("port")
+        const user = inject("user")
+        const password = inject("password")
+        const database = inject("database")
+        fdm = createFdmServer(host, port, user, password, database)
+
+        principal_id = createId()
+        b_lu_source = "custom"
+        b_lu_catalogue = createId()
+
+        b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Test Farm",
+            "123456",
+            "123 Farm Lane",
+            "12345",
+        )
+
+        const geometry = {
+            type: "Polygon" as const,
+            coordinates: [
+                [
+                    [30, 10],
+                    [40, 40],
+                    [20, 40],
+                    [10, 20],
+                    [30, 10],
+                ],
+            ],
+        }
+
+        b_id = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "field 1",
+            "test source",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+
+        b_id_2 = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "field 2",
+            "test source",
+            geometry,
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+
+        await enableCultivationCatalogue(
+            fdm,
+            principal_id,
+            b_id_farm,
+            b_lu_source,
+        )
+
+        await addCultivationToCatalogue(fdm, {
+            b_lu_catalogue,
+            b_lu_source,
+            b_lu_name: "Wheat",
+            b_lu_name_en: "Wheat",
+            b_lu_harvestable: "once",
+            b_lu_hcat3: "1",
+            b_lu_hcat3_name: "test",
+            b_lu_croprotation: "cereal",
+            b_lu_harvestcat: "HC050",
+            b_lu_yield: 6000,
+            b_lu_dm: 500,
+            b_lu_hi: 0.4,
+            b_lu_n_harvestable: 4,
+            b_lu_n_residue: 2,
+            b_n_fixation: 0,
+            b_lu_rest_oravib: false,
+            b_lu_variety_options: null,
+            b_lu_start_default: "03-01",
+            b_lu_eom: null,
+            b_lu_eom_residue: null,
+            b_date_harvest_default: "09-15",
+        })
+    })
+
+    it("should return a Map with cultivations grouped by field ID", async () => {
+        await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            b_id,
+            new Date("2023-03-01"),
+        )
+        await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            b_id_2,
+            new Date("2023-04-01"),
+        )
+
+        const result = await getCultivationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result).toBeInstanceOf(Map)
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(true)
+        expect(result.get(b_id)).toHaveLength(1)
+        expect(result.get(b_id_2)).toHaveLength(1)
+        expect(result.get(b_id)?.[0].b_id).toBe(b_id)
+        expect(result.get(b_id_2)?.[0].b_id).toBe(b_id_2)
+    })
+
+    it("should return an empty Map when the farm has no cultivations", async () => {
+        const result = await getCultivationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+        expect(result).toBeInstanceOf(Map)
+        expect(result.size).toBe(0)
+    })
+
+    it("should only return cultivations within the given timeframe", async () => {
+        await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            b_id,
+            new Date("2023-03-01"),
+            new Date("2023-09-01"),
+        )
+        await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            b_id_2,
+            new Date("2025-03-01"),
+            new Date("2025-09-01"),
+        )
+
+        const timeframe = {
+            start: new Date("2023-01-01"),
+            end: new Date("2023-12-31"),
+        }
+        const result = await getCultivationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+            timeframe,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(b_id_2)).toBe(false)
+    })
+
+    it("should not include cultivations from other farms", async () => {
+        const other_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Other Farm",
+            "654321",
+            "456 Other Lane",
+            "67890",
+        )
+        const other_b_id = await addField(
+            fdm,
+            principal_id,
+            other_farm,
+            "other field",
+            "test source",
+            {
+                type: "Polygon" as const,
+                coordinates: [
+                    [
+                        [30, 10],
+                        [40, 40],
+                        [20, 40],
+                        [10, 20],
+                        [30, 10],
+                    ],
+                ],
+            },
+            new Date("2023-01-01"),
+            "nl_01",
+            new Date("2023-12-31"),
+        )
+        await enableCultivationCatalogue(
+            fdm,
+            principal_id,
+            other_farm,
+            b_lu_source,
+        )
+        await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            other_b_id,
+            new Date("2023-03-01"),
+        )
+        await addCultivation(
+            fdm,
+            principal_id,
+            b_lu_catalogue,
+            b_id,
+            new Date("2023-04-01"),
+        )
+
+        const result = await getCultivationsForFarm(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+
+        expect(result.has(b_id)).toBe(true)
+        expect(result.has(other_b_id)).toBe(false)
+    })
+
+    it("should throw when principal does not have permission", async () => {
+        const unauthorized_principal = createId()
+        await expect(
+            getCultivationsForFarm(fdm, unauthorized_principal, b_id_farm),
+        ).rejects.toThrowError(
+            "Principal does not have permission to perform this action",
+        )
     })
 })

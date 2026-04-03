@@ -16,6 +16,7 @@ import {
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
+import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import {
     Expandable,
     ExpandableContent,
@@ -30,12 +31,6 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyTitle,
-} from "~/components/ui/empty"
 import {
     Select,
     SelectContent,
@@ -260,22 +255,7 @@ export default function AppIndex() {
                                     </div>
                                 ) : (
                                     loaderData.pendingInvitations.length ===
-                                        0 && (
-                                        <Empty className="border-none">
-                                            <EmptyHeader>
-                                                <EmptyTitle>
-                                                    Het lijkt erop dat je
-                                                    organisatie geen toegang
-                                                    heeft tot bedrijven. :(
-                                                </EmptyTitle>
-                                                <EmptyDescription>
-                                                    Neem contact op met
-                                                    bedrijven om toegang tot hen
-                                                    te krijgen.
-                                                </EmptyDescription>
-                                            </EmptyHeader>
-                                        </Empty>
-                                    )
+                                        0 && <NoFarmsMessage />
                                 )}
                             </div>
                             {loaderData.pendingInvitations.length > 0 && (
