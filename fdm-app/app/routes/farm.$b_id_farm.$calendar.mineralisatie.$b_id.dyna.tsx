@@ -5,6 +5,7 @@ import {
     getGrazingIntention,
     getCultivations,
     type FertilizerApplication,
+    type Fertilizer,
 } from "@nmi-agro/fdm-core"
 import { Slash } from "lucide-react"
 import { Suspense, use } from "react"
@@ -116,7 +117,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         ])
 
         // Build a map from p_id → full fertilizer properties for quick lookup
-        const fertilizerMap = new Map(fertilizers.map((f) => [f.p_id, f]))
+        const fertilizerMap = new Map<string, Fertilizer>(
+            fertilizers.map((f: Fertilizer) => [f.p_id, f]),
+        )
 
         // Map fdm-core FertilizerApplication → DYNA fertilizer input
         const dynaFertilizers = applications.map((app: FertilizerApplication) => {
@@ -148,8 +151,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         })
 
         // Build chart events: sowing, harvest, and fertilizer applications
-        const fertilizerNameMap = new Map(
-            fertilizers.map((f) => [f.p_id, f.p_name_nl ?? f.p_id]),
+        const fertilizerNameMap = new Map<string, string>(
+            fertilizers.map((f: Fertilizer) => [f.p_id, f.p_name_nl ?? f.p_id]),
         )
         type ChartEvent = {
             date: string

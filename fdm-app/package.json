@@ -108,8 +108,7 @@
         "typescript": "catalog:",
         "vite": "^8.0.3",
         "vite-node": "^6.0.0",
-        "vite-tsconfig-paths": "^6.1.1",
-        "vitest": "catalog:"
+        "vite-tsconfig-paths": "^6.1.1"
     },
     "engines": {
         "node": ">=24.0.0"
