@@ -62,6 +62,14 @@ jobs:
         run: pnpm check-types
         working-directory: ./fdm-calculator
 
+      - name: Typecheck fdm-rvo
+        run: pnpm check-types
+        working-directory: ./fdm-rvo
+
+      - name: Typecheck fdm-agents
+        run: pnpm check-types
+        working-directory: ./fdm-agents
+
       # - name: Typecheck fdm-app
       #   run: pnpm typecheck
       #   working-directory: ./fdm-app

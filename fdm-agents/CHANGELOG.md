@@ -1,5 +1,15 @@
 # @nmi-agro/fdm-agents
 
+## 0.2.1
+
+### Patch Changes
+
+- [#552](https://github.com/nmi-agro/fdm/pull/552) [`bc66091`](https://github.com/nmi-agro/fdm/commit/bc660919b72abf951d7cbc42f3cd5c527d03fac5) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fix type issue where `fieldMetrics` could possibly be null
+
+- Updated dependencies [[`45718ae`](https://github.com/nmi-agro/fdm/commit/45718ae5288f59797612d8a382f042598ecec163), [`9dfd545`](https://github.com/nmi-agro/fdm/commit/9dfd545b834f90492d3599a0e82fe66978e56889)]:
+  - @nmi-agro/fdm-calculator@0.13.1
+  - @nmi-agro/fdm-core@0.31.1
+
 ## 0.2.0
 
 ### Minor Changes

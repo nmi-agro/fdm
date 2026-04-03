@@ -5,7 +5,6 @@ import { reactRouter } from "@react-router/dev/vite"
 import { sentryReactRouter } from "@sentry/react-router"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "vite"
-import tsconfigPaths from "vite-tsconfig-paths"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const calculatorPackagePath = path.resolve(
@@ -45,7 +44,6 @@ export default defineConfig((env) => {
         plugins: [
             replaceCalculatorVersion,
             reactRouter(),
-            tsconfigPaths(),
             tailwindcss(),
             enableSentry &&
                 sentryReactRouter(
@@ -74,7 +72,6 @@ export default defineConfig((env) => {
                 "posthog-js",
                 "posthog-js/react",
                 "@geomatico/maplibre-cog-protocol",
-                "@nmi-agro/fdm-agents",
             ],
         },
         build: {
@@ -89,6 +86,9 @@ export default defineConfig((env) => {
                 "@nmi-agro/fdm-rvo",
                 "@nmi-agro/fdm-agents",
             ],
+        },
+        resolve: {
+            tsconfigPaths: true,
         },
     }
 })
