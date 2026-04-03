@@ -88,6 +88,53 @@ export function MineralisatieFallback() {
     )
 }
 
+/** Fallback for the DYNA page */
+export function DynaFallback() {
+    return (
+        <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <MineralisatieCardSkeleton />
+                <MineralisatieCardSkeleton />
+                <MineralisatieCardSkeleton />
+                <MineralisatieCardSkeleton />
+            </div>
+            <MineralisatieChartSkeleton />
+            <div className="grid gap-4 md:grid-cols-2">
+                <Card className="animate-pulse">
+                    <CardHeader>
+                        <Skeleton className="h-5 w-32" />
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder
+                            <Skeleton key={i} className="h-4 w-full" />
+                        ))}
+                    </CardContent>
+                </Card>
+                <Card className="animate-pulse">
+                    <CardHeader>
+                        <Skeleton className="h-5 w-32" />
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder
+                            <Skeleton key={i} className="h-4 w-full" />
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
+            <Card className="animate-pulse">
+                <CardHeader>
+                    <Skeleton className="h-5 w-40" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-[220px] w-full" />
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
 /** Fallback for the field detail page */
 export function MineralisatieFieldDetailFallback() {
     return (

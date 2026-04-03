@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react"
-import { NavLink } from "react-router"
+import { NavLink, useLocation } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import {
     BreadcrumbItem,
@@ -28,6 +28,8 @@ export function HeaderMineralisatie({
     fieldOptions: HeaderFieldOption[]
 }) {
     const calendar = useCalendarStore((state) => state.calendar)
+    const location = useLocation()
+    const isDyna = location.pathname.endsWith("/dyna")
 
     const selectedField = b_id
         ? fieldOptions.find((f) => f.b_id === b_id)
@@ -71,6 +73,19 @@ export function HeaderMineralisatie({
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
+                    </BreadcrumbItem>
+                </>
+            )}
+
+            {isDyna && (
+                <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink
+                            href={`/farm/${b_id_farm}/${calendar}/mineralisatie/${b_id}/dyna`}
+                        >
+                            DYNA
+                        </BreadcrumbLink>
                     </BreadcrumbItem>
                 </>
             )}

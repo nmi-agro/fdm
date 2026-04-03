@@ -62,12 +62,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             })
         }
 
-        const fields = await getFields(
+        const allFields = await getFields(
             fdm,
             session.principal_id,
             b_id_farm,
             timeframe,
         )
+        const fields = allFields.filter((f) => !f.b_bufferstrip)
 
         // Read method from search params (default: minip)
         const url = new URL(request.url)
