@@ -1,6 +1,7 @@
 import type { getFarm } from "@nmi-agro/fdm-core"
 import {
     Bot,
+    Bubbles,
     Calendar,
     Check,
     ChevronRight,
@@ -380,8 +381,6 @@ export function SidebarLabs() {
     const isFarmSelected = farmId && farmId !== "undefined"
     if (!isFarmSelected) return null
 
-    if (!isGerritEnabled) return null
-
     return (
         <SidebarGroup>
             <SidebarGroupLabel>Labs</SidebarGroupLabel>
@@ -391,18 +390,36 @@ export function SidebarLabs() {
                         <SidebarMenuButton
                             asChild
                             isActive={location.pathname.includes(
-                                `/farm/${farmId}/${selectedCalendar}/gerrit`,
+                                `/farm/${farmId}/${selectedCalendar}/mineralisatie`,
                             )}
-                            tooltip="Gerrit's Bemestingsplan"
+                            tooltip="Stikstofmineralisatie per perceel"
                         >
                             <NavLink
-                                to={`/farm/${farmId}/${selectedCalendar}/gerrit`}
+                                to={`/farm/${farmId}/${selectedCalendar}/mineralisatie`}
                             >
-                                <Bot />
-                                <span>Gerrit</span>
+                                <Bubbles />
+                                <span>Mineralisatie</span>
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+                    {isGerritEnabled && (
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={location.pathname.includes(
+                                    `/farm/${farmId}/${selectedCalendar}/gerrit`,
+                                )}
+                                tooltip="Gerrit's Bemestingsplan"
+                            >
+                                <NavLink
+                                    to={`/farm/${farmId}/${selectedCalendar}/gerrit`}
+                                >
+                                    <Bot />
+                                    <span>Gerrit</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
                 </SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>
