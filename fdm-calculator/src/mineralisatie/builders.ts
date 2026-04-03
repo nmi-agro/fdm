@@ -244,6 +244,7 @@ export function buildDynaRequest(
     },
     soilData: Record<string, number | string | null | undefined>,
     cultivations: {
+        b_lu?: string | null
         b_lu_catalogue?: string | null
         b_lu_start?: Date | null
         b_lu_end?: Date | null
@@ -283,6 +284,10 @@ export function buildDynaRequest(
         b_lu_n_harvestable?: number | null
         b_lu_n_residue?: number | null
     }[],
+    harvestsByBlu?: Map<
+        string,
+        { b_lu_harvest_date?: Date | null; b_lu_yield?: number | null }[]
+    >,
 ): Record<string, unknown> {
     const centroid = field.b_centroid
     const a_lon = centroid ? centroid[0] : undefined
@@ -329,21 +334,16 @@ export function buildDynaRequest(
             p_date_fertilization: f.p_date?.toISOString().split("T")[0],
         }))
 
-    // Collect distinct start years across all cultivations
-    const allYears = [
-        ...new Set(
-            cultivations
-                .filter((c) => c.b_lu_catalogue && c.b_lu_start)
-                .map((c) => c.b_lu_start!.getFullYear()),
-        ),
-    ].sort((a, b) => a - b)
-
-    const rotation: Record<string, unknown>[] = allYears
+    const rotation: Record<string, unknown>[] = [year]
         .map((rotationYear) => {
+            const yearStart = new Date(rotationYear, 0, 1)
+            const yearEnd = new Date(rotationYear, 11, 31, 23, 59, 59, 999)
             const yearCultivations = cultivations.filter(
                 (c) =>
                     c.b_lu_catalogue &&
-                    c.b_lu_start?.getFullYear() === rotationYear,
+                    c.b_lu_start != null &&
+                    c.b_lu_start <= yearEnd &&
+                    (c.b_lu_end == null || c.b_lu_end >= yearStart),
             )
 
             // Select main crop using May 15th rule
@@ -355,18 +355,39 @@ export function buildDynaRequest(
             const cropProp = cropProperties?.find(
                 (cp) => cp.b_lu_catalogue === mainCrop.b_lu_catalogue,
             )
-            const harvests = mainCrop.b_lu_end
-                ? [
-                      {
-                          b_date_harvest: mainCrop.b_lu_end
-                              .toISOString()
-                              .split("T")[0],
-                          ...(cropProp?.b_lu_yield != null
-                              ? { b_lu_yield: cropProp.b_lu_yield }
-                              : {}),
-                      },
-                  ]
-                : []
+
+            // Prefer actual harvest records; fall back to inferring a single
+            // harvest from b_lu_end when no records are available.
+            const actualHarvestRecords =
+                mainCrop.b_lu && harvestsByBlu
+                    ? (harvestsByBlu.get(mainCrop.b_lu) ?? [])
+                    : []
+            const harvests =
+                actualHarvestRecords.length > 0
+                    ? actualHarvestRecords
+                          .filter((h) => h.b_lu_harvest_date != null)
+                          .map((h) => ({
+                              b_date_harvest: h.b_lu_harvest_date!
+                                  .toISOString()
+                                  .split("T")[0],
+                              ...(h.b_lu_yield != null
+                                  ? { b_lu_yield: h.b_lu_yield }
+                                  : cropProp?.b_lu_yield != null
+                                    ? { b_lu_yield: cropProp.b_lu_yield }
+                                    : {}),
+                          }))
+                    : mainCrop.b_lu_end
+                      ? [
+                            {
+                                b_date_harvest: mainCrop.b_lu_end
+                                    .toISOString()
+                                    .split("T")[0],
+                                ...(cropProp?.b_lu_yield != null
+                                    ? { b_lu_yield: cropProp.b_lu_yield }
+                                    : {}),
+                            },
+                        ]
+                      : []
 
             // Catchcrop becomes green manure on the same rotation entry
             const greenManure = yearCultivations.find(

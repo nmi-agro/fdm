@@ -30,6 +30,7 @@ import {
     getCurrentSoilData,
     getField,
     getFields,
+    getHarvests,
     type Timeframe,
 } from "@nmi-agro/fdm-core"
 import { getNmiApiKey } from "~/integrations/nmi.server"
@@ -308,6 +309,34 @@ export async function getDynaForField({
         getCultivationsFromCatalogue(fdm, principal_id, b_id_farm),
     ])
 
+    // Fetch actual harvest records for each cultivation so the rotation entry
+    // reflects real cut dates rather than only the cultivation end date.
+    const harvestsByBlu = new Map<
+        string,
+        { b_lu_harvest_date?: Date | null; b_lu_yield?: number | null }[]
+    >()
+    await Promise.all(
+        cultivations
+            .filter((c) => c.b_lu)
+            .map(async (c) => {
+                const harvests = await getHarvests(
+                    fdm,
+                    principal_id,
+                    c.b_lu,
+                    timeframe,
+                )
+                harvestsByBlu.set(
+                    c.b_lu,
+                    harvests.map((h) => ({
+                        b_lu_harvest_date: h.b_lu_harvest_date,
+                        b_lu_yield:
+                            h.harvestable?.harvestable_analyses?.[0]
+                                ?.b_lu_yield ?? null,
+                    })),
+                )
+            }),
+    )
+
     const soilData = buildSoilDataMap(soilDataArray)
 
     // Build crop_properties from catalogue entries for this field's cultivations
@@ -331,6 +360,7 @@ export async function getDynaForField({
         farmSector,
         timeframe,
         cropProperties.length > 0 ? cropProperties : undefined,
+        harvestsByBlu,
     )
 
     return getDyna(fdm, { b_id, nmiApiKey, requestBody })
