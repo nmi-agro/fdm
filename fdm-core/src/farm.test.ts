@@ -283,8 +283,13 @@ describe("Farm Functions", () => {
             expect(invitation?.role).toBe("advisor")
             expect(invitation?.status).toBe("pending")
 
+            if (!invitation) {
+                throw new Error(
+                    "Test did not create an invitation as expected, cannot continue with test",
+                )
+            }
             // Accept the invitation so subsequent tests (updateRole, revoke) work
-            await acceptInvitation(fdm, invitation?.invitation_id, target_id)
+            await acceptInvitation(fdm, invitation.invitation_id, target_id)
 
             // Now the role should be granted
             const principals = await listPrincipalsForResource(
