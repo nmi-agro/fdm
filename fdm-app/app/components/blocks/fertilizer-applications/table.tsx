@@ -62,8 +62,26 @@ export const mappers = {
     mapByField: createMapper((application) => application.b_id),
     mapBySimilar: createMapper(
         (application) =>
-            `${createDateKey(application.p_app_date)}#${application.p_app_amount?.toPrecision(4)}`,
+            `${createDateKey(application.p_app_date)}#${application.p_app_amount?.toPrecision(4)}#${application.p_app_method}`,
     ),
+    mapBySimilarAndOrder: (
+        record: FertAppRecord,
+        applications: ApplicationExtended[],
+    ) => {
+        const occurrenceBySimilarKey: Record<string, number> = {}
+        applications.forEach((application) => {
+            if (!application.p_app_date) return
+            const similarKey = `${createDateKey(application.p_app_date)}#${application.p_app_amount?.toPrecision(4)}#${application.p_app_method}`
+            const occurrence = occurrenceBySimilarKey[similarKey] ?? 0
+            occurrenceBySimilarKey[similarKey] = occurrence + 1
+            const key = `${similarKey}#${occurrence}`
+            record[key] ??= {
+                id: `${application.p_id}_${key}`,
+                applications: [],
+            }
+            record[key].applications.push(application)
+        })
+    },
     mapEach: createMapper((application) => application.p_app_id),
 } as const
 
@@ -176,7 +194,11 @@ export function DataTable({
     returnUrl: string
 }) {
     const records = useMemo(
-        () => groupAndOrderFertApps(fertilizerApplications, "mapBySimilar"),
+        () =>
+            groupAndOrderFertApps(
+                fertilizerApplications,
+                "mapBySimilarAndOrder",
+            ),
         [fertilizerApplications],
     )
 

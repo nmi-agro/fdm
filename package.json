@@ -52,6 +52,7 @@
         "onlyBuiltDependencies": [
             "@biomejs/biome",
             "@geomatico/maplibre-cog-protocol",
+            "@nmi-agro/rvo-connector",
             "@prisma/engines",
             "@sentry-internal/node-cpu-profiler",
             "@sentry/cli",

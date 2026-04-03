@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-agents",
     "private": false,
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "AI Agent for Fertilizer Planning",
     "license": "MIT",
     "type": "module",
