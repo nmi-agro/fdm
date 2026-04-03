@@ -52,7 +52,7 @@
     },
     "dependencies": {
         "@nmi-agro/fdm-core": "workspace:^",
-        "@nmi-agro/rvo-connector": "github:SvenVw/rvo-connector#hotfix/v2.2.4",
+        "@nmi-agro/rvo-connector": "^2.2.3",
         "@turf/area": "^7.3.4",
         "@turf/bbox": "^7.3.4",
         "@turf/helpers": "^7.3.4",
@@ -60,6 +60,7 @@
         "@turf/union": "^7.3.4",
         "zod": "^4.3.6"
     },
+
     "devDependencies": {
         "@nmi-agro/fdm-core": "workspace:*",
         "@rollup/plugin-commonjs": "catalog:",
