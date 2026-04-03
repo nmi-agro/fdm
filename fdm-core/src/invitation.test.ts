@@ -320,8 +320,13 @@ describe("acceptInvitation", () => {
         )
         const invitation = pending.find((i) => i.resource_id === farmId)
         expect(invitation).toBeDefined()
+        if (!invitation) {
+            throw new Error(
+                "Test did not create an invitation as expected, cannot continue with test",
+            )
+        }
 
-        await acceptInvitation(fdm, invitation?.invitation_id, target.user.id)
+        await acceptInvitation(fdm, invitation.invitation_id, target.user.id)
 
         const principals = await listPrincipalsForResource(fdm, "farm", farmId)
         expect(
@@ -373,10 +378,15 @@ describe("acceptInvitation", () => {
             target.user.id,
         )
         const invitation = pending.find((i) => i.resource_id === farmId)
-        await acceptInvitation(fdm, invitation?.invitation_id, target.user.id)
+        if (!invitation) {
+            throw new Error(
+                "Test did not create an invitation as expected, cannot continue with test",
+            )
+        }
+        await acceptInvitation(fdm, invitation.invitation_id, target.user.id)
 
         await expect(
-            acceptInvitation(fdm, invitation?.invitation_id, target.user.id),
+            acceptInvitation(fdm, invitation.invitation_id, target.user.id),
         ).rejects.toThrowError("Exception for acceptInvitation")
     })
 
@@ -410,9 +420,14 @@ describe("acceptInvitation", () => {
         )
         const invitation = pending.find((i) => i.resource_id === farmId)
         expect(invitation).toBeDefined()
+        if (!invitation) {
+            throw new Error(
+                "Test did not create an invitation as expected, cannot continue with test",
+            )
+        }
 
         await expect(
-            acceptInvitation(fdm, invitation?.invitation_id, wrongUser.user.id),
+            acceptInvitation(fdm, invitation.invitation_id, wrongUser.user.id),
         ).rejects.toThrowError("Exception for acceptInvitation")
     })
 
@@ -546,8 +561,13 @@ describe("declineInvitation", () => {
         )
         const invitation = pending.find((i) => i.resource_id === farmId)
         expect(invitation).toBeDefined()
+        if (!invitation) {
+            throw new Error(
+                "Test did not create an invitation as expected, cannot continue with test",
+            )
+        }
 
-        await declineInvitation(fdm, invitation?.invitation_id, target.user.id)
+        await declineInvitation(fdm, invitation.invitation_id, target.user.id)
 
         // Invitation should now be declined — listPendingInvitationsForPrincipal no longer returns it
         const afterDecline = await listPendingInvitationsForPrincipal(
@@ -607,10 +627,15 @@ describe("declineInvitation", () => {
             target.user.id,
         )
         const invitation = pending.find((i) => i.resource_id === farmId)
-        await declineInvitation(fdm, invitation?.invitation_id, target.user.id)
+        if (!invitation) {
+            throw new Error(
+                "Test did not create an invitation as expected, cannot continue with test",
+            )
+        }
+        await declineInvitation(fdm, invitation.invitation_id, target.user.id)
 
         await expect(
-            declineInvitation(fdm, invitation?.invitation_id, target.user.id),
+            declineInvitation(fdm, invitation.invitation_id, target.user.id),
         ).rejects.toThrowError("Exception for declineInvitation")
     })
 
@@ -709,13 +734,14 @@ describe("declineInvitation", () => {
             (i) => i.resource_id === principalFarmId,
         )
         expect(invitation).toBeDefined()
+        if (!invitation) {
+            throw new Error(
+                "Test did not create an invitation as expected, cannot continue with test",
+            )
+        }
 
         await expect(
-            declineInvitation(
-                fdm,
-                invitation?.invitation_id,
-                wrongUser.user.id,
-            ),
+            declineInvitation(fdm, invitation.invitation_id, wrongUser.user.id),
         ).rejects.toThrowError("Exception for declineInvitation")
     })
 })

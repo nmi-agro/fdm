@@ -905,7 +905,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             }
 
             for (const r of validFieldResults) {
-                if (r.fieldMetrics.omBalance && r.fieldMetrics.omBalance < 0) {
+                if (r.fieldMetrics?.omBalance && r.fieldMetrics.omBalance < 0) {
                     agronomicWarnings.push(
                         `Strategy warning (Organic Matter): Field ${r.b_id} has a negative organic matter balance (${Math.round(r.fieldMetrics.omBalance)} kg EOM/ha). Consider applying compost or other fertilizer with a high EOM content.`,
                     )

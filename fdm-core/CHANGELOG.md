@@ -1,5 +1,11 @@
 # Changelog fdm-core
 
+## 0.31.1
+
+### Patch Changes
+
+- [#552](https://github.com/nmi-agro/fdm/pull/552) [`9dfd545`](https://github.com/nmi-agro/fdm/commit/9dfd545b834f90492d3599a0e82fe66978e56889) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixes some type issues at tests for missing invitations
+
 ## 0.31.0
 
 ### Minor Changes
