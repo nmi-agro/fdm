@@ -10,7 +10,6 @@ type HarvestDatesDisplayProps = {
     row: RotationExtended
 }
 
-type HarvestRecord = Record<string, HarvestRecordItem>
 type HarvestRecordItem = {
     id: string
     dates: Date[]
@@ -20,48 +19,49 @@ type HarvestRecordDisplayProps = {
     record: HarvestRecordItem
 }
 
-function mapByOrder(record: HarvestRecord, fieldRow: FieldRow) {
-    fieldRow.harvests.forEach((harvest, i) => {
-        if (!harvest.b_lu_harvest_date) return
-        const key = i
-        record[key] ??= {
-            id: `${harvest.b_lu}_${key}`,
-            dates: [],
-            harvests: [],
-        }
-        record[key].harvests.push(harvest)
-        record[key].dates.push(harvest.b_lu_harvest_date)
-    })
+function compareDates(a: Date | null, b: Date | null) {
+    return a && b ? a.getTime() - b.getTime() : !a ? 1 : -1
 }
 
 function groupAndOrderHarvests(row: RotationExtended) {
-    const record: HarvestRecord = {}
+    const fields = row.type === "field" ? [row] : row.fields
 
-    if (row.type === "crop") {
-        row.fields.forEach((fieldRow) => {
-            mapByOrder(record, fieldRow)
-        })
-    } else {
-        mapByOrder(record, row)
+    const grouped: FieldRow["harvests"][] = []
+
+    for (const field of fields) {
+        while (grouped.length < field.harvests.length) {
+            grouped.push([])
+        }
+
+        for (let i = 0; i < field.harvests.length; i++) {
+            grouped[i].push(field.harvests[i])
+        }
     }
 
-    const entries = Object.entries(record).map(
-        ([idx, reduced]) =>
-            [Number.parseFloat(idx), reduced] as [number, typeof reduced],
-    )
-    entries.sort((a, b) => a[0] - b[0])
-    // Harvests with no date get filtered out in the mapping function
-    entries.forEach((ent) => {
-        ent[1].harvests.sort(
-            (a, b) =>
-                (a.b_lu_harvest_date as Date).getTime() -
-                (b.b_lu_harvest_date as Date).getTime(),
+    for (const group of grouped) {
+        group.sort((a, b) =>
+            compareDates(a.b_lu_harvest_date, b.b_lu_harvest_date),
         )
-        ent[1].dates.sort((a, b) => a.getTime() - b.getTime())
-    })
-    return entries.map((ent) => ent[1])
+    }
+
+    return grouped
+        .map((group) => ({
+            id: "",
+            dates: group
+                .map((harvest) => harvest.b_lu_harvest_date)
+                .filter((date) => date !== null),
+            harvests: group,
+        }))
+        .sort((a, b) =>
+            compareDates(
+                a.dates.length > 0 ? a.dates[0] : null,
+                b.dates.length > 0 ? b.dates[0] : null,
+            ),
+        )
+        .map((a, i) => ({ ...a, id: i.toString() }))
 }
 
+/** Used if the cultivation is harvestable once so there is a mistake somewhere */
 function combineRecords(records: HarvestRecordItem[]): HarvestRecordItem {
     const timestamps = [
         ...new Set(
@@ -70,7 +70,7 @@ function combineRecords(records: HarvestRecordItem[]): HarvestRecordItem {
             ),
         ),
     ]
-    timestamps.sort()
+    timestamps.sort((a, b) => a - b)
     return {
         id: records[0].id,
         dates: timestamps.map((timestamp) => new Date(timestamp)),
