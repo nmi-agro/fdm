@@ -105,7 +105,7 @@
         "postcss": "^8.5.8",
         "tailwindcss": "^4.2.2",
         "typescript": "catalog:",
-        "vite": "^8.0.3",
+        "vite": "^8.0.5",
         "vite-node": "^6.0.0"
     },
     "engines": {
