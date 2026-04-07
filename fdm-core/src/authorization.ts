@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, isNull, or, type SQL } from "drizzle-orm"
 import type {
     Action,
     Permission,
@@ -341,12 +341,7 @@ export async function getRolesOfPrincipalForResource(
                 ? principal_id
                 : [principal_id]
 
-            const result: {
-                principal_id: string
-                role: Role
-                as_organization_member: boolean
-                as_organization: boolean
-            }[] = await tx
+            const result = await tx
                 .select({
                     role: authZSchema.role.role,
                     principal_id: authZSchema.role.principal_id,
@@ -356,7 +351,7 @@ export async function getRolesOfPrincipalForResource(
                     as_organization: and(
                         isNotNull(authNSchema.organization.id),
                         inArray(authZSchema.role.principal_id, principal_ids),
-                    ),
+                    ) as SQL<unknown>,
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -410,7 +405,7 @@ export async function getRolesOfPrincipalForResource(
                 if (!deduped.has(key)) {
                     deduped.set(key, {
                         principal_id: item.principal_id,
-                        role: item.role,
+                        role: item.role as Role,
                         principal_type,
                     })
                 }
@@ -851,7 +846,7 @@ async function getResourceChain(
             const beads = Object.keys(result[0]).map((x) => {
                 return {
                     resource: x as Resource,
-                    resource_id: result[0][x],
+                    resource_id: (result[0] as Record<string, string>)[x],
                 }
             })
             chain.push(...beads)
@@ -887,7 +882,7 @@ async function getResourceChain(
             const beads = Object.keys(result[0]).map((x) => {
                 return {
                     resource: x as Resource,
-                    resource_id: result[0][x],
+                    resource_id: (result[0] as Record<string, string>)[x],
                 }
             })
             chain.push(...beads)
@@ -936,7 +931,7 @@ async function getResourceChain(
             const beads = Object.keys(result[0]).map((x) => {
                 return {
                     resource: x as Resource,
-                    resource_id: result[0][x],
+                    resource_id: (result[0] as Record<string, string>)[x],
                 }
             })
             chain.push(...beads)
@@ -966,7 +961,7 @@ async function getResourceChain(
             const beads = Object.keys(result[0]).map((x) => {
                 return {
                     resource: x as Resource,
-                    resource_id: result[0][x],
+                    resource_id: (result[0] as Record<string, string>)[x],
                 }
             })
             chain.push(...beads)
@@ -999,7 +994,7 @@ async function getResourceChain(
             const beads = Object.keys(result[0]).map((x) => {
                 return {
                     resource: x as Resource,
-                    resource_id: result[0][x],
+                    resource_id: (result[0] as Record<string, string>)[x],
                 }
             })
             chain.push(...beads)

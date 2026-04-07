@@ -86,7 +86,7 @@ export async function getPrincipal(
 
                 return {
                     id: principal_id,
-                    username: user[0].username,
+                    username: user[0].username ?? "",
                     email: user[0].email,
                     initials: initials.toUpperCase(),
                     displayUserName: user[0].displayUserName,
@@ -111,7 +111,7 @@ export async function getPrincipal(
             if (organization.length === 0) {
                 return undefined
             }
-            const metadata = JSON.parse(organization[0].metadata)
+            const metadata = organization[0].metadata ? JSON.parse(organization[0].metadata) : null
 
             return {
                 id: principal_id,
@@ -288,7 +288,7 @@ export async function lookupPrincipal(
                         return details
                     }),
                 )
-                return principalsDetails.filter(Boolean)
+                return principalsDetails.filter((p): p is Principal => p !== undefined)
             }
 
             return []

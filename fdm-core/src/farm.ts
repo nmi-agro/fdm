@@ -216,9 +216,7 @@ export async function getFarms(
 
             const farms = await Promise.all(
                 results.map(
-                    async (farm: {
-                        b_id_farm: schema.farmsTypeSelect["b_id_farm"]
-                    }) => {
+                    async (farm) => {
                         // Get roles on farm
                         const roles = await getRolesOfPrincipalForResource(
                             tx,
@@ -585,7 +583,7 @@ export async function listPrincipalsForFarm(
 
                     principalsMap.set(u.id, {
                         id: u.id,
-                        username: u.username,
+                        username: u.username ?? "",
                         email: u.email,
                         initials: initials.toUpperCase(),
                         displayUserName: u.displayUserName,
@@ -702,7 +700,7 @@ export async function listPrincipalsForFarm(
             }
             for (const entry of pendingDetails) {
                 if (!deduped.has(entry.id)) {
-                    deduped.set(entry.id, entry)
+                    deduped.set(entry.id, entry as unknown as (typeof principalsDetails)[number])
                 }
             }
             return Array.from(deduped.values())

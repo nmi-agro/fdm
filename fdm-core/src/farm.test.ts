@@ -148,7 +148,7 @@ describe("Farm Functions", () => {
                 transaction: async (cb: (tx: FdmType) => Promise<FdmType>) => {
                     // provide a tx object whose select throws
                     const tx = { select: mockSelect }
-                    return cb(tx)
+                    return cb(tx as unknown as FdmType)
                 },
             } as unknown as FdmType
             await expect(
@@ -175,7 +175,7 @@ describe("Farm Functions", () => {
             const authorizationMock = {
                 ...fdm,
                 listResources: mockListResources,
-            }
+            } as unknown as FdmType
             await expect(
                 getFarms(authorizationMock, principal_id),
             ).rejects.toThrowError("Exception for getFarms")
@@ -240,8 +240,7 @@ describe("Farm Functions", () => {
             const fdmMock = {
                 ...fdm,
                 update: mockUpdate,
-            }
-
+            } as unknown as FdmType
             const updatedFarmName = "Updated Farm Name"
             const updatedFarmBusinessId = "987654"
             const updatedFarmAddress = "789 Updated Lane"
@@ -329,8 +328,7 @@ describe("Farm Functions", () => {
             const fdmMock = {
                 ...fdm,
                 checkPermission: mockCheckPermission,
-            }
-
+            } as unknown as FdmType
             await expect(
                 grantRoleToFarm(
                     fdmMock,
@@ -438,8 +436,7 @@ describe("Farm Functions", () => {
             const fdmMock = {
                 ...fdm,
                 updateRole: mockUpdateRole,
-            }
-
+            } as unknown as FdmType
             await expect(
                 updateRoleOfPrincipalAtFarm(
                     fdmMock,
@@ -510,7 +507,7 @@ describe("Farm Functions", () => {
             const fdmMock = {
                 ...fdm,
                 revokePrincipal: mockRevokePrincipal,
-            }
+            } as unknown as FdmType
             await grantRoleToFarm(
                 fdm,
                 principal_id,
@@ -593,8 +590,7 @@ describe("Farm Functions", () => {
             const fdmMock = {
                 ...fdm,
                 listPrincipalsForResource: mockListPrincipalsForResource,
-            }
-
+            } as unknown as FdmType
             await expect(
                 listPrincipalsForFarm(fdmMock, principal_id, b_id_farm),
             ).rejects.toThrowError("Exception for listPrincipalsForFarm")

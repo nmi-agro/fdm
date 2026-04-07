@@ -275,7 +275,7 @@ export async function getSoilAnalysis(
             )
             .where(eq(schema.soilAnalysis.a_id, a_id))
 
-        return soilAnalysis[0] || null
+        return (soilAnalysis[0] as SoilAnalysis) ?? null
     } catch (err) {
         throw handleError(err, "Exception for getSoilAnalysis", { a_id })
     }
@@ -704,14 +704,13 @@ export async function getCurrentSoilData(
         const currentSoilData = parameters
             .map((parameter) => {
                 const analysis = soilAnalyses.find(
-                    (a: Record<string, string | number>) =>
-                        a[parameter as keyof typeof a] !== null,
+                    (a) => a[parameter as keyof typeof a] !== null,
                 )
                 if (!analysis) return null
 
                 return {
                     parameter,
-                    value: analysis[parameter as keyof typeof analysis],
+                    value: analysis[parameter as keyof typeof analysis] as number | string | null,
                     a_id: analysis.a_id,
                     b_sampling_date: analysis.b_sampling_date,
                     a_depth_upper: analysis.a_depth_upper,
