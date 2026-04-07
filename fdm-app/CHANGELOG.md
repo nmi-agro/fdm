@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.29.3
+
+### Patch Changes
+
+- [#561](https://github.com/nmi-agro/fdm/pull/561) [`f5fd4b5`](https://github.com/nmi-agro/fdm/commit/f5fd4b5f4d3aa40716c1b556c484647f72ce9ad8) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - When viewing the cultivation history for a field on the atlas, history items are now correctly sorted by descending year.
+
 ## 0.29.2
 
 ### Patch Changes
