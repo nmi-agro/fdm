@@ -7,6 +7,7 @@ import {
     getFarm,
     getFields,
 } from "@nmi-agro/fdm-core"
+import { getRvoFieldsFromShapefile } from "@nmi-agro/fdm-rvo/shapefile"
 import type {
     ImportReviewAction,
     RvoImportReviewItem,
@@ -49,11 +50,7 @@ import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import {
-    compareFields,
-    getRvoFieldsFromShapefile,
-    processRvoImport,
-} from "~/lib/rvo.server"
+import { compareFields, processRvoImport } from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
 
