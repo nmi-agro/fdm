@@ -1,5 +1,19 @@
 # Changelog fdm-app
 
+## 0.29.1
+
+### Patch Changes
+
+- [#552](https://github.com/nmi-agro/fdm/pull/552) [`24a2010`](https://github.com/nmi-agro/fdm/commit/24a2010f22eaa1b024e0f44344c62e6a9ac8c39f) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - In the rotation and field table fertilizer application details table, if a field has equivalent fertilizer applications, each of those will now be displayed on separate rows.
+
+- [#552](https://github.com/nmi-agro/fdm/pull/552) [`eb3ebcb`](https://github.com/nmi-agro/fdm/commit/eb3ebcb2b18230de84ce1ce3c3d2b5a9fa6a5804) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Update react-router and vite config for vite v8
+
+- Updated dependencies [[`45718ae`](https://github.com/nmi-agro/fdm/commit/45718ae5288f59797612d8a382f042598ecec163), [`9dfd545`](https://github.com/nmi-agro/fdm/commit/9dfd545b834f90492d3599a0e82fe66978e56889), [`bc66091`](https://github.com/nmi-agro/fdm/commit/bc660919b72abf951d7cbc42f3cd5c527d03fac5)]:
+  - @nmi-agro/fdm-calculator@0.13.1
+  - @nmi-agro/fdm-core@0.31.1
+  - @nmi-agro/fdm-agents@0.2.1
+  - @nmi-agro/fdm-rvo@0.2.0
+
 ## 0.29.0
 
 ### Minor Changes

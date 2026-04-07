@@ -200,9 +200,9 @@ describe("createUncachedFunctionsForFertilizerApplicationFilling", () => {
 
     it("should throw an error for an unsupported year", () => {
         expect(() =>
-            //@ts-expect-error
             createUncachedFunctionsForFertilizerApplicationFilling(
                 "NL",
+                //@ts-expect-error
                 "2024",
             ),
         ).toThrow("Year not supported")
@@ -210,8 +210,8 @@ describe("createUncachedFunctionsForFertilizerApplicationFilling", () => {
 
     it("should throw an error for an unsupported region", () => {
         expect(() =>
-            //@ts-expect-error
             createUncachedFunctionsForFertilizerApplicationFilling(
+                //@ts-expect-error
                 "BE",
                 "2025",
             ),

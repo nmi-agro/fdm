@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-calculator",
     "private": false,
-    "version": "0.13.0",
+    "version": "0.13.1",
     "description": "Calculate various insights based on the Farm Data Model",
     "license": "MIT",
     "homepage": "https://github.com/nmi-agro/fdm",
@@ -52,7 +52,7 @@
         "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
-        "postgres": "^3.4.8",
+        "postgres": "^3.4.9",
         "rollup": "catalog:",
         "rollup-plugin-esbuild": "catalog:",
         "rollup-plugin-polyfill-node": "catalog:",
