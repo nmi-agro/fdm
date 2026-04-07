@@ -8,5 +8,5 @@
             "@nmi-agro/fdm-calculator": ["../fdm-calculator/src/index.ts"]
         }
     },
-    "include": ["src/**/*", "vitest.config.ts", "drizzle.config.ts"]
+    "include": ["src/**/*", "vitest.config.ts"]
 }
