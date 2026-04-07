@@ -52,7 +52,7 @@
         "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
-        "postgres": "^3.4.8",
+        "postgres": "^3.4.9",
         "rollup": "catalog:",
         "rollup-plugin-esbuild": "catalog:",
         "rollup-plugin-polyfill-node": "catalog:",
