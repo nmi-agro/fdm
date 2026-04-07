@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.29.2
+
+### Patch Changes
+
+- [#555](https://github.com/nmi-agro/fdm/pull/555) [`c718131`](https://github.com/nmi-agro/fdm/commit/c71813150b69bfca07ebc6c59d9201bdfa382ea1) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the rotation table harvest date display sorting issues.
+
 ## 0.29.1
 
 ### Patch Changes
