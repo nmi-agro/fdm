@@ -29,12 +29,16 @@ function groupAndOrderHarvests(row: RotationExtended) {
     const grouped: FieldRow["harvests"][] = []
 
     for (const field of fields) {
-        while (grouped.length < field.harvests.length) {
+        const sortedFieldHarvests = [...field.harvests].sort((a, b) =>
+            compareDates(a.b_lu_harvest_date, b.b_lu_harvest_date),
+        )
+
+        while (grouped.length < sortedFieldHarvests.length) {
             grouped.push([])
         }
 
-        for (let i = 0; i < field.harvests.length; i++) {
-            grouped[i].push(field.harvests[i])
+        for (let i = 0; i < sortedFieldHarvests.length; i++) {
+            grouped[i].push(sortedFieldHarvests[i])
         }
     }
 
