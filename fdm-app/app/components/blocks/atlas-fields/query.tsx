@@ -1,4 +1,5 @@
-import { booleanPointInPolygon, point } from "@turf/turf"
+import booleanPointInPolygon from "@turf/boolean-point-in-polygon"
+import { point } from "@turf/helpers"
 import { deserialize } from "flatgeobuf/lib/mjs/geojson.js"
 import type { Feature, GeoJsonProperties, Geometry } from "geojson"
 import { getAvailableFieldsUrl } from "~/components/blocks/atlas/atlas-url"
