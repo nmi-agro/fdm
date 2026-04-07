@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { parseShapefileAttributes } from "@nmi-agro/fdm-rvo/shapefile"
+import { parseShapefileAttributes } from "@nmi-agro/fdm-rvo"
 import {
     AlertCircle,
     CheckCircle,
@@ -140,7 +140,7 @@ export function MijnPercelenUploadForm({
         )
         if (dbfFile) {
             try {
-                const dbfData = await parseShapefileGeoJsonProperties(dbfFile)
+                const dbfData = await parseShapefileAttributes(dbfFile)
                 let unnamedCount = 0
                 const names = dbfData.map((row) => {
                     const trimmedNaam =
