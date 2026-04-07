@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { parseShapefileGeoJsonProperties } from "@nmi-agro/fdm-rvo/shapefile"
+import { parseShapefileAttributes } from "@nmi-agro/fdm-rvo/shapefile"
 import {
     AlertCircle,
     CheckCircle,

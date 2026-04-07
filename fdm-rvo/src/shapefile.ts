@@ -28,7 +28,7 @@ export async function parseShapefileGeometry(
     shx_file?: Blob,
 ): Promise<Geometry[]> {
     try {
-        return parseShp(
+        return await parseShp(
             await shp_file.arrayBuffer(),
             await shx_file?.arrayBuffer(),
         )
@@ -37,32 +37,32 @@ export async function parseShapefileGeometry(
     }
 }
 
-export async function parseShapefileGeoJsonProperties(
+export async function parseShapefileAttributes(
     dbf_file: Blob,
 ): Promise<GeoJsonProperties[]> {
     try {
-        return parseDbf(await dbf_file.arrayBuffer(), undefined)
+        return await parseDbf(await dbf_file.arrayBuffer(), undefined)
     } catch (_error) {
-        throw new Error("DBF file is not valid", { cause: _error })
+        throw new Error("Shapefile is not valid", { cause: _error })
     }
 }
 
 export async function getRvoFieldsFromShapefile(
     shp_file: Blob,
-    shx_file: Blob,
+    shx_file: Blob | undefined,
     dbf_file: Blob,
-    prj_file: Blob,
+    prj_file: Blob | undefined,
 ) {
-    const prj_text = await prj_file.text()
+    const source_proj = prj_file ? await prj_file.text() : null
+    const dest_proj = "EPSG:4326"
 
     let shapefile: FeatureCollection<Polygon, RvoProperties>
     const shapefileGeometry = await parseShapefileGeometry(shp_file, shx_file)
-    const shapefileGeoJsonProperties =
-        await parseShapefileGeoJsonProperties(dbf_file)
+    const shapefileAttributes = await parseShapefileAttributes(dbf_file)
     try {
         shapefile = combine([
             shapefileGeometry,
-            shapefileGeoJsonProperties,
+            shapefileAttributes,
         ]) as FeatureCollection<Polygon, RvoProperties>
     } catch (_error) {
         throw new Error("Shapefile is not valid", { cause: _error })
@@ -71,9 +71,6 @@ export async function getRvoFieldsFromShapefile(
     if (shapefile.features.length === 0) {
         throw new Error("Shapefile does not contain any fields")
     }
-
-    const source_proj = prj_text
-    const dest_proj = "EPSG:4326"
 
     const converter =
         source_proj !== null ? proj4(source_proj, dest_proj) : null
