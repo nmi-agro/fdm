@@ -20,7 +20,7 @@ type HarvestRecordDisplayProps = {
 }
 
 function compareDates(a: Date | null, b: Date | null) {
-    return a && b ? a.getTime() - b.getTime() : !a ? 1 : -1
+    return a && b ? a.getTime() - b.getTime() : !a && !b ? 0 : !a ? 1 : -1
 }
 
 function groupAndOrderHarvests(row: RotationExtended) {
@@ -45,8 +45,8 @@ function groupAndOrderHarvests(row: RotationExtended) {
     }
 
     return grouped
-        .map((group) => ({
-            id: "",
+        .map((group, i) => ({
+            id: i.toString(),
             dates: group
                 .map((harvest) => harvest.b_lu_harvest_date)
                 .filter((date) => date !== null),
@@ -58,7 +58,6 @@ function groupAndOrderHarvests(row: RotationExtended) {
                 b.dates.length > 0 ? b.dates[0] : null,
             ),
         )
-        .map((a, i) => ({ ...a, id: i.toString() }))
 }
 
 /** Used if the cultivation is harvestable once so there is a mistake somewhere */
