@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/pglite"
 import { migrate } from "drizzle-orm/pglite/migrator"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmLocalType } from "./fdm-local.d"
+import type { FdmLocalType } from "./fdm-local.types"
 
 export function createFdmLocal(
     backend: "memory://" = "memory://",

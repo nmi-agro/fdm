@@ -25,7 +25,7 @@ import {
 } from "./farm"
 import type { FdmType } from "./fdm"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmServerType } from "./fdm-server.types"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
 import { addField, getFields } from "./field"
 import { createId } from "./id"

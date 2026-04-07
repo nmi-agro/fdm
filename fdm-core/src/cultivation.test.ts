@@ -22,7 +22,7 @@ import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import type { FdmType } from "./fdm"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmServerType } from "./fdm-server.types"
 import {
     addFertilizer,
     addFertilizerApplication,

@@ -8,7 +8,7 @@ import {
     revokePrincipal,
     updateRole,
 } from "./authorization"
-import type { PrincipalId, PrincipalWithRoles, Role } from "./authorization.d"
+import type { PrincipalId, PrincipalWithRoles, Role } from "./authorization.types"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -21,7 +21,7 @@ import {
     listPendingInvitationsForPrincipal,
 } from "./invitation"
 import { identifyPrincipal } from "./principal"
-import type { Principal } from "./principal.d"
+import type { Principal } from "./principal.types"
 
 /**
  * Creates a new farm record and assigns the "owner" role to the specified principal.

@@ -1,6 +1,6 @@
 import { Decimal } from "decimal.js"
 import type * as schema from "./db/schema"
-import type { StandardHarvestParameters } from "./harvest-conversion.d"
+import type { StandardHarvestParameters } from "./harvest-conversion.types"
 
 /**
  * Converts harvest parameters from different harvest categories to a standardized format.

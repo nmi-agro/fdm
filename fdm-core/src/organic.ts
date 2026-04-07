@@ -1,11 +1,11 @@
 import { and, eq, gte, inArray, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
 import { createId } from "./id"
-import type { OrganicCertification } from "./organic.d"
+import type { OrganicCertification } from "./organic.types"
 
 /**
  * Regular expression for validating EU TRACES document numbers for Organic Operator Certificates.

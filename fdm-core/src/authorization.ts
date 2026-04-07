@@ -9,7 +9,7 @@ import type {
     ResourceChain,
     ResourceId,
     Role,
-} from "./authorization.d"
+} from "./authorization.types"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"

@@ -17,7 +17,7 @@ import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmServerType } from "./fdm-server.types"
 import { createId } from "./id"
 
 describe("Authorization Functions", () => {

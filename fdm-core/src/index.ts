@@ -23,7 +23,7 @@ export {
     updateUserProfile,
 } from "./authentication"
 export { checkPermission } from "./authorization"
-export type { PrincipalId } from "./authorization.d"
+export type { PrincipalId } from "./authorization.types"
 export {
     getCachedCalculation,
     setCachedCalculation,
@@ -60,7 +60,7 @@ export type {
     Cultivation,
     CultivationCatalogue,
     CultivationPlan,
-} from "./cultivation.d"
+} from "./cultivation.types"
 export {
     acquiringMethodOptions,
     gwlClassesOptions,
@@ -95,7 +95,7 @@ export {
 } from "./farm"
 export type { FdmType } from "./fdm.d"
 export { createFdmServer } from "./fdm-server"
-export type { FdmServerType } from "./fdm-server.d"
+export type { FdmServerType } from "./fdm-server.types"
 export {
     addFertilizer,
     addFertilizerApplication,
@@ -120,7 +120,7 @@ export type {
     FertilizerParameterDescription,
     FertilizerParameterDescriptionItem,
     FertilizerParameters,
-} from "./fertilizer.d"
+} from "./fertilizer.types"
 export {
     addField,
     getField,
@@ -129,7 +129,7 @@ export {
     removeField,
     updateField,
 } from "./field"
-export type { Field } from "./field.d"
+export type { Field } from "./field.types"
 export {
     getGrazingIntention,
     getGrazingIntentions,
@@ -153,7 +153,7 @@ export type {
     HarvestableAnalysis,
     HarvestParameters,
     HarvestParametersDefault,
-} from "./harvest.d"
+} from "./harvest.types"
 export {
     acceptInvitation,
     autoAcceptInvitationsForNewUser,
@@ -173,7 +173,7 @@ export {
     listOrganicCertifications,
     removeOrganicCertification,
 } from "./organic"
-export type { OrganicCertification } from "./organic.d"
+export type { OrganicCertification } from "./organic.types"
 export { lookupPrincipal } from "./principal"
 export {
     addSoilAnalysis,
@@ -191,6 +191,6 @@ export type {
     SoilAnalysis,
     SoilParameterDescription,
     SoilParameters,
-} from "./soil.d"
+} from "./soil.types"
 export type { Timeframe } from "./timeframe.d"
 export { fdmSchema }

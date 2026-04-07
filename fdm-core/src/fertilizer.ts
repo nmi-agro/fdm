@@ -5,7 +5,7 @@ import {
 } from "@nmi-agro/fdm-data"
 import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import { getEnabledFertilizerCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authZSchema from "./db/schema-authz"
@@ -16,7 +16,7 @@ import type {
     FertilizerApplication,
     FertilizerCatalogue,
     FertilizerParameterDescription,
-} from "./fertilizer.d"
+} from "./fertilizer.types"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
 

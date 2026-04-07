@@ -1,7 +1,7 @@
 import { and, count, eq, gt, inArray, or } from "drizzle-orm"
 import isEmail from "validator/lib/isEmail.js"
 import { grantRole, listPrincipalsForResource } from "./authorization"
-import type { Resource, Role } from "./authorization.d"
+import type { Resource, Role } from "./authorization.types"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
