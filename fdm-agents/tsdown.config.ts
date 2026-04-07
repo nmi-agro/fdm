@@ -6,7 +6,7 @@ export default defineConfig({
     outDir: "dist",
     dts: true,
     sourcemap: true,
-    target: "node20",
+    target: "node24",
     clean: true,
     outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
 })

@@ -483,13 +483,13 @@ describe("Authorization Functions", () => {
 
         it("should throw an error if the database transaction fails", async () => {
             // Mock the transaction function to throw an error
-            const mockTx = async () => {
+            const mockTx = async (_txCallback: unknown) => {
                 throw new Error("Database transaction failed")
             }
             const fdmMock = {
                 ...fdm,
                 transaction: mockTx,
-            }
+            } as unknown as typeof fdm
             // Act & Assert
             await expect(
                 updateRole(fdmMock, "farm", "advisor", farm_id, principal_id),
@@ -880,13 +880,13 @@ describe("Authorization Functions", () => {
 
         it("should throw an error if the database transaction fails", async () => {
             // Mock the transaction function to throw an error
-            const mockTx = async () => {
+            const mockTx = async (_txCallback: unknown) => {
                 throw new Error("Database transaction failed")
             }
             const fdmMock = {
                 ...fdm,
                 transaction: mockTx,
-            }
+            } as unknown as typeof fdm
             // Act & Assert
             await expect(
                 getRolesOfPrincipalForResource(
@@ -974,13 +974,13 @@ describe("Authorization Functions", () => {
 
         it("should throw an error if the database transaction fails", async () => {
             // Mock the transaction function to throw an error
-            const mockTx = async () => {
+            const mockTx = async (_txCallback: unknown) => {
                 throw new Error("Database transaction failed")
             }
             const fdmMock = {
                 ...fdm,
                 transaction: mockTx,
-            }
+            } as unknown as typeof fdm
             // Act & Assert
             await expect(
                 listPrincipalsForResource(fdmMock, "farm", farm_id),

@@ -25,6 +25,7 @@ export default defineConfig({
                     console.log("Copied migrations folder to dist/db/migrations")
                 } catch (err) {
                     console.error("Error copying migrations folder:", err)
+                    throw err
                 }
             },
         },
