@@ -47,7 +47,11 @@ const MOCK_PROPERTIES = {
 }
 
 describe("getRvoFieldsFromShapefile", () => {
-    it("should map the data fields correctly", async () => {
+    beforeEach(async () => {
+        vi.resetAllMocks()
+    })
+
+    it("should get RvoField objects from Shapefile", async () => {
         vi.mocked(shpjs.parseShp).mockResolvedValueOnce([createMockGeometry()])
         vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([MOCK_PROPERTIES])
 
@@ -59,36 +63,6 @@ describe("getRvoFieldsFromShapefile", () => {
         )
 
         expect(parsed).toHaveLength(1)
-
-        expect(parsed[0].properties.CropFieldID).toBe("test_b_id_source")
-        expect(parsed[0].properties.CropFieldDesignator).toBe("Field 1")
-        expect(new Date(parsed[0].properties.BeginDate).getTime()).toBe(
-            1704067200000,
-        )
-        expect(new Date(parsed[0].properties.EndDate ?? "").getTime()).toBe(
-            1706659200000,
-        )
-        expect(parsed[0].properties.CropTypeCode).toBe("02")
-        expect(parsed[0].properties.UseTitleCode).toBe(
-            "Geliberaliseerde pacht, 6 jaar of korter",
-        )
-    })
-
-    it("should handle null ending date", async () => {
-        vi.mocked(shpjs.parseShp).mockResolvedValueOnce([createMockGeometry()])
-        vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([
-            { ...MOCK_PROPERTIES, EINDDAT: 253402297199 },
-        ])
-
-        const parsed = await getRvoFieldsFromShapefile(
-            new File([], "shapefile.shp"),
-            undefined,
-            new File([], "shapefile.dbf"),
-            undefined,
-        )
-
-        expect(parsed).toHaveLength(1)
-        expect(parsed[0].properties.EndDate).toBeUndefined()
     })
 
     it("should project field geometry", async () => {
@@ -118,6 +92,54 @@ describe("getRvoFieldsFromShapefile", () => {
         )
     })
 
+    it("should throw an error with invalid geometry", async () => {
+        vi.mocked(shpjs.parseShp).mockRejectedValueOnce(
+            new Error("Failed to parse shp"),
+        )
+
+        vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([])
+
+        await expect(
+            getRvoFieldsFromShapefile(
+                new File([], "invalid.shp"),
+                undefined,
+                new File([], "invalid.dbf"),
+                new File([], "invalid.prj"),
+            ),
+        ).rejects.toThrow("Shapefile is not valid")
+    })
+
+    it("should throw an error with invalid attributes", async () => {
+        vi.mocked(shpjs.parseShp).mockResolvedValueOnce([])
+
+        vi.mocked(shpjs.parseDbf).mockRejectedValueOnce(
+            new Error("Failed to parse shp"),
+        )
+
+        await expect(
+            getRvoFieldsFromShapefile(
+                new File([], "invalid.shp"),
+                undefined,
+                new File([], "invalid.dbf"),
+                new File([], "invalid.prj"),
+            ),
+        ).rejects.toThrow("Shapefile is not valid")
+    })
+
+    it("should throw an error with no fields", async () => {
+        vi.mocked(shpjs.parseShp).mockResolvedValueOnce([])
+        vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([])
+
+        await expect(
+            getRvoFieldsFromShapefile(
+                new File([], "invalid.shp"),
+                undefined,
+                new File([], "invalid.shx"),
+                new File([], "invalid.prj"),
+            ),
+        ).rejects.toThrow("Shapefile does not contain any fields")
+    })
+
     it("should handle multi-polygon geometry", async () => {
         const MOCK_MULTIPOLYGON = geometry("MultiPolygon", [
             [
@@ -136,10 +158,7 @@ describe("getRvoFieldsFromShapefile", () => {
             ],
         ])
         vi.mocked(shpjs.parseShp).mockResolvedValueOnce([MOCK_MULTIPOLYGON])
-        vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([
-            MOCK_PROPERTIES,
-            { ...MOCK_PROPERTIES, NAAM: "Field 2" },
-        ])
+        vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([MOCK_PROPERTIES])
 
         const parsed = await getRvoFieldsFromShapefile(
             new File([], "shapefile.shp"),
@@ -156,10 +175,10 @@ describe("getRvoFieldsFromShapefile", () => {
         )
     })
 
-    it("should throw an error if the shapefile does not match the attributes file", async () => {
+    it("should handle not-supported geometry", async () => {
+        const MOCK_UNSUPPORTED_GEOMETRY = geometry("Point", [0, 0])
         vi.mocked(shpjs.parseShp).mockResolvedValueOnce([
-            createMockGeometry(),
-            createMockGeometry(),
+            MOCK_UNSUPPORTED_GEOMETRY,
         ])
         vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([MOCK_PROPERTIES])
 
@@ -168,9 +187,9 @@ describe("getRvoFieldsFromShapefile", () => {
                 new File([], "shapefile.shp"),
                 undefined,
                 new File([], "shapefile.dbf"),
-                new File(["EPSG:4326"], "shapefile.prj"),
+                undefined,
             ),
-        ).rejects.toThrow("Field does not have the required attributes")
+        ).rejects.toThrow("Shapefile is not valid")
     })
 
     it("should accept array buffers and strings", async () => {
@@ -212,6 +231,16 @@ describe("convertShapefileFeatureIntoRvoField", () => {
         expect(parsed.properties.UseTitleCode).toBe(
             "Geliberaliseerde pacht, 6 jaar of korter",
         )
+    })
+
+    it("should trim NAAM", () => {
+        const parsed = convertShapefileFeatureIntoRvoField({
+            type: "Feature",
+            geometry: createMockGeometry(),
+            properties: { ...MOCK_PROPERTIES, NAAM: "     Test Name  " },
+        })
+
+        expect(parsed.properties.CropFieldDesignator).toBe("Test Name")
     })
 
     it("should handle null ending date", () => {

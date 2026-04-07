@@ -174,18 +174,16 @@ export async function getRvoFieldsFromShapefile(
     dbf_file: FileInterface,
     prj_file: Blob | string | undefined,
 ): Promise<RvoField[]> {
-    let shapefile: FeatureCollection<Polygon, Partial<RvoProperties>>
     const geometries = await parseShapefileGeometry(
         shp_file,
         shx_file,
         prj_file,
     )
     const attributes = await parseShapefileAttributes(dbf_file)
-    try {
-        shapefile = combine([geometries, attributes])
-    } catch (_error) {
-        throw new Error("Shapefile is not valid", { cause: _error })
-    }
+    const shapefile: FeatureCollection<
+        Polygon,
+        Partial<RvoProperties>
+    > = combine([geometries, attributes])
 
     if (shapefile.features.length === 0) {
         throw new Error("Shapefile does not contain any fields")
