@@ -5,7 +5,7 @@ import type { Resource, Role } from "./authorization.types"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
 import { identifyPrincipal } from "./principal"
 

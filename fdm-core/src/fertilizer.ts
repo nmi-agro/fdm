@@ -10,7 +10,7 @@ import { getEnabledFertilizerCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import type {
     Fertilizer,
     FertilizerApplication,

@@ -14,7 +14,7 @@ import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
 
 export const resources: Resource[] = [
@@ -184,7 +184,12 @@ export async function checkPermission(
             await fdm.insert(authZSchema.audit).values({
                 audit_id: createId(),
                 audit_origin: origin,
-                principal_id: principal_id,
+                principal_id:
+                    principal_id.length > 0
+                        ? Array.isArray(principal_id)
+                            ? principal_id[0]
+                            : principal_id
+                        : "unknown",
                 target_resource: resource,
                 target_resource_id: resource_id,
                 granting_resource: granting_resource,
@@ -247,7 +252,7 @@ async function getPermission(
         ? principal_id
         : [principal_id]
 
-    await fdm.transaction(async (tx: FdmType) => {
+    await fdm.transaction(async (tx) => {
         for (const bead of chain) {
             const check = await tx
                 .select({
@@ -325,7 +330,7 @@ export async function getRolesOfPrincipalForResource(
     principal_id: PrincipalId,
 ): Promise<PrincipalWithRoles[]> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -444,7 +449,7 @@ export async function grantRole(
     target_id: string,
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -514,7 +519,7 @@ export async function revokePrincipal(
     target_id: string,
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -569,9 +574,9 @@ export async function updateRole(
     role: Role,
     resource_id: ResourceId,
     target_id: string,
-): Promise<string> {
+): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -645,7 +650,7 @@ export async function listResources(
             : [principal_id]
 
         // Query the resources available
-        const result = await fdm.transaction(async (tx: FdmType) => {
+        const result = await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -739,7 +744,7 @@ export async function listPrincipalsForResource(
     }[]
 > {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")

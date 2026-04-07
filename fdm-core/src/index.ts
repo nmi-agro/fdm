@@ -93,7 +93,7 @@ export {
     updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "./farm"
-export type { FdmType } from "./fdm.d"
+export type { FdmType } from "./fdm.types"
 export { createFdmServer } from "./fdm-server"
 export type { FdmServerType } from "./fdm-server.types"
 export {

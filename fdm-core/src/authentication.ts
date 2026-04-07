@@ -7,7 +7,7 @@ import { customAlphabet } from "nanoid"
 import { generateFromEmail } from "unique-username-generator"
 import * as authNSchema from "./db/schema-authn"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { autoAcceptInvitationsForNewUser } from "./invitation"
 
 export type BetterAuth = FdmAuth

@@ -6,7 +6,7 @@ import {
     withCalculationCache,
 } from "./calculator"
 import { calculationCache, calculationErrors } from "./db/schema-calculator"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
 
 describe("generateCalculationHash", () => {

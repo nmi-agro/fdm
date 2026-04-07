@@ -17,7 +17,7 @@ import {
 } from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
 
 describe("Catalogues", () => {

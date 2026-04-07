@@ -5,7 +5,7 @@ import {
     calculationCache as calculationCacheTable,
     calculationErrors as calculationErrorsTable,
 } from "./db/schema-calculator"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
 
 /**

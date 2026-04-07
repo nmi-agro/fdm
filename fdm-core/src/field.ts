@@ -15,7 +15,7 @@ import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import type { Field } from "./field.types"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
@@ -65,7 +65,7 @@ export async function addField(
             "addField",
         )
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Generate an ID for the field
             const b_id = createId()
 
@@ -369,7 +369,7 @@ export async function updateField(
     b_end?: schema.fieldDiscardingTypeInsert["b_end"],
     b_bufferstrip?: schema.fieldsTypeInsert["b_bufferstrip"],
 ): Promise<Field> {
-    return await fdm.transaction(async (tx: FdmType) => {
+    return await fdm.transaction(async (tx) => {
         try {
             await checkPermission(
                 fdm,
@@ -512,7 +512,7 @@ export async function removeField(
             "removeField",
         )
 
-        await fdm.transaction(async (tx: FdmType) => {
+        await fdm.transaction(async (tx) => {
             // Step 1: Get all cultivation IDs for the given field
             const cultivations = await tx
                 .select({ b_lu: schema.cultivationStarting.b_lu })

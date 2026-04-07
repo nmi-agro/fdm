@@ -23,7 +23,7 @@ import {
     updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "./farm"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.types"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"

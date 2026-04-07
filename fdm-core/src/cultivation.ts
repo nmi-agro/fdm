@@ -23,7 +23,7 @@ import type {
 } from "./cultivation.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import {
     addHarvest,
     getDefaultsForHarvestParameters,
