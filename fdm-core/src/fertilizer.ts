@@ -277,7 +277,7 @@ export async function addFertilizer(
             "addFertilizer",
         )
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Generate an ID for the fertilizer
             const p_id = createId()
 
@@ -422,8 +422,8 @@ export async function getFertilizer(
 
         return {
             ...result,
-            p_type: deriveFertilizerType(result),
-        }
+            p_type: deriveFertilizerType(result as Partial<schema.fertilizersCatalogueTypeSelect>),
+        } as unknown as Fertilizer
     } catch (err) {
         throw handleError(err, "Exception for getFertilizer", {
             p_id,
@@ -683,8 +683,8 @@ export async function getFertilizers(
         return fertilizers.map((f: (typeof fertilizers)[number]) => {
             return {
                 ...f,
-                p_type: deriveFertilizerType(f),
-            }
+                p_type: deriveFertilizerType(f as Partial<schema.fertilizersCatalogueTypeSelect>),
+            } as unknown as Fertilizer
         })
     } catch (err) {
         throw handleError(err, "Exception for getFertilizers", {
@@ -707,7 +707,7 @@ export async function removeFertilizer(
     p_id: schema.fertilizerAcquiringTypeInsert["p_id"],
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await tx
                 .delete(schema.fertilizerAcquiring)
                 .where(eq(schema.fertilizerAcquiring.p_id, p_id))
@@ -877,7 +877,7 @@ export async function removeFertilizerApplication(
             "removeFertilizerApplication",
         )
 
-        return await fdm
+        await fdm
             .delete(schema.fertilizerApplication)
             .where(eq(schema.fertilizerApplication.p_app_id, p_app_id))
     } catch (err) {
@@ -942,7 +942,7 @@ export async function getFertilizerApplication(
             )
             .where(eq(schema.fertilizerApplication.p_app_id, p_app_id))
 
-        return result[0] || null
+        return (result[0] || null) as FertilizerApplication | null
     } catch (err) {
         throw handleError(err, "Exception for getFertilizerApplication", {
             p_app_id,
@@ -1024,7 +1024,7 @@ export async function getFertilizerApplications(
                       )
                     : eq(schema.fertilizerApplication.b_id, b_id),
             )
-            .orderBy(desc(schema.fertilizerApplication.p_app_date))
+            .orderBy(desc(schema.fertilizerApplication.p_app_date)) as FertilizerApplication[]
     } catch (err) {
         throw handleError(err, "Exception for getFertilizerApplications", {
             b_id,

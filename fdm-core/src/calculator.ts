@@ -60,7 +60,7 @@ export function getCachedCalculation<T_Output>(
         .limit(1)
 
     // Process the query result: if a row is found, return its 'result' field, otherwise return null.
-    return result.then((rows: { result: T_Output }[]) =>
+    return result.then((rows) =>
         rows?.length ? (rows[0].result as T_Output) : null,
     )
 }

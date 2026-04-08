@@ -51,7 +51,7 @@ export async function createInvitation(
     expires?: Date,
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const normalizedTarget = target.toLowerCase().trim()
 
             // Check if target is a registered principal (user or organization)
@@ -254,7 +254,7 @@ export async function acceptInvitation(
     user_id: string,
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Atomically claim the invitation: only succeeds if still pending and not expired
             const claimed = await tx
                 .update(authZSchema.invitation)
@@ -414,7 +414,7 @@ export async function declineInvitation(
     user_id: string,
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const invitations = await tx
                 .select()
                 .from(authZSchema.invitation)
@@ -521,7 +521,7 @@ export async function listPendingInvitationsForPrincipal(
     user_id: string,
 ): Promise<authZSchema.invitationTypeSelect[]> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const userRecord = await tx
                 .select({ email: authNSchema.user.email })
                 .from(authNSchema.user)
@@ -608,7 +608,7 @@ export async function autoAcceptInvitationsForNewUser(
     try {
         const normalizedEmail = email.toLowerCase().trim()
 
-        await fdm.transaction(async (tx: FdmType) => {
+        await fdm.transaction(async (tx) => {
             const pendingInvitations = await tx
                 .select()
                 .from(authZSchema.invitation)
@@ -638,7 +638,7 @@ export async function autoAcceptInvitationsForNewUser(
                 }
 
                 try {
-                    await tx.transaction(async (savepointTx: FdmType) => {
+                    await tx.transaction(async (savepointTx) => {
                         await grantRole(
                             savepointTx,
                             inv.resource as Resource,

@@ -341,12 +341,7 @@ export async function getRolesOfPrincipalForResource(
                 ? principal_id
                 : [principal_id]
 
-            const result: {
-                principal_id: string
-                role: Role
-                as_organization_member: boolean
-                as_organization: boolean
-            }[] = await tx
+            const result = (await tx
                 .select({
                     role: authZSchema.role.role,
                     principal_id: authZSchema.role.principal_id,
@@ -356,7 +351,7 @@ export async function getRolesOfPrincipalForResource(
                     as_organization: and(
                         isNotNull(authNSchema.organization.id),
                         inArray(authZSchema.role.principal_id, principal_ids),
-                    ),
+                    )!,
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -392,8 +387,13 @@ export async function getRolesOfPrincipalForResource(
                         ),
                         isNull(authZSchema.role.deleted),
                     ),
-                )
-            const deduped = new Map<
+                )) as unknown as {
+                    principal_id: string
+                    role: Role
+                    as_organization_member: boolean
+                    as_organization: boolean
+                }[]
+            const deduped= new Map<
                 string,
                 {
                     principal_id: string
@@ -848,12 +848,12 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
+            const beads = Object.keys(result[0])
+                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
+                .map((x) => ({
                     resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
+                    resource_id: result[0][x as keyof typeof result[0]] as string,
+                }))
             chain.push(...beads)
         } else if (resource === "cultivation") {
             const result = await fdm
@@ -884,12 +884,12 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
+            const beads = Object.keys(result[0])
+                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
+                .map((x) => ({
                     resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
+                    resource_id: result[0][x as keyof typeof result[0]] as string,
+                }))
             chain.push(...beads)
         } else if (resource === "harvesting") {
             const result = await fdm
@@ -933,12 +933,12 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
+            const beads = Object.keys(result[0])
+                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
+                .map((x) => ({
                     resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
+                    resource_id: result[0][x as keyof typeof result[0]] as string,
+                }))
             chain.push(...beads)
         } else if (resource === "fertilizer_application") {
             const result = await fdm
@@ -963,12 +963,12 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
+            const beads = Object.keys(result[0])
+                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
+                .map((x) => ({
                     resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
+                    resource_id: result[0][x as keyof typeof result[0]] as string,
+                }))
             chain.push(...beads)
         } else if (resource === "soil_analysis") {
             const result = await fdm
@@ -996,12 +996,12 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
+            const beads = Object.keys(result[0])
+                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
+                .map((x) => ({
                     resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
+                    resource_id: result[0][x as keyof typeof result[0]] as string,
+                }))
             chain.push(...beads)
         } else {
             throw new Error("Resource is not known")
@@ -1022,3 +1022,5 @@ async function getResourceChain(
         })
     }
 }
+
+

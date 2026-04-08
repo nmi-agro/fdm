@@ -67,7 +67,7 @@ export async function addSoilAnalysis(
             throw new Error("a_depth_lower must be greater than a_depth_upper")
         }
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const a_id = createId()
             const b_id_sampling = createId()
 
@@ -134,7 +134,7 @@ export async function updateSoilAnalysis(
             "updateSoilAnalysis",
         )
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const updated = new Date()
 
             await tx
@@ -181,7 +181,7 @@ export async function removeSoilAnalysis(
             principal_id,
             "removeSoilAnalysis",
         )
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await tx
                 .delete(schema.soilSampling)
                 .where(eq(schema.soilSampling.a_id, a_id))
@@ -275,7 +275,7 @@ export async function getSoilAnalysis(
             )
             .where(eq(schema.soilAnalysis.a_id, a_id))
 
-        return soilAnalysis[0] || null
+        return (soilAnalysis[0] || null) as SoilAnalysis
     } catch (err) {
         throw handleError(err, "Exception for getSoilAnalysis", { a_id })
     }
@@ -704,7 +704,7 @@ export async function getCurrentSoilData(
         const currentSoilData = parameters
             .map((parameter) => {
                 const analysis = soilAnalyses.find(
-                    (a: Record<string, string | number>) =>
+                    (a) =>
                         a[parameter as keyof typeof a] !== null,
                 )
                 if (!analysis) return null
@@ -719,9 +719,9 @@ export async function getCurrentSoilData(
                     a_source: analysis.a_source,
                 }
             })
-            .filter((item) => item !== null)
+            .filter((item): item is NonNullable<typeof item> => item !== null)
 
-        return currentSoilData
+        return currentSoilData as CurrentSoilData
     } catch (err) {
         throw handleError(err, "Exception for getCurrentSoilData", { b_id })
     }

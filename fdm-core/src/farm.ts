@@ -55,7 +55,7 @@ export async function addFarm(
     b_postalcode_farm: schema.farmsTypeInsert["b_postalcode_farm"],
 ): Promise<schema.farmsTypeInsert["b_id_farm"]> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Generate an ID for the farm
             const b_id_farm = createId()
             // Insert the farm in the db
@@ -110,7 +110,7 @@ export async function getFarm(
     roles: PrincipalWithRoles[]
 }> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -190,7 +190,7 @@ export async function getFarms(
     }[]
 > {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const resources = await listResources(
                 tx,
                 "farm",
@@ -216,9 +216,7 @@ export async function getFarms(
 
             const farms = await Promise.all(
                 results.map(
-                    async (farm: {
-                        b_id_farm: schema.farmsTypeSelect["b_id_farm"]
-                    }) => {
+                    async (farm) => {
                         // Get roles on farm
                         const roles = await getRolesOfPrincipalForResource(
                             tx,
@@ -333,7 +331,7 @@ export async function grantRoleToFarm(
     role: "owner" | "advisor" | "researcher",
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -381,7 +379,7 @@ export async function updateRoleOfPrincipalAtFarm(
     role: "owner" | "advisor" | "researcher",
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -437,7 +435,7 @@ export async function revokePrincipalFromFarm(
     b_id_farm: schema.farmsTypeInsert["b_id_farm"],
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -498,7 +496,7 @@ export async function listPrincipalsForFarm(
     })[]
 > {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -585,7 +583,7 @@ export async function listPrincipalsForFarm(
 
                     principalsMap.set(u.id, {
                         id: u.id,
-                        username: u.username,
+                        username: u.username ?? 'unknown',
                         email: u.email,
                         initials: initials.toUpperCase(),
                         displayUserName: u.displayUserName,
@@ -695,7 +693,8 @@ export async function listPrincipalsForFarm(
             // Deduplicate by principal_id, preferring "active" over "pending"
             const deduped = new Map<
                 string,
-                (typeof principalsDetails)[number]
+                | (typeof principalsDetails)[number]
+                | (typeof pendingDetails)[number]
             >()
             for (const entry of principalsDetails) {
                 deduped.set(entry.id, entry)
@@ -731,7 +730,7 @@ export async function listPendingInvitationsForFarm(
     b_id_farm: string,
 ): Promise<authZSchema.invitationTypeSelect[]> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -781,7 +780,7 @@ export async function listPendingInvitationsForUser(
     })[]
 > {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const pending = await listPendingInvitationsForPrincipal(
                 tx,
                 user_id,
@@ -956,7 +955,7 @@ export async function cancelInvitationForFarm(
     invitation_id: string,
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await getAndValidatePendingFarmInvitation(
                 tx,
                 invitation_id,
@@ -1005,7 +1004,7 @@ export async function updateRoleOfInvitationForFarm(
     role: "owner" | "advisor" | "researcher",
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await getAndValidatePendingFarmInvitation(
                 tx,
                 invitation_id,
@@ -1100,7 +1099,7 @@ export async function removeFarm(
             "removeFarm",
         )
 
-        await fdm.transaction(async (tx: FdmType) => {
+        await fdm.transaction(async (tx) => {
             // Step 1: Get all fields for the given farm
             const fields = await tx
                 .select({ b_id: schema.fieldAcquiring.b_id })
