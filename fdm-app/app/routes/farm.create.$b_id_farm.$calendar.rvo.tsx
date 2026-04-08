@@ -144,7 +144,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             console.error("RVO Import Fout:", e)
             error = await extractErrorMessage(e)
         }
-    } else if (!new URL(request.url).searchParams.has("start_import")) {
+    } else if (!url.searchParams.has("start_import")) {
         return data({
             b_id_farm,
             b_businessid_farm,
