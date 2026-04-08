@@ -3,7 +3,6 @@ import {
     getCultivationCatalogue,
 } from "@nmi-agro/fdm-data"
 import centroid from "@turf/centroid"
-import { deserialize } from "flatgeobuf/lib/mjs/geojson.js"
 import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
 import throttle from "lodash.throttle"
 import type { MapLayerMouseEvent } from "maplibre-gl"
@@ -19,6 +18,7 @@ import {
 } from "react"
 import { Source, useMap } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
+import { deserializeFgb } from "./atlas-fgb"
 import { generateFeatureClass } from "./atlas-functions"
 import { getAvailableFieldsUrl } from "./atlas-url"
 
@@ -235,7 +235,7 @@ export function FieldsSourceAvailable({
                         if (signal.aborted) return
 
                         try {
-                            const iter = deserialize(availableFieldsUrl, bbox)
+                            const iter = deserializeFgb(availableFieldsUrl, bbox)
 
                             let i = 0
                             const featureClass = generateFeatureClass()
