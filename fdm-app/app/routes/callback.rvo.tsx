@@ -50,8 +50,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
             originalError.includes("invalid_grant") ||
             originalError.includes("expired")
         ) {
-            throw new Error(
+            throw new Response(
                 "De eHerkenning sessie is verlopen. Klik op 'Verbinden met RVO' om opnieuw te verbinden.",
+                { status: 401 },
             )
         }
         throw e
