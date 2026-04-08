@@ -10,7 +10,7 @@ vi.mock("@nmi-agro/rvo-connector", () => {
         .mockReturnValue("https://example.com/auth")
     RvoClient.prototype.exchangeAuthCode = vi
         .fn()
-        .mockResolvedValue({ accessToken: "fake-token" })
+        .mockResolvedValue({ access_token: "fake-token" })
     return { RvoClient }
 })
 

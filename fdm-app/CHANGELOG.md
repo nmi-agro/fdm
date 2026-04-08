@@ -1,5 +1,16 @@
 # Changelog fdm-app
 
+## 0.29.4
+
+### Patch Changes
+
+- [#564](https://github.com/nmi-agro/fdm/pull/564) [`585a38a`](https://github.com/nmi-agro/fdm/commit/585a38a9df86ba0e2b8b6a20ac1e3acaff077efd) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix RVO OAuth callback redirect: users were landing on the app root after eHerkenning login instead of the originating RVO page.
+
+- [#564](https://github.com/nmi-agro/fdm/pull/564) [`721b4c0`](https://github.com/nmi-agro/fdm/commit/721b4c0d39975aabc5e4ec7433d3b88069091b29) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix persistent "Not a FlatGeobuf file" error caused by browser HTTP cache poisoning. Retries the FGB fetch with `nocache=true` to self-heal without user action.
+
+- Updated dependencies [[`585a38a`](https://github.com/nmi-agro/fdm/commit/585a38a9df86ba0e2b8b6a20ac1e3acaff077efd)]:
+  - @nmi-agro/fdm-rvo@0.2.1
+
 ## 0.29.3
 
 ### Patch Changes
