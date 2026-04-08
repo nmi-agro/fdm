@@ -77,5 +77,5 @@ export const generateAuthUrl = (rvoClient: RvoClient, state: string) => {
  */
 export const exchangeToken = async (rvoClient: RvoClient, code: string) => {
     const tokenResponse = await rvoClient.exchangeAuthCode(code)
-    return tokenResponse.accessToken
+    return tokenResponse.access_token
 }

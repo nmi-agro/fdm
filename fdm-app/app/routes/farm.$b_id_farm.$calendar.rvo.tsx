@@ -59,7 +59,7 @@ import {
     createConfiguredRvoClient,
     createRvoState,
     getRvoCredentials,
-    verifyRvoState,
+    rvoTokenCookie,
 } from "~/integrations/rvo.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -67,7 +67,6 @@ import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
     compareFields,
-    exchangeToken,
     fetchRvoFields,
     generateAuthUrl,
     processRvoImport,
@@ -89,8 +88,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const session = await getSession(request)
     const url = new URL(request.url)
-    const code = url.searchParams.get("code")
-    const state = url.searchParams.get("state")
+    const rvoAccessToken = await rvoTokenCookie.parse(
+        request.headers.get("Cookie"),
+    )
 
     let rvoImportReviewData: RvoImportReviewItem<any>[] = []
     let error: string | null = null
@@ -109,16 +109,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const farms = await getFarms(fdm, session.principal_id)
 
-    if (code && state) {
+    // rvo_token cookie is set by /callback/rvo after a successful token exchange
+    if (rvoAccessToken) {
         try {
             if (!isRvoConfigured) {
                 throw new Response("RVO client is not configured.", {
                     status: 500,
                 })
             }
-
-            // CSRF Verification
-            await verifyRvoState(request, state, b_id_farm)
 
             if (!farm?.b_businessid_farm) {
                 throw new Response("b_businessid_farm is not available", {
@@ -127,22 +125,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
 
             const rvoClient = createConfiguredRvoClient(rvoCredentials)
-
-            try {
-                await exchangeToken(rvoClient, code)
-            } catch (e: any) {
-                // Handle token exchange errors specifically for refreshes
-                const originalError = e?.message || ""
-                if (
-                    originalError.includes("invalid_grant") ||
-                    originalError.includes("expired")
-                ) {
-                    throw new Error(
-                        "De eHerkenning sessie is verlopen door een paginaverversing of een verouderde link. Klik op 'Verbinden met RVO' om opnieuw te verbinden.",
-                    )
-                }
-                throw e
-            }
+            rvoClient.setAccessToken(rvoAccessToken)
 
             const rvoFields = await fetchRvoFields(
                 rvoClient,
@@ -200,19 +183,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
     }
 
+    const clearedTokenCookie = await rvoTokenCookie.serialize("", { maxAge: 0 })
     const noRvoParcelsFound = !error && rvoImportReviewData.length === 0
-    return data({
-        b_id_farm,
-        rvoImportReviewData,
-        error,
-        showimportButton: noRvoParcelsFound,
-        noRvoParcelsFound,
-        b_businessid_farm,
-        isRvoConfigured,
-        farms,
-        b_name_farm,
-        calendar: yearString,
-    })
+    return data(
+        {
+            b_id_farm,
+            rvoImportReviewData,
+            error,
+            showimportButton: noRvoParcelsFound,
+            noRvoParcelsFound,
+            b_businessid_farm,
+            isRvoConfigured,
+            farms,
+            b_name_farm,
+            calendar: yearString,
+        },
+        { headers: { "Set-Cookie": clearedTokenCookie } },
+    )
 }
 
 export default function RvoImportReviewPage() {
