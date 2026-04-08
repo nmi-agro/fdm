@@ -184,6 +184,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 isRvoConfigured,
                 farms,
                 b_name_farm,
+                calendar: yearString,
             },
             { headers: { "Set-Cookie": clearedTokenCookie } },
         )
