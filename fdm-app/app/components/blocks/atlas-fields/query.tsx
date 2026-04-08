@@ -1,7 +1,7 @@
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon"
 import { point } from "@turf/helpers"
-import { deserialize } from "flatgeobuf/lib/mjs/geojson.js"
 import type { Feature, GeoJsonProperties, Geometry } from "geojson"
+import { deserializeFgb } from "~/components/blocks/atlas/atlas-fgb"
 import { getAvailableFieldsUrl } from "~/components/blocks/atlas/atlas-url"
 
 export async function getFieldByCentroid(
@@ -22,7 +22,7 @@ export async function getFieldByCentroid(
         const availableFieldsUrl = getAvailableFieldsUrl(calendar)
 
         const pt = point([longitude, latitude])
-        const iter = deserialize(availableFieldsUrl, bbox)
+        const iter = deserializeFgb(availableFieldsUrl, bbox)
         for await (const feature of iter) {
             // Verify the centroid is actually inside the polygon
             if (feature.geometry && booleanPointInPolygon(pt, feature as any)) {
