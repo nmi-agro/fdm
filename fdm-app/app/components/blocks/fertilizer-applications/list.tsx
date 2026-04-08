@@ -106,8 +106,10 @@ export function FertilizerApplicationsList({
                                         </ItemTitle>
                                         <ItemDescription>
                                             <p>
-                                                {application.p_app_amount} kg /
-                                                ha
+                                                {
+                                                    application.p_app_amount_display
+                                                }{" "}
+                                                {application.p_app_amount_unit}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 {application.p_app_method

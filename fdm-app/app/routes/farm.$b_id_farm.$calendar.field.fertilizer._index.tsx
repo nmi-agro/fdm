@@ -185,6 +185,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 value: fertilizer.p_id,
                 label: fertilizer.p_name_nl,
                 applicationMethodOptions: applicationMethodOptions,
+                p_app_amount_unit: fertilizer.p_app_amount_unit,
             }
         })
 
@@ -681,7 +682,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         session.principal_id,
                         b_id,
                         validatedData.p_id,
-                        validatedData.p_app_amount,
+                        validatedData.p_app_amount_display,
                         validatedData.p_app_method,
                         validatedData.p_app_date,
                     ),

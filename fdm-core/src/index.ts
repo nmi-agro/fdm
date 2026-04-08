@@ -193,4 +193,5 @@ export type {
     SoilParameters,
 } from "./soil.d"
 export type { Timeframe } from "./timeframe.d"
+export type { AppAmountUnit } from "./unit-conversion"
 export { fdmSchema }

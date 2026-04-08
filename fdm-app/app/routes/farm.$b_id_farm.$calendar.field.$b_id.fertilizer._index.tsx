@@ -127,6 +127,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 value: fertilizer.p_id,
                 label: fertilizer.p_name_nl,
                 applicationMethodOptions: applicationMethodOptions,
+                p_app_amount_unit: fertilizer.p_app_amount_unit,
             }
         })
 
@@ -334,14 +335,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 request,
                 FormSchema,
             )
-            const { p_id, p_app_amount, p_app_date, p_app_method } = formValues
+            const { p_id, p_app_amount_display, p_app_date, p_app_method } =
+                formValues
 
             await addFertilizerApplication(
                 fdm,
                 session.principal_id,
                 b_id,
                 p_id,
-                p_app_amount,
+                p_app_amount_display,
                 p_app_method,
                 p_app_date,
             )

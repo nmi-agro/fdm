@@ -19,7 +19,12 @@ import type {
 } from "./fertilizer.d"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
-import { APP_AMOUNT_UNITS, type AppAmountUnit } from "./unit-conversion"
+import {
+    APP_AMOUNT_UNITS,
+    type AppAmountUnit,
+    fromKgPerHa,
+    toKgPerHa,
+} from "./unit-conversion"
 
 /**
  * Retrieves all fertilizers from the enabled catalogues for a farm.
@@ -755,7 +760,7 @@ export async function addFertilizerApplication(
     principal_id: PrincipalId,
     b_id: schema.fertilizerApplicationTypeInsert["b_id"],
     p_id: schema.fertilizerApplicationTypeInsert["p_id"],
-    p_app_amount: schema.fertilizerApplicationTypeInsert["p_app_amount"],
+    p_app_amount_display: schema.fertilizerApplicationTypeInsert["p_app_amount"],
     p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
     p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
 ): Promise<schema.fertilizerApplicationTypeInsert["p_app_id"]> {
@@ -778,17 +783,18 @@ export async function addFertilizerApplication(
             throw new Error(`Field with b_id ${b_id} does not exist`)
         }
 
-        // Validate that the fertilizer exists
-        const fertilizerExists = await fdm
-            .select()
-            .from(schema.fertilizers)
-            .where(eq(schema.fertilizers.p_id, p_id))
-            .limit(1)
-        if (fertilizerExists.length === 0) {
-            throw new Error(`Fertilizer with p_id ${p_id} does not exist`)
-        }
+        // Validate that the fertilizer exists and get it
+        const fertilizer = await getFertilizer(fdm, p_id)
 
         const p_app_id = createId()
+
+        const p_app_amount =
+            p_app_amount_display !== null && p_app_amount_display !== undefined
+                ? toKgPerHa(
+                      p_app_amount_display,
+                      fertilizer.p_app_amount_unit ?? "kg/ha",
+                  )
+                : null
 
         await fdm.insert(schema.fertilizerApplication).values({
             p_app_id,
@@ -804,7 +810,7 @@ export async function addFertilizerApplication(
         throw handleError(err, "Exception for addFertilizerApplication", {
             b_id,
             p_id,
-            p_app_amount,
+            p_app_amount_display,
             p_app_method,
             p_app_date,
         })
@@ -829,7 +835,7 @@ export async function updateFertilizerApplication(
     principal_id: PrincipalId,
     p_app_id: schema.fertilizerApplicationTypeInsert["p_app_id"],
     p_id: schema.fertilizerApplicationTypeInsert["p_id"],
-    p_app_amount: schema.fertilizerApplicationTypeInsert["p_app_amount"],
+    p_app_amount_display: schema.fertilizerApplicationTypeInsert["p_app_amount"],
     p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
     p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
 ): Promise<void> {
@@ -842,6 +848,14 @@ export async function updateFertilizerApplication(
             principal_id,
             "updateFertilizerApplication",
         )
+        const fertilizer = await getFertilizer(fdm, p_id)
+        const p_app_amount =
+            p_app_amount_display !== null && p_app_amount_display !== undefined
+                ? toKgPerHa(
+                      p_app_amount_display,
+                      fertilizer.p_app_amount_unit ?? "kg/ha",
+                  )
+                : p_app_amount_display
         await fdm
             .update(schema.fertilizerApplication)
             .set({ p_id, p_app_amount, p_app_method, p_app_date })
@@ -850,7 +864,7 @@ export async function updateFertilizerApplication(
         throw handleError(err, "Exception for updateFertilizerApplication", {
             p_app_id,
             p_id,
-            p_app_amount,
+            p_app_amount_display,
             p_app_method,
             p_app_date,
         })
@@ -895,6 +909,37 @@ export async function removeFertilizerApplication(
 }
 
 /**
+ * Extends the given fertilizer application with computed data and removes unknown properties
+ * @param app fertilizer application
+ * @returns the same fertilizer application with p_app_amount_display filled in and properties
+ * that do not belong to FertilizerApplication removed
+ */
+function extendFertilizerApplication<T extends FertilizerApplication>(
+    app: T,
+    p_app_amount_unit: AppAmountUnit,
+    p_density: number | null,
+): FertilizerApplication {
+    return {
+        p_id: app.p_id,
+        p_id_catalogue: app.p_id_catalogue,
+        p_name_nl: app.p_name_nl,
+        p_app_date: app.p_app_date,
+        p_app_method: app.p_app_method,
+        p_app_amount: app.p_app_amount,
+        p_app_amount_display:
+            app.p_app_amount !== null && app.p_app_amount !== undefined
+                ? fromKgPerHa(
+                      app.p_app_amount,
+                      p_app_amount_unit,
+                      p_density,
+                  )?.toNumber()
+                : app.p_app_amount,
+        p_app_amount_unit: p_app_amount_unit,
+        p_app_id: app.p_app_id,
+    }
+}
+
+/**
  * Retrieves a fertilizer application record by its unique identifier.
  *
  * Checks if the principal has read permission before querying the database for the fertilizer
@@ -928,6 +973,9 @@ export async function getFertilizerApplication(
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_name_nl: schema.fertilizersCatalogue.p_name_nl,
                 p_app_amount: schema.fertilizerApplication.p_app_amount,
+                p_app_amount_unit:
+                    schema.fertilizersCatalogue.p_app_amount_unit,
+                p_density: schema.fertilizersCatalogue.p_density,
                 p_app_method: schema.fertilizerApplication.p_app_method,
                 p_app_date: schema.fertilizerApplication.p_app_date,
                 p_app_id: schema.fertilizerApplication.p_app_id,
@@ -949,7 +997,13 @@ export async function getFertilizerApplication(
             )
             .where(eq(schema.fertilizerApplication.p_app_id, p_app_id))
 
-        return result[0] || null
+        return result.length > 0
+            ? extendFertilizerApplication(
+                  result[0],
+                  result[0].p_app_amount_unit,
+                  result[0].p_density,
+              )
+            : null
     } catch (err) {
         throw handleError(err, "Exception for getFertilizerApplication", {
             p_app_id,
@@ -987,12 +1041,15 @@ export async function getFertilizerApplications(
             "getFertilizerApplications",
         )
 
-        return await fdm
+        const results = await fdm
             .select({
                 p_id: schema.fertilizerApplication.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_name_nl: schema.fertilizersCatalogue.p_name_nl,
                 p_app_amount: schema.fertilizerApplication.p_app_amount,
+                p_app_amount_unit:
+                    schema.fertilizersCatalogue.p_app_amount_unit,
+                p_density: schema.fertilizersCatalogue.p_density,
                 p_app_method: schema.fertilizerApplication.p_app_method,
                 p_app_date: schema.fertilizerApplication.p_app_date,
                 p_app_id: schema.fertilizerApplication.p_app_id,
@@ -1032,6 +1089,20 @@ export async function getFertilizerApplications(
                     : eq(schema.fertilizerApplication.b_id, b_id),
             )
             .orderBy(desc(schema.fertilizerApplication.p_app_date))
+
+        return results.map(
+            (
+                result: FertilizerApplication & {
+                    p_app_amount_unit: AppAmountUnit
+                    p_density: number | null
+                },
+            ) =>
+                extendFertilizerApplication(
+                    result,
+                    result.p_app_amount_unit,
+                    result.p_density,
+                ),
+        )
     } catch (err) {
         throw handleError(err, "Exception for getFertilizerApplications", {
             b_id,
@@ -1075,6 +1146,9 @@ export async function getFertilizerApplicationsForFarm(
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_name_nl: schema.fertilizersCatalogue.p_name_nl,
                 p_app_amount: schema.fertilizerApplication.p_app_amount,
+                p_app_amount_unit:
+                    schema.fertilizersCatalogue.p_app_amount_unit,
+                p_density: schema.fertilizersCatalogue.p_density,
                 p_app_method: schema.fertilizerApplication.p_app_method,
                 p_app_date: schema.fertilizerApplication.p_app_date,
                 p_app_id: schema.fertilizerApplication.p_app_id,
@@ -1128,12 +1202,16 @@ export async function getFertilizerApplicationsForFarm(
         for (const row of rows) {
             if (!row.b_id) continue
             // b_id is used for grouping only and is not part of FertilizerApplication
-            const { b_id, ...fertilizerApplication } = row
-            const existing = result.get(b_id)
+            const fertilizerApplication = extendFertilizerApplication(
+                row,
+                row.p_app_amount_unit,
+                row.p_density,
+            )
+            const existing = result.get(row.b_id)
             if (existing) {
                 existing.push(fertilizerApplication as FertilizerApplication)
             } else {
-                result.set(b_id, [
+                result.set(row.b_id, [
                     fertilizerApplication as FertilizerApplication,
                 ])
             }

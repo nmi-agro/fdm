@@ -10,7 +10,7 @@ import type {
 
 export interface ParsedPlanApplication {
     p_id_catalogue: string
-    p_app_amount: number
+    p_app_amount_display: number
     p_app_date: string
     p_app_method?: string | null
     p_app_method_name?: string | null

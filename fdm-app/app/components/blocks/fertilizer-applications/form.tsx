@@ -1,9 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus } from "lucide-react"
 import type { MouseEvent } from "react"
-import { useEffect, useId } from "react"
+import { useEffect, useId, useState } from "react"
 import { Controller } from "react-hook-form"
 import type { Navigation } from "react-router"
 import { Form, useNavigate, useSearchParams } from "react-router"
@@ -41,6 +42,7 @@ export type FertilizerOption = {
     value: string
     label: string
     applicationMethodOptions?: { value: string; label: string }[]
+    p_app_amount_unit: AppAmountUnit
 }
 
 /**
@@ -92,7 +94,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 : fertilizerApplication?.p_app_id,
             p_id: fertilizerApplication?.p_id,
             p_app_method: fertilizerApplication?.p_app_method,
-            p_app_amount: undefined, // Handled through an effect due to blank behavior
+            p_app_amount_display: undefined, // Handled through an effect due to blank behavior
             p_app_date: fertilizerApplication?.p_app_date
                 ? fertilizerApplication.p_app_date
                 : exampleFertilizerApplication
@@ -107,6 +109,17 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     const selectedFertilizer = options.find((option) => option.value === p_id)
     const isSubmitting = navigation.state !== "idle"
 
+    // Conversion factor used to transform the application amount when the user changes the fertilizer
+    // It is also used to show a more helpful application amount example
+    // 1 kg/L fertilizer density is assumed
+    const conversionFactors = {
+        "kg/ha": 1000,
+        "ton/ha": 1,
+        "l/ha": 1000,
+        "m3/ha": 1,
+    } as const
+
+    // If the user switched the fertilizer, clear the application method
     useEffect(() => {
         if (
             p_id &&
@@ -138,6 +151,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
 
     const fieldFertilizerFormStore = useFieldFertilizerFormStore()
 
+    // If the user had a saved fertilizer form and was creating a new fertilizer, fill the form back in
     useEffect(() => {
         if (b_id_farm && b_id_or_b_lu_catalogue) {
             const savedFormValues = fieldFertilizerFormStore.load(
@@ -165,11 +179,43 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     ])
 
     useEffect(() => {
-        const p_app_amount = fertilizerApplication?.p_app_amount
-        if (p_app_amount !== null && typeof p_app_amount !== "undefined") {
-            form.setValue("p_app_amount", p_app_amount)
+        const p_app_amount_display = fertilizerApplication?.p_app_amount_display
+        if (
+            p_app_amount_display !== null &&
+            typeof p_app_amount_display !== "undefined"
+        ) {
+            form.setValue(
+                "p_app_amount_display",
+                Math.round(100 * p_app_amount_display) / 100,
+            )
         }
-    }, [fertilizerApplication?.p_app_amount, form.setValue])
+    }, [p_id, fertilizerApplication?.p_app_amount_display, form.setValue])
+
+    // Transform the application amount based on the changing application units
+    const currentApplicationUnit =
+        options.find((opt) => opt.value === p_id)?.p_app_amount_unit ?? "kg/ha"
+    console.log(currentApplicationUnit)
+    const currentConversionFactor = conversionFactors[currentApplicationUnit]
+    const [lastConversionFactor, setLastConversionFactor] = useState(
+        currentConversionFactor,
+    )
+    useEffect(() => {
+        console.log(form.getValues())
+        const p_app_amount_display = form.getValues().p_app_amount_display
+        if (currentConversionFactor !== lastConversionFactor) {
+            if (p_app_amount_display !== undefined) {
+                form.setValue(
+                    "p_app_amount_display",
+                    Math.round(
+                        (100 *
+                            (p_app_amount_display * currentConversionFactor)) /
+                            lastConversionFactor,
+                    ) / 100,
+                )
+                setLastConversionFactor(currentConversionFactor)
+            }
+        }
+    }, [form, lastConversionFactor, currentConversionFactor])
 
     // Change fertilizer selection if the user has added a new fertilizer
     const new_p_id = searchParams.get("p_id")
@@ -293,21 +339,23 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                             )}
                         />
                         <Controller
-                            name="p_app_amount"
+                            name="p_app_amount_display"
                             render={({ field, fieldState }) => (
                                 <Field
                                     data-invalid={fieldState.invalid}
                                     className="gap-1"
                                 >
-                                    <FieldLabel>Hoeveelheid</FieldLabel>
+                                    <FieldLabel>
+                                        Hoeveelheid ({currentApplicationUnit})
+                                    </FieldLabel>
                                     <Input
                                         {...field}
                                         placeholder={
                                             Number.isFinite(
-                                                exampleFertilizerApplication?.p_app_amount,
+                                                exampleFertilizerApplication?.p_app_amount_display,
                                             )
-                                                ? `Er zijn verschillende waarden ingevuld, bv: ${exampleFertilizerApplication?.p_app_amount} kg / ha`
-                                                : "Bv. 37500 kg / ha"
+                                                ? `Er zijn verschillende waarden ingevuld, bv: ${exampleFertilizerApplication?.p_app_amount_display}`
+                                                : `Bv. ${37.5 * currentConversionFactor} ${currentApplicationUnit}`
                                         }
                                         aria-required="true"
                                         aria-invalid={fieldState.invalid}

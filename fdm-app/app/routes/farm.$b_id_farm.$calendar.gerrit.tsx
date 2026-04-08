@@ -167,7 +167,7 @@ async function computePlanMetrics(
         b_bufferstrip: boolean
         applications: Array<{
             p_id_catalogue: string
-            p_app_amount: number
+            p_app_amount_display: number
             p_app_date: string
             p_app_method?: string | null
         }>
@@ -268,7 +268,7 @@ async function computePlanMetrics(
                             p_id: fert?.p_id ?? app.p_id_catalogue,
                             p_id_catalogue: app.p_id_catalogue,
                             p_name_nl: fert?.p_name_nl ?? null,
-                            p_app_amount: app.p_app_amount,
+                            p_app_amount_display: app.p_app_amount_display,
                             p_app_date: new Date(app.p_app_date),
                             p_app_id: `plan-${field.b_id}-${i}`,
                             p_app_method: app.p_app_method ?? null,
@@ -858,7 +858,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             session.principal_id,
                             field.b_id,
                             fertilizer.p_id,
-                            app.p_app_amount,
+                            app.p_app_amount_display,
                             app.p_app_method,
                             new Date(app.p_app_date),
                         )
