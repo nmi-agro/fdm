@@ -11,6 +11,7 @@ import {
     timestamp,
     uniqueIndex,
 } from "drizzle-orm/pg-core"
+import { APP_AMOUNT_UNITS } from "../unit-conversion"
 import { geometry, numericCasted } from "./schema-custom-types"
 
 // Define postgres schema
@@ -183,6 +184,7 @@ export const applicationMethodEnum = fdmSchema.enum(
     "p_app_method",
     applicationMethodOptions.map((x) => x.value) as [string, ...string[]],
 )
+
 export const fertilizerApplication = fdmSchema.table(
     "fertilizer_applying",
     {
@@ -284,6 +286,10 @@ export const typeRvoEnum = fdmSchema.enum(
     "p_type_rvo",
     typeRvoOptions.map((x) => x.value) as [string, ...string[]],
 )
+export const typeApplicationAmountUnitsEnum = fdmSchema.enum(
+    "p_app_amount_unit",
+    APP_AMOUNT_UNITS.map((x) => x.value) as [string, ...string[]],
+)
 
 // Define fertilizers_catalogue table
 export const fertilizersCatalogue = fdmSchema.table(
@@ -295,6 +301,9 @@ export const fertilizersCatalogue = fdmSchema.table(
         p_name_en: text(),
         p_description: text(),
         p_app_method_options: applicationMethodEnum().array(),
+        p_app_amount_unit: typeApplicationAmountUnitsEnum()
+            .notNull()
+            .default("kg/ha"),
         p_dm: numericCasted(),
         p_density: numericCasted(),
         p_om: numericCasted(),

@@ -1,0 +1,164 @@
+import Decimal from "decimal.js"
+import { describe, expect, it } from "vitest"
+import {
+    type AppAmountUnit,
+    fromKgPerHa,
+    suggestUnitFromRvoCode,
+    toKgPerHa,
+} from "./unit-conversion"
+
+interface ConversionUnitTestCase {
+    input: number
+    unit: AppAmountUnit
+    density?: number | undefined
+
+    output?: number | null
+    throws?: string
+}
+
+describe("toKgPerHa", () => {
+    const tests: ConversionUnitTestCase[] = [
+        { input: 20, unit: "kg/ha", output: 20 },
+        { input: 20, unit: "ton/ha", output: 20000 },
+        { input: 20, unit: "l/ha", density: 0.8, output: 16 },
+        { input: 20, unit: "m3/ha", density: 0.8, output: 16000 },
+        { input: 0, unit: "kg/ha", output: 0 },
+        { input: 0, unit: "ton/ha", output: 0 },
+        { input: 0, unit: "l/ha", density: 0.8, output: 0 },
+        { input: 0, unit: "m3/ha", density: 0.8, output: 0 },
+    ]
+
+    const throwingTests: ConversionUnitTestCase[] = [
+        {
+            input: 20,
+            unit: "l/ha",
+            density: undefined,
+            throws: "Density (p_density) is required for l/ha → kg/ha conversion",
+        },
+        {
+            input: 20,
+            unit: "m3/ha",
+            density: undefined,
+            throws: "Density (p_density) is required for m3/ha → kg/ha conversion",
+        },
+        {
+            input: 20,
+            unit: "ft3/ha" as AppAmountUnit,
+            density: 2,
+            throws: "ft3/ha → kg/ha conversion is not supported",
+        },
+    ]
+
+    for (const { input, unit, density, output } of tests) {
+        it(
+            density !== undefined
+                ? `should convert ${unit} to kg/ha with density ${density} kg/l`
+                : `should convert ${unit} to kg/ha without density specified`,
+            () => {
+                expect(toKgPerHa(input, unit, density).toNumber()).toBe(output)
+            },
+        )
+    }
+
+    for (const { input, unit, density, throws } of throwingTests) {
+        it(
+            density !== undefined
+                ? `should throw exception on conversion from ${unit} to kg/ha`
+                : `should throw exception on conversion from ${unit} to kg/ha without density specified`,
+            () => {
+                expect(() => toKgPerHa(input, unit, density)).toThrow(throws)
+            },
+        )
+    }
+
+    it("should accept input of type Decimal", () => {
+        expect(
+            toKgPerHa(new Decimal(20), "m3/ha", new Decimal(2)).toNumber(),
+        ).toBe(40000)
+    })
+})
+
+describe("fromKgPerHa", () => {
+    const tests: ConversionUnitTestCase[] = [
+        { input: 20, unit: "kg/ha", output: 20 },
+        { input: 20000, unit: "ton/ha", output: 20 },
+        { input: 16, unit: "l/ha", density: 0.8, output: 20 },
+        { input: 16000, unit: "m3/ha", density: 0.8, output: 20 },
+        { input: 0, unit: "kg/ha", output: 0 },
+        { input: 0, unit: "ton/ha", output: 0 },
+        { input: 0, unit: "l/ha", density: 0.8, output: 0 },
+        { input: 0, unit: "m3/ha", density: 0.8, output: 0 },
+        {
+            input: 20,
+            unit: "l/ha",
+            density: undefined,
+            output: null,
+        },
+        {
+            input: 20,
+            unit: "m3/ha",
+            density: undefined,
+            output: null,
+        },
+        {
+            input: 20,
+            unit: "ft3/ha" as AppAmountUnit,
+            density: 2,
+            output: null,
+        },
+    ]
+
+    for (const { input, unit, density, output } of tests) {
+        it(
+            density !== undefined
+                ? `should convert kg/ha to ${unit} with density ${density} kg/l`
+                : `should convert kg/ha to ${unit} without density specified`,
+            () => {
+                const value = fromKgPerHa(input, unit, density)
+                expect(value !== null ? value.toNumber() : null).toBe(output)
+            },
+        )
+    }
+
+    it("should accept input of type Decimal", () => {
+        expect(
+            toKgPerHa(new Decimal(20), "m3/ha", new Decimal(2)).toNumber(),
+        ).toBe(40000)
+    })
+})
+
+interface SuggestionUnitTestCase {
+    rvoCode: string
+    type: string
+    unit: AppAmountUnit
+}
+describe("suggestUnitFromRvoCode", () => {
+    const tests: SuggestionUnitTestCase[] = [
+        { rvoCode: "10", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "11", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "12", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "13", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "14", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "30", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "31", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "32", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "33", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "34", type: "slurry", unit: "m3/ha" },
+        { rvoCode: "115", type: "liquid", unit: "l/ha" },
+        { rvoCode: "116", type: "liquid", unit: "l/ha" },
+        { rvoCode: "120", type: "liquid", unit: "l/ha" },
+        { rvoCode: "107", type: "compost", unit: "ton/ha" },
+        { rvoCode: "108", type: "compost", unit: "ton/ha" },
+        { rvoCode: "109", type: "compost", unit: "ton/ha" },
+        { rvoCode: "111", type: "compost", unit: "ton/ha" },
+        { rvoCode: "112", type: "compost", unit: "ton/ha" },
+        { rvoCode: "113", type: "other", unit: "kg/ha" },
+        { rvoCode: "114", type: "other", unit: "kg/ha" },
+    ]
+
+    for (const { rvoCode, type, unit } of tests) {
+        it(`should suggest ${unit} for ${type} ${rvoCode}`, () => {
+            expect(suggestUnitFromRvoCode(rvoCode)).toBe(unit)
+        })
+    }
+})

@@ -19,6 +19,7 @@ import type {
 } from "./fertilizer.d"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
+import { APP_AMOUNT_UNITS, type AppAmountUnit } from "./unit-conversion"
 
 /**
  * Retrieves all fertilizers from the enabled catalogues for a farm.
@@ -131,6 +132,7 @@ export async function getFertilizersFromCatalogues(
             p_app_method_options: result.p_app_method_options as
                 | ApplicationMethods[]
                 | null,
+            p_app_amount_unit: result.p_app_amount_unit as AppAmountUnit,
             p_type: deriveFertilizerType(result),
         }))
     } catch (err) {
@@ -160,6 +162,7 @@ export async function addFertilizerToCatalogue(
         p_name_en: schema.fertilizersCatalogueTypeInsert["p_name_en"]
         p_description: schema.fertilizersCatalogueTypeInsert["p_description"]
         p_app_method_options: schema.fertilizersCatalogueTypeInsert["p_app_method_options"]
+        p_app_amount_unit: schema.fertilizersCatalogueTypeInsert["p_app_amount_unit"]
         p_dm: schema.fertilizersCatalogueTypeInsert["p_dm"]
         p_density: schema.fertilizersCatalogueTypeInsert["p_density"]
         p_om: schema.fertilizersCatalogueTypeInsert["p_om"]
@@ -344,6 +347,8 @@ export async function getFertilizer(
                 p_description: schema.fertilizersCatalogue.p_description,
                 p_app_method_options:
                     schema.fertilizersCatalogue.p_app_method_options,
+                p_app_amount_unit:
+                    schema.fertilizersCatalogue.p_app_amount_unit,
                 p_acquiring_amount:
                     schema.fertilizerAcquiring.p_acquiring_amount,
                 p_acquiring_date: schema.fertilizerAcquiring.p_acquiring_date,
@@ -609,6 +614,8 @@ export async function getFertilizers(
                 p_description: schema.fertilizersCatalogue.p_description,
                 p_app_method_options:
                     schema.fertilizersCatalogue.p_app_method_options,
+                p_app_amount_unit:
+                    schema.fertilizersCatalogue.p_app_amount_unit,
                 p_acquiring_amount:
                     schema.fertilizerAcquiring.p_acquiring_amount,
                 p_acquiring_date: schema.fertilizerAcquiring.p_acquiring_date,
@@ -1221,6 +1228,15 @@ export function getFertilizerParametersDescription(
             category: "general",
             description: "Mestcode volgens RVO",
             options: schema.typeRvoOptions,
+        },
+        {
+            parameter: "p_app_amount_unit",
+            unit: "",
+            name: "Toedieningshoeveelheidsunit",
+            type: "enum",
+            category: "general",
+            description: "Toedieningsmethodes mogelijk voor deze meststof",
+            options: APP_AMOUNT_UNITS,
         },
         {
             parameter: "p_app_method_options",

@@ -11,6 +11,7 @@ import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm"
 import type { FdmServerType } from "./fdm-server.d"
+import { suggestUnitFromRvoCode } from "./unit-conversion"
 
 /**
  * Gets all enabled fertilizer catalogues for a farm.
@@ -516,9 +517,20 @@ async function syncFertilizerCatalogue(fdm: FdmType) {
                         existing[0].hash === undefined ||
                         existing[0].hash !== hash
                     ) {
+                        const values = {
+                            ...item,
+                            p_app_amount_unit:
+                                item.p_app_amount_unit ??
+                                (item.p_type_rvo
+                                    ? suggestUnitFromRvoCode(item.p_type_rvo)
+                                    : undefined),
+                            hash: hash,
+                            updated: new Date(),
+                        }
+
                         await tx
                             .update(schema.fertilizersCatalogue)
-                            .set({ ...item, hash: hash, updated: new Date() })
+                            .set(values)
                             .where(
                                 eq(
                                     schema.fertilizersCatalogue.p_id_catalogue,

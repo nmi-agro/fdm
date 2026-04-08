@@ -108,6 +108,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: ["injection", "incorporation"],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -188,6 +189,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -266,6 +268,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -375,6 +378,7 @@ describe("Fertilizer Data Model", () => {
                             randomAppMethod(),
                         ]),
                     ],
+                    p_app_amount_unit: undefined,
                 })
                 return fert as Parameters<typeof addFertilizerToCatalogue>[3]
             }
@@ -550,6 +554,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -650,6 +655,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en: "Test Fertilizer (EN)",
                     p_description: "This is a test fertilizer",
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -867,6 +873,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en: "Test Fertilizer (EN) 2",
                     p_description: "This is a test fertilizer 2",
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -939,6 +946,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en: "RVO-mapped fertilizer (EN)",
                     p_description: "This is a test fertilizer for RVO mapping",
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 100,
                     p_density: 1,
                     p_om: 0,
@@ -1071,6 +1079,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -1368,7 +1377,7 @@ describe("Fertilizer Data Model", () => {
 describe("getFertilizerParametersDescription", () => {
     it("should return the correct fertilizer parameter descriptions for NL-nl locale", () => {
         const descriptions = getFertilizerParametersDescription("NL-nl")
-        expect(descriptions).toHaveLength(24)
+        expect(descriptions).toHaveLength(25)
         for (const description of descriptions) {
             expect(description).toHaveProperty("parameter")
             expect(description).toHaveProperty("unit")
@@ -1393,7 +1402,7 @@ describe("getFertilizerParametersDescription", () => {
 
     it("should return the correct fertilizer parameter descriptions for default locale", () => {
         const descriptions = getFertilizerParametersDescription()
-        expect(descriptions).toHaveLength(24)
+        expect(descriptions).toHaveLength(25)
         for (const description of descriptions) {
             expect(description).toHaveProperty("parameter")
             expect(description).toHaveProperty("unit")
@@ -1434,6 +1443,7 @@ describe("getFertilizerApplicationsForFarm", () => {
         p_name_en: "Test Fertilizer EN",
         p_description: "desc",
         p_app_method_options: [] as [],
+        p_app_amount_unit: undefined,
         p_dm: 37,
         p_density: 20,
         p_om: 20,

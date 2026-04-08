@@ -53,6 +53,7 @@ const baseFertilizer: Fertilizer = {
     p_name_en: null,
     p_description: null,
     p_app_method_options: null,
+    p_app_amount_unit: "kg/ha",
     p_app_amount: null,
     p_date_acquiring: null,
     p_picking_date: null,

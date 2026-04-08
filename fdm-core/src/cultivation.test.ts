@@ -1582,6 +1582,7 @@ describe("Cultivation Data Model", () => {
                 b_id_farm,
                 {
                     p_app_method_options: null,
+                    p_app_amount_unit: undefined,
                     p_name_nl,
                     p_name_en,
                     p_description,

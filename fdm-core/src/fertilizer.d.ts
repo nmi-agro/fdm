@@ -1,5 +1,6 @@
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import type * as schema from "./db/schema"
+import type { AppAmountUnit } from "./unit-conversion"
 
 export interface FertilizerCatalogue {
     p_id_catalogue: string
@@ -8,6 +9,7 @@ export interface FertilizerCatalogue {
     p_name_en: string | null
     p_description: string | null
     p_app_method_options: ApplicationMethods[] | null
+    p_app_amount_unit: AppAmountUnit | undefined
     p_dm: number | null
     p_density: number | null
     p_om: number | null
@@ -82,6 +84,7 @@ export type FertilizerParameters =
     | "p_name_en"
     | "p_description"
     | "p_app_method_options"
+    | "p_app_amount_unit"
     | "p_dm"
     | "p_density"
     | "p_om"
