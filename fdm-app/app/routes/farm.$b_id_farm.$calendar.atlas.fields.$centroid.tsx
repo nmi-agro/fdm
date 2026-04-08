@@ -19,7 +19,9 @@ import {
     useLocation,
 } from "react-router"
 import { CarbonSequestrationCard } from "~/components/blocks/atlas-fields/carbon-sequestration"
-import { CultivationHistoryCard } from "~/components/blocks/atlas-fields/cultivation-history"
+import type { AdvancedCultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
+import type { EventType } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
+import { CultivationHistoryToggle } from "~/components/blocks/atlas-fields/cultivation-history-toggle"
 import { FieldDetailsCard } from "~/components/blocks/atlas-fields/field-details"
 import { GroundwaterCard } from "~/components/blocks/atlas-fields/groundwater"
 import { FieldDetailsAtlasLayout } from "~/components/blocks/atlas-fields/layout"
@@ -85,6 +87,97 @@ export async function loader({ params }: LoaderFunctionArgs) {
     } catch (error) {
         throw handleLoaderError(error)
     }
+}
+
+const SIGNIFICANCE_THRESHOLD_PCT = 0.01
+const SIGNIFICANCE_THRESHOLD_HA = 0.01
+
+function buildAdvancedCultivationHistory(
+    rawAdvanced:
+        | {
+              year: number
+              fields: {
+                  b_lu_brp: number
+                  b_area: number
+                  b_area_overlap: number
+              }[]
+          }[]
+        | undefined,
+    catalogueMap: Map<string, { b_lu_name: string; b_lu_croprotation?: string }>,
+): AdvancedCultivationHistory | null {
+    if (!rawAdvanced || rawAdvanced.length === 0) return null
+
+    const sortedYears = [...rawAdvanced].sort((a, b) => b.year - a.year)
+
+    // Derive selected field area from most recent year total overlap
+    const selectedFieldAreaHa = sortedYears[0].fields.reduce(
+        (sum, f) => sum + f.b_area_overlap,
+        0,
+    )
+    if (selectedFieldAreaHa <= 0) return null
+
+    const enrichedHistory = sortedYears.map((yearEntry) => {
+        const fields = yearEntry.fields.map((field) => {
+            const b_lu_catalogue = `nl_${field.b_lu_brp}`
+            const catalogueItem = catalogueMap.get(b_lu_catalogue)
+            return {
+                b_lu_brp: field.b_lu_brp,
+                b_lu_catalogue,
+                b_lu_name: catalogueItem?.b_lu_name ?? "Onbekend gewas",
+                b_lu_croprotation:
+                    catalogueItem?.b_lu_croprotation ?? "other",
+                b_area: field.b_area,
+                b_area_overlap: field.b_area_overlap,
+                overlap_pct_of_selected:
+                    field.b_area_overlap / selectedFieldAreaHa,
+                overlap_pct_of_historical:
+                    field.b_area > 0
+                        ? field.b_area_overlap / field.b_area
+                        : 0,
+            }
+        })
+        const total_overlap_pct = fields.reduce(
+            (sum, f) => sum + f.overlap_pct_of_selected,
+            0,
+        )
+        return { year: yearEntry.year, fields, total_overlap_pct }
+    })
+
+    const history = enrichedHistory.map((yearEntry, index) => {
+        if (index === enrichedHistory.length - 1) {
+            return { ...yearEntry, event_type: "stable" as EventType }
+        }
+        const olderYear = enrichedHistory[index + 1]
+        const sigCurrent = yearEntry.fields.filter(
+            (f) => f.overlap_pct_of_selected >= SIGNIFICANCE_THRESHOLD_PCT,
+        )
+        const sigOlder = olderYear.fields.filter(
+            (f) => f.overlap_pct_of_selected >= SIGNIFICANCE_THRESHOLD_PCT,
+        )
+
+        let event_type: EventType = "stable"
+        if (sigCurrent.length === 1 && sigOlder.length > 1) {
+            event_type = "merge"
+        } else if (sigCurrent.length > 1 && sigOlder.length === 1) {
+            event_type = "split"
+        } else if ((1 - olderYear.total_overlap_pct) * selectedFieldAreaHa > SIGNIFICANCE_THRESHOLD_HA) {
+            // Significant portion of current field was not part of any field in the older year
+            event_type = "expansion"
+        } else if (sigOlder.length === 1 && sigCurrent.length === 1) {
+            const primaryOlderField = sigOlder[0]
+            // If the historical field was notably larger than the part that survived into the current field
+            if (
+                primaryOlderField.b_area > primaryOlderField.b_area_overlap + SIGNIFICANCE_THRESHOLD_HA &&
+                primaryOlderField.overlap_pct_of_selected > 0.8
+            ) {
+                event_type = "shrinkage"
+            }
+        }
+
+        return { ...yearEntry, event_type }
+    })
+
+    return { selected_field_area_ha: selectedFieldAreaHa, history }
 }
 
 async function loadAsyncData(
@@ -153,8 +246,14 @@ async function loadAsyncData(
             // Sort by descending year
             .sort((c1, c2) => c2.year - c1.year)
 
+        const advancedCultivationHistory = buildAdvancedCultivationHistory(
+            estimates.cultivations_advanced,
+            cultivationCatalogueMap,
+        )
+
         return {
             cultivationHistory,
+            advancedCultivationHistory,
             groundwaterEstimates: {
                 b_gwl_class: estimates.b_gwl_class,
                 b_gwl_ghg: estimates.b_gwl_ghg,
@@ -236,6 +335,7 @@ function FieldDetailsAtlas({
     const {
         fieldDetails,
         cultivationHistory,
+        advancedCultivationHistory,
         groundwaterEstimates,
         soilParameterEstimates,
         carbonEstimates,
@@ -260,8 +360,11 @@ function FieldDetailsAtlas({
         <>
             <FieldDetailsAtlasLayout
                 cultivationHistory={
-                    <CultivationHistoryCard
+                    <CultivationHistoryToggle
                         cultivationHistory={cultivationHistory}
+                        advancedCultivationHistory={
+                            advancedCultivationHistory ?? null
+                        }
                     />
                 }
                 fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}

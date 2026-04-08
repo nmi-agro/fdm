@@ -82,6 +82,14 @@ export async function getSoilParameterEstimates(
     b_c_st03_potential: number
     b_c_delta: number
     cultivations: { year: number; b_lu_brp: number }[]
+    cultivations_advanced?: {
+        year: number
+        fields: {
+            b_lu_brp: number
+            b_area: number
+            b_area_overlap: number
+        }[]
+    }[]
     a_source: string
     a_depth_upper: number
     a_depth_lower: number | undefined
@@ -178,6 +186,20 @@ const soilParameterEstimatesSchema = z.object({
     b_c_st03_potential: z.number(),
     b_c_delta: z.number(),
     cultivations: z.array(z.object({ year: z.number(), b_lu_brp: z.number() })),
+    cultivations_advanced: z
+        .array(
+            z.object({
+                year: z.number(),
+                fields: z.array(
+                    z.object({
+                        b_lu_brp: z.number(),
+                        b_area: z.number(),
+                        b_area_overlap: z.number(),
+                    }),
+                ),
+            }),
+        )
+        .optional(),
     a_source: z.string(),
 })
 
