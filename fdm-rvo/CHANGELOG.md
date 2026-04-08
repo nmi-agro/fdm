@@ -1,5 +1,11 @@
 # @nmi-agro/fdm-rvo
 
+## 0.2.1
+
+### Patch Changes
+
+- [#564](https://github.com/nmi-agro/fdm/pull/564) [`585a38a`](https://github.com/nmi-agro/fdm/commit/585a38a9df86ba0e2b8b6a20ac1e3acaff077efd) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix `exchangeToken` to return `tokenResponse.access_token` (was returning `unknown` via the wrong camelCase property)
+
 ## 0.2.0
 
 ### Minor Changes
