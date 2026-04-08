@@ -145,17 +145,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             error = await extractErrorMessage(e)
         }
     } else if (!url.searchParams.has("start_import")) {
-        return data({
-            b_id_farm,
-            b_businessid_farm,
-            calendar: yearString,
-            rvoImportReviewData: [],
-            error: null,
-            showImportButton: true,
-            noRvoParcelsFound: false,
-            isRvoConfigured,
-            b_name_farm,
+        const clearedTokenCookie = await rvoTokenCookie.serialize("", {
+            maxAge: 0,
         })
+        return data(
+            {
+                b_id_farm,
+                b_businessid_farm,
+                calendar: yearString,
+                rvoImportReviewData: [],
+                error: null,
+                showImportButton: true,
+                noRvoParcelsFound: false,
+                isRvoConfigured,
+                b_name_farm,
+            },
+            { headers: { "Set-Cookie": clearedTokenCookie } },
+        )
     }
 
     const clearedTokenCookie = await rvoTokenCookie.serialize("", { maxAge: 0 })
