@@ -516,7 +516,7 @@ describe("Catalogues", () => {
                 select: () => {
                     throw new Error("Database error")
                 },
-            } as unknown as FdmType
+            }
 
             try {
                 await getEnabledCultivationCatalogues(
@@ -821,9 +821,9 @@ describe("Catalogues syncing", () => {
         expect(catalogueWithVarietyOptions.length).toBeGreaterThan(0)
         const options = catalogueWithVarietyOptions[0].b_lu_variety_options
         expect(Array.isArray(options)).toBe(true)
-        expect(options!.length).toBeGreaterThan(0)
+        expect(options.length).toBeGreaterThan(0)
         expect(
-            options!.every(
+            options.every(
                 (s: string) => typeof s === "string" && s.trim().length > 0,
             ),
         ).toBe(true)

@@ -581,7 +581,7 @@ export async function getCultivation(
             throw new Error("Cultivation does not exist")
         }
 
-        return cultivation[0] as Cultivation
+        return cultivation[0]
     } catch (err) {
         throw handleError(err, "Exception for getCultivation", { b_lu })
     }
@@ -672,7 +672,7 @@ export async function getCultivations(
                 asc(schema.cultivationsCatalogue.b_lu_name),
             )
 
-        return cultivations as Cultivation[]
+        return cultivations
     } catch (err) {
         throw handleError(err, "Exception for getCultivations", { b_id })
     }
@@ -769,9 +769,9 @@ export async function getCultivationsForFarm(
             if (!row.b_id) continue
             const existing = result.get(row.b_id)
             if (existing) {
-                existing.push(row as Cultivation)
+                existing.push(row)
             } else {
-                result.set(row.b_id, [row as Cultivation])
+                result.set(row.b_id, [row])
             }
         }
         return result
@@ -903,7 +903,6 @@ export async function getCultivationPlan(
                 p_app_date: schema.fertilizerApplication.p_app_date,
                 p_app_id: schema.fertilizerApplication.p_app_id,
                 b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
-                b_id_harvestable: schema.harvestables.b_id_harvestable,
                 b_lu_harvest_date:
                     schema.cultivationHarvesting.b_lu_harvest_date,
                 b_lu_croprotation:
@@ -1050,11 +1049,11 @@ export async function getCultivationPlan(
                         b_lu_end: curr.b_lu_end,
                         m_cropresidue: curr.m_cropresidue,
                         fields: [],
-                    } as unknown as CultivationPlan
+                    }
                     acc.push(existingCultivation)
                 }
 
-                let existingField = existingCultivation!.fields.find(
+                let existingField = existingCultivation.fields.find(
                     (field) => field.b_id === curr.b_id,
                 )
 
@@ -1067,28 +1066,28 @@ export async function getCultivationPlan(
                         b_bufferstrip: curr.b_bufferstrip,
                         fertilizer_applications: [],
                         harvests: [],
-                    } as unknown as CultivationPlan["fields"][0]
-                    existingCultivation!.fields.push(existingField)
+                    }
+                    existingCultivation.fields.push(existingField)
                     if (curr.b_area) {
-                        existingCultivation!.b_area += curr.b_area
+                        existingCultivation.b_area += curr.b_area
                     }
                 }
 
                 if (curr.p_app_id) {
                     // Only add if it's a fertilizer application
-                    existingField!.fertilizer_applications.push({
+                    existingField.fertilizer_applications.push({
                         p_id_catalogue: curr.p_id_catalogue,
                         p_name_nl: curr.p_name_nl,
                         p_app_amount: curr.p_app_amount,
                         p_app_method: curr.p_app_method,
                         p_app_date: curr.p_app_date,
                         p_app_id: curr.p_app_id,
-                    } as unknown as CultivationPlan["fields"][0]["fertilizer_applications"][0])
+                    })
                 }
 
                 if (curr.b_id_harvesting) {
                     // Only add if it's a harvest
-                    existingField!.harvests.push({
+                    existingField.harvests.push({
                         b_id_harvesting: curr.b_id_harvesting,
                         b_lu_harvest_date: curr.b_lu_harvest_date,
                         harvestable: {
@@ -1112,7 +1111,7 @@ export async function getCultivationPlan(
                                 },
                             ],
                         },
-                    } as unknown as CultivationPlan["fields"][0]["harvests"][0])
+                    })
                 }
                 return acc
             },
@@ -1366,7 +1365,7 @@ export async function updateCultivation(
 
                     if (result.length > 0) {
                         if (
-                            (result[0].b_lu_start?.getTime() ?? 0) >= b_lu_end.getTime()
+                            result[0].b_lu_start.getTime() >= b_lu_end.getTime()
                         ) {
                             throw new Error(
                                 "Terminate date must be after sowing date",

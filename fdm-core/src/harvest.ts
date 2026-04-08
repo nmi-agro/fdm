@@ -324,7 +324,7 @@ export async function getHarvests(
 
         // Get details of each harvest
         const result = await Promise.all(
-            harvests.map(async (harvest) => {
+            harvests.map(async (harvest: Harvest) => {
                 const harvestDetails = getHarvestSimplified(
                     fdm,
                     harvest.b_id_harvesting,
@@ -1045,6 +1045,8 @@ async function getHarvestSimplified(
         )
         .limit(1)
 
+    harvest.harvestable = harvestables[0]
+
     // Get properties of harvestable analyses for this harvesting
     const harvestableAnalyses = await fdm
         .select({
@@ -1083,18 +1085,14 @@ async function getHarvestSimplified(
         .where(
             eq(
                 schema.harvestableSampling.b_id_harvestable,
-                harvestables[0]!.b_id_harvestable,
+                harvest.harvestable.b_id_harvestable,
             ),
         )
         .limit(1)
 
-    return {
-        ...harvest,
-        harvestable: {
-            b_id_harvestable: harvestables[0]!.b_id_harvestable,
-            harvestable_analyses: harvestableAnalyses,
-        },
-    } as unknown as Harvest
+    harvest.harvestable.harvestable_analyses = harvestableAnalyses
+
+    return harvest
 }
 
 /**

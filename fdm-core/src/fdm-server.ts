@@ -27,7 +27,7 @@ export function createFdmServer(
             schema: schema,
         })
 
-        return db as unknown as FdmServerType
+        return db
     } catch (err) {
         throw handleError(err, "Exception for createFdmServer")
     }

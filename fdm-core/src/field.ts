@@ -216,11 +216,11 @@ export async function getField(
             .limit(1)
 
         // Process the centroid string into a tuple
-        const { b_centroid_x, b_centroid_y, ...fieldData } = field[0]
-        return {
-            ...fieldData,
-            b_centroid: [b_centroid_x, b_centroid_y] as [number, number],
-        } as Field
+        field[0].b_centroid = [field[0].b_centroid_x, field[0].b_centroid_y]
+        field[0].b_centroid_x = undefined
+        field[0].b_centroid_y = undefined
+
+        return field[0]
     } catch (err) {
         throw handleError(err, "Exception for getField", { b_id })
     }
@@ -325,10 +325,13 @@ export async function getFields(
             .orderBy(desc(sql<number>`ST_Area(b_geometry::geography)`))
 
         // Process the centroids into a tuple
-        return fields.map(({ b_centroid_x, b_centroid_y, ...fieldData }) => ({
-            ...fieldData,
-            b_centroid: [b_centroid_x, b_centroid_y] as [number, number],
-        })) as Field[]
+        for (const field of fields) {
+            field.b_centroid = [field.b_centroid_x, field.b_centroid_y]
+            field.b_centroid_x = undefined
+            field.b_centroid_y = undefined
+        }
+
+        return fields
     } catch (err) {
         throw handleError(err, "Exception for getFields", { b_id_farm })
     }
