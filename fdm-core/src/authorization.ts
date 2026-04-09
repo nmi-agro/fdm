@@ -185,11 +185,10 @@ export async function checkPermission(
                 audit_id: createId(),
                 audit_origin: origin,
                 principal_id:
-                    principal_id.length > 0
-                        ? Array.isArray(principal_id)
-                            ? principal_id[0]
-                            : principal_id
-                        : "unknown",
+                    permission?.matched_principal_id ||
+                    (Array.isArray(principal_id)
+                        ? principal_id.join(",") || "unknown"
+                        : principal_id || "unknown"),
                 target_resource: resource,
                 target_resource_id: resource_id,
                 granting_resource: granting_resource,
@@ -240,10 +239,12 @@ async function getPermission(
 ): Promise<{
     granting_resource: string
     granting_resource_id: string
+    matched_principal_id: string
 } | null> {
     let isAllowed = false
     let granting_resource = ""
     let granting_resource_id = ""
+    let matched_principal_id = ""
     const roles = getRolesForAction(action, resource)
     const chain = await getResourceChain(fdm, resource, resource_id)
 
@@ -257,6 +258,8 @@ async function getPermission(
             const check = await tx
                 .select({
                     resource_id: authZSchema.role.resource_id,
+                    role_principal_id: authZSchema.role.principal_id,
+                    member_user_id: authNSchema.member.userId,
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -293,12 +296,18 @@ async function getPermission(
                 isAllowed = true
                 granting_resource = bead.resource
                 granting_resource_id = bead.resource_id
+                // Prefer the user ID when access was granted via org membership;
+                // otherwise use the role's principal_id (a direct match).
+                matched_principal_id =
+                    check[0].member_user_id ?? check[0].role_principal_id
                 break
             }
         }
     })
 
-    return isAllowed ? { granting_resource, granting_resource_id } : null
+    return isAllowed
+        ? { granting_resource, granting_resource_id, matched_principal_id }
+        : null
 }
 
 /**
