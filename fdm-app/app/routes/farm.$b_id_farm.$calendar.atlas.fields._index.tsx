@@ -1,5 +1,5 @@
 import { getFields } from "@nmi-agro/fdm-core"
-import { simplify } from "@turf/turf"
+import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import maplibregl from "maplibre-gl"
 import { useCallback, useEffect, useRef, useState } from "react"

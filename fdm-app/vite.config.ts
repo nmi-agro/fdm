@@ -79,12 +79,32 @@ export default defineConfig((env) => {
             target: "baseline-widely-available",
         },
         optimizeDeps: {
+            // Keep workspace packages excluded so Vite resolves them from source
+            // via tsconfig path aliases — this enables live HMR without restarting
+            // fdm-app when changes are made in fdm-core, fdm-calculator, etc.
             exclude: [
                 "@nmi-agro/fdm-core",
                 "@nmi-agro/fdm-data",
                 "@nmi-agro/fdm-calculator",
                 "@nmi-agro/fdm-rvo",
                 "@nmi-agro/fdm-agents",
+            ],
+            // Pre-bundle heavy transitive deps that workspace packages pull in,
+            // so they are processed once rather than on every cold dev start.
+            // These need to be listed explicitly because the workspace packages
+            // above are excluded from Vite's dep scanning.
+            // Only include browser-compatible packages resolvable from fdm-app.
+            include: [
+                // From fdm-app direct deps
+                "maplibre-gl",
+                "recharts",
+                "@react-pdf/renderer",
+                // From fdm-core / fdm-calculator (browser-compatible)
+                "drizzle-orm",
+                "better-auth",
+                "date-fns",
+                "nanoid",
+                "validator",
             ],
         },
         resolve: {

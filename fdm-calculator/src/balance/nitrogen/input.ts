@@ -56,7 +56,7 @@ async function collectInputForNitrogenBalanceForFarm(
 ): Promise<FieldInput[]> {
     try {
         // Collect the fields for the farm
-        return await fdm.transaction(async (tx: typeof fdm) => {
+        return await fdm.transaction(async (tx) => {
             let farmFields: Awaited<ReturnType<typeof getFields>>
             if (b_id) {
                 const field = await getField(tx, principal_id, b_id)
@@ -342,7 +342,12 @@ export async function collectInputForNitrogenBalance(
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<NitrogenBalanceInput> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
+            if (!timeframe.start || !timeframe.end) {
+                throw new Error(
+                    "Timeframe start and end must be provided for nitrogen balance calculation",
+                )
+            }
             const cultivationDetails = await getCultivationsFromCatalogue(
                 tx,
                 principal_id,
@@ -365,7 +370,10 @@ export async function collectInputForNitrogenBalance(
                 fields,
                 fertilizerDetails,
                 cultivationDetails,
-                timeFrame: timeframe,
+                timeFrame: {
+                    start: timeframe.start,
+                    end: timeframe.end,
+                },
             }
         })
     } catch (error) {

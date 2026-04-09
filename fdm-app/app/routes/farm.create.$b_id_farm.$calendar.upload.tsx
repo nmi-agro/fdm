@@ -7,7 +7,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
-import * as turf from "@turf/turf"
+import { polygon } from "@turf/helpers"
 import type { Feature, FeatureCollection, Polygon } from "geojson"
 import proj4 from "proj4"
 import type {
@@ -229,7 +229,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 )
             }
 
-            const b_geometry = turf.polygon(geometry.coordinates)
+            const b_geometry = polygon(geometry.coordinates)
             const trimmedNaam = typeof NAAM === "string" ? NAAM.trim() : ""
             const b_name = trimmedNaam || `Naamloos perceel ${++unnamedCount}`
             const b_start = new Date(BEGINDAT)
