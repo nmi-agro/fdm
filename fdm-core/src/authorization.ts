@@ -779,7 +779,7 @@ export async function listPrincipalsForResource(
 ): Promise<
     {
         principal_id: string
-        role: string
+        role: Role
     }[]
 > {
     try {
@@ -789,7 +789,7 @@ export async function listPrincipalsForResource(
                 throw new Error("Invalid resource")
             }
 
-            return await tx
+            const rows = await tx
                 .select({
                     principal_id: authZSchema.role.principal_id,
                     role: authZSchema.role.role,
@@ -802,6 +802,18 @@ export async function listPrincipalsForResource(
                         isNull(authZSchema.role.deleted),
                     ),
                 )
+
+            return rows.map((row) => {
+                if (
+                    typeof row.principal_id !== "string" ||
+                    !(roles as readonly string[]).includes(row.role)
+                ) {
+                    throw new Error(
+                        "Unexpected row shape in listPrincipalsForResource",
+                    )
+                }
+                return row as { principal_id: string; role: Role }
+            })
         })
     } catch (err) {
         throw handleError(err, "Exception for listPrincipalsForResource", {
