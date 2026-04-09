@@ -497,7 +497,7 @@ export type FieldInput = {
         | "b_gwl_class"
     >[]
     fertilizerApplications: FertilizerApplication[]
-    depositionSupply: NitrogenSupplyDeposition
+    depositionSupply?: NitrogenSupplyDeposition
 }
 
 /**

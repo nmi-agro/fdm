@@ -22,7 +22,6 @@ import {
     getSoilAnalyses,
     getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
-import { Decimal } from "decimal.js"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import { handleInputCollectionError } from "../shared/errors"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
@@ -132,7 +131,7 @@ async function collectInputForNitrogenBalanceForFarm(
                         harvests: harvestsFiltered,
                         fertilizerApplications,
                         soilAnalyses,
-                        depositionSupply: depositionByField.get(field.b_id) ?? { total: new Decimal(0) },
+                        depositionSupply: depositionByField.get(field.b_id),
                     },
                 ]
             }
@@ -169,7 +168,7 @@ async function collectInputForNitrogenBalanceForFarm(
                     fertilizerApplications:
                         fertAppsByField.get(field.b_id) ?? [],
                     soilAnalyses: soilByField.get(field.b_id) ?? [],
-                    depositionSupply: depositionByField.get(field.b_id) ?? { total: new Decimal(0) },
+                    depositionSupply: depositionByField.get(field.b_id),
                 }
             })
         })
@@ -344,6 +343,11 @@ export async function collectInputForNitrogenBalance(
 ): Promise<NitrogenBalanceInput> {
     try {
         return await fdm.transaction(async (tx) => {
+            if (!timeframe.start || !timeframe.end) {
+                throw new Error(
+                    "Timeframe start and end must be provided for nitrogen balance calculation",
+                )
+            }
             const cultivationDetails = await getCultivationsFromCatalogue(
                 tx,
                 principal_id,
@@ -361,11 +365,6 @@ export async function collectInputForNitrogenBalance(
                 timeframe,
                 b_id,
             )
-            if (!timeframe.start || !timeframe.end) {
-                throw new Error(
-                    "Timeframe start and end must be provided for nitrogen balance calculation",
-                )
-            }
             return {
                 b_id_farm,
                 fields,

@@ -798,8 +798,18 @@ function getRolesForAction(action: Action, resource: Resource): Role[] {
     return rolesFlat
 }
 
+function buildBeadsFromRow(
+    row: Record<string, unknown>,
+): Array<{ resource: Resource; resource_id: string }> {
+    return Object.keys(row)
+        .filter((k) => row[k] !== null)
+        .map((k) => ({
+            resource: k as Resource,
+            resource_id: row[k] as string,
+        }))
+}
+
 /**
- * Constructs a sorted chain of related resources for a provided resource type and identifier.
  *
  * This function retrieves and assembles linked resource information from the database based on the resource type.
  * For supported resource types ("farm", "field", "cultivation", "soil_analysis", "harvesting", "fertilizer_application"),
@@ -848,13 +858,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0])
-                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
-                .map((x) => ({
-                    resource: x as Resource,
-                    resource_id: result[0][x as keyof typeof result[0]] as string,
-                }))
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else if (resource === "cultivation") {
             const result = await fdm
                 .select({
@@ -884,13 +888,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0])
-                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
-                .map((x) => ({
-                    resource: x as Resource,
-                    resource_id: result[0][x as keyof typeof result[0]] as string,
-                }))
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else if (resource === "harvesting") {
             const result = await fdm
                 .select({
@@ -933,13 +931,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0])
-                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
-                .map((x) => ({
-                    resource: x as Resource,
-                    resource_id: result[0][x as keyof typeof result[0]] as string,
-                }))
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else if (resource === "fertilizer_application") {
             const result = await fdm
                 .select({
@@ -963,13 +955,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0])
-                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
-                .map((x) => ({
-                    resource: x as Resource,
-                    resource_id: result[0][x as keyof typeof result[0]] as string,
-                }))
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else if (resource === "soil_analysis") {
             const result = await fdm
                 .select({
@@ -996,13 +982,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0])
-                .filter((x) => result[0][x as keyof typeof result[0]] !== null)
-                .map((x) => ({
-                    resource: x as Resource,
-                    resource_id: result[0][x as keyof typeof result[0]] as string,
-                }))
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else {
             throw new Error("Resource is not known")
         }

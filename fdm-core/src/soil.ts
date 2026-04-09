@@ -275,7 +275,7 @@ export async function getSoilAnalysis(
             )
             .where(eq(schema.soilAnalysis.a_id, a_id))
 
-        return (soilAnalysis[0] || null) as SoilAnalysis
+        return soilAnalysis[0] as SoilAnalysis
     } catch (err) {
         throw handleError(err, "Exception for getSoilAnalysis", { a_id })
     }
