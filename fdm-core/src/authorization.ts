@@ -311,6 +311,16 @@ async function getPermission(
 }
 
 /**
+ * Interface describing the expected shape of a row returned by the role query.
+ */
+interface RoleQueryRow {
+    principal_id: string
+    role: Role
+    as_organization_member: boolean
+    as_organization: boolean
+}
+
+/**
  * Retrieves a list of roles a principal has for a specific resource.
  *
  * This function queries the database to find all roles that a principal has been granted for the given resource.
@@ -350,7 +360,7 @@ export async function getRolesOfPrincipalForResource(
                 ? principal_id
                 : [principal_id]
 
-            const result = (await tx
+            const rows = await tx
                 .select({
                     role: authZSchema.role.role,
                     principal_id: authZSchema.role.principal_id,
@@ -360,7 +370,7 @@ export async function getRolesOfPrincipalForResource(
                     as_organization: and(
                         isNotNull(authNSchema.organization.id),
                         inArray(authZSchema.role.principal_id, principal_ids),
-                    )!,
+                    ),
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -396,12 +406,22 @@ export async function getRolesOfPrincipalForResource(
                         ),
                         isNull(authZSchema.role.deleted),
                     ),
-                )) as unknown as {
-                    principal_id: string
-                    role: Role
-                    as_organization_member: boolean
-                    as_organization: boolean
-                }[]
+                )
+
+            const result: RoleQueryRow[] = rows.map((row) => {
+                if (
+                    typeof row.principal_id !== "string" ||
+                    typeof row.role !== "string" ||
+                    typeof row.as_organization_member !== "boolean" ||
+                    typeof row.as_organization !== "boolean"
+                ) {
+                    throw new Error(
+                        "Unexpected row shape in getRolesOfPrincipalForResource",
+                    )
+                }
+                return row as RoleQueryRow
+            })
+
             const deduped = new Map<
                 string,
                 {
@@ -807,6 +827,15 @@ function getRolesForAction(action: Action, resource: Resource): Role[] {
     return rolesFlat
 }
 
+/**
+ * Invariant: The input row's keys must correspond exactly to Resource names,
+ * and the values must be non-null string IDs. Callers must ensure that select
+ * columns match Resource names and contain non-null values so that the type
+ * casts remain valid and to prevent accidental misuse.
+ *
+ * @param row - A record containing resource names as keys and their IDs as values.
+ * @returns An array of resource beads (resource name and ID).
+ */
 function buildBeadsFromRow(
     row: Record<string, unknown>,
 ): Array<{ resource: Resource; resource_id: string }> {
