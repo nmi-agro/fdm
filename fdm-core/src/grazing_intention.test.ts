@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import { addFarm } from "./farm"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
 import {
     getGrazingIntention,

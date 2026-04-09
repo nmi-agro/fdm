@@ -23,9 +23,9 @@ import {
     updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "./farm"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmServerType } from "./fdm-server.types"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
 import { addField, getFields } from "./field"
 import { createId } from "./id"
@@ -33,6 +33,7 @@ import { acceptInvitation, declineInvitation } from "./invitation"
 import { getPrincipal } from "./principal"
 
 describe("Farm Functions", () => {
+    const asFdm = (t: unknown) => t as FdmType
     let fdm: FdmServerType
     let principal_id: string
     let target_username: string
@@ -143,14 +144,14 @@ describe("Farm Functions", () => {
             const mockSelect = async () => {
                 throw new Error("Database query failed")
             }
-            const fdmMock = {
+            const fdmMock = asFdm({
                 ...fdm,
                 transaction: async (cb: (tx: FdmType) => Promise<FdmType>) => {
                     // provide a tx object whose select throws
                     const tx = { select: mockSelect }
-                    return cb(tx)
+                    return cb(asFdm(tx))
                 },
-            } as unknown as FdmType
+            })
             await expect(
                 getFarm(fdmMock, principal_id, b_id_farm),
             ).rejects.toThrowError("Exception for getFarm")
@@ -177,7 +178,7 @@ describe("Farm Functions", () => {
                 listResources: mockListResources,
             }
             await expect(
-                getFarms(authorizationMock, principal_id),
+                getFarms(asFdm(authorizationMock), principal_id),
             ).rejects.toThrowError("Exception for getFarms")
         })
     })
@@ -249,7 +250,7 @@ describe("Farm Functions", () => {
 
             await expect(
                 updateFarm(
-                    fdmMock,
+                    asFdm(fdmMock),
                     principal_id,
                     b_id_farm,
                     updatedFarmName,
@@ -333,7 +334,7 @@ describe("Farm Functions", () => {
 
             await expect(
                 grantRoleToFarm(
-                    fdmMock,
+                    asFdm(fdmMock),
                     principal_id,
                     target_username,
                     b_id_farm,
@@ -442,7 +443,7 @@ describe("Farm Functions", () => {
 
             await expect(
                 updateRoleOfPrincipalAtFarm(
-                    fdmMock,
+                    asFdm(fdmMock),
                     principal_id,
                     target_username,
                     b_id_farm,
@@ -521,7 +522,7 @@ describe("Farm Functions", () => {
 
             await expect(
                 revokePrincipalFromFarm(
-                    fdmMock,
+                    asFdm(fdmMock),
                     principal_id,
                     target_username,
                     b_id_farm,
@@ -596,7 +597,7 @@ describe("Farm Functions", () => {
             }
 
             await expect(
-                listPrincipalsForFarm(fdmMock, principal_id, b_id_farm),
+                listPrincipalsForFarm(asFdm(fdmMock), principal_id, b_id_farm),
             ).rejects.toThrowError("Exception for listPrincipalsForFarm")
         })
 
@@ -888,10 +889,10 @@ describe("Farm Functions", () => {
             const mockDelete = async () => {
                 throw new Error("Database delete failed")
             }
-            const fdmMock = {
+            const fdmMock = asFdm({
                 ...fdm,
                 delete: mockDelete,
-            } as unknown as FdmType // Cast to FdmType to satisfy type checking
+            })
 
             await expect(
                 removeFarm(fdmMock, principal_id, newFarmId),

@@ -468,14 +468,14 @@ describe("collectInputForNitrogenBalance", () => {
 
     it("should throw an error if fdm.transaction fails", async () => {
         const errorMessage = "Transaction failed"
-        const mockFdmError: FdmType = {
+        const mockFdmError = {
             ...mockFdm,
             transaction: vi.fn().mockRejectedValue(new Error(errorMessage)),
         }
 
         await expect(
             collectInputForNitrogenBalance(
-                mockFdmError,
+                mockFdmError as unknown as FdmType,
                 principal_id,
                 b_id_farm,
                 timeframe,

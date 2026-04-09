@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 
 /**
  * Sets a grazing intention for a farm for a specific year.

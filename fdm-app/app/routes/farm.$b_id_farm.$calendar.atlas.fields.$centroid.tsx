@@ -149,8 +149,9 @@ async function loadAsyncData(
                         catalogueItem?.b_lu_croprotation ?? "other",
                     b_lu_rest_oravib: catalogueItem?.b_lu_rest_oravib ?? false,
                 }
-            },
-        )
+            })
+            // Sort by descending year
+            .sort((c1, c2) => c2.year - c1.year)
 
         return {
             cultivationHistory,

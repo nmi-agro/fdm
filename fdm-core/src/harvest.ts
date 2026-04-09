@@ -6,15 +6,16 @@
 import { Decimal } from "decimal.js"
 import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import type {
     Harvest,
+    HarvestableAnalysis,
     HarvestParameters,
     HarvestParametersDefault,
-} from "./harvest.d"
+} from "./harvest.types"
 import { convertHarvestParameters } from "./harvest-conversion"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
@@ -86,7 +87,7 @@ export async function addHarvest(
             "addHarvest",
         )
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate if cultivation exists
             const cultivation = await tx
                 .select({
@@ -324,7 +325,7 @@ export async function getHarvests(
 
         // Get details of each harvest
         const result = await Promise.all(
-            harvests.map(async (harvest: Harvest) => {
+            harvests.map(async (harvest) => {
                 const harvestDetails = getHarvestSimplified(
                     fdm,
                     harvest.b_id_harvesting,
@@ -552,7 +553,7 @@ export async function removeHarvest(
             "removeHarvest",
         )
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const harvest = await getHarvest(tx, principal_id, b_id_harvesting)
 
             const b_id_harvestable = harvest.harvestable.b_id_harvestable
@@ -819,7 +820,7 @@ export async function updateHarvest(
             "updateHarvest",
         )
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const harvest = await getHarvestSimplified(tx, b_id_harvesting)
             if (!harvest) {
                 throw new Error("Harvest does not exist")
@@ -1045,7 +1046,7 @@ async function getHarvestSimplified(
         )
         .limit(1)
 
-    harvest.harvestable = harvestables[0]
+    const harvestable = harvestables[0]
 
     // Get properties of harvestable analyses for this harvesting
     const harvestableAnalyses = await fdm
@@ -1085,14 +1086,18 @@ async function getHarvestSimplified(
         .where(
             eq(
                 schema.harvestableSampling.b_id_harvestable,
-                harvest.harvestable.b_id_harvestable,
+                harvestable.b_id_harvestable,
             ),
         )
         .limit(1)
 
-    harvest.harvestable.harvestable_analyses = harvestableAnalyses
-
-    return harvest
+    return {
+        ...harvest,
+        harvestable: {
+            ...harvestable,
+            harvestable_analyses: harvestableAnalyses as HarvestableAnalysis[],
+        },
+    } as Harvest
 }
 
 /**
