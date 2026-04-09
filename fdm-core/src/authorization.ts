@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm"
 import type {
     Action,
     Permission,
@@ -321,6 +321,21 @@ interface RoleQueryRow {
 }
 
 /**
+ * Type guard to validate that a row matches the RoleQueryRow interface.
+ *
+ * @param row - The row to validate.
+ * @returns True if the row matches the RoleQueryRow interface.
+ */
+function isRoleQueryRow(row: any): row is RoleQueryRow {
+    return (
+        typeof row.principal_id === "string" &&
+        (roles as readonly string[]).includes(row.role) &&
+        typeof row.as_organization_member === "boolean" &&
+        typeof row.as_organization === "boolean"
+    )
+}
+
+/**
  * Retrieves a list of roles a principal has for a specific resource.
  *
  * This function queries the database to find all roles that a principal has been granted for the given resource.
@@ -367,10 +382,10 @@ export async function getRolesOfPrincipalForResource(
                     as_organization_member: isNotNull(
                         authNSchema.member.userId,
                     ),
-                    as_organization: and(
+                    as_organization: sql<boolean>`${and(
                         isNotNull(authNSchema.organization.id),
                         inArray(authZSchema.role.principal_id, principal_ids),
-                    ),
+                    )}`,
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -409,17 +424,12 @@ export async function getRolesOfPrincipalForResource(
                 )
 
             const result: RoleQueryRow[] = rows.map((row) => {
-                if (
-                    typeof row.principal_id !== "string" ||
-                    typeof row.role !== "string" ||
-                    typeof row.as_organization_member !== "boolean" ||
-                    typeof row.as_organization !== "boolean"
-                ) {
+                if (!isRoleQueryRow(row)) {
                     throw new Error(
                         "Unexpected row shape in getRolesOfPrincipalForResource",
                     )
                 }
-                return row as RoleQueryRow
+                return row
             })
 
             const deduped = new Map<
@@ -1040,5 +1050,3 @@ async function getResourceChain(
         })
     }
 }
-
-
