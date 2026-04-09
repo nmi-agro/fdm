@@ -393,7 +393,7 @@ export async function getRolesOfPrincipalForResource(
                     as_organization_member: boolean
                     as_organization: boolean
                 }[]
-            const deduped= new Map<
+            const deduped = new Map<
                 string,
                 {
                     principal_id: string
@@ -802,7 +802,7 @@ function buildBeadsFromRow(
     row: Record<string, unknown>,
 ): Array<{ resource: Resource; resource_id: string }> {
     return Object.keys(row)
-        .filter((k) => row[k] !== null)
+        .filter((k) => row[k] !== null && row[k] !== undefined)
         .map((k) => ({
             resource: k as Resource,
             resource_id: row[k] as string,

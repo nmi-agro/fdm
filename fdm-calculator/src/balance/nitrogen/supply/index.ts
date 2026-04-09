@@ -36,6 +36,13 @@ export function calculateNitrogenSupply(
     timeFrame: NitrogenBalanceInput["timeFrame"],
 ): NitrogenSupply {
     try {
+        // Guard: deposition data must be present; silently defaulting to zero would mask missing data
+        if (depositionSupply === undefined) {
+            throw new Error(
+                "Missing deposition supply data for nitrogen balance calculation",
+            )
+        }
+
         // Calculate the amount of Nitrogen supplied by fertilizers
         const fertilizersSupply = calculateNitrogenSupplyByFertilizers(
             fertilizerApplications,
@@ -56,14 +63,6 @@ export function calculateNitrogenSupply(
                 cultivationDetailsMap,
                 timeFrame,
             )
-
-        // Guard: deposition data must be present; silently defaulting to zero would mask missing data
-        if (depositionSupply === undefined) {
-            throw new Error(
-                "Missing deposition supply data for nitrogen balance calculation",
-            )
-        }
-
         // Calculate the total amount of Nitrogen supplied
         const totalSupply = fertilizersSupply.total
             .add(fixationSupply.total)
