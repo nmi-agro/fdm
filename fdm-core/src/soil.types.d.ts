@@ -113,7 +113,7 @@ export interface SoilParameterDescriptionItem {
     min?: number
     max?: number
     options?: {
-        value: schema.gwlClasses | schema.soilTypes
+        value: schema.GwlClasses | schema.SoilTypes
         label: string
     }[]
 }

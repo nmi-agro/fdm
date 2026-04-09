@@ -7,7 +7,7 @@ import { customAlphabet } from "nanoid"
 import { generateFromEmail } from "unique-username-generator"
 import * as authNSchema from "./db/schema-authn"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { autoAcceptInvitationsForNewUser } from "./invitation"
 
 export type BetterAuth = FdmAuth
@@ -215,7 +215,7 @@ export function createFdmAuth(
                             .where(eq(authNSchema.user.id, incomingUser.id))
                             .limit(1)
 
-                        let username: string | undefined =
+                        let username: string | null | undefined =
                             dbUsernames.length > 0
                                 ? dbUsernames[0].username
                                 : undefined
@@ -321,7 +321,7 @@ export async function updateUserProfile(
     lang?: "nl-NL",
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const updatedFields: Partial<typeof authNSchema.user.$inferInsert> =
                 {}
             if (firstname !== undefined) {

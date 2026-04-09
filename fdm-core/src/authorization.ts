@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm"
 import type {
     Action,
     Permission,
@@ -9,12 +9,12 @@ import type {
     ResourceChain,
     ResourceId,
     Role,
-} from "./authorization.d"
+} from "./authorization.types"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
 
 export const resources: Resource[] = [
@@ -184,7 +184,11 @@ export async function checkPermission(
             await fdm.insert(authZSchema.audit).values({
                 audit_id: createId(),
                 audit_origin: origin,
-                principal_id: principal_id,
+                principal_id:
+                    permission?.matched_principal_id ||
+                    (Array.isArray(principal_id)
+                        ? principal_id.join(",") || "unknown"
+                        : principal_id || "unknown"),
                 target_resource: resource,
                 target_resource_id: resource_id,
                 granting_resource: granting_resource,
@@ -235,10 +239,12 @@ async function getPermission(
 ): Promise<{
     granting_resource: string
     granting_resource_id: string
+    matched_principal_id: string
 } | null> {
     let isAllowed = false
     let granting_resource = ""
     let granting_resource_id = ""
+    let matched_principal_id = ""
     const roles = getRolesForAction(action, resource)
     const chain = await getResourceChain(fdm, resource, resource_id)
 
@@ -247,11 +253,13 @@ async function getPermission(
         ? principal_id
         : [principal_id]
 
-    await fdm.transaction(async (tx: FdmType) => {
+    await fdm.transaction(async (tx) => {
         for (const bead of chain) {
             const check = await tx
                 .select({
                     resource_id: authZSchema.role.resource_id,
+                    role_principal_id: authZSchema.role.principal_id,
+                    member_user_id: authNSchema.member.userId,
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -288,12 +296,43 @@ async function getPermission(
                 isAllowed = true
                 granting_resource = bead.resource
                 granting_resource_id = bead.resource_id
+                // Prefer the user ID when access was granted via org membership;
+                // otherwise use the role's principal_id (a direct match).
+                matched_principal_id =
+                    check[0].member_user_id ?? check[0].role_principal_id
                 break
             }
         }
     })
 
-    return isAllowed ? { granting_resource, granting_resource_id } : null
+    return isAllowed
+        ? { granting_resource, granting_resource_id, matched_principal_id }
+        : null
+}
+
+/**
+ * Interface describing the expected shape of a row returned by the role query.
+ */
+interface RoleQueryRow {
+    principal_id: string
+    role: Role
+    as_organization_member: boolean
+    as_organization: boolean
+}
+
+/**
+ * Type guard to validate that a row matches the RoleQueryRow interface.
+ *
+ * @param row - The row to validate.
+ * @returns True if the row matches the RoleQueryRow interface.
+ */
+function isRoleQueryRow(row: any): row is RoleQueryRow {
+    return (
+        typeof row.principal_id === "string" &&
+        (roles as readonly string[]).includes(row.role) &&
+        typeof row.as_organization_member === "boolean" &&
+        typeof row.as_organization === "boolean"
+    )
 }
 
 /**
@@ -325,7 +364,7 @@ export async function getRolesOfPrincipalForResource(
     principal_id: PrincipalId,
 ): Promise<PrincipalWithRoles[]> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -336,22 +375,17 @@ export async function getRolesOfPrincipalForResource(
                 ? principal_id
                 : [principal_id]
 
-            const result: {
-                principal_id: string
-                role: Role
-                as_organization_member: boolean
-                as_organization: boolean
-            }[] = await tx
+            const rows = await tx
                 .select({
                     role: authZSchema.role.role,
                     principal_id: authZSchema.role.principal_id,
                     as_organization_member: isNotNull(
                         authNSchema.member.userId,
                     ),
-                    as_organization: and(
+                    as_organization: sql<boolean>`${and(
                         isNotNull(authNSchema.organization.id),
                         inArray(authZSchema.role.principal_id, principal_ids),
-                    ),
+                    )}`,
                 })
                 .from(authZSchema.role)
                 .leftJoin(
@@ -388,6 +422,16 @@ export async function getRolesOfPrincipalForResource(
                         isNull(authZSchema.role.deleted),
                     ),
                 )
+
+            const result: RoleQueryRow[] = rows.map((row) => {
+                if (!isRoleQueryRow(row)) {
+                    throw new Error(
+                        "Unexpected row shape in getRolesOfPrincipalForResource",
+                    )
+                }
+                return row
+            })
+
             const deduped = new Map<
                 string,
                 {
@@ -444,7 +488,7 @@ export async function grantRole(
     target_id: string,
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -514,7 +558,7 @@ export async function revokePrincipal(
     target_id: string,
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -569,9 +613,9 @@ export async function updateRole(
     role: Role,
     resource_id: ResourceId,
     target_id: string,
-): Promise<string> {
+): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -645,7 +689,7 @@ export async function listResources(
             : [principal_id]
 
         // Query the resources available
-        const result = await fdm.transaction(async (tx: FdmType) => {
+        const result = await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
@@ -735,17 +779,17 @@ export async function listPrincipalsForResource(
 ): Promise<
     {
         principal_id: string
-        role: string
+        role: Role
     }[]
 > {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Validate input
             if (!resources.includes(resource)) {
                 throw new Error("Invalid resource")
             }
 
-            return await tx
+            const rows = await tx
                 .select({
                     principal_id: authZSchema.role.principal_id,
                     role: authZSchema.role.role,
@@ -758,6 +802,18 @@ export async function listPrincipalsForResource(
                         isNull(authZSchema.role.deleted),
                     ),
                 )
+
+            return rows.map((row) => {
+                if (
+                    typeof row.principal_id !== "string" ||
+                    !(roles as readonly string[]).includes(row.role)
+                ) {
+                    throw new Error(
+                        "Unexpected row shape in listPrincipalsForResource",
+                    )
+                }
+                return row as { principal_id: string; role: Role }
+            })
         })
     } catch (err) {
         throw handleError(err, "Exception for listPrincipalsForResource", {
@@ -794,7 +850,26 @@ function getRolesForAction(action: Action, resource: Resource): Role[] {
 }
 
 /**
- * Constructs a sorted chain of related resources for a provided resource type and identifier.
+ * Invariant: The input row's keys must correspond exactly to Resource names,
+ * and the values must be non-null string IDs. Callers must ensure that select
+ * columns match Resource names and contain non-null values so that the type
+ * casts remain valid and to prevent accidental misuse.
+ *
+ * @param row - A record containing resource names as keys and their IDs as values.
+ * @returns An array of resource beads (resource name and ID).
+ */
+function buildBeadsFromRow(
+    row: Record<string, unknown>,
+): Array<{ resource: Resource; resource_id: string }> {
+    return Object.keys(row)
+        .filter((k) => row[k] !== null && row[k] !== undefined)
+        .map((k) => ({
+            resource: k as Resource,
+            resource_id: row[k] as string,
+        }))
+}
+
+/**
  *
  * This function retrieves and assembles linked resource information from the database based on the resource type.
  * For supported resource types ("farm", "field", "cultivation", "soil_analysis", "harvesting", "fertilizer_application"),
@@ -843,13 +918,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
-                    resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else if (resource === "cultivation") {
             const result = await fdm
                 .select({
@@ -879,13 +948,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
-                    resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else if (resource === "harvesting") {
             const result = await fdm
                 .select({
@@ -928,13 +991,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
-                    resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else if (resource === "fertilizer_application") {
             const result = await fdm
                 .select({
@@ -958,13 +1015,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
-                    resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else if (resource === "soil_analysis") {
             const result = await fdm
                 .select({
@@ -991,13 +1042,7 @@ async function getResourceChain(
                 // Resource not found, return empty chain
                 return []
             }
-            const beads = Object.keys(result[0]).map((x) => {
-                return {
-                    resource: x as Resource,
-                    resource_id: result[0][x],
-                }
-            })
-            chain.push(...beads)
+            chain.push(...buildBeadsFromRow(result[0]))
         } else {
             throw new Error("Resource is not known")
         }

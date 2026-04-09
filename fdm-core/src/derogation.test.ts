@@ -7,7 +7,7 @@ import {
 } from "./derogation"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmServerType } from "./fdm-server.types"
 import { createId } from "./id"
 
 describe("Derogation Functions", () => {
