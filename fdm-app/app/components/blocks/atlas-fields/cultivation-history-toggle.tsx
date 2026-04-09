@@ -8,6 +8,7 @@ import {
     CultivationHistoryCard,
     CultivationHistoryTimeline,
 } from "~/components/blocks/atlas-fields/cultivation-history"
+import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -24,14 +25,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
-
-type CultivationHistory = {
-    year: number
-    b_lu_catalogue: string
-    b_lu_name?: string
-    b_lu_croprotation?: string
-    b_lu_rest_oravib?: boolean
-}
 
 export function CultivationHistoryToggle({
     cultivationHistory,

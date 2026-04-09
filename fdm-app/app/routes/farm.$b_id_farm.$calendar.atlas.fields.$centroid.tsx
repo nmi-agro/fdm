@@ -148,6 +148,12 @@ function buildAdvancedCultivationHistory(
             return { ...yearEntry, event_type: "stable" as EventType }
         }
         const olderYear = enrichedHistory[index + 1]
+
+        // Handle years with no field data
+        if (yearEntry.fields.length === 0 || olderYear.fields.length === 0) {
+            return { ...yearEntry, event_type: "no_data" as EventType }
+        }
+
         const sigCurrent = yearEntry.fields.filter(
             (f) => f.overlap_pct_of_selected >= SIGNIFICANCE_THRESHOLD_PCT,
         )
@@ -160,14 +166,19 @@ function buildAdvancedCultivationHistory(
             event_type = "merge"
         } else if (sigCurrent.length > 1 && sigOlder.length === 1) {
             event_type = "split"
-        } else if ((1 - olderYear.total_overlap_pct) * selectedFieldAreaHa > SIGNIFICANCE_THRESHOLD_HA) {
+        } else if (
+            (1 - olderYear.total_overlap_pct) * selectedFieldAreaHa >
+            SIGNIFICANCE_THRESHOLD_HA
+        ) {
             // Significant portion of current field was not part of any field in the older year
             event_type = "expansion"
         } else if (sigOlder.length === 1 && sigCurrent.length === 1) {
             const primaryOlderField = sigOlder[0]
             // If the historical field was notably larger than the part that survived into the current field
             if (
-                primaryOlderField.b_area > primaryOlderField.b_area_overlap + SIGNIFICANCE_THRESHOLD_HA &&
+                primaryOlderField.b_area >
+                    primaryOlderField.b_area_overlap +
+                        SIGNIFICANCE_THRESHOLD_HA &&
                 primaryOlderField.overlap_pct_of_selected > 0.8
             ) {
                 event_type = "shrinkage"

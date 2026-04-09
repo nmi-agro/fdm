@@ -195,8 +195,8 @@ function YearRow({
                     isActive && "ring-2 ring-primary ring-offset-1",
                 )}
             >
-                {significantFields.map((field, i) => (
-                    <TooltipProvider key={i}>
+                {significantFields.map((field) => (
+                    <TooltipProvider key={`${field.b_lu_name}-${field.overlap_pct_of_selected}-${field.b_area_overlap}`}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div

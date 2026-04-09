@@ -22,7 +22,7 @@ import {
 } from "~/components/ui/tooltip"
 import { cn } from "~/lib/utils"
 
-type CultivationHistory = {
+export type CultivationHistory = {
     year: number
     b_lu_catalogue: string
     b_lu_name?: string
