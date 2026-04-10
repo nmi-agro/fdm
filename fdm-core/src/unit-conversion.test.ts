@@ -73,8 +73,8 @@ describe("toKgPerHa", () => {
 
     it("should accept input of type Decimal", () => {
         expect(
-            toKgPerHa(new Decimal(20), "m3/ha", new Decimal(2)).toNumber(),
-        ).toBe(40000)
+            toKgPerHa(new Decimal(10), "m3/ha", new Decimal(2)).toNumber(),
+        ).toBe(20000)
     })
 })
 
@@ -122,8 +122,12 @@ describe("fromKgPerHa", () => {
 
     it("should accept input of type Decimal", () => {
         expect(
-            toKgPerHa(new Decimal(20), "m3/ha", new Decimal(2)).toNumber(),
-        ).toBe(40000)
+            fromKgPerHa(
+                new Decimal(20000),
+                "m3/ha",
+                new Decimal(2),
+            )?.toNumber(),
+        ).toBe(10)
     })
 })
 

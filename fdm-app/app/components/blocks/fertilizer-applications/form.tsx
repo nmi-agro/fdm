@@ -189,19 +189,17 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 Math.round(100 * p_app_amount_display) / 100,
             )
         }
-    }, [p_id, fertilizerApplication?.p_app_amount_display, form.setValue])
+    }, [fertilizerApplication?.p_app_amount_display, form.setValue])
 
     // Transform the application amount based on the changing application units
     const currentApplicationUnit =
         options.find((opt) => opt.value === p_id)?.p_app_amount_unit ?? "kg/ha"
-    console.log(currentApplicationUnit)
     const currentConversionFactor = conversionFactors[currentApplicationUnit]
     const [lastConversionFactor, setLastConversionFactor] = useState(
         currentConversionFactor,
     )
     useEffect(() => {
-        console.log(form.getValues())
-        const p_app_amount_display = form.getValues().p_app_amount_display
+        const p_app_amount_display = form.getValues("p_app_amount_display")
         if (currentConversionFactor !== lastConversionFactor) {
             if (p_app_amount_display !== undefined) {
                 form.setValue(

@@ -106,10 +106,17 @@ export function FertilizerApplicationsList({
                                         </ItemTitle>
                                         <ItemDescription>
                                             <p>
-                                                {
-                                                    application.p_app_amount_display
-                                                }{" "}
-                                                {application.p_app_amount_unit}
+                                                {application.p_app_amount_display !==
+                                                    null &&
+                                                application.p_app_amount_display !==
+                                                    undefined
+                                                    ? `${application.p_app_amount_display} ${application.p_app_amount_unit}`
+                                                    : application.p_app_amount !==
+                                                            null &&
+                                                        application.p_app_amount !==
+                                                            undefined
+                                                      ? `${application.p_app_amount} kg/ha`
+                                                      : "Onbekend hoeveelheid"}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 {application.p_app_method

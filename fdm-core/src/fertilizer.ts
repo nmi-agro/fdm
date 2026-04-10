@@ -793,6 +793,7 @@ export async function addFertilizerApplication(
                 ? toKgPerHa(
                       p_app_amount_display,
                       fertilizer.p_app_amount_unit ?? "kg/ha",
+                      fertilizer.p_density,
                   )
                 : null
 
@@ -854,6 +855,7 @@ export async function updateFertilizerApplication(
                 ? toKgPerHa(
                       p_app_amount_display,
                       fertilizer.p_app_amount_unit ?? "kg/ha",
+                      fertilizer.p_density,
                   )
                 : p_app_amount_display
         await fdm
@@ -919,6 +921,14 @@ function extendFertilizerApplication<T extends FertilizerApplication>(
     p_app_amount_unit: AppAmountUnit,
     p_density: number | null,
 ): FertilizerApplication {
+    const maybe_p_app_amount_display =
+        app.p_app_amount !== null && app.p_app_amount !== undefined
+            ? fromKgPerHa(
+                  app.p_app_amount,
+                  p_app_amount_unit,
+                  p_density,
+              )?.toNumber()
+            : app.p_app_amount
     return {
         p_id: app.p_id,
         p_id_catalogue: app.p_id_catalogue,
@@ -926,14 +936,7 @@ function extendFertilizerApplication<T extends FertilizerApplication>(
         p_app_date: app.p_app_date,
         p_app_method: app.p_app_method,
         p_app_amount: app.p_app_amount,
-        p_app_amount_display:
-            app.p_app_amount !== null && app.p_app_amount !== undefined
-                ? fromKgPerHa(
-                      app.p_app_amount,
-                      p_app_amount_unit,
-                      p_density,
-                  )?.toNumber()
-                : app.p_app_amount,
+        p_app_amount_display: maybe_p_app_amount_display ?? null,
         p_app_amount_unit: p_app_amount_unit,
         p_app_id: app.p_app_id,
     }
