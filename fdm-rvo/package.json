@@ -63,6 +63,7 @@
         "@turf/bbox": "^7.3.4",
         "@turf/helpers": "^7.3.4",
         "@turf/intersect": "^7.3.4",
+        "@turf/length": "^7.3.4",
         "@turf/turf": "^7.3.4",
         "@turf/union": "^7.3.4",
         "geojson": "^0.5.0",

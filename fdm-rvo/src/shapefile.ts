@@ -1,8 +1,12 @@
-import { multiPolygon, polygon } from "@turf/helpers"
+import { determineIfFieldIsBuffer } from "@nmi-agro/fdm-core"
+import area from "@turf/area"
+import { lineString, multiPolygon, polygon } from "@turf/helpers"
+import length from "@turf/length"
 import type {
     Feature,
     FeatureCollection,
     Geometry,
+    MultiPolygon,
     Polygon,
     Position,
 } from "geojson"
@@ -26,6 +30,22 @@ interface RvoProperties {
 
 type FileInterface = Blob | ArrayBuffer
 
+function perimeter(geometry: Polygon | MultiPolygon) {
+    if (geometry.type === "Polygon") {
+        return geometry.coordinates
+            .map((ring) => length(lineString(ring)))
+            .reduce((a, b) => a + b)
+    }
+    if (geometry.type === "MultiPolygon") {
+        return geometry.coordinates
+            .flatMap((polygon) =>
+                polygon.flatMap((ring) => length(lineString(ring))),
+            )
+            .reduce((a, b) => a + b)
+    }
+    return 0
+}
+
 /**
  * Parses the files found in a MijnPercelen Shapefile export and compiles a GeoJSON feature collection where each feature's properties represent the field properties registered by RVO.
  * @param shp_file Shapefile or ArrayBuffer to parse
@@ -37,7 +57,7 @@ export async function parseShapefileGeometry(
     shp_file: FileInterface,
     shx_file: FileInterface | undefined,
     prj_file: Blob | string | undefined,
-): Promise<Geometry[]> {
+): Promise<(Polygon | MultiPolygon)[]> {
     try {
         const [shpData, shxData, projection] = await Promise.all([
             shp_file instanceof Blob ? await shp_file.arrayBuffer() : shp_file,
@@ -95,6 +115,10 @@ export async function parseShapefileAttributes(
 
 /**
  * Converts a feature found in a Shapefile to a RvoField object to be used with the RVO import system
+ *
+ * `properties.mestData.IndBufferstrook` will be estimated using fdm-core's buffer strip estimation.
+ * Callers must be aware that this is just an estimate.
+ *
  * @param shapefileFeatures
  * @returns a RvoField object
  * @throws if any of the required properties are missing
@@ -146,6 +170,15 @@ export function convertShapefileFeatureIntoRvoField(
             Country: "nl", // b_lu_catalogue[0]
             CropTypeCode: GEWASCODE, // b_lu_catalogue[1]
             UseTitleCode: TITEL, // b_acquiring_method
+            mestData: {
+                IndBufferstrook: determineIfFieldIsBuffer(
+                    area(feature),
+                    perimeter(feature.geometry),
+                    trimmedNaam,
+                )
+                    ? "J"
+                    : "N",
+            },
             ThirdPartyCropFieldID: undefined, // not needed
             EndDate:
                 EINDDAT !== 253402297199
@@ -162,6 +195,10 @@ export function convertShapefileFeatureIntoRvoField(
 
 /**
  * Parses the files found in a MijnPercelen Shapefile export and compiles a GeoJSON feature collection where each feature's properties represent the field properties registered by RVO.
+ *
+ * For each field `properties.mestData.IndBufferstrook` will be estimated using fdm-core's buffer strip estimation.
+ * Callers must be aware that this is just an estimate.
+ *
  * @param shp_file Shapefile or ArrayBuffer to parse
  * @param shx_file Shapefile index or ArrayBuffer  file to parse, the library might be able to optimize lookups in the shp file using this
  * @param dbf_file DBase file or ArrayBuffer to parse containing field properties registered by RVO

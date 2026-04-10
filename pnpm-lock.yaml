@@ -20,7 +20,7 @@ catalogs:
       version: 16.0.3
     '@types/node':
       specifier: ^25.5.2
-      version: 25.5.0
+      version: 25.5.2
     '@vitest/coverage-v8':
       specifier: 4.1.2
       version: 4.1.2
@@ -656,6 +656,9 @@ importers:
         specifier: ^7.3.4
         version: 7.3.4
       '@turf/intersect':
+        specifier: ^7.3.4
+        version: 7.3.4
+      '@turf/length':
         specifier: ^7.3.4
         version: 7.3.4
       '@turf/turf':

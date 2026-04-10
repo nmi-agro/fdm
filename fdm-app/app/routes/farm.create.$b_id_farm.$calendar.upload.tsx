@@ -7,7 +7,6 @@ import {
     getFarm,
     getFields,
 } from "@nmi-agro/fdm-core"
-import { getRvoFieldsFromShapefile } from "@nmi-agro/fdm-rvo/shapefile"
 import type {
     ImportReviewAction,
     RvoImportReviewItem,
@@ -50,7 +49,13 @@ import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { compareFields, processRvoImport } from "~/lib/rvo.server"
+import {
+    compareFields,
+    getRvoFieldsFromShapefile,
+    processRvoImport,
+    RvoImportReviewStatus,
+    UserRvoImportReviewDecision,
+} from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -104,6 +109,26 @@ export default function UploadMijnPercelenPage() {
 
     const actionData = useActionData<typeof action>()
 
+    const handleItemChange = (id: string, item: RvoImportReviewItem<any>) => {
+        // Note: there is the assumption that getItemId will keep returning the same id.
+        // Therefore, make sure that `item` doesn't have a different rvoField id and localField id.
+        setRvoImportReviewData((data) => {
+            if (!data) return
+            const index = data.findIndex(
+                (originalItem) => getItemId(originalItem) === id,
+            )
+            if (index === -1) {
+                console.warn(
+                    `Item with id ${id} not found so nothing is modified.`,
+                )
+                return
+            }
+            const newData = [...data]
+            newData[index] = item
+            return newData
+        })
+    }
+
     const handleChoiceChange = (id: string, action: ImportReviewAction) => {
         setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
     }
@@ -117,15 +142,10 @@ export default function UploadMijnPercelenPage() {
     useEffect(() => {
         if (actionRvoImportReviewData) {
             setRvoImportReviewData(actionRvoImportReviewData)
-        }
-    }, [actionRvoImportReviewData])
 
-    useEffect(() => {
-        // Initialize user choices with defaults
-        const initialChoices: UserChoiceMap = {}
-
-        if (rvoImportReviewData) {
-            rvoImportReviewData.forEach((item) => {
+            // Initialize user choices with defaults
+            const initialChoices: UserChoiceMap = {}
+            actionRvoImportReviewData.forEach((item) => {
                 const id = getItemId(item)
                 let defaultAction: ImportReviewAction
 
@@ -140,9 +160,9 @@ export default function UploadMijnPercelenPage() {
                 }
                 initialChoices[id] = defaultAction
             })
+            setUserChoices(initialChoices)
         }
-        setUserChoices(initialChoices)
-    }, [rvoImportReviewData])
+    }, [actionRvoImportReviewData])
 
     // Warn the user before refreshing or leaving when data is present
     const expectedRedirectPath = `/farm/create/${b_id_farm}/${calendar}/fields`
@@ -196,7 +216,7 @@ export default function UploadMijnPercelenPage() {
                         )}
                         <FarmTitle
                             title="Verwerken van geïmporteerde percelen"
-                            description="Controleer de percelen opgehaald vanuit RVO. Deze worden toegevoegd aan uw nieuwe bedrijf."
+                            description="Controleer de percelen die zijn geïmporteerd vanuit het Shapefile. Deze worden toegevoegd aan uw nieuwe bedrijf."
                         />
 
                         <FarmContent>
@@ -239,6 +259,10 @@ export default function UploadMijnPercelenPage() {
                                     <RvoImportReviewTable
                                         data={rvoImportReviewData}
                                         userChoices={userChoices}
+                                        flags={{
+                                            b_bufferstrip_info_available: false,
+                                        }}
+                                        onItemChange={handleItemChange}
                                         onChoiceChange={handleChoiceChange}
                                     />
                                 </div>
@@ -352,6 +376,22 @@ export async function action({ request, params }: ActionFunctionArgs): Promise<
                 cultivationsCatalogue,
             )
 
+            // Override buffer strip status from existing fields
+            for (const item of RvoImportReviewData) {
+                if (item.localField && item.rvoField?.properties.mestData) {
+                    item.rvoField.properties.mestData.IndBufferstrook = item
+                        .localField.b_bufferstrip
+                        ? "J"
+                        : "N"
+                    item.diffs = item.diffs.filter(
+                        (diff) => diff !== "b_bufferstrip",
+                    )
+                    if (item.diffs.length === 0 && item.status === "CONFLICT") {
+                        item.status = RvoImportReviewStatus.MATCH
+                    }
+                }
+            }
+
             return {
                 RvoImportReviewData: RvoImportReviewData,
                 message: "Percelen zijn klaar voor beeordeling! 🎉",
@@ -382,6 +422,34 @@ export async function action({ request, params }: ActionFunctionArgs): Promise<
 
             if (!Array.isArray(rvoImportReviewData)) {
                 throw new Error("Invalid review data format")
+            }
+
+            // If the user wants to change buffer strip status but the row is marked as MATCH, change it to update with RVO
+            for (const item of rvoImportReviewData) {
+                const id = getItemId(item)
+                const originalRvoBufferstrip =
+                    item.rvoField?.properties.mestData?.IndBufferstrook
+                const userChoice = userChoices[id]
+
+                if (
+                    originalRvoBufferstrip &&
+                    item.localField &&
+                    (originalRvoBufferstrip === "J") !==
+                        item.localField.b_bufferstrip
+                ) {
+                    if (
+                        item.status === "MATCH" ||
+                        (item.status === "CONFLICT" &&
+                            userChoice === "NO_ACTION")
+                    ) {
+                        // User was not asked at all
+                        item.status = RvoImportReviewStatus.CONFLICT
+                        item.diffs = ["b_bufferstrip"]
+                        userChoices[id] = "UPDATE_FROM_REMOTE"
+                    } else if (item.status === "CONFLICT") {
+                        item.diffs.push("b_bufferstrip")
+                    }
+                }
             }
 
             const onFieldAdded = async (

@@ -123,6 +123,7 @@ export type {
 } from "./fertilizer.d"
 export {
     addField,
+    determineIfFieldIsBuffer,
     getField,
     getFields,
     listAvailableAcquiringMethods,
