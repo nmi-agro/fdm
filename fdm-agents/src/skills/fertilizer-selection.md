@@ -59,6 +59,10 @@ If NH₃ reduction is requested, prioritize fertilizers and application methods 
 
 Fields with `b_bufferstrip: true` **MUST NOT** receive any fertilizer applications. Ensure zero applications for these fields and do not include them in the plan output.
 
+## Every Field Must Appear in the Plan
+
+**Every non-bufferstrip field must have an entry in the output plan** — including fields that share a cultivation type with a larger field. Do not skip or omit smaller fields. If two fields have the same cultivation and the same application plan, duplicate the application entries for both fields explicitly. Never plan only for the largest representative field.
+
 ## Rotation Level (Bouwplan)
 
-If `workOnRotationLevel` is YES, group fields by `b_lu_catalogue` value and assign identical applications (same `p_id_catalogue`, `p_app_amount`, `p_app_date`, `p_app_method`) to every field within the same group. For grassland variations (`nl_265`, `nl_266`, `nl_331`), treat them as one group.
+If `workOnRotationLevel` is YES, group fields by `b_lu_catalogue` value and assign identical applications (same `p_id_catalogue`, `p_app_amount`, `p_app_date`, `p_app_method`) to every field within the same group. For grassland variations (`nl_265`, `nl_266`, `nl_331`), treat them as one group. Every individual field in the group still needs its own entry in the output.

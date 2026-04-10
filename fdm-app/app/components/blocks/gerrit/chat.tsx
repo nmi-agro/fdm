@@ -1,4 +1,4 @@
-import { Bot, Loader2, Send, User } from "lucide-react"
+import { Bot, Loader2, RefreshCw, Send, User } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "~/components/ui/button"
 import {
@@ -17,6 +17,7 @@ interface GerritChatProps {
     suggestedFollowUps: string[]
     isStreaming: boolean
     onSendMessage: (text: string) => void
+    onUpdatePlan?: (note: string) => void
 }
 
 export function GerritChat({
@@ -24,8 +25,10 @@ export function GerritChat({
     suggestedFollowUps,
     isStreaming,
     onSendMessage,
+    onUpdatePlan,
 }: GerritChatProps) {
     const [input, setInput] = useState("")
+    const [mode, setMode] = useState<"ask" | "update">("ask")
     const bottomRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -35,8 +38,13 @@ export function GerritChat({
     function handleSend() {
         const trimmed = input.trim()
         if (!trimmed || isStreaming) return
-        onSendMessage(trimmed)
+        if (mode === "update" && onUpdatePlan) {
+            onUpdatePlan(trimmed)
+        } else {
+            onSendMessage(trimmed)
+        }
         setInput("")
+        setMode("ask")
     }
 
     function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -46,16 +54,17 @@ export function GerritChat({
         }
     }
 
+    const isUpdateMode = mode === "update" && !!onUpdatePlan
+
     return (
-        <Card className="shadow-sm">
+        <Card className={`shadow-sm ${isUpdateMode ? "border-amber-400" : ""}`}>
             <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                     <Bot className="w-5 h-5 text-primary" />
                     Stel Gerrit een vraag
                 </CardTitle>
                 <CardDescription>
-                    Vraag om uitleg, stel alternatieve scenario's voor, of
-                    verzoek aanpassingen aan het plan.
+                    Vraag om uitleg of verzoek een aanpassing aan het plan.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -63,9 +72,7 @@ export function GerritChat({
                 {messages.length === 0 && (
                     <SuggestedFollowUps
                         suggestions={suggestedFollowUps}
-                        onSelect={(text) => {
-                            setInput(text)
-                        }}
+                        onSelect={(text) => setInput(text)}
                         disabled={isStreaming}
                     />
                 )}
@@ -77,16 +84,12 @@ export function GerritChat({
                             <div
                                 key={i}
                                 className={`flex gap-3 text-sm ${
-                                    msg.role === "user"
-                                        ? "flex-row-reverse"
-                                        : "flex-row"
+                                    msg.role === "user" ? "flex-row-reverse" : "flex-row"
                                 }`}
                             >
                                 <div
                                     className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-                                        msg.role === "user"
-                                            ? "bg-secondary"
-                                            : "bg-primary/10"
+                                        msg.role === "user" ? "bg-secondary" : "bg-primary/10"
                                     }`}
                                 >
                                     {msg.role === "user" ? (
@@ -132,11 +135,50 @@ export function GerritChat({
                     />
                 )}
 
+                {/* Mode toggle */}
+                {onUpdatePlan && (
+                    <div className="flex gap-1 p-1 bg-muted rounded-lg">
+                        <button
+                            type="button"
+                            onClick={() => setMode("ask")}
+                            className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${
+                                mode === "ask"
+                                    ? "bg-background shadow-sm font-medium text-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            Vraag stellen
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMode("update")}
+                            className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${
+                                mode === "update"
+                                    ? "bg-amber-100 shadow-sm font-medium text-amber-800"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            Plan aanpassen
+                        </button>
+                    </div>
+                )}
+
+                {/* Context hint for update mode */}
+                {isUpdateMode && (
+                    <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 leading-relaxed">
+                        Gerrit herberekent het plan met jouw instructie als extra context. Beschrijf zo specifiek mogelijk wat je anders wilt.
+                    </p>
+                )}
+
                 {/* Input area */}
                 <div className="flex gap-2 items-end">
                     <Textarea
-                        placeholder="Stel je vraag aan Gerrit…"
-                        className="resize-none min-h-[42px] max-h-32 text-sm"
+                        placeholder={
+                            isUpdateMode
+                                ? "Bijv. 'Gebruik alleen drijfmest op perceel Noord' of 'Verhoog N op grasland'"
+                                : "Stel je vraag aan Gerrit…"
+                        }
+                        className={`resize-none min-h-[42px] max-h-32 text-sm ${isUpdateMode ? "border-amber-300 focus-visible:ring-amber-400" : ""}`}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -147,11 +189,13 @@ export function GerritChat({
                         size="icon"
                         onClick={handleSend}
                         disabled={!input.trim() || isStreaming}
-                        className="shrink-0"
-                        aria-label="Versturen"
+                        className={`shrink-0 ${isUpdateMode ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+                        aria-label={isUpdateMode ? "Plan herberekenen" : "Versturen"}
                     >
                         {isStreaming ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isUpdateMode ? (
+                            <RefreshCw className="h-4 w-4" />
                         ) : (
                             <Send className="h-4 w-4" />
                         )}

@@ -30,7 +30,6 @@ import type { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { GerritChat } from "~/components/blocks/gerrit/chat"
 import { GerritIntentPanel } from "~/components/blocks/gerrit/intent-panel"
-import { GerritReasoning } from "~/components/blocks/gerrit/reasoning"
 import { ThinkingSteps } from "~/components/blocks/gerrit/thinking-steps"
 import { GerritOnboarding } from "~/components/blocks/gerrit/onboarding"
 import { PlanTable } from "~/components/blocks/gerrit/plan-table"
@@ -39,7 +38,10 @@ import {
     STRATEGY_LABELS,
 } from "~/components/blocks/gerrit/schema"
 import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
-import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
+import {
+    GerritExplanationCard,
+    NormStatusCard,
+} from "~/components/blocks/gerrit/summary-cards"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import {
@@ -303,16 +305,12 @@ export default function GerritApp() {
 
     const sseAbortRef = useRef<AbortController | null>(null)
 
-    // On farm/calendar change: activate the stored session (if any) and
-    // auto-start intent loading only when there is no meaningful state to show.
+    // On farm/calendar change: restore any saved session. Generation only starts
+    // when the user explicitly submits the form.
     useEffect(() => {
         if (!isSupportedYear) return
         sseAbortRef.current?.abort()
-        const { hadMeaningfulState } = loadSession(farm.b_id_farm, calendar)
-        if (!hadMeaningfulState) {
-            loadIntentQuestions()
-        }
-        // loadIntentQuestions is stable (useCallback with stable deps)
+        loadSession(farm.b_id_farm, calendar)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [farm.b_id_farm, calendar])
 
@@ -349,10 +347,12 @@ export default function GerritApp() {
             const json = await resp.json()
             // Guard: discard result if user navigated to a different farm/calendar
             if (useGerritSession.getState().activeKey !== sessionKey) return
-            setIntentQuestions(json.questions ?? [])
-            if ((json.questions ?? []).length === 0) {
-                // No questions needed — go straight to generation
+            const questions = json.questions ?? []
+            if (questions.length === 0) {
+                // No clarifying questions needed — proceed directly to generation
                 startGenerationRef.current?.()
+            } else {
+                setIntentQuestions(questions)
             }
         } catch (err) {
             if (useGerritSession.getState().activeKey !== sessionKey) return
@@ -439,8 +439,6 @@ export default function GerritApp() {
         }
     }, [farm.b_id_farm, calendar, form, intentQuestions, intentAnswers, clearThinkingSteps, setPhase, addThinkingStep, setPlan, setError])
 
-    // Keep the ref in sync so loadIntentQuestions can call startGeneration without
-    // creating a circular useCallback dependency
     startGenerationRef.current = startGeneration
 
     const sendFollowUp = useCallback(async (text: string) => {
@@ -488,7 +486,27 @@ export default function GerritApp() {
                         accumulated += event.text
                         updateLastAssistantMessage(accumulated)
                     } else if (event.type === "final_response") {
-                        updateLastAssistantMessage(event.text)
+                        // Safety net: if the agent returned plan JSON instead of prose, extract summary + update followUps
+                        const responseText: string = event.text ?? ""
+                        const trimmed = responseText.trimStart()
+                        if (trimmed.startsWith("{") || trimmed.startsWith("```")) {
+                            try {
+                                const jsonStr = trimmed.startsWith("```")
+                                    ? trimmed.replace(/^```[a-z]*\n?/, "").replace(/```$/, "")
+                                    : trimmed
+                                const parsed = JSON.parse(jsonStr)
+                                updateLastAssistantMessage(parsed.summary ?? responseText)
+                                // Update suggestedFollowUps in the current plan if provided
+                                if (Array.isArray(parsed.suggestedFollowUps) && parsed.suggestedFollowUps.length > 0) {
+                                    const plan = useGerritSession.getState().currentPlan
+                                    if (plan) setPlan({ ...plan, suggestedFollowUps: parsed.suggestedFollowUps })
+                                }
+                            } catch {
+                                updateLastAssistantMessage(responseText)
+                            }
+                        } else {
+                            updateLastAssistantMessage(responseText)
+                        }
                         setPhase("follow_up")
                     } else if (event.type === "error") {
                         updateLastAssistantMessage("Er ging iets mis: " + event.message)
@@ -502,7 +520,19 @@ export default function GerritApp() {
                 )
             }
         }
-    }, [farm.b_id_farm, calendar, addMessage, updateLastAssistantMessage, setPhase])
+    }, [farm.b_id_farm, calendar, addMessage, updateLastAssistantMessage, setPhase, setPlan])
+
+    const requestPlanUpdate = useCallback((note: string) => {
+        // Append the user's note to additionalContext and re-trigger the generation flow
+        const currentCtx = form.getValues("additionalContext") ?? ""
+        const updatedCtx = [currentCtx, `Aanpassing gevraagd via chat: ${note}`]
+            .filter(Boolean)
+            .join("\n\n")
+        form.setValue("additionalContext", updatedCtx)
+        // Add a user message so the chat shows the update request
+        addMessage({ role: "user", content: note, type: "question" })
+        loadIntentQuestions()
+    }, [form, addMessage, loadIntentQuestions])
 
     useBeforeUnload(
         (event) => {
@@ -727,102 +757,115 @@ export default function GerritApp() {
                     />
                 </Header>
                 <FarmContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                        {/* ── Left column ── */}
-                        <div className="lg:col-span-1 flex flex-col gap-6">
-                            {hasPlan && !showStrategyForm ? (
-                                <SummaryCards
-                                    farmTotals={
-                                        currentPlan?.metrics?.farmTotals
-                                    }
-                                    planSummary={currentPlan?.summary}
-                                    activeStrategyLabels={activeStrategyLabels}
-                                    onEditStrategy={() =>
-                                        setShowStrategyForm(true)
-                                    }
+                    {hasPlan && currentPlan ? (
+                        /* ── Plan-ready: wide left (table) + narrow right (explanation + chat) ── */
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                            {/* Left: norms + strategy + plan table */}
+                            <div className="lg:col-span-2 flex flex-col gap-6">
+                                {showStrategyForm ? (
+                                    <StrategyForm
+                                        form={form as any}
+                                        isGenerating={phase === "generating"}
+                                        additionalContextValue={
+                                            additionalContextValue
+                                        }
+                                        calendar={calendar}
+                                        onSubmit={loadIntentQuestions}
+                                    />
+                                ) : (
+                                    <>
+                                        <NormStatusCard
+                                            farmTotals={currentPlan.metrics?.farmTotals}
+                                            activeStrategyLabels={activeStrategyLabels}
+                                            onEditStrategy={() => setShowStrategyForm(true)}
+                                        />
+                                        <PlanTable
+                                            plan={currentPlan}
+                                            isSaving={isSaving}
+                                            expandedRows={expandedRows}
+                                            toggleRow={toggleRow}
+                                        />
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Right: explanation + chat */}
+                            <div className="lg:col-span-1 flex flex-col gap-6">
+                                <GerritExplanationCard
+                                    planSummary={currentPlan.summary}
                                     traceId={`gerrit-${farm.b_id_farm}-${calendar}`}
                                 />
-                            ) : (
+                                <GerritChat
+                                    messages={messages}
+                                    suggestedFollowUps={currentPlan.suggestedFollowUps}
+                                    isStreaming={isFollowUpStreaming}
+                                    onSendMessage={sendFollowUp}
+                                    onUpdatePlan={requestPlanUpdate}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        /* ── Pre-plan: narrow left (strategy form) + wide right (content) ── */
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                            {/* Left: strategy form */}
+                            <div className="lg:col-span-1 flex flex-col gap-6">
                                 <StrategyForm
                                     form={form as any}
                                     isGenerating={phase === "generating"}
-                                    additionalContextValue={
-                                        additionalContextValue
-                                    }
+                                    additionalContextValue={additionalContextValue}
                                     calendar={calendar}
+                                    onSubmit={loadIntentQuestions}
                                 />
-                            )}
-                        </div>
+                            </div>
 
-                        {/* ── Right column ── */}
-                        <div className="lg:col-span-2 space-y-6">
-                            {phase === "intent" || phase === "loading_intent" ? (
-                                <GerritIntentPanel
-                                    questions={intentQuestions}
-                                    answers={intentAnswers}
-                                    onAnswer={setIntentAnswer}
-                                    onSubmit={startGeneration}
-                                    onSkip={startGeneration}
-                                    isLoading={phase === "loading_intent"}
-                                />
-                            ) : phase === "generating" ? (
-                                <ThinkingSteps steps={thinkingSteps} isGenerating={phase === "generating"} elapsed={elapsed} />
-                            ) : hasPlan && currentPlan ? (
-                                <>
-                                    {currentPlan.rawPlan.summary && (
-                                        <GerritReasoning
-                                            summary={currentPlan.rawPlan.summary}
-                                            farmTotals={currentPlan.metrics?.farmTotals}
-                                            activeStrategyLabels={activeStrategyLabels}
-                                        />
-                                    )}
-                                    <PlanTable
-                                        plan={currentPlan}
-                                        isSaving={isSaving}
-                                        expandedRows={expandedRows}
-                                        toggleRow={toggleRow}
+                            {/* Right: welcome / intent / thinking */}
+                            <div className="lg:col-span-2 space-y-6">
+                                {phase === "intent" || phase === "loading_intent" ? (
+                                    <GerritIntentPanel
+                                        questions={intentQuestions}
+                                        answers={intentAnswers}
+                                        onAnswer={setIntentAnswer}
+                                        onSubmit={startGeneration}
+                                        onSkip={startGeneration}
+                                        isLoading={phase === "loading_intent"}
                                     />
-                                    <GerritChat
-                                        messages={messages}
-                                        suggestedFollowUps={
-                                            currentPlan.suggestedFollowUps
-                                        }
-                                        isStreaming={isFollowUpStreaming}
-                                        onSendMessage={sendFollowUp}
+                                ) : phase === "generating" ? (
+                                    <ThinkingSteps
+                                        steps={thinkingSteps}
+                                        isGenerating={phase === "generating"}
+                                        elapsed={elapsed}
                                     />
-                                </>
-                            ) : errorMessage ? (
-                                <Card className="p-8 text-center border-destructive/30">
-                                    <p className="text-destructive font-medium mb-4">
-                                        {errorMessage}
-                                    </p>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() =>
-                                            loadIntentQuestions()
-                                        }
-                                    >
-                                        Opnieuw proberen
-                                    </Button>
-                                </Card>
-                            ) : (
-                                <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
-                                    <div className="bg-primary/10 p-6 rounded-full mb-6">
-                                        <Bot className="w-12 h-12 text-primary opacity-80" />
-                                    </div>
-                                    <h3 className="font-semibold text-xl text-foreground mb-3">
-                                        Gerrit staat voor je klaar
-                                    </h3>
-                                    <p className="max-w-lg leading-relaxed text-muted-foreground">
-                                        Gerrit berekent een integraal
-                                        bemestingsplan voor het hele bedrijf,
-                                        rekening houdend met gebruiksnormen,
-                                        bemestingsadvies en je voorkeuren.
-                                    </p>
-                                </Card>
-                            )}
+                                ) : errorMessage ? (
+                                    <Card className="p-8 text-center border-destructive/30">
+                                        <p className="text-destructive font-medium mb-4">
+                                            {errorMessage}
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => loadIntentQuestions()}
+                                        >
+                                            Opnieuw proberen
+                                        </Button>
+                                    </Card>
+                                ) : (
+                                    <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
+                                        <div className="bg-primary/10 p-6 rounded-full mb-6">
+                                            <Bot className="w-12 h-12 text-primary opacity-80" />
+                                        </div>
+                                        <h3 className="font-semibold text-xl text-foreground mb-3">
+                                            Gerrit staat voor je klaar
+                                        </h3>
+                                        <p className="max-w-lg leading-relaxed text-muted-foreground">
+                                            Gerrit berekent een integraal
+                                            bemestingsplan voor het hele bedrijf,
+                                            rekening houdend met gebruiksnormen,
+                                            bemestingsadvies en je voorkeuren.
+                                        </p>
+                                    </Card>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </FarmContent>
             </SidebarInset>
             {blockerDialog}

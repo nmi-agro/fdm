@@ -71,9 +71,10 @@ export async function requestNutrientAdvice({
 
         // Create request body for the NMI API
         const brpSegments = b_lu_catalogue.split("_")
-        const brpCode = brpSegments[brpSegments.length - 1]
-        if (!brpCode) {
-            throw new Error("Invalid b_lu_catalogue provided")
+        const brpRaw = brpSegments[brpSegments.length - 1]
+        const brpCode = Number.parseInt(brpRaw ?? "", 10)
+        if (!brpRaw || Number.isNaN(brpCode)) {
+            throw new Error(`Invalid b_lu_catalogue provided: "${b_lu_catalogue}"`)
         }
         const body = {
             a_lon: b_centroid[0],

@@ -160,32 +160,37 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             const results = await Promise.all(
                 args.b_ids.map(async (b_id) => {
-                    const field = await getField(fdm, principalId, b_id)
-                    const cultivations = await getCultivations(
-                        fdm,
-                        principalId,
-                        b_id,
-                        timeframe,
-                    )
-                    const mainLu = getMainCultivation(cultivations, calendar)
-                    const currentSoilData = await getCurrentSoilData(
-                        fdm,
-                        principalId,
-                        b_id,
-                    )
+                    try {
+                        const field = await getField(fdm, principalId, b_id)
+                        const cultivations = await getCultivations(
+                            fdm,
+                            principalId,
+                            b_id,
+                            timeframe,
+                        )
+                        const mainLu = getMainCultivation(cultivations, calendar)
+                        const currentSoilData = await getCurrentSoilData(
+                            fdm,
+                            principalId,
+                            b_id,
+                        )
 
-                    if (!mainLu) {
-                        return { b_id, advice: null }
+                        if (!mainLu) {
+                            return { b_id, advice: null }
+                        }
+
+                        const advice = await getNutrientAdvice(fdm, {
+                            b_lu_catalogue: mainLu.b_lu_catalogue,
+                            b_centroid: field.b_centroid ?? [0, 0],
+                            currentSoilData: currentSoilData,
+                            nmiApiKey: nmiApiKey || "",
+                            b_bufferstrip: field.b_bufferstrip,
+                        })
+                        return { b_id, advice }
+                    } catch (e) {
+                        console.warn(`[getFarmNutrientAdvice] Failed for field ${b_id}:`, e instanceof Error ? e.message : e)
+                        return { b_id, advice: null, error: e instanceof Error ? e.message : String(e) }
                     }
-
-                    const advice = await getNutrientAdvice(fdm, {
-                        b_lu_catalogue: mainLu.b_lu_catalogue,
-                        b_centroid: field.b_centroid ?? [0, 0],
-                        currentSoilData: currentSoilData,
-                        nmiApiKey: nmiApiKey || "",
-                        b_bufferstrip: field.b_bufferstrip,
-                    })
-                    return { b_id, advice }
                 }),
             )
             // Must return an object (not array) — Gemini rejects array as top-level function_response.

@@ -21,6 +21,7 @@ interface StrategyFormProps {
     isGenerating: boolean
     additionalContextValue: string | undefined
     calendar: string
+    onSubmit: () => void
 }
 
 export function StrategyForm({
@@ -28,6 +29,7 @@ export function StrategyForm({
     isGenerating,
     additionalContextValue,
     calendar,
+    onSubmit,
 }: StrategyFormProps) {
     const additionalContextLength = additionalContextValue?.length ?? 0
     const showDerogation = Number.parseInt(calendar, 10) < 2026
@@ -46,7 +48,14 @@ export function StrategyForm({
             </CardHeader>
             <CardContent>
                 <RemixFormProvider {...form}>
-                    <Form method="post" className="space-y-8">
+                    <Form
+                        method="post"
+                        className="space-y-8"
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            onSubmit()
+                        }}
+                    >
                         <input type="hidden" name="intent" value="generate" />
                         <div className="space-y-6">
                             {[

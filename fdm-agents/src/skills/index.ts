@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { fileURLToPath } from "node:url"
 
 export type SkillName =
     | "dutch-agronomist-persona"
@@ -17,9 +18,7 @@ export type SkillName =
  * from the compiled dist package (dist/skills/).
  */
 function getSkillsDir(): string {
-    // When running from dist (e.g. installed as npm package), __dirname is dist/skills/../
-    // When running from source, __dirname is src/skills/../
-    return join(__dirname, "skills")
+    return join(fileURLToPath(new URL(".", import.meta.url)), "skills")
 }
 
 /**

@@ -133,7 +133,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 distinctId: session.principal_id,
                 event: "$ai_generation",
                 properties: {
-                    $ai_model: "gemini-2.0-flash",
+                    $ai_model: gerritModels.intent,
                     $ai_latency: intentUsage.latencyMs / 1000,
                     $ai_input_tokens: intentUsage.inputTokens,
                     $ai_output_tokens: intentUsage.outputTokens,
@@ -160,13 +160,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
         return data({ error: "Invalid phase" }, { status: 400 })
     }
 
-    let strategies: ReturnType<typeof FertilizerPlanStrategiesSchema.parse>
-    try {
-        strategies = FertilizerPlanStrategiesSchema.parse(body.strategies ?? {})
-    } catch {
-        return data({ error: "Invalid strategies" }, { status: 400 })
-    }
-
     const additionalContext = body.additionalContext ?? ""
     const modelName = phase === "follow_up" ? gerritModels.followUp : gerritModels.planning
 
@@ -178,6 +171,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     let prompt: string
     if (phase === "generate") {
+        let strategies: ReturnType<typeof FertilizerPlanStrategiesSchema.parse>
+        try {
+            strategies = FertilizerPlanStrategiesSchema.parse(body.strategies ?? {})
+        } catch {
+            return data({ error: "Invalid strategies" }, { status: 400 })
+        }
         prompt = buildFertilizerPlanPrompt(
             { b_id_farm },
             strategies,
@@ -186,8 +185,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
             fieldsData,
         )
     } else {
-        // follow_up — the user sends a freeform message; include minimal context
-        prompt = body.message ?? "Kun je de keuzes in het plan toelichten?"
+        // follow_up — instruct the agent to answer in plain prose, not JSON
+        const userMessage = body.message ?? "Kun je de keuzes in het plan toelichten?"
+        prompt = `Je bent Gerrit, een bemestingsadviseur. De gebruiker heeft al een bemestingsplan ontvangen en stelt nu een vervolgvraag over het plan of over bemesting in het algemeen.
+
+Beantwoord de vraag in heldere, beknopte Nederlandse tekst. Geef GEEN JSON-output en GEEN codeblokken — gewoon een begrijpelijk, direct antwoord in gewone alinea's.
+
+Vraag van de gebruiker: ${userMessage}`
     }
 
     const agentContext: Record<string, unknown> = {
@@ -195,7 +199,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
         b_id_farm,
         calendar,
         nmiApiKey: serverConfig.integrations.nmi?.api_key,
-        strategies,
         additionalContext,
     }
 

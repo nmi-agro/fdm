@@ -13,7 +13,6 @@ import {
     collectInputForOrganicMatterBalance,
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
-    getFertilizerParametersDescription,
     getNutrientAdvice,
     type NormFilling,
     type NutrientAdvice,
@@ -21,6 +20,7 @@ import {
 import {
     getCurrentSoilData,
     getFertilizers,
+    getFertilizerParametersDescription,
     getField,
     type Fertilizer,
     type FertilizerApplication,

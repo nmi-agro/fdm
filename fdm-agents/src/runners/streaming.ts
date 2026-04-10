@@ -1,5 +1,5 @@
 import type { BaseAgent } from "@google/adk"
-import { InMemoryRunner, isFinalResponse, stringifyContent } from "@google/adk"
+import { InMemoryRunner, getFunctionCalls, isFinalResponse, stringifyContent } from "@google/adk"
 
 /** A single thinking step emitted during streaming (tool call observed). */
 export interface ThinkingStep {
@@ -32,18 +32,6 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 
 function toolDescription(name: string): string {
     return TOOL_DESCRIPTIONS[name] ?? name
-}
-
-function extractFunctionCallName(event: any): string | null {
-    // Standard ADK/Gemini structure: event.modelTurn.parts[].functionCall.name
-    const parts = event?.modelTurn?.parts
-    if (Array.isArray(parts)) {
-        for (const p of parts) {
-            if (p?.functionCall?.name) return p.functionCall.name
-        }
-    }
-    // Fallback
-    return event?.functionCall?.name ?? event?.toolCall?.name ?? null
 }
 
 /**
@@ -109,8 +97,9 @@ export async function* runStreamingAgent(
             }
 
             // Detect tool (function) calls and emit thinking steps
-            const toolName = extractFunctionCallName(event)
-            if (toolName) {
+            for (const fc of getFunctionCalls(event)) {
+                const toolName = fc.name
+                if (!toolName) continue
                 toolCallCounts[toolName] = (toolCallCounts[toolName] ?? 0) + 1
                 seenToolCalls.push(toolName)
                 yield {
