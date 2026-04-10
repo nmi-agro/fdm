@@ -155,6 +155,7 @@ Examples of decisions that typically need farmer input:
 - Prioritisation of crops or fields competing for the same product
 - Ambiguities or contradictions in the additional farmer instruction
 - Application timing or technique when the strategy allows multiple valid approaches
+- N advice vs organic matter trade-off: when compost or solid manure would provide good organic matter but cannot fully supply d_n_req for intensive crops (potatoes, maize, vegetables), AND adding a mineral N top-up is blocked by the legal Workable-N norm — ask whether the farmer wants to prioritize full crop N nutrition (use more N-efficient slurry/mineral) or organic matter building (accept a small N shortfall)
 
 If you have enough information to build a good plan independently, return an empty questions array.
 

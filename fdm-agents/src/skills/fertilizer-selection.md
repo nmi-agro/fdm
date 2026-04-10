@@ -1,6 +1,22 @@
 # Fertilizer Selection and Application
 
-## Consistency Principle
+## Planning Workflow
+
+Follow this sequence for every plan:
+
+1. **Call `getFarmFields`** to get field list, crops, soil types
+2. **Call `getFarmNutrientAdvice`** for all non-buffer fields → get `d_n_req`, `d_p_req`, `d_k_req` per field
+3. **Call `searchFertilizers`** to know what products are available
+4. **Draft applications** using organic/manure products first (they provide OM + some nutrients)
+5. **Call `simulateFarmPlan`** to get `fieldMetrics.proposedDose` and `fieldMetrics.advice` per field
+6. **Compute gaps** per field: `advice.d_n_req - proposedDose.p_dose_nw` (N), `d_p_req - p_dose_p` (P), `d_k_req - p_dose_k` (K)
+7. **Close remaining gaps** with mineral fertilizers (subject to legal norms and `s_organic`)
+8. **Re-simulate** after adding top-up products to verify all gaps are closed and norms not exceeded
+9. Repeat 7–8 if needed until gaps are ≤ 5 kg N/ha or norm ceiling prevents further application
+
+See `nutrient-advice-targeting` skill for detailed gap-closing logic and the N/OM trade-off.
+
+
 
 Prefer to use the same fertilizers for fields with the same or similar cultivations to simplify farm operations.
 
@@ -22,7 +38,7 @@ Equipment limits determine maximum amounts per application:
 |---|---|---|
 | Slurry / drijfmest / digestaat | 15,000–30,000 kg/ha | 1 m³ = 1,000 kg; round to nearest 1,000 |
 | Solid manure / vaste mest / compost | 10,000–30,000 kg/ha | 1 t = 1,000 kg; round to nearest 1,000 |
-| Mineral fertilizers | 50–450 kg/ha | already in kg/ha; round to nearest 5 or 10 |
+| Mineral fertilizers | 50–1,000 kg/ha | already in kg/ha; round to nearest 5 or 10 |
 
 If the total advice requires more, **split into multiple applications** on different dates.
 

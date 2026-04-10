@@ -25,6 +25,7 @@ export function createFertilizerPlannerAgent(
     const instruction = composeSkills([
         "dutch-agronomist-persona",
         "legal-norms-nl",
+        "nutrient-advice-targeting",
         "fertilizer-selection",
         "organic-matter",
         "nitrogen-management",

@@ -4,6 +4,7 @@ import { join } from "node:path"
 export type SkillName =
     | "dutch-agronomist-persona"
     | "legal-norms-nl"
+    | "nutrient-advice-targeting"
     | "fertilizer-selection"
     | "organic-matter"
     | "nitrogen-management"
