@@ -61,6 +61,7 @@ import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 import {
+    makeGerritSessionKey,
     serializeIntentAnswers,
     useGerritSession,
 } from "~/store/gerrit-session"
@@ -270,14 +271,14 @@ export default function GerritApp() {
 
     const {
         phase,
-        farmId: sessionFarmId,
         intentQuestions,
         intentAnswers,
         thinkingSteps,
         messages,
         currentPlan,
         errorMessage,
-        startSession,
+        loadSession,
+        startNewSession,
         setIntentQuestions,
         setIntentAnswer,
         addThinkingStep,
@@ -302,17 +303,25 @@ export default function GerritApp() {
 
     const sseAbortRef = useRef<AbortController | null>(null)
 
-    // Start session and load intent questions when farm changes
+    // On farm/calendar change: activate the stored session (if any) and
+    // auto-start intent loading only when there is no meaningful state to show.
     useEffect(() => {
         if (!isSupportedYear) return
-        if (sessionFarmId !== farm.b_id_farm || phase === "idle") {
+        sseAbortRef.current?.abort()
+        const { hadMeaningfulState } = loadSession(farm.b_id_farm, calendar)
+        if (!hadMeaningfulState) {
             loadIntentQuestions()
         }
+        // loadIntentQuestions is stable (useCallback with stable deps)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [farm.b_id_farm, calendar])
 
+    const startGenerationRef = useRef<(() => void) | null>(null)
+
     const loadIntentQuestions = useCallback(async () => {
-        startSession(farm.b_id_farm, calendar)
+        // Capture key before the async call so we can guard stale responses
+        const sessionKey = makeGerritSessionKey(farm.b_id_farm, calendar)
+        startNewSession(farm.b_id_farm, calendar)
         const strategies = form.getValues()
         try {
             const resp = await fetch(
@@ -338,15 +347,22 @@ export default function GerritApp() {
             )
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
             const json = await resp.json()
+            // Guard: discard result if user navigated to a different farm/calendar
+            if (useGerritSession.getState().activeKey !== sessionKey) return
             setIntentQuestions(json.questions ?? [])
+            if ((json.questions ?? []).length === 0) {
+                // No questions needed — go straight to generation
+                startGenerationRef.current?.()
+            }
         } catch (err) {
+            if (useGerritSession.getState().activeKey !== sessionKey) return
             setError(
                 err instanceof Error
                     ? err.message
                     : "Kon vragen niet laden.",
             )
         }
-    }, [farm.b_id_farm, calendar, form, startSession, setIntentQuestions, setError])
+    }, [farm.b_id_farm, calendar, form, startNewSession, setIntentQuestions, setError])
 
     const startGeneration = useCallback(async () => {
         if (sseAbortRef.current) sseAbortRef.current.abort()
@@ -423,6 +439,10 @@ export default function GerritApp() {
         }
     }, [farm.b_id_farm, calendar, form, intentQuestions, intentAnswers, clearThinkingSteps, setPhase, addThinkingStep, setPlan, setError])
 
+    // Keep the ref in sync so loadIntentQuestions can call startGeneration without
+    // creating a circular useCallback dependency
+    startGenerationRef.current = startGeneration
+
     const sendFollowUp = useCallback(async (text: string) => {
         if (sseAbortRef.current) sseAbortRef.current.abort()
         const ctrl = new AbortController()
@@ -483,14 +503,6 @@ export default function GerritApp() {
             }
         }
     }, [farm.b_id_farm, calendar, addMessage, updateLastAssistantMessage, setPhase])
-
-    // Auto-start generation when intent phase returns no questions
-    useEffect(() => {
-        if (phase === "intent" && intentQuestions.length === 0) {
-            startGeneration()
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase, intentQuestions.length])
 
     useBeforeUnload(
         (event) => {
