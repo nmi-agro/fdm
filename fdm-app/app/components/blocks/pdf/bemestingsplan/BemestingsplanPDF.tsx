@@ -905,15 +905,29 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
                                                 if (!acc[app.product]) {
                                                     acc[app.product] = {
                                                         amount: 0,
+                                                        amount_display: 0,
+                                                        amount_unit: (
+                                                            {
+                                                                "kg/ha": "kg",
+                                                                "ton/ha": "ton",
+                                                                "l/ha": "L",
+                                                                "m3/ha": "m³",
+                                                            } as const
+                                                        )[app.quantity_unit],
                                                         n: 0,
                                                         nw: 0,
                                                         p: 0,
                                                         k: 0,
                                                     }
                                                 }
-                                                // app.quantity is per ha, so multiply by area
+                                                // app.quantity and app.quantity_display are per ha, so multiply by area
                                                 acc[app.product].amount +=
                                                     app.quantity * f.area
+                                                acc[
+                                                    app.product
+                                                ].amount_display +=
+                                                    app.quantity_display *
+                                                    f.area
                                                 acc[app.product].n +=
                                                     app.p_dose_n * f.area
                                                 acc[app.product].nw +=
@@ -929,6 +943,12 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
                                             string,
                                             {
                                                 amount: number
+                                                amount_display: number
+                                                amount_unit:
+                                                    | "kg"
+                                                    | "ton"
+                                                    | "L"
+                                                    | "m³"
                                                 n: number
                                                 nw: number
                                                 p: number
@@ -985,11 +1005,11 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
                                             >
                                                 <Text>
                                                     {Math.round(
-                                                        stats.amount,
+                                                        stats.amount_display,
                                                     ).toLocaleString(
                                                         "nl-NL",
                                                     )}{" "}
-                                                    kg
+                                                    {stats.amount_unit}
                                                 </Text>
                                             </PdfTableCell>
                                             <PdfTableCell
