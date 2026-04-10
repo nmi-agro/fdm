@@ -231,7 +231,7 @@ export default function RvoImportReviewPage() {
     const navigation = useNavigation()
     const location = useLocation()
 
-    const isRvoEnabled = useFeatureFlagEnabled("rvo")
+    const isRvoEnabled = useFeatureFlagEnabled("rvo") ?? true
 
     const isImporting =
         navigation.state === "submitting" &&

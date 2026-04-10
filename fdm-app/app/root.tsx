@@ -98,6 +98,7 @@ export function Layout() {
                     bootstrap: {
                         featureFlags: {
                             gerrit: false,
+                            rvo: false,
                         },
                     },
                     loaded: () => {},

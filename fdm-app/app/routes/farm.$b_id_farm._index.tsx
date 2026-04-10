@@ -156,7 +156,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmDashboardIndex() {
     const loaderData = useLoaderData<typeof loader>()
-    const isRvoEnabled = useFeatureFlagEnabled("rvo")
+    const isRvoEnabled = useFeatureFlagEnabled("rvo") ?? true
 
     const calendar = useCalendarStore((state) => state.calendar)
     const setCalendar = useCalendarStore((state) => state.setCalendar)

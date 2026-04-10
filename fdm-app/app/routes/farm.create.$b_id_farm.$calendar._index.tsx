@@ -64,7 +64,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function ChooseFieldImportMethod() {
     const { farm, isRvoConfigured } = useLoaderData<typeof loader>()
-    const isRvoEnabled = useFeatureFlagEnabled("rvo")
+    const isRvoEnabled = useFeatureFlagEnabled("rvo") ?? true
     const showRvoOption = isRvoConfigured && isRvoEnabled !== false
 
     return (
