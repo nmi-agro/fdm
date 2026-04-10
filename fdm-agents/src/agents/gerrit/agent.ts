@@ -27,6 +27,7 @@ export function createFertilizerPlannerAgent(
         "legal-norms-nl",
         "nutrient-advice-targeting",
         "fertilizer-selection",
+        "crop-specific-fertilizer-preferences",
         "organic-matter",
         "nitrogen-management",
         "output-format",
