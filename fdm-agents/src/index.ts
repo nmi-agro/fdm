@@ -7,6 +7,14 @@ import { getMainCultivation } from "./tools/fertilizer-planner"
 export type { OneShotAgentResult } from "./runners/one-shot"
 export { AgentTimeoutError } from "./runners/one-shot"
 export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
+export { composeSkills, loadSkill } from "./skills"
+export type { SkillName } from "./skills"
+export { runStreamingAgent } from "./runners/streaming"
+export type { AgentStreamEvent, ThinkingStep, StreamUsage } from "./runners/streaming"
+export { gerritModels } from "./config"
+export type { GerritModelConfig } from "./config"
+export { generateIntentQuestions } from "./agents/gerrit/intent-questions"
+export type { IntentQuestion, IntentOption, FertilizerSummary, IntentFieldSummary, IntentQuestionsResult } from "./agents/gerrit/intent-questions"
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */
