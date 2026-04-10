@@ -23,6 +23,7 @@ export interface ParsedPlan {
         fieldMetrics?: FieldMetrics | null
     }>
     summary?: string
+    suggestedFollowUps?: string[]
 }
 
 export interface FieldMetrics {

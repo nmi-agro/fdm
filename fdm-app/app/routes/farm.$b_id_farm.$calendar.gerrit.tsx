@@ -1,74 +1,45 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
-    AgentTimeoutError,
-    buildFertilizerPlanPrompt,
-    createFertilizerPlannerAgent,
-    type FarmFieldSummary,
-    type OneShotAgentResult,
-    runOneShotAgent,
-} from "@nmi-agro/fdm-agents"
-import {
-    aggregateNormFillingsToFarmLevel,
-    aggregateNormsToFarmLevel,
-    calculateDose,
-    calculateNitrogenBalanceField,
-    calculateNitrogenBalancesFieldToFarm,
-    calculateOrganicMatterBalanceField,
-    collectInputForNitrogenBalance,
-    collectInputForOrganicMatterBalance,
-    createFunctionsForFertilizerApplicationFilling,
-    createFunctionsForNorms,
-    getNutrientAdvice,
-    type NormFilling,
-    type NutrientAdvice,
-} from "@nmi-agro/fdm-calculator"
-import {
     addFertilizerApplication,
     type Fertilizer,
-    type FertilizerApplication,
-    getCultivations,
-    getCurrentSoilData,
     getFarms,
     getFertilizerApplications,
-    getFertilizerParametersDescription,
     getFertilizers,
-    getField,
     getFields,
     isDerogationGrantedForYear,
     isOrganicCertificationValid,
-    type PrincipalId,
     removeFertilizerApplication,
 } from "@nmi-agro/fdm-core"
 import { Bot } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
     type ActionFunctionArgs,
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
     redirect,
-    useActionData,
     useBeforeUnload,
     useBlocker,
     useLoaderData,
     useNavigation,
 } from "react-router"
-import { getValidatedFormData, useRemixForm } from "remix-hook-form"
+import { useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import type { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
-import { GerritLoading } from "~/components/blocks/gerrit/loading"
+import { GerritChat } from "~/components/blocks/gerrit/chat"
+import { GerritIntentPanel } from "~/components/blocks/gerrit/intent-panel"
+import { GerritReasoning } from "~/components/blocks/gerrit/reasoning"
+import { ThinkingSteps } from "~/components/blocks/gerrit/thinking-steps"
 import { GerritOnboarding } from "~/components/blocks/gerrit/onboarding"
 import { PlanTable } from "~/components/blocks/gerrit/plan-table"
 import {
-    GEMINI_MODELS,
     GerritFormSchema,
     STRATEGY_LABELS,
 } from "~/components/blocks/gerrit/schema"
 import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
 import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
-import type { FieldMetrics, ParsedPlan } from "~/components/blocks/gerrit/types"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import {
@@ -87,11 +58,12 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { serverConfig } from "~/lib/config.server"
-import { handleActionError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
-import { getDefaultCultivation } from "../lib/cultivation-helpers"
+import {
+    serializeIntentAnswers,
+    useGerritSession,
+} from "~/store/gerrit-session"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -156,349 +128,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 }
 
-async function computePlanMetrics(
-    principalId: PrincipalId,
-    b_id_farm: string,
-    calendar: string,
-    enrichedPlan: Array<{
-        b_id: string
-        b_lu_catalogue?: string
-        b_area: number | null
-        b_bufferstrip: boolean
-        applications: Array<{
-            p_id_catalogue: string
-            p_app_amount: number
-            p_app_date: string
-            p_app_method?: string | null
-        }>
-        fieldMetrics: FieldMetrics | null
-    }>,
-    fertilizers: Awaited<ReturnType<typeof getFertilizers>>,
-    nmiApiKey?: string,
-) {
-    if (!["2025", "2026"].includes(calendar)) {
-        console.warn(
-            `[computePlanMetrics] Unsupported calendar value "${calendar}"; falling back to "2025".`,
-        )
-    }
-    const year = (["2025", "2026"].includes(calendar) ? calendar : "2025") as
-        | "2025"
-        | "2026"
-    const normFuncs = createFunctionsForNorms("NL", year)
-    const fillingFuncs = createFunctionsForFertilizerApplicationFilling(
-        "NL",
-        year,
-    )
-    const fieldMetricsMap: Record<string, FieldMetrics> = {}
-
-    const timeframe = {
-        start: new Date(`${calendar}-01-01`),
-        end: new Date(`${calendar}-12-31`),
-    }
-
-    const [omInput, nInput] = await Promise.all([
-        collectInputForOrganicMatterBalance(
-            fdm,
-            principalId,
-            b_id_farm,
-            timeframe,
-        ).catch(() => null),
-        collectInputForNitrogenBalance(
-            fdm,
-            principalId,
-            b_id_farm,
-            timeframe,
-        ).catch(() => null),
-    ])
-
-    const fieldResults = await Promise.allSettled(
-        enrichedPlan
-            .filter((f) => f.b_area)
-            .map(async (field) => {
-                let manure: { normValue: number; normSource: string }
-                let nitrogen: { normValue: number; normSource: string }
-                let phosphate: { normValue: number; normSource: string }
-                try {
-                    const normsInput = await normFuncs.collectInputForNorms(
-                        fdm,
-                        principalId,
-                        field.b_id,
-                    )
-                    const [manureResult, phosphateResult, nitrogenResult] =
-                        await Promise.all([
-                            normFuncs.calculateNormForManure(
-                                fdm,
-                                normsInput as any,
-                            ),
-                            normFuncs.calculateNormForPhosphate(
-                                fdm,
-                                normsInput as any,
-                            ),
-                            normFuncs.calculateNormForNitrogen(
-                                fdm,
-                                normsInput as any,
-                            ),
-                        ])
-                    manure = {
-                        normValue: manureResult.normValue,
-                        normSource: manureResult.normSource,
-                    }
-                    phosphate = {
-                        normValue: phosphateResult.normValue,
-                        normSource: phosphateResult.normSource,
-                    }
-                    nitrogen = {
-                        normValue: nitrogenResult.normValue,
-                        normSource: nitrogenResult.normSource,
-                    }
-                } catch (err) {
-                    console.warn(
-                        `[computePlanMetrics] Norm calc failed for ${field.b_id}:`,
-                        err,
-                    )
-                    throw err
-                }
-
-                const syntheticApps: FertilizerApplication[] =
-                    field.applications.map((app, i) => {
-                        const fert = fertilizers.find(
-                            (f) => f.p_id_catalogue === app.p_id_catalogue,
-                        )
-                        return {
-                            p_id: fert?.p_id ?? app.p_id_catalogue,
-                            p_id_catalogue: app.p_id_catalogue,
-                            p_name_nl: fert?.p_name_nl ?? null,
-                            p_app_amount: app.p_app_amount,
-                            p_app_date: new Date(app.p_app_date),
-                            p_app_id: `plan-${field.b_id}-${i}`,
-                            p_app_method: app.p_app_method ?? null,
-                        } as unknown as FertilizerApplication
-                    })
-
-                let manureFilling: NormFilling
-                let nitrogenFilling: NormFilling
-                let phosphateFilling: NormFilling
-
-                try {
-                    const baseInput =
-                        await fillingFuncs.collectInputForFertilizerApplicationFilling(
-                            fdm,
-                            principalId,
-                            field.b_id,
-                            phosphate.normValue,
-                        )
-                    const fillingInput = {
-                        ...baseInput,
-                        applications: syntheticApps,
-                        fertilizers,
-                    } as Awaited<
-                        ReturnType<
-                            typeof fillingFuncs.collectInputForFertilizerApplicationFilling
-                        >
-                    >
-                    const [manureResult, nitrogenResult, phosphateResult] =
-                        await Promise.all([
-                            Promise.resolve(
-                                fillingFuncs.calculateFertilizerApplicationFillingForManure(
-                                    fdm,
-                                    fillingInput,
-                                ),
-                            ),
-                            fillingFuncs.calculateFertilizerApplicationFillingForNitrogen(
-                                fdm,
-                                fillingInput,
-                            ),
-                            Promise.resolve(
-                                fillingFuncs.calculateFertilizerApplicationFillingForPhosphate(
-                                    fdm,
-                                    fillingInput,
-                                ),
-                            ),
-                        ])
-                    manureFilling = manureResult
-                    nitrogenFilling = nitrogenResult
-                    phosphateFilling = phosphateResult
-                } catch (err) {
-                    console.warn(
-                        `[computePlanMetrics] Filling calc failed for ${field.b_id}:`,
-                        err,
-                    )
-                    throw err
-                }
-
-                // Fetch NMI nutrient advice per field
-                let advice: NutrientAdvice | null = null
-                if (nmiApiKey && field.b_lu_catalogue) {
-                    try {
-                        const [fieldData, currentSoilData] = await Promise.all([
-                            getField(fdm, principalId, field.b_id),
-                            getCurrentSoilData(fdm, principalId, field.b_id),
-                        ])
-                        advice = await getNutrientAdvice(fdm, {
-                            b_lu_catalogue: field.b_lu_catalogue,
-                            b_centroid: fieldData.b_centroid ?? [0, 0],
-                            currentSoilData,
-                            nmiApiKey,
-                            b_bufferstrip: fieldData.b_bufferstrip,
-                        })
-                    } catch (err) {
-                        console.warn(
-                            `[computePlanMetrics] NMI advice failed for ${field.b_id}:`,
-                            err,
-                        )
-                    }
-                }
-
-                const proposedDose = calculateDose({
-                    applications: syntheticApps,
-                    fertilizers,
-                })
-
-                let omBalance = field.fieldMetrics?.omBalance ?? null
-                if (omInput) {
-                    const fieldOmInput = omInput.fields.find(
-                        (f: any) => f.field.b_id === field.b_id,
-                    )
-                    if (fieldOmInput) {
-                        try {
-                            const omResult = calculateOrganicMatterBalanceField(
-                                {
-                                    fieldInput: {
-                                        ...fieldOmInput,
-                                        fertilizerApplications: syntheticApps,
-                                    },
-                                    fertilizerDetails:
-                                        omInput.fertilizerDetails,
-                                    cultivationDetails:
-                                        omInput.cultivationDetails,
-                                    timeFrame: timeframe,
-                                },
-                            )
-                            omBalance = omResult.balance
-                        } catch (e) {
-                            console.warn(
-                                `[computePlanMetrics] OM calc failed for ${field.b_id}:`,
-                                e,
-                            )
-                        }
-                    }
-                }
-
-                let nBalance: ReturnType<
-                    typeof calculateNitrogenBalanceField
-                > | null = null
-                if (nInput) {
-                    const fieldNInput = nInput.fields.find(
-                        (f: any) => f.field.b_id === field.b_id,
-                    )
-                    if (fieldNInput) {
-                        try {
-                            nBalance = calculateNitrogenBalanceField({
-                                fieldInput: {
-                                    ...fieldNInput,
-                                    fertilizerApplications: syntheticApps,
-                                },
-                                fertilizerDetails: nInput.fertilizerDetails,
-                                cultivationDetails: nInput.cultivationDetails,
-                                timeFrame: timeframe,
-                            })
-                        } catch (e) {
-                            console.warn(
-                                `[computePlanMetrics] N calc failed for ${field.b_id}:`,
-                                e,
-                            )
-                        }
-                    }
-                }
-
-                fieldMetricsMap[field.b_id] = {
-                    normsFilling: {
-                        manure: manureFilling,
-                        nitrogen: nitrogenFilling,
-                        phosphate: phosphateFilling,
-                    },
-                    norms: { manure, nitrogen, phosphate },
-                    nBalance: nBalance
-                        ? {
-                              balance: nBalance.balance,
-                              target: nBalance.target,
-                              emission: nBalance.emission,
-                          }
-                        : null,
-                    omBalance,
-                    advice,
-                    proposedDose: proposedDose.dose,
-                }
-                return {
-                    b_id: field.b_id,
-                    b_area: field.b_area ?? 0,
-                    b_bufferstrip: field.b_bufferstrip,
-                    nBalance,
-                    fieldData: field,
-                }
-            }),
-    )
-
-    const validFields = fieldResults
-        .filter(
-            (
-                r,
-            ): r is PromiseFulfilledResult<{
-                b_id: string
-                b_area: number
-                b_bufferstrip: boolean
-                nBalance: ReturnType<
-                    typeof calculateNitrogenBalanceField
-                > | null
-                fieldData: any
-            }> => r.status === "fulfilled",
-        )
-        .map((r) => r.value)
-        .filter((f) => fieldMetricsMap[f.b_id])
-
-    if (validFields.length === 0) return null
-
-    const farmNormsKg = aggregateNormsToFarmLevel(
-        validFields.map((f) => ({
-            b_id: f.b_id,
-            b_area: f.b_area,
-            norms: fieldMetricsMap[f.b_id].norms,
-        })),
-    )
-
-    const farmFillingsKg = aggregateNormFillingsToFarmLevel(
-        validFields.map((f) => ({
-            b_id: f.b_id,
-            b_area: f.b_area,
-            normsFilling: fieldMetricsMap[f.b_id].normsFilling,
-        })),
-    )
-
-    const fieldsWithNBalance = validFields.filter((f) => f.nBalance !== null)
-    const farmNBalance =
-        fieldsWithNBalance.length > 0
-            ? calculateNitrogenBalancesFieldToFarm(
-                  fieldsWithNBalance.map((f) => ({
-                      b_id: f.b_id,
-                      b_area: f.b_area,
-                      b_bufferstrip: f.b_bufferstrip,
-                      balance: f.nBalance!,
-                  })),
-                  false,
-                  [],
-              )
-            : null
-
-    return {
-        fieldMetricsMap,
-        farmTotals: {
-            normsFilling: farmFillingsKg,
-            norms: farmNormsKg,
-            nBalance: farmNBalance,
-        },
-    }
-}
-
 export async function action({ request, params }: ActionFunctionArgs) {
     const session = await getSession(request)
     const b_id_farm = params.b_id_farm
@@ -507,7 +136,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     if (!b_id_farm) throw data("Missing farm ID", { status: 400 })
 
-    const clonedRequest = request.clone()
     const formData = await request.formData()
     const intent = formData.get("intent")
 
@@ -522,276 +150,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
             status: 403,
             statusText: "Feature is not enabled for this user",
         })
-    }
-
-    if (intent === "generate") {
-        const { errors, data: formValues } = await getValidatedFormData<
-            z.infer<typeof GerritFormSchema>
-        >(clonedRequest, zodResolver(GerritFormSchema) as any)
-        if (errors || !formValues) {
-            return dataWithError(
-                null,
-                "Ongeldige invoer, controleer het formulier.",
-            )
-        }
-
-        try {
-            const strategies = {
-                isOrganic: formValues.isOrganic,
-                fillManureSpace: formValues.fillManureSpace,
-                reduceAmmoniaEmissions: formValues.reduceAmmoniaEmissions,
-                keepNitrogenBalanceBelowTarget:
-                    formValues.keepNitrogenBalanceBelowTarget,
-                workOnRotationLevel: formValues.workOnRotationLevel,
-                isDerogation: formValues.isDerogation ?? false,
-            }
-            const additionalContext = formValues.additionalContext
-            const modelName = formValues.geminiModel
-
-            const rawFields = await getFields(
-                fdm,
-                session.principal_id,
-                b_id_farm,
-                timeframe,
-            )
-            const fieldsData = await Promise.all(
-                rawFields.map(async (field) => {
-                    const [cultivations, soilData] = await Promise.all([
-                        getCultivations(
-                            fdm,
-                            session.principal_id,
-                            field.b_id,
-                            timeframe,
-                        ),
-                        getCurrentSoilData(
-                            fdm,
-                            session.principal_id,
-                            field.b_id,
-                        ),
-                    ])
-                    const mainCultivation = getDefaultCultivation(
-                        cultivations,
-                        calendar,
-                    )
-                    const getSoilParam = (param: string) =>
-                        soilData.find((d) => d.parameter === param)?.value ??
-                        null
-                    return {
-                        b_id: field.b_id,
-                        b_name: field.b_name || field.b_id,
-                        b_area: field.b_area,
-                        b_bufferstrip: field.b_bufferstrip,
-                        b_lu_catalogue:
-                            mainCultivation?.b_lu_catalogue || "Onbekend",
-                        b_lu_name:
-                            mainCultivation?.b_lu_name || "Onbekend gewas",
-                        b_lu_croprotation:
-                            mainCultivation?.b_lu_croprotation || null,
-                        b_soiltype_agr: getSoilParam("b_soiltype_agr") as
-                            | string
-                            | null,
-                        b_gwl_class: getSoilParam("b_gwl_class") as
-                            | string
-                            | null,
-                        a_som_loi: getSoilParam("a_som_loi") as number | null,
-                    }
-                }),
-            )
-            const fieldsSummary: FarmFieldSummary[] = fieldsData.map((f) => ({
-                b_id: f.b_id,
-                b_name: f.b_name,
-                b_area: f.b_area ?? 0,
-                b_bufferstrip: f.b_bufferstrip ?? false,
-                b_lu_catalogue: f.b_lu_catalogue,
-                b_lu_name: f.b_lu_name,
-                b_soiltype_agr: f.b_soiltype_agr,
-                b_gwl_class: f.b_gwl_class,
-                a_som_loi: f.a_som_loi,
-            }))
-            const fertilizers = await getFertilizers(
-                fdm,
-                session.principal_id,
-                b_id_farm,
-            )
-            const agent = createFertilizerPlannerAgent(
-                fdm,
-                serverConfig.integrations.gemini?.api_key,
-                modelName,
-            )
-            const prompt = buildFertilizerPlanPrompt(
-                { b_id_farm },
-                strategies,
-                calendar,
-                additionalContext,
-                fieldsSummary,
-            )
-            const agentContext = {
-                principalId: session.principal_id,
-                b_id_farm,
-                calendar,
-                nmiApiKey: serverConfig.integrations.nmi?.api_key,
-                strategies,
-                additionalContext: additionalContext ?? "",
-            }
-
-            const startTime = Date.now()
-            let rawResult = ""
-            let usageData: OneShotAgentResult["usage"] = null
-            let toolCalls: string[] | undefined
-
-            try {
-                const agentResult = await runOneShotAgent(
-                    agent,
-                    prompt,
-                    agentContext,
-                )
-                rawResult = agentResult.result
-                usageData = agentResult.usage
-                toolCalls = agentResult.toolCalls
-            } catch (err: unknown) {
-                if (err instanceof AgentTimeoutError) {
-                    return dataWithError(
-                        null,
-                        "Het duurde te lang om een plan te genereren. Probeer het opnieuw.",
-                    )
-                }
-                return dataWithError(
-                    null,
-                    err instanceof Error
-                        ? err.message
-                        : "Gerrit kon geen plan genereren.",
-                )
-            }
-
-            const firstBrace = rawResult.indexOf("{")
-            const lastBrace = rawResult.lastIndexOf("}")
-            if (firstBrace === -1 || lastBrace <= firstBrace)
-                return dataWithError(
-                    null,
-                    "Gerrit gaf een onleesbaar antwoord. Probeer het opnieuw.",
-                )
-
-            let parsedPlan: ParsedPlan
-            try {
-                parsedPlan = JSON.parse(
-                    rawResult.slice(firstBrace, lastBrace + 1),
-                ) as ParsedPlan
-            } catch {
-                return dataWithError(
-                    null,
-                    "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
-                )
-            }
-
-            const fertilizerParameterDescription =
-                getFertilizerParametersDescription()
-            const applicationMethods = fertilizerParameterDescription.find(
-                (x: any) => x.parameter === "p_app_method_options",
-            )
-
-            const enrichedPlan = fieldsData.map((fd) => {
-                const proposedField = parsedPlan.plan?.find(
-                    (p) => p.b_id === fd.b_id,
-                )
-                return {
-                    b_id: fd.b_id,
-                    b_name: fd.b_name,
-                    b_lu_catalogue: fd.b_lu_catalogue,
-                    b_lu_name: fd.b_lu_name,
-                    b_lu_croprotation: fd.b_lu_croprotation,
-                    b_area: fd.b_area,
-                    b_bufferstrip: fd.b_bufferstrip ?? false,
-                    applications: (proposedField?.applications || []).map(
-                        (app) => {
-                            const fert = fertilizers.find(
-                                (f: Fertilizer) =>
-                                    f.p_id_catalogue === app.p_id_catalogue,
-                            )
-                            const methodMeta =
-                                applicationMethods?.options?.find(
-                                    (x: any) => x.value === app.p_app_method,
-                                )
-                            return {
-                                ...app,
-                                p_name_nl:
-                                    fert?.p_name_nl || app.p_id_catalogue,
-                                p_type: fert?.p_type || "other",
-                                p_app_method_name:
-                                    methodMeta?.label ?? app.p_app_method,
-                            }
-                        },
-                    ),
-                    fieldMetrics:
-                        (proposedField as any)?.fieldMetrics ??
-                        (null as FieldMetrics | null),
-                }
-            })
-
-            const serverMetrics = await computePlanMetrics(
-                session.principal_id,
-                b_id_farm,
-                calendar,
-                enrichedPlan,
-                fertilizers,
-                serverConfig.integrations.nmi?.api_key,
-            ).catch(() => null)
-            for (const field of enrichedPlan) {
-                field.fieldMetrics =
-                    serverMetrics?.fieldMetricsMap?.[field.b_id] ?? null
-            }
-
-            const latencySeconds = (Date.now() - startTime) / 1000
-            if (posthog) {
-                try {
-                    posthog.capture({
-                        distinctId: session.principal_id,
-                        event: "$ai_generation",
-                        properties: {
-                            $ai_model: modelName,
-                            $ai_latency: latencySeconds,
-                            $ai_input_tokens: usageData?.inputTokens ?? null,
-                            $ai_output_tokens: usageData?.outputTokens ?? null,
-                            $ai_total_tokens: usageData?.totalTokens ?? null,
-                            $ai_input: [
-                                {
-                                    role: "user",
-                                    content: prompt.slice(0, 2000),
-                                },
-                            ],
-                            $ai_output_choices: [
-                                {
-                                    role: "assistant",
-                                    content: rawResult.slice(0, 2000),
-                                },
-                            ],
-                            $ai_tools_called: toolCalls || [],
-                            $ai_tool_call_count: toolCalls?.length || 0,
-                            $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
-                            b_id_farm,
-                            calendar,
-                            field_count: fieldsData.length,
-                        },
-                    })
-                    await posthog.flush()
-                } catch (e) {
-                    console.error("[gerrit] PostHog tracking failed:", e)
-                }
-            }
-
-            return data({
-                intent: "generate",
-                plan: {
-                    summary: parsedPlan.summary,
-                    plan: enrichedPlan,
-                    metrics: serverMetrics
-                        ? { farmTotals: serverMetrics.farmTotals }
-                        : null,
-                },
-                strategies,
-            })
-        } catch (e: unknown) {
-            return handleActionError(e)
-        }
     }
 
     if (intent === "accept") {
@@ -886,7 +244,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export default function GerritApp() {
     const { farm, farmOptions, defaultStrategies, calendar } =
         useLoaderData<typeof loader>()
-    const actionData = useActionData<typeof action>()
     const navigation = useNavigation()
 
     const supportedYears = ["2025", "2026"]
@@ -902,7 +259,6 @@ export default function GerritApp() {
             keepNitrogenBalanceBelowTarget: false,
             workOnRotationLevel: false,
             additionalContext: "",
-            geminiModel: GEMINI_MODELS[0].value,
         },
     })
 
@@ -912,14 +268,233 @@ export default function GerritApp() {
         navigation.state === "submitting" &&
         navigation.formData?.get("intent") === "accept"
 
-    // Check if Gerrit is currently generating a plan
-    const isAIGenerating =
-        navigation.state === "submitting" &&
-        navigation.formData?.get("intent") === "generate"
+    const {
+        phase,
+        farmId: sessionFarmId,
+        intentQuestions,
+        intentAnswers,
+        thinkingSteps,
+        messages,
+        currentPlan,
+        errorMessage,
+        startSession,
+        setIntentQuestions,
+        setIntentAnswer,
+        addThinkingStep,
+        clearThinkingSteps,
+        setPlan,
+        addMessage,
+        updateLastAssistantMessage,
+        setError,
+        setPhase,
+    } = useGerritSession()
+
+    // Elapsed timer — counts seconds while generation is in progress
+    const [elapsed, setElapsed] = useState(0)
+    useEffect(() => {
+        if (phase !== "generating") {
+            setElapsed(0)
+            return
+        }
+        const id = setInterval(() => setElapsed((s) => s + 1), 1000)
+        return () => clearInterval(id)
+    }, [phase])
+
+    const sseAbortRef = useRef<AbortController | null>(null)
+
+    // Start session and load intent questions when farm changes
+    useEffect(() => {
+        if (!isSupportedYear) return
+        if (sessionFarmId !== farm.b_id_farm || phase === "idle") {
+            loadIntentQuestions()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [farm.b_id_farm, calendar])
+
+    const loadIntentQuestions = useCallback(async () => {
+        startSession(farm.b_id_farm, calendar)
+        const strategies = form.getValues()
+        try {
+            const resp = await fetch(
+                `/api/gerrit/${farm.b_id_farm}/${calendar}/stream`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        phase: "intent",
+                        strategies: {
+                            isOrganic: strategies.isOrganic,
+                            fillManureSpace: strategies.fillManureSpace,
+                            reduceAmmoniaEmissions:
+                                strategies.reduceAmmoniaEmissions,
+                            keepNitrogenBalanceBelowTarget:
+                                strategies.keepNitrogenBalanceBelowTarget,
+                            workOnRotationLevel: strategies.workOnRotationLevel,
+                            isDerogation: strategies.isDerogation ?? false,
+                        },
+                        additionalContext: strategies.additionalContext,
+                    }),
+                },
+            )
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+            const json = await resp.json()
+            setIntentQuestions(json.questions ?? [])
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Kon vragen niet laden.",
+            )
+        }
+    }, [farm.b_id_farm, calendar, form, startSession, setIntentQuestions, setError])
+
+    const startGeneration = useCallback(async () => {
+        if (sseAbortRef.current) sseAbortRef.current.abort()
+        const ctrl = new AbortController()
+        sseAbortRef.current = ctrl
+
+        clearThinkingSteps()
+        setPhase("generating")
+
+        const strategies = form.getValues()
+        const contextFromAnswers = serializeIntentAnswers(intentQuestions, intentAnswers)
+        const additionalCtx = [strategies.additionalContext, contextFromAnswers]
+            .filter(Boolean)
+            .join("\n\n")
+
+        try {
+            const resp = await fetch(
+                `/api/gerrit/${farm.b_id_farm}/${calendar}/stream`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    signal: ctrl.signal,
+                    body: JSON.stringify({
+                        phase: "generate",
+                        strategies: {
+                            isOrganic: strategies.isOrganic,
+                            fillManureSpace: strategies.fillManureSpace,
+                            reduceAmmoniaEmissions:
+                                strategies.reduceAmmoniaEmissions,
+                            keepNitrogenBalanceBelowTarget:
+                                strategies.keepNitrogenBalanceBelowTarget,
+                            workOnRotationLevel: strategies.workOnRotationLevel,
+                            isDerogation: strategies.isDerogation ?? false,
+                        },
+                        additionalContext: additionalCtx,
+                    }),
+                },
+            )
+            if (!resp.ok || !resp.body)
+                throw new Error(`HTTP ${resp.status}`)
+
+            const reader = resp.body.getReader()
+            const decoder = new TextDecoder()
+            let buffer = ""
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                buffer += decoder.decode(value, { stream: true })
+                const lines = buffer.split("\n\n")
+                buffer = lines.pop() ?? ""
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue
+                    const payload = line.slice(6).trim()
+                    if (payload === "[DONE]") return
+                    const event = JSON.parse(payload)
+                    if (event.type === "thinking_step") {
+                        addThinkingStep(event.step)
+                    } else if (event.type === "plan_enriched") {
+                        setPlan(event.plan)
+                    } else if (event.type === "error") {
+                        setError(event.message)
+                    }
+                }
+            }
+        } catch (err) {
+            if ((err as Error)?.name !== "AbortError") {
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Generatie mislukt.",
+                )
+            }
+        }
+    }, [farm.b_id_farm, calendar, form, intentQuestions, intentAnswers, clearThinkingSteps, setPhase, addThinkingStep, setPlan, setError])
+
+    const sendFollowUp = useCallback(async (text: string) => {
+        if (sseAbortRef.current) sseAbortRef.current.abort()
+        const ctrl = new AbortController()
+        sseAbortRef.current = ctrl
+
+        addMessage({ role: "user", content: text, type: "question" })
+        addMessage({ role: "assistant", content: "", type: "follow_up" })
+
+        try {
+            const resp = await fetch(
+                `/api/gerrit/${farm.b_id_farm}/${calendar}/stream`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    signal: ctrl.signal,
+                    body: JSON.stringify({
+                        phase: "follow_up",
+                        message: text,
+                        sessionId: useGerritSession.getState().sessionId,
+                    }),
+                },
+            )
+            if (!resp.ok || !resp.body)
+                throw new Error(`HTTP ${resp.status}`)
+
+            const reader = resp.body.getReader()
+            const decoder = new TextDecoder()
+            let buffer = ""
+            let accumulated = ""
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                buffer += decoder.decode(value, { stream: true })
+                const lines = buffer.split("\n\n")
+                buffer = lines.pop() ?? ""
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue
+                    const payload = line.slice(6).trim()
+                    if (payload === "[DONE]") return
+                    const event = JSON.parse(payload)
+                    if (event.type === "text_chunk") {
+                        accumulated += event.text
+                        updateLastAssistantMessage(accumulated)
+                    } else if (event.type === "final_response") {
+                        updateLastAssistantMessage(event.text)
+                        setPhase("follow_up")
+                    } else if (event.type === "error") {
+                        updateLastAssistantMessage("Er ging iets mis: " + event.message)
+                    }
+                }
+            }
+        } catch (err) {
+            if ((err as Error)?.name !== "AbortError") {
+                updateLastAssistantMessage(
+                    "Er ging iets mis bij het verwerken van je vraag.",
+                )
+            }
+        }
+    }, [farm.b_id_farm, calendar, addMessage, updateLastAssistantMessage, setPhase])
+
+    // Auto-start generation when intent phase returns no questions
+    useEffect(() => {
+        if (phase === "intent" && intentQuestions.length === 0) {
+            startGeneration()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, intentQuestions.length])
 
     useBeforeUnload(
         (event) => {
-            if (isAIGenerating) {
+            if (phase === "generating") {
                 event.preventDefault()
             }
         },
@@ -928,21 +503,12 @@ export default function GerritApp() {
 
     const blocker = useBlocker(
         ({ currentLocation, nextLocation }) =>
-            isAIGenerating &&
+            phase === "generating" &&
             currentLocation.pathname !== nextLocation.pathname,
     )
 
-    const plan = actionData?.intent === "generate" ? actionData.plan : null
-    const strategies =
-        actionData?.intent === "generate" ? actionData.strategies : null
-    const farmTotals = plan?.metrics?.farmTotals
-
-    const [showStrategyForm, setShowStrategyForm] = useState(true)
+    const [showStrategyForm, setShowStrategyForm] = useState(false)
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
-
-    useEffect(() => {
-        if (plan) setShowStrategyForm(false)
-    }, [plan])
 
     function toggleRow(b_id: string) {
         setExpandedRows((prev) => {
@@ -952,11 +518,16 @@ export default function GerritApp() {
         })
     }
 
-    const activeStrategyLabels = strategies
-        ? Object.entries(strategies)
-              .filter(([, v]) => v === true)
-              .map(([k]) => STRATEGY_LABELS[k] ?? k)
-        : []
+    const hasPlan = phase === "plan_ready" || phase === "follow_up"
+    const isFollowUpStreaming =
+        phase === "follow_up" &&
+        messages.length > 0 &&
+        messages[messages.length - 1].role === "assistant" &&
+        messages[messages.length - 1].content === ""
+
+    const activeStrategyLabels = Object.entries(form.getValues())
+        .filter(([k, v]) => v === true && k in STRATEGY_LABELS)
+        .map(([k]) => STRATEGY_LABELS[k] ?? k)
 
     const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState<
         boolean | null
@@ -1147,40 +718,81 @@ export default function GerritApp() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                         {/* ── Left column ── */}
                         <div className="lg:col-span-1 flex flex-col gap-6">
-                            {/* Strategy form OR compact summary */}
-                            {showStrategyForm ? (
-                                <StrategyForm
-                                    form={form as any}
-                                    isGenerating={isAIGenerating}
-                                    additionalContextValue={
-                                        additionalContextValue
-                                    }
-                                    calendar={calendar}
-                                />
-                            ) : (
+                            {hasPlan && !showStrategyForm ? (
                                 <SummaryCards
-                                    farmTotals={farmTotals}
-                                    planSummary={plan?.summary}
+                                    farmTotals={
+                                        currentPlan?.metrics?.farmTotals
+                                    }
+                                    planSummary={currentPlan?.summary}
                                     activeStrategyLabels={activeStrategyLabels}
                                     onEditStrategy={() =>
                                         setShowStrategyForm(true)
                                     }
                                     traceId={`gerrit-${farm.b_id_farm}-${calendar}`}
                                 />
+                            ) : (
+                                <StrategyForm
+                                    form={form as any}
+                                    isGenerating={phase === "generating"}
+                                    additionalContextValue={
+                                        additionalContextValue
+                                    }
+                                    calendar={calendar}
+                                />
                             )}
                         </div>
 
                         {/* ── Right column ── */}
                         <div className="lg:col-span-2 space-y-6">
-                            {isAIGenerating ? (
-                                <GerritLoading />
-                            ) : plan ? (
-                                <PlanTable
-                                    plan={plan}
-                                    isSaving={isSaving}
-                                    expandedRows={expandedRows}
-                                    toggleRow={toggleRow}
+                            {phase === "intent" || phase === "loading_intent" ? (
+                                <GerritIntentPanel
+                                    questions={intentQuestions}
+                                    answers={intentAnswers}
+                                    onAnswer={setIntentAnswer}
+                                    onSubmit={startGeneration}
+                                    onSkip={startGeneration}
+                                    isLoading={phase === "loading_intent"}
                                 />
+                            ) : phase === "generating" ? (
+                                <ThinkingSteps steps={thinkingSteps} isGenerating={phase === "generating"} elapsed={elapsed} />
+                            ) : hasPlan && currentPlan ? (
+                                <>
+                                    {currentPlan.rawPlan.summary && (
+                                        <GerritReasoning
+                                            summary={currentPlan.rawPlan.summary}
+                                            farmTotals={currentPlan.metrics?.farmTotals}
+                                            activeStrategyLabels={activeStrategyLabels}
+                                        />
+                                    )}
+                                    <PlanTable
+                                        plan={currentPlan}
+                                        isSaving={isSaving}
+                                        expandedRows={expandedRows}
+                                        toggleRow={toggleRow}
+                                    />
+                                    <GerritChat
+                                        messages={messages}
+                                        suggestedFollowUps={
+                                            currentPlan.suggestedFollowUps
+                                        }
+                                        isStreaming={isFollowUpStreaming}
+                                        onSendMessage={sendFollowUp}
+                                    />
+                                </>
+                            ) : errorMessage ? (
+                                <Card className="p-8 text-center border-destructive/30">
+                                    <p className="text-destructive font-medium mb-4">
+                                        {errorMessage}
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            loadIntentQuestions()
+                                        }
+                                    >
+                                        Opnieuw proberen
+                                    </Button>
+                                </Card>
                             ) : (
                                 <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
                                     <div className="bg-primary/10 p-6 rounded-full mb-6">
@@ -1190,12 +802,10 @@ export default function GerritApp() {
                                         Gerrit staat voor je klaar
                                     </h3>
                                     <p className="max-w-lg leading-relaxed text-muted-foreground">
-                                        Selecteer aan de linkerkant jouw
-                                        bedrijfsvoorkeuren. Gerrit berekent een
-                                        integraal bemestingsplan voor het hele
-                                        bedrijf, rekening houdend met
-                                        gebruiksnormen, bemestingsadvies en je
-                                        voorkeuren.
+                                        Gerrit berekent een integraal
+                                        bemestingsplan voor het hele bedrijf,
+                                        rekening houdend met gebruiksnormen,
+                                        bemestingsadvies en je voorkeuren.
                                     </p>
                                 </Card>
                             )}
