@@ -10,11 +10,10 @@ import {
 } from "@nmi-agro/fdm-data"
 import { and, eq, inArray } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmType } from "./fdm.types"
 import { suggestUnitFromRvoCode } from "./unit-conversion"
 
 /**
@@ -501,7 +500,7 @@ export async function syncFertilizerCatalogueArray(
     fdm: FdmType,
     fertilizersCatalogue: CatalogueFertilizer,
 ) {
-    await fdm.transaction(async (tx: FdmServerType) => {
+    await fdm.transaction(async (tx) => {
         try {
             for (const catalogueItem of fertilizersCatalogue) {
                 const item = await extendCatalogueFertilizer(catalogueItem)
@@ -569,7 +568,7 @@ async function extendCatalogueFertilizer(
 async function syncCultivationCatalogue(fdm: FdmType) {
     const brpCatalogue = await getCultivationCatalogue("brp")
 
-    await fdm.transaction(async (tx: FdmServerType) => {
+    await fdm.transaction(async (tx) => {
         try {
             for (const item of brpCatalogue) {
                 const hash = await hashCultivation(item)

@@ -638,6 +638,7 @@ export const soilTypesOptions = [
     { value: "duinzand", label: "Duinzand" },
     { value: "maasklei", label: "Maasklei" },
 ]
+export type SoilTypes = (typeof soilTypesOptions)[number]["value"]
 export const soiltypeEnum = fdmSchema.enum(
     "b_soiltype_agr",
     soilTypesOptions.map((x) => x.value) as [string, ...string[]],
@@ -676,6 +677,7 @@ export const gwlClassesOptions = [
     { value: "VIIIo", label: "VIIIo" },
     { value: "VIIId", label: "VIIId" },
 ]
+export type GwlClasses = (typeof gwlClassesOptions)[number]["value"]
 export const gwlClassEnum = fdmSchema.enum(
     "b_gwl_class",
     gwlClassesOptions.map((x) => x.value) as [string, ...string[]],

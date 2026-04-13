@@ -15,7 +15,7 @@
         }
     },
     "scripts": {
-        "build": "rollup -c",
+        "build": "tsdown",
         "check-types": "tsc --noEmit",
         "test": "vitest run",
         "test-coverage": "vitest run --coverage"
@@ -29,18 +29,16 @@
         "posthog-node": "^5.29.0",
         "zod": "^3.25.76"
     },
+    "engines": {
+        "node": ">=24.0.0"
+    },
     "devDependencies": {
         "@nmi-agro/fdm-calculator": "workspace:*",
         "@nmi-agro/fdm-core": "workspace:*",
         "@nmi-agro/fdm-data": "workspace:*",
-        "@rollup/plugin-commonjs": "catalog:",
-        "@rollup/plugin-json": "catalog:",
-        "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
-        "rollup": "catalog:",
-        "rollup-plugin-dts": "^6.4.1",
-        "rollup-plugin-esbuild": "catalog:",
+        "tsdown": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
     }

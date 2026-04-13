@@ -1,8 +1,8 @@
 import { eq, ilike, or } from "drizzle-orm"
 import * as authNSchema from "./db/schema-authn"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
-import type { Principal } from "./principal.d"
+import type { FdmType } from "./fdm.types"
+import type { Principal } from "./principal.types"
 
 /**
  * Retrieves details of a principal (either a user or an organization) by ID.
@@ -35,7 +35,7 @@ export async function getPrincipal(
     principal_id: string,
 ): Promise<Principal | undefined> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // If principal is an user get the details of the user
             const user = await tx
                 .select({
@@ -86,7 +86,7 @@ export async function getPrincipal(
 
                 return {
                     id: principal_id,
-                    username: user[0].username,
+                    username: user[0].username ?? user[0].email,
                     email: user[0].email,
                     initials: initials.toUpperCase(),
                     displayUserName: user[0].displayUserName,
@@ -111,7 +111,7 @@ export async function getPrincipal(
             if (organization.length === 0) {
                 return undefined
             }
-            const metadata = JSON.parse(organization[0].metadata)
+            const metadata = organization[0].metadata ? JSON.parse(organization[0].metadata) : null
 
             return {
                 id: principal_id,
@@ -159,7 +159,7 @@ export async function identifyPrincipal(
     identifier: string,
 ): Promise<Principal | undefined> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Check if principal is an user
             let principal_id = await tx
                 .select({ id: authNSchema.user.id })
@@ -227,7 +227,7 @@ export async function lookupPrincipal(
     identifier: string,
 ): Promise<Principal[]> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Lookup if identifier is 1 or more characters
             if (identifier.length <= 1) {
                 return []
@@ -288,7 +288,7 @@ export async function lookupPrincipal(
                         return details
                     }),
                 )
-                return principalsDetails.filter(Boolean)
+                return principalsDetails.filter((p): p is Principal => p !== undefined)
             }
 
             return []

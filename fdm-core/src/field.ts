@@ -12,11 +12,11 @@ import {
     sql,
 } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
-import type { Field } from "./field.d"
+import type { FdmType } from "./fdm.types"
+import type { Field } from "./field.types"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
 
@@ -65,7 +65,7 @@ export async function addField(
             "addField",
         )
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Generate an ID for the field
             const b_id = createId()
 
@@ -215,12 +215,12 @@ export async function getField(
             .where(eq(schema.fields.b_id, b_id))
             .limit(1)
 
-        // Process the centroid string into a tuple
-        field[0].b_centroid = [field[0].b_centroid_x, field[0].b_centroid_y]
-        field[0].b_centroid_x = undefined
-        field[0].b_centroid_y = undefined
-
-        return field[0]
+        // Process the centroid into a tuple and return a proper Field object
+        const { b_centroid_x, b_centroid_y, ...rest } = field[0]
+        return {
+            ...rest,
+            b_centroid: [b_centroid_x, b_centroid_y] as [number, number],
+        } as Field
     } catch (err) {
         throw handleError(err, "Exception for getField", { b_id })
     }
@@ -325,13 +325,10 @@ export async function getFields(
             .orderBy(desc(sql<number>`ST_Area(b_geometry::geography)`))
 
         // Process the centroids into a tuple
-        for (const field of fields) {
-            field.b_centroid = [field.b_centroid_x, field.b_centroid_y]
-            field.b_centroid_x = undefined
-            field.b_centroid_y = undefined
-        }
-
-        return fields
+        return fields.map(({ b_centroid_x, b_centroid_y, ...rest }) => ({
+            ...rest,
+            b_centroid: [b_centroid_x, b_centroid_y] as [number, number],
+        })) as Field[]
     } catch (err) {
         throw handleError(err, "Exception for getFields", { b_id_farm })
     }
@@ -369,7 +366,7 @@ export async function updateField(
     b_end?: schema.fieldDiscardingTypeInsert["b_end"],
     b_bufferstrip?: schema.fieldsTypeInsert["b_bufferstrip"],
 ): Promise<Field> {
-    return await fdm.transaction(async (tx: FdmType) => {
+    return await fdm.transaction(async (tx) => {
         try {
             await checkPermission(
                 fdm,
@@ -512,7 +509,7 @@ export async function removeField(
             "removeField",
         )
 
-        await fdm.transaction(async (tx: FdmType) => {
+        await fdm.transaction(async (tx) => {
             // Step 1: Get all cultivation IDs for the given field
             const cultivations = await tx
                 .select({ b_lu: schema.cultivationStarting.b_lu })

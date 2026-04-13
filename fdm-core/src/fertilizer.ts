@@ -5,18 +5,18 @@ import {
 } from "@nmi-agro/fdm-data"
 import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import { getEnabledFertilizerCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import type {
     Fertilizer,
     FertilizerApplication,
     FertilizerCatalogue,
     FertilizerParameterDescription,
-} from "./fertilizer.d"
+} from "./fertilizer.types"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
 import {
@@ -285,7 +285,7 @@ export async function addFertilizer(
             "addFertilizer",
         )
 
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             // Generate an ID for the fertilizer
             const p_id = createId()
 
@@ -432,8 +432,10 @@ export async function getFertilizer(
 
         return {
             ...result,
-            p_type: deriveFertilizerType(result),
-        }
+            p_type: deriveFertilizerType(
+                result as Partial<schema.fertilizersCatalogueTypeSelect>,
+            ),
+        } as unknown as Fertilizer
     } catch (err) {
         throw handleError(err, "Exception for getFertilizer", {
             p_id,
@@ -695,8 +697,10 @@ export async function getFertilizers(
         return fertilizers.map((f: (typeof fertilizers)[number]) => {
             return {
                 ...f,
-                p_type: deriveFertilizerType(f),
-            }
+                p_type: deriveFertilizerType(
+                    f as Partial<schema.fertilizersCatalogueTypeSelect>,
+                ),
+            } as unknown as Fertilizer
         })
     } catch (err) {
         throw handleError(err, "Exception for getFertilizers", {
@@ -719,7 +723,7 @@ export async function removeFertilizer(
     p_id: schema.fertilizerAcquiringTypeInsert["p_id"],
 ): Promise<void> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await tx
                 .delete(schema.fertilizerAcquiring)
                 .where(eq(schema.fertilizerAcquiring.p_id, p_id))
@@ -794,7 +798,7 @@ export async function addFertilizerApplication(
                       p_app_amount_display,
                       fertilizer.p_app_amount_unit ?? "kg/ha",
                       fertilizer.p_density,
-                  )
+                  ).toNumber()
                 : null
 
         await fdm.insert(schema.fertilizerApplication).values({
@@ -856,7 +860,7 @@ export async function updateFertilizerApplication(
                       p_app_amount_display,
                       fertilizer.p_app_amount_unit ?? "kg/ha",
                       fertilizer.p_density,
-                  )
+                  ).toNumber()
                 : p_app_amount_display
         await fdm
             .update(schema.fertilizerApplication)
@@ -900,7 +904,7 @@ export async function removeFertilizerApplication(
             "removeFertilizerApplication",
         )
 
-        return await fdm
+        await fdm
             .delete(schema.fertilizerApplication)
             .where(eq(schema.fertilizerApplication.p_app_id, p_app_id))
     } catch (err) {
@@ -1002,9 +1006,9 @@ export async function getFertilizerApplication(
 
         return result.length > 0
             ? extendFertilizerApplication(
-                  result[0],
-                  result[0].p_app_amount_unit,
-                  result[0].p_density,
+                  result[0] as FertilizerApplication,
+                  result[0].p_app_amount_unit as AppAmountUnit,
+                  result[0].p_density as number,
               )
             : null
     } catch (err) {
@@ -1044,7 +1048,7 @@ export async function getFertilizerApplications(
             "getFertilizerApplications",
         )
 
-        const results = await fdm
+        const results = (await fdm
             .select({
                 p_id: schema.fertilizerApplication.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
@@ -1091,20 +1095,19 @@ export async function getFertilizerApplications(
                       )
                     : eq(schema.fertilizerApplication.b_id, b_id),
             )
-            .orderBy(desc(schema.fertilizerApplication.p_app_date))
+            .orderBy(
+                desc(schema.fertilizerApplication.p_app_date),
+            )) as (FertilizerApplication & {
+            p_app_amount_unit: AppAmountUnit
+            p_density: number | null
+        })[]
 
-        return results.map(
-            (
-                result: FertilizerApplication & {
-                    p_app_amount_unit: AppAmountUnit
-                    p_density: number | null
-                },
-            ) =>
-                extendFertilizerApplication(
-                    result,
-                    result.p_app_amount_unit,
-                    result.p_density,
-                ),
+        return results.map((result) =>
+            extendFertilizerApplication(
+                result,
+                result.p_app_amount_unit,
+                result.p_density,
+            ),
         )
     } catch (err) {
         throw handleError(err, "Exception for getFertilizerApplications", {
@@ -1143,7 +1146,7 @@ export async function getFertilizerApplicationsForFarm(
             "getFertilizerApplicationsForFarm",
         )
 
-        const rows = await fdm
+        const rows = (await fdm
             .select({
                 p_id: schema.fertilizerApplication.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
@@ -1199,7 +1202,13 @@ export async function getFertilizerApplicationsForFarm(
                       )
                     : eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
             )
-            .orderBy(desc(schema.fertilizerApplication.p_app_date))
+            .orderBy(
+                desc(schema.fertilizerApplication.p_app_date),
+            )) as (FertilizerApplication & {
+            b_id: string
+            p_app_amount_unit: string
+            p_density: number | null
+        })[]
 
         const result = new Map<string, FertilizerApplication[]>()
         for (const row of rows) {

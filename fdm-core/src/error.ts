@@ -1,4 +1,4 @@
-import type { Jsonable } from "./error.d"
+import type { Jsonable } from "./error.types"
 
 /**
  * Converts an unknown error into a structured BaseError, applying a custom message for permission denials.
