@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
     type AppAmountUnit,
     fromKgPerHa,
+    type RvoUnitSuggestionTableItem,
     suggestUnitFromRvoCode,
     toKgPerHa,
 } from "./unit-conversion"
@@ -131,38 +132,44 @@ describe("fromKgPerHa", () => {
     })
 })
 
-interface SuggestionUnitTestCase {
-    rvoCode: string
-    type: string
-    unit: AppAmountUnit
-}
 describe("suggestUnitFromRvoCode", () => {
-    const tests: SuggestionUnitTestCase[] = [
-        { rvoCode: "10", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "11", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "12", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "13", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "14", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "30", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "31", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "32", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "33", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "34", type: "slurry", unit: "m3/ha" },
-        { rvoCode: "115", type: "liquid", unit: "l/ha" },
-        { rvoCode: "116", type: "liquid", unit: "l/ha" },
-        { rvoCode: "120", type: "liquid", unit: "l/ha" },
-        { rvoCode: "107", type: "compost", unit: "ton/ha" },
-        { rvoCode: "108", type: "compost", unit: "ton/ha" },
-        { rvoCode: "109", type: "compost", unit: "ton/ha" },
-        { rvoCode: "111", type: "compost", unit: "ton/ha" },
-        { rvoCode: "112", type: "compost", unit: "ton/ha" },
-        { rvoCode: "113", type: "other", unit: "kg/ha" },
-        { rvoCode: "114", type: "other", unit: "kg/ha" },
-    ]
-
-    for (const { rvoCode, type, unit } of tests) {
-        it(`should suggest ${unit} for ${type} ${rvoCode}`, () => {
-            expect(suggestUnitFromRvoCode(rvoCode)).toBe(unit)
+    describe("internal table", () => {
+        it("should return ton/ha for solid cattle manure", () => {
+            expect(suggestUnitFromRvoCode("10")).toBe("ton/ha")
         })
-    }
+        it("should return m3/ha for swine slurry", () => {
+            expect(suggestUnitFromRvoCode("42")).toBe("m3/ha")
+        })
+        it("should return l/ha for liquid goat manure", () => {
+            expect(suggestUnitFromRvoCode("60")).toBe("l/ha")
+        })
+        it("should return kg/ha for mineral fertilizers", () => {
+            expect(suggestUnitFromRvoCode("115")).toBe("kg/ha")
+        })
+    })
+
+    describe("custom table", () => {
+        const customTable: RvoUnitSuggestionTableItem[] = [
+            { p_type_rvo: "42", type: "other", unit: "kg/ha" },
+            { p_type_rvo: "113", type: "solid sewage", unit: "ton/ha" },
+            { p_type_rvo: "114", type: "liquid sewage", unit: "l/ha" },
+            { p_type_rvo: "115", type: "swine slurry", unit: "m3/ha" },
+        ]
+
+        it("should return kg/ha for other fertilizers in custom table", () => {
+            expect(suggestUnitFromRvoCode("42", customTable)).toBe("kg/ha")
+        })
+        it("should return ton/ha for solid sewage", () => {
+            expect(suggestUnitFromRvoCode("113", customTable)).toBe("ton/ha")
+        })
+        it("should return l/ha for liquid sewage in custom table", () => {
+            expect(suggestUnitFromRvoCode("114", customTable)).toBe("l/ha")
+        })
+        it("should return m3/ha for swine slurry", () => {
+            expect(suggestUnitFromRvoCode("115", customTable)).toBe("m3/ha")
+        })
+        it("should return kg/ha for code not in table", () => {
+            expect(suggestUnitFromRvoCode("10", customTable)).toBe("kg/ha")
+        })
+    })
 })

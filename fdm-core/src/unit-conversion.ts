@@ -73,36 +73,123 @@ export function fromKgPerHa(
  * Suggest a default display unit based on an RVO fertilizer type code.
  * The suggestion is a sensible starting point; the user can always override it.
  *
- * Mapping rationale (RVO mestcode ranges):
+ * A table of suggestions is provided internally. Callers can pass the table argument to use a different table.
+ *
+ * The internal table is based on the Tabel 11 mest codes provided by RVO and is based on the rationale:
  *   - Slurry / drijfmest codes        → m3/ha
  *   - Liquid concentrates / digestate  → l/ha
  *   - Compost / solid organic matter   → ton/ha
  *   - Mineral / other                  → kg/ha (default)
  *
- * The exact code-to-unit mapping should be reviewed with domain experts during
- * implementation and can be updated independently of the rest of the logic.
+ * @param p_type_rvo: mest code to look for
+ * @param table: optional: table to use for conversion. The type can be used to add remarks to each item when hardcoding tables.
  */
-export function suggestUnitFromRvoCode(p_type_rvo: string): AppAmountUnit {
-    // Slurry codes (drijfmest, digestaat) — volume in m3
-    const slurryCodes = new Set([
-        "10",
-        "11",
-        "12",
-        "13",
-        "14",
-        "30",
-        "31",
-        "32",
-        "33",
-        "34",
-    ])
-    // Liquid concentrate codes (vloeibare meststoffen) — volume in l
-    const liquidCodes = new Set(["115", "116", "120"])
-    // Compost / solid organic matter codes — mass in ton
-    const compostCodes = new Set(["107", "108", "109", "111", "112"])
+export function suggestUnitFromRvoCode(
+    p_type_rvo: string,
+    table = RVO_RECOMMENDED_UNITS,
+): AppAmountUnit {
+    const rowOrDefault = table.find((row) => row.p_type_rvo === p_type_rvo) ?? {
+        p_type_rvo,
+        unit: "kg/ha",
+    }
 
-    if (slurryCodes.has(p_type_rvo)) return "m3/ha"
-    if (liquidCodes.has(p_type_rvo)) return "l/ha"
-    if (compostCodes.has(p_type_rvo)) return "ton/ha"
-    return "kg/ha"
+    return rowOrDefault.unit
 }
+
+export type RvoUnitSuggestionTableItem = {
+    p_type_rvo: string
+    unit: AppAmountUnit
+    type?: string
+}
+
+export const RVO_RECOMMENDED_UNITS: RvoUnitSuggestionTableItem[] = [
+    // Cattle
+    { p_type_rvo: "10", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "11", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "12", type: "slurry", unit: "m3/ha" },
+    { p_type_rvo: "13", type: "solid (dikke fractie)", unit: "ton/ha" },
+    { p_type_rvo: "14", type: "liquid", unit: "l/ha" },
+    { p_type_rvo: "17", type: "slurry", unit: "m3/ha" },
+    { p_type_rvo: "18", type: "solid (young calf)", unit: "ton/ha" },
+    { p_type_rvo: "19", type: "solid (older meat calf)", unit: "ton/ha" },
+
+    // Turkey
+    { p_type_rvo: "23", type: "solid", unit: "ton/ha" },
+
+    // Equines
+    { p_type_rvo: "25", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "26", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "27", type: "solid", unit: "ton/ha" },
+
+    // Poultry
+    { p_type_rvo: "30", type: "liquid", unit: "l/ha" },
+    { p_type_rvo: "31", type: "solid (deep pit)", unit: "ton/ha" },
+    { p_type_rvo: "32", type: "solid (mestband)", unit: "ton/ha" },
+    { p_type_rvo: "33", type: "solid (mestband + nadroog)", unit: "ton/ha" },
+    { p_type_rvo: "35", type: "solid (strooiselstal)", unit: "ton/ha" },
+
+    // Game fowl
+    { p_type_rvo: "39", type: "solid", unit: "ton/ha" },
+
+    // Hogs
+    { p_type_rvo: "40", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "41", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "42", type: "slurry", unit: "m3/ha" },
+    { p_type_rvo: "43", type: "solid (dikke fractie)", unit: "ton/ha" },
+    { p_type_rvo: "46", type: "liquid", unit: "l/ha" },
+    { p_type_rvo: "50", type: "liquid", unit: "l/ha" },
+
+    // Sheep
+    { p_type_rvo: "56", type: "solid", unit: "ton/ha" },
+
+    // Goat
+    { p_type_rvo: "60", type: "liquid", unit: "l/ha" },
+    { p_type_rvo: "61", type: "solid", unit: "ton/ha" },
+
+    // Nerts / Mink
+    { p_type_rvo: "75", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "76", type: "liquid", unit: "l/ha" },
+
+    // Ducks
+    { p_type_rvo: "80", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "81", type: "liquid", unit: "l/ha" },
+
+    // Rabbit
+    { p_type_rvo: "90", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "91", type: "liquid (very diluted)", unit: "l/ha" },
+    { p_type_rvo: "92", type: "liquid", unit: "l/ha" },
+
+    // Deer
+    { p_type_rvo: "95", type: "solid", unit: "ton/ha" },
+
+    // Water buffalo
+    { p_type_rvo: "96", type: "solid", unit: "ton/ha" },
+
+    // Other birds
+    { p_type_rvo: "97", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "98", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "99", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "100", type: "solid", unit: "ton/ha" },
+
+    // Rodents
+    { p_type_rvo: "101", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "102", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "103", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "104", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "105", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "106", type: "solid", unit: "ton/ha" },
+
+    // Compost
+    { p_type_rvo: "107", type: "solid (phase 1)", unit: "ton/ha" },
+    { p_type_rvo: "108", type: "solid (phase 2)", unit: "ton/ha" },
+    { p_type_rvo: "109", type: "solid (phase 3)", unit: "ton/ha" },
+    { p_type_rvo: "110", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "111", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "117", type: "solid", unit: "ton/ha" },
+
+    // Other
+    { p_type_rvo: "113", type: "liquid sewage", unit: "l/ha" },
+    { p_type_rvo: "114", type: "solid sewage", unit: "ton/ha" },
+    { p_type_rvo: "115", type: "other", unit: "kg/ha" },
+    { p_type_rvo: "116", type: "other", unit: "kg/ha" },
+]
