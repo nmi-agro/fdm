@@ -103,7 +103,10 @@ function buildAdvancedCultivationHistory(
               }[]
           }[]
         | undefined,
-    catalogueMap: Map<string, { b_lu_name: string; b_lu_croprotation?: string }>,
+    catalogueMap: Map<
+        string,
+        { b_lu_name: string; b_lu_croprotation?: string }
+    >,
 ): AdvancedCultivationHistory | null {
     if (!rawAdvanced || rawAdvanced.length === 0) return null
 
@@ -124,16 +127,13 @@ function buildAdvancedCultivationHistory(
                 b_lu_brp: field.b_lu_brp,
                 b_lu_catalogue,
                 b_lu_name: catalogueItem?.b_lu_name ?? "Onbekend gewas",
-                b_lu_croprotation:
-                    catalogueItem?.b_lu_croprotation ?? "other",
+                b_lu_croprotation: catalogueItem?.b_lu_croprotation ?? "other",
                 b_area: field.b_area,
                 b_area_overlap: field.b_area_overlap,
                 overlap_pct_of_selected:
                     field.b_area_overlap / selectedFieldAreaHa,
                 overlap_pct_of_historical:
-                    field.b_area > 0
-                        ? field.b_area_overlap / field.b_area
-                        : 0,
+                    field.b_area > 0 ? field.b_area_overlap / field.b_area : 0,
             }
         })
         const total_overlap_pct = fields.reduce(
@@ -240,8 +240,8 @@ async function loadAsyncData(
             ]),
         )
 
-        const cultivationHistory = estimates.cultivations.map(
-            (cultivation: { year: number; b_lu_brp: string }) => {
+        const cultivationHistory = estimates.cultivations
+            .map((cultivation: { year: number; b_lu_brp: string }) => {
                 const b_lu_catalogue = `nl_${cultivation.b_lu_brp}`
                 const catalogueItem =
                     cultivationCatalogueMap.get(b_lu_catalogue)

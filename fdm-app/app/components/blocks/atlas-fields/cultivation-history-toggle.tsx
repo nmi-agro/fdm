@@ -35,8 +35,9 @@ export function CultivationHistoryToggle({
 }) {
     const view = useAtlasCultivationHistoryStore((s) => s.cultivationView)
     const setView = useAtlasCultivationHistoryStore((s) => s.setCultivationView)
-    const params = useParams()
-    const currentYear = Number(params.calendar)
+    const currentYear = cultivationHistory
+        .flatMap((c) => c.year)
+        .reduce((max, year) => Math.max(max, year), 0)
 
     // No advanced data available – fall back to simple card
     if (!advancedCultivationHistory) {
@@ -133,7 +134,6 @@ export function CultivationHistoryToggle({
                 {view === "simple" ? (
                     <CultivationHistoryTimeline
                         cultivationHistory={cultivationHistory}
-                        currentYear={currentYear}
                     />
                 ) : (
                     <AdvancedCultivationFlow

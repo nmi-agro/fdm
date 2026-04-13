@@ -1,9 +1,7 @@
 import { ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { useState } from "react"
-import { useParams } from "react-router"
 import { toast } from "sonner"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
-import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -32,10 +30,8 @@ export type CultivationHistory = {
 
 export function CultivationHistoryTimeline({
     cultivationHistory,
-    currentYear,
 }: {
     cultivationHistory: CultivationHistory[]
-    currentYear: number
 }) {
     const [isExpanded, setIsExpanded] = useState(false)
     const mobileLimit = 6
@@ -45,9 +41,7 @@ export function CultivationHistoryTimeline({
         <>
             <div className="relative pl-1">
                 {cultivationHistory.map((cultivation, index) => {
-                    const isHiddenOnMobile =
-                        !isExpanded && index >= mobileLimit
-                    const isActive = cultivation.year === currentYear
+                    const isHiddenOnMobile = !isExpanded && index >= mobileLimit
 
                     return (
                         <div
@@ -55,16 +49,14 @@ export function CultivationHistoryTimeline({
                             className={cn(
                                 "flex items-start space-x-4 pb-6 relative group",
                                 isHiddenOnMobile && "hidden lg:flex",
-                                isActive && "opacity-100",
                             )}
                         >
                             {/* Timeline Line */}
                             {index !== cultivationHistory.length - 1 && (
                                 <div
                                     className={cn(
-                                        "absolute left-[19px] top-10 h-full w-0.5 bg-border transition-colors group-hover:bg-primary/30",
+                                        "absolute left-4.75 top-10 h-full w-0.5 bg-border transition-colors group-hover:bg-primary/30",
                                         isHiddenOnMobile && "hidden lg:block",
-                                        isActive && "bg-primary/30",
                                     )}
                                 />
                             )}
@@ -74,8 +66,6 @@ export function CultivationHistoryTimeline({
                                 <div
                                     className={cn(
                                         "h-8 w-8 rounded-full flex items-center justify-center transition-all",
-                                        isActive &&
-                                            "ring-2 ring-primary ring-offset-2",
                                     )}
                                     style={{
                                         backgroundColor: getCultivationColor(
@@ -103,9 +93,6 @@ export function CultivationHistoryTimeline({
                                                 <p
                                                     className={cn(
                                                         "font-semibold truncate cursor-help",
-                                                        isActive
-                                                            ? "text-primary"
-                                                            : "text-foreground/80",
                                                     )}
                                                 >
                                                     {cultivation.b_lu_name ??
@@ -120,14 +107,6 @@ export function CultivationHistoryTimeline({
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
-                                    {isActive && (
-                                        <Badge
-                                            variant="default"
-                                            className="h-4 px-1.5 text-[9px] uppercase font-black"
-                                        >
-                                            Nu
-                                        </Badge>
-                                    )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                     <span className="text-xs font-bold tabular-nums text-muted-foreground/70">
@@ -182,9 +161,6 @@ export function CultivationHistoryCard({
 }: {
     cultivationHistory: CultivationHistory[]
 }) {
-    const params = useParams()
-    const currentYear = Number(params.calendar)
-
     const handleCopy = () => {
         const header = "jaar\tgewascode\tgewas\tis_rustgewas"
         const rows = cultivationHistory.map(
@@ -247,7 +223,6 @@ export function CultivationHistoryCard({
             <CardContent className="pt-6 text-sm">
                 <CultivationHistoryTimeline
                     cultivationHistory={cultivationHistory}
-                    currentYear={currentYear}
                 />
             </CardContent>
         </Card>
@@ -278,7 +253,7 @@ export function CultivationHistorySkeleton() {
                             className="flex items-start space-x-4 pb-6 relative"
                         >
                             {index !== SKELETON_KEYS.length - 1 && (
-                                <div className="absolute left-[19px] top-10 h-full w-0.5 bg-border" />
+                                <div className="absolute left-4.75 top-10 h-full w-0.5 bg-border" />
                             )}
                             <Skeleton className="relative z-10 h-10 w-10 rounded-full shrink-0" />
                             <div className="min-w-0 flex-1 py-1 space-y-2">
