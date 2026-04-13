@@ -22,19 +22,11 @@ export type AdvancedCultivationField = {
     overlap_pct_of_historical: number
 }
 
-export type EventType =
-    | "stable"
-    | "split"
-    | "merge"
-    | "expansion"
-    | "shrinkage"
-    | "no_data"
-
 export type AdvancedCultivationYear = {
     year: number
     fields: AdvancedCultivationField[]
     total_overlap_pct: number
-    event_types: EventType[]
+    total_area_ha: number
 }
 
 export type AdvancedCultivationHistory = {
@@ -42,117 +34,35 @@ export type AdvancedCultivationHistory = {
     history: AdvancedCultivationYear[]
 }
 
-const EVENT_LABELS: Record<Exclude<EventType, "stable">, string> = {
-    split: "Perceelsplitsing",
-    merge: "Perceelsamenvoeging",
-    expansion: "Perceelsvergroting",
-    shrinkage: "Perceelsverkleining",
-    no_data: "Geen registratie",
-}
-
-const EVENT_COLORS: Record<Exclude<EventType, "stable">, string> = {
-    split: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    merge: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-    expansion:
-        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-    shrinkage:
-        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-    no_data:
-        "bg-muted text-muted-foreground",
-}
-
 const SIGNIFICANCE_THRESHOLD = 0.01
 
-function getBarPositions(fields: AdvancedCultivationField[]) {
-    let x = 0
-    return fields
-        .filter((f) => f.overlap_pct_of_selected >= SIGNIFICANCE_THRESHOLD)
-        .map((f) => {
-            const width = f.overlap_pct_of_selected * 100
-            const center = x + width / 2
-            const pos = { center, width, startX: x, color: getCultivationColor(f.b_lu_croprotation) }
-            x += width
-            return pos
-        })
-}
-
-function YearConnector({
-    topFields,
-    bottomFields,
-    eventType,
-}: {
-    topFields: AdvancedCultivationField[]
-    bottomFields: AdvancedCultivationField[]
-    eventType: EventType
-}) {
-    const topPos = getBarPositions(topFields)
-    const bottomPos = getBarPositions(bottomFields)
-
-    // For split and merge, draw data-accurate fan/converge lines.
-    // For all other transitions the API gives no per-field continuity info,
-    // so a single neutral line avoids implying a fabricated crop-to-crop connection.
-    const drawFanConverge =
-        (eventType === "split" || eventType === "merge") &&
-        topPos.length > 0 &&
-        bottomPos.length > 0
-
+function YearConnector() {
     return (
         <div className="flex gap-3">
             {/* Spacer matching year label width */}
             <div className="w-14 shrink-0" />
             <div className="flex-1">
-                {drawFanConverge ? (
-                    <svg
-                        viewBox="0 0 100 28"
-                        className="w-full h-7"
-                        preserveAspectRatio="none"
-                        aria-hidden="true"
-                    >
-                        {eventType === "split"
-                            ? // Fan out: single top bar to each bottom bar
-                              bottomPos.map((bottom, i) => (
-                                  <path
-                                      key={i}
-                                      d={`M ${topPos[0].center} 0 C ${topPos[0].center} 14, ${bottom.center} 14, ${bottom.center} 28`}
-                                      fill="none"
-                                      stroke={bottom.color}
-                                      strokeWidth="2"
-                                      strokeOpacity="0.45"
-                                  />
-                              ))
-                            : // Converge: each top bar to single bottom bar
-                              topPos.map((top, i) => (
-                                  <path
-                                      key={i}
-                                      d={`M ${top.center} 0 C ${top.center} 14, ${bottomPos[0].center} 14, ${bottomPos[0].center} 28`}
-                                      fill="none"
-                                      stroke={top.color}
-                                      strokeWidth="2"
-                                      strokeOpacity="0.45"
-                                  />
-                              ))}
-                    </svg>
-                ) : (
-                    // Neutral single vertical line — no crop-to-crop identity implied
-                    <svg
-                        viewBox="0 0 100 28"
-                        className="w-full h-7"
-                        preserveAspectRatio="none"
-                        aria-hidden="true"
-                    >
-                        <line
-                            x1="50"
-                            y1="0"
-                            x2="50"
-                            y2="28"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeOpacity="0.2"
-                            strokeDasharray="3 3"
-                        />
-                    </svg>
-                )}
+                {/* Neutral single vertical line — no crop-to-crop identity implied */}
+                <svg
+                    viewBox="0 0 100 28"
+                    className="w-full h-7"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                >
+                    <line
+                        x1="50"
+                        y1="0"
+                        x2="50"
+                        y2="28"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeOpacity="0.2"
+                        strokeDasharray="3 3"
+                    />
+                </svg>
             </div>
+            {/* Spacer matching right total area width */}
+            <div className="w-14 shrink-0" />
         </div>
     )
 }
@@ -247,25 +157,12 @@ function YearRow({
                     </div>
                 )}
             </div>
-        </div>
-    )
-}
 
-function EventLabel({ eventType }: { eventType: Exclude<EventType, "stable"> }) {
-    return (
-        <div className="flex gap-3 my-2">
-            <div className="w-14 shrink-0" />
-            <div className="flex-1 flex items-center gap-2">
-                <div className="flex-1 h-px bg-border/50" />
-                <span
-                    className={cn(
-                        "text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full whitespace-nowrap",
-                        EVENT_COLORS[eventType],
-                    )}
-                >
-                    {EVENT_LABELS[eventType]}
+            {/* Total area for year */}
+            <div className="w-14 shrink-0 text-left">
+                <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                    {yearEntry.total_area_ha.toFixed(2)} ha
                 </span>
-                <div className="flex-1 h-px bg-border/50" />
             </div>
         </div>
     )
@@ -289,14 +186,6 @@ export function AdvancedCultivationFlow({
                     const isHiddenOnMobile = !isExpanded && index >= mobileLimit
                     const hasNext = index < data.history.length - 1
 
-                    // Prioritize split/merge for visual lines if multiple events occur
-                    const visualEventType =
-                        yearEntry.event_types.find(
-                            (t) => t === "split" || t === "merge",
-                        ) ||
-                        yearEntry.event_types[0] ||
-                        "stable"
-
                     return (
                         <div
                             key={yearEntry.year}
@@ -307,7 +196,7 @@ export function AdvancedCultivationFlow({
                                 currentYear={currentYear}
                             />
 
-                            {/* Connector + optional event labels between rows.
+                            {/* Connector between rows.
                                 Hidden on mobile when the next row is also hidden. */}
                             {hasNext && (
                                 <div
@@ -317,18 +206,7 @@ export function AdvancedCultivationFlow({
                                             "hidden lg:block",
                                     )}
                                 >
-                                    {yearEntry.event_types
-                                        .filter((t) => t !== "stable")
-                                        .map((t) => (
-                                            <EventLabel key={t} eventType={t} />
-                                        ))}
-                                    <YearConnector
-                                        topFields={yearEntry.fields}
-                                        bottomFields={
-                                            data.history[index + 1].fields
-                                        }
-                                        eventType={visualEventType}
-                                    />
+                                    <YearConnector />
                                 </div>
                             )}
                         </div>

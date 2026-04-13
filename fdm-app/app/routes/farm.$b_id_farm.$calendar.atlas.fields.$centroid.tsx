@@ -20,7 +20,6 @@ import {
 } from "react-router"
 import { CarbonSequestrationCard } from "~/components/blocks/atlas-fields/carbon-sequestration"
 import type { AdvancedCultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
-import type { EventType } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
 import { CultivationHistoryToggle } from "~/components/blocks/atlas-fields/cultivation-history-toggle"
 import { FieldDetailsCard } from "~/components/blocks/atlas-fields/field-details"
 import { GroundwaterCard } from "~/components/blocks/atlas-fields/groundwater"
@@ -89,9 +88,6 @@ export async function loader({ params }: LoaderFunctionArgs) {
     }
 }
 
-const SIGNIFICANCE_THRESHOLD_PCT = 0.01
-const SIGNIFICANCE_THRESHOLD_HA = 0.005
-
 function buildAdvancedCultivationHistory(
     rawAdvanced:
         | {
@@ -107,31 +103,41 @@ function buildAdvancedCultivationHistory(
         string,
         { b_lu_name: string; b_lu_croprotation?: string }
     >,
+    officialAreaHa: number,
+    calendarYear: number,
 ): AdvancedCultivationHistory | null {
     if (!rawAdvanced || rawAdvanced.length === 0) return null
 
     const sortedYears = [...rawAdvanced].sort((a, b) => b.year - a.year)
 
-    // Derive selected field area from most recent year total overlap
-    const selectedFieldAreaHa = sortedYears[0].fields.reduce(
+    // Find the overlap sum for the year specified in the calendar.
+    // This ensures that the scale factor is relative to the year the user actually selected.
+    const selectedYearEntry =
+        rawAdvanced.find((y) => y.year === calendarYear) || sortedYears[0]
+
+    const selectedYearOverlapAreaHa = selectedYearEntry.fields.reduce(
         (sum, f) => sum + f.b_area_overlap,
         0,
     )
-    if (selectedFieldAreaHa <= 0) return null
+    if (selectedYearOverlapAreaHa <= 0) return null
+
+    const scaleFactor =
+        officialAreaHa > 0 ? officialAreaHa / selectedYearOverlapAreaHa : 1
 
     const enrichedHistory = sortedYears.map((yearEntry) => {
         const fields = yearEntry.fields.map((field) => {
             const b_lu_catalogue = `nl_${field.b_lu_brp}`
             const catalogueItem = catalogueMap.get(b_lu_catalogue)
+            const scaledOverlap = field.b_area_overlap * scaleFactor
             return {
                 b_lu_brp: field.b_lu_brp,
                 b_lu_catalogue,
                 b_lu_name: catalogueItem?.b_lu_name ?? "Onbekend gewas",
                 b_lu_croprotation: catalogueItem?.b_lu_croprotation ?? "other",
                 b_area: field.b_area,
-                b_area_overlap: field.b_area_overlap,
+                b_area_overlap: scaledOverlap,
                 overlap_pct_of_selected:
-                    field.b_area_overlap / selectedFieldAreaHa,
+                    field.b_area_overlap / selectedYearOverlapAreaHa,
                 overlap_pct_of_historical:
                     field.b_area > 0 ? field.b_area_overlap / field.b_area : 0,
             }
@@ -143,85 +149,15 @@ function buildAdvancedCultivationHistory(
         return { year: yearEntry.year, fields, total_overlap_pct }
     })
 
-    const history = enrichedHistory.map((yearEntry, index) => {
-        if (index === enrichedHistory.length - 1) {
-            return { ...yearEntry, event_types: ["stable" as EventType] }
-        }
-        const olderYear = enrichedHistory[index + 1]
-
-        // Handle years with no field data
-        if (yearEntry.fields.length === 0 || olderYear.fields.length === 0) {
-            return { ...yearEntry, event_types: ["no_data" as EventType] }
-        }
-
-        const currentYearAreaHa = yearEntry.fields
-            .filter((f) => f.overlap_pct_of_selected >= 0.01)
-            .reduce((sum, f) => sum + f.b_area_overlap, 0)
-        const olderYearAreaHa = olderYear.fields
-            .filter((f) => f.overlap_pct_of_selected >= 0.01)
-            .reduce((sum, f) => sum + f.b_area_overlap, 0)
-
-        const sigCurrent = yearEntry.fields.filter(
-            (f) =>
-                currentYearAreaHa > 0 &&
-                f.b_area_overlap / currentYearAreaHa >=
-                    SIGNIFICANCE_THRESHOLD_PCT,
+    const history = enrichedHistory.map((yearEntry) => {
+        const total_area_ha = yearEntry.fields.reduce(
+            (sum, f) => sum + f.b_area_overlap,
+            0,
         )
-        const sigOlder = olderYear.fields.filter(
-            (f) =>
-                currentYearAreaHa > 0 &&
-                f.b_area_overlap / currentYearAreaHa >=
-                    SIGNIFICANCE_THRESHOLD_PCT,
-        )
-
-        const event_types: EventType[] = []
-
-        if (sigCurrent.length === 1 && sigOlder.length > 1) {
-            event_types.push("merge")
-        } else if (sigCurrent.length > 1 && sigOlder.length === 1) {
-            event_types.push("split")
-        }
-
-        if (
-            currentYearAreaHa - olderYearAreaHa >=
-            SIGNIFICANCE_THRESHOLD_HA
-        ) {
-            event_types.push("expansion")
-        } else if (
-            olderYearAreaHa - currentYearAreaHa >=
-            SIGNIFICANCE_THRESHOLD_HA
-        ) {
-            event_types.push("shrinkage")
-        }
-
-        if (sigOlder.length === 1 && sigCurrent.length === 1) {
-            const primaryOlderField = sigOlder[0]
-            if (
-                primaryOlderField.b_area >
-                    primaryOlderField.b_area_overlap +
-                        SIGNIFICANCE_THRESHOLD_HA &&
-                currentYearAreaHa > 0 &&
-                primaryOlderField.b_area_overlap / currentYearAreaHa > 0.8
-            ) {
-                if (
-                    primaryOlderField.b_area >
-                    primaryOlderField.b_area_overlap * 1.1
-                ) {
-                    if (!event_types.includes("shrinkage")) {
-                        event_types.push("shrinkage")
-                    }
-                }
-            }
-        }
-
-        if (event_types.length === 0) {
-            event_types.push("stable")
-        }
-
-        return { ...yearEntry, event_types }
+        return { ...yearEntry, total_area_ha }
     })
 
-    return { selected_field_area_ha: selectedFieldAreaHa, history }
+    return { selected_field_area_ha: officialAreaHa, history }
 }
 
 async function loadAsyncData(
@@ -230,7 +166,12 @@ async function loadAsyncData(
     longitude: number,
 ) {
     try {
-        const fieldPromise = getFieldByCentroid(longitude, latitude, calendar)
+        const latestStatusYear = "2025"
+        const fieldPromise = getFieldByCentroid(
+            longitude,
+            latitude,
+            latestStatusYear,
+        )
         const field = {
             type: "Feature",
             properties: {},
@@ -273,6 +214,10 @@ async function loadAsyncData(
             ]),
         )
 
+        const officialAreaHa = queriedField?.properties?.b_area
+            ? Math.round((queriedField.properties.b_area / 10000) * 100) / 100
+            : 0
+
         const cultivationHistory = estimates.cultivations
             .map((cultivation) => {
                 const b_lu_catalogue = `nl_${cultivation.b_lu_brp}`
@@ -293,6 +238,8 @@ async function loadAsyncData(
         const advancedCultivationHistory = buildAdvancedCultivationHistory(
             estimates.cultivations_advanced,
             cultivationCatalogueMap,
+            officialAreaHa,
+            Number.parseInt(latestStatusYear),
         )
 
         return {
@@ -333,11 +280,7 @@ async function loadAsyncData(
                 ),
             },
             fieldDetails: {
-                b_area: queriedField?.properties?.b_area
-                    ? Math.round(
-                          (queriedField.properties.b_area / 10000) * 100,
-                      ) / 100
-                    : 0,
+                b_area: officialAreaHa,
                 isNvGebied,
                 isGWBGGebied,
                 isNatura2000Area,
