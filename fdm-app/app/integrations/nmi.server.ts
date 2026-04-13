@@ -82,7 +82,7 @@ export async function getSoilParameterEstimates(
     b_c_st03_potential: number
     b_c_delta: number
     cultivations: { year: number; b_lu_brp: number }[]
-    cultivations_advanced?: {
+    cultivations_advanced: {
         year: number
         fields: {
             b_lu_brp: number

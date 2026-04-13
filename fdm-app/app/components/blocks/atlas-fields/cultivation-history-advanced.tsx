@@ -34,7 +34,7 @@ export type AdvancedCultivationYear = {
     year: number
     fields: AdvancedCultivationField[]
     total_overlap_pct: number
-    event_type: EventType
+    event_types: EventType[]
 }
 
 export type AdvancedCultivationHistory = {
@@ -45,7 +45,7 @@ export type AdvancedCultivationHistory = {
 const EVENT_LABELS: Record<Exclude<EventType, "stable">, string> = {
     split: "Perceelsplitsing",
     merge: "Perceelsamenvoeging",
-    expansion: "Perceelsuitbreiding",
+    expansion: "Perceelsvergroting",
     shrinkage: "Perceelsverkleining",
     no_data: "Geen registratie",
 }
@@ -289,6 +289,14 @@ export function AdvancedCultivationFlow({
                     const isHiddenOnMobile = !isExpanded && index >= mobileLimit
                     const hasNext = index < data.history.length - 1
 
+                    // Prioritize split/merge for visual lines if multiple events occur
+                    const visualEventType =
+                        yearEntry.event_types.find(
+                            (t) => t === "split" || t === "merge",
+                        ) ||
+                        yearEntry.event_types[0] ||
+                        "stable"
+
                     return (
                         <div
                             key={yearEntry.year}
@@ -299,7 +307,7 @@ export function AdvancedCultivationFlow({
                                 currentYear={currentYear}
                             />
 
-                            {/* Connector + optional event label between rows.
+                            {/* Connector + optional event labels between rows.
                                 Hidden on mobile when the next row is also hidden. */}
                             {hasNext && (
                                 <div
@@ -309,17 +317,17 @@ export function AdvancedCultivationFlow({
                                             "hidden lg:block",
                                     )}
                                 >
-                                    {yearEntry.event_type !== "stable" && (
-                                        <EventLabel
-                                            eventType={yearEntry.event_type}
-                                        />
-                                    )}
+                                    {yearEntry.event_types
+                                        .filter((t) => t !== "stable")
+                                        .map((t) => (
+                                            <EventLabel key={t} eventType={t} />
+                                        ))}
                                     <YearConnector
                                         topFields={yearEntry.fields}
                                         bottomFields={
                                             data.history[index + 1].fields
                                         }
-                                        eventType={yearEntry.event_type}
+                                        eventType={visualEventType}
                                     />
                                 </div>
                             )}
