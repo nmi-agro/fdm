@@ -1267,6 +1267,33 @@ describe("Fertilizer Data Model", () => {
             expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
         })
 
+        it("should add a new fertilizer application with no amount specified", async () => {
+            const p_app_date = new Date("2024-03-15")
+
+            const new_p_app_id = await addFertilizerApplication(
+                fdm,
+                principal_id,
+                b_id,
+                p_id_liquid,
+                null,
+                "broadcasting",
+                p_app_date,
+            )
+            expect(new_p_app_id).toBeDefined()
+
+            const fertilizerApplication = await getFertilizerApplication(
+                fdm,
+                principal_id,
+                new_p_app_id,
+            )
+            expect(fertilizerApplication).toBeDefined()
+            expect(fertilizerApplication?.p_id).toBe(p_id_liquid)
+            expect(fertilizerApplication?.p_app_amount).toBe(null)
+            expect(fertilizerApplication?.p_app_amount_display).toBe(null)
+            expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
+            expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
+        })
+
         it("should update a fertilizer application", async () => {
             const p_app_date1 = new Date("2024-03-15")
             const p_app_date2 = new Date("2024-04-20")

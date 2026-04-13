@@ -2,8 +2,8 @@ import {
     getCultivationCatalogue,
     getFertilizersCatalogue,
 } from "@nmi-agro/fdm-data"
-import { eq, isNotNull } from "drizzle-orm"
-import { beforeEach, describe, expect, inject, it } from "vitest"
+import { eq, isNotNull, like } from "drizzle-orm"
+import { afterEach, beforeEach, describe, expect, inject, it } from "vitest"
 import {
     disableCultivationCatalogue,
     disableFertilizerCatalogue,
@@ -14,11 +14,13 @@ import {
     isCultivationCatalogueEnabled,
     isFertilizerCatalogueEnabled,
     syncCatalogues,
+    syncFertilizerCatalogueArray,
 } from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import type { FdmType } from "./fdm"
 import { createFdmServer } from "./fdm-server"
+import { createId } from "./id"
 
 describe("Catalogues", () => {
     let fdm: FdmType
@@ -588,6 +590,20 @@ describe("Catalogues syncing", () => {
         fdm = createFdmServer(host, port, user, password, database)
     })
 
+    afterEach(async () => {
+        await fdm
+            .delete(schema.fertilizersCatalogue)
+            .where(like(schema.fertilizersCatalogue.p_id_catalogue, "test_%"))
+
+        await fdm
+            .delete(schema.cultivationsCatalogue)
+            .where(like(schema.cultivationsCatalogue.b_lu_catalogue, "test_%"))
+    })
+
+    function createTestCatalogueId() {
+        return `test_${createId()}`
+    }
+
     it("should sync catalogues", async () => {
         await syncCatalogues(fdm)
 
@@ -707,6 +723,53 @@ describe("Catalogues syncing", () => {
             .limit(1)
 
         expect(syncedItem[0].p_name_nl).not.toBe("Updated Name")
+    })
+
+    it("should use default for p_app_amount_unit if p_type_rvo is not specified", async () => {
+        const p_id_catalogue = createTestCatalogueId()
+
+        await syncFertilizerCatalogueArray(fdm, [
+            {
+                p_id_catalogue: p_id_catalogue,
+                p_source: "baat",
+                p_name_nl: "Custom Fertilizer",
+            },
+        ])
+
+        const syncedItem = await fdm
+            .select()
+            .from(schema.fertilizersCatalogue)
+            .where(
+                eq(schema.fertilizersCatalogue.p_id_catalogue, p_id_catalogue),
+            )
+            .limit(1)
+
+        expect(syncedItem[0].p_app_amount_unit).toBe("kg/ha")
+    })
+
+    it("should use any specified p_type_rvo", async () => {
+        const p_id_catalogue = createTestCatalogueId()
+
+        await syncFertilizerCatalogueArray(fdm, [
+            {
+                p_id_catalogue: p_id_catalogue,
+                p_source: "baat",
+                p_name_nl: "Suspicious Liquid Fertilizer",
+                p_type_rvo: "10", // Assumed to be solid so its unit would be estimated to be ton/ha
+                p_app_amount_unit: "l/ha",
+                p_density: 1.1,
+            },
+        ])
+
+        const syncedItem = await fdm
+            .select()
+            .from(schema.fertilizersCatalogue)
+            .where(
+                eq(schema.fertilizersCatalogue.p_id_catalogue, p_id_catalogue),
+            )
+            .limit(1)
+
+        expect(syncedItem[0].p_app_amount_unit).toBe("l/ha")
     })
 
     it("should update cultivation catalogue", async () => {
