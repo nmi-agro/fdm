@@ -1,5 +1,7 @@
 import { Bot, Loader2, RefreshCw, Send, User } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -29,11 +31,16 @@ export function GerritChat({
 }: GerritChatProps) {
     const [input, setInput] = useState("")
     const [mode, setMode] = useState<"ask" | "update">("ask")
-    const bottomRef = useRef<HTMLDivElement>(null)
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, [messages])
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: "smooth",
+            })
+        }
+    }, [messages, isStreaming])
 
     function handleSend() {
         const trimmed = input.trim()
@@ -79,17 +86,24 @@ export function GerritChat({
 
                 {/* Message thread */}
                 {messages.length > 0 && (
-                    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                    <div
+                        ref={scrollContainerRef}
+                        className="space-y-3 max-h-80 overflow-y-auto pr-1 scroll-smooth"
+                    >
                         {messages.map((msg, i) => (
                             <div
                                 key={i}
                                 className={`flex gap-3 text-sm ${
-                                    msg.role === "user" ? "flex-row-reverse" : "flex-row"
+                                    msg.role === "user"
+                                        ? "flex-row-reverse"
+                                        : "flex-row"
                                 }`}
                             >
                                 <div
                                     className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-                                        msg.role === "user" ? "bg-secondary" : "bg-primary/10"
+                                        msg.role === "user"
+                                            ? "bg-secondary"
+                                            : "bg-primary/10"
                                     }`}
                                 >
                                     {msg.role === "user" ? (
@@ -99,7 +113,7 @@ export function GerritChat({
                                     )}
                                 </div>
                                 <div
-                                    className={`rounded-lg px-3 py-2 max-w-[85%] leading-relaxed ${
+                                    className={`rounded-lg px-3 py-2 max-w-[90%] leading-relaxed ${
                                         msg.role === "user"
                                             ? "bg-secondary text-secondary-foreground"
                                             : msg.type === "error"
@@ -107,7 +121,54 @@ export function GerritChat({
                                               : "bg-muted text-muted-foreground"
                                     }`}
                                 >
-                                    {msg.content}
+                                    {msg.role === "assistant" ? (
+                                        <div className="text-current break-words">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    p: ({ children }) => (
+                                                        <p className="mb-2 last:mb-0">
+                                                            {children}
+                                                        </p>
+                                                    ),
+                                                    ul: ({ children }) => (
+                                                        <ul className="list-disc pl-4 mb-2 space-y-1">
+                                                            {children}
+                                                        </ul>
+                                                    ),
+                                                    ol: ({ children }) => (
+                                                        <ol className="list-decimal pl-4 mb-2 space-y-1">
+                                                            {children}
+                                                        </ol>
+                                                    ),
+                                                    li: ({ children }) => (
+                                                        <li className="leading-snug">
+                                                            {children}
+                                                        </li>
+                                                    ),
+                                                    strong: ({ children }) => (
+                                                        <strong className="font-semibold text-foreground">
+                                                            {children}
+                                                        </strong>
+                                                    ),
+                                                    a: ({ href, children }) => (
+                                                        <a
+                                                            href={href}
+                                                            className="underline decoration-primary/30 underline-offset-2 hover:decoration-primary transition-colors"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            {children}
+                                                        </a>
+                                                    ),
+                                                }}
+                                            >
+                                                {msg.content}
+                                            </ReactMarkdown>
+                                        </div>
+                                    ) : (
+                                        msg.content
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -122,7 +183,6 @@ export function GerritChat({
                                 </div>
                             </div>
                         )}
-                        <div ref={bottomRef} />
                     </div>
                 )}
 

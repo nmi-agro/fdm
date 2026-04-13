@@ -1,4 +1,3 @@
-import { MessageCircle } from "lucide-react"
 import { Button } from "~/components/ui/button"
 
 interface SuggestedFollowUpsProps {
@@ -15,17 +14,16 @@ export function SuggestedFollowUps({
     if (suggestions.length === 0) return null
 
     return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex overflow-x-auto pb-1.5 -mx-1 px-1 gap-2 scroll-smooth scrollbar-hide">
             {suggestions.map((text) => (
                 <Button
                     key={text}
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
-                    className="text-xs h-auto py-1.5 px-3 text-left whitespace-normal max-w-xs"
+                    className="text-[11px] h-7 px-3 shrink-0 whitespace-nowrap bg-secondary/50 hover:bg-secondary border-none"
                     onClick={() => onSelect(text)}
                     disabled={disabled}
                 >
-                    <MessageCircle className="w-3 h-3 mr-1.5 shrink-0" />
                     {text}
                 </Button>
             ))}
