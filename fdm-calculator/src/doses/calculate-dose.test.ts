@@ -1,6 +1,5 @@
-import type { Fertilizer } from "@nmi-agro/fdm-core"
+import type { BaseFertilizerApplication, Fertilizer } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
-import type { CalculatorFertilizerApplication } from "../shared/types"
 import { calculateDose } from "./calculate-dose"
 
 const initialDose = {
@@ -21,7 +20,7 @@ const initialDose = {
     p_dose_b: 0,
 }
 
-const baseApplication: CalculatorFertilizerApplication = {
+const baseApplication: BaseFertilizerApplication = {
     p_app_id: "app1",
     p_id_catalogue: "fert1",
     p_app_amount: 100,
@@ -92,7 +91,7 @@ const baseFertilizer: Fertilizer = {
 
 describe("calculateDose", () => {
     it("should calculate all nutrient doses correctly", () => {
-        const applications: CalculatorFertilizerApplication[] = [
+        const applications: BaseFertilizerApplication[] = [
             {
                 ...baseApplication,
             },
@@ -152,7 +151,7 @@ describe("calculateDose", () => {
     })
 
     it("should handle zero application amounts correctly", () => {
-        const applications: CalculatorFertilizerApplication[] = [
+        const applications: BaseFertilizerApplication[] = [
             {
                 ...baseApplication,
                 p_app_amount: 0,
@@ -168,7 +167,7 @@ describe("calculateDose", () => {
     })
 
     it("should handle zero nutrient rates correctly", () => {
-        const applications: CalculatorFertilizerApplication[] = [
+        const applications: BaseFertilizerApplication[] = [
             {
                 ...baseApplication,
             },
@@ -197,7 +196,7 @@ describe("calculateDose", () => {
     })
 
     it("should throw an error for negative application amounts", () => {
-        const applications: CalculatorFertilizerApplication[] = [
+        const applications: BaseFertilizerApplication[] = [
             {
                 ...baseApplication,
                 p_app_amount: -100,
@@ -210,7 +209,7 @@ describe("calculateDose", () => {
     })
 
     it("should throw an error for negative nutrient rates", () => {
-        const applications: CalculatorFertilizerApplication[] = [
+        const applications: BaseFertilizerApplication[] = [
             {
                 ...baseApplication,
             },
@@ -227,7 +226,7 @@ describe("calculateDose", () => {
     })
 
     it("should throw an error for missing fertilizers", () => {
-        const applications: CalculatorFertilizerApplication[] = [
+        const applications: BaseFertilizerApplication[] = [
             {
                 ...baseApplication,
                 p_id_catalogue: "fert_missing",
@@ -250,7 +249,7 @@ describe("calculateDose", () => {
     })
 
     it("should throw an error for empty fertilizers array", () => {
-        const applications: CalculatorFertilizerApplication[] = [
+        const applications: BaseFertilizerApplication[] = [
             {
                 ...baseApplication,
             },

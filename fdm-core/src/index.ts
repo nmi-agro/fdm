@@ -114,6 +114,7 @@ export {
     updateFertilizerFromCatalogue,
 } from "./fertilizer"
 export type {
+    BaseFertilizerApplication,
     Fertilizer,
     FertilizerApplication,
     FertilizerCatalogue,

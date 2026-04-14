@@ -1,4 +1,5 @@
 import type {
+    BaseFertilizerApplication,
     Cultivation,
     CultivationCatalogue,
     Fertilizer,
@@ -7,7 +8,6 @@ import type {
     SoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import type { Decimal } from "decimal.js"
-import type { CalculatorFertilizerApplication } from "../../shared/types"
 
 /**
  * Represents the nitrogen supply derived from various fertilizer applications.
@@ -496,7 +496,7 @@ export type FieldInput = {
         | "b_soiltype_agr"
         | "b_gwl_class"
     >[]
-    fertilizerApplications: CalculatorFertilizerApplication[]
+    fertilizerApplications: BaseFertilizerApplication[]
     depositionSupply?: NitrogenSupplyDeposition
 }
 

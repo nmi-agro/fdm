@@ -12,6 +12,7 @@ import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
 import type {
+    BaseFertilizerApplication,
     Fertilizer,
     FertilizerApplication,
     FertilizerCatalogue,
@@ -915,17 +916,13 @@ export async function removeFertilizerApplication(
     }
 }
 
-type IncompleteFertilizerApplication = Omit<
-    FertilizerApplication,
-    "p_app_amount_display" | "p_app_amount_unit"
->
 /**
  * Extends the given fertilizer application with computed data and removes unknown properties
  * @param app fertilizer application
  * @returns the same fertilizer application with p_app_amount_display filled in and properties
  * that do not belong to FertilizerApplication removed
  */
-function extendFertilizerApplication<T extends IncompleteFertilizerApplication>(
+function extendFertilizerApplication<T extends BaseFertilizerApplication>(
     app: T,
     p_app_amount_unit: AppAmountUnit,
     p_density: number | null,
@@ -1011,7 +1008,7 @@ export async function getFertilizerApplication(
 
         return result.length > 0
             ? extendFertilizerApplication(
-                  result[0] as IncompleteFertilizerApplication,
+                  result[0] as BaseFertilizerApplication,
                   result[0].p_app_amount_unit as AppAmountUnit,
                   result[0].p_density as number,
               )

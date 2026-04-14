@@ -1,6 +1,5 @@
-import type { Fertilizer } from "@nmi-agro/fdm-core"
+import type { BaseFertilizerApplication, Fertilizer } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
-import type { CalculatorFertilizerApplication } from "../../../../shared/types"
 import { calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./fosfaatgebruiksnorm"
 import type { NL2025NormsFillingInput } from "./types"
 
@@ -94,7 +93,7 @@ describe("calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm", ()
         fertilizerId: string,
         amount: number,
         appId: string,
-    ): CalculatorFertilizerApplication => ({
+    ): BaseFertilizerApplication => ({
         p_app_id: appId,
         p_id: appId,
         p_id_catalogue: fertilizerId,
