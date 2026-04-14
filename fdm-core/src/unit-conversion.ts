@@ -19,8 +19,8 @@ export const APP_AMOUNT_UNITS: { value: AppAmountUnit; label: string }[] = [
 /**
  * Convert an amount and its unit to kg/ha. This offers flexibility in how the amount is specified.
  *
- * Take care of which defaultUnit and which density are used. Usually defaultUnit is the
- * configured display unit for the amount, and p_density is the fertilizer's density in catalogue.
+ * Take care of which defaultUnit and which density are used. Usually default_p_app_amount_unit is the
+ * configured display unit for the fertilizer, and p_density is the fertilizer's density in catalogue.
  * @param p_app_amount_display value to convert, maybe with the unit specified
  * @param default_p_app_amount_unit unit to use if input has no unit specified
  * @param p_density density value to use when converting volume to mass
@@ -68,7 +68,7 @@ export function normalizeToKgPerHa(
  * Throws if conversion requires density but density is null/undefined/0.
  */
 export function toKgPerHa(
-    value: number | Decimal | string,
+    value: AppAmountDimensionless,
     unit: AppAmountUnit,
     density?: number | Decimal | null, // kg/l
 ): Decimal {

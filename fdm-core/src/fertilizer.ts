@@ -765,7 +765,7 @@ export async function addFertilizerApplication(
     principal_id: PrincipalId,
     b_id: schema.fertilizerApplicationTypeInsert["b_id"],
     p_id: schema.fertilizerApplicationTypeInsert["p_id"],
-    p_app_amount_display: AppAmount,
+    p_app_amount_display: AppAmount | null,
     p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
     p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
 ): Promise<schema.fertilizerApplicationTypeInsert["p_app_id"]> {
@@ -841,7 +841,7 @@ export async function updateFertilizerApplication(
     principal_id: PrincipalId,
     p_app_id: schema.fertilizerApplicationTypeInsert["p_app_id"],
     p_id: schema.fertilizerApplicationTypeInsert["p_id"],
-    p_app_amount_display: AppAmount,
+    p_app_amount_display: AppAmount | null,
     p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
     p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
 ): Promise<void> {
