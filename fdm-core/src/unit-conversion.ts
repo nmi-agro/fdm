@@ -192,4 +192,7 @@ export const RVO_RECOMMENDED_UNITS: RvoUnitSuggestionTableItem[] = [
     { p_type_rvo: "114", type: "solid sewage", unit: "ton/ha" },
     { p_type_rvo: "115", type: "other", unit: "kg/ha" },
     { p_type_rvo: "116", type: "other", unit: "kg/ha" },
+
+    // Maybe non-standard
+    { p_type_rvo: "120", type: "other - mineral concentrate", unit: "kg/ha" },
 ]
