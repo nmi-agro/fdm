@@ -53,16 +53,20 @@ export function fromKgPerHa(
     density?: number | Decimal | null, // kg/l
 ): Decimal | null {
     const d = new Decimal(valueKgPerHa)
+    const densityNotProvided =
+        density === null ||
+        typeof density === "undefined" ||
+        new Decimal(0).greaterThanOrEqualTo(density)
     switch (unit) {
         case "kg/ha":
             return d
         case "ton/ha":
             return d.dividedBy(1000)
         case "l/ha":
-            if (!density) return null
+            if (densityNotProvided) return null
             return d.dividedBy(new Decimal(density))
         case "m3/ha":
-            if (!density) return null
+            if (densityNotProvided) return null
             return d.dividedBy(new Decimal(density).times(1000))
         default:
             return null

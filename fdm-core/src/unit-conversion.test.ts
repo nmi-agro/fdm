@@ -103,6 +103,18 @@ describe("fromKgPerHa", () => {
         },
         {
             input: 20,
+            unit: "m3/ha",
+            density: 0,
+            output: null,
+        },
+        {
+            input: 20,
+            unit: "m3/ha",
+            density: -1,
+            output: null,
+        },
+        {
+            input: 20,
             unit: "ft3/ha" as AppAmountUnit,
             density: 2,
             output: null,
