@@ -7,10 +7,11 @@ import type {
     NormFilling,
     NutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
+import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 
 export interface ParsedPlanApplication {
     p_id_catalogue: string
-    p_app_amount_display: number
+    p_app_amount: number
     p_app_date: string
     p_app_method?: string | null
     p_app_method_name?: string | null
@@ -58,6 +59,8 @@ export interface PlanRow {
             p_name_nl: string | null
             p_type: string
             p_app_method_name?: string | null
+            p_app_amount_display: number
+            p_app_amount_unit: AppAmountUnit
         }
     >
     fieldMetrics: FieldMetrics | null

@@ -36,6 +36,7 @@ import {
 } from "~/components/ui/tooltip"
 import { FertilizerIcon } from "./fertilizer-icon"
 import type { ParsedPlan, PlanRow } from "./types"
+import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
 
 const columnHelper = createColumnHelper<PlanRow>()
 
@@ -102,7 +103,7 @@ const columns = [
                 <div className="flex flex-col gap-1.5">
                     {apps.map((app, _i) => (
                         <TooltipProvider
-                            key={`${app.p_id_catalogue}-${app.p_app_date}-${app.p_app_amount}-${app.p_app_method ?? ""}`}
+                            key={`${app.p_id_catalogue}-${app.p_app_date}-${app.p_app_amount_display}-${app.p_app_method ?? ""}`}
                         >
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -115,7 +116,11 @@ const columns = [
                                             {app.p_name_nl}
                                         </span>
                                         <span className="tabular-nums">
-                                            {app.p_app_amount} {"kg/ha"}
+                                            {app.p_app_amount_display ?? null}{" "}
+                                            {getApplicationAmountUnitLabel(
+                                                app.p_app_amount_unit ??
+                                                    "kg/ha",
+                                            )}
                                         </span>
                                         <span className="text-muted-foreground/70">
                                             ·

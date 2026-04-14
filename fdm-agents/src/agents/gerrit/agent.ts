@@ -39,9 +39,9 @@ IMPORTANT CONSTRAINTS:
 5. BUFFER STRIPS: Fields designated as buffer strips ("b_bufferstrip": true) MUST NOT receive any fertilizer applications. Ensure your plan contains zero applications for these fields.
 6. APPLICATION METHOD: For each application, you must propose a valid "p_app_method". Choose ONLY from the "p_app_method_options" returned by the search tool for that specific fertilizer.
 7. REALISTIC DATES: Ensure all "p_app_date" values are realistic for the crop type, cultivation season, and Dutch climate. Use the provided "b_lu_start" (sowing/start date) as a critical reference point for each crop.
-8. REALISTIC APPLICATION AMOUNTS: Ensure the proposed "p_app_amount_display" per application matches the technical capabilities of common farming equipment. If the total advice requires more, you MUST split it into multiple applications on different dates.
-   - slurry (drijfmest): 15 - 30 m³/ha per application.
-   - Solid manure / compost (vaste mest): 10 - 30 t/ha per application.
+8. REALISTIC APPLICATION AMOUNTS: Ensure the proposed "p_app_amount" per application matches the technical capabilities of common farming equipment. If the total advice requires more, you MUST split it into multiple applications on different dates.
+   - slurry (drijfmest): 15,000 - 30,000 kg/ha per application (15-30 m³/ha).
+   - Solid manure / compost (vaste mest): 10,000 - 30,000 kg/ha per application (10-30 t/ha).
    - Mineral fertilizers: 50 - 450 kg/ha per application.
 9. PRIORITIZATION: If legal norms (especially Nitrogen or Phosphate) limit the total nutrient space on the farm, prioritize fulfilling the nutrient advice for high-value crops (e.g., potatoes, onions, sugar beets, vegetables) over lower-value crops or grasslands. Strategy should focus on maximizing the economic return of the limited nutrient space.
 10. ORGANIC FARMING: If "Organic Farming" is YES, you MUST NOT use any mineral fertilizers ("p_type": "mineral") in the plan.
@@ -83,7 +83,7 @@ Your final response MUST be a JSON object with exactly this structure (all field
     {
       "b_id": "string",
       "applications": [
-        { "p_id_catalogue": "string", "p_app_amount_display": number, "p_app_date": "YYYY-MM-DD", "p_app_method": "string" }
+        { "p_id_catalogue": "string", "p_app_amount": number, "p_app_date": "YYYY-MM-DD", "p_app_method": "string" }
       ],
       "fieldMetrics": {
         "advice": { 
@@ -136,7 +136,7 @@ CALCULATOR REFERENCE (units and semantics for the simulation tool):
 - "norms.manure / nitrogen / phosphate": the legal maximum (farm total in kg, field level in kg/ha). Field level results include a "normSource" string explaining the origin of the limit.
 - "omBalance" (organische stofbalans): net organic matter balance, kg EOM/ha. Positive = good. Aim for ≥ 0.
 - "nBalance": nitrogen balance structured exactly as fdm-calculator outputs. "nBalance.balance" and "nBalance.target" are in kg N/ha. "nBalance.emission.ammonia.total" and "nBalance.emission.nitrate.total" are also in kg N/ha. The farm-level averages are automatically area-weighted by the simulation tool. nBalance.balance must be ≤ nBalance.target if keepNitrogenBalanceBelowTarget is YES.
-- "p_app_amount_display": application amount — **in one of the units below**.
+- "p_app_amount": application amount — **always in kg/ha, regardless of fertilizer type**.
   - Liquid manure / digestate / slurry: convert m³/ha → kg/ha using 1 m³ = 1000 kg. Round to nearest 1000. Example: 18 m³/ha = 18000 kg/ha.
   - Solid manure / compost: convert t/ha → kg/ha using 1 t = 1000 kg. Round to nearest 1000. Example: 20 t/ha = 20000 kg/ha.
   - Mineral fertilizers: already in kg/ha, round to nearest 5 or 10. Example: 200 kg/ha KAS.

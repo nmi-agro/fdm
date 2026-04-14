@@ -26,6 +26,7 @@ import {
     addFertilizerApplication,
     type Fertilizer,
     type FertilizerApplication,
+    fromKgPerHa,
     getCultivations,
     getCurrentSoilData,
     getFarms,
@@ -167,7 +168,7 @@ async function computePlanMetrics(
         b_bufferstrip: boolean
         applications: Array<{
             p_id_catalogue: string
-            p_app_amount_display: number
+            p_app_amount: number
             p_app_date: string
             p_app_method?: string | null
         }>
@@ -268,7 +269,7 @@ async function computePlanMetrics(
                             p_id: fert?.p_id ?? app.p_id_catalogue,
                             p_id_catalogue: app.p_id_catalogue,
                             p_name_nl: fert?.p_name_nl ?? null,
-                            p_app_amount_display: app.p_app_amount_display,
+                            p_app_amount: app.p_app_amount,
                             p_app_date: new Date(app.p_app_date),
                             p_app_id: `plan-${field.b_id}-${i}`,
                             p_app_method: app.p_app_method ?? null,
@@ -711,8 +712,31 @@ export async function action({ request, params }: ActionFunctionArgs) {
                                 applicationMethods?.options?.find(
                                     (x: any) => x.value === app.p_app_method,
                                 )
+                            const p_app_amount_display = fert
+                                ? fromKgPerHa(
+                                      app.p_app_amount,
+                                      fert.p_app_amount_unit,
+                                      fert.p_density,
+                                  )
+                                : null
+                            const unitConvertedAmount =
+                                fert && p_app_amount_display !== null
+                                    ? {
+                                          p_app_amount_display:
+                                              p_app_amount_display
+                                                  .toDecimalPlaces(2)
+                                                  .toNumber(),
+                                          p_app_amount_unit:
+                                              fert.p_app_amount_unit,
+                                      }
+                                    : {
+                                          p_app_amount_display:
+                                              app.p_app_amount,
+                                          p_app_amount_unit: "kg/ha",
+                                      }
                             return {
                                 ...app,
+                                ...unitConvertedAmount,
                                 p_name_nl:
                                     fert?.p_name_nl || app.p_id_catalogue,
                                 p_type: fert?.p_type || "other",

@@ -194,4 +194,5 @@ export type {
 } from "./soil.types"
 export type { Timeframe } from "./timeframe.d"
 export type { AppAmountUnit } from "./unit-conversion"
+export { fromKgPerHa, toKgPerHa } from "./unit-conversion"
 export { fdmSchema }
