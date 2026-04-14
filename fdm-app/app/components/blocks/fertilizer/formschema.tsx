@@ -480,7 +480,7 @@ export const FormSchema = z
         },
         {
             path: ["p_density"],
-            error: "Dichtheid is verplicht bij gebruik van l/ha of m3/ha",
+            error: "Dichtheid is verplicht bij gebruik van L/ha of m³/ha",
         },
     )
     .refine(

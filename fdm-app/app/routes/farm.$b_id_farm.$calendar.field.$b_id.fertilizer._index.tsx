@@ -116,9 +116,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Map fertilizers to options for the combobox
         const fertilizerOptions = fertilizers.map((fertilizer) => {
             const applicationMethodOptions = fertilizer.p_app_method_options
-                .map((opt: any) => {
-                    const meta = applicationMethods.options.find(
-                        (x: any) => x.value === opt,
+                ?.map((opt) => {
+                    const meta = applicationMethods.options?.find(
+                        (x) => x.value === opt,
                     )
                     return meta ? { value: opt, label: meta.label } : undefined
                 })

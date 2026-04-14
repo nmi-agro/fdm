@@ -171,19 +171,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Map fertilizers to options for the combobox
         const fertilizerOptions = fertilizers.map((fertilizer) => {
             const applicationMethodOptions = fertilizer.p_app_method_options
-                .map((opt) => {
-                    const meta = applicationMethods.options.find(
+                ?.map((opt) => {
+                    const meta = applicationMethods.options?.find(
                         (x) => x.value === opt,
                     )
                     return meta ? { value: opt, label: meta.label } : undefined
                 })
-                .filter(
-                    (option): option is { value: string; label: string } =>
-                        option !== undefined,
-                )
+                .filter((option) => option !== undefined)
             return {
                 value: fertilizer.p_id,
-                label: fertilizer.p_name_nl,
+                label: fertilizer.p_name_nl as string,
                 applicationMethodOptions: applicationMethodOptions,
                 p_app_amount_unit: fertilizer.p_app_amount_unit,
             }
@@ -224,7 +221,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 p_id: "string",
                 p_app_date: "date",
                 p_app_method: "string",
-                p_app_amount: "number",
+                p_app_amount_display: "number",
             } as const
             const keys = Object.keys(keyTypes) as (keyof typeof keyTypes)[]
 
@@ -276,10 +273,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             if (!fertilizerApplication.p_id) {
                 delete fertilizerApplication.p_app_method
                 // Also, no specific placeholder should be shown
-                delete exampleFertilizerApplication.p_app_amount
+                delete exampleFertilizerApplication.p_app_amount_display
             }
 
-            loaderExampleFertilizerApplication = exampleFertilizerApplication
+            loaderExampleFertilizerApplication = Object.fromEntries(
+                Object.entries(exampleFertilizerApplication).map(([k, v]) => [
+                    k,
+                    v === null ? undefined : v,
+                ]),
+            )
         }
 
         const loaderFertilizerApplication = fertilizerApplication
@@ -646,7 +648,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             session.principal_id,
                             p_app_id,
                             validatedData.p_id ?? original.p_id,
-                            validatedData.p_app_amount ?? original.p_app_amount,
+                            validatedData.p_app_amount_display ??
+                                original.p_app_amount_display,
                             validatedData.p_app_method ?? original.p_app_method,
                             validatedData.p_app_date ?? original.p_app_date,
                         )

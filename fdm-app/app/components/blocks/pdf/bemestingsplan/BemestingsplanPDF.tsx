@@ -1,6 +1,10 @@
 import { Document, Image, Link, Page, Text, View } from "@react-pdf/renderer"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
+import {
+    getApplicationAmountTotalUnitLabel,
+    getApplicationAmountUnitLabel,
+} from "~/components/blocks/fertilizer-applications/utils"
 import { PdfCard } from "../PdfCard"
 import {
     PdfTable,
@@ -881,7 +885,7 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
                                     <Text>Product</Text>
                                 </PdfTableCell>
                                 <PdfTableCell style={{ textAlign: "right" }}>
-                                    <Text>Totaal (kg)</Text>
+                                    <Text>Totaal</Text>
                                 </PdfTableCell>
                                 <PdfTableCell style={{ textAlign: "right" }}>
                                     <Text>N-totaal (kg)</Text>
@@ -902,18 +906,22 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
                                     .reduce(
                                         (acc, f) => {
                                             f.applications.forEach((app) => {
+                                                if (
+                                                    app.quantity === null ||
+                                                    app.quantity_display ===
+                                                        null
+                                                ) {
+                                                    return
+                                                }
+
                                                 if (!acc[app.product]) {
                                                     acc[app.product] = {
                                                         amount: 0,
                                                         amount_display: 0,
-                                                        amount_unit: (
-                                                            {
-                                                                "kg/ha": "kg",
-                                                                "ton/ha": "ton",
-                                                                "l/ha": "L",
-                                                                "m3/ha": "m³",
-                                                            } as const
-                                                        )[app.quantity_unit],
+                                                        amount_unit:
+                                                            getApplicationAmountTotalUnitLabel(
+                                                                app.quantity_unit,
+                                                            ) ?? "kg",
                                                         n: 0,
                                                         nw: 0,
                                                         p: 0,
@@ -944,11 +952,7 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
                                             {
                                                 amount: number
                                                 amount_display: number
-                                                amount_unit:
-                                                    | "kg"
-                                                    | "ton"
-                                                    | "L"
-                                                    | "m³"
+                                                amount_unit: string
                                                 n: number
                                                 nw: number
                                                 p: number
@@ -1841,7 +1845,7 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
                                     <Text>Datum / product</Text>
                                 </PdfTableCell>
                                 <PdfTableCell weight={0.8}>
-                                    <Text>Hoeveelheid (kg/ha)</Text>
+                                    <Text>Hoeveelheid</Text>
                                 </PdfTableCell>
                                 <PdfTableCell>
                                     <Text>N tot. / w. (kg/ha)</Text>
@@ -1875,7 +1879,14 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
                                         </PdfTableCell>
                                         <PdfTableCell weight={0.8}>
                                             <Text>
-                                                {Math.round(app.quantity)} kg/ha
+                                                {app.quantity_display
+                                                    ? Math.round(
+                                                          app.quantity_display,
+                                                      )
+                                                    : "?"}{" "}
+                                                {getApplicationAmountUnitLabel(
+                                                    app.quantity_unit,
+                                                )}
                                             </Text>
                                         </PdfTableCell>
                                         <PdfTableCell>

@@ -914,13 +914,17 @@ export async function removeFertilizerApplication(
     }
 }
 
+type IncompleteFertilizerApplication = Omit<
+    FertilizerApplication,
+    "p_app_amount_display" | "p_app_amount_unit"
+>
 /**
  * Extends the given fertilizer application with computed data and removes unknown properties
  * @param app fertilizer application
  * @returns the same fertilizer application with p_app_amount_display filled in and properties
  * that do not belong to FertilizerApplication removed
  */
-function extendFertilizerApplication<T extends FertilizerApplication>(
+function extendFertilizerApplication<T extends IncompleteFertilizerApplication>(
     app: T,
     p_app_amount_unit: AppAmountUnit,
     p_density: number | null,
@@ -1006,7 +1010,7 @@ export async function getFertilizerApplication(
 
         return result.length > 0
             ? extendFertilizerApplication(
-                  result[0] as FertilizerApplication,
+                  result[0] as IncompleteFertilizerApplication,
                   result[0].p_app_amount_unit as AppAmountUnit,
                   result[0].p_density as number,
               )
@@ -1322,10 +1326,11 @@ export function getFertilizerParametersDescription(
         {
             parameter: "p_app_amount_unit",
             unit: "",
-            name: "Toedieningshoeveelheidsunit",
+            name: "Hoeveelheidsunit",
             type: "enum",
             category: "general",
-            description: "Toedieningsmethodes mogelijk voor deze meststof",
+            description:
+                "Unit van voorkeur waarin de applicatiebedragen worden weergegeven.",
             options: APP_AMOUNT_UNITS,
         },
         {

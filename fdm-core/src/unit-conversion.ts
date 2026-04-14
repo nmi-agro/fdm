@@ -4,8 +4,8 @@ export type AppAmountUnit = "kg/ha" | "l/ha" | "m3/ha" | "ton/ha"
 
 export const APP_AMOUNT_UNITS: { value: AppAmountUnit; label: string }[] = [
     { value: "kg/ha", label: "kg/ha" },
-    { value: "l/ha", label: "l/ha" },
-    { value: "m3/ha", label: "m3/ha" },
+    { value: "l/ha", label: "L/ha" },
+    { value: "m3/ha", label: "m³/ha" },
     { value: "ton/ha", label: "ton/ha" },
 ]
 
@@ -26,13 +26,13 @@ export function toKgPerHa(
         case "ton/ha":
             return new Decimal(1000).times(d)
         case "l/ha":
-            if (!density)
+            if (density === null || density === undefined)
                 throw new Error(
                     "Density (p_density) is required for l/ha → kg/ha conversion",
                 )
             return new Decimal(density).times(d)
         case "m3/ha":
-            if (!density)
+            if (density === null || density === undefined)
                 throw new Error(
                     "Density (p_density) is required for m3/ha → kg/ha conversion",
                 )

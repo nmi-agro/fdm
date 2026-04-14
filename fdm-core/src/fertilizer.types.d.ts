@@ -9,7 +9,7 @@ export interface FertilizerCatalogue {
     p_name_en: string | null
     p_description: string | null
     p_app_method_options: ApplicationMethods[] | null
-    p_app_amount_unit: AppAmountUnit | null
+    p_app_amount_unit: AppAmountUnit
     p_dm: number | null
     p_density: number | null
     p_om: number | null
@@ -72,8 +72,8 @@ export interface FertilizerApplication {
     p_id_catalogue: string
     p_name_nl: string | null
     p_app_amount: number | null
-    p_app_amount_unit?: AppAmountUnit | null
-    p_app_amount_display?: number | null
+    p_app_amount_unit: AppAmountUnit
+    p_app_amount_display: number | null
     p_app_method: ApplicationMethods | null
     p_app_date: Date
     p_app_id: string

@@ -283,7 +283,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                                 product: fert?.p_name_nl || app.p_id,
                                 quantity: app.p_app_amount ?? 0,
                                 quantity_display: app.p_app_amount_display ?? 0,
-                                quantity_unit: app.p_app_amount_unit ?? "kg/ha",
+                                quantity_unit: app.p_app_amount_unit,
                                 p_dose_n: appDose.p_dose_n || 0,
                                 p_dose_nw: appDose.p_dose_nw || 0,
                                 p_dose_p: appDose.p_dose_p || 0,
