@@ -116,7 +116,10 @@ const columns = [
                                             {app.p_name_nl}
                                         </span>
                                         <span className="tabular-nums">
-                                            {app.p_app_amount_display ?? null}{" "}
+                                            {Math.round(
+                                                (app.p_app_amount_display ??
+                                                    0) * 100,
+                                            ) / 100}{" "}
                                             {getApplicationAmountUnitLabel(
                                                 app.p_app_amount_unit ??
                                                     "kg/ha",
