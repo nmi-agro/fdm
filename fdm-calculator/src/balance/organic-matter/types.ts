@@ -1,11 +1,11 @@
 import type {
     Cultivation,
     CultivationCatalogue,
-    FertilizerApplication,
     Field,
     SoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import type { Decimal } from "decimal.js"
+import type { CalculatorFertilizerApplication } from "~/shared/types"
 
 /**
  * Represents the organic matter supply from various fertilizer applications, categorized by type.
@@ -219,7 +219,7 @@ export type FieldInput = {
         | "b_soiltype_agr"
     >[]
     /** The list of fertilizer applications on the field. */
-    fertilizerApplications: FertilizerApplication[]
+    fertilizerApplications: CalculatorFertilizerApplication[]
 }
 
 /**

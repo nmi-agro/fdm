@@ -1,5 +1,5 @@
-import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
+import type { CalculatorFertilizerApplication } from "~/shared/types"
 import type {
     CultivationDetail,
     FertilizerDetail,
@@ -184,7 +184,7 @@ function determineMineralAmmoniaEmissionFactor(
  * @throws Error if an unsupported application method is provided for the given land type.
  */
 function determineManureAmmoniaEmissionFactor(
-    fertilizerApplication: FertilizerApplication,
+    fertilizerApplication: CalculatorFertilizerApplication,
     cultivations: FieldInput["cultivations"],
     cultivationDetails: Map<string, CultivationDetail>,
 ) {

@@ -496,7 +496,10 @@ export type FieldInput = {
         | "b_soiltype_agr"
         | "b_gwl_class"
     >[]
-    fertilizerApplications: FertilizerApplication[]
+    fertilizerApplications: Omit<
+        FertilizerApplication,
+        "p_app_amount_display" | "p_app_amount_unit"
+    >[]
     depositionSupply?: NitrogenSupplyDeposition
 }
 
