@@ -1,8 +1,10 @@
 import Decimal from "decimal.js"
 import { describe, expect, it } from "vitest"
 import {
+    type AppAmount,
     type AppAmountUnit,
     fromKgPerHa,
+    normalizeToKgPerHa,
     type RvoUnitSuggestionTableItem,
     suggestUnitFromRvoCode,
     toKgPerHa,
@@ -16,6 +18,63 @@ interface ConversionUnitTestCase {
     output?: number | null
     throws?: string
 }
+
+describe("normalizeToKgPerHa", () => {
+    it("should handle null", () => {
+        expect(() =>
+            normalizeToKgPerHa(null as unknown as AppAmount, "kg/ha", 0),
+        ).toThrow("Amount was not properly specified")
+    })
+    it("should handle undefined", () => {
+        expect(() =>
+            normalizeToKgPerHa(undefined as unknown as AppAmount, "kg/ha", 0),
+        ).toThrow("Amount was not properly specified")
+    })
+    it("should convert numbers", () => {
+        expect(normalizeToKgPerHa(2, "l/ha", 5).toNumber()).toBe(10)
+    })
+    it("should convert Decimal", () => {
+        expect(normalizeToKgPerHa(new Decimal(2), "l/ha", 5).toNumber()).toBe(
+            10,
+        )
+    })
+    it("should respect specified unit", () => {
+        expect(
+            normalizeToKgPerHa(
+                { p_app_amount_display: 2, p_app_amount_unit: "ton/ha" },
+                "l/ha",
+                5,
+            ).toNumber(),
+        ).toBe(2000)
+    })
+    it("should handle unit not specified in object", () => {
+        expect(
+            normalizeToKgPerHa(
+                { p_app_amount_display: 2 } as AppAmount,
+                "l/ha",
+                5,
+            ).toNumber(),
+        ).toBe(10)
+    })
+    it("should handle unit not specified in object", () => {
+        expect(() =>
+            normalizeToKgPerHa(
+                { p_app_amount_unit: "kg/ha" } as AppAmount,
+                "l/ha",
+                5,
+            ),
+        ).toThrow("Amount was not properly specified")
+    })
+    it("should handle arbitrary object as amount", () => {
+        expect(() =>
+            normalizeToKgPerHa(
+                { name: "John" } as unknown as AppAmount,
+                "l/ha",
+                5,
+            ),
+        ).toThrow("Amount was not properly specified")
+    })
+})
 
 describe("toKgPerHa", () => {
     const tests: ConversionUnitTestCase[] = [

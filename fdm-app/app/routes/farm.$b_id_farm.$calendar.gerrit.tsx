@@ -878,7 +878,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             session.principal_id,
                             field.b_id,
                             fertilizer.p_id,
-                            app.p_app_amount_display,
+                            {
+                                p_app_amount_display: app.p_app_amount,
+                                p_app_amount_unit: "kg/ha",
+                            },
                             app.p_app_method,
                             new Date(app.p_app_date),
                         )

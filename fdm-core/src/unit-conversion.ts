@@ -1,6 +1,13 @@
 import Decimal from "decimal.js"
 
 export type AppAmountUnit = "kg/ha" | "l/ha" | "m3/ha" | "ton/ha"
+export type AppAmountDimensionless = number | Decimal | string
+export type AppAmount =
+    | AppAmountDimensionless
+    | {
+          p_app_amount_display: AppAmountDimensionless
+          p_app_amount_unit: AppAmountUnit
+      }
 
 export const APP_AMOUNT_UNITS: { value: AppAmountUnit; label: string }[] = [
     { value: "kg/ha", label: "kg/ha" },
@@ -8,6 +15,52 @@ export const APP_AMOUNT_UNITS: { value: AppAmountUnit; label: string }[] = [
     { value: "m3/ha", label: "m³/ha" },
     { value: "ton/ha", label: "ton/ha" },
 ]
+
+/**
+ * Convert an amount and its unit to kg/ha. This offers flexibility in how the amount is specified.
+ *
+ * Take care of which defaultUnit and which density are used. Usually defaultUnit is the
+ * configured display unit for the amount, and p_density is the fertilizer's density in catalogue.
+ * @param p_app_amount_display value to convert, maybe with the unit specified
+ * @param default_p_app_amount_unit unit to use if input has no unit specified
+ * @param p_density density value to use when converting volume to mass
+ * @returns the amount converted to kg/ha
+ *
+ * @throws {Error} If the amount is null or undefined, or if the density was not specified when it was needed for conversion.
+ */
+export function normalizeToKgPerHa(
+    p_app_amount_display: AppAmount,
+    default_p_app_amount_unit: AppAmountUnit,
+    p_density?: number | Decimal | null,
+) {
+    let converted_p_app_amount_display: AppAmount = p_app_amount_display
+    let p_app_amount_unit = default_p_app_amount_unit
+    if (
+        p_app_amount_display instanceof Object &&
+        "p_app_amount_display" in p_app_amount_display
+    ) {
+        converted_p_app_amount_display =
+            p_app_amount_display.p_app_amount_display
+        if (p_app_amount_display.p_app_amount_unit) {
+            p_app_amount_unit = p_app_amount_display.p_app_amount_unit
+        }
+    }
+
+    if (
+        (converted_p_app_amount_display instanceof Object &&
+            !(converted_p_app_amount_display instanceof Decimal)) ||
+        converted_p_app_amount_display === null ||
+        typeof converted_p_app_amount_display === "undefined"
+    ) {
+        throw new Error("Amount was not properly specified")
+    }
+
+    return toKgPerHa(
+        converted_p_app_amount_display,
+        p_app_amount_unit,
+        p_density,
+    )
+}
 
 /**
  * Convert a user-entered amount (in display unit) to kg/ha for storage.
