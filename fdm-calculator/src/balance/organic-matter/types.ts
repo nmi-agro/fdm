@@ -5,7 +5,7 @@ import type {
     SoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import type { Decimal } from "decimal.js"
-import type { CalculatorFertilizerApplication } from "~/shared/types"
+import type { CalculatorFertilizerApplication } from "../../shared/types"
 
 /**
  * Represents the organic matter supply from various fertilizer applications, categorized by type.

@@ -4,8 +4,7 @@
         "noEmit": true,
         "paths": {
             "@nmi-agro/fdm-core": ["../fdm-core/src/index.ts"],
-            "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"],
-            "~/*": ["./src/*"]
+            "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"]
         }
     },
     "include": ["src/**/*", "vitest.config.ts"]

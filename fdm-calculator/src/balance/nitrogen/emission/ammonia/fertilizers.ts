@@ -1,5 +1,5 @@
 import Decimal from "decimal.js"
-import type { CalculatorFertilizerApplication } from "~/shared/types"
+import type { CalculatorFertilizerApplication } from "../../../../shared/types"
 import type {
     CultivationDetail,
     FertilizerDetail,

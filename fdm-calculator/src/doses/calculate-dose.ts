@@ -1,5 +1,5 @@
 import type { Fertilizer } from "@nmi-agro/fdm-core"
-import type { CalculatorFertilizerApplication } from "~/shared/types"
+import type { CalculatorFertilizerApplication } from "../shared/types"
 import type { Dose, NumericDoseKeys } from "./d"
 
 /**

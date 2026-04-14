@@ -1,6 +1,6 @@
 import type { Fertilizer } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
-import type { CalculatorFertilizerApplication } from "~/shared/types"
+import type { CalculatorFertilizerApplication } from "../shared/types"
 import { calculateDose } from "./calculate-dose"
 
 const initialDose = {

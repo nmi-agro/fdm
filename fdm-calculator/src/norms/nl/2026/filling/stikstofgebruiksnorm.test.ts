@@ -1,6 +1,6 @@
 import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { CalculatorFertilizerApplication } from "~/shared/types"
+import type { CalculatorFertilizerApplication } from "../../../../shared/types"
 import { getRegion } from "../../2025/value/stikstofgebruiksnorm"
 import type { RegionKey } from "../value/types"
 import {
