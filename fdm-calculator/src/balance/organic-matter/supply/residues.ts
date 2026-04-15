@@ -11,8 +11,10 @@ import type {
  *
  * This function evaluates each cultivation to determine if its residues contribute to the soil's organic matter.
  * The contribution is only counted if two conditions are met:
- * 1. The `m_cropresidue` flag for the cultivation is true, indicating that residues were incorporated into the soil.
- * 2. The cultivation's end date (`b_lu_end`) falls within the specified calculation timeframe.
+ * 1. The `cultivationDetail.b_lu_eom_residue` value is present (not null or undefined) in the catalogue.
+ * 2. The `cult.m_cropresidue` flag is NOT explicitly set to `false`. This means residues are considered left
+ *    on the field when `m_cropresidue` is either `true` or `undefined` (standard practice).
+ * 3. The cultivation's end date (`b_lu_end`) falls within the specified calculation timeframe.
  *
  * The EOM value for residues is sourced from the cultivation catalogue (`b_lu_eom_residue`).
  *
