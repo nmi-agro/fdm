@@ -79,15 +79,23 @@ export function toKgPerHa(
         case "ton/ha":
             return new Decimal(1000).times(d)
         case "l/ha":
-            if (density === null || density === undefined)
+            if (
+                density === null ||
+                density === undefined ||
+                new Decimal(0).greaterThanOrEqualTo(density)
+            )
                 throw new Error(
-                    "Density (p_density) is required for l/ha → kg/ha conversion",
+                    "Positive density (p_density) is required for l/ha → kg/ha conversion",
                 )
             return new Decimal(density).times(d)
         case "m3/ha":
-            if (density === null || density === undefined)
+            if (
+                density === null ||
+                density === undefined ||
+                new Decimal(0).greaterThanOrEqualTo(density)
+            )
                 throw new Error(
-                    "Density (p_density) is required for m3/ha → kg/ha conversion",
+                    "Positive density (p_density) is required for m3/ha → kg/ha conversion",
                 )
             return new Decimal(1000).times(d).times(density)
         default:

@@ -976,7 +976,7 @@ export async function getFertilizerApplication(
             "getFertilizerApplication",
         )
 
-        const result = await fdm
+        const result = (await fdm
             .select({
                 p_id: schema.fertilizerApplication.p_id,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
@@ -1004,13 +1004,18 @@ export async function getFertilizerApplication(
                     schema.fertilizerPicking.p_id_catalogue,
                 ),
             )
-            .where(eq(schema.fertilizerApplication.p_app_id, p_app_id))
+            .where(
+                eq(schema.fertilizerApplication.p_app_id, p_app_id),
+            )) as (BaseFertilizerApplication & {
+            p_app_amount_unit: AppAmountUnit
+            p_density: schema.fertilizersCatalogueTypeSelect["p_density"]
+        })[]
 
         return result.length > 0
             ? extendFertilizerApplication(
-                  result[0] as BaseFertilizerApplication,
-                  result[0].p_app_amount_unit as AppAmountUnit,
-                  result[0].p_density as number,
+                  result[0],
+                  result[0].p_app_amount_unit,
+                  result[0].p_density,
               )
             : null
     } catch (err) {
@@ -1099,7 +1104,7 @@ export async function getFertilizerApplications(
             )
             .orderBy(
                 desc(schema.fertilizerApplication.p_app_date),
-            )) as (FertilizerApplication & {
+            )) as (BaseFertilizerApplication & {
             p_app_amount_unit: AppAmountUnit
             p_density: number | null
         })[]
@@ -1206,10 +1211,10 @@ export async function getFertilizerApplicationsForFarm(
             )
             .orderBy(
                 desc(schema.fertilizerApplication.p_app_date),
-            )) as (FertilizerApplication & {
-            b_id: string
-            p_app_amount_unit: string
-            p_density: number | null
+            )) as (BaseFertilizerApplication & {
+            b_id: schema.fertilizerApplicationTypeSelect["b_id"]
+            p_app_amount_unit: AppAmountUnit
+            p_density: schema.fertilizersCatalogueTypeSelect["p_density"]
         })[]
 
         const result = new Map<string, FertilizerApplication[]>()

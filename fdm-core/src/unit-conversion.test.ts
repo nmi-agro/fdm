@@ -93,13 +93,13 @@ describe("toKgPerHa", () => {
             input: 20,
             unit: "l/ha",
             density: undefined,
-            throws: "Density (p_density) is required for l/ha → kg/ha conversion",
+            throws: "Positive density (p_density) is required for l/ha → kg/ha conversion",
         },
         {
             input: 20,
             unit: "m3/ha",
             density: undefined,
-            throws: "Density (p_density) is required for m3/ha → kg/ha conversion",
+            throws: "Positive density (p_density) is required for m3/ha → kg/ha conversion",
         },
         {
             input: 20,
