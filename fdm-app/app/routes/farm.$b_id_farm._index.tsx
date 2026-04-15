@@ -491,6 +491,46 @@ export default function FarmDashboardIndex() {
                                                 </Card>
                                             </NavLink>
                                         )}
+                                    <NavLink
+                                        to={`/farm/${loaderData.b_id_farm}/${calendar}/upload`}
+                                        className={cn(
+                                            !loaderData.farmWritePermission &&
+                                                "pointer-events-none opacity-50",
+                                        )}
+                                        aria-disabled={
+                                            !loaderData.farmWritePermission ||
+                                            undefined
+                                        }
+                                        tabIndex={
+                                            !loaderData.farmWritePermission
+                                                ? -1
+                                                : undefined
+                                        }
+                                    >
+                                        <Card className="transition-all hover:shadow-md h-full">
+                                            <CardHeader>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="rounded-lg bg-muted p-3">
+                                                        <CloudDownload className="h-6 w-6 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle>
+                                                            Importeer percelen
+                                                            vanuit RVO.
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            Importeer nieuwe of
+                                                            bijgewerkte percelen
+                                                            door een Shapefile
+                                                            van RVO Mijn
+                                                            Percelen te
+                                                            uploaden.
+                                                        </CardDescription>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                        </Card>
+                                    </NavLink>
                                     <NavLink to={`${calendar}/field/new`}>
                                         <Card className="transition-all hover:shadow-md h-full">
                                             <CardHeader>

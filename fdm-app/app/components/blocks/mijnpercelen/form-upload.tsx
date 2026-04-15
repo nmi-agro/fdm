@@ -46,9 +46,11 @@ const ANIMATION_ENABLED = true // Switch for the animation
 export function MijnPercelenUploadForm({
     b_id_farm,
     calendar,
+    backUrl = `/farm/create/${b_id_farm}/${calendar}`,
 }: {
     b_id_farm: string
     calendar: string
+    backUrl?: string
 }) {
     const [fieldNames, setFieldNames] = useState<string[]>([])
     const [uploadState, setUploadState] = useState<UploadState>("idle")
@@ -408,7 +410,7 @@ export function MijnPercelenUploadForm({
                                                 )}
                                             </Button>
                                             <NavLink
-                                                to={`/farm/create/${b_id_farm}/${calendar}`}
+                                                to={backUrl}
                                                 className="w-full"
                                             >
                                                 <Button
