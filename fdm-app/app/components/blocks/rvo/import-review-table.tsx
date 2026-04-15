@@ -722,9 +722,11 @@ export function RvoImportReviewTable({
         })
     }, [data])
 
+    const b_bufferstrip_info_available =
+        flags?.b_bufferstrip_info_available ?? true
     const columnVisibility = {
-        bufferstrook: !!flags?.b_bufferstrip_info_available,
-        bufferstrook_editable: !flags?.b_bufferstrip_info_available,
+        bufferstrook: b_bufferstrip_info_available,
+        bufferstrook_editable: !b_bufferstrip_info_available,
     }
 
     const table = useReactTable({
