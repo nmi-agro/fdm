@@ -6,6 +6,7 @@ import {
     getCultivationsFromCatalogue,
     getFarm,
     getFields,
+    updateField,
 } from "@nmi-agro/fdm-core"
 import type {
     ImportReviewAction,
@@ -53,8 +54,6 @@ import {
     compareFields,
     getRvoFieldsFromShapefile,
     processRvoImport,
-    RvoImportReviewStatus,
-    UserRvoImportReviewDecision,
 } from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
@@ -104,7 +103,7 @@ export default function UploadMijnPercelenPage() {
     const location = useLocation()
 
     const [rvoImportReviewData, setRvoImportReviewData] =
-        useState<RvoImportReviewItem<Field>[]>()
+        useState<RvoImportReviewItem<any>[]>()
     const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
 
     const actionData = useActionData<typeof action>()
@@ -376,22 +375,6 @@ export async function action({ request, params }: ActionFunctionArgs): Promise<
                 cultivationsCatalogue,
             )
 
-            // Override buffer strip status from existing fields
-            for (const item of RvoImportReviewData) {
-                if (item.localField && item.rvoField?.properties.mestData) {
-                    item.rvoField.properties.mestData.IndBufferstrook = item
-                        .localField.b_bufferstrip
-                        ? "J"
-                        : "N"
-                    item.diffs = item.diffs.filter(
-                        (diff) => diff !== "b_bufferstrip",
-                    )
-                    if (item.diffs.length === 0 && item.status === "CONFLICT") {
-                        item.status = RvoImportReviewStatus.MATCH
-                    }
-                }
-            }
-
             return {
                 RvoImportReviewData: RvoImportReviewData,
                 message: "Percelen zijn klaar voor beeordeling! 🎉",
@@ -422,34 +405,6 @@ export async function action({ request, params }: ActionFunctionArgs): Promise<
 
             if (!Array.isArray(rvoImportReviewData)) {
                 throw new Error("Invalid review data format")
-            }
-
-            // If the user wants to change buffer strip status but the row is marked as MATCH, change it to update with RVO
-            for (const item of rvoImportReviewData) {
-                const id = getItemId(item)
-                const originalRvoBufferstrip =
-                    item.rvoField?.properties.mestData?.IndBufferstrook
-                const userChoice = userChoices[id]
-
-                if (
-                    originalRvoBufferstrip &&
-                    item.localField &&
-                    (originalRvoBufferstrip === "J") !==
-                        item.localField.b_bufferstrip
-                ) {
-                    if (
-                        item.status === "MATCH" ||
-                        (item.status === "CONFLICT" &&
-                            userChoice === "NO_ACTION")
-                    ) {
-                        // User was not asked at all
-                        item.status = RvoImportReviewStatus.CONFLICT
-                        item.diffs = ["b_bufferstrip"]
-                        userChoices[id] = "UPDATE_FROM_REMOTE"
-                    } else if (item.status === "CONFLICT") {
-                        item.diffs.push("b_bufferstrip")
-                    }
-                }
             }
 
             const onFieldAdded = async (
@@ -493,6 +448,25 @@ export async function action({ request, params }: ActionFunctionArgs): Promise<
                 year,
                 onFieldAdded,
             )
+
+            // Override field properties for columns that are always "updated from RVO"
+            for (const item of rvoImportReviewData) {
+                if (item.localField && item.rvoField?.properties.mestData) {
+                    await updateField(
+                        fdm,
+                        session.principal_id,
+                        item.localField.b_id,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        item.rvoField.properties.mestData.IndBufferstrook ===
+                            "J", // b_bufferstrip
+                    )
+                }
+            }
             return redirect(`/farm/create/${b_id_farm}/${yearString}/fields`)
         }
 

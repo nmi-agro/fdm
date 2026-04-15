@@ -13,16 +13,8 @@ import {
 } from "@tanstack/react-table"
 import { area } from "@turf/turf"
 import { format, parseISO } from "date-fns"
-import {
-    Archive,
-    ArrowLeftRight,
-    Check,
-    Info,
-    Plus,
-    Trash2,
-    X,
-} from "lucide-react"
-import { type ReactNode, useMemo } from "react"
+import { Archive, ArrowLeftRight, Check, Plus, Trash2, X } from "lucide-react"
+import { useMemo } from "react"
 import { clientConfig } from "@/app/lib/config"
 import { Badge } from "~/components/ui/badge"
 import { Checkbox } from "~/components/ui/checkbox"
@@ -97,39 +89,31 @@ const DiffCell = ({
     status,
     action,
     formatter = (v: any) => v,
-    rvoFormatter,
-    debug,
 }: {
     local?: any
     remote?: any
     status: string
     action: ImportReviewAction
-    formatter?: (v: any) => ReactNode
-    rvoFormatter?: (v: any) => ReactNode
-    debug?: boolean
+    formatter?: (v: any) => React.ReactNode
 }) => {
     // If MATCH, just show one value
-    if (!rvoFormatter && status === "MATCH") {
-        if (debug) console.debug("MATCH")
+    if (status === "MATCH") {
         return (
             <span className="text-sm text-foreground">{formatter(local)}</span>
         )
     }
 
     // NEW REMOTE -> Show remote without badge
-    if (!rvoFormatter && status === "NEW_REMOTE") {
+    if (status === "NEW_REMOTE") {
         return (
             <span className="text-sm font-medium text-muted-foreground">
-                {(rvoFormatter ?? formatter)(remote)}
+                {formatter(remote)}
             </span>
         )
     }
 
     // NEW LOCAL -> Show local without badge
-    if (
-        !rvoFormatter &&
-        (status === "NEW_LOCAL" || status === "EXPIRED_LOCAL")
-    ) {
+    if (status === "NEW_LOCAL" || status === "EXPIRED_LOCAL") {
         return (
             <span className="text-sm font-medium text-muted-foreground">
                 {formatter(local)}
@@ -138,11 +122,9 @@ const DiffCell = ({
     }
 
     // CONFLICT
-    if (rvoFormatter || status === "CONFLICT") {
-        if (debug) console.debug("CONFLICT")
+    if (status === "CONFLICT") {
         // If values are effectively equal (deep check), show one
-        if (!rvoFormatter && JSON.stringify(local) === JSON.stringify(remote)) {
-            if (debug) console.debug("CONFLICT SAME")
+        if (JSON.stringify(local) === JSON.stringify(remote)) {
             return (
                 <span className="text-sm text-foreground">
                     {formatter(local)}
@@ -211,7 +193,7 @@ const DiffCell = ({
                                 useRemote && "font-bold",
                             )}
                         >
-                            {(rvoFormatter ?? formatter)(remote)}
+                            {formatter(remote)}
                         </span>
                     </div>
                 )}
@@ -515,36 +497,18 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
     },
     {
         id: "bufferstrook",
-        header: ({ table }) => (
+        header: () => (
             <Tooltip>
-                <TooltipTrigger className="flex flex-row items-center gap-1">
-                    Bufferstrook
-                    {table.options.meta?.flags?.b_bufferstrip_info_available ===
-                        false && <Info className="w-4 h-4" />}
-                </TooltipTrigger>
+                <TooltipTrigger>Bufferstrook</TooltipTrigger>
                 <TooltipContent>
-                    <div className="max-w-75 text-center">
-                        <p>
-                            Geeft aan of het perceel bij RVO geregistreerd staat
-                            als bufferstrook.
-                        </p>
-                        {table.options.meta?.flags
-                            ?.b_bufferstrip_info_available === false && (
-                            <p className="font-bold">
-                                Geen info uit het Shapefile is beschikbaar, dus
-                                deze waarden zijn de oude waarden of
-                                schattingen.
-                            </p>
-                        )}
-                    </div>
+                    Geeft aan of het perceel bij RVO geregistreerd staat als
+                    bufferstrook.
                 </TooltipContent>
             </Tooltip>
         ),
         cell: ({ row, table }) => {
             const item = row.original
-            const { userChoices, flags } = table.options.meta!
-            const bufferstripInfoAvailable =
-                flags?.b_bufferstrip_info_available !== false
+            const { userChoices } = table.options.meta!
             const action = userChoices[getItemId(item)] as ImportReviewAction
 
             const rvoBufferstrip =
@@ -563,6 +527,40 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                       ? "Ja"
                       : "Nee"
 
+            return (
+                <DiffCell
+                    local={localLabel}
+                    remote={rvoLabel}
+                    status={item.status}
+                    action={action}
+                    formatter={(val) => val ?? "-"}
+                />
+            )
+        },
+    },
+    {
+        id: "bufferstrook_editable",
+        header: () => (
+            <Tooltip>
+                <TooltipTrigger>Bufferstrook</TooltipTrigger>
+                <TooltipContent>
+                    <div className="max-w-75 text-center">
+                        <p>
+                            Geeft aan of het perceel bij RVO geregistreerd staat
+                            als bufferstrook.
+                        </p>
+                        <p className="font-bold">
+                            Geen info uit het Shapefile is beschikbaar, dus deze
+                            waarden zijn de oude waarden of schattingen.
+                        </p>
+                    </div>
+                </TooltipContent>
+            </Tooltip>
+        ),
+        cell: ({ row, table }) => {
+            const value =
+                row.original.rvoField?.properties.mestData?.IndBufferstrook ===
+                "J"
             function handleUpdateValue(newValue: boolean) {
                 if (table.options.meta?.onItemChange) {
                     table.options.meta.onItemChange(getItemId(row.original), {
@@ -583,38 +581,14 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
             }
 
             return (
-                <DiffCell
-                    local={localLabel}
-                    remote={rvoLabel}
-                    status={item.status}
-                    action={action}
-                    formatter={(val) => (
-                        <div
-                            className={cn(!bufferstripInfoAvailable && "ps-4")}
-                        >
-                            {val ?? "-"}
-                        </div>
-                    )}
-                    rvoFormatter={
-                        bufferstripInfoAvailable
-                            ? undefined
-                            : (originalValue: "Ja" | "Nee" | undefined) => {
-                                  const value = originalValue === "Ja"
-                                  return (
-                                      // biome-ignore lint/a11y/noLabelWithoutControl: the input is nested inside the label
-                                      <label className="flex flex-row items-center gap-1">
-                                          <Checkbox
-                                              checked={value}
-                                              onCheckedChange={
-                                                  handleUpdateValue
-                                              }
-                                          />
-                                          {rvoLabel}
-                                      </label>
-                                  )
-                              }
-                    }
-                />
+                // biome-ignore lint/a11y/noLabelWithoutControl: input is nested inside the label
+                <label>
+                    <Checkbox
+                        checked={value}
+                        onCheckedChange={handleUpdateValue}
+                    />
+                    {value ? "Ja" : "Nee"}
+                </label>
             )
         },
     },
@@ -748,6 +722,11 @@ export function RvoImportReviewTable({
         })
     }, [data])
 
+    const columnVisibility = {
+        bufferstrook: !flags?.b_bufferstrip_info_available,
+        bufferstrook_editable: !!flags?.b_bufferstrip_info_available,
+    }
+
     const table = useReactTable({
         data: sortedData,
         columns,
@@ -757,6 +736,9 @@ export function RvoImportReviewTable({
             flags,
             onItemChange,
             onChoiceChange,
+        },
+        state: {
+            columnVisibility: columnVisibility,
         },
     })
 

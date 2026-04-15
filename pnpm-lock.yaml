@@ -20,7 +20,7 @@ catalogs:
       version: 16.0.3
     '@types/node':
       specifier: ^25.5.2
-      version: 25.5.2
+      version: 25.5.0
     '@vitest/coverage-v8':
       specifier: 4.1.2
       version: 4.1.2
