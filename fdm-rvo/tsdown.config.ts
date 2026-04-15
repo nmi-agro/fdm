@@ -1,7 +1,7 @@
 import { defineConfig } from "tsdown"
 
 export default defineConfig({
-    entry: ["src/index.ts", "src/types.ts", "src/utils.ts"],
+    entry: ["src/index.ts", "src/types.ts", "src/utils.ts", "src/shapefile.ts"],
     format: "esm",
     outDir: "dist",
     dts: true,

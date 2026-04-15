@@ -41,6 +41,7 @@
         "@turf/boolean-point-in-polygon": "^7.3.4",
         "@turf/centroid": "^7.3.4",
         "@turf/helpers": "^7.3.4",
+        "@turf/length": "^7.3.4",
         "@turf/simplify": "^7.3.4",
         "better-auth": "catalog:",
         "chrono-node": "^2.9.0",

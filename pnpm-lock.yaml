@@ -182,6 +182,9 @@ importers:
       '@turf/helpers':
         specifier: ^7.3.4
         version: 7.3.4
+      '@turf/length':
+        specifier: ^7.3.4
+        version: 7.3.4
       '@turf/simplify':
         specifier: ^7.3.4
         version: 7.3.4
@@ -592,9 +595,6 @@ importers:
       '@turf/intersect':
         specifier: ^7.3.4
         version: 7.3.4
-      '@turf/length':
-        specifier: ^7.3.4
-        version: 7.3.4
       '@turf/union':
         specifier: ^7.3.4
         version: 7.3.4
@@ -611,6 +611,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@types/geojson':
+        specifier: ^7946.0.16
+        version: 7946.0.16
       '@types/node':
         specifier: 'catalog:'
         version: 25.5.2

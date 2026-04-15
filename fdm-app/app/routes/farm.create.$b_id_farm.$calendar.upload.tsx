@@ -1,5 +1,6 @@
 import {
     addSoilAnalysis,
+    determineIfFieldIsBuffer,
     type FdmType,
     type Field,
     getCultivations,
@@ -16,6 +17,10 @@ import type {
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import area from "@turf/area"
+import { lineString } from "@turf/helpers"
+import { length } from "@turf/length"
+import type { MultiPolygon, Polygon } from "geojson"
 import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import type {
@@ -54,6 +59,7 @@ import {
     compareFields,
     getRvoFieldsFromShapefile,
     processRvoImport,
+    RvoImportReviewStatus,
 } from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
@@ -368,12 +374,61 @@ export async function action({ request, params }: ActionFunctionArgs): Promise<
                 prj_file,
             )
 
+            function perimeter(geometry: Polygon | MultiPolygon) {
+                if (geometry.type === "Polygon") {
+                    return geometry.coordinates
+                        .map((ring) => length(lineString(ring)))
+                        .reduce((a, b) => a + b)
+                }
+                if (geometry.type === "MultiPolygon") {
+                    return geometry.coordinates
+                        .flatMap((polygon) =>
+                            polygon.flatMap((ring) => length(lineString(ring))),
+                        )
+                        .reduce((a, b) => a + b)
+                }
+                return 0
+            }
+
             const RvoImportReviewData = compareFields(
                 fieldsExtended,
                 rvoFields,
                 year,
                 cultivationsCatalogue,
             )
+
+            // Determine if any imported field might be a buffer strip and add it since Shapefiles don't have this information
+            for (const item of rvoFields) {
+                item.properties.mestData = {
+                    IndBufferstrook: determineIfFieldIsBuffer(
+                        area(item.geometry),
+                        perimeter(item.geometry),
+                        item.properties.CropFieldDesignator,
+                    )
+                        ? "J"
+                        : "N",
+                }
+            }
+
+            // Override each local field's corresponding RVO field buffer strip status
+            for (const item of RvoImportReviewData) {
+                item.diffs = item.diffs.filter(
+                    (diff) => diff !== "b_bufferstrip",
+                )
+                // b_bufferstrip should no longer be considered a difference
+                if (
+                    item.diffs.length === 0 &&
+                    item.status === RvoImportReviewStatus.CONFLICT
+                ) {
+                    item.status = RvoImportReviewStatus.MATCH
+                }
+                if (item.localField && item.rvoField?.properties.mestData) {
+                    item.rvoField.properties.mestData.IndBufferstrook = item
+                        .localField.b_bufferstrip
+                        ? "J"
+                        : "N"
+                }
+            }
 
             return {
                 RvoImportReviewData: RvoImportReviewData,
