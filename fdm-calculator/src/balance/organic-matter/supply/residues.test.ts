@@ -71,8 +71,10 @@ describe("calculateOrganicMatterSupplyByResidues", () => {
             {
                 b_lu: "cult1",
                 b_lu_catalogue: "maize",
-                m_cropresidue: undefined,
+                m_cropresidue: null, // null residue handling (represents undefined in UI)
                 b_lu_end: new Date("2023-10-15"),
+                b_lu_name: "test",
+                b_lu_start: new Date("2023-05-01"),
             },
         ] as FieldInput["cultivations"]
 

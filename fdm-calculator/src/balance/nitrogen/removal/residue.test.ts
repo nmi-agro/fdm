@@ -261,7 +261,7 @@ describe("calculateNitrogenRemovalByResidue", () => {
                 b_lu_catalogue: "catalogue1",
                 b_lu_start: new Date("2022-01-01"),
                 b_lu_end: new Date("2022-12-31"),
-                m_cropresidue: undefined, // undefined residue handling
+                m_cropresidue: null, // null residue handling (represents undefined in UI)
                 b_lu_name: "Cultivation 1",
                 b_lu_croprotation: "cereal",
             },
