@@ -582,12 +582,12 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
 
             return (
                 // biome-ignore lint/a11y/noLabelWithoutControl: input is nested inside the label
-                <label>
+                <label className="flex flex-row items-center gap-1">
                     <Checkbox
                         checked={value}
                         onCheckedChange={handleUpdateValue}
                     />
-                    {value ? "Ja" : "Nee"}
+                    <span className="align-top">{value ? "Ja" : "Nee"}</span>
                 </label>
             )
         },
@@ -723,8 +723,8 @@ export function RvoImportReviewTable({
     }, [data])
 
     const columnVisibility = {
-        bufferstrook: !flags?.b_bufferstrip_info_available,
-        bufferstrook_editable: !!flags?.b_bufferstrip_info_available,
+        bufferstrook: !!flags?.b_bufferstrip_info_available,
+        bufferstrook_editable: !flags?.b_bufferstrip_info_available,
     }
 
     const table = useReactTable({
