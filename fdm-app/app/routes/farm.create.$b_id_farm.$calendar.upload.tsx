@@ -120,7 +120,7 @@ export default function UploadMijnPercelenPage() {
         // Note: there is the assumption that getItemId will keep returning the same id.
         // Therefore, make sure that `item` doesn't have a different rvoField id and localField id.
         setRvoImportReviewData((data) => {
-            if (!data) return
+            if (!data) return data
             const index = data.findIndex(
                 (originalItem) => getItemId(originalItem) === id,
             )
@@ -128,7 +128,7 @@ export default function UploadMijnPercelenPage() {
                 console.warn(
                     `Item with id ${id} not found so nothing is modified.`,
                 )
-                return
+                return data
             }
             const newData = [...data]
             newData[index] = item
@@ -476,7 +476,7 @@ export async function action({ request, params }: ActionFunctionArgs): Promise<
 
             return {
                 RvoImportReviewData: RvoImportReviewData,
-                message: "Percelen zijn klaar voor beeordeling! 🎉",
+                message: "Percelen zijn klaar voor beoordeling! 🎉",
                 success: true,
             }
         }
