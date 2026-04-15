@@ -1,5 +1,28 @@
 # Changelog fdm-app
 
+## 0.29.4
+
+### Patch Changes
+
+- [#564](https://github.com/nmi-agro/fdm/pull/564) [`585a38a`](https://github.com/nmi-agro/fdm/commit/585a38a9df86ba0e2b8b6a20ac1e3acaff077efd) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix RVO OAuth callback redirect: users were landing on the app root after eHerkenning login instead of the originating RVO page.
+
+- [#564](https://github.com/nmi-agro/fdm/pull/564) [`721b4c0`](https://github.com/nmi-agro/fdm/commit/721b4c0d39975aabc5e4ec7433d3b88069091b29) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix persistent "Not a FlatGeobuf file" error caused by browser HTTP cache poisoning. Retries the FGB fetch with `nocache=true` to self-heal without user action.
+
+- Updated dependencies [[`585a38a`](https://github.com/nmi-agro/fdm/commit/585a38a9df86ba0e2b8b6a20ac1e3acaff077efd)]:
+  - @nmi-agro/fdm-rvo@0.2.1
+
+## 0.29.3
+
+### Patch Changes
+
+- [#561](https://github.com/nmi-agro/fdm/pull/561) [`f5fd4b5`](https://github.com/nmi-agro/fdm/commit/f5fd4b5f4d3aa40716c1b556c484647f72ce9ad8) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - When viewing the cultivation history for a field on the atlas, history items are now correctly sorted by descending year.
+
+## 0.29.2
+
+### Patch Changes
+
+- [#555](https://github.com/nmi-agro/fdm/pull/555) [`c718131`](https://github.com/nmi-agro/fdm/commit/c71813150b69bfca07ebc6c59d9201bdfa382ea1) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the rotation table harvest date display sorting issues.
+
 ## 0.29.1
 
 ### Patch Changes

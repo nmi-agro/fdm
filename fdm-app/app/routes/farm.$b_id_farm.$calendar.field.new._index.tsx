@@ -8,7 +8,8 @@ import {
     getFarms,
     getFields,
 } from "@nmi-agro/fdm-core"
-import { featureCollection, simplify } from "@turf/turf"
+import { featureCollection } from "@turf/helpers"
+import { simplify } from "@turf/simplify"
 import type {
     Feature,
     FeatureCollection,

@@ -1,11 +1,11 @@
 import { and, eq, gte, inArray, lte } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
-import type { OrganicCertification } from "./organic.d"
+import type { OrganicCertification } from "./organic.types"
 
 /**
  * Regular expression for validating EU TRACES document numbers for Organic Operator Certificates.
@@ -78,7 +78,7 @@ export async function addOrganicCertification(
     }
 
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -168,7 +168,7 @@ export async function removeOrganicCertification(
     b_id_organic: schema.organicCertificationsTypeInsert["b_id_organic"],
 ): Promise<void> {
     try {
-        await fdm.transaction(async (tx: FdmType) => {
+        await fdm.transaction(async (tx) => {
             const holding = await tx
                 .select()
                 .from(schema.organicCertificationsHolding)
@@ -231,7 +231,7 @@ export async function listOrganicCertifications(
     b_id_farm: schema.farmsTypeInsert["b_id_farm"],
 ): Promise<OrganicCertification[]> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -297,7 +297,7 @@ export async function getOrganicCertification(
     b_id_organic: schema.organicCertificationsTypeSelect["b_id_organic"],
 ): Promise<OrganicCertification | undefined> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             const holding = await tx
                 .select({
                     b_id_farm: schema.organicCertificationsHolding.b_id_farm,
@@ -361,7 +361,7 @@ export async function isOrganicCertificationValid(
     date: Date,
 ): Promise<boolean> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",

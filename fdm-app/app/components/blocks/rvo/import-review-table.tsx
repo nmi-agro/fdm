@@ -11,7 +11,7 @@ import {
     type RowData,
     useReactTable,
 } from "@tanstack/react-table"
-import { area } from "@turf/turf"
+import { area } from "@turf/area"
 import { format, parseISO } from "date-fns"
 import { Archive, ArrowLeftRight, Check, Plus, Trash2, X } from "lucide-react"
 import { useMemo } from "react"

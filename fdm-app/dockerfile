@@ -48,8 +48,8 @@ COPY --from=pruner --chown=user:nodejs /app/out/json/ .
 COPY --from=pruner --chown=user:nodejs /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner --chown=user:nodejs /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Install production dependencies
-RUN pnpm install --frozen-lockfile
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod
 
 # Copy built artifacts
 # App build

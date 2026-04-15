@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, inject, it } from "vitest"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmServerType } from "./fdm-server.types"
 import { addField } from "./field"
 import { createId } from "./id"
 import {
@@ -17,7 +17,7 @@ import {
     removeSoilAnalysis,
     updateSoilAnalysis,
 } from "./soil"
-import type { CurrentSoilData } from "./soil.d"
+import type { CurrentSoilData } from "./soil.types"
 
 type Polygon = schema.fieldsTypeInsert["b_geometry"]
 

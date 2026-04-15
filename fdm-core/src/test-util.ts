@@ -1,5 +1,5 @@
 /* v8 ignore start -- @preserve */
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 
 /**
  * Returns a proxy for the fdm instance which throws an exception when selecting from the given table

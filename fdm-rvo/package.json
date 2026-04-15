@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-rvo",
     "private": false,
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "RVO Synchronization Logic for FDM",
     "homepage": "https://svenvw.github.io/fdm/",
     "repository": {
@@ -51,7 +51,7 @@
     "scripts": {
         "coverage": "vitest run --coverage",
         "document": "typedoc",
-        "build": "rollup -c && tsc -p tsconfig.build.json",
+        "build": "tsdown",
         "check-types": "tsc --noEmit",
         "test": "vitest run",
         "test-coverage": "vitest run --coverage"
@@ -64,7 +64,6 @@
         "@turf/helpers": "^7.3.4",
         "@turf/intersect": "^7.3.4",
         "@turf/length": "^7.3.4",
-        "@turf/turf": "^7.3.4",
         "@turf/union": "^7.3.4",
         "geojson": "^0.5.0",
         "proj4": "^2.20.4",
@@ -73,13 +72,9 @@
     },
     "devDependencies": {
         "@nmi-agro/fdm-core": "workspace:*",
-        "@rollup/plugin-commonjs": "catalog:",
-        "@rollup/plugin-node-resolve": "catalog:",
-        "@types/geojson": "^7946.0.16",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
-        "rollup": "catalog:",
-        "rollup-plugin-esbuild": "catalog:",
+        "tsdown": "catalog:",
         "typedoc": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
