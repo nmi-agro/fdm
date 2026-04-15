@@ -31,19 +31,20 @@ import type {
 import {
     data,
     Form,
+    NavLink,
     redirect,
     useActionData,
     useLoaderData,
     useLocation,
     useNavigation,
 } from "react-router"
+import { toast } from "sonner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { MijnPercelenUploadForm } from "~/components/blocks/mijnpercelen/form-upload"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import {
@@ -61,6 +62,7 @@ import {
     processRvoImport,
     RvoImportReviewStatus,
 } from "~/lib/rvo.server"
+import { cn } from "~/lib/utils"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -108,8 +110,9 @@ export default function UploadMijnPercelenPage() {
     const navigation = useNavigation()
     const location = useLocation()
 
-    const [rvoImportReviewData, setRvoImportReviewData] =
-        useState<RvoImportReviewItem<any>[]>()
+    const [rvoImportReviewData, setRvoImportReviewData] = useState<
+        RvoImportReviewItem<any>[] | null
+    >()
     const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
 
     const actionData = useActionData<typeof action>()
@@ -146,7 +149,12 @@ export default function UploadMijnPercelenPage() {
 
     useEffect(() => {
         if (actionRvoImportReviewData) {
-            setRvoImportReviewData(actionRvoImportReviewData)
+            setRvoImportReviewData((oldData) => {
+                if (!oldData) {
+                    window.location.hash = "#review"
+                }
+                return actionRvoImportReviewData
+            })
 
             // Initialize user choices with defaults
             const initialChoices: UserChoiceMap = {}
@@ -169,11 +177,47 @@ export default function UploadMijnPercelenPage() {
         }
     }, [actionRvoImportReviewData])
 
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        function onHashChange(event: HashChangeEvent) {
+            if (new URL(event.newURL).hash === "") {
+                event.preventDefault()
+                window.location.href = window.location.href.toString()
+            }
+        }
+        window.addEventListener(
+            "hashchange",
+            onHashChange as unknown as (_: Event) => void,
+        )
+        return () =>
+            window.removeEventListener(
+                "hashchange",
+                onHashChange as unknown as (_: Event) => void,
+            )
+    })
+
+    // Show alerts
+    useEffect(() => {
+        if (actionData?.message) {
+            if (actionData.success) {
+                toast.success(actionData.message)
+            } else {
+                toast.error(actionData.message)
+            }
+        }
+    }, [actionData])
+
     // Warn the user before refreshing or leaving when data is present
     const expectedRedirectPath = `/farm/create/${b_id_farm}/${calendar}/fields`
     useEffect(() => {
         if (rvoImportReviewData && rvoImportReviewData.length > 0) {
             const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+                if (typeof window !== "undefined") {
+                    if (window.location.hash === "") {
+                        // Run out of the current call stack so the browser doesn't intercept it
+                        setTimeout(() => (window.location.hash = "#upload"))
+                    }
+                }
                 if (location.pathname.startsWith(expectedRedirectPath)) return
                 e.preventDefault()
                 e.returnValue =
@@ -201,33 +245,14 @@ export default function UploadMijnPercelenPage() {
                     </div>
                 ) : (
                     <>
-                        {actionData?.message && (
-                            <div className="p-6">
-                                <Alert
-                                    variant={
-                                        actionData.success
-                                            ? "default"
-                                            : "destructive"
-                                    }
-                                >
-                                    <AlertTitle>
-                                        {actionData.success ? "Succes" : "Fout"}
-                                    </AlertTitle>
-                                    <AlertDescription>
-                                        {actionData.message}
-                                    </AlertDescription>
-                                </Alert>
-                            </div>
-                        )}
                         <FarmTitle
                             title="Verwerken van geïmporteerde percelen"
                             description="Controleer de percelen die zijn geïmporteerd vanuit het Shapefile. Deze worden toegevoegd aan uw nieuwe bedrijf."
                         />
-
                         <FarmContent>
                             <div className="flex flex-col space-y-4 pb-10">
-                                <div className="flex justify-end">
-                                    <Form method="post">
+                                <Form method="post">
+                                    <div className="flex justify-end gap-2">
                                         <input
                                             type="hidden"
                                             name="intent"
@@ -245,6 +270,26 @@ export default function UploadMijnPercelenPage() {
                                                 rvoImportReviewData,
                                             )}
                                         />
+
+                                        <Button
+                                            asChild
+                                            variant="outline"
+                                            className={cn(
+                                                isSaving && "opacity-50",
+                                            )}
+                                        >
+                                            {/* Vanilla anchor triggers refresh behavior */}
+                                            <a
+                                                href={location.pathname}
+                                                onClick={(e) => {
+                                                    if (isSaving)
+                                                        e.preventDefault()
+                                                }}
+                                            >
+                                                Terug naar uploaden
+                                            </a>
+                                        </Button>
+
                                         <Button
                                             type="submit"
                                             disabled={isSaving}
@@ -258,8 +303,8 @@ export default function UploadMijnPercelenPage() {
                                                 "Opslaan en verder"
                                             )}
                                         </Button>
-                                    </Form>
-                                </div>
+                                    </div>
+                                </Form>
                                 <div className="w-full">
                                     <RvoImportReviewTable
                                         data={rvoImportReviewData}
