@@ -66,6 +66,29 @@ describe("calculateOrganicMatterSupplyByResidues", () => {
         })
     })
 
+    it("should calculate EOM supply from residues if m_cropresidue is undefined (standard practice)", () => {
+        const cultivations: FieldInput["cultivations"] = [
+            {
+                b_lu: "cult1",
+                b_lu_catalogue: "maize",
+                m_cropresidue: undefined,
+                b_lu_end: new Date("2023-10-15"),
+            },
+        ] as FieldInput["cultivations"]
+
+        const result = calculateOrganicMatterSupplyByResidues(
+            cultivations,
+            cultivationDetailsMap,
+            timeFrame,
+        )
+
+        expect(result.total.toNumber()).toBe(800)
+        expect(result.cultivations[0]).toEqual({
+            id: "cult1",
+            value: new Decimal(800),
+        })
+    })
+
     it("should return zero if m_cropresidue is false", () => {
         const cultivations: FieldInput["cultivations"] = [
             {

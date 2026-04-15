@@ -35,8 +35,11 @@ export function calculateOrganicMatterSupplyByResidues(
         const cultivationDetail = cultivationDetailsMap.get(cult.b_lu_catalogue)
 
         // Proceed only if the cultivation type has a defined EOM value for residues
-        // and the 'm_cropresidue' flag is explicitly set to true.
-        if (cultivationDetail?.b_lu_eom_residue != null && cult.m_cropresidue) {
+        // and the 'm_cropresidue' flag is not explicitly set to false.
+        if (
+            cultivationDetail?.b_lu_eom_residue != null &&
+            cult.m_cropresidue !== false
+        ) {
             // Ensure the cultivation ended within the calculation timeframe.
             const terminationDate = cult.b_lu_end
                 ? new Date(cult.b_lu_end)
