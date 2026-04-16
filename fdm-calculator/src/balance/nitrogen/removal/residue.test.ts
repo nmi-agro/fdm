@@ -254,6 +254,32 @@ describe("calculateNitrogenRemovalByResidue", () => {
         })
     })
 
+    it("should handle undefined m_cropresidue as not removed (return 0)", () => {
+        const cultivations: FieldInput["cultivations"] = [
+            {
+                b_lu: "cultivation1",
+                b_lu_catalogue: "catalogue1",
+                b_lu_start: new Date("2022-01-01"),
+                b_lu_end: new Date("2022-12-31"),
+                m_cropresidue: null, // null residue handling (represents undefined in UI)
+                b_lu_name: "Cultivation 1",
+                b_lu_croprotation: "cereal",
+            },
+        ]
+        const harvests: FieldInput["harvests"] = []
+
+        const result = calculateNitrogenRemovalByResidue(
+            cultivations,
+            harvests,
+            cultivationDetailsMap,
+        )
+
+        expect(result).toEqual({
+            total: new Decimal(0),
+            cultivations: [{ id: "cultivation1", value: new Decimal(0) }],
+        })
+    })
+
     it("should handle empty harvestable_analyses array", () => {
         const cultivations: FieldInput["cultivations"] = [
             {
