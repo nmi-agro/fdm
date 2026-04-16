@@ -107,7 +107,9 @@ const DiffCell = ({
     // If MATCH, just show one value
     if (status === "MATCH") {
         return (
-            <span className="text-sm text-foreground">{formatter(local)}</span>
+            <span className="text-sm text-muted-foreground">
+                {formatter(local)}
+            </span>
         )
     }
 
@@ -334,7 +336,9 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                     status={item.status}
                     action={action}
                     formatter={(val) => (
-                        <span className="font-medium">{val || "Naamloos"}</span>
+                        <span className="font-medium text-foreground">
+                            {val || "Naamloos"}
+                        </span>
                     )}
                 />
             )

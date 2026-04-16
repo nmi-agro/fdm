@@ -94,6 +94,12 @@ export function UploadMijnPercelenPage({
                     case "NEW_REMOTE":
                         defaultAction = "ADD_REMOTE"
                         break
+                    case "NEW_LOCAL":
+                        defaultAction = "KEEP_LOCAL"
+                        break
+                    case "EXPIRED_LOCAL":
+                        defaultAction = "CLOSE_LOCAL"
+                        break
                     // In creation wizard, other statuses are unlikely but good to handle defaults
                     default:
                         defaultAction = "NO_ACTION"
