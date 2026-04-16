@@ -154,13 +154,11 @@ export function FieldsPanelHover({
         if (map) {
             map.on("mousemove", throttledUpdatePanel)
             map.on("mousedown", delayedUpdatePanel)
-            map.on("click", updatePanel)
             map.on("zoom", throttledUpdatePanel)
             map.on("load", updatePanel)
             return () => {
                 map.off("mousemove", throttledUpdatePanel)
                 map.off("mousedown", delayedUpdatePanel)
-                map.off("click", updatePanel)
                 map.off("zoom", throttledUpdatePanel)
                 map.off("load", updatePanel)
             }
