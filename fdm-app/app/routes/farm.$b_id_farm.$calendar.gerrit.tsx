@@ -719,17 +719,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
                                       fert.p_density,
                                   )
                                 : null
-                            const unitConvertedAmount = fert
-                                ? {
-                                      p_app_amount_display: p_app_amount_display
-                                          ? p_app_amount_display.toNumber()
-                                          : null,
-                                      p_app_amount_unit: fert.p_app_amount_unit,
-                                  }
-                                : {
-                                      p_app_amount_display: app.p_app_amount,
-                                      p_app_amount_unit: "kg/ha",
-                                  }
+                            const unitConvertedAmount =
+                                fert && p_app_amount_display !== null
+                                    ? {
+                                          p_app_amount_display:
+                                              p_app_amount_display.toNumber(),
+                                          p_app_amount_unit:
+                                              fert.p_app_amount_unit,
+                                      }
+                                    : {
+                                          p_app_amount_display:
+                                              app.p_app_amount,
+                                          p_app_amount_unit: "kg/ha",
+                                      }
                             return {
                                 ...app,
                                 ...unitConvertedAmount,

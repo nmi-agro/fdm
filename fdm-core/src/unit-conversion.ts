@@ -250,6 +250,7 @@ export const RVO_RECOMMENDED_UNITS: RvoUnitSuggestionTableItem[] = [
     { p_type_rvo: "109", type: "solid (phase 3)", unit: "ton/ha" },
     { p_type_rvo: "110", type: "solid", unit: "ton/ha" },
     { p_type_rvo: "111", type: "solid", unit: "ton/ha" },
+    { p_type_rvo: "112", type: "solid", unit: "ton/ha" },
     { p_type_rvo: "117", type: "solid", unit: "ton/ha" },
 
     // Other
