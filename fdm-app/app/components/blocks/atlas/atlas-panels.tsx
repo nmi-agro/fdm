@@ -1,7 +1,7 @@
 import type { FeatureCollection } from "geojson"
 import throttle from "lodash.throttle"
 import { Check, Info } from "lucide-react"
-import type { MapLibreZoomEvent } from "maplibre-gl"
+import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
 import { useCallback, useEffect, useState } from "react"
 import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import { useMap } from "react-map-gl/maplibre"
@@ -27,7 +27,7 @@ export function FieldsPanelHover({
     clickRedirectsToDetailsPage = false,
 }: {
     zoomLevelFields: number
-    layer: string
+    layer: string[] | string
     layerExclude?: string[] | string
     clickRedirectsToDetailsPage?: boolean
 }) {
@@ -39,11 +39,19 @@ export function FieldsPanelHover({
                 // Set message about zoom level
                 const zoom = map.getZoom()
                 if (zoom && zoom > zoomLevelFields) {
-                    if (!map.getStyle() || !map.getLayer(layer)) return
-
+                    if (!map.getStyle()) return
+                    const layers = Array.isArray(layer) ? layer : [layer]
+                    const validLayers = layers.filter((l) => map.getLayer(l))
+                    if (validLayers.length === 0) return
                     const features = map.queryRenderedFeatures(evt.point, {
-                        layers: [layer],
+                        layers: validLayers,
                     })
+                    // Layer, whose id is specified last in the layer prop, has the highest priority
+                    features.sort(
+                        (f1, f2) =>
+                            validLayers.indexOf(f2.layer.id) -
+                            validLayers.indexOf(f1.layer.id),
+                    )
 
                     if (layerExclude) {
                         const layers = Array.isArray(layerExclude)
@@ -61,7 +69,7 @@ export function FieldsPanelHover({
                                 },
                             )
                             if (featuresExclude && featuresExclude.length > 0) {
-                                setPanel(null)
+                                setPanel(makePanel({}))
                                 return
                             }
                         }
@@ -73,13 +81,34 @@ export function FieldsPanelHover({
                         features[0].properties
                     ) {
                         setPanel(
-                            <Card className={cn("w-full")}>
+                            makePanel({
+                                layer: features[0].layer.id,
+                                feature: features[0],
+                            }),
+                        )
+                    } else {
+                        setPanel(makePanel({}))
+                    }
+
+                    function makePanel({
+                        layer,
+                        feature,
+                    }: {
+                        layer?: string
+                        feature?: MapGeoJSONFeature
+                    }) {
+                        const active = layer && feature
+                        const name = feature
+                            ? layer === "fieldsSaved"
+                                ? features[0].properties.b_name
+                                : features[0].properties.b_lu_name
+                            : "Naam"
+                        return (
+                            <Card
+                                className={cn("w-full", !active && "invisible")}
+                            >
                                 <CardHeader>
-                                    <CardTitle>
-                                        {layer === "fieldsSaved"
-                                            ? features[0].properties.b_name
-                                            : features[0].properties.b_lu_name}
-                                    </CardTitle>
+                                    <CardTitle>{name}</CardTitle>
                                     <CardDescription>
                                         {layer === "fieldsSaved"
                                             ? `${features[0].properties.b_area} ha`
@@ -90,26 +119,47 @@ export function FieldsPanelHover({
                                                 : "Klik om te verwijderen"}
                                     </CardDescription>
                                 </CardHeader>
-                            </Card>,
+                            </Card>
                         )
-                    } else {
-                        setPanel(null)
                     }
                 }
             }
         }
 
-        const throttledUpdatePanel = throttle(updatePanel, 250, {
-            trailing: true,
-        })
+        // Throttle panel updates to not overwhelm React, the rendering thread etc.
+        const throttleInterval = 200
+        const throttledUpdatePanelInner = throttle(
+            updatePanel,
+            throttleInterval,
+            {
+                trailing: true,
+            },
+        )
+
+        // Delay handling of clicks so that if the field selection under the mouse changes we catch it
+        let delayedUpdateTimeout: ReturnType<typeof setTimeout>
+        const delayedUpdatePanel: typeof updatePanel = (e) => {
+            delayedUpdateTimeout = setTimeout(
+                () => throttledUpdatePanelInner(e),
+                throttleInterval,
+            )
+        }
+
+        // Cancels any timed out invocations and tries to invoke again
+        const throttledUpdatePanel: typeof updatePanel = (e) => {
+            clearTimeout(delayedUpdateTimeout)
+            throttledUpdatePanelInner(e)
+        }
 
         if (map) {
             map.on("mousemove", throttledUpdatePanel)
+            map.on("mousedown", delayedUpdatePanel)
             map.on("click", updatePanel)
             map.on("zoom", throttledUpdatePanel)
             map.on("load", updatePanel)
             return () => {
                 map.off("mousemove", throttledUpdatePanel)
+                map.off("mousedown", delayedUpdatePanel)
                 map.off("click", updatePanel)
                 map.off("zoom", throttledUpdatePanel)
                 map.off("load", updatePanel)
@@ -252,21 +302,21 @@ export function FieldsPanelSelection({
                     )
 
                     setPanel(
-                        <Card className={cn("w-full")}>
+                        <Card className="w-full flex-initial min-h-0 flex flex-col gap-4">
                             <CardHeader>
                                 <CardTitle>Percelen</CardTitle>
                                 <CardDescription>
                                     {fieldCountText}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="grid gap-4">
-                                <div>
+                            <CardContent className="flex-initial min-h-0 overflow-y-scroll">
+                                <div className="space-y-4">
                                     {cultivations.map((cultivation, _index) => (
                                         // let cultivationCountText = `${cultivation.count + 1} percelen`
 
                                         <div
                                             key={cultivation.b_lu_name}
-                                            className="mb-2 grid grid-cols-[25px_1fr] items-start pb-2 last:mb-0 last:pb-0"
+                                            className="grid grid-cols-[25px_1fr] items-start"
                                         >
                                             <span
                                                 className="flex h-2 w-2 translate-y-1 rounded-full"
