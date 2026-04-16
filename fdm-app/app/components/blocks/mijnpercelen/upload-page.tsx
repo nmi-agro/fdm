@@ -6,13 +6,7 @@ import type {
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import {
-    Form,
-    useActionData,
-    useLoaderData,
-    useLocation,
-    useNavigation,
-} from "react-router"
+import { Form, useActionData, useLocation, useNavigation } from "react-router"
 import { toast } from "sonner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -20,16 +14,26 @@ import { MijnPercelenUploadForm } from "~/components/blocks/mijnpercelen/form-up
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
 import { Button } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
-import type { genericAction, loader } from "./loader-and-action.server"
+import type { genericAction } from "./loader-and-action.server"
 
+/**
+ * Renders a single-page wizard that handles MijnPercelen Shapefile uploads.
+ *
+ * This component is designed to submit to `genericAction` which drives the navigation between the wizard's pages as Shapefile data is loaded and becomes available.
+ *
+ * - `b_id_farm` is the id of the farm to upload to. It must be the same one found in the page URL
+ * - `calendar` is the calendar year as understood by fdm-core
+ * - `backUrl` will be added to links which let the user go back to the page where they came here from
+ */
 export function UploadMijnPercelenPage({
+    b_id_farm,
+    calendar,
     backUrl,
-    returnUrl,
 }: {
+    b_id_farm: string
+    calendar: string
     backUrl: string
-    returnUrl: string
 }) {
-    const { b_id_farm, calendar } = useLoaderData<typeof loader>()
     const navigation = useNavigation()
     const location = useLocation()
 
@@ -37,6 +41,7 @@ export function UploadMijnPercelenPage({
         RvoImportReviewItem<any>[] | null
     >()
     const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
+    const [canUnloadSafely, setCanUnloadSafely] = useState(true)
 
     const actionData = useActionData<typeof genericAction>()
 
@@ -96,6 +101,7 @@ export function UploadMijnPercelenPage({
                 }
                 initialChoices[id] = defaultAction
             })
+            setCanUnloadSafely(false)
             setUserChoices(initialChoices)
         }
     }, [actionRvoImportReviewData])
@@ -135,7 +141,7 @@ export function UploadMijnPercelenPage({
         if (rvoImportReviewData && rvoImportReviewData.length > 0) {
             const handleBeforeUnload = (e: BeforeUnloadEvent) => {
                 // If this redirect should have been initiated by the route action, do nothing
-                if (location.pathname.startsWith(returnUrl)) {
+                if (canUnloadSafely) {
                     return
                 }
                 e.preventDefault()
@@ -153,7 +159,7 @@ export function UploadMijnPercelenPage({
             return () =>
                 window.removeEventListener("beforeunload", handleBeforeUnload)
         }
-    }, [location.pathname, returnUrl, rvoImportReviewData])
+    }, [canUnloadSafely, rvoImportReviewData])
 
     return (
         <main className="flex-1 overflow-auto">
@@ -210,7 +216,11 @@ export function UploadMijnPercelenPage({
                                         </a>
                                     </Button>
 
-                                    <Button type="submit" disabled={isSaving}>
+                                    <Button
+                                        type="submit"
+                                        disabled={isSaving}
+                                        onClick={() => setCanUnloadSafely(true)}
+                                    >
                                         {isSaving ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,17 +1,17 @@
-import { getFarms } from "@nmi-agro/fdm-core"
 import { type MetaFunction, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import {
     genericAction,
-    loader as genericLoader,
+    loader,
 } from "~/components/blocks/mijnpercelen/loader-and-action.server"
 import { UploadMijnPercelenPage } from "~/components/blocks/mijnpercelen/upload-page"
+import {
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbSeparator,
+} from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { clientConfig } from "~/lib/config"
-import { HeaderFarm } from "../components/blocks/header/farm"
-import { getSession } from "../lib/auth.server"
-import { handleLoaderError } from "../lib/error"
-import { fdm } from "../lib/fdm.server"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.upload"
 
 export const handle = { hideNavigationProgress: true }
@@ -29,31 +29,7 @@ export const meta: MetaFunction = () => {
     ]
 }
 
-async function specificLoader({ request }: Route.LoaderArgs) {
-    try {
-        const session = await getSession(request)
-        // Get a list of possible farms of the user
-        const farms = await getFarms(fdm, session.principal_id)
-        const farmOptions = farms.map((farm) => {
-            return {
-                b_id_farm: farm.b_id_farm,
-                b_name_farm: farm.b_name_farm,
-            }
-        })
-
-        return { farmOptions }
-    } catch (e) {
-        throw handleLoaderError(e)
-    }
-}
-
-export async function loader(ctx: Route.LoaderArgs) {
-    const [genericLoaderData, specificLoaderData] = await Promise.all([
-        genericLoader(ctx),
-        specificLoader(ctx),
-    ])
-    return { ...genericLoaderData, ...specificLoaderData }
-}
+export { loader }
 
 export function action(ctx: Route.LoaderArgs) {
     const { b_id_farm, calendar } = ctx.params
@@ -66,14 +42,18 @@ export default function UpdateWithMijnPercelenPage() {
     return (
         <SidebarInset>
             <Header action={undefined}>
-                <HeaderFarm
-                    b_id_farm={loaderData.b_id_farm}
-                    farmOptions={loaderData.farmOptions}
-                />
+                <BreadcrumbItem>Bedrijf</BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden xl:block" />
+                <BreadcrumbItem>
+                    {loaderData.b_name_farm ?? "Geen bedrijf geselecteerd"}
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden xl:block" />
+                <BreadcrumbLink>Shapefile uploaden</BreadcrumbLink>
             </Header>
             <UploadMijnPercelenPage
+                b_id_farm={loaderData.b_id_farm}
+                calendar={loaderData.calendar}
                 backUrl={`/farm/${loaderData.b_id_farm}`}
-                returnUrl={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
             />
         </SidebarInset>
     )

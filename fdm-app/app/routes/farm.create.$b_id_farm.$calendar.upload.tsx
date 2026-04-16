@@ -41,8 +41,9 @@ export default function CreateWithMijnPercelenPage() {
                 <HeaderFarmCreate b_name_farm={loaderData.b_name_farm} />
             </Header>
             <UploadMijnPercelenPage
+                b_id_farm={loaderData.b_id_farm}
+                calendar={loaderData.calendar}
                 backUrl={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}`}
-                returnUrl={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
             />
         </SidebarInset>
     )
