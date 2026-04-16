@@ -198,8 +198,7 @@ const soilParameterEstimatesSchema = z.object({
                     }),
                 ),
             }),
-        )
-        .optional(),
+        ),
     a_source: z.string(),
 })
 
