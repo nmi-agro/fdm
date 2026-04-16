@@ -52,15 +52,15 @@ export async function processRvoImport(
     year: number,
     onFieldAdded?: (tx: FdmType, b_id: string, geometry: any) => Promise<void>,
 ) {
-    for (const item of rvoImportReviewData) {
-        const id = getItemId(item)
-        const action = userChoices[id]
+    await fdm.transaction(async (tx) => {
+        async function handleItem(item: RvoImportReviewItem<any>) {
+            const id = getItemId(item)
+            const action = userChoices[id]
 
-        if (!action || action === "IGNORE" || action === "NO_ACTION") {
-            continue
-        }
+            if (!action || action === "IGNORE" || action === "NO_ACTION") {
+                return
+            }
 
-        await fdm.transaction(async (tx: FdmType) => {
             switch (action) {
                 case "ADD_REMOTE":
                     if (item.rvoField) {
@@ -221,6 +221,10 @@ export async function processRvoImport(
                     }
                     break
             }
-        })
-    }
+        }
+
+        return await Promise.all(
+            rvoImportReviewData.map((item) => handleItem(item)),
+        )
+    })
 }
