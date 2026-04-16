@@ -1,5 +1,11 @@
 # fdm-calculator
 
+## 0.13.2
+
+### Patch Changes
+
+- [#569](https://github.com/nmi-agro/fdm/pull/569) [`8d7bf3f`](https://github.com/nmi-agro/fdm/commit/8d7bf3f26700d764a8d253087e1b966dc47d035e) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix a bug in organic matter supply calculation where `undefined` crop residues yielded zero supply; it now correctly calculates supply for residues that are not explicitly removed.
+
 ## 0.13.1
 
 ### Patch Changes
