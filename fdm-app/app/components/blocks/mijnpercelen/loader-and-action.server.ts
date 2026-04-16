@@ -208,7 +208,7 @@ export async function genericAction(
                 cultivationsCatalogue,
             )
 
-            // Determine if any imported field might be a buffer strip and add it since Shapefiles don't have this information
+            // Determine if any imported field might be a buffer strip and add it since shapefiles don't have this information
             for (const item of rvoFields) {
                 item.properties.mestData = {
                     IndBufferstrook: determineIfFieldIsBuffer(

@@ -13,7 +13,15 @@ import {
 } from "@tanstack/react-table"
 import { area } from "@turf/area"
 import { format, parseISO } from "date-fns"
-import { Archive, ArrowLeftRight, Check, Plus, Trash2, X } from "lucide-react"
+import {
+    Archive,
+    ArrowLeftRight,
+    Check,
+    Info,
+    Plus,
+    Trash2,
+    X,
+} from "lucide-react"
 import { useMemo } from "react"
 import { clientConfig } from "@/app/lib/config"
 import { Badge } from "~/components/ui/badge"
@@ -542,17 +550,15 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         id: "bufferstrook_editable",
         header: () => (
             <Tooltip>
-                <TooltipTrigger>Bufferstrook</TooltipTrigger>
+                <TooltipTrigger className="flex flex-row items-center gap-1">
+                    Bufferstrook
+                    <Info className="w-4 h-4" />
+                </TooltipTrigger>
                 <TooltipContent>
                     <div className="max-w-75 text-center">
-                        <p>
-                            Geeft aan of het perceel bij RVO geregistreerd staat
-                            als bufferstrook.
-                        </p>
-                        <p className="font-bold">
-                            Geen info uit het Shapefile is beschikbaar, dus deze
-                            waarden zijn de oude waarden of schattingen.
-                        </p>
+                        Shapefile bevat geen informatie over bufferstroken. De
+                        getoonde waarden zijn schattingen of de huidige
+                        ingevulde status voor het perceel.
                     </div>
                 </TooltipContent>
             </Tooltip>

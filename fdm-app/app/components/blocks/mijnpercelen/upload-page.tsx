@@ -17,9 +17,9 @@ import { cn } from "~/lib/utils"
 import type { genericAction } from "./loader-and-action.server"
 
 /**
- * Renders a single-page wizard that handles MijnPercelen Shapefile uploads.
+ * Renders a single-page wizard that handles MijnPercelen shapefile uploads.
  *
- * This component is designed to submit to `genericAction` which drives the navigation between the wizard's pages as Shapefile data is loaded and becomes available.
+ * This component is designed to submit to `genericAction` which drives the navigation between the wizard's pages as shapefile data is loaded and becomes available.
  *
  * - `b_id_farm` is the id of the farm to upload to. It must be the same one found in the page URL
  * - `calendar` is the calendar year as understood by fdm-core
@@ -176,7 +176,7 @@ export function UploadMijnPercelenPage({
                 <>
                     <FarmTitle
                         title="Verwerken van geïmporteerde percelen"
-                        description="Controleer de percelen die zijn geïmporteerd vanuit het Shapefile. Deze worden toegevoegd aan uw nieuwe bedrijf."
+                        description="Controleer de percelen die zijn geïmporteerd vanuit het shapefile. Deze worden toegevoegd aan uw nieuwe bedrijf."
                     />
                     <FarmContent>
                         <div className="flex flex-col space-y-4 pb-10">

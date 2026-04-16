@@ -10,6 +10,7 @@ import {
     BookOpenText,
     ChevronUp,
     CloudDownload,
+    CloudUpload,
     DownloadIcon,
     FileStack,
     Home,
@@ -511,17 +512,16 @@ export default function FarmDashboardIndex() {
                                             <CardHeader>
                                                 <div className="flex items-center gap-4">
                                                     <div className="rounded-lg bg-muted p-3">
-                                                        <CloudDownload className="h-6 w-6 text-primary" />
+                                                        <CloudUpload className="h-6 w-6 text-primary" />
                                                     </div>
                                                     <div>
                                                         <CardTitle>
-                                                            Importeer percelen
-                                                            vanuit RVO.
+                                                            Upload Shapefile
                                                         </CardTitle>
                                                         <CardDescription>
                                                             Importeer nieuwe of
                                                             bijgewerkte percelen
-                                                            door een Shapefile
+                                                            door een shapefile
                                                             van RVO Mijn
                                                             Percelen te
                                                             uploaden.
