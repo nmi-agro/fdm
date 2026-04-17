@@ -4,7 +4,7 @@ export type AppAmountUnit = "kg/ha" | "l/ha" | "m3/ha" | "ton/ha"
 
 export const APP_AMOUNT_UNITS: { value: AppAmountUnit; label: string }[] = [
     { value: "kg/ha", label: "kg/ha" },
-    { value: "l/ha", label: "L/ha" },
+    { value: "l/ha", label: "l/ha" },
     { value: "m3/ha", label: "m³/ha" },
     { value: "ton/ha", label: "ton/ha" },
 ]
