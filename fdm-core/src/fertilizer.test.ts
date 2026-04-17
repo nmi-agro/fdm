@@ -1215,15 +1215,15 @@ describe("Fertilizer Data Model", () => {
             // Clean up the database after each test (optional)
         })
 
-        it("should add a new fertilizer application", async () => {
+        it("should add a new fertilizer application with no amount specified", async () => {
             const p_app_date = new Date("2024-03-15")
 
             const new_p_app_id = await addFertilizerApplication(
                 fdm,
                 principal_id,
                 b_id,
-                p_id,
-                100,
+                p_id_liquid,
+                0,
                 "broadcasting",
                 p_app_date,
             )
@@ -1241,7 +1241,7 @@ describe("Fertilizer Data Model", () => {
             expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
         })
 
-        it("should add a new fertilizer application with amount specified in volume per ha", async () => {
+        it("should add a new fertilizer application with no amount specified", async () => {
             const p_app_date = new Date("2024-03-15")
 
             const new_p_app_id = await addFertilizerApplication(
@@ -1249,7 +1249,7 @@ describe("Fertilizer Data Model", () => {
                 principal_id,
                 b_id,
                 p_id_liquid,
-                100,
+                0,
                 "broadcasting",
                 p_app_date,
             )
@@ -1275,7 +1275,7 @@ describe("Fertilizer Data Model", () => {
                 principal_id,
                 b_id,
                 p_id_liquid,
-                null,
+                0,
                 "broadcasting",
                 p_app_date,
             )

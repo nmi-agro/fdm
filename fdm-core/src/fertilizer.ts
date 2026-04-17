@@ -753,7 +753,7 @@ export async function removeFertilizer(
  * @param principal_id - The ID of the principal performing the operation.
  * @param b_id - The ID of the field where the fertilizer application is recorded.
  * @param p_id - The ID of the fertilizer to be applied.
- * @param p_app_amount - The amount of fertilizer applied.
+ * @param p_app_amount_display - The amount of fertilizer applied in the display unit.
  * @param p_app_method - The method used for applying the fertilizer.
  * @param p_app_date - The date of the fertilizer application.
  * @returns A Promise that resolves with the unique ID of the newly created fertilizer application record.
@@ -765,7 +765,7 @@ export async function addFertilizerApplication(
     principal_id: PrincipalId,
     b_id: schema.fertilizerApplicationTypeInsert["b_id"],
     p_id: schema.fertilizerApplicationTypeInsert["p_id"],
-    p_app_amount_display: schema.fertilizerApplicationTypeInsert["p_app_amount"],
+    p_app_amount_display: number,
     p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
     p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
 ): Promise<schema.fertilizerApplicationTypeInsert["p_app_id"]> {
@@ -793,14 +793,11 @@ export async function addFertilizerApplication(
 
         const p_app_id = createId()
 
-        const p_app_amount =
-            p_app_amount_display !== null && p_app_amount_display !== undefined
-                ? toKgPerHa(
-                      p_app_amount_display,
-                      fertilizer.p_app_amount_unit,
-                      fertilizer.p_density,
-                  )
-                : null
+        const p_app_amount = toKgPerHa(
+            p_app_amount_display,
+            fertilizer.p_app_amount_unit,
+            fertilizer.p_density,
+        )
 
         await fdm.insert(schema.fertilizerApplication).values({
             p_app_id,
@@ -830,7 +827,7 @@ export async function addFertilizerApplication(
  * @param principal_id - The ID of the principal performing the update.
  * @param p_app_id - The unique identifier of the fertilizer application record.
  * @param p_id - The unique identifier of the associated fertilizer.
- * @param p_app_amount - The amount of fertilizer applied.
+ * @param p_app_amount_display - The amount of fertilizer applied in the display unit.
  * @param p_app_method - The method used for applying the fertilizer.
  * @param p_app_date - The date when the fertilizer was applied.
  *
@@ -841,7 +838,7 @@ export async function updateFertilizerApplication(
     principal_id: PrincipalId,
     p_app_id: schema.fertilizerApplicationTypeInsert["p_app_id"],
     p_id: schema.fertilizerApplicationTypeInsert["p_id"],
-    p_app_amount_display: schema.fertilizerApplicationTypeInsert["p_app_amount"],
+    p_app_amount_display: number | undefined | null,
     p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
     p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
 ): Promise<void> {
@@ -862,7 +859,7 @@ export async function updateFertilizerApplication(
                       fertilizer.p_app_amount_unit,
                       fertilizer.p_density,
                   )
-                : p_app_amount_display
+                : undefined
         await fdm
             .update(schema.fertilizerApplication)
             .set({ p_id, p_app_amount, p_app_method, p_app_date })
@@ -912,34 +909,6 @@ export async function removeFertilizerApplication(
         throw handleError(err, "Exception for removeFertilizerApplication", {
             p_app_id,
         })
-    }
-}
-
-/**
- * Extends the given fertilizer application with computed data and removes unknown properties
- * @param app fertilizer application
- * @returns the same fertilizer application with p_app_amount_display filled in and properties
- * that do not belong to FertilizerApplication removed
- */
-function extendFertilizerApplication<T extends BaseFertilizerApplication>(
-    app: T,
-    p_app_amount_unit: AppAmountUnit,
-    p_density: number | null,
-): FertilizerApplication {
-    const maybe_p_app_amount_display =
-        app.p_app_amount !== null && app.p_app_amount !== undefined
-            ? fromKgPerHa(app.p_app_amount, p_app_amount_unit, p_density)
-            : app.p_app_amount
-    return {
-        p_id: app.p_id,
-        p_id_catalogue: app.p_id_catalogue,
-        p_name_nl: app.p_name_nl,
-        p_app_date: app.p_app_date,
-        p_app_method: app.p_app_method,
-        p_app_amount: app.p_app_amount,
-        p_app_amount_display: maybe_p_app_amount_display ?? null,
-        p_app_amount_unit: p_app_amount_unit,
-        p_app_id: app.p_app_id,
     }
 }
 
@@ -1003,7 +972,7 @@ export async function getFertilizerApplication(
                 eq(schema.fertilizerApplication.p_app_id, p_app_id),
             )) as (BaseFertilizerApplication & {
             p_app_amount_unit: AppAmountUnit
-            p_density: schema.fertilizersCatalogueTypeSelect["p_density"]
+            p_density: number | null
         })[]
 
         return result.length > 0
@@ -1653,4 +1622,34 @@ function deriveFertilizerType(
         return "compost"
     }
     return null
+}
+
+/**
+ * Extends the given fertilizer application with computed data and removes unknown properties
+ * @param app fertilizer application
+ * @returns the same fertilizer application with p_app_amount_display filled in and properties
+ * that do not belong to FertilizerApplication removed
+ */
+function extendFertilizerApplication<
+    T extends BaseFertilizerApplication & {
+        p_app_amount_unit: AppAmountUnit
+        p_density: number | null
+    },
+>(app: T, p_app_amount_unit: AppAmountUnit, p_density: number | null): FertilizerApplication {
+    const p_app_amount_display =
+        app.p_app_amount !== null && app.p_app_amount !== undefined
+            ? fromKgPerHa(app.p_app_amount, p_app_amount_unit, p_density)
+            : app.p_app_amount
+
+    return {
+        p_id: app.p_id,
+        p_id_catalogue: app.p_id_catalogue,
+        p_name_nl: app.p_name_nl,
+        p_app_amount: app.p_app_amount,
+        p_app_amount_unit: p_app_amount_unit,
+        p_app_amount_display: p_app_amount_display,
+        p_app_method: app.p_app_method,
+        p_app_date: app.p_app_date,
+    p_app_id: app.p_app_id,
+    }
 }

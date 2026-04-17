@@ -14,6 +14,7 @@ import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
+import type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
 
 /**
  * Gets all enabled fertilizer catalogues for a farm.
@@ -552,7 +553,8 @@ async function extendCatalogueFertilizer(
 ) {
     const fertWithComputedProps = {
         ...catalogueFertilizer,
-        p_app_amount_unit: catalogueFertilizer.p_app_amount_unit,
+        p_app_amount_unit: (catalogueFertilizer.p_app_amount_unit ??
+            "kg/ha") as AppAmountUnit,
     }
     return {
         ...fertWithComputedProps,
