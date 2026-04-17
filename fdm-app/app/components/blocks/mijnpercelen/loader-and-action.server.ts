@@ -20,7 +20,8 @@ import { lineString } from "@turf/helpers"
 import { length } from "@turf/length"
 import type { MultiPolygon, Polygon } from "geojson"
 import type { MetaFunction } from "react-router"
-import { data, redirect } from "react-router"
+import { data } from "react-router"
+import { redirectWithSuccess } from "remix-toast"
 import {
     getNmiApiKey,
     getSoilParameterEstimates,
@@ -32,6 +33,7 @@ import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
     compareFields,
+    getItemId,
     getRvoFieldsFromShapefile,
     processRvoImport,
     RvoImportReviewStatus,
@@ -261,7 +263,7 @@ export async function genericAction(
                 return {
                     success: false,
                     message:
-                        "Geen data gevonden om te verwerken. Start de RVO import opnieuw.",
+                        "Geen data gevonden om te verwerken. Start de shapefile import opnieuw.",
                     RvoImportReviewData: undefined,
                 }
             }
@@ -273,68 +275,83 @@ export async function genericAction(
                 throw new Error("Invalid review data format")
             }
 
-            const onFieldAdded = async (
-                tx: FdmType,
-                b_id: string,
-                geometry: any,
-            ) => {
-                const nmiApiKey = getNmiApiKey()
-                if (nmiApiKey) {
-                    try {
-                        const soilEstimates = await getSoilParameterEstimates(
-                            geometry,
-                            nmiApiKey,
-                        )
-                        await addSoilAnalysis(
+            await fdm.transaction(async (tx) => {
+                const onFieldAdded = async (
+                    tx: FdmType,
+                    b_id: string,
+                    geometry: any,
+                ) => {
+                    const nmiApiKey = getNmiApiKey()
+                    if (nmiApiKey) {
+                        try {
+                            const soilEstimates =
+                                await getSoilParameterEstimates(
+                                    geometry,
+                                    nmiApiKey,
+                                )
+                            await addSoilAnalysis(
+                                tx,
+                                session.principal_id,
+                                undefined,
+                                "nl-other-nmi",
+                                b_id,
+                                soilEstimates.a_depth_lower ?? 30,
+                                undefined,
+                                soilEstimates,
+                                soilEstimates.a_depth_upper,
+                            )
+                        } catch (e) {
+                            console.warn(
+                                `Failed to fetch soil estimates for field ${b_id}:`,
+                                e,
+                            )
+                        }
+                    }
+                }
+
+                await processRvoImport(
+                    tx,
+                    session.principal_id,
+                    b_id_farm,
+                    rvoImportReviewData,
+                    userChoices,
+                    year,
+                    onFieldAdded,
+                )
+
+                // Override field properties for columns that are always "updated from RVO"
+                for (const item of rvoImportReviewData) {
+                    // Get the user choice to determine if there is a field to update
+                    const choice = userChoices[getItemId(item)]
+                    if (
+                        choice !== "REMOVE_LOCAL" &&
+                        item.localField &&
+                        item.rvoField?.properties.mestData &&
+                        (item.rvoField.properties.mestData.IndBufferstrook ===
+                            "J") !==
+                            item.localField.b_bufferstrip
+                    ) {
+                        await updateField(
                             tx,
                             session.principal_id,
+                            item.localField.b_id,
                             undefined,
-                            "nl-other-nmi",
-                            b_id,
-                            soilEstimates.a_depth_lower ?? 30,
                             undefined,
-                            soilEstimates,
-                            soilEstimates.a_depth_upper,
-                        )
-                    } catch (e) {
-                        console.warn(
-                            `Failed to fetch soil estimates for field ${b_id}:`,
-                            e,
+                            undefined,
+                            undefined,
+                            undefined,
+                            undefined,
+                            item.rvoField.properties.mestData
+                                .IndBufferstrook === "J", // b_bufferstrip
                         )
                     }
                 }
-            }
+            })
 
-            await processRvoImport(
-                fdm,
-                session.principal_id,
-                b_id_farm,
-                rvoImportReviewData,
-                userChoices,
-                year,
-                onFieldAdded,
+            return redirectWithSuccess(
+                returnUrl,
+                "Percelen zijn succesvol geïmporteerd! 🎉",
             )
-
-            // Override field properties for columns that are always "updated from RVO"
-            for (const item of rvoImportReviewData) {
-                if (item.localField && item.rvoField?.properties.mestData) {
-                    await updateField(
-                        fdm,
-                        session.principal_id,
-                        item.localField.b_id,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                        undefined,
-                        item.rvoField.properties.mestData.IndBufferstrook ===
-                            "J", // b_bufferstrip
-                    )
-                }
-            }
-
-            return redirect(returnUrl)
         }
 
         return {}
