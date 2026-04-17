@@ -68,7 +68,7 @@ describe("toKgPerHa", () => {
                 ? `should convert ${unit} to kg/ha with density ${density} kg/l`
                 : `should convert ${unit} to kg/ha without density specified`,
             () => {
-                expect(toKgPerHa(input, unit, density).toNumber()).toBe(output)
+                expect(toKgPerHa(input, unit, density)).toBe(output)
             },
         )
     }
@@ -85,9 +85,7 @@ describe("toKgPerHa", () => {
     }
 
     it("should accept input of type Decimal", () => {
-        expect(
-            toKgPerHa(new Decimal(10), "m3/ha", new Decimal(2)).toNumber(),
-        ).toBe(20000)
+        expect(toKgPerHa(new Decimal(10), "m3/ha", new Decimal(2))).toBe(20000)
     })
 })
 
@@ -140,18 +138,14 @@ describe("fromKgPerHa", () => {
                 : `should convert kg/ha to ${unit} without density specified`,
             () => {
                 const value = fromKgPerHa(input, unit, density)
-                expect(value !== null ? value.toNumber() : null).toBe(output)
+                expect(value).toBe(output)
             },
         )
     }
 
     it("should accept input of type Decimal", () => {
         expect(
-            fromKgPerHa(
-                new Decimal(20000),
-                "m3/ha",
-                new Decimal(2),
-            )?.toNumber(),
+            fromKgPerHa(new Decimal(20000), "m3/ha", new Decimal(2)),
         ).toBe(10)
     })
 })

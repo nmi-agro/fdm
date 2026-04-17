@@ -18,13 +18,13 @@ export function toKgPerHa(
     value: number | Decimal | string,
     unit: AppAmountUnit,
     density?: number | Decimal | null, // kg/l
-): Decimal {
+): number {
     const d = new Decimal(value)
     switch (unit) {
         case "kg/ha":
-            return new Decimal(d)
+            return new Decimal(d).toNumber()
         case "ton/ha":
-            return new Decimal(1000).times(d)
+            return new Decimal(1000).times(d).toNumber()
         case "l/ha":
             if (
                 density === null ||
@@ -34,7 +34,7 @@ export function toKgPerHa(
                 throw new Error(
                     "Positive density (p_density) is required for l/ha → kg/ha conversion",
                 )
-            return new Decimal(density).times(d)
+            return new Decimal(density).times(d).toNumber()
         case "m3/ha":
             if (
                 density === null ||
@@ -44,7 +44,7 @@ export function toKgPerHa(
                 throw new Error(
                     "Positive density (p_density) is required for m3/ha → kg/ha conversion",
                 )
-            return new Decimal(1000).times(d).times(density)
+            return new Decimal(1000).times(d).times(density).toNumber()
         default:
             throw new Error(`${unit} → kg/ha conversion is not supported`)
     }
@@ -59,7 +59,7 @@ export function fromKgPerHa(
     valueKgPerHa: number | Decimal | string,
     unit: AppAmountUnit,
     density?: number | Decimal | null, // kg/l
-): Decimal | null {
+): number | null {
     const d = new Decimal(valueKgPerHa)
     const densityNotProvided =
         density === null ||
@@ -67,15 +67,15 @@ export function fromKgPerHa(
         new Decimal(0).greaterThanOrEqualTo(density)
     switch (unit) {
         case "kg/ha":
-            return d
+            return d.toNumber()
         case "ton/ha":
-            return d.dividedBy(1000)
+            return d.dividedBy(1000).toNumber()
         case "l/ha":
             if (densityNotProvided) return null
-            return d.dividedBy(new Decimal(density))
+            return d.dividedBy(new Decimal(density)).toNumber()
         case "m3/ha":
             if (densityNotProvided) return null
-            return d.dividedBy(new Decimal(density).times(1000))
+            return d.dividedBy(new Decimal(density).times(1000)).toNumber()
         default:
             return null
     }

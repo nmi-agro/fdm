@@ -799,7 +799,7 @@ export async function addFertilizerApplication(
                       p_app_amount_display,
                       fertilizer.p_app_amount_unit,
                       fertilizer.p_density,
-                  ).toNumber()
+                  )
                 : null
 
         await fdm.insert(schema.fertilizerApplication).values({
@@ -861,7 +861,7 @@ export async function updateFertilizerApplication(
                       p_app_amount_display,
                       fertilizer.p_app_amount_unit,
                       fertilizer.p_density,
-                  ).toNumber()
+                  )
                 : p_app_amount_display
         await fdm
             .update(schema.fertilizerApplication)
@@ -928,11 +928,7 @@ function extendFertilizerApplication<T extends BaseFertilizerApplication>(
 ): FertilizerApplication {
     const maybe_p_app_amount_display =
         app.p_app_amount !== null && app.p_app_amount !== undefined
-            ? fromKgPerHa(
-                  app.p_app_amount,
-                  p_app_amount_unit,
-                  p_density,
-              )?.toNumber()
+            ? fromKgPerHa(app.p_app_amount, p_app_amount_unit, p_density)
             : app.p_app_amount
     return {
         p_id: app.p_id,

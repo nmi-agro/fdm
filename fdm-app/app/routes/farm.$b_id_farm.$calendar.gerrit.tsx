@@ -723,7 +723,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                                 fert && p_app_amount_display !== null
                                     ? {
                                           p_app_amount_display:
-                                              p_app_amount_display.toNumber(),
+                                              p_app_amount_display,
                                           p_app_amount_unit:
                                               fert.p_app_amount_unit,
                                       }
