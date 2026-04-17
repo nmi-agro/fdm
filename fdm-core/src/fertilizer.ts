@@ -18,14 +18,14 @@ import type {
     FertilizerCatalogue,
     FertilizerParameterDescription,
 } from "./fertilizer.types"
-import { createId } from "./id"
-import type { Timeframe } from "./timeframe"
 import {
     APP_AMOUNT_UNITS,
     type AppAmountUnit,
     fromKgPerHa,
     toKgPerHa,
-} from "./unit-conversion"
+} from "./fertilizer-application-unit-conversion"
+import { createId } from "./id"
+import type { Timeframe } from "./timeframe"
 
 /**
  * Retrieves all fertilizers from the enabled catalogues for a farm.

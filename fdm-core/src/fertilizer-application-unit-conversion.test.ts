@@ -6,7 +6,7 @@ import {
     type RvoUnitSuggestionTableItem,
     suggestUnitFromRvoCode,
     toKgPerHa,
-} from "./unit-conversion"
+} from "./fertilizer-application-unit-conversion"
 
 interface ConversionUnitTestCase {
     input: number
@@ -47,6 +47,18 @@ describe("toKgPerHa", () => {
             unit: "ft3/ha" as AppAmountUnit,
             density: 2,
             throws: "ft3/ha → kg/ha conversion is not supported",
+        },
+        {
+            input: 20,
+            unit: "m3/ha",
+            density: 0,
+            throws: "Positive density (p_density) is required for m3/ha → kg/ha conversion",
+        },
+        {
+            input: 20,
+            unit: "m3/ha",
+            density: -1,
+            throws: "Positive density (p_density) is required for m3/ha → kg/ha conversion",
         },
     ]
 

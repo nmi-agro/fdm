@@ -14,7 +14,7 @@ import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
-import { suggestUnitFromRvoCode } from "./unit-conversion"
+import { suggestUnitFromRvoCode } from "./fertilizer-application-unit-conversion"
 
 /**
  * Gets all enabled fertilizer catalogues for a farm.

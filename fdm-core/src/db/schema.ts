@@ -11,7 +11,7 @@ import {
     timestamp,
     uniqueIndex,
 } from "drizzle-orm/pg-core"
-import { APP_AMOUNT_UNITS } from "../unit-conversion"
+import { APP_AMOUNT_UNITS } from "../fertilizer-application-unit-conversion"
 import { geometry, numericCasted } from "./schema-custom-types"
 
 // Define postgres schema

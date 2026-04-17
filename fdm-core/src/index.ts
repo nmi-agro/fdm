@@ -122,6 +122,11 @@ export type {
     FertilizerParameterDescriptionItem,
     FertilizerParameters,
 } from "./fertilizer.types"
+export type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
+export {
+    fromKgPerHa,
+    toKgPerHa,
+} from "./fertilizer-application-unit-conversion"
 export {
     addField,
     getField,
@@ -194,6 +199,4 @@ export type {
     SoilParameters,
 } from "./soil.types"
 export type { Timeframe } from "./timeframe.d"
-export type { AppAmountUnit } from "./unit-conversion"
-export { fromKgPerHa, toKgPerHa } from "./unit-conversion"
 export { fdmSchema }

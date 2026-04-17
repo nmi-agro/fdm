@@ -1,6 +1,6 @@
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import type * as schema from "./db/schema"
-import type { AppAmountUnit } from "./unit-conversion"
+import type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
 
 export interface FertilizerCatalogue {
     p_id_catalogue: string
