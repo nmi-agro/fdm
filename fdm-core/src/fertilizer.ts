@@ -466,6 +466,7 @@ export async function updateFertilizerFromCatalogue(
         p_name_en: schema.fertilizersCatalogueTypeInsert["p_name_en"]
         p_description: schema.fertilizersCatalogueTypeInsert["p_description"]
         p_app_method_options: schema.fertilizersCatalogueTypeInsert["p_app_method_options"]
+        p_app_amount_unit: schema.fertilizersCatalogueTypeInsert["p_app_amount_unit"]
         p_dm: schema.fertilizersCatalogueTypeInsert["p_dm"]
         p_density: schema.fertilizersCatalogueTypeInsert["p_density"]
         p_om: schema.fertilizersCatalogueTypeInsert["p_om"]
