@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest"
 import {
     type AppAmountUnit,
     fromKgPerHa,
-    type RvoUnitSuggestionTableItem,
     toKgPerHa,
 } from "./fertilizer-application-unit-conversion"
 
@@ -11,7 +10,6 @@ interface ConversionUnitTestCase {
     input: number
     unit: AppAmountUnit
     density?: number | undefined
-
     output?: number | null
     throws?: string
 }
