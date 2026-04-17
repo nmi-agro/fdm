@@ -20,8 +20,8 @@ export function getTimeframe(params: Params): Timeframe {
     // Current assumption is that the user and the server will both be in the same time zone (for the Netherlands: Amsterdam)
     // When retrieving 1 January and 31 December for the given year, the runtime will most of the time fill in the winter time zone (for Amsterdam: CET)
     const timeframe = {
-        start: new Date(`${yearStart}-01-01T00:00:00.000`),
-        end: new Date(`${yearEnd}-12-31T23:59:59.999`),
+        start: new Date(yearStart, 0, 1, 0, 0, 0, 0),
+        end: new Date(yearEnd, 11, 31, 23, 59, 59, 999),
     }
 
     // Check if calendar is year and create a timeframe
@@ -34,8 +34,8 @@ export function getTimeframe(params: Params): Timeframe {
                 throw new Error(`Unsupported year: ${calendar}`)
             }
             // Set start and end date
-            timeframe.start = new Date(`${year}-01-01T00:00:00.000`)
-            timeframe.end = new Date(`${year}-12-31T23:59:59.999`)
+            timeframe.start = new Date(year, 0, 1, 0, 0, 0, 0)
+            timeframe.end = new Date(year, 11, 31, 23, 59, 59, 999)
         }
     }
 
