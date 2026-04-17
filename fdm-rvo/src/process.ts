@@ -53,6 +53,7 @@ export async function processRvoImport(
     onFieldAdded?: (tx: FdmType, b_id: string, geometry: any) => Promise<void>,
 ) {
     await fdm.transaction(async (tx) => {
+        const addedFields: Array<{ b_id: string; geometry: any }> = []
         async function handleItem(item: RvoImportReviewItem<any>) {
             const id = getItemId(item)
             const action = userChoices[id]
@@ -105,9 +106,10 @@ export async function processRvoImport(
                             defaultDates.b_lu_end,
                         )
 
-                        if (onFieldAdded) {
-                            await onFieldAdded(tx, b_id, item.rvoField.geometry)
-                        }
+                        addedFields.push({
+                            b_id: b_id,
+                            geometry: item.rvoField.geometry,
+                        })
                     }
                     break
                 case "UPDATE_FROM_REMOTE":
@@ -223,8 +225,14 @@ export async function processRvoImport(
             }
         }
 
-        return await Promise.all(
-            rvoImportReviewData.map((item) => handleItem(item)),
-        )
+        await Promise.all(rvoImportReviewData.map((item) => handleItem(item)))
+
+        if (onFieldAdded) {
+            await Promise.all(
+                addedFields.map(({ b_id, geometry }) =>
+                    onFieldAdded(tx, b_id, geometry),
+                ),
+            )
+        }
     })
 }
