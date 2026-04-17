@@ -380,10 +380,10 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                         "The unit of the application amount (e.g., m3/ha, kg/ha, l/ha, t/ha)",
                                     ),
                                 p_app_amount_display: z
-                                    .string()
+                                    .number()
                                     .optional()
                                     .describe(
-                                        "Application amount with unit (e.g., 18 m3/ha, 200 kg/ha)",
+                                        "The numeric application amount (unit is carried separately in p_app_amount_unit)",
                                     ),
                                 p_app_date: z
                                     .string()
