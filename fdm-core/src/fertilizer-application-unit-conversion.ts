@@ -11,8 +11,15 @@ export const APP_AMOUNT_UNITS: { value: AppAmountUnit; label: string }[] = [
 
 /**
  * Convert a user-entered amount (in display unit) to kg/ha for storage.
+ *
  * Uses Decimal.js to avoid floating-point rounding errors.
  * Throws if conversion requires density but density is null/undefined/0.
+ *
+ * @param value The value to convert.
+ * @param unit The display unit of the value.
+ * @param density The density of the fertilizer in kg/l. Required for volume-based units.
+ * @returns The converted value in kg/ha.
+ * @alpha
  */
 export function toKgPerHa(
     value: number | Decimal | string,
@@ -52,8 +59,15 @@ export function toKgPerHa(
 
 /**
  * Convert a stored kg/ha value back to the preferred display unit.
+ *
  * Uses Decimal.js to avoid floating-point rounding errors.
  * Returns null if conversion requires density but density is missing.
+ *
+ * @param valueKgPerHa The value in kg/ha to convert.
+ * @param unit The target display unit.
+ * @param density The density of the fertilizer in kg/l. Required for volume-based units.
+ * @returns The converted value in the target unit, or null if density is missing.
+ * @alpha
  */
 export function fromKgPerHa(
     valueKgPerHa: number | Decimal | string,
@@ -83,6 +97,7 @@ export function fromKgPerHa(
 
 /**
  * Suggest a default display unit based on an RVO fertilizer type code.
+ *
  * The suggestion is a sensible starting point; the user can always override it.
  *
  * A table of suggestions is provided internally. Callers can pass the table argument to use a different table.
@@ -93,8 +108,10 @@ export function fromKgPerHa(
  *   - Compost / solid organic matter   → ton/ha
  *   - Mineral / other                  → kg/ha (default)
  *
- * @param p_type_rvo: mest code to look for
- * @param table: optional: table to use for conversion. The type can be used to add remarks to each item when hardcoding tables.
+ * @param p_type_rvo The mest code to look for.
+ * @param table Optional table to use for conversion. The type can be used to add remarks to each item when hardcoding tables.
+ * @returns The suggested display unit.
+ * @alpha
  */
 export function suggestUnitFromRvoCode(
     p_type_rvo: string,
