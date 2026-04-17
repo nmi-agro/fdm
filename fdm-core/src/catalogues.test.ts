@@ -14,13 +14,11 @@ import {
     isCultivationCatalogueEnabled,
     isFertilizerCatalogueEnabled,
     syncCatalogues,
-    syncFertilizerCatalogueArray,
 } from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import type { FdmType } from "./fdm.types"
-import { createFdmServer } from "./fdm-server"
-import { createId } from "./id"
+import { createFdmServer } from "./fdm-server""
 
 describe("Catalogues", () => {
     let fdm: FdmType
