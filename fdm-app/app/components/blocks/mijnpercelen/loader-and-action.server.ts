@@ -102,7 +102,10 @@ export async function genericAction(
       }
 > {
     const storageKeys: string[] = []
-    const fileStorage = createFsFileStorage("./uploads/shapefiles")
+    const uploadRequestId = crypto.randomUUID()
+    const fileStorage = createFsFileStorage(
+        `./uploads/shapefiles/${uploadRequestId}`,
+    )
     try {
         const { b_id_farm, calendar: yearString } = params
         if (!b_id_farm || !yearString) {
