@@ -33,6 +33,16 @@ export function FieldsPanelHover({
 }) {
     const { current: map } = useMap()
     const [panel, setPanel] = useState<React.ReactNode | null>(null)
+    const layerIds = Array.isArray(layer) ? layer : [layer]
+    const excludedLayerIds = layerExclude
+        ? Array.isArray(layerExclude)
+            ? layerExclude
+            : [layerExclude]
+        : []
+    const layerIdsKey = layerIds.join("|")
+    const excludedLayerIdsKey = excludedLayerIds.join("|")
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: effective changes in layer and layerExclude are detected through layerIdsKey and excludedLayerIdsKey
     useEffect(() => {
         function updatePanel(evt: MapMouseEvent | MapLibreZoomEvent) {
             if (map) {
@@ -40,8 +50,11 @@ export function FieldsPanelHover({
                 const zoom = map.getZoom()
                 if (zoom && zoom > zoomLevelFields) {
                     if (!map.getStyle()) return
-                    const layers = Array.isArray(layer) ? layer : [layer]
-                    const validLayers = layers.filter((l) => map.getLayer(l))
+                    if (!("point" in evt)) {
+                        setPanel(makePanel({}))
+                        return
+                    }
+                    const validLayers = layerIds.filter((l) => map.getLayer(l))
                     if (validLayers.length === 0) return
                     const features = map.queryRenderedFeatures(evt.point, {
                         layers: validLayers,
@@ -54,10 +67,7 @@ export function FieldsPanelHover({
                     )
 
                     if (layerExclude) {
-                        const layers = Array.isArray(layerExclude)
-                            ? layerExclude
-                            : [layerExclude]
-                        const validLayers = layers.filter((l) =>
+                        const validLayers = excludedLayerIds.filter((l) =>
                             map.getLayer(l),
                         )
 
@@ -161,9 +171,19 @@ export function FieldsPanelHover({
                 map.off("mousedown", delayedUpdatePanel)
                 map.off("zoom", throttledUpdatePanel)
                 map.off("load", updatePanel)
+
+                // Cancel pending updates
+                clearTimeout(delayedUpdateTimeout)
+                throttledUpdatePanelInner.cancel()
             }
         }
-    }, [map, zoomLevelFields, layer, layerExclude, clickRedirectsToDetailsPage])
+    }, [
+        map,
+        zoomLevelFields,
+        layerIdsKey,
+        excludedLayerIdsKey,
+        clickRedirectsToDetailsPage,
+    ])
 
     return panel
 }
