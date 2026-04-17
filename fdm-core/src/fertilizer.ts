@@ -22,10 +22,9 @@ import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
 import {
     APP_AMOUNT_UNITS,
-    type AppAmount,
     type AppAmountUnit,
     fromKgPerHa,
-    normalizeToKgPerHa,
+    toKgPerHa,
 } from "./unit-conversion"
 
 /**
@@ -766,7 +765,7 @@ export async function addFertilizerApplication(
     principal_id: PrincipalId,
     b_id: schema.fertilizerApplicationTypeInsert["b_id"],
     p_id: schema.fertilizerApplicationTypeInsert["p_id"],
-    p_app_amount_display: AppAmount | null,
+    p_app_amount_display: schema.fertilizerApplicationTypeInsert["p_app_amount"],
     p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
     p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
 ): Promise<schema.fertilizerApplicationTypeInsert["p_app_id"]> {
@@ -796,7 +795,7 @@ export async function addFertilizerApplication(
 
         const p_app_amount =
             p_app_amount_display !== null && p_app_amount_display !== undefined
-                ? normalizeToKgPerHa(
+                ? toKgPerHa(
                       p_app_amount_display,
                       fertilizer.p_app_amount_unit,
                       fertilizer.p_density,
@@ -842,7 +841,7 @@ export async function updateFertilizerApplication(
     principal_id: PrincipalId,
     p_app_id: schema.fertilizerApplicationTypeInsert["p_app_id"],
     p_id: schema.fertilizerApplicationTypeInsert["p_id"],
-    p_app_amount_display: AppAmount | null,
+    p_app_amount_display: schema.fertilizerApplicationTypeInsert["p_app_amount"],
     p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
     p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
 ): Promise<void> {
@@ -858,7 +857,7 @@ export async function updateFertilizerApplication(
         const fertilizer = await getFertilizer(fdm, p_id)
         const p_app_amount =
             p_app_amount_display !== null && p_app_amount_display !== undefined
-                ? normalizeToKgPerHa(
+                ? toKgPerHa(
                       p_app_amount_display,
                       fertilizer.p_app_amount_unit,
                       fertilizer.p_density,

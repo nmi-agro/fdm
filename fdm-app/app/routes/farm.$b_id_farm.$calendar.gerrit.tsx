@@ -875,15 +875,24 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             )
                         }
 
+                        const amount = fromKgPerHa(
+                            app.p_app_amount,
+                            fertilizer.p_app_amount_unit,
+                            fertilizer.p_density,
+                        )
+
+                        if (amount === null) {
+                            throw new Error(
+                                `Meststof "${fertilizer.p_name_nl}" moet een waarde hebben voor zijn dichtheid.`,
+                            )
+                        }
+
                         await addFertilizerApplication(
                             tx,
                             session.principal_id,
                             field.b_id,
                             fertilizer.p_id,
-                            {
-                                p_app_amount_display: app.p_app_amount,
-                                p_app_amount_unit: "kg/ha",
-                            },
+                            amount.toNumber(),
                             app.p_app_method,
                             new Date(app.p_app_date),
                         )
