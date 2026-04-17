@@ -892,7 +892,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             session.principal_id,
                             field.b_id,
                             fertilizer.p_id,
-                            amount.toNumber(),
+                            amount,
                             app.p_app_method,
                             new Date(app.p_app_date),
                         )

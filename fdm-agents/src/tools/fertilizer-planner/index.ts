@@ -321,6 +321,8 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     p_eom: f.p_eom,
                     p_ef_nh3: f.p_ef_nh3,
                     p_source: f.p_source,
+                    p_app_amount_unit: f.p_app_amount_unit,
+                    p_density: f.p_density,
                 })),
             }
         },
@@ -371,6 +373,18 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                 p_app_amount: z
                                     .number()
                                     .describe("Application amount in kg/ha"),
+                                p_app_amount_unit: z
+                                    .string()
+                                    .optional()
+                                    .describe(
+                                        "The unit of the application amount (e.g., m3/ha, kg/ha, l/ha, t/ha)",
+                                    ),
+                                p_app_amount_display: z
+                                    .string()
+                                    .optional()
+                                    .describe(
+                                        "Application amount with unit (e.g., 18 m3/ha, 200 kg/ha)",
+                                    ),
                                 p_app_date: z
                                     .string()
                                     .describe(
