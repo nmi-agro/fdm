@@ -1241,7 +1241,7 @@ describe("Fertilizer Data Model", () => {
             expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
         })
 
-        it("should add a new fertilizer application with no amount specified", async () => {
+        it("should add a new fertilizer application with amount specified", async () => {
             const p_app_date = new Date("2024-03-15")
 
             const new_p_app_id = await addFertilizerApplication(
@@ -1249,7 +1249,7 @@ describe("Fertilizer Data Model", () => {
                 principal_id,
                 b_id,
                 p_id_liquid,
-                0,
+                120,
                 "broadcasting",
                 p_app_date,
             )
@@ -1288,7 +1288,7 @@ describe("Fertilizer Data Model", () => {
             )
             expect(fertilizerApplication).toBeDefined()
             expect(fertilizerApplication?.p_id).toBe(p_id_liquid)
-            expect(fertilizerApplication?.p_app_amount).toBe(null)
+            expect(fertilizerApplication?.p_app_amount).toBe(0)
             expect(fertilizerApplication?.p_app_amount_display).toBe(null)
             expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
             expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
