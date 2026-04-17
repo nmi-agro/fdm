@@ -1293,11 +1293,11 @@ export function getFertilizerParametersDescription(
         {
             parameter: "p_app_amount_unit",
             unit: "",
-            name: "Hoeveelheidsunit",
+            name: "Voorkeurseenheid",
             type: "enum",
             category: "general",
             description:
-                "Unit van voorkeur waarin de applicatiebedragen worden weergegeven.",
+                "Eenheid voor het weergeven van de hoeveelheid van deze meststof",
             options: APP_AMOUNT_UNITS,
         },
         {
@@ -1635,7 +1635,11 @@ function extendFertilizerApplication<
         p_app_amount_unit: AppAmountUnit
         p_density: number | null
     },
->(app: T, p_app_amount_unit: AppAmountUnit, p_density: number | null): FertilizerApplication {
+>(
+    app: T,
+    p_app_amount_unit: AppAmountUnit,
+    p_density: number | null,
+): FertilizerApplication {
     const p_app_amount_display =
         app.p_app_amount !== null && app.p_app_amount !== undefined
             ? fromKgPerHa(app.p_app_amount, p_app_amount_unit, p_density)
@@ -1650,6 +1654,6 @@ function extendFertilizerApplication<
         p_app_amount_display: p_app_amount_display,
         p_app_method: app.p_app_method,
         p_app_date: app.p_app_date,
-    p_app_id: app.p_app_id,
+        p_app_id: app.p_app_id,
     }
 }
