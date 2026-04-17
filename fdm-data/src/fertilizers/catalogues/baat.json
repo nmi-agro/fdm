@@ -36,6 +36,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -77,6 +78,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -118,6 +120,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "spoke wheel||spraying",
+        "p_app_amount_unit": "l/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -159,6 +162,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "spoke wheel||spraying",
+        "p_app_amount_unit": "l/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -200,6 +204,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -241,6 +246,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 116,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": false
@@ -282,6 +288,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 116,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": false
@@ -323,6 +330,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 116,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": false
@@ -364,6 +372,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 116,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": false
@@ -405,6 +414,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 116,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": false
@@ -446,6 +456,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 116,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": false
@@ -487,6 +498,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -528,6 +540,7 @@
         "p_zn_rt": 42,
         "p_type_rvo": 110,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": true
@@ -569,6 +582,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -610,6 +624,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -651,6 +666,7 @@
         "p_zn_rt": 73,
         "p_type_rvo": 80,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -692,6 +708,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -733,6 +750,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -774,6 +792,7 @@
         "p_zn_rt": 55,
         "p_type_rvo": 61,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -815,6 +834,7 @@
         "p_zn_rt": 111,
         "p_type_rvo": 111,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": true
@@ -856,6 +876,7 @@
         "p_zn_rt": 38,
         "p_type_rvo": 111,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": true
@@ -897,6 +918,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -938,6 +960,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -979,6 +1002,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1020,6 +1044,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1061,6 +1086,7 @@
         "p_zn_rt": 167,
         "p_type_rvo": 23,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -1102,6 +1128,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1143,6 +1170,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1184,6 +1212,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1225,6 +1254,7 @@
         "p_zn_rt": 190,
         "p_type_rvo": 35,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -1266,6 +1296,7 @@
         "p_zn_rt": 81,
         "p_type_rvo": 90,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -1307,6 +1338,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1348,6 +1380,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1389,6 +1422,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1430,6 +1464,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 120,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -1471,6 +1506,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1512,6 +1548,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1553,6 +1590,7 @@
         "p_zn_rt": 89,
         "p_type_rvo": 75,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -1594,6 +1632,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1635,6 +1674,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1676,6 +1716,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1717,6 +1758,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1758,6 +1800,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1799,6 +1842,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "spoke wheel||spraying",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1840,6 +1884,7 @@
         "p_zn_rt": 57,
         "p_type_rvo": 25,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -1881,6 +1926,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -1922,6 +1968,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 33,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -1963,6 +2010,7 @@
         "p_zn_rt": 4,
         "p_type_rvo": 19,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2004,6 +2052,7 @@
         "p_zn_rt": 38,
         "p_type_rvo": 10,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2045,6 +2094,7 @@
         "p_zn_rt": 17,
         "p_type_rvo": 14,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2086,6 +2136,7 @@
         "p_zn_rt": 5,
         "p_type_rvo": 12,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2127,6 +2178,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 13,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2168,6 +2220,7 @@
         "p_zn_rt": 55,
         "p_type_rvo": 56,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2209,6 +2262,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 116,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2250,6 +2304,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -2291,6 +2346,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -2332,6 +2388,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "spoke wheel||spraying",
+        "p_app_amount_unit": "l/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -2373,6 +2430,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -2414,6 +2472,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "spoke wheel||spraying",
+        "p_app_amount_unit": "l/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -2455,6 +2514,7 @@
         "p_zn_rt": 248,
         "p_type_rvo": 40,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2496,6 +2556,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 43,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2537,6 +2598,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": false,
         "p_type_manure": false,
         "p_type_compost": false
@@ -2578,6 +2640,7 @@
         "p_zn_rt": 23,
         "p_type_rvo": 39,
         "p_app_method_options": "broadcasting||incorporation||incorporation 2 tracks",
+        "p_app_amount_unit": "ton/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2619,6 +2682,7 @@
         "p_zn_rt": 89,
         "p_type_rvo": 50,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2660,6 +2724,7 @@
         "p_zn_rt": 81,
         "p_type_rvo": 42,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2701,6 +2766,7 @@
         "p_zn_rt": 4,
         "p_type_rvo": 18,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2742,6 +2808,7 @@
         "p_zn_rt": 64,
         "p_type_rvo": 46,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2783,6 +2850,7 @@
         "p_zn_rt": 10,
         "p_type_rvo": 42,
         "p_app_method_options": "slotted coulter||incorporation||incorporation 2 tracks||injection||shallow injection||narrowband",
+        "p_app_amount_unit": "m3/ha",
         "p_type_mineral": false,
         "p_type_manure": true,
         "p_type_compost": false
@@ -2824,6 +2892,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false
@@ -2865,6 +2934,7 @@
         "p_zn_rt": null,
         "p_type_rvo": 115,
         "p_app_method_options": "broadcasting||pocket placement||incorporation",
+        "p_app_amount_unit": "kg/ha",
         "p_type_mineral": true,
         "p_type_manure": false,
         "p_type_compost": false

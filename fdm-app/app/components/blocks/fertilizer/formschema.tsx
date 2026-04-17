@@ -464,7 +464,25 @@ export const FormSchema = z
             .refine((value) => value.some((item) => item), {
                 error: "Selecteer minimaal 1 methode",
             }),
+        p_app_amount_unit: z
+            .enum(["kg/ha", "l/ha", "m3/ha", "ton/ha"])
+            .default("kg/ha"),
     })
+    .refine(
+        (data) => {
+            if (
+                data.p_app_amount_unit === "m3/ha" ||
+                data.p_app_amount_unit === "l/ha"
+            ) {
+                return data.p_density !== undefined
+            }
+            return true
+        },
+        {
+            path: ["p_density"],
+            error: "Dichtheid is verplicht bij gebruik van l/ha of m³/ha",
+        },
+    )
     .refine(
         (data) => {
             if (data.p_n_rt && data.p_n_wc === undefined) {

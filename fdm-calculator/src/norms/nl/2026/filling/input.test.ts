@@ -1,4 +1,5 @@
 import type {
+    BaseFertilizerApplication,
     Cultivation,
     FdmType,
     Fertilizer,
@@ -83,12 +84,12 @@ describe("collectNL2026InputForFertilizerApplicationFilling", () => {
                 b_lu_catalogue: "nl_2014",
             },
         ]
-        const expectedApplications: FertilizerApplication[] = [
+        const expectedApplications: BaseFertilizerApplication[] = [
             {
                 p_app_id: "app1",
                 p_id_catalogue: "fert1",
                 p_app_amount: 1000,
-            } as FertilizerApplication,
+            } as BaseFertilizerApplication,
         ]
         const expectedFertilizers: Fertilizer[] = [
             {

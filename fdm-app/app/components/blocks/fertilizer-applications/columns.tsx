@@ -61,14 +61,16 @@ function formatDateRange(dates: Date[]) {
  * @param numbers array of numbers. Nulls and undefined items are not allowed.
  * @returns the formatted string.
  */
-function formatNumberRange(numbers: number[], unit = "") {
+function formatNumberRange(numbers: number[], unit = "", precision = 2) {
     if (numbers.length === 0) return ""
     const firstNumber = numbers[0]
     const lastNumber = numbers[numbers.length - 1]
+    const pow = 10 ** precision
+    const round = (x: number) => Math.round(pow * x) / pow
     return firstNumber === lastNumber ||
         Math.abs(lastNumber - firstNumber) < Math.abs(firstNumber) / 100
-        ? `${firstNumber} ${unit}`
-        : `${firstNumber} - ${lastNumber} ${unit}`
+        ? `${round(firstNumber)} ${unit}`
+        : `${round(firstNumber)} - ${round(lastNumber)} ${unit}`
 }
 
 /**
@@ -163,10 +165,10 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
         cell: ({ row }) =>
             formatNumberRange(
                 row.original.applications
-                    .map((application) => application.p_app_amount)
-                    .filter((amount) => amount !== null)
+                    .map((application) => application.p_app_amount_display)
+                    .filter((amount) => amount !== null && amount !== undefined)
                     .sort((a, b) => a - b),
-                "kg / ha",
+                row.original.applications[0]?.p_app_amount_unit ?? "kg/ha",
             ),
     },
     {
