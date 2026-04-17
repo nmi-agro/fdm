@@ -3,7 +3,7 @@ import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 export const applicationUnitOptions = {
     "kg/ha": { label: "kg/ha", totalLabel: "kg" },
     "ton/ha": { label: "ton/ha", totalLabel: "ton" },
-    "l/ha": { label: "L/ha", totalLabel: "L" },
+    "l/ha": { label: "l/ha", totalLabel: "L" },
     "m3/ha": { label: "m³/ha", totalLabel: "m³" },
 } as const
 
