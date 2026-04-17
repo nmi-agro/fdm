@@ -18,8 +18,8 @@ export function MijnPercelenUploadAnimation({
                     transition={{ duration: 0.5 }}
                 >
                     <Card className="p-6 text-center space-y-4">
-                        <Spinner className="mx-auto w-10 h-10 text-muted-foreground" />
-                        <h3 className="text-lg font-semibold text-muted-foreground">
+                        <Spinner className="mx-auto w-8 h-8 text-muted-foreground" />
+                        <h3 className="font-semibold text-muted-foreground">
                             Percelen verwerken...
                         </h3>
                     </Card>

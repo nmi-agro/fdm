@@ -3,7 +3,7 @@ import {
     determineIfFieldIsBuffer,
     type FdmType,
     type Field,
-    getCultivations,
+    getCultivationsForFarm,
     getCultivationsFromCatalogue,
     getFarm,
     getFields,
@@ -147,16 +147,15 @@ export async function genericAction(
         if (intent === "upload") {
             // Prepare existing fields for comparison
             const fields = await getFields(fdm, session.principal_id, b_id_farm)
-            const fieldsExtended = await Promise.all(
-                fields.map(async (field) => ({
-                    ...field,
-                    cultivations: await getCultivations(
-                        fdm,
-                        session.principal_id,
-                        field.b_id,
-                    ),
-                })),
+            const allCultivations = await getCultivationsForFarm(
+                fdm,
+                session.principal_id,
+                b_id_farm,
             )
+            const fieldsExtended = fields.map((field) => ({
+                ...field,
+                cultivations: allCultivations.get(field.b_id) ?? [],
+            }))
             const cultivationsCatalogue = await getCultivationsFromCatalogue(
                 fdm,
                 session.principal_id,
@@ -191,14 +190,14 @@ export async function genericAction(
                 if (geometry.type === "Polygon") {
                     return geometry.coordinates
                         .map((ring) => length(lineString(ring)))
-                        .reduce((a, b) => a + b)
+                        .reduce((a, b) => a + b, 0)
                 }
                 if (geometry.type === "MultiPolygon") {
                     return geometry.coordinates
                         .flatMap((polygon) =>
                             polygon.flatMap((ring) => length(lineString(ring))),
                         )
-                        .reduce((a, b) => a + b)
+                        .reduce((a, b) => a + b, 0)
                 }
                 return 0
             }
@@ -273,6 +272,10 @@ export async function genericAction(
 
             if (!Array.isArray(rvoImportReviewData)) {
                 throw new Error("Invalid review data format")
+            }
+
+            if (!(userChoices instanceof Object)) {
+                throw new Error("Invalid user choices format")
             }
 
             await fdm.transaction(async (tx) => {
@@ -362,8 +365,8 @@ export async function genericAction(
             message: `Error at saving RVO fields: ${await extractErrorMessage(e)}`,
         }
     } finally {
-        for (const storageKey of storageKeys) {
-            fileStorage.remove(storageKey)
-        }
+        await Promise.allSettled(
+            storageKeys.map((storageKey) => fileStorage.remove(storageKey)),
+        )
     }
 }
