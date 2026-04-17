@@ -95,36 +95,6 @@ export function fromKgPerHa(
     }
 }
 
-/**
- * Suggest a default display unit based on an RVO fertilizer type code.
- *
- * The suggestion is a sensible starting point; the user can always override it.
- *
- * A table of suggestions is provided internally. Callers can pass the table argument to use a different table.
- *
- * The internal table is based on the Tabel 11 mest codes provided by RVO and is based on the rationale:
- *   - Slurry / drijfmest codes        → m3/ha
- *   - Liquid concentrates / digestate  → l/ha
- *   - Compost / solid organic matter   → ton/ha
- *   - Mineral / other                  → kg/ha (default)
- *
- * @param p_type_rvo The mest code to look for.
- * @param table Optional table to use for conversion. The type can be used to add remarks to each item when hardcoding tables.
- * @returns The suggested display unit.
- * @alpha
- */
-export function suggestUnitFromRvoCode(
-    p_type_rvo: string,
-    table = RVO_RECOMMENDED_UNITS,
-): AppAmountUnit {
-    const rowOrDefault = table.find((row) => row.p_type_rvo === p_type_rvo) ?? {
-        p_type_rvo,
-        unit: "kg/ha",
-    }
-
-    return rowOrDefault.unit
-}
-
 export type RvoUnitSuggestionTableItem = {
     p_type_rvo: string
     unit: AppAmountUnit

@@ -14,7 +14,6 @@ import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
-import { suggestUnitFromRvoCode } from "./fertilizer-application-unit-conversion"
 
 /**
  * Gets all enabled fertilizer catalogues for a farm.
@@ -553,11 +552,7 @@ async function extendCatalogueFertilizer(
 ) {
     const fertWithComputedProps = {
         ...catalogueFertilizer,
-        p_app_amount_unit:
-            catalogueFertilizer.p_app_amount_unit ??
-            (catalogueFertilizer.p_type_rvo
-                ? suggestUnitFromRvoCode(catalogueFertilizer.p_type_rvo)
-                : undefined),
+        p_app_amount_unit: catalogueFertilizer.p_app_amount_unit,
     }
     return {
         ...fertWithComputedProps,
