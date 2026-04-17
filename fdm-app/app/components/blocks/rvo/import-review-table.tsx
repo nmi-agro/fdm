@@ -568,11 +568,19 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
             </Tooltip>
         ),
         cell: ({ row, table }) => {
+            if (!row.original.rvoField) {
+                // Bufferstrip status shouldn't be editable for local fields
+                return (
+                    <div className="ps-5 text-muted-foreground">
+                        {row.original.localField?.b_bufferstrip ? "Ja" : "Nee"}
+                    </div>
+                )
+            }
             const value =
-                row.original.rvoField?.properties.mestData?.IndBufferstrook ===
+                row.original.rvoField.properties.mestData?.IndBufferstrook ===
                 "J"
             function handleUpdateValue(newValue: boolean) {
-                if (table.options.meta?.onItemChange) {
+                if (table.options.meta?.onItemChange && row.original.rvoField) {
                     table.options.meta.onItemChange(getItemId(row.original), {
                         ...row.original,
                         rvoField: {
@@ -592,7 +600,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
 
             return (
                 // biome-ignore lint/a11y/noLabelWithoutControl: input is nested inside the label
-                <label className="flex flex-row items-center gap-1">
+                <label className="flex flex-row items-center gap-1 text-muted-foreground">
                     <Checkbox
                         checked={value}
                         onCheckedChange={handleUpdateValue}

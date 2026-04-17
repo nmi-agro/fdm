@@ -129,7 +129,7 @@ export function UploadMijnPercelenPage({
                 "hashchange",
                 onHashChange as unknown as (_: Event) => void,
             )
-    })
+    }, [])
 
     // Show alerts
     useEffect(() => {
