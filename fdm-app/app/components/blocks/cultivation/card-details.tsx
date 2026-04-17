@@ -47,8 +47,9 @@ export function CultivationDetailsCard({
                 ? new Date(cultivation.b_lu_end)
                 : null,
             m_cropresidue:
-                !!cultivation.b_lu_eom_residue &&
-                (cultivation.m_cropresidue ?? false),
+                cultivation.b_lu_croprotation === "cereal"
+                    ? (cultivation.m_cropresidue ?? undefined)
+                    : undefined,
             b_lu_variety: cultivation.b_lu_variety ?? null,
         },
     })
@@ -63,8 +64,9 @@ export function CultivationDetailsCard({
                 ? new Date(cultivation.b_lu_end)
                 : null,
             m_cropresidue:
-                !!cultivation.b_lu_eom_residue &&
-                (cultivation.m_cropresidue ?? false),
+                cultivation.b_lu_croprotation === "cereal"
+                    ? (cultivation.m_cropresidue ?? undefined)
+                    : undefined,
             b_lu_variety: cultivation.b_lu_variety ?? null,
         })
     }, [cultivation, form.reset])
@@ -135,8 +137,8 @@ export function CultivationDetailsCard({
                                         <FormItem
                                             className={cn(
                                                 "flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4",
-                                                /* null or 0 */ !cultivation.b_lu_eom_residue &&
-                                                    "invisible",
+                                                /* Hide for non-cereals */ cultivation.b_lu_croprotation !==
+                                                    "cereal" && "invisible",
                                             )}
                                         >
                                             <FormControl>
