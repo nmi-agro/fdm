@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { parseShapefileAttributes } from "@nmi-agro/fdm-rvo/shapefile"
 import {
     AlertCircle,
     CheckCircle,
@@ -11,7 +10,6 @@ import { useEffect, useRef, useState } from "react"
 import { useWatch } from "react-hook-form"
 import { Form, NavLink, useActionData, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { toast as notify } from "sonner"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
@@ -52,7 +50,6 @@ export function MijnPercelenUploadForm({
     calendar: string
     backUrl?: string
 }) {
-    const [fieldNames, setFieldNames] = useState<string[]>([])
     const [uploadState, setUploadState] = useState<UploadState>("idle")
     const uploadStartTime = useRef<number | null>(null)
 
@@ -136,28 +133,6 @@ export function MijnPercelenUploadForm({
     const handleFilesSet = async (validFiles: File[]) => {
         form.setValue("shapefile", validFiles)
         setUploadState("idle")
-
-        const dbfFile = validFiles.find(
-            (file) => getFileExtension(file.name) === ".dbf",
-        )
-        if (dbfFile) {
-            try {
-                const dbfData = await parseShapefileAttributes(dbfFile)
-                let unnamedCount = 0
-                const names = dbfData.map((row) => {
-                    const trimmedNaam =
-                        typeof row?.NAAM === "string" ? row.NAAM.trim() : ""
-                    return trimmedNaam || `Naamloos perceel ${++unnamedCount}`
-                })
-                setFieldNames(names)
-            } catch (error) {
-                console.error("Failed to parse DBF file:", error)
-                notify.error("Kon het DBF bestand niet verwerken")
-                setFieldNames([])
-            }
-        } else {
-            setFieldNames([])
-        }
     }
 
     const disabledForm = (
@@ -246,7 +221,7 @@ export function MijnPercelenUploadForm({
     return (
         <div className="flex justify-center">
             {uploadState === "animating" && ANIMATION_ENABLED ? (
-                <MijnPercelenUploadAnimation fieldNames={fieldNames}>
+                <MijnPercelenUploadAnimation>
                     {disabledForm}
                 </MijnPercelenUploadAnimation>
             ) : uploadState === "animating" && !ANIMATION_ENABLED ? (
