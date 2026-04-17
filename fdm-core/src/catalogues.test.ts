@@ -18,7 +18,7 @@ import {
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import type { FdmType } from "./fdm.types"
-import { createFdmServer } from "./fdm-server""
+import { createFdmServer } from "./fdm-server"
 
 describe("Catalogues", () => {
     let fdm: FdmType

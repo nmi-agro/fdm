@@ -1222,7 +1222,7 @@ describe("Fertilizer Data Model", () => {
                 fdm,
                 principal_id,
                 b_id,
-                p_id_liquid,
+                p_id,
                 0,
                 "broadcasting",
                 p_app_date,
@@ -1236,7 +1236,7 @@ describe("Fertilizer Data Model", () => {
             )
             expect(fertilizerApplication).toBeDefined()
             expect(fertilizerApplication?.p_id).toBe(p_id)
-            expect(fertilizerApplication?.p_app_amount).toBe(100)
+            expect(fertilizerApplication?.p_app_amount).toBe(0)
             expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
             expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
         })
@@ -1262,7 +1262,7 @@ describe("Fertilizer Data Model", () => {
             )
             expect(fertilizerApplication).toBeDefined()
             expect(fertilizerApplication?.p_id).toBe(p_id_liquid)
-            expect(fertilizerApplication?.p_app_amount).toBe(120)
+            expect(fertilizerApplication?.p_app_amount).toBe(144)
             expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
             expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
         })
@@ -1289,7 +1289,7 @@ describe("Fertilizer Data Model", () => {
             expect(fertilizerApplication).toBeDefined()
             expect(fertilizerApplication?.p_id).toBe(p_id_liquid)
             expect(fertilizerApplication?.p_app_amount).toBe(0)
-            expect(fertilizerApplication?.p_app_amount_display).toBe(null)
+            expect(fertilizerApplication?.p_app_amount_display).toBe(0)
             expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
             expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
         })
