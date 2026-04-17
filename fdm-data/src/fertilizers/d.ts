@@ -12,6 +12,8 @@ export type ApplicationMethods =
     | "pocket placement"
     | "narrowband"
 
+export type ApplicationUnits = "kg/ha" | "ton/ha" | "l/ha" | "m3/ha"
+
 export interface CatalogueFertilizerItem {
     p_source: CatalogueFertilizerName | string
     p_id_catalogue: string
@@ -19,7 +21,7 @@ export interface CatalogueFertilizerItem {
     p_name_en?: string | null | undefined
     p_description?: string | null | undefined
     p_app_method_options?: ApplicationMethods[] | null | undefined
-    p_app_amount_unit?: "kg/ha" | "ton/ha" | "l/ha" | "m3/ha" | undefined
+    p_app_amount_unit?: ApplicationUnits | null | undefined
     p_ef_nh3?: number | null
     p_dm?: number | null
     p_density?: number | null
