@@ -12,7 +12,7 @@ import { FarmMineralizationChart } from "~/components/blocks/mineralization/mine
 import { FarmNSupplyKpi } from "~/components/blocks/mineralization/nsupply-kpi"
 import { MineralizationFallback } from "~/components/blocks/mineralization/skeletons"
 import {
-    
+    Card,
     CardContent,
     CardDescription,
     CardHeader,

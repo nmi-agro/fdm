@@ -8,7 +8,7 @@ import {
     type FertilizerApplication,
     type Fertilizer,
 } from "@nmi-agro/fdm-core"
-import { CalendarOff, Slash } from "lucide-react"
+import { CalendarOff, Layers, Slash } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
@@ -275,6 +275,21 @@ export default function DynaPage() {
 
     return (
         <div className="space-y-4">
+            {/* Method context banner */}
+            <div className="rounded-lg border bg-muted/40 px-4 py-3 flex items-center justify-between gap-4 text-sm">
+                <div className="flex items-center gap-2 min-w-0">
+                    <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">
+                        DYNA berekent de N-beschikbaarheid op basis van <span className="font-medium text-foreground">bodem, gewas én bemesting</span> — nauwkeuriger dan bodem-alleen methoden.
+                    </span>
+                </div>
+                <NavLink
+                    to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/mineralization/${loaderData.b_id}`}
+                    className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 shrink-0 whitespace-nowrap"
+                >
+                    Bodem N-levering
+                </NavLink>
+            </div>
             <Suspense fallback={<DynaFallback />}>
                 <DynaContent
                     asyncData={asyncData}
