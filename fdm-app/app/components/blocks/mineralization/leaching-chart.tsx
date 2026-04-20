@@ -7,7 +7,7 @@ import {
     ChartTooltip,
     ChartTooltipContent,
 } from "~/components/ui/chart"
-import type { DynaDailyPoint } from "~/integrations/mineralisatie.server"
+import type { DynaDailyPoint } from "~/integrations/mineralization.server"
 
 const MONTH_LABELS_NL = [
     "Jan",

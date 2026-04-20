@@ -6,7 +6,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
-import type { NSupplyMethod } from "~/integrations/mineralisatie.server"
+import type { NSupplyMethod } from "~/integrations/mineralization.server"
 
 const METHOD_OPTIONS: {
     value: NSupplyMethod

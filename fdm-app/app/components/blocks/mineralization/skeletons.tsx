@@ -7,7 +7,7 @@ import {
 } from "~/components/ui/card"
 import { Skeleton } from "~/components/ui/skeleton"
 
-export function MineralisatieCardSkeleton() {
+export function MineralizationCardSkeleton() {
     return (
         <Card className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -22,7 +22,7 @@ export function MineralisatieCardSkeleton() {
     )
 }
 
-export function MineralisatieChartSkeleton() {
+export function MineralizationChartSkeleton() {
     return (
         <Card className="animate-pulse">
             <CardHeader>
@@ -40,7 +40,7 @@ export function MineralisatieChartSkeleton() {
     )
 }
 
-export function MineralisatieFieldsSkeleton() {
+export function MineralizationFieldsSkeleton() {
     return (
         <Card className="animate-pulse">
             <CardHeader>
@@ -68,20 +68,20 @@ export function MineralisatieFieldsSkeleton() {
 }
 
 /** Fallback for the farm overview page */
-export function MineralisatieFallback() {
+export function MineralizationFallback() {
     return (
         <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
-                <MineralisatieCardSkeleton />
-                <MineralisatieCardSkeleton />
-                <MineralisatieCardSkeleton />
+                <MineralizationCardSkeleton />
+                <MineralizationCardSkeleton />
+                <MineralizationCardSkeleton />
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <div className="col-span-4">
-                    <MineralisatieChartSkeleton />
+                    <MineralizationChartSkeleton />
                 </div>
                 <div className="col-span-3">
-                    <MineralisatieFieldsSkeleton />
+                    <MineralizationFieldsSkeleton />
                 </div>
             </div>
         </div>
@@ -93,12 +93,12 @@ export function DynaFallback() {
     return (
         <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <MineralisatieCardSkeleton />
-                <MineralisatieCardSkeleton />
-                <MineralisatieCardSkeleton />
-                <MineralisatieCardSkeleton />
+                <MineralizationCardSkeleton />
+                <MineralizationCardSkeleton />
+                <MineralizationCardSkeleton />
+                <MineralizationCardSkeleton />
             </div>
-            <MineralisatieChartSkeleton />
+            <MineralizationChartSkeleton />
             <div className="grid gap-4 md:grid-cols-2">
                 <Card className="animate-pulse">
                     <CardHeader>
@@ -136,16 +136,16 @@ export function DynaFallback() {
 }
 
 /** Fallback for the field detail page */
-export function MineralisatieFieldDetailFallback() {
+export function MineralizationFieldDetailFallback() {
     return (
         <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <MineralisatieCardSkeleton />
-                <MineralisatieCardSkeleton />
-                <MineralisatieCardSkeleton />
-                <MineralisatieCardSkeleton />
+                <MineralizationCardSkeleton />
+                <MineralizationCardSkeleton />
+                <MineralizationCardSkeleton />
+                <MineralizationCardSkeleton />
             </div>
-            <MineralisatieChartSkeleton />
+            <MineralizationChartSkeleton />
             <div className="grid gap-4 md:grid-cols-2">
                 <Card className="animate-pulse">
                     <CardHeader>

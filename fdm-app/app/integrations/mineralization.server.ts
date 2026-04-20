@@ -1,5 +1,5 @@
 /**
- * @file mineralisatie.server.ts
+ * @file mineralization.server.ts
  *
  * Server-side orchestration layer for the Mineralisatie (Nitrogen Mineralization) feature.
  *

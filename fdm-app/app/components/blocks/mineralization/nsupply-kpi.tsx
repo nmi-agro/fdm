@@ -3,7 +3,7 @@ import { Separator } from "~/components/ui/separator"
 import type {
     NSupplyMethod,
     NSupplyResult,
-} from "~/integrations/mineralisatie.server"
+} from "~/integrations/mineralization.server"
 
 const METHOD_LABELS: Record<NSupplyMethod, string> = {
     minip: "MINIP",

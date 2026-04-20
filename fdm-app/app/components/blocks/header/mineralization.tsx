@@ -18,7 +18,7 @@ type HeaderFieldOption = {
     b_name: string | null | undefined
 }
 
-export function HeaderMineralisatie({
+export function HeaderMineralization({
     b_id_farm,
     b_id,
     fieldOptions,
@@ -40,7 +40,7 @@ export function HeaderMineralisatie({
             <BreadcrumbSeparator className="hidden xl:block" />
             <BreadcrumbItem className="hidden xl:block">
                 <BreadcrumbLink
-                    href={`/farm/${b_id_farm}/${calendar}/mineralisatie`}
+                    href={`/farm/${b_id_farm}/${calendar}/mineralization`}
                 >
                     Mineralisatie
                 </BreadcrumbLink>
@@ -65,7 +65,7 @@ export function HeaderMineralisatie({
                                         key={option.b_id}
                                     >
                                         <NavLink
-                                            to={`/farm/${b_id_farm}/${calendar}/mineralisatie/${option.b_id}`}
+                                            to={`/farm/${b_id_farm}/${calendar}/mineralization/${option.b_id}`}
                                         >
                                             {option.b_name}
                                         </NavLink>
@@ -82,7 +82,7 @@ export function HeaderMineralisatie({
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                         <BreadcrumbLink
-                            href={`/farm/${b_id_farm}/${calendar}/mineralisatie/${b_id}/dyna`}
+                            href={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}/dyna`}
                         >
                             DYNA
                         </BreadcrumbLink>

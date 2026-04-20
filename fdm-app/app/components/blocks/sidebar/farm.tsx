@@ -390,12 +390,12 @@ export function SidebarLabs() {
                         <SidebarMenuButton
                             asChild
                             isActive={location.pathname.includes(
-                                `/farm/${farmId}/${selectedCalendar}/mineralisatie`,
+                                `/farm/${farmId}/${selectedCalendar}/mineralization`,
                             )}
                             tooltip="Stikstofmineralisatie per perceel"
                         >
                             <NavLink
-                                to={`/farm/${farmId}/${selectedCalendar}/mineralisatie`}
+                                to={`/farm/${farmId}/${selectedCalendar}/mineralization`}
                             >
                                 <Bubbles />
                                 <span>Mineralisatie</span>

@@ -7,7 +7,7 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import type { DynaFertilizerAdvice } from "~/integrations/mineralisatie.server"
+import type { DynaFertilizerAdvice } from "~/integrations/mineralization.server"
 
 interface DynaAdviceCardProps {
     fertilizingRecommendations: DynaFertilizerAdvice | null

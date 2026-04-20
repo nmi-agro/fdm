@@ -8,7 +8,7 @@ import {
     TableHeader,
     TableRow,
 } from "~/components/ui/table"
-import type { NSupplyResult } from "~/integrations/mineralisatie.server"
+import type { NSupplyResult } from "~/integrations/mineralization.server"
 
 interface FieldListProps {
     results: NSupplyResult[]
@@ -46,7 +46,7 @@ export function FieldList({ results, b_id_farm, calendar }: FieldListProps) {
                     <TableRow key={result.b_id}>
                         <TableCell>
                             <NavLink
-                                to={`/farm/${b_id_farm}/${calendar}/mineralisatie/${result.b_id}`}
+                                to={`/farm/${b_id_farm}/${calendar}/mineralization/${result.b_id}`}
                                 className="hover:underline font-medium"
                             >
                                 {result.b_name}

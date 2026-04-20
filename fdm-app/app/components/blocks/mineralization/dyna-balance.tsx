@@ -6,7 +6,7 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import type { DynaNitrogenBalance } from "~/integrations/mineralisatie.server"
+import type { DynaNitrogenBalance } from "~/integrations/mineralization.server"
 
 interface DynaBalanceCardProps {
     nitrogenBalance: DynaNitrogenBalance
@@ -41,7 +41,7 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
     return (
         <Card>
             <CardHeader className="pb-2">
-                <CardTitle className="text-base">N-balans</CardTitle>
+                <CardTitle className="text-base">Werkzame N-balans</CardTitle>
                 <CardDescription>
                     Stikstofaanbod naar bron (kg N/ha/jaar)
                 </CardDescription>

@@ -17,11 +17,11 @@ import {
     NavLink,
     useLoaderData,
 } from "react-router"
-import { DynaAdviceCard } from "~/components/blocks/mineralisatie/dyna-advice"
-import { DynaBalanceCard } from "~/components/blocks/mineralisatie/dyna-balance"
-import { DynaChart } from "~/components/blocks/mineralisatie/dyna-chart"
-import { LeachingChart } from "~/components/blocks/mineralisatie/leaching-chart"
-import { DynaFallback } from "~/components/blocks/mineralisatie/skeletons"
+import { DynaAdviceCard } from "~/components/blocks/mineralization/dyna-advice"
+import { DynaBalanceCard } from "~/components/blocks/mineralization/dyna-balance"
+import { DynaChart } from "~/components/blocks/mineralization/dyna-chart"
+import { LeachingChart } from "~/components/blocks/mineralization/leaching-chart"
+import { DynaFallback } from "~/components/blocks/mineralization/skeletons"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -40,7 +40,7 @@ import {
 import {
     type DynaResult,
     getDynaForField,
-} from "~/integrations/mineralisatie.server"
+} from "~/integrations/mineralization.server"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"

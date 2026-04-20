@@ -8,7 +8,7 @@ import {
 } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { HeaderMineralisatie } from "~/components/blocks/header/mineralisatie"
+import { HeaderMineralization } from "~/components/blocks/header/mineralization"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -95,7 +95,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 }
 
-export default function MineralisatieLayout() {
+export default function MineralizationLayout() {
     const loaderData = useLoaderData<typeof loader>()
 
     return (
@@ -105,7 +105,7 @@ export default function MineralisatieLayout() {
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}
                 />
-                <HeaderMineralisatie
+                <HeaderMineralization
                     b_id_farm={loaderData.b_id_farm}
                     b_id={loaderData.b_id}
                     fieldOptions={loaderData.fieldOptions}

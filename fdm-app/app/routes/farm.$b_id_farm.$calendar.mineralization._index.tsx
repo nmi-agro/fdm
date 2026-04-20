@@ -6,13 +6,13 @@ import {
     type MetaFunction,
     useLoaderData,
 } from "react-router"
-import { FieldList } from "~/components/blocks/mineralisatie/field-list"
-import { MethodSelector } from "~/components/blocks/mineralisatie/method-selector"
-import { FarmMineralisatieChart } from "~/components/blocks/mineralisatie/mineralisatie-chart"
-import { FarmNSupplyKpi } from "~/components/blocks/mineralisatie/nsupply-kpi"
-import { MineralisatieFallback } from "~/components/blocks/mineralisatie/skeletons"
+import { FieldList } from "~/components/blocks/mineralization/field-list"
+import { MethodSelector } from "~/components/blocks/mineralization/method-selector"
+import { FarmMineralizationChart } from "~/components/blocks/mineralization/mineralization-chart"
+import { FarmNSupplyKpi } from "~/components/blocks/mineralization/nsupply-kpi"
+import { MineralizationFallback } from "~/components/blocks/mineralization/skeletons"
 import {
-    Card,
+    
     CardContent,
     CardDescription,
     CardHeader,
@@ -22,7 +22,7 @@ import {
     getNSupplyForFarm,
     type NSupplyMethod,
     type NSupplyResult,
-} from "~/integrations/mineralisatie.server"
+} from "~/integrations/mineralization.server"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -88,7 +88,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 reportError(
                     err instanceof Error ? err.message : String(err),
                     {
-                        page: "farm/{b_id_farm}/{calendar}/mineralisatie/_index",
+                        page: "farm/{b_id_farm}/{calendar}/mineralization/_index",
                         scope: "loader/asyncData",
                     },
                     { b_id_farm },
@@ -110,14 +110,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 }
 
-export default function MineralisatieFarmOverview() {
+export default function MineralizationFarmOverview() {
     const loaderData = useLoaderData<typeof loader>()
     const { b_id_farm, method, calendar, asyncData } = loaderData
 
     return (
         <div className="space-y-4">
-            <Suspense fallback={<MineralisatieFallback />}>
-                <MineralisatieFarmContent
+            <Suspense fallback={<MineralizationFallback />}>
+                <MineralizationFarmContent
                     asyncData={asyncData}
                     b_id_farm={b_id_farm}
                     method={method}
@@ -128,7 +128,7 @@ export default function MineralisatieFarmOverview() {
     )
 }
 
-function MineralisatieFarmContent({
+function MineralizationFarmContent({
     asyncData,
     b_id_farm,
     method,
@@ -162,7 +162,7 @@ function MineralisatieFarmContent({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <FarmMineralisatieChart
+                            <FarmMineralizationChart
                                 data={farmAvgData}
                                 year={Number(calendar)}
                             />

@@ -19,7 +19,7 @@ import {
 import type {
     DynaDailyPoint,
     DynaFertilizerAdvice,
-} from "~/integrations/mineralisatie.server"
+} from "~/integrations/mineralization.server"
 
 const MONTH_LABELS_NL = [
     "Jan",

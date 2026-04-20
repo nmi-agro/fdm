@@ -1,5 +1,5 @@
 import { Outlet } from "react-router"
 
-export default function MineralisatieFieldLayout() {
+export default function MineralizationFieldLayout() {
     return <Outlet />
 }

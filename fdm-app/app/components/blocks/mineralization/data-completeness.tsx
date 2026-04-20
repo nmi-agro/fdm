@@ -18,7 +18,7 @@ import {
 import type {
     DataCompleteness,
     NSupplyMethod,
-} from "~/integrations/mineralisatie.server"
+} from "~/integrations/mineralization.server"
 
 const PARAM_LABELS: Record<string, string> = {
     a_som_loi: "Organische stof (LOI)",

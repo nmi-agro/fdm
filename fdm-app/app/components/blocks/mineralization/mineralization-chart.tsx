@@ -19,7 +19,7 @@ import {
 import type {
     NSupplyDataPoint,
     NSupplyMethod,
-} from "~/integrations/mineralisatie.server"
+} from "~/integrations/mineralization.server"
 
 const MONTH_DOYS = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 const MONTH_LABELS = [
@@ -61,7 +61,7 @@ function getCurrentDoy(): number {
 
 // ─── Single-series chart (farm overview) ─────────────────────────────────────
 
-interface FarmMineralisatieChartProps {
+interface FarmMineralizationChartProps {
     data: NSupplyDataPoint[]
     year?: number
 }
@@ -73,10 +73,10 @@ const farmChartConfig = {
     },
 } satisfies ChartConfig
 
-export function FarmMineralisatieChart({
+export function FarmMineralizationChart({
     data,
     year = new Date().getFullYear(),
-}: FarmMineralisatieChartProps) {
+}: FarmMineralizationChartProps) {
     const currentDoy = getCurrentDoy()
     const isCurrentYear = year === new Date().getFullYear()
 
@@ -183,7 +183,7 @@ interface FieldDataSeries {
     error?: string
 }
 
-interface FieldMineralisatieChartProps {
+interface FieldMineralizationChartProps {
     series: FieldDataSeries[]
     year?: number
 }
@@ -236,10 +236,10 @@ function mergeSeriesData(
     )
 }
 
-export function FieldMineralisatieChart({
+export function FieldMineralizationChart({
     series,
     year = new Date().getFullYear(),
-}: FieldMineralisatieChartProps) {
+}: FieldMineralizationChartProps) {
     const currentDoy = getCurrentDoy()
     const isCurrentYear = year === new Date().getFullYear()
     const mergedData = mergeSeriesData(series)

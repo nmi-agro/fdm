@@ -8,10 +8,10 @@ import {
     NavLink,
     useLoaderData,
 } from "react-router"
-import { DataCompletenessCard } from "~/components/blocks/mineralisatie/data-completeness"
-import { FieldMineralisatieChart } from "~/components/blocks/mineralisatie/mineralisatie-chart"
-import { FieldNSupplyDetailsCard } from "~/components/blocks/mineralisatie/nsupply-kpi"
-import { MineralisatieFieldDetailFallback } from "~/components/blocks/mineralisatie/skeletons"
+import { DataCompletenessCard } from "~/components/blocks/mineralization/data-completeness"
+import { FieldMineralizationChart } from "~/components/blocks/mineralization/mineralization-chart"
+import { FieldNSupplyDetailsCard } from "~/components/blocks/mineralization/nsupply-kpi"
+import { MineralizationFieldDetailFallback } from "~/components/blocks/mineralization/skeletons"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -34,7 +34,7 @@ import {
     getNSupplyForField,
     type NSupplyMethod,
     type NSupplyResult,
-} from "~/integrations/mineralisatie.server"
+} from "~/integrations/mineralization.server"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -193,7 +193,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 }
 
-export default function MineralisatieFieldDetail() {
+export default function MineralizationFieldDetail() {
     const loaderData = useLoaderData<typeof loader>()
 
     if (loaderData.isBufferStrip) {
@@ -217,8 +217,8 @@ export default function MineralisatieFieldDetail() {
 
     return (
         <div className="space-y-4">
-            <Suspense fallback={<MineralisatieFieldDetailFallback />}>
-                <MineralisatieFieldContent
+            <Suspense fallback={<MineralizationFieldDetailFallback />}>
+                <MineralizationFieldContent
                     asyncData={asyncData}
                     b_id={b_id}
                     b_id_farm={b_id_farm}
@@ -230,7 +230,7 @@ export default function MineralisatieFieldDetail() {
     )
 }
 
-function MineralisatieFieldContent({
+function MineralizationFieldContent({
     asyncData,
     b_id,
     b_id_farm,
@@ -299,7 +299,7 @@ function MineralisatieFieldContent({
                 </div>
                 <Button asChild size="sm" className="shrink-0">
                     <NavLink
-                        to={`/farm/${b_id_farm}/${calendar}/mineralisatie/${b_id}/dyna`}
+                        to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}/dyna`}
                     >
                         Naar DYNA
                         <ArrowRight className="ml-2 h-4 w-4" />
@@ -316,7 +316,7 @@ function MineralisatieFieldContent({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <FieldMineralisatieChart
+                    <FieldMineralizationChart
                         series={series}
                         year={Number(calendar)}
                     />
