@@ -2,7 +2,7 @@ import type { FeatureCollection } from "geojson"
 import throttle from "lodash.throttle"
 import { Check, Info } from "lucide-react"
 import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
@@ -247,6 +247,8 @@ export function FieldsPanelSelection({
     const fetcher = useFetcher()
     const { current: map } = useMap()
     const [panel, setPanel] = useState<React.ReactNode | null>(null)
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
+    const scrollRef = useRef<HTMLDivElement>(null)
 
     const isSubmitting = fetcher.state !== "idle"
 
@@ -275,6 +277,26 @@ export function FieldsPanelSelection({
         [fetcher],
     )
 
+    function handleScroll(
+        scrollElement: HTMLDivElement,
+        scrollContainerElement: HTMLDivElement,
+    ) {
+        if (scrollElement.scrollTop > 5) {
+            scrollContainerElement.dataset.scrollStart = ""
+        } else {
+            delete scrollContainerElement.dataset.scrollStart
+        }
+
+        if (
+            scrollElement.scrollHeight - scrollElement.scrollTop >
+            5 + scrollElement.offsetHeight
+        ) {
+            scrollContainerElement.dataset.scrollEnd = ""
+        } else {
+            delete scrollContainerElement.dataset.scrollEnd
+        }
+    }
+
     useEffect(() => {
         function updatePanel() {
             if (map) {
@@ -298,19 +320,18 @@ export function FieldsPanelSelection({
                             }[],
                             feature,
                         ) => {
-                            if (!feature.properties) return acc
+                            const cropField = feature.properties
+                            if (!cropField) return acc
                             const existingCultivation = acc.find(
-                                (c) =>
-                                    c.b_lu_name ===
-                                    feature.properties.b_lu_name,
+                                (c) => c.b_lu_name === cropField.b_lu_name,
                             )
                             if (existingCultivation) {
                                 existingCultivation.count++
                             } else {
                                 acc.push({
-                                    b_lu_name: feature.properties.b_lu_name,
+                                    b_lu_name: cropField.b_lu_name,
                                     b_lu_croprotation:
-                                        feature.properties.b_lu_croprotation,
+                                        cropField.b_lu_croprotation,
                                     count: 1,
                                 })
                             }
@@ -319,6 +340,8 @@ export function FieldsPanelSelection({
                         [],
                     )
 
+                    const pseudoElemClasses =
+                        "before:absolute before:h-16 before:left-0 before:right-0 before:from-card before:to-transparent before:opacity-0 before:transition-opacity before:duration-250 before:pointer-events-none"
                     setPanel(
                         <Card className="w-full flex-initial min-h-0 flex flex-col gap-4">
                             <CardHeader>
@@ -327,34 +350,46 @@ export function FieldsPanelSelection({
                                     {fieldCountText}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="flex-initial min-h-0 overflow-y-scroll">
-                                <div className="space-y-4">
-                                    {cultivations.map((cultivation, _index) => (
-                                        // let cultivationCountText = `${cultivation.count + 1} percelen`
+                            <CardContent
+                                ref={scrollContainerRef}
+                                className={`p-0 relative flex-initial min-h-0 overflow-hidden flex items-stretch before:top-0 after:bottom-0 before:bg-linear-to-b after:bg-linear-to-t data-scroll-start:before:opacity-100 data-scroll-end:after:opacity-100 ${pseudoElemClasses} ${pseudoElemClasses.replaceAll("before:", "after:")}`}
+                            >
+                                <div
+                                    ref={scrollRef}
+                                    className="overflow-y-scroll"
+                                >
+                                    <div className="px-6 py-4 space-y-4">
+                                        {cultivations.map(
+                                            (cultivation, _index) => (
+                                                // let cultivationCountText = `${cultivation.count + 1} percelen`
 
-                                        <div
-                                            key={cultivation.b_lu_name}
-                                            className="grid grid-cols-[25px_1fr] items-start"
-                                        >
-                                            <span
-                                                className="flex h-2 w-2 translate-y-1 rounded-full"
-                                                style={{
-                                                    backgroundColor:
-                                                        getCultivationColor(
-                                                            cultivation.b_lu_croprotation,
-                                                        ),
-                                                }}
-                                            />
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-medium leading-none">
-                                                    {cultivation.b_lu_name}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {`${cultivation.count} percelen`}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                                <div
+                                                    key={cultivation.b_lu_name}
+                                                    className="grid grid-cols-[25px_1fr] items-start"
+                                                >
+                                                    <span
+                                                        className="flex h-2 w-2 translate-y-1 rounded-full"
+                                                        style={{
+                                                            backgroundColor:
+                                                                getCultivationColor(
+                                                                    cultivation.b_lu_croprotation,
+                                                                ),
+                                                        }}
+                                                    />
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-medium leading-none">
+                                                            {
+                                                                cultivation.b_lu_name
+                                                            }
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {`${cultivation.count} percelen`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
                                 </div>
                             </CardContent>
                             <CardFooter>
@@ -425,6 +460,21 @@ export function FieldsPanelSelection({
         continueTo,
         numFieldsSaved,
     ])
+
+    useEffect(() => {
+        const scrollElement = scrollRef.current
+        const scrollContainerElement = scrollContainerRef.current
+        if (!scrollElement || !scrollContainerElement) return
+        const handler = () => {
+            handleScroll(scrollElement, scrollContainerElement)
+        }
+        const timeout = setTimeout(handler, 100)
+        scrollElement.addEventListener("scroll", handler, { passive: true })
+        return () => {
+            scrollElement.removeEventListener("scroll", handler)
+            clearTimeout(timeout)
+        }
+    })
 
     return panel
 }
