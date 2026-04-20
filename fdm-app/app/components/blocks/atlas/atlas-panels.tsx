@@ -85,16 +85,10 @@ export function FieldsPanelHover({
                         }
                     }
 
-                    if (
-                        features &&
-                        features.length > 0 &&
-                        features[0].properties
-                    ) {
+                    const top = features[0]
+                    if (top?.properties) {
                         setPanel(
-                            makePanel({
-                                layer: features[0].layer.id,
-                                feature: features[0],
-                            }),
+                            makePanel({ layer: top.layer.id, feature: top }),
                         )
                     } else {
                         setPanel(makePanel({}))
@@ -110,8 +104,8 @@ export function FieldsPanelHover({
                         const active = layer && feature
                         const name = feature
                             ? layer === "fieldsSaved"
-                                ? features[0].properties.b_name
-                                : features[0].properties.b_lu_name
+                                ? feature.properties.b_name
+                                : feature.properties.b_lu_name
                             : "Naam"
                         return (
                             <Card
@@ -279,26 +273,6 @@ export function FieldsPanelSelection({
         [fetcher],
     )
 
-    function handleScroll(
-        scrollElement: HTMLDivElement,
-        scrollContainerElement: HTMLDivElement,
-    ) {
-        if (scrollElement.scrollTop > 5) {
-            scrollContainerElement.dataset.scrollStart = ""
-        } else {
-            delete scrollContainerElement.dataset.scrollStart
-        }
-
-        if (
-            scrollElement.scrollHeight - scrollElement.scrollTop >
-            5 + scrollElement.offsetHeight
-        ) {
-            scrollContainerElement.dataset.scrollEnd = ""
-        } else {
-            delete scrollContainerElement.dataset.scrollEnd
-        }
-    }
-
     useEffect(() => {
         function updatePanel() {
             if (map) {
@@ -358,7 +332,7 @@ export function FieldsPanelSelection({
                             >
                                 <div
                                     ref={scrollRef}
-                                    className="overflow-y-scroll"
+                                    className="overflow-y-auto"
                                 >
                                     <div className="px-6 py-4 space-y-4">
                                         {cultivations.map(
@@ -464,20 +438,43 @@ export function FieldsPanelSelection({
         numFieldsSaved,
     ])
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: refs will change when the panel changes
     useEffect(() => {
         const scrollElement = scrollRef.current
         const scrollContainerElement = scrollContainerRef.current
         if (!scrollElement || !scrollContainerElement) return
+
+        function handleScroll(
+            scrollElement: HTMLDivElement,
+            scrollContainerElement: HTMLDivElement,
+        ) {
+            if (scrollElement.scrollTop > 5) {
+                scrollContainerElement.dataset.scrollStart = ""
+            } else {
+                delete scrollContainerElement.dataset.scrollStart
+            }
+
+            if (
+                scrollElement.scrollHeight - scrollElement.scrollTop >
+                5 + scrollElement.offsetHeight
+            ) {
+                scrollContainerElement.dataset.scrollEnd = ""
+            } else {
+                delete scrollContainerElement.dataset.scrollEnd
+            }
+        }
+
         const handler = () => {
             handleScroll(scrollElement, scrollContainerElement)
         }
+
         const timeout = setTimeout(handler, 100)
         scrollElement.addEventListener("scroll", handler, { passive: true })
         return () => {
             scrollElement.removeEventListener("scroll", handler)
             clearTimeout(timeout)
         }
-    })
+    }, [panel])
 
     return panel
 }
