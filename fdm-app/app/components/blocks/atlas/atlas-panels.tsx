@@ -132,6 +132,8 @@ export function FieldsPanelHover({
                             </Card>
                         )
                     }
+                } else {
+                    setPanel(null)
                 }
             }
         }
@@ -165,12 +167,11 @@ export function FieldsPanelHover({
             map.on("mousemove", throttledUpdatePanel)
             map.on("mousedown", delayedUpdatePanel)
             map.on("zoom", throttledUpdatePanel)
-            map.on("load", updatePanel)
+            map.once("load", updatePanel)
             return () => {
                 map.off("mousemove", throttledUpdatePanel)
                 map.off("mousedown", delayedUpdatePanel)
                 map.off("zoom", throttledUpdatePanel)
-                map.off("load", updatePanel)
 
                 // Cancel pending updates
                 clearTimeout(delayedUpdateTimeout)
@@ -217,7 +218,7 @@ export function FieldsPanelZoom({
             }
         }
 
-        const throttledUpdatePanel = throttle(updatePanel, 250, {
+        const throttledUpdatePanel = throttle(updatePanel, 200, {
             trailing: true,
         })
 
