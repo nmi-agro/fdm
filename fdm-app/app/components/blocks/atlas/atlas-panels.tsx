@@ -172,6 +172,7 @@ export function FieldsPanelHover({
                 map.off("mousemove", throttledUpdatePanel)
                 map.off("mousedown", delayedUpdatePanel)
                 map.off("zoom", throttledUpdatePanel)
+                map.off("load", updatePanel)
 
                 // Cancel pending updates
                 clearTimeout(delayedUpdateTimeout)
@@ -395,6 +396,7 @@ export function FieldsPanelSelection({
                             </CardContent>
                             <CardFooter>
                                 <Button
+                                    className="w-full"
                                     onClick={() => submitSelectedFields(fields)}
                                     disabled={isSubmitting}
                                 >
