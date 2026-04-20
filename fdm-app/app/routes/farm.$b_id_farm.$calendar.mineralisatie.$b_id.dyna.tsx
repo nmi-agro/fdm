@@ -4,15 +4,17 @@ import {
     getField,
     getGrazingIntention,
     getCultivations,
+    getHarvests,
     type FertilizerApplication,
     type Fertilizer,
 } from "@nmi-agro/fdm-core"
-import { Slash } from "lucide-react"
+import { CalendarOff, Slash } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
+    NavLink,
     useLoaderData,
 } from "react-router"
 import { DynaAdviceCard } from "~/components/blocks/mineralisatie/dyna-advice"
@@ -20,6 +22,7 @@ import { DynaBalanceCard } from "~/components/blocks/mineralisatie/dyna-balance"
 import { DynaChart } from "~/components/blocks/mineralisatie/dyna-chart"
 import { LeachingChart } from "~/components/blocks/mineralisatie/leaching-chart"
 import { DynaFallback } from "~/components/blocks/mineralisatie/skeletons"
+import { Button } from "~/components/ui/button"
 import {
     Card,
     CardContent,
@@ -115,6 +118,27 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             getFertilizers(fdm, session.principal_id, b_id_farm),
             getCultivations(fdm, session.principal_id, b_id, timeframe),
         ])
+
+        // Pre-flight check: any main crop without a harvest date will cause
+        // the DYNA API to return 400 "b_date_harvest is missing".
+        const ongoingMainCrops = cultivations.filter(
+            (c) =>
+                c.b_lu_end == null &&
+                c.b_lu_croprotation !== "catchcrop",
+        )
+        for (const crop of ongoingMainCrops) {
+            if (!crop.b_lu) continue
+            const harvests = await getHarvests(fdm, session.principal_id, crop.b_lu, timeframe)
+            if (harvests.length === 0) {
+                return {
+                    missingHarvestDate: true as const,
+                    field,
+                    b_id,
+                    b_id_farm,
+                    calendar: params.calendar ?? "",
+                }
+            }
+        }
 
         // Build a map from p_id → full fertilizer properties for quick lookup
         const fertilizerMap = new Map<string, Fertilizer>(
@@ -220,6 +244,29 @@ export default function DynaPage() {
                         bufferstroken.
                     </EmptyDescription>
                 </EmptyHeader>
+            </Empty>
+        )
+    }
+
+    if (loaderData.missingHarvestDate) {
+        return (
+            <Empty>
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <CalendarOff />
+                    </EmptyMedia>
+                    <EmptyTitle>Oogstdatum ontbreekt</EmptyTitle>
+                    <EmptyDescription>
+                        DYNA heeft een oogstdatum nodig om de berekening uit te
+                        voeren. Voeg een oogstdatum toe aan het gewas op dit
+                        perceel.
+                    </EmptyDescription>
+                </EmptyHeader>
+                <NavLink
+                    to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/${loaderData.b_id}/cultivation`}
+                >
+                    <Button>Naar gewassen</Button>
+                </NavLink>
             </Empty>
         )
     }
@@ -338,6 +385,7 @@ function DynaContent({
                         data={yearData}
                         fertilizingRecommendations={fertilizingRecommendations}
                         events={chartEvents}
+                        year={year}
                     />
                 </CardContent>
             </Card>

@@ -78,6 +78,7 @@ export function FarmMineralisatieChart({
     year = new Date().getFullYear(),
 }: FarmMineralisatieChartProps) {
     const currentDoy = getCurrentDoy()
+    const isCurrentYear = year === new Date().getFullYear()
 
     return (
         <ChartContainer config={farmChartConfig} className="h-[300px] w-full">
@@ -146,18 +147,20 @@ export function FarmMineralisatieChart({
                         />
                     }
                 />
-                <ReferenceLine
-                    x={currentDoy}
-                    stroke="hsl(0, 72%, 51%)"
-                    strokeWidth={2}
-                    isFront
-                    label={{
-                        value: "Vandaag",
-                        position: "insideTopRight",
-                        fontSize: 11,
-                        fill: "hsl(0, 72%, 51%)",
-                    }}
-                />
+                {isCurrentYear && (
+                    <ReferenceLine
+                        x={currentDoy}
+                        stroke="hsl(0, 72%, 51%)"
+                        strokeWidth={2}
+                        isFront
+                        label={{
+                            value: "Vandaag",
+                            position: "insideTopRight",
+                            fontSize: 11,
+                            fill: "hsl(0, 72%, 51%)",
+                        }}
+                    />
+                )}
                 <Area
                     type="monotone"
                     dataKey="d_n_supply_actual"
@@ -238,6 +241,7 @@ export function FieldMineralisatieChart({
     year = new Date().getFullYear(),
 }: FieldMineralisatieChartProps) {
     const currentDoy = getCurrentDoy()
+    const isCurrentYear = year === new Date().getFullYear()
     const mergedData = mergeSeriesData(series)
     const activeSeries = series.filter((s) => !s.error)
 
@@ -313,18 +317,20 @@ export function FieldMineralisatieChart({
                         />
                     }
                 />
-                <ReferenceLine
-                    x={currentDoy}
-                    stroke="hsl(0, 72%, 51%)"
-                    strokeWidth={2}
-                    isFront
-                    label={{
-                        value: "Vandaag",
-                        position: "insideTopRight",
-                        fontSize: 11,
-                        fill: "hsl(0, 72%, 51%)",
-                    }}
-                />
+                {isCurrentYear && (
+                    <ReferenceLine
+                        x={currentDoy}
+                        stroke="hsl(0, 72%, 51%)"
+                        strokeWidth={2}
+                        isFront
+                        label={{
+                            value: "Vandaag",
+                            position: "insideTopRight",
+                            fontSize: 11,
+                            fill: "hsl(0, 72%, 51%)",
+                        }}
+                    />
+                )}
                 {activeSeries.map((s) => {
                     const style = METHOD_STYLE[s.method]
                     return (

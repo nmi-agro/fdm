@@ -162,7 +162,10 @@ function MineralisatieFarmContent({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <FarmMineralisatieChart data={farmAvgData} />
+                            <FarmMineralisatieChart
+                                data={farmAvgData}
+                                year={Number(calendar)}
+                            />
                         </CardContent>
                     </Card>
                 </div>

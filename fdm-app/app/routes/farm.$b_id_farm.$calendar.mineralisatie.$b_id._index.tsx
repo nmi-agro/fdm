@@ -1,5 +1,5 @@
 import { getCurrentSoilData, getField } from "@nmi-agro/fdm-core"
-import { ArrowRight, Lightbulb, Slash } from "lucide-react"
+import { ArrowRight, FlaskConical, Lightbulb, Slash } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
@@ -276,6 +276,37 @@ function MineralisatieFieldContent({
                 </Card>
             )}
 
+            {/* DYNA Call-to-Action — prominent banner */}
+            <div className="rounded-xl border bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800 p-5 flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3 min-w-0">
+                    <div className="rounded-lg bg-blue-100 dark:bg-blue-900/50 p-2 shrink-0">
+                        <FlaskConical className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-foreground">
+                                Dynamisch N-advies met DYNA
+                            </span>
+                            <span className="rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 font-medium">
+                                bèta
+                            </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Gedetailleerd N-opname vs. beschikbaarheid advies op
+                            dagbasis — inclusief uitspoelingsrisico.
+                        </p>
+                    </div>
+                </div>
+                <Button asChild size="sm" className="shrink-0">
+                    <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/mineralisatie/${b_id}/dyna`}
+                    >
+                        Naar DYNA
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </NavLink>
+                </Button>
+            </div>
+
             <Card>
                 <CardHeader>
                     <CardTitle>Mineralisatiecurve</CardTitle>
@@ -285,7 +316,10 @@ function MineralisatieFieldContent({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <FieldMineralisatieChart series={series} />
+                    <FieldMineralisatieChart
+                        series={series}
+                        year={Number(calendar)}
+                    />
                 </CardContent>
             </Card>
 
@@ -299,32 +333,6 @@ function MineralisatieFieldContent({
                     calendar={calendar}
                 />
             </div>
-
-            {/* DYNA Call-to-Action */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Dynamisch N-advies beschikbaar (bèta)</CardTitle>
-                    <CardDescription className="flex items-center justify-between gap-4">
-                        <span>
-                            Bereken gedetailleerd N-opname vs. beschikbaarheid
-                            advies met het DYNA-model.
-                        </span>
-                        <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="shrink-0"
-                        >
-                            <NavLink
-                                to={`/farm/${b_id_farm}/${calendar}/mineralisatie/${b_id}/dyna`}
-                            >
-                                DYNA bekijken
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </NavLink>
-                        </Button>
-                    </CardDescription>
-                </CardHeader>
-            </Card>
         </>
     )
 }

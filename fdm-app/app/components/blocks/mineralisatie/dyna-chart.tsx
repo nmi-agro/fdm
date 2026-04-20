@@ -15,7 +15,6 @@ import {
     ChartLegend,
     ChartLegendContent,
     ChartTooltip,
-    ChartTooltipContent,
 } from "~/components/ui/chart"
 import type {
     DynaDailyPoint,
@@ -92,34 +91,119 @@ const EVENT_COLORS: Record<DynaChartEvent["type"], string> = {
     fertilizer: "hsl(217, 91%, 60%)",
 }
 
-const EVENT_ABBR: Record<DynaChartEvent["type"], string> = {
-    sowing: "Z",
-    harvest: "O",
-    fertilizer: "M",
+function groupEventsByDate(
+    events: DynaChartEvent[],
+): Map<string, DynaChartEvent[]> {
+    const map = new Map<string, DynaChartEvent[]>()
+    for (const ev of events) {
+        const arr = map.get(ev.date) ?? []
+        arr.push(ev)
+        map.set(ev.date, arr)
+    }
+    return map
 }
 
-interface EventLabelProps {
-    viewBox?: { x?: number; y?: number; height?: number }
-    event: DynaChartEvent
-    stackIndex: number
+interface EventDotProps {
+    viewBox?: { x?: number; y?: number }
+    events: DynaChartEvent[]
 }
 
-function EventLabel({ viewBox, event, stackIndex }: EventLabelProps) {
+function EventDot({ viewBox, events }: EventDotProps) {
     if (!viewBox?.x || viewBox.y === undefined) return null
     const x = viewBox.x
-    // Stack labels vertically: 4px from top + 14px per stacked slot
-    const y = (viewBox.y ?? 0) + 10 + stackIndex * 14
+    const y = (viewBox.y ?? 0) + 10
+    const color = EVENT_COLORS[events[0].type]
     return (
-        <text
-            x={x}
-            y={y}
-            fill={EVENT_COLORS[event.type]}
-            fontSize={10}
-            fontWeight="bold"
-            textAnchor="middle"
-        >
-            {EVENT_ABBR[event.type]}
-        </text>
+        <circle
+            cx={x}
+            cy={y}
+            r={5}
+            fill={color}
+            fillOpacity={0.9}
+            stroke="white"
+            strokeWidth={1.5}
+        />
+    )
+}
+
+type DynaChartPoint = {
+    date: string
+    b_nw: number
+    b_nw_min: number
+    b_nw_max: number
+    b_nw_recommended: number | null
+    b_n_uptake: number | null
+    _events?: DynaChartEvent[]
+}
+
+const SERIES_TO_SHOW = ["b_nw", "b_n_uptake", "b_nw_recommended"] as const
+
+function DynaTooltipContent({
+    active,
+    payload,
+}: {
+    active?: boolean
+    payload?: Array<{
+        dataKey: string
+        value: number
+        color?: string
+        payload: DynaChartPoint
+    }>
+}) {
+    if (!active || !payload?.length) return null
+    const point = payload[0]?.payload
+    if (!point) return null
+
+    const visibleEntries = payload.filter((p) =>
+        SERIES_TO_SHOW.includes(p.dataKey as (typeof SERIES_TO_SHOW)[number]),
+    )
+
+    return (
+        <div className="grid min-w-40 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+            <div className="font-medium">{formatDateLabel(point.date)}</div>
+            <div className="grid gap-1.5">
+                {visibleEntries.map((entry) => (
+                    <div
+                        key={entry.dataKey}
+                        className="flex items-center gap-1.5"
+                    >
+                        <div
+                            className="shrink-0 rounded-[2px] h-2.5 w-2.5"
+                            style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="text-muted-foreground">
+                            {dynaChartConfig[
+                                entry.dataKey as keyof typeof dynaChartConfig
+                            ]?.label ?? entry.dataKey}
+                        </span>
+                        <span className="ml-auto font-medium tabular-nums">
+                            {Number(entry.value).toFixed(1)}{" "}
+                            <span className="text-muted-foreground font-normal">
+                                kg N/ha
+                            </span>
+                        </span>
+                    </div>
+                ))}
+            </div>
+            {point._events && point._events.length > 0 && (
+                <div className="border-t border-border/50 pt-1.5 grid gap-1">
+                    {point._events.map((ev, i) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: stable ordered list
+                        <div key={i} className="flex items-center gap-1.5">
+                            <div
+                                className="shrink-0 rounded-full h-2.5 w-2.5"
+                                style={{
+                                    backgroundColor: EVENT_COLORS[ev.type],
+                                }}
+                            />
+                            <span className="text-muted-foreground">
+                                {ev.label}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
     )
 }
 
@@ -127,33 +211,36 @@ interface DynaChartProps {
     data: DynaDailyPoint[]
     fertilizingRecommendations: DynaFertilizerAdvice | null
     events?: DynaChartEvent[]
+    year?: number
 }
 
 export function DynaChart({
     data,
     fertilizingRecommendations,
     events = [],
+    year = new Date().getFullYear(),
 }: DynaChartProps) {
     const monthTicks = getMonthTicks(data)
     const today = new Date().toISOString().split("T")[0] ?? ""
+    const isCurrentYear = year === new Date().getFullYear()
 
     const recDate = fertilizingRecommendations?.b_date_recommended
 
-    // Count how many events share the same date, for stacking labels
-    const dateCounts = new Map<string, number>()
-    const eventsWithStack = events.map((ev) => {
-        const count = dateCounts.get(ev.date) ?? 0
-        dateCounts.set(ev.date, count + 1)
-        return { ...ev, stackIndex: count }
-    })
+    // Group events by date and only include dates present in the data
+    const eventsByDate = groupEventsByDate(events)
+    const chartDates = new Set(data.map((d) => d.b_date_calculation))
+    const uniqueEventDates = Array.from(eventsByDate.entries()).filter(
+        ([date]) => chartDates.has(date),
+    )
 
-    const chartData = data.map((d) => ({
+    const chartData: DynaChartPoint[] = data.map((d) => ({
         date: d.b_date_calculation,
         b_nw: d.b_nw,
         b_nw_min: d.b_nw_min,
         b_nw_max: d.b_nw_max,
         b_nw_recommended: d.b_nw_recommended,
         b_n_uptake: d.b_n_uptake,
+        _events: eventsByDate.get(d.b_date_calculation),
     }))
 
     return (
@@ -181,6 +268,24 @@ export function DynaChart({
                             stopOpacity={0.05}
                         />
                     </linearGradient>
+                    <linearGradient
+                        id="nwGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                    >
+                        <stop
+                            offset="5%"
+                            stopColor="var(--color-b_nw)"
+                            stopOpacity={0.2}
+                        />
+                        <stop
+                            offset="95%"
+                            stopColor="var(--color-b_nw)"
+                            stopOpacity={0.0}
+                        />
+                    </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis
@@ -199,19 +304,10 @@ export function DynaChart({
                         style: { fontSize: 11 },
                     }}
                 />
-                <ChartTooltip
-                    content={
-                        <ChartTooltipContent
-                            labelFormatter={(label, payload) => {
-                                const raw = payload?.[0]?.payload?.date ?? label
-                                return formatDateLabel(raw)
-                            }}
-                        />
-                    }
-                />
+                <ChartTooltip content={<DynaTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
 
-                {/* Min-max band */}
+                {/* Min-max band (render first so it's behind everything) */}
                 <Area
                     dataKey="b_nw_max"
                     stroke="none"
@@ -229,17 +325,19 @@ export function DynaChart({
                     name="b_nw_min"
                 />
 
-                {/* N availability line */}
-                <Line
+                {/* N availability — area with gradient fill */}
+                <Area
                     dataKey="b_nw"
                     stroke="var(--color-b_nw)"
                     strokeWidth={2}
+                    fill="url(#nwGradient)"
                     dot={false}
+                    activeDot={{ r: 3 }}
                     isAnimationActive={false}
                     name="b_nw"
                 />
 
-                {/* N uptake line */}
+                {/* N uptake — dashed line for distinction */}
                 <Line
                     dataKey="b_n_uptake"
                     stroke="var(--color-b_n_uptake)"
@@ -261,17 +359,19 @@ export function DynaChart({
                     name="b_nw_recommended"
                 />
 
-                {/* Today reference line */}
-                <ReferenceLine
-                    x={today}
-                    stroke="hsl(var(--foreground))"
-                    strokeDasharray="4 2"
-                    label={{
-                        value: "Vandaag",
-                        position: "insideTopRight",
-                        fontSize: 11,
-                    }}
-                />
+                {/* Today reference line — only for current year */}
+                {isCurrentYear && (
+                    <ReferenceLine
+                        x={today}
+                        stroke="hsl(var(--foreground))"
+                        strokeDasharray="4 2"
+                        label={{
+                            value: "Vandaag",
+                            position: "insideTopRight",
+                            fontSize: 11,
+                        }}
+                    />
+                )}
 
                 {/* Fertilizer recommendation date */}
                 {recDate && (
@@ -287,20 +387,18 @@ export function DynaChart({
                     />
                 )}
 
-                {/* Field events: sowing (Z), harvest (O), fertilizer (M)
-                    Labels are stacked vertically per date to avoid overlap */}
-                {eventsWithStack.map((ev, idx) => (
+                {/* Field events — info dot at top of each vertical line.
+                    Events grouped by date; tooltip shows all events for that day. */}
+                {uniqueEventDates.map(([date, evs]) => (
                     <ReferenceLine
-                        // biome-ignore lint/suspicious/noArrayIndexKey: stable ordered list
-                        key={idx}
-                        x={ev.date}
-                        stroke={EVENT_COLORS[ev.type]}
+                        key={date}
+                        x={date}
+                        stroke={EVENT_COLORS[evs[0].type]}
                         strokeDasharray="4 3"
                         label={(props) => (
-                            <EventLabel
+                            <EventDot
                                 viewBox={props.viewBox}
-                                event={ev}
-                                stackIndex={ev.stackIndex}
+                                events={evs}
                             />
                         )}
                     />
