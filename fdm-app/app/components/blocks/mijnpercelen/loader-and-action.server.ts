@@ -1,3 +1,4 @@
+import fs from "node:fs/promises"
 import {
     addSoilAnalysis,
     determineIfFieldIsBuffer,
@@ -29,7 +30,7 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { extractErrorMessage } from "~/lib/error"
+import { extractErrorMessage, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
     compareFields,
@@ -371,5 +372,15 @@ export async function genericAction(
         await Promise.allSettled(
             storageKeys.map((storageKey) => fileStorage.remove(storageKey)),
         )
+        await fs
+            .rm(`./uploads/shapefiles/${uploadRequestId}`, {
+                recursive: true,
+                force: true,
+            })
+            .catch((err: unknown) => {
+                reportError(err, {
+                    uploadRequestId: uploadRequestId,
+                })
+            })
     }
 }
