@@ -1,5 +1,5 @@
 import { getCurrentSoilData, getField } from "@nmi-agro/fdm-core"
-import { Activity, ArrowRight, CheckCircle2, Layers, Lightbulb, Slash } from "lucide-react"
+import { ArrowRight, CheckCircle2, Component, Lightbulb, Slash, Zap } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
@@ -282,7 +282,7 @@ function MineralizationFieldContent({
                 <div className="rounded-xl border bg-muted/40 p-5 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-2">
                         <div className="rounded-lg bg-background border p-2 shrink-0">
-                            <Layers className="h-5 w-5 text-foreground" />
+                            <Zap className="h-5 w-5 text-foreground" />
                         </div>
                         <span className="flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5 font-medium">
                             <CheckCircle2 className="h-3 w-3" />
@@ -305,7 +305,7 @@ function MineralizationFieldContent({
                 <div className="rounded-xl border bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200 dark:border-emerald-800 p-5 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-2">
                         <div className="rounded-lg bg-emerald-100 dark:bg-emerald-900/50 p-2 shrink-0">
-                            <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                            <Component className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <span className="rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs px-2 py-0.5 font-medium">
                             Meest volledig

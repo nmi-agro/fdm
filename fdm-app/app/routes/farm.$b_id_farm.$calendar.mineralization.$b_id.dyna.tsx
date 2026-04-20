@@ -327,31 +327,31 @@ function DynaContent({
     const lastPoint = yearData[yearData.length - 1]
     const today = new Date().toISOString().split("T")[0] ?? ""
     const todayPoint = yearData.find((d) => d.b_date_calculation >= today)
+    const isCurrentYear = year === new Date().getFullYear()
 
     const totalLeaching = lastPoint?.b_no3_leach ?? 0
     const currentNAvailability = todayPoint?.b_nw ?? lastPoint?.b_nw ?? 0
     const currentUptake = todayPoint?.b_n_uptake ?? lastPoint?.b_n_uptake ?? 0
 
+    // Format date label for non-current years
+    const lastPointDateLabel = lastPoint
+        ? new Date(lastPoint.b_date_calculation).toLocaleDateString("nl-NL", {
+            day: "2-digit",
+            month: "short",
+        })
+        : ""
+
     return (
         <>
             {/* KPI cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardDescription>N aanbod totaal</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-2xl font-bold tabular-nums">
-                            {nitrogenBalance.b_nw.toFixed(1)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            kg N/ha/jaar
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription>N beschikbaar nu</CardDescription>
+                        <CardDescription>
+                            {isCurrentYear
+                                ? "N aanbod nu"
+                                : `N aanbod op ${lastPointDateLabel}`}
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <p className="text-2xl font-bold tabular-nums">
@@ -362,7 +362,11 @@ function DynaContent({
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardDescription>N opname nu</CardDescription>
+                        <CardDescription>
+                            {isCurrentYear
+                                ? "N opname nu"
+                                : `N opname op ${lastPointDateLabel}`}
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <p className="text-2xl font-bold tabular-nums">
