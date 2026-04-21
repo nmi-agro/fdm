@@ -1,6 +1,6 @@
 {
     "name": "@nmi-agro/fdm-app",
-    "version": "0.29.5",
+    "version": "0.29.6",
     "private": true,
     "sideEffects": false,
     "type": "module",
