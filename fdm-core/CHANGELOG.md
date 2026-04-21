@@ -1,5 +1,11 @@
 # Changelog fdm-core
 
+## 0.31.2
+
+### Patch Changes
+
+- [#583](https://github.com/nmi-agro/fdm/pull/583) [`8aa9fb4`](https://github.com/nmi-agro/fdm/commit/8aa9fb405136da1d7c7b2928be8c14112c7c3a07) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixed a performance issue where parallel calculator cache INSERT queries caused PostgreSQL lock contention, leading to nitrogen balance page timeouts (~90s requests). Cache writes (`setCachedCalculation`) and error logging (`setCalculationError`) in `withCalculationCache` are now fire-and-forget, eliminating the INSERT bottleneck while still persisting results asynchronously.
+
 ## 0.31.1
 
 ### Patch Changes
