@@ -1,4 +1,6 @@
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import { Bubbles } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import {
     data,
     type LoaderFunctionArgs,
@@ -11,12 +13,20 @@ import {
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderMineralization } from "~/components/blocks/header/mineralization"
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "~/components/ui/empty"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import PostHogClient from "~/posthog.server"
 
 export const meta: MetaFunction = () => {
     return [
@@ -40,6 +50,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
 
         const session = await getSession(request)
+        const posthog = PostHogClient()
+
+        // Check if Mineralization is enabled for this user
+        const isMineralizationEnabled =
+            (await posthog?.isFeatureEnabled(
+                "mineralization",
+                session.principal_id,
+            )) ?? true
+
         const timeframe = getTimeframe(params)
 
         const farm = await getFarm(fdm, session.principal_id, b_id_farm)
@@ -88,6 +107,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_id_farm,
             farmOptions,
             fieldOptions,
+            isMineralizationEnabled,
         }
     } catch (error) {
         const normalized = handleLoaderError(error)
@@ -99,6 +119,9 @@ export default function MineralizationLayout() {
     const loaderData = useLoaderData<typeof loader>()
     const location = useLocation()
     const { b_id } = useParams() // Get the field ID from child routes
+
+    const isMineralizationEnabled =
+        useFeatureFlagEnabled("mineralization") ?? true
 
     const isField = !!b_id
     const isDyna = location.pathname.endsWith("/dyna")
@@ -114,6 +137,37 @@ export default function MineralizationLayout() {
             ? "Gedetailleerde N-beschikbaarheid op basis van bodem, gewas en bemesting."
             : "Schatting van N-levering uit bodemorganische stof."
         : "Stikstofmineralisatie per perceel en bedrijf."
+
+    if (isMineralizationEnabled === false) {
+        return (
+            <SidebarInset>
+                <Header action={undefined}>
+                    <HeaderFarm
+                        b_id_farm={loaderData.b_id_farm}
+                        farmOptions={loaderData.farmOptions}
+                    />
+                </Header>
+                <main className="flex flex-1 flex-col items-center justify-center p-6">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Bubbles className="h-10 w-10 text-muted-foreground" />
+                            </EmptyMedia>
+                            <EmptyTitle>
+                                Mineralisatie is nog niet beschikbaar voor je.
+                            </EmptyTitle>
+                            <EmptyDescription>
+                                Mineralisatie is momenteel in ontwikkeling en is
+                                nog niet voor iedereen geactiveerd. Als je meer
+                                wilt weten, neem dan contact op met
+                                Ondersteuning.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                </main>
+            </SidebarInset>
+        )
+    }
 
     return (
         <SidebarInset>

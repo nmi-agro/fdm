@@ -377,6 +377,7 @@ export function SidebarLabs() {
     const selectedCalendar = useCalendarStore((state) => state.calendar)
     const location = useLocation()
     const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
+    const isMineralizationEnabled = useFeatureFlagEnabled("mineralization") ?? true
 
     const isFarmSelected = farmId && farmId !== "undefined"
     if (!isFarmSelected) return null
@@ -386,22 +387,24 @@ export function SidebarLabs() {
             <SidebarGroupLabel>Labs</SidebarGroupLabel>
             <SidebarGroupContent>
                 <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={location.pathname.includes(
-                                `/farm/${farmId}/${selectedCalendar}/mineralization`,
-                            )}
-                            tooltip="Stikstofmineralisatie per perceel"
-                        >
-                            <NavLink
-                                to={`/farm/${farmId}/${selectedCalendar}/mineralization`}
+                    {isMineralizationEnabled && (
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={location.pathname.includes(
+                                    `/farm/${farmId}/${selectedCalendar}/mineralization`,
+                                )}
+                                tooltip="Stikstofmineralisatie per perceel"
                             >
-                                <Bubbles />
-                                <span>Mineralisatie</span>
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
+                                <NavLink
+                                    to={`/farm/${farmId}/${selectedCalendar}/mineralization`}
+                                >
+                                    <Bubbles />
+                                    <span>Mineralisatie</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
                     {isGerritEnabled && (
                         <SidebarMenuItem>
                             <SidebarMenuButton
