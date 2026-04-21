@@ -1,6 +1,6 @@
-import { ChevronDown } from "lucide-react"
+import { Check, ChevronDown } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
-import { useCalendarStore } from "@/app/store/calendar"
+import { useCalendarStore } from "~/store/calendar"
 import {
     BreadcrumbItem,
     BreadcrumbLink,
@@ -8,10 +8,11 @@ import {
 } from "~/components/ui/breadcrumb"
 import {
     DropdownMenu,
-    DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import { cn } from "~/lib/utils"
 
 type HeaderFieldOption = {
     b_id: string
@@ -60,16 +61,26 @@ export function HeaderMineralization({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                                 {fieldOptions.map((option) => (
-                                    <DropdownMenuCheckboxItem
-                                        checked={b_id === option.b_id}
+                                    <DropdownMenuItem
                                         key={option.b_id}
+                                        asChild
+                                        className={cn(
+                                            "flex items-center justify-between gap-2 cursor-pointer",
+                                            b_id === option.b_id &&
+                                                "bg-accent text-accent-foreground",
+                                        )}
                                     >
                                         <NavLink
                                             to={`/farm/${b_id_farm}/${calendar}/mineralization/${option.b_id}`}
                                         >
-                                            {option.b_name}
+                                            <span className="truncate">
+                                                {option.b_name}
+                                            </span>
+                                            {b_id === option.b_id && (
+                                                <Check className="h-4 w-4 shrink-0" />
+                                            )}
                                         </NavLink>
-                                    </DropdownMenuCheckboxItem>
+                                    </DropdownMenuItem>
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>

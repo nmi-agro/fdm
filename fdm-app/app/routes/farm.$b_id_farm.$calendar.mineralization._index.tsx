@@ -13,7 +13,6 @@ import { MethodSelector } from "~/components/blocks/mineralization/method-select
 import { FarmMineralizationChart } from "~/components/blocks/mineralization/mineralization-chart"
 import { FarmNSupplyKpi } from "~/components/blocks/mineralization/nsupply-kpi"
 import { MineralizationFallback } from "~/components/blocks/mineralization/skeletons"
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import {
     Card,
     CardContent,
@@ -77,8 +76,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Read method from search params (default: minip)
         const url = new URL(request.url)
-        const method = (url.searchParams.get("method") ??
-            "minip") as NSupplyMethod
+        const methodParam = url.searchParams.get("method")
+        const method: NSupplyMethod =
+            methodParam === "minip" ||
+            methodParam === "pmn" ||
+            methodParam === "century"
+                ? methodParam
+                : "minip"
 
         const asyncNSupply = (async () => {
             try {
@@ -102,11 +106,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })()
 
-        const asyncDynaPromises = getDynaForFarm({
-            principal_id: session.principal_id,
-            b_id_farm,
-            timeframe,
-        })
+        const asyncDynaPromises = (async () => {
+            try {
+                return await getDynaForFarm({
+                    principal_id: session.principal_id,
+                    b_id_farm,
+                    timeframe,
+                })
+            } catch (err) {
+                reportError(
+                    err instanceof Error ? err.message : String(err),
+                    {
+                        page: "farm/{b_id_farm}/{calendar}/mineralization/_index",
+                        scope: "loader/asyncDynaPromises",
+                    },
+                    { b_id_farm },
+                )
+                return [] as Promise<FarmDynaResult>[]
+            }
+        })()
 
         return {
             farm,
@@ -118,7 +136,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             asyncDynaPromises,
         }
     } catch (error) {
-        throw handleLoaderError(error)
+        const normalized = handleLoaderError(error)
+        throw normalized ?? error
     }
 }
 
@@ -260,20 +279,27 @@ function computeFarmAverageCurve(
 ): { doy: number; d_n_supply_actual: number }[] {
     if (results.length === 0) return []
 
-    const doyMap = new Map<number, number[]>()
+    const doyMap = new Map<number, { sumWeighted: number; sumArea: number }>()
+
     for (const result of results) {
+        if (result.error || result.data.length === 0) continue
+        const area = result.area || 0
+
         for (const point of result.data) {
-            const existing = doyMap.get(point.doy) ?? []
-            existing.push(point.d_n_supply_actual)
+            const existing = doyMap.get(point.doy) ?? {
+                sumWeighted: 0,
+                sumArea: 0,
+            }
+            existing.sumWeighted += area * point.d_n_supply_actual
+            existing.sumArea += area
             doyMap.set(point.doy, existing)
         }
     }
 
     return Array.from(doyMap.entries())
         .sort(([a], [b]) => a - b)
-        .map(([doy, values]) => ({
+        .map(([doy, { sumWeighted, sumArea }]) => ({
             doy,
-            d_n_supply_actual:
-                values.reduce((s, v) => s + v, 0) / values.length,
+            d_n_supply_actual: sumArea > 0 ? sumWeighted / sumArea : 0,
         }))
 }

@@ -11,7 +11,6 @@
         "start": "pnpm db:migrate && NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
         "start-dev": "dotenvx run -- pnpm db:migrate && dotenvx run -- NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
         "db:migrate": "node ./app/lib/fdm-migrate.server.js",
-        "test": "vitest run",
         "typecheck": "react-router typegen && tsc"
     },
     "dependencies": {

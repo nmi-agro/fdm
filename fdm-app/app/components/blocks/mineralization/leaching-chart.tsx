@@ -37,14 +37,22 @@ const MONTH_LABELS_NL = [
     "Dec",
 ]
 
+function parseLocalDate(dateStr: string): Date {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [year, month, day] = dateStr.split("-").map(Number)
+        return new Date(year, month - 1, day)
+    }
+    return new Date(dateStr)
+}
+
 function formatDateTick(dateStr: string): string {
-    const d = new Date(dateStr)
+    const d = parseLocalDate(dateStr)
     if (Number.isNaN(d.getTime())) return dateStr
     return MONTH_LABELS_NL[d.getMonth()] ?? dateStr
 }
 
 function formatDateLabel(dateStr: string): string {
-    const d = new Date(dateStr)
+    const d = parseLocalDate(dateStr)
     if (Number.isNaN(d.getTime())) return dateStr
     return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long" })
 }
@@ -63,7 +71,7 @@ function getMonthTicks(data: DynaDailyPoint[]): string[] {
 
 const leachingChartConfig = {
     b_no3_leach: {
-        label: "NO₃ uitspoeling",
+        label: "N-NO₃ uitspoeling",
         color: "hsl(0, 72%, 51%)",
     },
 } satisfies ChartConfig
@@ -127,7 +135,7 @@ export function LeachingChart({ data, events = [] }: LeachingChartProps) {
                 <YAxis
                     tick={{ fontSize: 12 }}
                     label={{
-                        value: "kg NO₃/ha",
+                        value: "kg N-NO₃/ha",
                         angle: -90,
                         position: "insideLeft",
                         offset: 10,
@@ -142,7 +150,7 @@ export function LeachingChart({ data, events = [] }: LeachingChartProps) {
                                 return formatDateLabel(raw)
                             }}
                             formatter={(value) => [
-                                `${Number(value).toFixed(1)} kg NO₃/ha`,
+                                `${Math.round(Number(value))} kg N-NO₃/ha`,
                                 "Uitspoeling",
                             ]}
                         />

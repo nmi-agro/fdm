@@ -72,6 +72,8 @@ export interface NSupplyResult {
     b_id: string
     /** Human-readable field name */
     b_name: string
+    /** Field area in hectares (used for farm-level weighting) */
+    area: number
     /** The mineralization model used for this calculation */
     method: NSupplyMethod
     /** Daily cumulative N supply curve (365 or 366 data points) */
@@ -101,6 +103,8 @@ export interface NSupplyComputeInput {
     b_id: string
     /** Human-readable field name — passed through to {@link NSupplyResult} */
     b_name: string
+    /** Field area in hectares — passed through to {@link NSupplyResult} */
+    area: number
     /** NMI API bearer token — redacted from the cache key hash */
     nmiApiKey: string
     /** Fully-formed request body for `POST /bemestingsplan/nsupply` */

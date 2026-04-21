@@ -1,5 +1,5 @@
-import { getCurrentSoilData, getField } from "@nmi-agro/fdm-core"
-import { ArrowRight, CheckCircle2, Component, Lightbulb, Slash, Zap } from "lucide-react"
+import { getCurrentSoilData, getField, getCultivations } from "@nmi-agro/fdm-core"
+import { Component, Lightbulb, Slash, Zap } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
@@ -9,7 +9,7 @@ import {
     useLoaderData,
 } from "react-router"
 import { DataCompletenessCard } from "~/components/blocks/mineralization/data-completeness"
-import { FieldMineralizationChart } from "~/components/blocks/mineralization/mineralization-chart"
+import { FieldMineralizationChart, getCurrentDoy } from "~/components/blocks/mineralization/mineralization-chart"
 import { FieldNSupplyDetailsCard } from "~/components/blocks/mineralization/nsupply-kpi"
 import { MineralizationFieldDetailFallback } from "~/components/blocks/mineralization/skeletons"
 import { Button } from "~/components/ui/button"
@@ -60,6 +60,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
         const b_id_farm = params.b_id_farm
         const b_id = params.b_id
+        const calendar = params.calendar
         if (!b_id_farm) {
             throw data("invalid: b_id_farm", {
                 status: 400,
@@ -76,7 +77,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const session = await getSession(request)
         const timeframe = getTimeframe(params)
 
-        const field = await getField(fdm, session.principal_id, b_id)
+        const [field, soilDataArray, cultivations] = await Promise.all([
+            getField(fdm, session.principal_id, b_id),
+            getCurrentSoilData(fdm, session.principal_id, b_id),
+            getCultivations(fdm, session.principal_id, b_id),
+        ])
+
         if (!field) {
             throw data("not found: b_id", {
                 status: 404,
@@ -89,16 +95,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 field,
                 b_id,
                 b_id_farm,
-                calendar: params.calendar ?? "",
+                calendar: calendar ?? "",
             }
         }
 
-        // Get soil data
-        const soilDataArray = await getCurrentSoilData(
-            fdm,
-            session.principal_id,
-            b_id,
-        )
+        // Get soil data map for completeness check
         const soilData: Record<string, number | string | null | undefined> = {}
         const soilMeta: Record<string, { source?: string; date?: Date }> = {}
 
@@ -136,12 +137,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                             b_id,
                             method,
                             timeframe,
+                            field,
+                            soilDataArray,
+                            cultivations,
                         })
                     } catch (err) {
                         return {
                             b_id,
                             b_name: field.b_name ?? b_id,
                             method,
+                            area: field.b_area ?? 0,
                             data: [],
                             totalAnnualN: 0,
                             completeness: {
@@ -163,14 +168,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 results.find((r) => r.method === "minip" && !r.error) ??
                 results.find((r) => !r.error)
 
-            const now = new Date()
-            const currentDoy = Math.floor(
-                (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) /
-                    (1000 * 60 * 60 * 24),
-            )
+            const currentDoy = getCurrentDoy()
 
             const insights = primaryResult
-                ? generateInsights(primaryResult, undefined, currentDoy)
+                ? generateInsights(
+                      primaryResult,
+                      undefined,
+                      currentDoy,
+                      Number(calendar),
+                  )
                 : []
 
             return { results, insights }
@@ -181,7 +187,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             field,
             b_id,
             b_id_farm,
-            calendar: params.calendar ?? "",
+            calendar: calendar ?? "",
             soilData,
             organicMatter,
             soilType,

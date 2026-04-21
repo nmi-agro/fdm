@@ -6,6 +6,7 @@ import {
     Outlet,
     useLoaderData,
     useLocation,
+    useParams,
 } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -37,8 +38,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 statusText: "invalid: b_id_farm",
             })
         }
-
-        const b_id = params.b_id
 
         const session = await getSession(request)
         const timeframe = getTimeframe(params)
@@ -87,25 +86,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         return {
             farm,
             b_id_farm,
-            b_id,
             farmOptions,
             fieldOptions,
         }
     } catch (error) {
-        throw handleLoaderError(error)
+        const normalized = handleLoaderError(error)
+        throw normalized ?? error
     }
 }
 
 export default function MineralizationLayout() {
     const loaderData = useLoaderData<typeof loader>()
     const location = useLocation()
+    const { b_id } = useParams() // Get the field ID from child routes
 
-    const isField = !!loaderData.b_id
+    const isField = !!b_id
     const isDyna = location.pathname.endsWith("/dyna")
 
     const title = isField
         ? isDyna
-            ? "DYNA Dynamisch N-advies"
+            ? "DYNA"
             : "Bodem N-levering"
         : "Mineralisatie"
 
@@ -124,7 +124,7 @@ export default function MineralizationLayout() {
                 />
                 <HeaderMineralization
                     b_id_farm={loaderData.b_id_farm}
-                    b_id={loaderData.b_id}
+                    b_id={b_id}
                     fieldOptions={loaderData.fieldOptions}
                 />
             </Header>

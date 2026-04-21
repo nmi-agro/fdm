@@ -77,10 +77,10 @@ export function MineralizationFallback() {
                 <MineralizationCardSkeleton />
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <div className="col-span-4">
+                <div className="lg:col-span-4">
                     <MineralizationChartSkeleton />
                 </div>
-                <div className="col-span-3">
+                <div className="lg:col-span-3">
                     <MineralizationFieldsSkeleton />
                 </div>
             </div>

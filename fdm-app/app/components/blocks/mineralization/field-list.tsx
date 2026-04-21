@@ -9,21 +9,12 @@ import {
     TableRow,
 } from "~/components/ui/table"
 import type { NSupplyResult } from "~/integrations/mineralization.server"
+import { getCurrentDoy } from "./mineralization-chart"
 
 interface FieldListProps {
     results: NSupplyResult[]
     b_id_farm: string
     calendar: string
-}
-
-function getCurrentDoy(): number {
-    const now = new Date()
-    const startOfYear = new Date(now.getFullYear(), 0, 1)
-    return (
-        Math.ceil(
-            (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24),
-        ) + 1
-    )
 }
 
 export function FieldList({ results, b_id_farm, calendar }: FieldListProps) {
@@ -79,9 +70,13 @@ function NMineralizedToday({
 }) {
     if (result.error) {
         return (
-            <span title={result.error}>
-                <CircleX className="h-4 w-4 text-muted-foreground inline" />
-            </span>
+            <>
+                <span className="sr-only">Fout: {result.error}</span>
+                <CircleX
+                    className="h-4 w-4 text-muted-foreground inline"
+                    aria-hidden="true"
+                />
+            </>
         )
     }
     if (result.data.length === 0 || result.totalAnnualN === 0) {
@@ -100,7 +95,7 @@ function NMineralizedToday({
     return (
         <span
             className="font-mono text-sm"
-            title={`${todayPoint.d_n_supply_actual.toFixed(1)} kg N/ha vandaag`}
+            title={`${Math.round(todayPoint.d_n_supply_actual)} kg N/ha vandaag`}
         >
             {pct}%
         </span>

@@ -4,6 +4,7 @@ import type {
     NSupplyMethod,
     NSupplyResult,
 } from "~/integrations/mineralization.server"
+import { getCurrentDoy } from "./mineralization-chart"
 
 const METHOD_LABELS: Record<NSupplyMethod, string> = {
     minip: "MINIP",
@@ -92,16 +93,6 @@ export function FarmNSupplyKpi({ results }: FarmNSupplyKpiProps) {
 }
 
 // ─── Field detail: single model results card ──────────────────────────────────
-
-function getCurrentDoy(): number {
-    const now = new Date()
-    const startOfYear = new Date(now.getFullYear(), 0, 1)
-    return (
-        Math.ceil(
-            (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24),
-        ) + 1
-    )
-}
 
 function getNAtDoy(
     data: { doy: number; d_n_supply_actual: number }[],
@@ -318,7 +309,7 @@ export function FieldNSupplyKpi({
                 <CardContent>
                     <div className="text-2xl font-bold">
                         {organicMatter != null
-                            ? `${organicMatter.toFixed(1)}%`
+                            ? `${Math.round(organicMatter)}%`
                             : "—"}
                     </div>
                     <p className="text-xs text-muted-foreground">a_som_loi</p>

@@ -141,25 +141,31 @@ export async function getNSupplyForField({
     b_id,
     method,
     timeframe,
+    field: preFetchedField,
+    soilDataArray: preFetchedSoilData,
+    cultivations: preFetchedCultivations,
 }: {
     principal_id: string
     b_id: string
     method: import("@nmi-agro/fdm-calculator").NSupplyMethod
     timeframe: Timeframe
+    field?: Awaited<ReturnType<typeof getField>>
+    soilDataArray?: Awaited<ReturnType<typeof getCurrentSoilData>>
+    cultivations?: Awaited<ReturnType<typeof getCultivations>>
 }): Promise<import("@nmi-agro/fdm-calculator").NSupplyResult> {
     const nmiApiKey = getNmiApiKey()
     if (!nmiApiKey) {
         throw new Error("NMI API-sleutel niet geconfigureerd")
     }
 
-    const field = await getField(fdm, principal_id, b_id)
+    const field = preFetchedField ?? (await getField(fdm, principal_id, b_id))
     if (!field) {
         throw new Error(`Perceel niet gevonden: ${b_id}`)
     }
 
     const [soilDataArray, cultivations] = await Promise.all([
-        getCurrentSoilData(fdm, principal_id, b_id),
-        getCultivations(fdm, principal_id, b_id),
+        preFetchedSoilData ?? getCurrentSoilData(fdm, principal_id, b_id),
+        preFetchedCultivations ?? getCultivations(fdm, principal_id, b_id),
     ])
 
     const soilData = buildSoilDataMap(soilDataArray)
@@ -175,6 +181,7 @@ export async function getNSupplyForField({
     const input: NSupplyComputeInput = {
         b_id,
         b_name: field.b_name ?? b_id,
+        area: field.b_area ?? 0,
         nmiApiKey,
         requestBody,
         method,
@@ -209,7 +216,12 @@ export async function getNSupplyForFarm({
     method: import("@nmi-agro/fdm-calculator").NSupplyMethod
     timeframe: Timeframe
 }): Promise<import("@nmi-agro/fdm-calculator").NSupplyResult[]> {
-    const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
+    const [fields, cultivationsMap, soilDataMap] = await Promise.all([
+        getFields(fdm, principal_id, b_id_farm, timeframe),
+        getCultivationsForFarm(fdm, principal_id, b_id_farm),
+        getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm),
+    ])
+
     const nonBufferFields = fields.filter((f) => !f.b_bufferstrip)
 
     const results = await Promise.all(
@@ -223,6 +235,9 @@ export async function getNSupplyForFarm({
                         b_id: field.b_id,
                         method,
                         timeframe,
+                        field,
+                        soilDataArray: soilDataMap.get(field.b_id) ?? [],
+                        cultivations: cultivationsMap.get(field.b_id) ?? [],
                     })
                 } catch (err) {
                     const errorMessage =
@@ -232,6 +247,7 @@ export async function getNSupplyForFarm({
                     return {
                         b_id: field.b_id,
                         b_name: field.b_name ?? field.b_id,
+                        area: field.b_area ?? 0,
                         method,
                         data: [],
                         totalAnnualN: 0,
@@ -571,6 +587,7 @@ export function generateInsights(
     nsupply: import("@nmi-agro/fdm-calculator").NSupplyResult,
     farmAvgN: number | undefined,
     currentDoy: number,
+    year: number,
 ): string[] {
     const insights: string[] = []
     const totalN = nsupply.totalAnnualN
@@ -598,7 +615,7 @@ export function generateInsights(
     const currentPoint = nsupply.data.find((d) => d.doy >= currentDoy)
     if (currentPoint) {
         const remaining = totalN - currentPoint.d_n_supply_actual
-        const date = doyToDateString(currentDoy, new Date().getFullYear())
+        const date = doyToDateString(currentDoy, year)
         insights.push(
             `Op ${date} is circa ${Math.round(currentPoint.d_n_supply_actual)} kg N/ha gemineraliseerd. Tot einde groeiseizoen wordt nog ~${Math.round(remaining)} kg N/ha verwacht.`,
         )

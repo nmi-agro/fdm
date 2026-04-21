@@ -4,13 +4,11 @@ import {
     getField,
     getGrazingIntention,
     getCultivations,
-    getHarvests,
     getHarvestsForFarm,
     type FertilizerApplication,
     type Fertilizer,
-    type Harvest,
 } from "@nmi-agro/fdm-core"
-import { CalendarOff, Component, Layers, Slash, Zap } from "lucide-react"
+import { CalendarOff, Component, Slash, Zap } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
@@ -57,7 +55,7 @@ export const meta: MetaFunction<typeof loader> = ({ data: loaderData }) => {
         },
         {
             name: "description",
-            content: `DYNA dynamisch N-advies voor ${name}.`,
+            content: `DYNA voor ${name}.`,
         },
     ]
 }
@@ -207,8 +205,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             const cultivationHarvests = harvestsMap.get(c.b_lu) ?? []
             for (const h of cultivationHarvests) {
                 if (h.b_lu_harvest_date) {
-                    const analysis = h.harvestable.harvestable_analyses[0]
-                    const yieldVal = analysis?.b_lu_yield
+                    const analysis = h.harvestable?.harvestable_analyses?.[0]
+                    const yieldVal = analysis?.b_lu_yield ?? null
                     const label = yieldVal
                         ? `${yieldVal.toFixed(0)} kg DS/ha — ${c.b_lu_name ?? "Oogst"}`
                         : (c.b_lu_name ?? "Oogst")
@@ -363,7 +361,7 @@ function DynaContent({
 
     // KPI values — use year-filtered data
     const lastPoint = yearData[yearData.length - 1]
-    const today = new Date().toISOString().split("T")[0] ?? ""
+    const today = new Date().toLocaleDateString("en-CA")
     const todayPoint = yearData.find((d) => d.b_date_calculation >= today)
     const isCurrentYear = year === new Date().getFullYear()
 
@@ -393,7 +391,7 @@ function DynaContent({
                     </CardHeader>
                     <CardContent>
                         <p className="text-2xl font-bold tabular-nums">
-                            {currentNAvailability.toFixed(1)}
+                            {Math.round(currentNAvailability)}
                         </p>
                         <p className="text-xs text-muted-foreground">kg N/ha</p>
                     </CardContent>
@@ -408,21 +406,21 @@ function DynaContent({
                     </CardHeader>
                     <CardContent>
                         <p className="text-2xl font-bold tabular-nums">
-                            {currentUptake.toFixed(1)}
+                            {Math.round(currentUptake)}
                         </p>
                         <p className="text-xs text-muted-foreground">kg N/ha</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardDescription>NO₃ uitspoeling</CardDescription>
+                        <CardDescription>N-NO₃ uitspoeling</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <p className="text-2xl font-bold tabular-nums">
-                            {totalLeaching.toFixed(1)}
+                            {Math.round(totalLeaching)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                            kg NO₃/ha (cumulatief)
+                            kg N-NO₃/ha (cumulatief)
                         </p>
                     </CardContent>
                 </Card>
@@ -449,7 +447,10 @@ function DynaContent({
 
             {/* Balance and advice side by side */}
             <div className="grid gap-4 md:grid-cols-2">
-                <DynaBalanceCard nitrogenBalance={nitrogenBalance} />
+                <DynaBalanceCard
+                    nitrogenBalance={nitrogenBalance}
+                    leaching={totalLeaching}
+                />
                 <DynaAdviceCard
                     fertilizingRecommendations={fertilizingRecommendations}
                     harvestingRecommendation={harvestingRecommendation}
@@ -459,9 +460,9 @@ function DynaContent({
             {/* Leaching chart */}
             <Card>
                 <CardHeader>
-                    <CardTitle>NO₃ uitspoeling</CardTitle>
+                    <CardTitle>N-NO₃ uitspoeling</CardTitle>
                     <CardDescription>
-                        Cumulatieve nitraatuitspoeling (kg NO₃/ha)
+                        Cumulatieve nitraatuitspoeling (kg N-NO₃/ha)
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

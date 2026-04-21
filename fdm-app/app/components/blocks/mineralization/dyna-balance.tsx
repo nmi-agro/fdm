@@ -10,18 +10,20 @@ import type { DynaNitrogenBalance } from "~/integrations/mineralization.server"
 
 interface DynaBalanceCardProps {
     nitrogenBalance: DynaNitrogenBalance
+    leaching: number
 }
 
-export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
-    // Mineralisatie = b_nw - b_n_greenmanure - (artificial + organic fertilizer)
+export function DynaBalanceCard({ nitrogenBalance, leaching }: DynaBalanceCardProps) {
+    // Mineralisatie = b_nw - b_n_greenmanure - (artificial + organic fertilizer) - preceeding
     const mineralisatie =
         nitrogenBalance.b_nw -
         nitrogenBalance.b_n_greenmanure -
         nitrogenBalance.b_n_fertilizer_artificial -
-        nitrogenBalance.b_n_fertilizer_organic
+        nitrogenBalance.b_n_fertilizer_organic -
+        nitrogenBalance.b_n_fertilizer_preceeding
 
-    // Total balance = b_nw - b_n_uptake
-    const totalBalance = nitrogenBalance.b_nw - nitrogenBalance.b_n_uptake
+    // Total balance = b_nw - b_n_uptake - leaching
+    const totalBalance = nitrogenBalance.b_nw - nitrogenBalance.b_n_uptake - leaching
 
     return (
         <Card>
@@ -39,7 +41,7 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
                             Bodem mineralisatie
                         </dt>
                         <dd className="font-medium tabular-nums">
-                            {mineralisatie.toFixed(1)} kg N/ha
+                            {Math.round(mineralisatie)} kg N/ha
                         </dd>
                     </div>
 
@@ -49,7 +51,7 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
                             Kunstmest
                         </dt>
                         <dd className="font-medium tabular-nums">
-                            +{nitrogenBalance.b_n_fertilizer_artificial.toFixed(1)} kg N/ha
+                            +{Math.round(nitrogenBalance.b_n_fertilizer_artificial)} kg N/ha
                         </dd>
                     </div>
 
@@ -59,7 +61,7 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
                             Organische mest
                         </dt>
                         <dd className="font-medium tabular-nums">
-                            +{nitrogenBalance.b_n_fertilizer_organic.toFixed(1)} kg N/ha
+                            +{Math.round(nitrogenBalance.b_n_fertilizer_organic)} kg N/ha
                         </dd>
                     </div>
 
@@ -69,7 +71,7 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
                             Voorvrucht
                         </dt>
                         <dd className="font-medium tabular-nums">
-                            +{nitrogenBalance.b_n_fertilizer_preceeding.toFixed(1)} kg N/ha
+                            +{Math.round(nitrogenBalance.b_n_fertilizer_preceeding)} kg N/ha
                         </dd>
                     </div>
 
@@ -79,7 +81,7 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
                             Groenbemesting
                         </dt>
                         <dd className="font-medium tabular-nums">
-                            +{nitrogenBalance.b_n_greenmanure.toFixed(1)} kg N/ha
+                            +{Math.round(nitrogenBalance.b_n_greenmanure)} kg N/ha
                         </dd>
                     </div>
 
@@ -89,7 +91,7 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
                     <div className="flex justify-between">
                         <dt className="font-semibold">Totaal aanbod</dt>
                         <dd className="font-semibold tabular-nums">
-                            {nitrogenBalance.b_nw.toFixed(1)} kg N/ha
+                            {Math.round(nitrogenBalance.b_nw)} kg N/ha
                         </dd>
                     </div>
 
@@ -97,7 +99,17 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
                     <div className="flex justify-between">
                         <dt className="font-semibold">N-opname gewas</dt>
                         <dd className="font-semibold tabular-nums">
-                            -{nitrogenBalance.b_n_uptake.toFixed(1)} kg N/ha
+                            -{Math.round(nitrogenBalance.b_n_uptake)} kg N/ha
+                        </dd>
+                    </div>
+
+                    {/* Leaching */}
+                    <div className="flex justify-between">
+                        <dt className="font-semibold text-amber-600 dark:text-amber-400">
+                            N-NO₃ uitspoeling
+                        </dt>
+                        <dd className="font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                            -{Math.round(leaching)} kg N/ha
                         </dd>
                     </div>
 
@@ -114,7 +126,7 @@ export function DynaBalanceCard({ nitrogenBalance }: DynaBalanceCardProps) {
                             }`}
                         >
                             {totalBalance > 0 ? "+" : ""}
-                            {totalBalance.toFixed(1)} kg N/ha
+                            {Math.round(totalBalance)} kg N/ha
                         </dd>
                     </div>
                 </dl>

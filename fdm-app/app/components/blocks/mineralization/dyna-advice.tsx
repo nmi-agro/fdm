@@ -15,7 +15,14 @@ interface DynaAdviceCardProps {
 }
 
 function formatDate(dateStr: string): string {
-    const d = new Date(dateStr)
+    let d: Date
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [year, month, day] = dateStr.split("-").map(Number)
+        d = new Date(year, month - 1, day)
+    } else {
+        d = new Date(dateStr)
+    }
+
     if (Number.isNaN(d.getTime())) return dateStr
     return d.toLocaleDateString("nl-NL", {
         day: "numeric",
@@ -50,9 +57,7 @@ export function DynaAdviceCard({
                                     Aanbevolen gift
                                 </dt>
                                 <dd className="font-semibold tabular-nums">
-                                    {fertilizingRecommendations.b_n_recommended.toFixed(
-                                        1,
-                                    )}{" "}
+                                    {Math.round(fertilizingRecommendations.b_n_recommended)}{" "}
                                     kg N/ha
                                 </dd>
                             </div>
@@ -71,9 +76,7 @@ export function DynaAdviceCard({
                                     Resterende ruimte
                                 </dt>
                                 <dd className="tabular-nums">
-                                    {fertilizingRecommendations.b_n_remaining.toFixed(
-                                        1,
-                                    )}{" "}
+                                    {Math.round(fertilizingRecommendations.b_n_remaining)}{" "}
                                     kg N/ha
                                 </dd>
                             </div>

@@ -111,10 +111,12 @@ interface EventDotProps {
 }
 
 export function EventDot({ viewBox, events }: EventDotProps) {
-    if (!viewBox?.x || viewBox.y === undefined) return null
+    if (viewBox?.x === undefined || viewBox.y === undefined) return null
+    if (!events || events.length === 0) return null
+
     const x = viewBox.x
     const y = (viewBox.y ?? 0) + 10
-    const color = EVENT_COLORS[events[0].type]
+    const color = EVENT_COLORS[events[0].type] ?? "hsl(var(--chart-1))"
     return (
         <circle
             cx={x}
@@ -185,7 +187,7 @@ function DynaTooltipContent({
                             ]?.label ?? entry.dataKey}
                         </span>
                         <span className="ml-auto font-medium tabular-nums">
-                            {Number(entry.value).toFixed(1)}{" "}
+                            {Math.round(entry.value)}{" "}
                             <span className="text-muted-foreground font-normal">
                                 kg N/ha
                             </span>
@@ -224,12 +226,13 @@ interface DynaChartProps {
 
 export function DynaChart({
     data,
+    fertilizingRecommendations,
     events = [],
     year = new Date().getFullYear(),
 }: DynaChartProps) {
     const [activeTab, setActiveTab] = useState("dynamics")
     const monthTicks = getMonthTicks(data)
-    const today = new Date().toISOString().split("T")[0] ?? ""
+    const today = new Date().toLocaleDateString("en-CA")
     const isCurrentYear = year === new Date().getFullYear()
 
     // Group events by date and only include dates present in the data
@@ -246,15 +249,16 @@ export function DynaChart({
         b_nw_max: d.b_nw_max,
         b_nw_recommended: d.b_nw_recommended,
         b_n_uptake: d.b_n_uptake,
+        b_no3_leach: d.b_no3_leach,
         _events: eventsByDate.get(d.b_date_calculation),
     }))
 
-    // Calculate available N (N aanbod - N opname)
+    // Calculate available N (N aanbod - N opname - N uitspoeling)
     const chartDataWithDifference = chartData.map((d) => ({
         ...d,
         b_nw_difference:
             d.b_n_uptake !== null && d.b_n_uptake !== undefined
-                ? d.b_nw - d.b_n_uptake
+                ? d.b_nw - d.b_n_uptake - d.b_no3_leach
                 : null,
     }))
 
@@ -274,7 +278,7 @@ export function DynaChart({
                 <TabsContent value="dynamics" className="mt-4">
                     <ChartContainer
                         config={dynaChartConfig}
-                        className="h-100 w-full"
+                        className="h-[400px] w-full"
                     >
                         <ComposedChart
                             data={chartData}
@@ -378,9 +382,24 @@ export function DynaChart({
                                     stroke="hsl(var(--foreground))"
                                     strokeDasharray="4 2"
                                     label={{
-                                        value: "Verwachting",
+                                        value: "Vandaag",
                                         position: "insideTopRight",
                                         fontSize: 11,
+                                    }}
+                                />
+                            )}
+
+                            {/* Fertilizing Recommendation */}
+                            {fertilizingRecommendations?.b_date_recommended && (
+                                <ReferenceLine
+                                    x={fertilizingRecommendations.b_date_recommended}
+                                    stroke="hsl(var(--destructive))"
+                                    strokeDasharray="3 3"
+                                    label={{
+                                        value: "Advies",
+                                        position: "insideTopLeft",
+                                        fontSize: 11,
+                                        fill: "hsl(var(--destructive))",
                                     }}
                                 />
                             )}

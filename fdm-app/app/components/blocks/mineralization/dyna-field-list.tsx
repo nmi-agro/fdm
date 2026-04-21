@@ -24,8 +24,15 @@ export function DynaFieldList({
     b_id_farm,
     calendar,
 }: DynaFieldListProps) {
-    // Map promises to their b_id for easier lookup
-    // Since we know the promises array matches the non-buffer fields order from the loader
+    // Map promises to their b_id for easier lookup to avoid index-based alignment issues
+    const promisesById = new Map<string, Promise<FarmDynaResult>>()
+    for (let i = 0; i < fields.length; i++) {
+        const fieldId = fields[i].b_id
+        if (i < promises.length) {
+            promisesById.set(fieldId, promises[i])
+        }
+    }
+
     return (
         <Table>
             <TableHeader>
@@ -38,15 +45,20 @@ export function DynaFieldList({
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {fields.map((field, i) => (
-                    <DynaTableRow
-                        key={field.b_id}
-                        field={field}
-                        promise={promises[i]}
-                        b_id_farm={b_id_farm}
-                        calendar={calendar}
-                    />
-                ))}
+                {fields.map((field) => {
+                    const promise = promisesById.get(field.b_id)
+                    if (!promise) return null
+
+                    return (
+                        <DynaTableRow
+                            key={field.b_id}
+                            field={field}
+                            promise={promise}
+                            b_id_farm={b_id_farm}
+                            calendar={calendar}
+                        />
+                    )
+                })}
             </TableBody>
         </Table>
     )
@@ -91,22 +103,31 @@ function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
     return (
         <>
             <TableCell className="text-right font-mono">
-                {error ? "—" : nAvailability.toFixed(1)}
+                {error ? "—" : Math.round(nAvailability)}
             </TableCell>
             <TableCell className="text-right font-mono">
-                {error ? "—" : nUptake.toFixed(1)}
+                {error ? "—" : Math.round(nUptake)}
             </TableCell>
             <TableCell className="text-right font-mono text-amber-600 dark:text-amber-400">
-                {error ? "—" : leaching.toFixed(1)}
+                {error ? "—" : Math.round(leaching)}
             </TableCell>
             <TableCell className="text-center">
                 {error ? (
-                    <CircleX
-                        className="h-4 w-4 text-destructive mx-auto"
-                        title={error}
-                    />
+                    <>
+                        <span className="sr-only">Fout: {error}</span>
+                        <CircleX
+                            className="h-4 w-4 text-destructive mx-auto"
+                            aria-hidden="true"
+                        />
+                    </>
                 ) : (
-                    <CircleCheck className="h-4 w-4 text-green-500 mx-auto" />
+                    <>
+                        <span className="sr-only">Succes</span>
+                        <CircleCheck
+                            className="h-4 w-4 text-green-500 mx-auto"
+                            aria-hidden="true"
+                        />
+                    </>
                 )}
             </TableCell>
         </>

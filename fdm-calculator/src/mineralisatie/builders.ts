@@ -324,9 +324,14 @@ export function buildDynaRequest(
             ? Number(aDepthLower)
             : 0.3
 
-    // Build amendments list — only applications with a date are included
+    // Build amendments list — only applications from the current calculation year
     const amendments = fertilizers
-        .filter((f) => f.p_date !== null && f.p_date !== undefined)
+        .filter(
+            (f) =>
+                f.p_date !== null &&
+                f.p_date !== undefined &&
+                f.p_date.getFullYear() === year,
+        )
         .map((f) => ({
             p_id: f.p_id,
             p_dose: f.p_dose ?? 0,
@@ -334,6 +339,8 @@ export function buildDynaRequest(
             p_date_fertilization: f.p_date?.toISOString().split("T")[0],
         }))
 
+    // Build rotation array — only include the current calculation year
+    // This ensures the simulation starts at 0 on January 1st of this year.
     const rotation: Record<string, unknown>[] = [year]
         .map((rotationYear) => {
             const yearStart = new Date(rotationYear, 0, 1)
@@ -411,7 +418,7 @@ export function buildDynaRequest(
                       }
                     : {}),
                 irrigation: [],
-                // Amendments only on the current calendar year
+                // Amendments only on the matching calendar year
                 amendments: rotationYear === year ? amendments : [],
             }
         })

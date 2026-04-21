@@ -31,7 +31,7 @@ export const nsupplyDataPointSchema = z.object({
  * The API returns an array of 365 or 366 daily data points under a `data` key.
  */
 export const nsupplyResponseSchema = z.object({
-    data: z.array(nsupplyDataPointSchema),
+    data: z.array(nsupplyDataPointSchema).min(1),
 })
 
 // ─── DYNA schemas ─────────────────────────────────────────────────────────────

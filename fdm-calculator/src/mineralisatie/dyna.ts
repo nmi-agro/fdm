@@ -2,7 +2,7 @@
  * @packageDocumentation
  * @module mineralisatie/dyna
  *
- * DYNA dynamic nitrogen advice calculation via the NMI API.
+ * DYNA calculation via the NMI API.
  *
  * Provides two exports:
  * - {@link requestDyna} — the raw, uncached API call function
@@ -68,44 +68,70 @@ export async function requestDyna(
 ): Promise<DynaResult> {
     const { b_id, nmiApiKey, requestBody } = input
 
-    const response = await fetch(
-        "https://api.nmi-agro.nl/bemestingsplan/dyna",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${nmiApiKey}`,
-            },
-            body: JSON.stringify(requestBody),
-        },
-    )
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 60000) // 60s timeout for DYNA
 
-    if (!response.ok) {
-        const errorText = await response.text()
-        if (response.status === 422) {
+    try {
+        const response = await fetch(
+            "https://api.nmi-agro.nl/bemestingsplan/dyna",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${nmiApiKey}`,
+                    "NMI-API-Version": "v1",
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal,
+            },
+        )
+
+        if (!response.ok) {
+            const errorText = await response.text()
+            if (response.status === 422) {
+                throw new NmiApiError(
+                    422,
+                    `Onvoldoende gegevens voor DYNA-berekening. ${errorText}`,
+                )
+            }
+            if (response.status === 503) {
+                throw new NmiApiError(
+                    503,
+                    "NMI API is tijdelijk niet beschikbaar.",
+                )
+            }
             throw new NmiApiError(
-                422,
-                `Onvoldoende gegevens voor DYNA-berekening. ${errorText}`,
+                response.status,
+                `Er is een fout opgetreden bij de DYNA-berekening. ${errorText}`,
             )
         }
-        if (response.status === 503) {
-            throw new NmiApiError(503, "NMI API is tijdelijk niet beschikbaar.")
+
+        let json: unknown
+        try {
+            json = await response.json()
+        } catch (err) {
+            throw new Error("Ongeldig DYNA-antwoord van NMI API: Geen geldige JSON")
         }
-        throw new NmiApiError(
-            response.status,
-            `Er is een fout opgetreden bij de DYNA-berekening. ${errorText}`,
-        )
-    }
 
-    const rawJson = await response.json()
-    const parsed = dynaResponseSchema.safeParse(rawJson)
-    if (!parsed.success) {
-        throw new Error(
-            `Ongeldig DYNA-antwoord van NMI API: ${JSON.stringify(z.treeifyError(parsed.error))}`,
-        )
-    }
+        const parsed = dynaResponseSchema.safeParse(json)
+        if (!parsed.success) {
+            throw new Error(
+                `Ongeldig DYNA-antwoord van NMI API: ${JSON.stringify(z.treeifyError(parsed.error))}`,
+            )
+        }
 
-    return { b_id, ...parsed.data.data }
+        return { b_id, ...parsed.data.data }
+    } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+            throw new NmiApiError(
+                408,
+                "De aanvraag naar de NMI API is verlopen (timeout).",
+            )
+        }
+        throw err
+    } finally {
+        clearTimeout(timeout)
+    }
 }
 
 // ─── Cached version ───────────────────────────────────────────────────────────

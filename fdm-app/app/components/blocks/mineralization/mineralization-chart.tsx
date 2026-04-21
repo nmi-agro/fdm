@@ -51,12 +51,12 @@ function doyToDate(doy: number, year: number): string {
     return date.toLocaleDateString("nl-NL", { day: "numeric", month: "long" })
 }
 
-function getCurrentDoy(): number {
+export function getCurrentDoy(): number {
     const now = new Date()
-    const start = new Date(now.getFullYear(), 0, 1)
-    return Math.ceil(
+    const start = new Date(now.getFullYear(), 0, 0)
+    return Math.floor(
         (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-    ) + 1
+    )
 }
 
 // ─── Single-series chart (farm overview) ─────────────────────────────────────
@@ -362,7 +362,4 @@ export function FieldMineralizationChart({
         </ChartContainer>
     )
 }
-
-// Re-export helper for routes
-export { getCurrentDoy }
 
