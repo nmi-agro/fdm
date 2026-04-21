@@ -130,7 +130,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         for (const crop of ongoingMainCrops) {
             if (!crop.b_lu) continue
             const harvests = harvestsMap.get(crop.b_lu) ?? []
-            if (harvests.length === 0) {
+            const hasDatedHarvest = harvests.some((h) => h.b_lu_harvest_date != null)
+            if (!hasDatedHarvest) {
                 return {
                     missingHarvestDate: true as const,
                     field,
@@ -245,7 +246,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             asyncData,
         }
     } catch (error) {
-        throw handleLoaderError(error)
+        const normalized = handleLoaderError(error)
+        throw normalized ?? error
     }
 }
 
@@ -360,10 +362,12 @@ function DynaContent({
     )
 
     // KPI values — use year-filtered data
+    const isCurrentYear = year === new Date().getFullYear()
     const lastPoint = yearData[yearData.length - 1]
     const today = new Date().toLocaleDateString("en-CA")
-    const todayPoint = yearData.find((d) => d.b_date_calculation >= today)
-    const isCurrentYear = year === new Date().getFullYear()
+    const todayPoint = isCurrentYear
+        ? yearData.find((d) => d.b_date_calculation >= today)
+        : undefined
 
     const totalLeaching = lastPoint?.b_no3_leach ?? 0
     const currentNAvailability = todayPoint?.b_nw ?? lastPoint?.b_nw ?? 0

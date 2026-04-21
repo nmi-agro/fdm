@@ -1,6 +1,6 @@
 /**
  * @packageDocumentation
- * @module mineralisatie/dyna
+ * @module mineralization/dyna
  *
  * DYNA calculation via the NMI API.
  *
@@ -110,7 +110,9 @@ export async function requestDyna(
         try {
             json = await response.json()
         } catch (err) {
-            throw new Error("Ongeldig DYNA-antwoord van NMI API: Geen geldige JSON")
+            throw new Error(
+                "Ongeldig DYNA-antwoord van NMI API: Geen geldige JSON",
+            )
         }
 
         const parsed = dynaResponseSchema.safeParse(json)
@@ -142,8 +144,8 @@ export async function requestDyna(
  * Uses `withCalculationCache` from `@nmi-agro/fdm-core` to persist results in
  * the FDM database. The cache key is derived from a hash of the input (excluding
  * `nmiApiKey` which is redacted). The cache is automatically invalidated when
- * the request body changes — e.g. when soil data, cultivations, or fertilizer
- * applications are updated.
+ * the request body changes (e.g. when soil data, cultivations, or fertilizer
+ * applications are updated) or when the package version changes.
  *
  * Because the DYNA model simulates the full rotation, a single cached result
  * covers all years in the rotation. The caller should filter the returned

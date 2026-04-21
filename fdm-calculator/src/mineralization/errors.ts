@@ -1,6 +1,6 @@
 /**
  * @packageDocumentation
- * @module mineralisatie/errors
+ * @module mineralization/errors
  *
  * Custom error types for the Mineralisatie module.
  */

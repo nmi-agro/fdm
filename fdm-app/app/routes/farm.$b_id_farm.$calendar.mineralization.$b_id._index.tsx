@@ -195,7 +195,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             asyncData,
         }
     } catch (error) {
-        throw handleLoaderError(error)
+        const normalized = handleLoaderError(error)
+        throw normalized ?? error
     }
 }
 

@@ -1,6 +1,6 @@
 /**
  * @packageDocumentation
- * @module mineralisatie/assessment
+ * @module mineralization/assessment
  *
  * Soil data completeness assessment for the Mineralisatie module.
  *

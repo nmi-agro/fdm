@@ -21,10 +21,16 @@ interface FarmNSupplyKpiProps {
 export function FarmNSupplyKpi({ results }: FarmNSupplyKpiProps) {
     const validResults = results.filter((r) => !r.error && r.data.length > 0)
 
+    const totalArea = validResults.reduce((sum, r) => sum + (r.area || 0), 0)
     const avgN =
         validResults.length > 0
-            ? validResults.reduce((sum, r) => sum + r.totalAnnualN, 0) /
-              validResults.length
+            ? totalArea > 0
+                ? validResults.reduce(
+                      (sum, r) => sum + r.totalAnnualN * (r.area || 0),
+                      0,
+                  ) / totalArea
+                : validResults.reduce((sum, r) => sum + r.totalAnnualN, 0) /
+                  validResults.length
             : 0
 
     const maxResult = validResults.reduce<NSupplyResult | undefined>(
@@ -245,7 +251,7 @@ export function FieldNSupplyKpi({
         results.find((r) => !r.error && r.method === "minip") ??
         results.find((r) => !r.error)
 
-    const errorCount = results.filter((r) => r.error).length
+    const successfulCount = results.filter((r) => !r.error).length
 
     return (
         <>
@@ -275,7 +281,7 @@ export function FieldNSupplyKpi({
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">
-                        {3 - errorCount} / 3
+                        {successfulCount} / {results.length}
                     </div>
                     <p className="text-xs text-muted-foreground">
                         {results

@@ -102,7 +102,7 @@ export {
     methodRequirements,
     requestDyna,
     requestNSupply,
-} from "./mineralisatie"
+} from "./mineralization"
 export type {
     DataCompleteness,
     DynaComputeInput,
@@ -114,7 +114,7 @@ export type {
     NSupplyDataPoint,
     NSupplyMethod,
     NSupplyResult,
-} from "./mineralisatie"
+} from "./mineralization"
 export type { NlvSupplyBySomParams } from "./other/nlv-supply-by-som"
 export { calculateNlvSupplyBySom } from "./other/nlv-supply-by-som"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"

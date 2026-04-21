@@ -1,6 +1,6 @@
 /**
  * @packageDocumentation
- * @module mineralisatie/types
+ * @module mineralization/types
  *
  * TypeScript type definitions for the Mineralisatie (Nitrogen Mineralization) module.
  * These types model the inputs, outputs, and intermediate data structures used by the

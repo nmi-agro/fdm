@@ -1,6 +1,6 @@
 /**
  * @packageDocumentation
- * @module mineralisatie/builders
+ * @module mineralization/builders
  *
  * Request body builders for the NMI Mineralisatie API endpoints.
  *
@@ -46,23 +46,27 @@ function getMainCultivation<
     // Use 12:00 noon to avoid timezone edge cases at midnight
     const targetDate = new Date(`${year}-05-15T12:00:00`)
 
-    const activeOnMay15 = [...cultivations]
-        .sort((a, b) => {
-            const aTime = a.b_lu_start?.getTime() ?? 0
-            const bTime = b.b_lu_start?.getTime() ?? 0
-            return bTime - aTime
-        })
-        .find((c) => {
-            if (!c.b_lu_start) return false
-            const start = c.b_lu_start
-            const end = c.b_lu_end ?? null
-            if (end) return start <= targetDate && end >= targetDate
-            return start <= targetDate
-        })
+    // 1. First priority: a non-catchcrop that spans May 15th
+    const activeMainOnMay15 = cultivations.find((c) => {
+        if (!c.b_lu_start || c.b_lu_croprotation === "catchcrop") return false
+        const start = c.b_lu_start
+        const end = c.b_lu_end ?? null
+        if (end) return start <= targetDate && end >= targetDate
+        return start <= targetDate
+    })
+    if (activeMainOnMay15) return activeMainOnMay15
 
-    if (activeOnMay15) return activeOnMay15
+    // 2. Second priority: any crop that spans May 15th (including catchcrops)
+    const activeAnyOnMay15 = cultivations.find((c) => {
+        if (!c.b_lu_start) return false
+        const start = c.b_lu_start
+        const end = c.b_lu_end ?? null
+        if (end) return start <= targetDate && end >= targetDate
+        return start <= targetDate
+    })
+    if (activeAnyOnMay15) return activeAnyOnMay15
 
-    // Fallback: first non-catchcrop in the year, then any crop
+    // 3. Fallback: first non-catchcrop in the year, then any crop
     return (
         cultivations.find((c) => c.b_lu_croprotation !== "catchcrop") ??
         cultivations[0]
@@ -91,16 +95,15 @@ function getMainCultivation<
  * | `b_soiltype_agr` | `b_soiltype_agr` | — |
  * | `a_depth_lower` | `a_depth` | m (default `0.3`) |
  *
- * The BRP crop code is extracted from `b_lu_catalogue` by stripping the `"nl_"` prefix
- * and converting the remainder to an integer (e.g. `"nl_256"` → `256`).
- * Only the first matched crop code is sent.
+ * The BRP crop code is extracted from `b_lu_catalogue` of the main crop in the
+ * requested timeframe. We strip the `"nl_"` prefix and convert to an integer.
  *
  * @example
  * ```typescript
  * const body = buildNSupplyRequest(
  *   { b_centroid: [5.585, 53.288] },
  *   { a_som_loi: 3.5, a_clay_mi: 10, a_silt_mi: 20, a_depth_lower: 0.3 },
- *   [{ b_lu_catalogue: "nl_256" }],
+ *   [{ b_lu_catalogue: "nl_256", b_lu_start: new Date("2026-04-01") }],
  *   "minip",
  *   { start: new Date("2026-01-01"), end: new Date("2026-12-31") },
  * )
@@ -120,7 +123,12 @@ export function buildNSupplyRequest(
         b_area?: number | null
     },
     soilData: Record<string, number | string | null | undefined>,
-    cultivations: { b_lu_catalogue?: string | null }[],
+    cultivations: {
+        b_lu_catalogue?: string | null
+        b_lu_start?: Date | null
+        b_lu_end?: Date | null
+        b_lu_croprotation?: string | null
+    }[],
     method: NSupplyMethod,
     timeframe: Timeframe,
 ): Record<string, unknown> {
@@ -128,14 +136,15 @@ export function buildNSupplyRequest(
     const a_lon = centroid ? centroid[0] : undefined
     const a_lat = centroid ? centroid[1] : undefined
 
-    const b_lu_brp = cultivations
-        .filter((c) => c.b_lu_catalogue)
-        .map((c) => {
-            const code = (c.b_lu_catalogue ?? "").replace(/^nl_/, "")
-            const parsed = Number.parseInt(code, 10)
-            return Number.isNaN(parsed) ? undefined : parsed
-        })
-        .find((v) => v !== undefined)
+    // Determine the main crop for the requested year to extract the BRP code.
+    const year = timeframe.start?.getFullYear() ?? new Date().getFullYear()
+    const mainCrop = getMainCultivation(cultivations, year)
+
+    const b_lu_brp = (() => {
+        const code = (mainCrop?.b_lu_catalogue ?? "").replace(/^nl_/, "")
+        const parsed = Number.parseInt(code, 10)
+        return Number.isNaN(parsed) ? undefined : parsed
+    })()
 
     const body: Record<string, unknown> = {
         d_n_supply_method: method,
@@ -374,8 +383,8 @@ export function buildDynaRequest(
                     ? actualHarvestRecords
                           .filter((h) => h.b_lu_harvest_date != null)
                           .map((h) => ({
-                              b_date_harvest: h.b_lu_harvest_date!
-                                  .toISOString()
+                              b_date_harvest: h
+                                  .b_lu_harvest_date!.toISOString()
                                   .split("T")[0],
                               ...(h.b_lu_yield != null
                                   ? { b_lu_yield: h.b_lu_yield }

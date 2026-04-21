@@ -224,45 +224,53 @@ export async function getNSupplyForFarm({
 
     const nonBufferFields = fields.filter((f) => !f.b_bufferstrip)
 
-    const results = await Promise.all(
-        nonBufferFields.map(
-            async (
-                field,
-            ): Promise<import("@nmi-agro/fdm-calculator").NSupplyResult> => {
-                try {
-                    return await getNSupplyForField({
-                        principal_id,
-                        b_id: field.b_id,
-                        method,
-                        timeframe,
-                        field,
-                        soilDataArray: soilDataMap.get(field.b_id) ?? [],
-                        cultivations: cultivationsMap.get(field.b_id) ?? [],
-                    })
-                } catch (err) {
-                    const errorMessage =
-                        err instanceof Error
-                            ? err.message
-                            : "Onbekende fout bij ophalen mineralisatiegegevens"
-                    return {
-                        b_id: field.b_id,
-                        b_name: field.b_name ?? field.b_id,
-                        area: field.b_area ?? 0,
-                        method,
-                        data: [],
-                        totalAnnualN: 0,
-                        completeness: {
-                            available: [],
-                            missing: [],
-                            estimated: [],
-                            score: 0,
-                        },
-                        error: errorMessage,
+    // Simple concurrency limiting: process in chunks of 10
+    const CONCURRENCY = 10
+    const results: import("@nmi-agro/fdm-calculator").NSupplyResult[] = []
+
+    for (let i = 0; i < nonBufferFields.length; i += CONCURRENCY) {
+        const chunk = nonBufferFields.slice(i, i + CONCURRENCY)
+        const chunkResults = await Promise.all(
+            chunk.map(
+                async (
+                    field,
+                ): Promise<import("@nmi-agro/fdm-calculator").NSupplyResult> => {
+                    try {
+                        return await getNSupplyForField({
+                            principal_id,
+                            b_id: field.b_id,
+                            method,
+                            timeframe,
+                            field,
+                            soilDataArray: soilDataMap.get(field.b_id) ?? [],
+                            cultivations: cultivationsMap.get(field.b_id) ?? [],
+                        })
+                    } catch (err) {
+                        const errorMessage =
+                            err instanceof Error
+                                ? err.message
+                                : "Onbekende fout bij ophalen mineralisatiegegevens"
+                        return {
+                            b_id: field.b_id,
+                            b_name: field.b_name ?? field.b_id,
+                            area: field.b_area ?? 0,
+                            method,
+                            data: [],
+                            totalAnnualN: 0,
+                            completeness: {
+                                available: [],
+                                missing: [],
+                                estimated: [],
+                                score: 0,
+                            },
+                            error: errorMessage,
+                        }
                     }
-                }
-            },
-        ),
-    )
+                },
+            ),
+        )
+        results.push(...chunkResults)
+    }
 
     return results
 }
@@ -455,110 +463,123 @@ export async function getDynaForFarm({
     const nonBufferFields = fields.filter((f) => !f.b_bufferstrip)
     const fertilizerMap = new Map(fertilizers.map((f) => [f.p_id, f]))
 
-    // 3. Map each field to an independent calculation promise
-    return nonBufferFields.map(async (field): Promise<FarmDynaResult> => {
-        try {
-            const fieldSoilDataRaw = soilDataArray.get(field.b_id) ?? []
-            const fieldSoilData = buildSoilDataMap(fieldSoilDataRaw)
+    // 3. Map each field to an independent calculation promise with concurrency limiting
+    const CONCURRENCY = 5
+    const activeTasks = new Array(CONCURRENCY).fill(Promise.resolve())
+    let taskIndex = 0
 
-            const fieldCultivations = cultivations.get(field.b_id) ?? []
-            const fieldApps = applications.get(field.b_id) ?? []
+    return nonBufferFields.map((field) => {
+        const currentSlot = taskIndex % CONCURRENCY
+        const task = activeTasks[currentSlot].then(async (): Promise<FarmDynaResult> => {
+            try {
+                const fieldSoilDataRaw = soilDataArray.get(field.b_id) ?? []
+                const fieldSoilData = buildSoilDataMap(fieldSoilDataRaw)
 
-            // Pre-flight check: any main crop without a harvest date will cause
-            // the DYNA API to return 400 "b_date_harvest is missing".
-            const ongoingMainCrops = fieldCultivations.filter(
-                (c) =>
-                    c.b_lu_end == null && c.b_lu_croprotation !== "catchcrop",
-            )
-            for (const crop of ongoingMainCrops) {
-                if (!crop.b_lu) continue
-                const harvests = harvestsMap.get(crop.b_lu) ?? []
-                if (harvests.length === 0) {
-                    throw new Error("Oogstdatum ontbreekt voor lopend gewas")
-                }
-            }
+                const fieldCultivations = cultivations.get(field.b_id) ?? []
+                const fieldApps = applications.get(field.b_id) ?? []
 
-            const dynaFertilizers = fieldApps.map((app) => {
-                const props = fertilizerMap.get(app.p_id)
-                return {
-                    p_id: app.p_id,
-                    p_n_rt: props?.p_n_rt ?? null,
-                    p_n_if: props?.p_n_if ?? null,
-                    p_n_of: props?.p_n_of ?? null,
-                    p_n_wc: props?.p_n_wc ?? null,
-                    p_p_rt: props?.p_p_rt ?? null,
-                    p_k_rt: props?.p_k_rt ?? null,
-                    p_dm: props?.p_dm ?? null,
-                    p_om: props?.p_om ?? null,
-                    p_date: app.p_app_date,
-                    p_dose: app.p_app_amount,
-                    p_app_method: app.p_app_method ?? null,
-                }
-            })
-
-            const cultivationCodes = new Set(
-                fieldCultivations.map((c) => c.b_lu_catalogue).filter(Boolean),
-            )
-            const cropProperties = catalogueEntries
-                .filter((e) => cultivationCodes.has(e.b_lu_catalogue))
-                .map((e) => ({
-                    b_lu_catalogue: e.b_lu_catalogue,
-                    b_lu_yield: e.b_lu_yield ?? null,
-                    b_lu_n_harvestable: e.b_lu_n_harvestable ?? null,
-                    b_lu_n_residue: e.b_lu_n_residue ?? null,
-                }))
-
-            // Build harvestsByBlu for this specific field's cultivations
-            const fieldHarvestsByBlu = new Map<
-                string,
-                {
-                    b_lu_harvest_date?: Date | null
-                    b_lu_yield?: number | null
-                }[]
-            >()
-            for (const cult of fieldCultivations) {
-                if (cult.b_lu) {
-                    const harvests = harvestsMap.get(cult.b_lu) ?? []
-                    fieldHarvestsByBlu.set(
-                        cult.b_lu,
-                        harvests.map((h) => ({
-                            b_lu_harvest_date: h.b_lu_harvest_date,
-                            b_lu_yield:
-                                h.harvestable?.harvestable_analyses?.[0]
-                                    ?.b_lu_yield ?? null,
-                        })),
+                // Pre-flight check: any main crop without a harvest date will cause
+                // the DYNA API to return 400 "b_date_harvest is missing".
+                const ongoingMainCrops = fieldCultivations.filter(
+                    (c) =>
+                        c.b_lu_end == null && c.b_lu_croprotation !== "catchcrop",
+                )
+                for (const crop of ongoingMainCrops) {
+                    if (!crop.b_lu) continue
+                    const harvests = harvestsMap.get(crop.b_lu) ?? []
+                    const hasDatedHarvest = harvests.some(
+                        (h) => h.b_lu_harvest_date != null,
                     )
+                    if (!hasDatedHarvest) {
+                        throw new Error("Oogstdatum ontbreekt voor lopend gewas")
+                    }
+                }
+
+                const dynaFertilizers = fieldApps.map((app) => {
+                    const props = fertilizerMap.get(app.p_id)
+                    return {
+                        p_id: app.p_id,
+                        p_n_rt: props?.p_n_rt ?? null,
+                        p_n_if: props?.p_n_if ?? null,
+                        p_n_of: props?.p_n_of ?? null,
+                        p_n_wc: props?.p_n_wc ?? null,
+                        p_p_rt: props?.p_p_rt ?? null,
+                        p_k_rt: props?.p_k_rt ?? null,
+                        p_dm: props?.p_dm ?? null,
+                        p_om: props?.p_om ?? null,
+                        p_date: app.p_app_date,
+                        p_dose: app.p_app_amount,
+                        p_app_method: app.p_app_method ?? null,
+                    }
+                })
+
+                const cultivationCodes = new Set(
+                    fieldCultivations.map((c) => c.b_lu_catalogue).filter(Boolean),
+                )
+                const cropProperties = catalogueEntries
+                    .filter((e) => cultivationCodes.has(e.b_lu_catalogue))
+                    .map((e) => ({
+                        b_lu_catalogue: e.b_lu_catalogue,
+                        b_lu_yield: e.b_lu_yield ?? null,
+                        b_lu_n_harvestable: e.b_lu_n_harvestable ?? null,
+                        b_lu_n_residue: e.b_lu_n_residue ?? null,
+                    }))
+
+                // Build harvestsByBlu for this specific field's cultivations
+                const fieldHarvestsByBlu = new Map<
+                    string,
+                    {
+                        b_lu_harvest_date?: Date | null
+                        b_lu_yield?: number | null
+                    }[]
+                >()
+                for (const cult of fieldCultivations) {
+                    if (cult.b_lu) {
+                        const harvests = harvestsMap.get(cult.b_lu) ?? []
+                        fieldHarvestsByBlu.set(
+                            cult.b_lu,
+                            harvests.map((h) => ({
+                                b_lu_harvest_date: h.b_lu_harvest_date,
+                                b_lu_yield:
+                                    h.harvestable?.harvestable_analyses?.[0]
+                                        ?.b_lu_yield ?? null,
+                            })),
+                        )
+                    }
+                }
+
+                const requestBody = buildDynaRequest(
+                    field,
+                    fieldSoilData,
+                    fieldCultivations,
+                    dynaFertilizers,
+                    farmSector,
+                    timeframe,
+                    cropProperties.length > 0 ? cropProperties : undefined,
+                    fieldHarvestsByBlu,
+                )
+
+                const result = await getDyna(fdm, {
+                    b_id: field.b_id,
+                    nmiApiKey,
+                    requestBody,
+                })
+                return {
+                    b_id: field.b_id,
+                    b_name: field.b_name ?? field.b_id,
+                    result,
+                }
+            } catch (err) {
+                return {
+                    b_id: field.b_id,
+                    b_name: field.b_name ?? field.b_id,
+                    error: err instanceof Error ? err.message : String(err),
                 }
             }
-
-            const requestBody = buildDynaRequest(
-                field,
-                fieldSoilData,
-                fieldCultivations,
-                dynaFertilizers,
-                farmSector,
-                timeframe,
-                cropProperties.length > 0 ? cropProperties : undefined,
-                fieldHarvestsByBlu,
-            )
-
-            const result = await getDyna(fdm, {
-                b_id: field.b_id,
-                nmiApiKey,
-                requestBody,
-            })
-            return {
-                b_id: field.b_id,
-                b_name: field.b_name ?? field.b_id,
-                result,
-            }
-        } catch (err) {
-            return {
-                b_id: field.b_id,
-                b_name: field.b_name ?? field.b_id,
-                error: err instanceof Error ? err.message : String(err),
-            }
-        }
+        })
+        activeTasks[currentSlot] = task
+        taskIndex++
+        return task
     })
 }
 

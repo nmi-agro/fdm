@@ -1,6 +1,6 @@
 /**
  * @packageDocumentation
- * @module mineralisatie/schemas
+ * @module mineralization/schemas
  *
  * Zod validation schemas for NMI API responses used by the Mineralisatie module.
  *

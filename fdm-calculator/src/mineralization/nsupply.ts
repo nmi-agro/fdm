@@ -1,6 +1,6 @@
 /**
  * @packageDocumentation
- * @module mineralisatie/nsupply
+ * @module mineralization/nsupply
  *
  * N supply (nitrogen mineralization) curve calculation via the NMI API.
  *
@@ -152,7 +152,8 @@ export async function requestNSupply(
  * Uses `withCalculationCache` from `@nmi-agro/fdm-core` to persist results in
  * the FDM database. The cache key is derived from a hash of the input (excluding
  * `nmiApiKey` which is redacted). The cache is automatically invalidated when
- * the request body changes (e.g. soil data updated, different method selected).
+ * the request body changes (e.g. soil data updated, different method selected)
+ * or when the package version changes.
  *
  * **Signature:** `(fdm: FdmType, input: NSupplyComputeInput) => Promise<NSupplyResult>`
  *

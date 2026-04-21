@@ -178,7 +178,12 @@ function MineralizationFarmContent({
     fields: { b_id: string; b_name: string | null }[]
 }) {
     const { results } = use(asyncNSupply)
-    const dynaPromises = use(asyncDynaPromises)
+    const dynaPromisesArray = use(asyncDynaPromises)
+
+    // Map the array of promises to a keyed object for the DynaFieldList
+    const dynaPromises = Object.fromEntries(
+        fields.map((field, i) => [field.b_id, dynaPromisesArray[i]]),
+    )
 
     // Compute farm-average curve (simple average per DOY across all valid results)
     const validResults = results.filter((r) => !r.error && r.data.length > 0)
@@ -279,7 +284,15 @@ function computeFarmAverageCurve(
 ): { doy: number; d_n_supply_actual: number }[] {
     if (results.length === 0) return []
 
-    const doyMap = new Map<number, { sumWeighted: number; sumArea: number }>()
+    const doyMap = new Map<
+        number,
+        {
+            sumWeighted: number
+            sumArea: number
+            sumUnweighted: number
+            count: number
+        }
+    >()
 
     for (const result of results) {
         if (result.error || result.data.length === 0) continue
@@ -289,17 +302,28 @@ function computeFarmAverageCurve(
             const existing = doyMap.get(point.doy) ?? {
                 sumWeighted: 0,
                 sumArea: 0,
+                sumUnweighted: 0,
+                count: 0,
             }
-            existing.sumWeighted += area * point.d_n_supply_actual
-            existing.sumArea += area
+            if (area > 0) {
+                existing.sumWeighted += area * point.d_n_supply_actual
+                existing.sumArea += area
+            }
+            existing.sumUnweighted += point.d_n_supply_actual
+            existing.count += 1
             doyMap.set(point.doy, existing)
         }
     }
 
     return Array.from(doyMap.entries())
         .sort(([a], [b]) => a - b)
-        .map(([doy, { sumWeighted, sumArea }]) => ({
+        .map(([doy, { sumWeighted, sumArea, sumUnweighted, count }]) => ({
             doy,
-            d_n_supply_actual: sumArea > 0 ? sumWeighted / sumArea : 0,
+            d_n_supply_actual:
+                sumArea > 0
+                    ? sumWeighted / sumArea
+                    : count > 0
+                      ? sumUnweighted / count
+                      : 0,
         }))
 }

@@ -13,7 +13,7 @@ import type { FarmDynaResult } from "~/integrations/mineralization.server"
 
 interface DynaFieldListProps {
     fields: { b_id: string; b_name: string | null }[]
-    promises: Promise<FarmDynaResult>[]
+    promises: Record<string, Promise<FarmDynaResult>>
     b_id_farm: string
     calendar: string
 }
@@ -24,15 +24,6 @@ export function DynaFieldList({
     b_id_farm,
     calendar,
 }: DynaFieldListProps) {
-    // Map promises to their b_id for easier lookup to avoid index-based alignment issues
-    const promisesById = new Map<string, Promise<FarmDynaResult>>()
-    for (let i = 0; i < fields.length; i++) {
-        const fieldId = fields[i].b_id
-        if (i < promises.length) {
-            promisesById.set(fieldId, promises[i])
-        }
-    }
-
     return (
         <Table>
             <TableHeader>
@@ -46,7 +37,7 @@ export function DynaFieldList({
             </TableHeader>
             <TableBody>
                 {fields.map((field) => {
-                    const promise = promisesById.get(field.b_id)
+                    const promise = promises[field.b_id]
                     if (!promise) return null
 
                     return (

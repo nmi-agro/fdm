@@ -1,6 +1,6 @@
 /**
  * @packageDocumentation
- * @module mineralisatie
+ * @module mineralization
  *
  * Nitrogen mineralization calculations for the FDM platform.
  *
