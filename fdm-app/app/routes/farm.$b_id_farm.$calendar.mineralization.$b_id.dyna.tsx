@@ -5,8 +5,10 @@ import {
     getGrazingIntention,
     getCultivations,
     getHarvests,
+    getHarvestsForFarm,
     type FertilizerApplication,
     type Fertilizer,
+    type Harvest,
 } from "@nmi-agro/fdm-core"
 import { CalendarOff, Layers, Slash } from "lucide-react"
 import { Suspense, use } from "react"
@@ -107,8 +109,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
         const farmSector = isGrazing ? "dairy" : "arable"
 
-        // Get fertilizer applications, fertilizer properties, and cultivations in parallel
-        const [applications, fertilizers, cultivations] = await Promise.all([
+        // Get fertilizer applications, fertilizer properties, cultivations, and harvests in parallel
+        const [applications, fertilizers, cultivations, harvestsMap] = await Promise.all([
             getFertilizerApplications(
                 fdm,
                 session.principal_id,
@@ -117,6 +119,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             ),
             getFertilizers(fdm, session.principal_id, b_id_farm),
             getCultivations(fdm, session.principal_id, b_id, timeframe),
+            getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
         ])
 
         // Pre-flight check: any main crop without a harvest date will cause
@@ -128,7 +131,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
         for (const crop of ongoingMainCrops) {
             if (!crop.b_lu) continue
-            const harvests = await getHarvests(fdm, session.principal_id, crop.b_lu, timeframe)
+            const harvests = harvestsMap.get(crop.b_lu) ?? []
             if (harvests.length === 0) {
                 return {
                     missingHarvestDate: true as const,
@@ -199,6 +202,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     label: c.b_lu_name ?? "Oogst",
                 })
             }
+
+            // Add actual harvests
+            const cultivationHarvests = harvestsMap.get(c.b_lu) ?? []
+            for (const h of cultivationHarvests) {
+                if (h.b_lu_harvest_date) {
+                    const analysis = h.harvestable.harvestable_analyses[0]
+                    const yieldVal = analysis?.b_lu_yield
+                    const label = yieldVal
+                        ? `${yieldVal.toFixed(0)} kg DS/ha — ${c.b_lu_name ?? "Oogst"}`
+                        : (c.b_lu_name ?? "Oogst")
+
+                    chartEvents.push({
+                        date: h.b_lu_harvest_date.toISOString().split("T")[0] ?? "",
+                        type: "harvest",
+                        label,
+                    })
+                }
+            }
         }
         for (const app of applications) {
             if (app.p_app_date) {
@@ -206,10 +227,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     fertilizerNameMap.get(app.p_id) ??
                     app.p_name_nl ??
                     "Mest"
+                const amount = app.p_app_amount_display ?? app.p_app_amount ?? "?"
+                const unit = app.p_app_amount_unit ?? "kg"
                 chartEvents.push({
                     date: app.p_app_date.toISOString().split("T")[0] ?? "",
                     type: "fertilizer",
-                    label: `${app.p_app_amount ?? "?"} kg — ${name}`,
+                    label: `${amount} ${unit} — ${name}`,
                 })
             }
         }
@@ -427,7 +450,7 @@ function DynaContent({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <LeachingChart data={yearData} />
+                    <LeachingChart data={yearData} events={chartEvents} />
                 </CardContent>
             </Card>
         </>

@@ -1,6 +1,13 @@
 "use client"
 
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import {
+    Area,
+    CartesianGrid,
+    ComposedChart,
+    ReferenceLine,
+    XAxis,
+    YAxis,
+} from "recharts"
 import {
     type ChartConfig,
     ChartContainer,
@@ -8,6 +15,12 @@ import {
     ChartTooltipContent,
 } from "~/components/ui/chart"
 import type { DynaDailyPoint } from "~/integrations/mineralization.server"
+import {
+    type DynaChartEvent,
+    EVENT_COLORS,
+    EventDot,
+    groupEventsByDate,
+} from "./dyna-chart"
 
 const MONTH_LABELS_NL = [
     "Jan",
@@ -57,10 +70,18 @@ const leachingChartConfig = {
 
 interface LeachingChartProps {
     data: DynaDailyPoint[]
+    events?: DynaChartEvent[]
 }
 
-export function LeachingChart({ data }: LeachingChartProps) {
+export function LeachingChart({ data, events = [] }: LeachingChartProps) {
     const monthTicks = getMonthTicks(data)
+
+    // Group events by date and only include dates present in the data
+    const eventsByDate = groupEventsByDate(events)
+    const chartDates = new Set(data.map((d) => d.b_date_calculation))
+    const uniqueEventDates = Array.from(eventsByDate.entries()).filter(
+        ([date]) => chartDates.has(date),
+    )
 
     const chartData = data.map((d) => ({
         date: d.b_date_calculation,
@@ -72,7 +93,7 @@ export function LeachingChart({ data }: LeachingChartProps) {
             config={leachingChartConfig}
             className="h-[220px] w-full"
         >
-            <AreaChart
+            <ComposedChart
                 data={chartData}
                 margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
             >
@@ -134,7 +155,20 @@ export function LeachingChart({ data }: LeachingChartProps) {
                     fill="url(#leachGradient)"
                     isAnimationActive={false}
                 />
-            </AreaChart>
+
+                {/* Field events */}
+                {uniqueEventDates.map(([date, evs]) => (
+                    <ReferenceLine
+                        key={date}
+                        x={date}
+                        stroke={EVENT_COLORS[evs[0].type]}
+                        strokeDasharray="4 3"
+                        label={(props) => (
+                            <EventDot viewBox={props.viewBox} events={evs} />
+                        )}
+                    />
+                ))}
+            </ComposedChart>
         </ChartContainer>
     )
 }

@@ -65,19 +65,19 @@ function getMonthTicks(data: DynaDailyPoint[]): string[] {
 const dynaChartConfig = {
     band: {
         label: "Bandbreedte",
-        color: "hsl(var(--chart-1))",
+        color: "hsl(var(--chart-2))",
     },
     b_nw: {
         label: "N aanbod",
-        color: "hsl(var(--chart-1))",
+        color: "hsl(var(--chart-2))",
     },
     b_n_uptake: {
         label: "N opname",
-        color: "hsl(var(--chart-2))",
+        color: "hsl(var(--chart-1))",
     },
     b_nw_difference: {
-        label: "N surplus/deficit",
-        color: "hsl(var(--chart-1))",
+        label: "N beschikbaar",
+        color: "hsl(var(--chart-2))",
     },
 } satisfies ChartConfig
 
@@ -87,13 +87,13 @@ export interface DynaChartEvent {
     label: string
 }
 
-const EVENT_COLORS: Record<DynaChartEvent["type"], string> = {
+export const EVENT_COLORS: Record<DynaChartEvent["type"], string> = {
     sowing: "hsl(142, 71%, 45%)",
     harvest: "hsl(38, 92%, 50%)",
     fertilizer: "hsl(217, 91%, 60%)",
 }
 
-function groupEventsByDate(
+export function groupEventsByDate(
     events: DynaChartEvent[],
 ): Map<string, DynaChartEvent[]> {
     const map = new Map<string, DynaChartEvent[]>()
@@ -110,7 +110,7 @@ interface EventDotProps {
     events: DynaChartEvent[]
 }
 
-function EventDot({ viewBox, events }: EventDotProps) {
+export function EventDot({ viewBox, events }: EventDotProps) {
     if (!viewBox?.x || viewBox.y === undefined) return null
     const x = viewBox.x
     const y = (viewBox.y ?? 0) + 10
@@ -249,7 +249,7 @@ export function DynaChart({
         _events: eventsByDate.get(d.b_date_calculation),
     }))
 
-    // Calculate surplus/deficit (N aanbod - N opname)
+    // Calculate available N (N aanbod - N opname)
     const chartDataWithDifference = chartData.map((d) => ({
         ...d,
         b_nw_difference:
@@ -259,22 +259,22 @@ export function DynaChart({
     }))
 
     return (
-        <div className="w-full space-y-4">
+        <div className="space-y-4">
             <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}
                 className="w-full"
             >
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="dynamics">N-dynamiek</TabsTrigger>
+                <TabsList className="grid grid-cols-2">
+                    <TabsTrigger value="dynamics">N aanbod & opname</TabsTrigger>
                     <TabsTrigger value="balance">N beschikbaar</TabsTrigger>
                 </TabsList>
 
-                {/* Tab 1: N-dynamiek — N aanbod and N opname lines */}
+                {/* Tab 1: N aanbod en opname — N aanbod and N opname lines */}
                 <TabsContent value="dynamics" className="mt-4">
                     <ChartContainer
                         config={dynaChartConfig}
-                        className="h-[400px] w-full"
+                        className="h-100 w-full"
                     >
                         <ComposedChart
                             data={chartData}
