@@ -216,7 +216,37 @@ export default function MineralizationFieldDetail() {
     const { b_id, b_id_farm, calendar, completeness, asyncData } = loaderData
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
+            <div className="flex items-center gap-2">
+                <Button
+                    asChild
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-full px-4 h-8 bg-amber-100 text-amber-900 hover:bg-amber-200 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900"
+                >
+                    <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}`}
+                        end
+                    >
+                        <Zap className="mr-1.5 h-3.5 w-3.5" />
+                        Bodem N-levering
+                    </NavLink>
+                </Button>
+                <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full px-4 h-8 text-muted-foreground hover:text-foreground"
+                >
+                    <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}/dyna`}
+                    >
+                        <Component className="mr-1.5 h-3.5 w-3.5" />
+                        DYNA
+                    </NavLink>
+                </Button>
+            </div>
+
             <Suspense fallback={<MineralizationFieldDetailFallback />}>
                 <MineralizationFieldContent
                     asyncData={asyncData}
@@ -275,62 +305,6 @@ function MineralizationFieldContent({
                     </CardContent>
                 </Card>
             )}
-
-            {/* Method comparison — two peers */}
-            <div className="grid gap-4 sm:grid-cols-2">
-                {/* Card A: Bodem N-levering — current view */}
-                <div className="rounded-xl border bg-muted/40 p-5 flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-2">
-                        <div className="rounded-lg bg-background border p-2 shrink-0">
-                            <Zap className="h-5 w-5 text-foreground" />
-                        </div>
-                        <span className="flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5 font-medium">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Huidige weergave
-                        </span>
-                    </div>
-                    <div>
-                        <p className="font-semibold text-sm">Bodem N-levering</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">MINIP · PMN · Century</p>
-                    </div>
-                    <p className="text-sm text-muted-foreground flex-1">
-                        Berekent de N-levering uit bodemorganische stof. Geschikt voor een snelle inschatting zonder gewas- of bemestingsgegevens.
-                    </p>
-                    <div className="text-xs text-muted-foreground border-t pt-3 mt-auto">
-                        <span className="font-medium text-foreground">Vereist:</span> bodemgegevens (organische stof, grondsoort)
-                    </div>
-                </div>
-
-                {/* Card B: DYNA — more advanced */}
-                <div className="rounded-xl border bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200 dark:border-emerald-800 p-5 flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-2">
-                        <div className="rounded-lg bg-emerald-100 dark:bg-emerald-900/50 p-2 shrink-0">
-                            <Component className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <span className="rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs px-2 py-0.5 font-medium">
-                            Meest volledig
-                        </span>
-                    </div>
-                    <div>
-                        <p className="font-semibold text-sm">DYNA</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Dynamisch N-advies</p>
-                    </div>
-                    <p className="text-sm text-muted-foreground flex-1">
-                        Berekent dag-voor-dag N-beschikbaarheid én gewasopname op basis van bodem, gewas én bemesting. Nauwkeuriger, maar vereist meer gegevens.
-                    </p>
-                    <div className="text-xs text-muted-foreground border-t border-emerald-200 dark:border-emerald-800 pt-3 mt-auto flex items-end justify-between gap-2">
-                        <span>
-                            <span className="font-medium text-foreground">Vereist:</span> bodem + gewas + bemesting (incl. oogstdatum)
-                        </span>
-                        <Button asChild size="sm" className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-700 dark:hover:bg-emerald-600">
-                            <NavLink to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}/dyna`}>
-                                Naar DYNA
-                                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                            </NavLink>
-                        </Button>
-                    </div>
-                </div>
-            </div>
 
             <Card>
                 <CardHeader>

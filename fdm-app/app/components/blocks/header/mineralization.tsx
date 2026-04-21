@@ -77,7 +77,7 @@ export function HeaderMineralization({
                 </>
             )}
 
-            {isDyna && (
+            {isDyna ? (
                 <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
@@ -88,6 +88,19 @@ export function HeaderMineralization({
                         </BreadcrumbLink>
                     </BreadcrumbItem>
                 </>
+            ) : (
+                b_id && (
+                    <>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink
+                                href={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}`}
+                            >
+                                Bodem N-levering
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                    </>
+                )
             )}
         </>
     )

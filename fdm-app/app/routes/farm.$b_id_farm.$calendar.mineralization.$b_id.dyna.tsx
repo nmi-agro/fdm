@@ -10,7 +10,7 @@ import {
     type Fertilizer,
     type Harvest,
 } from "@nmi-agro/fdm-core"
-import { CalendarOff, Layers, Slash } from "lucide-react"
+import { CalendarOff, Component, Layers, Slash, Zap } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
@@ -294,25 +294,40 @@ export default function DynaPage() {
         )
     }
 
-    const { asyncData, chartEvents } = loaderData
+    const { asyncData, chartEvents, b_id, b_id_farm, calendar } = loaderData
 
     return (
-        <div className="space-y-4">
-            {/* Method context banner */}
-            <div className="rounded-lg border bg-muted/40 px-4 py-3 flex items-center justify-between gap-4 text-sm">
-                <div className="flex items-center gap-2 min-w-0">
-                    <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">
-                        DYNA berekent de N-beschikbaarheid op basis van <span className="font-medium text-foreground">bodem, gewas én bemesting</span> — nauwkeuriger dan bodem-alleen methoden.
-                    </span>
-                </div>
-                <NavLink
-                    to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/mineralization/${loaderData.b_id}`}
-                    className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 shrink-0 whitespace-nowrap"
+        <div className="space-y-6">
+            <div className="flex items-center gap-2">
+                <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full px-4 h-8 text-muted-foreground hover:text-foreground"
                 >
-                    Bodem N-levering
-                </NavLink>
+                    <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}`}
+                        end
+                    >
+                        <Zap className="mr-1.5 h-3.5 w-3.5" />
+                        Bodem N-levering
+                    </NavLink>
+                </Button>
+                <Button
+                    asChild
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-full px-4 h-8 bg-emerald-100 text-emerald-900 hover:bg-emerald-200 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900"
+                >
+                    <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}/dyna`}
+                    >
+                        <Component className="mr-1.5 h-3.5 w-3.5" />
+                        DYNA
+                    </NavLink>
+                </Button>
             </div>
+
             <Suspense fallback={<DynaFallback />}>
                 <DynaContent
                     asyncData={asyncData}

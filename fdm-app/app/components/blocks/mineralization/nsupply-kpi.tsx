@@ -41,7 +41,7 @@ export function FarmNSupplyKpi({ results }: FarmNSupplyKpiProps) {
             <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">
-                        N Levering Bedrijf
+                        N Levering bedrijf
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -57,7 +57,7 @@ export function FarmNSupplyKpi({ results }: FarmNSupplyKpiProps) {
             <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">
-                        Hoogste N Levering
+                        Hoogste N levering
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -74,7 +74,7 @@ export function FarmNSupplyKpi({ results }: FarmNSupplyKpiProps) {
             <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">
-                        Laagste N Levering
+                        Laagste N levering
                     </CardTitle>
                 </CardHeader>
                 <CardContent>

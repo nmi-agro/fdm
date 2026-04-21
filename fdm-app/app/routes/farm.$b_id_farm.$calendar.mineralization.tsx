@@ -5,6 +5,7 @@ import {
     type MetaFunction,
     Outlet,
     useLoaderData,
+    useLocation,
 } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -97,6 +98,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function MineralizationLayout() {
     const loaderData = useLoaderData<typeof loader>()
+    const location = useLocation()
+
+    const isField = !!loaderData.b_id
+    const isDyna = location.pathname.endsWith("/dyna")
+
+    const title = isField
+        ? isDyna
+            ? "DYNA Dynamisch N-advies"
+            : "Bodem N-levering"
+        : "Mineralisatie"
+
+    const description = isField
+        ? isDyna
+            ? "Gedetailleerde N-beschikbaarheid op basis van bodem, gewas en bemesting."
+            : "Schatting van N-levering uit bodemorganische stof."
+        : "Stikstofmineralisatie per perceel en bedrijf."
 
     return (
         <SidebarInset>
@@ -116,10 +133,10 @@ export default function MineralizationLayout() {
                     <div className="flex items-center gap-4">
                         <div className="space-y-0.5">
                             <h2 className="text-2xl font-bold tracking-tight">
-                                Mineralisatie
+                                {title}
                             </h2>
                             <p className="text-muted-foreground">
-                                Stikstofmineralisatie per perceel en bedrijf
+                                {description}
                             </p>
                         </div>
                     </div>

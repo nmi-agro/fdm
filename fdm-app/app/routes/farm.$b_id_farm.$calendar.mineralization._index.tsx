@@ -1,4 +1,5 @@
 import { getFarm, getFields } from "@nmi-agro/fdm-core"
+import { Component, Zap } from "lucide-react"
 import { Suspense, use } from "react"
 import {
     data,
@@ -6,11 +7,13 @@ import {
     type MetaFunction,
     useLoaderData,
 } from "react-router"
+import { DynaFieldList } from "~/components/blocks/mineralization/dyna-field-list"
 import { FieldList } from "~/components/blocks/mineralization/field-list"
 import { MethodSelector } from "~/components/blocks/mineralization/method-selector"
 import { FarmMineralizationChart } from "~/components/blocks/mineralization/mineralization-chart"
 import { FarmNSupplyKpi } from "~/components/blocks/mineralization/nsupply-kpi"
 import { MineralizationFallback } from "~/components/blocks/mineralization/skeletons"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import {
     Card,
     CardContent,
@@ -20,8 +23,10 @@ import {
 } from "~/components/ui/card"
 import {
     getNSupplyForFarm,
+    getDynaForFarm,
     type NSupplyMethod,
     type NSupplyResult,
+    type FarmDynaResult,
 } from "~/integrations/mineralization.server"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -75,7 +80,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const method = (url.searchParams.get("method") ??
             "minip") as NSupplyMethod
 
-        const asyncData = (async () => {
+        const asyncNSupply = (async () => {
             try {
                 const results = await getNSupplyForFarm({
                     principal_id: session.principal_id,
@@ -89,7 +94,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     err instanceof Error ? err.message : String(err),
                     {
                         page: "farm/{b_id_farm}/{calendar}/mineralization/_index",
-                        scope: "loader/asyncData",
+                        scope: "loader/asyncNSupply",
                     },
                     { b_id_farm },
                 )
@@ -97,13 +102,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         })()
 
+        const asyncDynaPromises = getDynaForFarm({
+            principal_id: session.principal_id,
+            b_id_farm,
+            timeframe,
+        })
+
         return {
             farm,
             fields,
             b_id_farm,
             method,
             calendar: params.calendar ?? "",
-            asyncData,
+            asyncNSupply,
+            asyncDynaPromises,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -112,16 +124,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function MineralizationFarmOverview() {
     const loaderData = useLoaderData<typeof loader>()
-    const { b_id_farm, method, calendar, asyncData } = loaderData
+    const { b_id_farm, method, calendar, asyncNSupply, asyncDynaPromises, fields } =
+        loaderData
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-8">
             <Suspense fallback={<MineralizationFallback />}>
                 <MineralizationFarmContent
-                    asyncData={asyncData}
+                    asyncNSupply={asyncNSupply}
+                    asyncDynaPromises={asyncDynaPromises}
                     b_id_farm={b_id_farm}
                     method={method}
                     calendar={calendar}
+                    fields={fields}
                 />
             </Suspense>
         </div>
@@ -129,68 +144,114 @@ export default function MineralizationFarmOverview() {
 }
 
 function MineralizationFarmContent({
-    asyncData,
+    asyncNSupply,
+    asyncDynaPromises,
     b_id_farm,
     method,
     calendar,
+    fields,
 }: {
-    asyncData: Promise<{ results: NSupplyResult[] }>
+    asyncNSupply: Promise<{ results: NSupplyResult[] }>
+    asyncDynaPromises: Promise<Promise<FarmDynaResult>[]>
     b_id_farm: string
     method: NSupplyMethod
     calendar: string
+    fields: { b_id: string; b_name: string | null }[]
 }) {
-    const { results } = use(asyncData)
+    const { results } = use(asyncNSupply)
+    const dynaPromises = use(asyncDynaPromises)
 
     // Compute farm-average curve (simple average per DOY across all valid results)
     const validResults = results.filter((r) => !r.error && r.data.length > 0)
     const farmAvgData = computeFarmAverageCurve(validResults)
 
     return (
-        <>
-            <div className="grid gap-4 md:grid-cols-3">
-                <FarmNSupplyKpi results={results} />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <div className="col-span-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>
-                                Mineralisatiecurve — Bedrijfsgemiddelde
-                            </CardTitle>
-                            <CardDescription>
-                                Cumulatieve N-levering (kg N/ha) over het jaar
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <FarmMineralizationChart
-                                data={farmAvgData}
-                                year={Number(calendar)}
-                            />
-                        </CardContent>
-                    </Card>
+        <div className="space-y-8">
+            {/* 1. N-Supply Section */}
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                    <Zap className="h-4 w-4 text-amber-500" />
+                    <h3 className="text-lg font-semibold tracking-tight">
+                        Bodem N-levering
+                    </h3>
                 </div>
-                <div className="col-span-3">
-                    <Card>
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                            <div>
-                                <CardTitle>Percelen</CardTitle>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                    <FarmNSupplyKpi results={results} />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                    <div className="col-span-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
+                                    Mineralisatiecurve — Bedrijfsgemiddelde
+                                </CardTitle>
                                 <CardDescription>
-                                    Gesorteerd op N-levering
+                                    Cumulatieve N-levering (kg N/ha) over het
+                                    jaar. Schatting op basis van bodemgegevens.
                                 </CardDescription>
-                            </div>
-                            <MethodSelector value={method} />
-                        </CardHeader>
-                        <CardContent>
-                            <FieldList
-                                results={results}
-                                b_id_farm={b_id_farm}
-                                calendar={calendar}
-                            />
-                        </CardContent>
-                    </Card>
+                            </CardHeader>
+                            <CardContent>
+                                <FarmMineralizationChart
+                                    data={farmAvgData}
+                                    year={Number(calendar)}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="col-span-3">
+                        <Card className="h-full flex flex-col">
+                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                <div>
+                                    <CardTitle>Percelen</CardTitle>
+                                    <CardDescription>
+                                        Gesorteerd op N-levering
+                                    </CardDescription>
+                                </div>
+                                <MethodSelector value={method} />
+                            </CardHeader>
+                            <CardContent className="flex-1 overflow-auto max-h-[400px]">
+                                <FieldList
+                                    results={results}
+                                    b_id_farm={b_id_farm}
+                                    calendar={calendar}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
-            </div>
-        </>
+            </section>
+
+            {/* 2. DYNA Section */}
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                    <Component className="h-4 w-4 text-emerald-500" />
+                    <h3 className="text-lg font-semibold tracking-tight">
+                        DYNA
+                    </h3>
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Resultaten per perceel</CardTitle>
+                        <CardDescription>
+                            Dag-voor-dag berekening van N-beschikbaarheid en
+                            gewasopname op basis van bodem, gewas én
+                            bemesting. Resultaten laden per perceel.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="overflow-auto max-h-[500px]">
+                        <DynaFieldList
+                            fields={fields}
+                            promises={dynaPromises}
+                            b_id_farm={b_id_farm}
+                            calendar={calendar}
+                        />
+                    </CardContent>
+                </Card>
+            </section>
+        </div>
     )
 }
 
