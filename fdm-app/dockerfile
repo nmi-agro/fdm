@@ -41,7 +41,7 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 user && \
     apk add --no-cache libc6-compat curl && \
-    npm install -g pnpm
+    npm install -g pnpm typescript
 
 # Copy package.json files for workspace installation
 COPY --from=pruner --chown=user:nodejs /app/out/json/ .
