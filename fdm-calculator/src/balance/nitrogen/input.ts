@@ -23,9 +23,12 @@ import {
     getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
+import Decimal from "decimal.js"
 import { handleInputCollectionError } from "../shared/errors"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 import type { FieldInput, NitrogenBalanceInput } from "./types"
+
+type FieldInputWithoutDeposition = Omit<FieldInput, "depositionSupply">
 
 /**
  * Collects field-specific input data from a FDM instance for calculating the nitrogen balance.
@@ -55,8 +58,11 @@ async function collectInputForNitrogenBalanceForFarm(
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<FieldInput[]> {
     try {
-        // Collect the fields for the farm
-        return await fdm.transaction(async (tx: typeof fdm) => {
+        // Step 1: Fetch all DB data in a single transaction
+        const dbResult: {
+            farmFields: Awaited<ReturnType<typeof getFields>>
+            fieldData: FieldInputWithoutDeposition[]
+        } = await fdm.transaction(async (tx: typeof fdm) => {
             let farmFields: Awaited<ReturnType<typeof getFields>>
             if (b_id) {
                 const field = await getField(tx, principal_id, b_id)
@@ -73,19 +79,8 @@ async function collectInputForNitrogenBalanceForFarm(
                 )
             }
 
-            // Set the link to location of FDM public data
-            const fdmPublicDataUrl = getFdmPublicDataUrl()
-
-            // Fetch all deposition data in a single, batched request to avoid requesting the GeoTIIF for every field
-            const depositionByField =
-                await calculateAllFieldsNitrogenSupplyByDeposition(
-                    farmFields,
-                    timeframe,
-                    fdmPublicDataUrl,
-                )
-
             if (b_id) {
-                // Single-field path: use the existing per-field functions (only 1 field, no optimisation needed)
+                // Single-field path
                 const field = farmFields[0]
                 const cultivations = await getCultivations(
                     tx,
@@ -117,23 +112,26 @@ async function collectInputForNitrogenBalanceForFarm(
                     timeframe,
                 )
 
-                const fertilizerApplications = await getFertilizerApplications(
-                    tx,
-                    principal_id,
-                    field.b_id,
-                    timeframe,
-                )
+                const fertilizerApplications =
+                    await getFertilizerApplications(
+                        tx,
+                        principal_id,
+                        field.b_id,
+                        timeframe,
+                    )
 
-                return [
-                    {
-                        field,
-                        cultivations,
-                        harvests: harvestsFiltered,
-                        fertilizerApplications,
-                        soilAnalyses,
-                        depositionSupply: depositionByField.get(field.b_id),
-                    },
-                ]
+                return {
+                    farmFields,
+                    fieldData: [
+                        {
+                            field,
+                            cultivations,
+                            harvests: harvestsFiltered,
+                            fertilizerApplications,
+                            soilAnalyses,
+                        },
+                    ],
+                }
             }
 
             // Farm-level path: fetch all data per farm in parallel
@@ -154,24 +152,46 @@ async function collectInputForNitrogenBalanceForFarm(
                 getHarvestsForFarm(tx, principal_id, b_id_farm, timeframe),
             ])
 
-            // Assemble per-field results from the Maps (pure in-memory, no queries)
-            return farmFields.map((field) => {
-                const cultivations = cultivationsByField.get(field.b_id) ?? []
-                const harvests = cultivations.flatMap(
-                    (c) => harvestsByField.get(c.b_lu) ?? [],
-                )
-
-                return {
-                    field,
-                    cultivations,
-                    harvests,
-                    fertilizerApplications:
-                        fertAppsByField.get(field.b_id) ?? [],
-                    soilAnalyses: soilByField.get(field.b_id) ?? [],
-                    depositionSupply: depositionByField.get(field.b_id),
-                }
-            })
+            return {
+                farmFields,
+                fieldData: farmFields.map((field) => {
+                    const cultivations =
+                        cultivationsByField.get(field.b_id) ?? []
+                    const harvests = cultivations.flatMap(
+                        (c) => harvestsByField.get(c.b_lu) ?? [],
+                    )
+                    return {
+                        field,
+                        cultivations,
+                        harvests,
+                        fertilizerApplications:
+                            fertAppsByField.get(field.b_id) ?? [],
+                        soilAnalyses: soilByField.get(field.b_id) ?? [],
+                    }
+                }),
+            }
         })
+
+        // Step 2: Fetch deposition data OUTSIDE the transaction.
+        // This is pure HTTP + in-memory raster reads (no DB needed),
+        // so holding a DB connection idle during this phase is wasteful.
+        const fdmPublicDataUrl = getFdmPublicDataUrl()
+        const depositionByField =
+            await calculateAllFieldsNitrogenSupplyByDeposition(
+                dbResult.farmFields,
+                timeframe,
+                fdmPublicDataUrl,
+            )
+
+        // Step 3: Merge deposition into field data (pure in-memory)
+        return dbResult.fieldData.map(
+            (entry): FieldInput => ({
+                ...entry,
+                depositionSupply: depositionByField.get(
+                    entry.field.b_id,
+                ) ?? { total: new Decimal(0) },
+            }),
+        )
     } catch (error) {
         throw handleNitrogenBalanceInputCollectionError(error, b_id_farm)
     }

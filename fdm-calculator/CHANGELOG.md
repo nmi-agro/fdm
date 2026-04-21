@@ -1,5 +1,11 @@
 # fdm-calculator
 
+## 0.13.3
+
+### Patch Changes
+
+- [#584](https://github.com/nmi-agro/fdm/pull/584) [`4da1980`](https://github.com/nmi-agro/fdm/commit/4da19808a0dc21f2be07c9d490a54f0ef61c027a) Thanks [@SvenVw](https://github.com/SvenVw)! - Move GeoTIFF deposition fetch outside DB transaction in nitrogen balance data collection, freeing the database connection during HTTP/raster operations and reducing connection pool pressure under concurrent load
+
 ## 0.13.2
 
 ### Patch Changes

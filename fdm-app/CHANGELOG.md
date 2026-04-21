@@ -1,5 +1,15 @@
 # Changelog fdm-app
 
+## 0.29.6
+
+### Patch Changes
+
+- [#584](https://github.com/nmi-agro/fdm/pull/584) [`5330bea`](https://github.com/nmi-agro/fdm/commit/5330bea6de0afe02d811ceaeb0af022554ce76cb) Thanks [@SvenVw](https://github.com/SvenVw)! - Increase SSR stream timeout from 90s to 150s to prevent React stream aborts for farms with many fields
+
+- Updated dependencies [[`4da1980`](https://github.com/nmi-agro/fdm/commit/4da19808a0dc21f2be07c9d490a54f0ef61c027a)]:
+  - @nmi-agro/fdm-calculator@0.13.3
+  - @nmi-agro/fdm-agents@0.2.1
+
 ## 0.29.5
 
 ### Patch Changes
