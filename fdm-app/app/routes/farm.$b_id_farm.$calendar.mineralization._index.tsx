@@ -114,15 +114,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     timeframe,
                 })
             } catch (err) {
+                const errorMessage =
+                    err instanceof Error ? err.message : String(err)
                 reportError(
-                    err instanceof Error ? err.message : String(err),
+                    errorMessage,
                     {
                         page: "farm/{b_id_farm}/{calendar}/mineralization/_index",
                         scope: "loader/asyncDynaPromises",
                     },
                     { b_id_farm },
                 )
-                return [] as Promise<FarmDynaResult>[]
+                // Fabricate a failed promise for each field so the UI remains aligned
+                return fields.map(
+                    async (field) =>
+                        ({
+                            b_id: field.b_id,
+                            b_name: field.b_name ?? field.b_id,
+                            error: errorMessage,
+                        }) as FarmDynaResult,
+                )
             }
         })()
 

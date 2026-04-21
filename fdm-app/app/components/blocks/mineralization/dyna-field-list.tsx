@@ -87,6 +87,8 @@ function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
     const { result, error } = use(promise)
 
     const lastPoint = result?.calculationDyna?.[result.calculationDyna.length - 1]
+    const hasValue =
+        !error && !!result?.calculationDyna?.length && lastPoint !== undefined
     const nAvailability = lastPoint?.b_nw ?? 0
     const nUptake = lastPoint?.b_n_uptake ?? 0
     const leaching = lastPoint?.b_no3_leach ?? 0
@@ -94,28 +96,30 @@ function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
     return (
         <>
             <TableCell className="text-right font-mono">
-                {error ? "—" : Math.round(nAvailability)}
+                {hasValue ? Math.round(nAvailability) : "—"}
             </TableCell>
             <TableCell className="text-right font-mono">
-                {error ? "—" : Math.round(nUptake)}
+                {hasValue ? Math.round(nUptake) : "—"}
             </TableCell>
             <TableCell className="text-right font-mono text-amber-600 dark:text-amber-400">
-                {error ? "—" : Math.round(leaching)}
+                {hasValue ? Math.round(leaching) : "—"}
             </TableCell>
             <TableCell className="text-center">
-                {error ? (
+                {hasValue ? (
                     <>
-                        <span className="sr-only">Fout: {error}</span>
-                        <CircleX
-                            className="h-4 w-4 text-destructive mx-auto"
+                        <span className="sr-only">Succes</span>
+                        <CircleCheck
+                            className="h-4 w-4 text-green-500 mx-auto"
                             aria-hidden="true"
                         />
                     </>
                 ) : (
                     <>
-                        <span className="sr-only">Succes</span>
-                        <CircleCheck
-                            className="h-4 w-4 text-green-500 mx-auto"
+                        <span className="sr-only">
+                            Fout: {error || "Geen data"}
+                        </span>
+                        <CircleX
+                            className="h-4 w-4 text-destructive mx-auto"
                             aria-hidden="true"
                         />
                     </>

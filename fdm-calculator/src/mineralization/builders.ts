@@ -47,23 +47,41 @@ function getMainCultivation<
     const targetDate = new Date(`${year}-05-15T12:00:00`)
 
     // 1. First priority: a non-catchcrop that spans May 15th
-    const activeMainOnMay15 = cultivations.find((c) => {
-        if (!c.b_lu_start || c.b_lu_croprotation === "catchcrop") return false
-        const start = c.b_lu_start
-        const end = c.b_lu_end ?? null
-        if (end) return start <= targetDate && end >= targetDate
-        return start <= targetDate
-    })
+    // If multiple candidates span the date, pick the one with the most recent start date.
+    const activeMainOnMay15 = cultivations
+        .filter(
+            (c) =>
+                c.b_lu_start &&
+                c.b_lu_croprotation !== "catchcrop" &&
+                (c.b_lu_end ?? targetDate) >= targetDate &&
+                c.b_lu_start <= targetDate,
+        )
+        .reduce<T | undefined>(
+            (best, c) =>
+                !best ||
+                (c.b_lu_start!.getTime() > best.b_lu_start!.getTime())
+                    ? c
+                    : best,
+            undefined,
+        )
     if (activeMainOnMay15) return activeMainOnMay15
 
     // 2. Second priority: any crop that spans May 15th (including catchcrops)
-    const activeAnyOnMay15 = cultivations.find((c) => {
-        if (!c.b_lu_start) return false
-        const start = c.b_lu_start
-        const end = c.b_lu_end ?? null
-        if (end) return start <= targetDate && end >= targetDate
-        return start <= targetDate
-    })
+    const activeAnyOnMay15 = cultivations
+        .filter(
+            (c) =>
+                c.b_lu_start &&
+                (c.b_lu_end ?? targetDate) >= targetDate &&
+                c.b_lu_start <= targetDate,
+        )
+        .reduce<T | undefined>(
+            (best, c) =>
+                !best ||
+                (c.b_lu_start!.getTime() > best.b_lu_start!.getTime())
+                    ? c
+                    : best,
+            undefined,
+        )
     if (activeAnyOnMay15) return activeAnyOnMay15
 
     // 3. Fallback: first non-catchcrop in the year, then any crop

@@ -54,23 +54,11 @@ export const dynaDailyPointSchema = z.object({
     /** N availability — upper bound */
     b_nw_max: z.number(),
     /** N availability — recommended target */
-    b_nw_recommended: z.number(),
-    /** N uptake by crop — central estimate */
-    b_n_uptake: z.number(),
-    /** N uptake — lower bound */
-    b_n_uptake_min: z.number(),
-    /** N uptake — upper bound */
-    b_n_uptake_max: z.number(),
-    /** N uptake — recommended target */
-    b_n_uptake_recommended: z.number(),
-    /** NO₃ leaching — central estimate */
-    b_no3_leach: z.number(),
-    /** NO₃ leaching — lower bound */
-    b_no3_leach_min: z.number(),
-    /** NO₃ leaching — upper bound */
-    b_no3_leach_max: z.number(),
-    /** NO₃ leaching — recommended target */
-    b_no3_leach_recommended: z.number(),
+    b_nw_recommended: z.number().nullable(),
+    /** Crop N uptake */
+    b_n_uptake: z.number().nullable(),
+    /** Cumulative NO3 leaching */
+    b_no3_leach: z.number().nullable(),
 })
 
 /**

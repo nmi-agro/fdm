@@ -113,6 +113,11 @@ export interface NSupplyComputeInput {
     method: NSupplyMethod
     /** Pre-computed completeness assessment — stored in the result */
     completeness: DataCompleteness
+    /** 
+     * Current date (YYYY-MM-DD) used for cache invalidation. 
+     * Since NMI forecast data refreshes nightly, the cache should expire daily.
+     */
+    cacheDate: string
 }
 
 // ─── DYNA ─────────────────────────────────────────────────────────────────────
@@ -131,9 +136,9 @@ export interface DynaDailyPoint {
     /** Upper bound of the N availability uncertainty band (kg N/ha) */
     b_nw_max: number
     /** Recommended N availability target for this date (kg N/ha) */
-    b_nw_recommended: number
+    b_nw_recommended: number | null
     /** Cumulative N uptake by the crop — central estimate (kg N/ha) */
-    b_n_uptake: number
+    b_n_uptake: number | null
     /** Lower bound of N uptake (kg N/ha) */
     b_n_uptake_min: number
     /** Upper bound of N uptake (kg N/ha) */
@@ -141,7 +146,7 @@ export interface DynaDailyPoint {
     /** Recommended N uptake target (kg N/ha) */
     b_n_uptake_recommended: number
     /** Cumulative NO₃ leaching — central estimate (kg NO₃/ha) */
-    b_no3_leach: number
+    b_no3_leach: number | null
     /** Lower bound of NO₃ leaching (kg NO₃/ha) */
     b_no3_leach_min: number
     /** Upper bound of NO₃ leaching (kg NO₃/ha) */
@@ -221,4 +226,8 @@ export interface DynaComputeInput {
     nmiApiKey: string
     /** Fully-formed request body for `POST /bemestingsplan/dyna` */
     requestBody: Record<string, unknown>
+    /** 
+     * Current date (YYYY-MM-DD) used for cache invalidation. 
+     */
+    cacheDate: string
 }
