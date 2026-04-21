@@ -5,6 +5,9 @@ import {
 } from "@nmi-agro/fdm-core"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
+import { createRequire } from "node:module"
+
+const require = createRequire(import.meta.url)
 
 // Get credentials to connect to db
 const host =
@@ -32,8 +35,9 @@ const database =
     (() => {
         throw new Error("POSTGRES_DB environment variable is required")
     })()
-const migrationsFolderPath =
-    "node_modules/@nmi-agro/fdm-core/dist/db/migrations"
+const migrationsFolderPath = require
+    .resolve("@nmi-agro/fdm-core/package.json")
+    .replace("package.json", "dist/db/migrations")
 
 const client = postgres({
     host: host,
