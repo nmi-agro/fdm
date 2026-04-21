@@ -52,6 +52,7 @@ function buildChartDataAndLegend({
             ? balanceData.emission.nitrate
             : balanceData.emission.nitrate.total
     const chartData: Record<string, number | undefined> = {
+        name: "Balans" as unknown as undefined, // Needed for chart to render at y-axis points called "Balans" - see the JSX below
         deposition: Math.abs(
             type === "farm"
                 ? balanceData.supply.deposition
@@ -539,7 +540,7 @@ export function NitrogenBalanceChart(
             >
                 <XAxis type="number" />
                 <YAxis
-                    dataKey="primary"
+                    dataKey="name"
                     type="category"
                     tickLine={false}
                     tickMargin={10}
