@@ -320,7 +320,7 @@ export default function RvoImportCreatePage() {
                             <AlertDescription>
                                 De RVO koppeling is nog niet ingesteld op deze
                                 server. Neem contact op met de beheerder om de
-                                RVO toeggangegevens toe te voegen.
+                                RVO toegangsgegevens toe te voegen.
                             </AlertDescription>
                         </Alert>
                     </div>
