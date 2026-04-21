@@ -4,7 +4,7 @@ ARG PROJECT=@nmi-agro/fdm-app
 # Base stage
 FROM node:${NODE_VERSION}-alpine AS base
 ENV CI=true
-RUN apk update && apk add --no-cache libc6-compat
+RUN apk update && apk add --no-cache libc6-compat curl
 RUN npm install -g pnpm turbo
 WORKDIR /app
 
@@ -28,11 +28,11 @@ RUN pnpm install --frozen-lockfile
 # Copy source code of isolated subworkspace
 COPY --from=pruner /app/out/full/ .
 
-# Ensure root tsconfig files are present (turbo prune might miss them if not explicitly referenced as workspace deps)
+# Ensure root tsconfig files are present
 COPY --from=pruner /app/tsconfig*.json ./
 
 # Build the project
-RUN pnpm build && pnpm prune --prod
+RUN pnpm build
 
 # Production runner stage
 FROM node:${NODE_VERSION}-alpine AS runner
@@ -45,17 +45,28 @@ RUN addgroup --system --gid 1001 nodejs && \
     apk add --no-cache libc6-compat curl && \
     npm install -g pnpm
 
-# Copy production node_modules and workspace packages from builder
-COPY --from=builder --chown=user:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=user:nodejs /app/fdm-app/node_modules ./fdm-app/node_modules
-COPY --from=builder --chown=user:nodejs /app/pnpm-workspace.yaml /app/package.json ./
-COPY --from=builder --chown=user:nodejs /app/fdm-core ./fdm-core
-COPY --from=builder --chown=user:nodejs /app/fdm-data ./fdm-data
-COPY --from=builder --chown=user:nodejs /app/fdm-calculator ./fdm-calculator
-COPY --from=builder --chown=user:nodejs /app/fdm-agents ./fdm-agents
-COPY --from=builder --chown=user:nodejs /app/fdm-rvo ./fdm-rvo
+# Copy package.json files for workspace installation
+COPY --from=pruner --chown=user:nodejs /app/out/json/ .
+COPY --from=pruner --chown=user:nodejs /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=pruner --chown=user:nodejs /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Copy app artifacts
+# Install all dependencies first (including devDependencies like typescript)
+# This allows git-hosted dependencies to build using the local 'tsc' from the project.
+RUN pnpm install --frozen-lockfile
+
+# Prune devDependencies to keep the production image small.
+# ENV CI=true in the base stage ensures this runs without interactive prompts.
+RUN pnpm prune --prod
+
+# Copy built artifacts from builder
+# Workspace dependencies dists
+COPY --from=builder --chown=user:nodejs /app/fdm-core/dist ./fdm-core/dist
+COPY --from=builder --chown=user:nodejs /app/fdm-data/dist ./fdm-data/dist
+COPY --from=builder --chown=user:nodejs /app/fdm-calculator/dist ./fdm-calculator/dist
+COPY --from=builder --chown=user:nodejs /app/fdm-agents/dist ./fdm-agents/dist
+COPY --from=builder --chown=user:nodejs /app/fdm-rvo/dist ./fdm-rvo/dist
+
+# App artifacts
 COPY --from=builder --chown=user:nodejs /app/fdm-app/build ./fdm-app/build
 COPY --from=builder --chown=user:nodejs /app/fdm-app/app ./fdm-app/app
 COPY --from=builder --chown=user:nodejs /app/fdm-app/public ./fdm-app/public
