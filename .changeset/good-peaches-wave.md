@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-app": minor
 ---
 
-Importing fields from RVO with the eHerkenning sign in is now available for all users
+Importing fields from RVO with eHerkenning sign-in is now available to all users
