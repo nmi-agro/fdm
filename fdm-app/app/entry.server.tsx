@@ -22,7 +22,7 @@ import { ServerRouter } from "react-router"
 import { reportError } from "~/lib/error"
 import { addSecurityHeaders, getCacheControlHeaders } from "./lib/cache.server"
 
-export const streamTimeout = 90000
+export const streamTimeout = 180000
 
 const handleRequest = async function handleRequest(
     request: Request,

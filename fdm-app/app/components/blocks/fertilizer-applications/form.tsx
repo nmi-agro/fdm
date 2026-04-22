@@ -9,6 +9,7 @@ import type { Navigation } from "react-router"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
+import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
 import { Combobox } from "~/components/custom/combobox"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -36,12 +37,7 @@ import {
     FormSchemaModify,
     type FormSchemaPartial,
 } from "./formschema"
-
-export type FertilizerOption = {
-    value: string
-    label: string
-    applicationMethodOptions?: { value: string; label: string }[]
-}
+import type { FertilizerOption } from "./types.d"
 
 /**
  * Renders a fertilizer application creation or modification form.
@@ -92,7 +88,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 : fertilizerApplication?.p_app_id,
             p_id: fertilizerApplication?.p_id,
             p_app_method: fertilizerApplication?.p_app_method,
-            p_app_amount: undefined, // Handled through an effect due to blank behavior
+            p_app_amount_display: undefined, // Handled through an effect due to blank behavior
             p_app_date: fertilizerApplication?.p_app_date
                 ? fertilizerApplication.p_app_date
                 : exampleFertilizerApplication
@@ -107,12 +103,17 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     const selectedFertilizer = options.find((option) => option.value === p_id)
     const isSubmitting = navigation.state !== "idle"
 
+    // If the user switched the fertilizer, clear the application method and amount
     useEffect(() => {
         if (
             p_id &&
             (!fertilizerApplication || fertilizerApplication.p_id !== p_id)
         ) {
             form.setValue("p_app_method", "")
+            form.setValue(
+                "p_app_amount_display",
+                undefined as unknown as number,
+            )
         }
     }, [p_id, fertilizerApplication, form.setValue])
 
@@ -138,6 +139,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
 
     const fieldFertilizerFormStore = useFieldFertilizerFormStore()
 
+    // If the user had a saved fertilizer form and was creating a new fertilizer, fill the form back in
     useEffect(() => {
         if (b_id_farm && b_id_or_b_lu_catalogue) {
             const savedFormValues = fieldFertilizerFormStore.load(
@@ -165,11 +167,17 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     ])
 
     useEffect(() => {
-        const p_app_amount = fertilizerApplication?.p_app_amount
-        if (p_app_amount !== null && typeof p_app_amount !== "undefined") {
-            form.setValue("p_app_amount", p_app_amount)
+        const p_app_amount_display = fertilizerApplication?.p_app_amount_display
+        if (
+            p_app_amount_display !== null &&
+            typeof p_app_amount_display !== "undefined"
+        ) {
+            form.setValue(
+                "p_app_amount_display",
+                Math.round(100 * p_app_amount_display) / 100,
+            )
         }
-    }, [fertilizerApplication?.p_app_amount, form.setValue])
+    }, [fertilizerApplication?.p_app_amount_display, form.setValue])
 
     // Change fertilizer selection if the user has added a new fertilizer
     const new_p_id = searchParams.get("p_id")
@@ -208,6 +216,12 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
             `/farm/${b_id_farm}/fertilizers/new?returnUrl=${encodeURIComponent(`${location.pathname}${location.search}`)}`,
         )
     }
+
+    const currentApplicationUnit =
+        options.find((opt) => opt.value === p_id)?.p_app_amount_unit ?? "kg/ha"
+    const currentApplicationUnitLabel = getApplicationAmountUnitLabel(
+        currentApplicationUnit,
+    )
 
     return (
         <RemixFormProvider {...form}>
@@ -293,21 +307,25 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                             )}
                         />
                         <Controller
-                            name="p_app_amount"
+                            name="p_app_amount_display"
                             render={({ field, fieldState }) => (
                                 <Field
                                     data-invalid={fieldState.invalid}
                                     className="gap-1"
                                 >
-                                    <FieldLabel>Hoeveelheid</FieldLabel>
+                                    <FieldLabel>
+                                        Hoeveelheid (
+                                        {currentApplicationUnitLabel})
+                                    </FieldLabel>
                                     <Input
                                         {...field}
                                         placeholder={
                                             Number.isFinite(
-                                                exampleFertilizerApplication?.p_app_amount,
-                                            )
-                                                ? `Er zijn verschillende waarden ingevuld, bv: ${exampleFertilizerApplication?.p_app_amount} kg / ha`
-                                                : "Bv. 37500 kg / ha"
+                                                exampleFertilizerApplication?.p_app_amount_display,
+                                            ) &&
+                                            fertilizerApplication?.p_id === p_id
+                                                ? `Er zijn verschillende waarden ingevuld, bv: ${exampleFertilizerApplication?.p_app_amount_display} ${currentApplicationUnitLabel}`
+                                                : `Bv. ${({ "kg/ha": "3700", "ton/ha": "3.7", "l/ha": "3700", "m3/ha": "3.7" } as const)[currentApplicationUnit]} ${currentApplicationUnitLabel}`
                                         }
                                         aria-required="true"
                                         aria-invalid={fieldState.invalid}

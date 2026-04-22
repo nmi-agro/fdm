@@ -32,8 +32,6 @@ const database =
     (() => {
         throw new Error("POSTGRES_DB environment variable is required")
     })()
-const migrationsFolderPath =
-    "node_modules/@nmi-agro/fdm-core/dist/db/migrations"
 
 const client = postgres({
     host: host,
@@ -45,7 +43,7 @@ const client = postgres({
 })
 
 // Run the schema migrations
-await runMigration(client, migrationsFolderPath).catch((error) =>
+await runMigration(client).catch((error) =>
     console.error("Error in migration process 🚨:", error),
 )
 

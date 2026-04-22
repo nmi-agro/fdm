@@ -1,7 +1,7 @@
 import type {
+    BaseFertilizerApplication,
     Cultivation,
     CultivationCatalogue,
-    FertilizerApplication,
     Field,
     SoilAnalysis,
 } from "@nmi-agro/fdm-core"
@@ -219,7 +219,7 @@ export type FieldInput = {
         | "b_soiltype_agr"
     >[]
     /** The list of fertilizer applications on the field. */
-    fertilizerApplications: FertilizerApplication[]
+    fertilizerApplications: BaseFertilizerApplication[]
 }
 
 /**

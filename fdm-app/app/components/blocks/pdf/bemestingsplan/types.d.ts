@@ -1,3 +1,5 @@
+import type { AppAmountUnit } from "@nmi-agro/fdm-core"
+
 export interface BemestingsplanData {
     config: {
         name: string
@@ -114,7 +116,9 @@ export interface BemestingsplanData {
         applications: Array<{
             date: string
             product: string
-            quantity: number
+            quantity: number | null
+            quantity_display: number | null
+            quantity_unit: AppAmountUnit
             p_dose_n: number
             p_dose_nw: number
             p_dose_p: number

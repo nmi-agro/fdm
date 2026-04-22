@@ -1,8 +1,8 @@
 import type {
+    BaseFertilizerApplication,
     Cultivation,
     CultivationCatalogue,
     Fertilizer,
-    FertilizerApplication,
     Field,
     Harvest,
     SoilAnalysis,
@@ -496,7 +496,7 @@ export type FieldInput = {
         | "b_soiltype_agr"
         | "b_gwl_class"
     >[]
-    fertilizerApplications: FertilizerApplication[]
+    fertilizerApplications: BaseFertilizerApplication[]
     depositionSupply?: NitrogenSupplyDeposition
 }
 

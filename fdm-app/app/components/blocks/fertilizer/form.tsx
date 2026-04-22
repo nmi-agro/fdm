@@ -167,7 +167,10 @@ export function FertilizerForm({
                                             key={option.value}
                                             value={option.value}
                                         >
-                                            {`${option.label} (${option.value})`}
+                                            {param.parameter ===
+                                            "p_app_amount_unit"
+                                                ? option.label
+                                                : `${option.label} (${option.value})`}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
