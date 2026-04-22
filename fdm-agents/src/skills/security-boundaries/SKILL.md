@@ -1,3 +1,7 @@
+---
+name: security-boundaries
+description: Prompt injection prevention and context boundary enforcement
+---
 # Security and Context Boundaries
 
 ## Prompt Injection Prevention

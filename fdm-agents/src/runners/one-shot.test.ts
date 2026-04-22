@@ -2,13 +2,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { runOneShotAgent } from "./one-shot"
 
 // Mock ADK
-const mockRunEphemeral = vi.fn()
+const mockRunAsync = vi.fn()
+const mockCreateSession = vi.fn().mockResolvedValue({ id: "test-session-id" })
+const mockDeleteSession = vi.fn().mockResolvedValue(undefined)
+
 vi.mock("@google/adk", async (importOriginal) => {
     const actual = await importOriginal<any>()
     return {
         ...actual,
         InMemoryRunner: class {
-            runEphemeral = mockRunEphemeral
+            appName = "fdm-agents"
+            sessionService = {
+                createSession: mockCreateSession,
+                deleteSession: mockDeleteSession,
+            }
+            runAsync = mockRunAsync
         },
         isFinalResponse: vi.fn(),
         stringifyContent: vi.fn(),
@@ -26,6 +34,8 @@ describe("runOneShotAgent", () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
+        mockCreateSession.mockResolvedValue({ id: "test-session-id" })
+        mockDeleteSession.mockResolvedValue(undefined)
     })
 
     it("should return the final response on success", async () => {
@@ -34,7 +44,7 @@ describe("runOneShotAgent", () => {
             yield mockEvent
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
         ;(isFinalResponse as any).mockReturnValue(true)
         ;(stringifyContent as any).mockReturnValue("The plan is ready.")
 
@@ -47,7 +57,7 @@ describe("runOneShotAgent", () => {
             yield { errorCode: "400", errorMessage: "Bad Request" }
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
 
         await expect(
             runOneShotAgent(mockAgent, "Generate plan"),
@@ -60,7 +70,7 @@ describe("runOneShotAgent", () => {
             yield mockEvent
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
         ;(isFinalResponse as any).mockReturnValue(true)
         ;(stringifyContent as any).mockReturnValue("Done.")
 
@@ -98,7 +108,7 @@ describe("runOneShotAgent", () => {
             yield { type: "final" }
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
         ;(isFinalResponse as any).mockImplementation(
             (e: any) => e.type === "final",
         )
@@ -117,7 +127,7 @@ describe("runOneShotAgent", () => {
             yield { type: "final" }
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
         ;(isFinalResponse as any).mockReturnValue(true)
         ;(stringifyContent as any).mockReturnValue("Done.")
 
@@ -138,7 +148,7 @@ describe("runOneShotAgent", () => {
             yield { type: "final" }
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
         ;(isFinalResponse as any).mockImplementation(
             (e: any) => e.type === "final",
         )
@@ -154,7 +164,7 @@ describe("runOneShotAgent", () => {
             yield { type: "final" }
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
         ;(isFinalResponse as any).mockImplementation(
             (e: any) => e.type === "final",
         )
@@ -171,7 +181,7 @@ describe("runOneShotAgent", () => {
             yield { type: "final" }
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
         ;(isFinalResponse as any).mockImplementation(
             (e: any) => e.type === "final",
         )
@@ -197,7 +207,7 @@ describe("runOneShotAgent", () => {
             yield { type: "final" }
         })()
 
-        mockRunEphemeral.mockReturnValue(mockStream)
+        mockRunAsync.mockReturnValue(mockStream)
         ;(isFinalResponse as any).mockReturnValue(true)
         ;(stringifyContent as any).mockReturnValue("Done.")
 
@@ -211,3 +221,4 @@ describe("runOneShotAgent", () => {
         expect(result.result).toBe("Done.")
     })
 })
+

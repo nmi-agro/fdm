@@ -1,5 +1,7 @@
 import type { BaseAgent } from "@google/adk"
-import { InMemoryRunner, getFunctionCalls, isFinalResponse, stringifyContent } from "@google/adk"
+import { FeatureName, InMemoryRunner, getFunctionCalls, isFinalResponse, overrideFeatureEnabled, stringifyContent } from "@google/adk"
+
+overrideFeatureEnabled(FeatureName.PROGRESSIVE_SSE_STREAMING, true)
 
 /** A single thinking step emitted during streaming (tool call observed). */
 export interface ThinkingStep {
@@ -52,14 +54,25 @@ export async function* runStreamingAgent(
     timeoutMs = 20 * 60 * 1000,
 ): AsyncGenerator<AgentStreamEvent> {
     const runner = new InMemoryRunner({ agent, appName: "fdm-agents" })
+    const userId = (context.principalId as string) ?? "system"
 
-    const stream = runner.runEphemeral({
-        userId: context.principalId as string ?? "system",
+    const session = await runner.sessionService.createSession({
+        appName: runner.appName,
+        userId,
+    })
+
+    const controller = new AbortController()
+    const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs)
+
+    const stream = runner.runAsync({
+        userId,
+        sessionId: session.id,
         newMessage: {
             role: "user",
             parts: [{ text: input }],
         },
         stateDelta: context,
+        abortSignal: controller.signal,
     })
 
     let inputTokens = 0
@@ -68,14 +81,9 @@ export async function* runStreamingAgent(
     const toolCallCounts: Record<string, number> = {}
     const seenToolCalls: string[] = []
 
-    let timedOut = false
-    const timeoutHandle = setTimeout(() => {
-        timedOut = true
-    }, timeoutMs)
-
     try {
         for await (const event of stream) {
-            if (timedOut) {
+            if (controller.signal.aborted) {
                 yield { type: "error", message: `Agent timed out after ${timeoutMs / 1000}s` }
                 return
             }
@@ -129,6 +137,12 @@ export async function* runStreamingAgent(
             }
         }
     } finally {
+        controller.abort()
         clearTimeout(timeoutHandle)
+        await runner.sessionService.deleteSession({
+            appName: runner.appName,
+            userId,
+            sessionId: session.id,
+        })
     }
 }

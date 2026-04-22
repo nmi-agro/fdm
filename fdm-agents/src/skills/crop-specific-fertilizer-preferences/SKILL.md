@@ -1,3 +1,7 @@
+---
+name: crop-specific-fertilizer-preferences
+description: Crop-specific fertilizer restrictions and preferences for Dutch agriculture
+---
 # Crop-Specific Fertilizer Preferences and Restrictions
 
 Certain crops have strong agronomic preferences or quality-driven restrictions on fertilizer
@@ -17,7 +21,7 @@ recommend liming) when supported by the corresponding advice field (`advice.d_mn
 `advice.d_ca_req`, etc.) or confirmed soil analysis data. Do not assume soil conditions from
 `b_soiltype_agr` alone.
 
----
+***
 
 ## Aardappelen (potatoes)
 
@@ -121,7 +125,7 @@ Grown for NAK-certified seed. Goal is uniform, small-to-medium tubers (28–55 m
 - **Ammonium-N early**: prefer NH₄⁺ form early season on sandy soils (KAS/CAN rather than
   pure nitrate) to reduce leaching risk.
 
----
+***
 
 ## Suikerbieten (sugar beet) — nl_256
 
@@ -148,7 +152,7 @@ Grown for NAK-certified seed. Goal is uniform, small-to-medium tubers (28–55 m
 - Magnesium: beets are moderately sensitive to Mg deficiency on light soils. Include Mg
   (kieseriet, patentkali) if soil Mg is low.
 
----
+***
 
 ## Voederbieten (fodder beet) — nl_257, nl_2651
 
@@ -162,7 +166,7 @@ sugar purity. Apply the same rules as suikerbieten with these modifications:
   Follow `advice.d_n_req`.
 - Mn deficiency same risk profile as suikerbieten.
 
----
+***
 
 ## Wintertarwe / Zomertarwe (winter wheat / spring wheat) — nl_233, nl_234
 
@@ -191,7 +195,7 @@ sugar purity. Apply the same rules as suikerbieten with these modifications:
 - Copper: on organic/peaty soils with low Cu availability, check `advice.d_cu_req` — Cu
   deficiency causes white tip symptoms and poor grain set.
 
----
+***
 
 ## Wintergerst / Zomergerst (winter barley / spring barley) — nl_235, nl_236
 
@@ -212,7 +216,7 @@ sugar purity. Apply the same rules as suikerbieten with these modifications:
 **Extra attention:**
 - Manganese: same risk profile as wintertarwe on calcareous soils. Check `advice.d_mn_req`.
 
----
+***
 
 ## Maïs (snijmaïs, korrelmais, CCM, MKS) — nl_259, nl_316, nl_317, nl_814, nl_1935, nl_2032
 
@@ -243,7 +247,7 @@ sugar purity. Apply the same rules as suikerbieten with these modifications:
 - Phosphate: maïs is highly responsive to P in cold soils early season; if soil P (Pw) is
   low, ensure early P supply beyond just the rijenbemesting.
 
----
+***
 
 ## Grasland (grassland / permanent pasture) — nl_265, nl_266, nl_331
 
@@ -276,7 +280,7 @@ sugar purity. Apply the same rules as suikerbieten with these modifications:
   (mostly sandy soils in eastern/southern NL). If the farmer raises this concern, Se/Co can
   be supplied via fertilizer (e.g. natriumseleniet) or animal feed supplementation.
 
----
+***
 
 ## Natuurgrasland (natural grassland, nature function) — nl_332
 
@@ -289,7 +293,7 @@ grassland rules above.** Fertiliser inputs on natural grassland are minimal by d
 - Do not apply mineral N, intensive K, or multiple split applications.
 - If `advice.d_n_req = 0` or no advice is returned, assume zero fertilization.
 
----
+***
 
 ## Uien (onions) — nl_262, nl_263, nl_1931, nl_1932, nl_1933, nl_1934, nl_6660, nl_6664
 
@@ -321,7 +325,7 @@ grassland rules above.** Fertiliser inputs on natural grassland are minimal by d
   (nl_1931–nl_1933); adjust N timing accordingly — front-load N for zaaiuien.
 - Sjalotten (nl_1934): same quality rules as uien; S is equally important for flavour.
 
----
+***
 
 ## Prei (leeks) — nl_2749, nl_2799, nl_2801
 
@@ -343,7 +347,7 @@ grassland rules above.** Fertiliser inputs on natural grassland are minimal by d
 - Zomerprei (nl_2801): shorter growing season and lower N advice than winterprei.
   Front-load N and finish early.
 
----
+***
 
 ## Peen (carrots) — nl_2717, nl_2783, nl_2785
 
@@ -367,7 +371,7 @@ Includes bospeen (nl_2717), waspeen (nl_2783), and winterpeen (nl_2785).
 - Winterpeen (nl_2785): longer growing season than waspeen; may need a small N top-dress
   mid-season if growth stalls, but keep total N conservative per `advice.d_n_req`.
 
----
+***
 
 ## Witlofwortel (chicory root for forcing) — nl_2787
 
@@ -384,7 +388,7 @@ success in winter. Do not apply generic carrot rules.
   quality and increased rot risk during forcing.
 - Fresh manure or late organic N inputs — uneven mineralisation causes variable root quality.
 
----
+***
 
 ## Koolgewassen (brassicas)
 
@@ -431,7 +435,7 @@ for knolvoet). The crop-specific notes below highlight where N management and ti
 - Moderate to high N demand. Follow `advice.d_n_req` with 2 splits (at planting + 1 top-dress).
 - Storage quality (especially rodekool, wittekool) benefits from K₂SO₄ over KCl.
 
----
+***
 
 ## Koolzaad / Raapzaad (oilseed rape) — nl_1922, nl_1923, nl_664, nl_7124
 
@@ -450,7 +454,7 @@ for knolvoet). The crop-specific notes below highlight where N management and ti
 - Slurry applied in autumn at full dose — large part of N is lost over winter; a moderate
   autumn slurry application (for P/K/S) followed by mineral N in spring is more efficient.
 
----
+***
 
 ## Peulvruchten (legumes) — nl_239, nl_241, nl_244, nl_308, nl_2650, nl_242, nl_243, nl_311, nl_665, nl_853, nl_854, nl_2779, nl_7121
 
@@ -476,7 +480,7 @@ bruine bonen (nl_242), stamslabonen (nl_2779), tuin-/sojabonen (nl_853, nl_854, 
 - N-nalevering (residual N): peulvruchten leave significant residual N for the following crop.
   Note this in the plan for rotation-level N planning.
 
----
+***
 
 ## Haver (oats) — nl_238, nl_6636
 
@@ -495,7 +499,7 @@ bruine bonen (nl_242), stamslabonen (nl_2779), tuin-/sojabonen (nl_853, nl_854, 
 **Extra attention:**
 - Manganese: haver is sensitive to Mn deficiency on alkaline soils. Check `advice.d_mn_req`.
 
----
+***
 
 ## Rogge (rye) — nl_237, nl_7130
 
@@ -513,7 +517,7 @@ bruine bonen (nl_242), stamslabonen (nl_2779), tuin-/sojabonen (nl_853, nl_854, 
   nutrient-poor. Ensure basic soil fertility (pH, K, P) is addressed.
 - N-nalevering: rogge has limited residual N value for the following crop.
 
----
+***
 
 ## Vlas (flax) — nl_249, nl_666, nl_3736
 
@@ -529,7 +533,7 @@ bruine bonen (nl_242), stamslabonen (nl_2779), tuin-/sojabonen (nl_853, nl_854, 
   `advice.d_n_req`.
 - Fresh manure: risk of uneven N mineralisation causing lodging patches.
 
----
+***
 
 ## Crops Not Listed Above (fallback)
 
@@ -544,7 +548,7 @@ For crops not covered by a specific section above:
 4. When in doubt about crop-specific sensitivity, note in the plan that no specific
    crop-fertilizer rule was available and standard advice was followed.
 
----
+***
 
 ## Interpretation and Communication
 

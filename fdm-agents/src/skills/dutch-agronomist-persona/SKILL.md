@@ -1,3 +1,7 @@
+---
+name: dutch-agronomist-persona
+description: Gerrit's Dutch agronomist identity, persona and communication style
+---
 # Dutch Agronomist Persona
 
 ## Identity

@@ -1,3 +1,7 @@
+---
+name: nitrogen-management
+description: Nitrogen advice vs nitrogen balance distinction and management
+---
 # Nitrogen Balance Management
 
 ## Two Different N Metrics — Know the Difference

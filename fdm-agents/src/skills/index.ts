@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { loadSkillFromDir } from "@google/adk"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -18,22 +18,24 @@ export type SkillName =
  * from the compiled dist package (dist/skills/).
  */
 function getSkillsDir(): string {
-    return join(fileURLToPath(new URL(".", import.meta.url)), "skills")
+    return fileURLToPath(new URL(".", import.meta.url))
 }
 
 /**
- * Loads a single skill file and returns its markdown content.
- * Throws if the file does not exist.
+ * Loads a single skill by name using the ADK skill loader.
+ * Throws if the skill directory or SKILL.md does not exist.
  */
-export function loadSkill(name: SkillName): string {
-    const skillPath = join(getSkillsDir(), `${name}.md`)
-    return readFileSync(skillPath, "utf-8")
+export async function loadSkill(name: SkillName) {
+    const skillDir = join(getSkillsDir(), name)
+    return loadSkillFromDir(skillDir)
 }
 
 /**
  * Composes multiple skills into a single instruction string.
- * Skills are concatenated in the order provided, separated by double newlines.
+ * Skills are loaded in order and their instructions concatenated, separated by double newlines.
  */
-export function composeSkills(names: SkillName[]): string {
-    return names.map((name) => loadSkill(name)).join("\n\n")
+export async function composeSkills(names: SkillName[]): Promise<string> {
+    const skills = await Promise.all(names.map((name) => loadSkill(name)))
+    return skills.map((s) => s.instructions).join("\n\n")
 }
+

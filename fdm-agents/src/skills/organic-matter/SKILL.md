@@ -1,3 +1,7 @@
+---
+name: organic-matter
+description: Organic matter balance management and OM/N trade-off strategy
+---
 # Organic Matter Management
 
 ## Role in the Planning Hierarchy

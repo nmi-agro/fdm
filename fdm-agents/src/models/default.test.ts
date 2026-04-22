@@ -27,7 +27,7 @@ describe("Default Model", () => {
         expect(mockGemini).toHaveBeenCalledWith(
             expect.objectContaining({
                 apiKey: "fake-api-key",
-                model: "gemini-3.1-pro-preview",
+                model: "gemini-3-flash-preview",
             }),
         )
     })

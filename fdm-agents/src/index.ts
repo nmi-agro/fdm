@@ -148,7 +148,7 @@ export async function generateFarmFertilizerPlan(
     const validatedStrategies = FertilizerPlanStrategiesSchema.parse(strategies)
     const providedContext = additionalContext ?? "None"
 
-    const agent = createFertilizerPlannerAgent(fdm, geminiApiKey)
+    const agent = await createFertilizerPlannerAgent(fdm, geminiApiKey)
     const input = buildFertilizerPlanPrompt(
         farmData,
         validatedStrategies,

@@ -1,3 +1,7 @@
+---
+name: legal-norms-nl
+description: Dutch fertilizer law (Meststoffenwet) norms, application periods and compliance rules
+---
 # Dutch Fertilizer Law — Legal Norms
 
 ## Legal Framework
@@ -90,7 +94,7 @@ Source: RVO.nl (last verified February 2026). Storage capacity must cover produc
 ### Animal manure — Drijfmest (slurry)
 
 | Land use | Soil type | Allowed period |
-|---|---|---|
+|--|--|--|
 | Grassland | Sand/loess | 16 February – 31 August |
 | Grassland | Clay/peat | 16 February – 31 August |
 | Arable | Sand/loess | 16 March – 31 July |
@@ -103,7 +107,7 @@ Source: RVO.nl (last verified February 2026). Storage capacity must cover produc
 ### Animal manure — Vaste mest (solid manure)
 
 | Land use | Soil type | Allowed period |
-|---|---|---|
+|--|--|--|
 | Grassland | Sand/loess | 1 February – 31 August (straw-rich: 1 January – 31 August) |
 | Grassland | Clay/peat | 1 February – 15 September (straw-rich: 1 December – 15 September) |
 | Arable | Sand/loess | 1 February – 31 August (straw-rich: 1 January – 31 August) |

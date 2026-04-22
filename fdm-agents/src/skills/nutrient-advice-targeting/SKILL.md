@@ -1,3 +1,7 @@
+---
+name: nutrient-advice-targeting
+description: Nutrient gap-closing priority hierarchy and N/P/K advice workflow
+---
 # Nutrient Advice Targeting
 
 ## Priority Hierarchy

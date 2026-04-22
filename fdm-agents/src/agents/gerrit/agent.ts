@@ -1,7 +1,7 @@
-import { LlmAgent } from "@google/adk"
+import { Agent, SkillToolset } from "@google/adk"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
-import { composeSkills } from "../../skills"
+import { composeSkills, loadSkill } from "../../skills"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
 
 /**
@@ -10,7 +10,7 @@ import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
  * @param apiKey Optional API key for the Gemini model.
  * @param model Optional model override — use `gerritModels` values, not client input.
  */
-export function createFertilizerPlannerAgent(
+export async function createFertilizerPlannerAgent(
     fdm: FdmType,
     apiKey?: string,
     model?: string,
@@ -22,24 +22,29 @@ export function createFertilizerPlannerAgent(
         )
     }
 
-    const instruction = composeSkills([
-        "dutch-agronomist-persona",
-        "legal-norms-nl",
-        "nutrient-advice-targeting",
-        "fertilizer-selection",
-        "crop-specific-fertilizer-preferences",
-        "organic-matter",
-        "nitrogen-management",
-        "output-format",
-        "security-boundaries",
+    const [instruction, cropSkill] = await Promise.all([
+        composeSkills([
+            "dutch-agronomist-persona",
+            "legal-norms-nl",
+            "nutrient-advice-targeting",
+            "fertilizer-selection",
+            "organic-matter",
+            "nitrogen-management",
+            "output-format",
+            "security-boundaries",
+        ]),
+        loadSkill("crop-specific-fertilizer-preferences"),
     ])
 
-    return new LlmAgent({
+    const skillToolset = new SkillToolset([cropSkill])
+
+    return new Agent({
         name: "Gerrit",
         description:
             "Expert Dutch Agronomist for fertilizer application planning.",
         model: createDefaultModel(resolvedKey, model),
         instruction,
-        tools: createFertilizerPlannerTools(fdm),
+        tools: [...createFertilizerPlannerTools(fdm), skillToolset],
     })
 }
+

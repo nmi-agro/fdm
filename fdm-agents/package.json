@@ -24,12 +24,12 @@
         "test-coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "@google/adk": "^0.6.1",
-        "@google/genai": "^1.48.0",
+        "@google/adk": "^1.0.0",
+        "@google/genai": "^1.50.1",
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/fdm-data": "workspace:^",
-        "posthog-node": "^5.29.0",
+        "posthog-node": "^5.29.5",
         "zod": "^3.25.76"
     },
     "engines": {

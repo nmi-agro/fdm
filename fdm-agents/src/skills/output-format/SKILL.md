@@ -1,3 +1,7 @@
+---
+name: output-format
+description: Required JSON output structure and field rules for fertilizer plans
+---
 # Output Format
 
 ## Required JSON Structure

@@ -35,14 +35,21 @@ export async function runOneShotAgent(
     timeoutMs = 20 * 60 * 1000,
 ): Promise<OneShotAgentResult> {
     const runner = new InMemoryRunner({ agent, appName: "fdm-agents" })
+    const userId = "system"
 
-    const stream = runner.runEphemeral({
-        userId: "system",
-        newMessage: {
-            role: "user",
-            parts: [{ text: input }],
-        },
-        stateDelta: context,
+    const session = await runner.sessionService.createSession({
+        appName: runner.appName,
+        userId,
+    })
+
+    const controller = new AbortController()
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+            controller.abort()
+            reject(new AgentTimeoutError(timeoutMs))
+        }, timeoutMs)
     })
 
     let finalResponse = ""
@@ -84,38 +91,23 @@ export async function runOneShotAgent(
         }
     }
 
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-    const closeStream = async () => {
-        const iterator = stream as AsyncIterator<unknown> & {
-            return?: () => Promise<unknown>
-        }
-        if (typeof iterator.return === "function") {
-            try {
-                await iterator.return()
-            } catch {
-                // best effort
-            }
-        }
-    }
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-            void closeStream()
-            reject(new AgentTimeoutError(timeoutMs))
-        }, timeoutMs)
-    })
-
     const streamPromise = (async () => {
-        for await (const event of stream) {
-            // Surface model errors immediately instead of silently returning empty string.
-            // When Gemini returns a non-200 (e.g. 400), the LlmAgent emits an event
-            // with errorCode/errorMessage but no content.
+        for await (const event of runner.runAsync({
+            userId,
+            sessionId: session.id,
+            newMessage: {
+                role: "user",
+                parts: [{ text: input }],
+            },
+            stateDelta: context,
+            abortSignal: controller.signal,
+        })) {
             if (event.errorCode) {
                 throw new Error(
                     `Gemini API error [${event.errorCode}]: ${event.errorMessage ?? "unknown error"}`,
                 )
             }
 
-            // Accumulate usage metadata across all events.
             const usage = event.usageMetadata
             if (usage) {
                 inputTokens += usage.promptTokenCount ?? 0
@@ -125,7 +117,6 @@ export async function runOneShotAgent(
 
             extractToolCalls(event)
 
-            // Only capture the final text response, not intermediate reasoning or tool calls.
             if (isFinalResponse(event)) {
                 const text = stringifyContent(event)
                 if (text) {
@@ -138,7 +129,13 @@ export async function runOneShotAgent(
     try {
         await Promise.race([streamPromise, timeoutPromise])
     } finally {
+        controller.abort()
         clearTimeout(timeoutHandle)
+        await runner.sessionService.deleteSession({
+            appName: runner.appName,
+            userId,
+            sessionId: session.id,
+        })
     }
 
     const uniqueToolCalls = [...new Set(toolCalls)]
@@ -171,3 +168,4 @@ export async function runOneShotAgent(
         toolCalls: uniqueToolCalls,
     }
 }
+

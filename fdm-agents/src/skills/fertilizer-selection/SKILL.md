@@ -1,3 +1,7 @@
+---
+name: fertilizer-selection
+description: Fertilizer selection workflow, application methods, amounts and timing
+---
 # Fertilizer Selection and Application
 
 ## Planning Workflow
@@ -35,7 +39,7 @@ For each application, propose a valid `p_app_method`. Choose **only** from the `
 Equipment limits determine maximum amounts per application:
 
 | Fertilizer type | Per-application range | Unit conversion |
-|---|---|---|
+|--|--|--|
 | Slurry / drijfmest / digestaat | 15,000–30,000 kg/ha | 1 m³ = 1,000 kg; round to nearest 1,000 |
 | Solid manure / vaste mest / compost | 10,000–30,000 kg/ha | 1 t = 1,000 kg; round to nearest 1,000 |
 | Mineral fertilizers | 50–1,000 kg/ha | already in kg/ha; round to nearest 5 or 10 |
