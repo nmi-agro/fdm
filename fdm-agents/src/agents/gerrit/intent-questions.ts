@@ -147,17 +147,18 @@ Active strategies: ${strategiesBlock}
 ${contextBlock ? `\n${contextBlock}` : ""}
 
 TASK:
-Analyse this farm situation and identify decisions you CANNOT make without explicit farmer input — choices where multiple agronomically valid options exist, each representing a different trade-off.
+Analyse this farm situation and identify 1–3 decisions that require explicit farmer input.
+You MUST return at least 1 question — unless the "Additional farmer instruction" above already explicitly and clearly answers ALL of the key choices listed below.
 
-Examples of decisions that typically need farmer input:
-- Choice between fertilizers with different N/P ratios when both fit within the norms
-- Distribution of manure when total supply cannot cover all fields equally
+Key choices that always require farmer input unless already specified:
+- Which fertilizers to prioritise when multiple types are available (e.g. drijfmest vs. stalmest vs. digestaat)
+- How to distribute limited manure supply when it cannot fully cover all fields
 - Prioritisation of crops or fields competing for the same product
+- N advice vs organic matter trade-off: when organic products provide good OM but leave an N shortfall, and adding a mineral top-up is blocked by the legal Workable-N norm — ask whether the farmer prioritises crop nutrition or soil building
+- Application timing preferences when multiple valid windows exist
 - Ambiguities or contradictions in the additional farmer instruction
-- Application timing or technique when the strategy allows multiple valid approaches
-- N advice vs organic matter trade-off: when compost or solid manure would provide good organic matter but cannot fully supply d_n_req for intensive crops (potatoes, maize, vegetables), AND adding a mineral N top-up is blocked by the legal Workable-N norm — ask whether the farmer wants to prioritize full crop N nutrition (use more N-efficient slurry/mineral) or organic matter building (accept a small N shortfall)
 
-If you have enough information to build a good plan independently, return an empty questions array.
+Return an empty questions array ONLY IF the additional farmer instruction above explicitly and completely answers all key choices relevant to this specific farm.
 
 Return ONLY valid JSON (no explanation, no markdown, just JSON):
 {
@@ -228,8 +229,44 @@ Rules:
                 })),
             }))
 
+        // Fallback: if the model returned no questions but there are fertilizers
+        // and non-buffer fields, always ask at least about fertilizer priority.
+        if (questions.length === 0 && fertilizers.length > 1 && activeFields.length > 0) {
+            const manureOptions = fertilizers
+                .filter((f) => f.p_type === "animal_manure" || f.p_type === "manure")
+                .map((f) => f.p_name_nl)
+            const mineralOptions = fertilizers
+                .filter((f) => f.p_type === "mineral")
+                .map((f) => f.p_name_nl)
+
+            if (manureOptions.length > 0 && mineralOptions.length > 0) {
+                questions.push({
+                    id: "fertilizer-priority",
+                    question: "Welke meststof heeft voorrang bij het invullen van de bemestingsruimte?",
+                    context: "Er zijn zowel dierlijke mest als kunstmeststoffen beschikbaar. De volgorde bepaalt hoe Gerrit de beschikbare stikstofruimte verdeelt.",
+                    options: [
+                        { value: "manure-first", label: `Dierlijke mest eerst (${manureOptions.slice(0, 2).join(", ")})`, isOpen: false },
+                        { value: "balanced", label: "Gelijkmatige mix van dierlijke mest en kunstmest", isOpen: false },
+                        { value: "other", label: "Anders, namelijk:", isOpen: true },
+                    ],
+                })
+            } else {
+                questions.push({
+                    id: "application-timing",
+                    question: "Wanneer wil je de meststoffen bij voorkeur toedienen?",
+                    context: "Het moment van toediening beïnvloedt de werking van de meststoffen en de logistieke planning.",
+                    options: [
+                        { value: "early-spring", label: "Zo vroeg mogelijk in het voorjaar", isOpen: false },
+                        { value: "split", label: "Gesplitst over voorjaar en zomer", isOpen: false },
+                        { value: "other", label: "Anders, namelijk:", isOpen: true },
+                    ],
+                })
+            }
+        }
+
         return { questions, usage }
-    } catch {
+    } catch (e) {
+        console.error("[gerrit intent] generateIntentQuestions failed:", e)
         // Never block the user — silently skip intent questions on error
         return emptyResult(Date.now() - startTime)
     }

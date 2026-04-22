@@ -1,4 +1,5 @@
 import { Agent, SkillToolset } from "@google/adk"
+import type { GenerateContentConfig } from "@google/genai"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
 import { composeSkills, loadSkill } from "../../skills"
@@ -9,11 +10,13 @@ import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
  * @param fdm The non-serializable FDM database instance.
  * @param apiKey Optional API key for the Gemini model.
  * @param model Optional model override — use `gerritModels` values, not client input.
+ * @param generateContentConfig Optional Gemini generate config (e.g. responseMimeType for JSON mode).
  */
 export async function createFertilizerPlannerAgent(
     fdm: FdmType,
     apiKey?: string,
     model?: string,
+    generateContentConfig?: GenerateContentConfig,
 ) {
     const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
     if (!resolvedKey) {
@@ -45,6 +48,7 @@ export async function createFertilizerPlannerAgent(
         model: createDefaultModel(resolvedKey, model),
         instruction,
         tools: [...createFertilizerPlannerTools(fdm), skillToolset],
+        ...(generateContentConfig ? { generateContentConfig } : {}),
     })
 }
 

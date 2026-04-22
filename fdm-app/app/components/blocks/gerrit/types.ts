@@ -22,6 +22,7 @@ export interface ParsedPlan {
         b_id: string
         applications: ParsedPlanApplication[]
         fieldMetrics?: FieldMetrics | null
+        fieldRecommendation?: string
     }>
     summary?: string
     suggestedFollowUps?: string[]
@@ -55,6 +56,7 @@ export interface PlanRow {
     b_lu_name: string | null
     b_lu_croprotation: string | null
     b_area: number | null
+    fieldRecommendation?: string
     applications: Array<
         ParsedPlanApplication & {
             p_name_nl: string | null

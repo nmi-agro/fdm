@@ -33,10 +33,12 @@ a legal norm or the farmer's explicit instruction.
 
 1. Start with the available organic/manure products (they also contribute to OM balance).
 2. After simulating, check `proposedDose.p_dose_nw` vs `advice.d_n_req`.
-3. If a positive N gap remains AND the legal Workable-N norm still has headroom:
+3. If a positive N gap remains AND the legal Workable-N norm still has headroom at **farm level** (`farmTotals.normsFilling.nitrogen < farmTotals.norms.nitrogen` from the last `simulateFarmPlan` result):
    - Add a mineral N top-up (e.g. KAS, ureum) to close the gap.
    - Exception: if `is_organic = true`, mineral fertilizers are forbidden — flag the shortfall.
-4. If the legal Workable-N norm is already at the ceiling, note the shortfall in the plan.
+4. If the legal Workable-N norm is already at the ceiling at **farm level**, note the shortfall in the plan.
+
+> **Important:** The per-field `fieldMetrics.normsFilling` values are for informational display only and have **no compliance meaning**. Do NOT use them to decide whether there is legal headroom. Always check `farmTotals.normsFilling` vs `farmTotals.norms`.
 
 ### How to Close the P Gap
 
@@ -84,9 +86,9 @@ intent-questions skill guidance).
 
 ## Reporting Gaps in the Plan
 
-For each field in the final plan, include in `fieldRecommendations` the gap status:
-- If N gap was fully closed: note it positively
-- If N gap remains due to legal norm ceiling: state the shortfall and why
+For each field in the final plan, set `fieldRecommendation` to a Dutch 1–2 sentence string:
+- If N gap was fully closed: note it positively (e.g. "N-advies volledig gedekt via rundveedrijfmest + KAS.")
+- If N gap remains due to legal norm ceiling: state the shortfall and why (e.g. "N-tekort van 15 kg/ha door bereiken van de werkzame stikstofnorm.")
 - If N gap remains due to organic farming constraint: state the shortfall and why
 - Never silently leave a gap — always explain it
 

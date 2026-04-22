@@ -1,5 +1,5 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { createFertilizerPlannerTools, getMainCultivation } from "./index"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { createFertilizerPlannerTools, filterCropGuide, getMainCultivation } from "./index"
 
 // ---------------------------------------------------------------------------
 // Mock @google/adk so FunctionTool exposes execute() directly
@@ -325,17 +325,59 @@ describe("fertilizer-planner tools", () => {
     })
 
     describe("createFertilizerPlannerTools", () => {
-        it("should return the correct set of 5 tools", () => {
+        it("should return the correct set of 7 tools", () => {
             const tools = createFertilizerPlannerTools(mockFdm)
-            expect(tools).toHaveLength(5)
+            expect(tools).toHaveLength(7)
 
             const names = tools.map((t) => t.name)
             expect(names).toContain("getFarmFields")
             expect(names).toContain("getFarmNutrientAdvice")
             expect(names).toContain("getFarmLegalNorms")
             expect(names).toContain("searchFertilizers")
+            expect(names).toContain("getFertilizerDetails")
+            expect(names).toContain("getCropFertilizerGuide")
             expect(names).toContain("simulateFarmPlan")
         })
+    })
+})
+
+// ---------------------------------------------------------------------------
+// filterCropGuide tests
+// ---------------------------------------------------------------------------
+describe("filterCropGuide", () => {
+    const sampleGuide = [
+        "## Aardappelen (potatoes)\n\nSome potato rules — nl_2017, nl_3732, nl_859",
+        "## Suikerbieten (sugar beet) — nl_256\n\nSome beet rules",
+        "## Grasland (grassland) — nl_265, nl_266, nl_331\n\nSome grass rules",
+    ].join("\n\n***\n\n")
+
+    it("returns only sections matching requested crop codes", () => {
+        const result = filterCropGuide(sampleGuide, ["nl_265"])
+        expect(result).toContain("Grasland")
+        expect(result).not.toContain("Aardappelen")
+        expect(result).not.toContain("Suikerbieten")
+    })
+
+    it("returns multiple matching sections", () => {
+        const result = filterCropGuide(sampleGuide, ["nl_265", "nl_256"])
+        expect(result).toContain("Grasland")
+        expect(result).toContain("Suikerbieten")
+        expect(result).not.toContain("Aardappelen")
+    })
+
+    it("matches potato subsection codes to parent section", () => {
+        const result = filterCropGuide(sampleGuide, ["nl_2017"])
+        expect(result).toContain("Aardappelen")
+    })
+
+    it("returns full guide when no codes match", () => {
+        const result = filterCropGuide(sampleGuide, ["nl_9999"])
+        expect(result).toBe(sampleGuide)
+    })
+
+    it("returns full guide when crop_codes is empty", () => {
+        const result = filterCropGuide(sampleGuide, [])
+        expect(result).toBe(sampleGuide)
     })
 })
 
@@ -345,11 +387,8 @@ describe("fertilizer-planner tools", () => {
 describe("tool execute functions", () => {
     let tools: any[]
 
-    beforeAll(() => {
-        tools = createFertilizerPlannerTools(mockFdm)
-    })
-
     beforeEach(() => {
+        tools = createFertilizerPlannerTools(mockFdm)
         vi.clearAllMocks()
         setupDefaultMocks()
     })

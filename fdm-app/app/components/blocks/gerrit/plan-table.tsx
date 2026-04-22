@@ -230,6 +230,9 @@ export function PlanTable({
                                     )
                                     const hasMetrics =
                                         row.original.fieldMetrics != null
+                                    const hasDetails =
+                                        hasMetrics ||
+                                        !!row.original.fieldRecommendation
                                     const dose =
                                         row.original.fieldMetrics?.proposedDose
                                     const advice =
@@ -246,9 +249,9 @@ export function PlanTable({
                                     return (
                                         <Fragment key={row.id}>
                                             <TableRow
-                                                className={`hover:bg-muted/20 transition-colors ${hasMetrics ? "cursor-pointer" : ""}`}
+                                                className={`hover:bg-muted/20 transition-colors ${hasDetails ? "cursor-pointer" : ""}`}
                                                 onClick={() =>
-                                                    hasMetrics &&
+                                                    hasDetails &&
                                                     toggleRow(row.original.b_id)
                                                 }
                                             >
@@ -406,7 +409,7 @@ export function PlanTable({
                                                                     </TooltipProvider>
                                                                 )
                                                             })()}
-                                                        {hasMetrics && (
+                                                        {hasDetails && (
                                                             <button
                                                                 type="button"
                                                                 onClick={(
@@ -440,7 +443,7 @@ export function PlanTable({
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
-                                            {isExpanded && hasMetrics && (
+                                            {isExpanded && hasDetails && (
                                                 <TableRow className="bg-muted/10 hover:bg-muted/10">
                                                     <TableCell
                                                         colSpan={
@@ -450,8 +453,16 @@ export function PlanTable({
                                                     >
                                                         <div
                                                             id={`details-${row.original.b_id}`}
-                                                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3"
+                                                            className="space-y-4"
                                                         >
+                                                            {/* ── Gerrit's recommendation ── */}
+                                                            {row.original.fieldRecommendation && (
+                                                                <p className="text-sm text-muted-foreground italic">
+                                                                    {row.original.fieldRecommendation}
+                                                                </p>
+                                                            )}
+                                                            {hasMetrics && (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
                                                             {/* ── Normen ── */}
                                                             {normsFilling &&
                                                                 norms && (
@@ -869,6 +880,8 @@ export function PlanTable({
                                                                         </div>
                                                                     )
                                                                 })()}
+                                                        </div>
+                                                        )}
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>

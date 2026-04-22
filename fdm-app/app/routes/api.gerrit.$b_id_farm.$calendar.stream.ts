@@ -7,6 +7,7 @@ import {
     runStreamingAgent,
     type AgentStreamEvent,
 } from "@nmi-agro/fdm-agents"
+import { jsonrepair } from "jsonrepair"
 import {
     getCultivations,
     getCurrentSoilData,
@@ -141,6 +142,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
                     phase: "intent",
                     question_count: questions.length,
+                    $ai_output_choices: [{ index: 0, finish_reason: "stop", output: JSON.stringify(questions) }],
                     b_id_farm,
                     calendar,
                 },
@@ -163,10 +165,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const additionalContext = body.additionalContext ?? ""
     const modelName = phase === "follow_up" ? gerritModels.followUp : gerritModels.planning
 
-    const agent = createFertilizerPlannerAgent(
+    const agent = await createFertilizerPlannerAgent(
         fdm,
         serverConfig.integrations.gemini.api_key,
         modelName,
+        // Force JSON output for planning to avoid malformed JSON responses from the LLM.
+        phase === "generate" ? { responseMimeType: "application/json" } : undefined,
     )
 
     let prompt: string
@@ -186,13 +190,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
         )
     } else {
         // follow_up — instruct the agent to answer in plain prose, not JSON
-        const userMessage = body.message ?? "Kun je de keuzes in het plan toelichten?"
-        prompt = `Je bent Gerrit, een bemestingsadviseur. De gebruiker heeft al een bemestingsplan ontvangen en stelt nu een vervolgvraag over het plan of over bemesting in het algemeen.
+        const userMessage = body.message ?? "Can you explain the choices in the plan?"
+        prompt = `You are Gerrit, a Dutch fertilization advisor. The user has already received a fertilization plan and is now asking a follow-up question about that plan or about fertilization in general.
 
-Beantwoord de vraag in heldere, beknopte Nederlandse tekst. Geef GEEN JSON-output en GEEN codeblokken — gewoon een begrijpelijk, direct antwoord in gewone alinea's.
+Always reply in Dutch. Keep your answer direct and concise — 100 words maximum. Do NOT output JSON or code blocks — just plain paragraphs. Avoid bullet lists unless strictly necessary.
 
-Vraag van de gebruiker: ${userMessage}`
+User question: ${userMessage}`
     }
+
+    const maxLlmCalls = phase === "follow_up" ? 1 : 25
 
     const agentContext: Record<string, unknown> = {
         principalId: session.principal_id,
@@ -219,6 +225,8 @@ Vraag van de gebruiker: ${userMessage}`
                     prompt,
                     agentContext,
                     body.sessionId,
+                    undefined,
+                    maxLlmCalls,
                 )) {
                     send(event)
 
@@ -239,6 +247,8 @@ Vraag van de gebruiker: ${userMessage}`
                                     $ai_tools_called: event.toolCalls,
                                     $ai_tool_call_count: event.toolCalls.length,
                                     $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
+                                    $ai_input: prompt,
+                                    $ai_output_choices: [{ index: 0, finish_reason: "stop", output: finalResponseText ?? "" }],
                                     b_id_farm,
                                     calendar,
                                     phase,
@@ -259,9 +269,26 @@ Vraag van de gebruiker: ${userMessage}`
                         const firstBrace = finalResponseText.indexOf("{")
                         const lastBrace = finalResponseText.lastIndexOf("}")
                         if (firstBrace !== -1 && lastBrace > firstBrace) {
-                            const parsedPlan = JSON.parse(
-                                finalResponseText.slice(firstBrace, lastBrace + 1),
-                            ) as ParsedPlan
+                            const raw = finalResponseText.slice(firstBrace, lastBrace + 1)
+                            // Pre-process: fix missing colons between key and value
+                            // Pattern: "key"<whitespace>"value" or "key"<whitespace>{[
+                            // jsonrepair doesn't handle missing colons, so we do it here.
+                            const preFixed = raw.replace(
+                                /("(?:[^"\\]|\\.)*")([ \t]*\n[ \t]*)(?=["{[\d\-tfn])/g,
+                                (match, key, space) => `${key}:${space}`,
+                            )
+                            // Use jsonrepair to fix remaining common LLM JSON issues:
+                            // unescaped quotes inside strings, missing commas,
+                            // trailing commas, control characters, etc.
+                            let repaired: string
+                            try {
+                                repaired = jsonrepair(preFixed)
+                            } catch (repairErr) {
+                                console.error("[gerrit stream] jsonrepair failed:", repairErr)
+                                console.error("[gerrit stream] Raw JSON (first 1000 chars):", raw.slice(0, 1000))
+                                throw repairErr
+                            }
+                            const parsedPlan = JSON.parse(repaired) as ParsedPlan
 
                             const enrichedPlan = await enrichAndComputePlan(
                                 session.principal_id,

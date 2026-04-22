@@ -248,7 +248,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 session.principal_id,
                 b_id_farm,
             )
-            const agent = createFertilizerPlannerAgent(
+            const agent = await createFertilizerPlannerAgent(
                 fdm,
                 serverConfig.integrations.gemini?.api_key,
                 modelName,

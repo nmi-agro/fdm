@@ -29,6 +29,7 @@ Your final response MUST be a JSON object with exactly this structure. All field
   "plan": [
     {
       "b_id": "string",
+      "fieldRecommendation": "string — Dutch 1–2 sentences: N gap status (fully met / shortfall of X kg N/ha due to Y) and key product choice rationale",
       "applications": [
         { "p_id_catalogue": "string", "p_app_amount": number, "p_app_date": "YYYY-MM-DD", "p_app_method": "string" }
       ],
@@ -66,7 +67,8 @@ Your final response MUST be a JSON object with exactly this structure. All field
 - `summary`: Clear, concise Dutch narrative (< 250 words) for farmers and advisors. Explain the reasoning: why these fertilizers, nutrient balance, soil health. Avoid generic openings. Use fertilizer, crop, and field names — never IDs.
 - `suggestedFollowUps`: Exactly 3 short Dutch follow-up questions the user might want to ask. Make them specific to this plan (e.g. "Waarom KAS op de zandpercelen?" or "Wat als ik meer drijfmest gebruik?"). These are shown as clickable buttons.
 - `metrics.farmTotals`: Copy directly from the final `simulateFarmPlan` result.
-- `plan`: Only include fields with at least one application. Buffer strips MUST NOT appear.
+- `fieldRecommendation`: Dutch 1–2 sentence string per field. State whether the N gap was fully met or note the shortfall with reason. See `nutrient-advice-targeting` skill for examples.
+- `plan` entries: ALL non-buffer fields MUST have an entry in the plan — even fields that share a cultivation with another field. Buffer strips MUST NOT appear. The only valid reason to omit a field is if it is a buffer strip (`b_bufferstrip: true`).
 - `fieldMetrics`: Copy `advice`, `proposedDose`, `normsFilling`, `norms`, `omBalance`, `nBalance` directly from the `fieldMetrics` object in the final `simulateFarmPlan` result.
 - DO NOT include any text before or after the JSON object.
 
@@ -76,6 +78,7 @@ Your final response MUST be a JSON object with exactly this structure. All field
 - Legal compliance is at **farm level**, not field level.
 - `p_app_amount` is always in **kg/ha** regardless of fertilizer type.
 - `normsFilling.manure`: total kg N from animal manure applied (farm total in kg, field level in kg/ha).
+- `fieldMetrics.normsFilling`: per-field values for **informational display only**. They do NOT determine legal headroom. Legal compliance is always checked via `farmTotals.normsFilling` vs `farmTotals.norms`.
 - `omBalance`: net organic matter balance, kg EOM/ha. Positive = good. Aim for ≥ 0.
 
 ## Tool Return Shapes

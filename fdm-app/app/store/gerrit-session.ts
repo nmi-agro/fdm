@@ -27,6 +27,7 @@ export interface EnrichedPlanRow {
     b_lu_croprotation: string | null
     b_area: number | null
     b_bufferstrip: boolean
+    fieldRecommendation?: string
     applications: Array<{
         p_id_catalogue: string
         p_app_amount: number
@@ -35,6 +36,8 @@ export interface EnrichedPlanRow {
         p_name_nl: string | null
         p_type: string
         p_app_method_name?: string | null
+        p_app_amount_display?: number | null
+        p_app_amount_unit?: import("@nmi-agro/fdm-core").AppAmountUnit
     }>
     fieldMetrics: import("../components/blocks/gerrit/types").FieldMetrics | null
 }

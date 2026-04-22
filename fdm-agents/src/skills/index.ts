@@ -1,5 +1,5 @@
 import { loadSkillFromDir } from "@google/adk"
-import { join } from "node:path"
+import { basename, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 export type SkillName =
@@ -15,10 +15,18 @@ export type SkillName =
 
 /**
  * Resolves the skills directory. Works both from source (src/skills/) and
- * from the compiled dist package (dist/skills/).
+ * from the compiled dist package (dist/index.js bundle → dist/skills/).
+ *
+ * In source: import.meta.url = .../src/skills/index.ts → "." resolves to src/skills/
+ * In bundle: import.meta.url = .../dist/index.js       → "." resolves to dist/
+ *            so we must append "skills/" for the bundle case.
  */
 function getSkillsDir(): string {
-    return fileURLToPath(new URL(".", import.meta.url))
+    const here = fileURLToPath(new URL(".", import.meta.url))
+    // Strip trailing separator and check whether we are already inside "skills/"
+    return basename(here.replace(/[/\\]+$/, "")) === "skills"
+        ? here
+        : join(here, "skills")
 }
 
 /**

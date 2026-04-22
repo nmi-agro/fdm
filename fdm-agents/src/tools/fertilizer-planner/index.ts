@@ -1,4 +1,7 @@
 import { type Context, FunctionTool } from "@google/adk"
+import { readFileSync } from "node:fs"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 import {
     aggregateNormFillingsToFarmLevel,
     aggregateNormsToFarmLevel,
@@ -26,6 +29,25 @@ import {
     getFields,
 } from "@nmi-agro/fdm-core"
 import { z } from "zod"
+
+const _dir = dirname(fileURLToPath(import.meta.url))
+const CROP_GUIDE_PATH = join(
+    _dir,
+    "skills/crop-specific-fertilizer-preferences/references/crop-fertilizer-guide.md",
+)
+
+/**
+ * Filters the crop fertilizer guide to only include sections relevant to the given crop codes.
+ * Exported for testing without file I/O.
+ */
+export function filterCropGuide(guideContent: string, cropCodes: string[]): string {
+    if (cropCodes.length === 0) return guideContent
+    const sections = guideContent.split(/\n\n\*\*\*\n\n|\n\*\*\*\n/)
+    const matching = sections.filter((section) =>
+        cropCodes.some((code) => section.includes(code)),
+    )
+    return matching.length > 0 ? matching.join("\n\n***\n\n") : guideContent
+}
 
 interface AdviceArgs {
     b_ids: string[]
@@ -55,6 +77,20 @@ export function getMainCultivation(cultivations: any[], calendarYear: string) {
  * @param fdm The non-serializable FDM database instance.
  */
 export function createFertilizerPlannerTools(fdm: FdmType) {
+    // Per-request cache: keyed by `${principalId}:${b_id_farm}`.
+    // Stores a Promise so concurrent first-calls don't issue duplicate DB queries.
+    const fertilizersCache = new Map<string, Promise<Awaited<ReturnType<typeof getFertilizers>>>>()
+
+    function getCachedFertilizers(principalId: PrincipalId, b_id_farm: string) {
+        const key = `${principalId}:${b_id_farm}`
+        let p = fertilizersCache.get(key)
+        if (!p) {
+            p = getFertilizers(fdm, principalId, b_id_farm)
+            fertilizersCache.set(key, p)
+        }
+        return p
+    }
+
     /**
      * Tool for fetching the list of fields for a farm.
      */
@@ -261,7 +297,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
     const searchFertilizersTool = new FunctionTool({
         name: "searchFertilizers",
         description:
-            "Search for fertilizer products available in the farm inventory (including custom ones) by name or type.",
+            "Search for fertilizer products available in the farm inventory by name or type. Returns a concise summary per product — use getFertilizerDetails to retrieve the full nutrient profile for specific products.",
         parameters: z.object({
             b_id_farm: z
                 .string()
@@ -284,11 +320,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 return { fertilizers: [] }
             }
 
-            const farmFertilizers = await getFertilizers(
-                fdm,
-                principalId,
-                args.b_id_farm,
-            )
+            const farmFertilizers = await getCachedFertilizers(principalId, args.b_id_farm)
             let results = [...farmFertilizers]
 
             if (args.p_type) {
@@ -304,14 +336,63 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 )
             }
 
+            // Slim summary — enough for the LLM to choose products.
+            // Use getFertilizerDetails for secondary/micro nutrients.
             // Must return an object (not array) — Gemini rejects array as top-level function_response.
             return {
                 fertilizers: results.slice(0, 50).map((f) => ({
-                    p_id: f.p_id,
                     p_id_catalogue: f.p_id_catalogue,
                     p_name_nl: f.p_name_nl,
                     p_type: f.p_type,
                     p_app_method_options: f.p_app_method_options || [],
+                    p_app_amount_unit: f.p_app_amount_unit,
+                    p_density: f.p_density,
+                    // Key macronutrients for gap math
+                    p_n_rt: f.p_n_rt,
+                    p_n_wc: f.p_n_wc,
+                    p_p_rt: f.p_p_rt,
+                    p_k_rt: f.p_k_rt,
+                    // Organic matter for OM balance
+                    p_eom: f.p_eom,
+                    // NH3 for ammonia-reduction strategy
+                    p_ef_nh3: f.p_ef_nh3,
+                })),
+            }
+        },
+    })
+
+    /**
+     * Tool for fetching the full nutrient profile of one or more specific fertilizers.
+     */
+    const getFertilizerDetailsTool = new FunctionTool({
+        name: "getFertilizerDetails",
+        description:
+            "Get the full nutrient profile (all macro and micro nutrients) for one or more specific fertilizers by p_id_catalogue. Use this when you need secondary nutrients (S, Mg, Ca, Cu, Zn, B, Mn, Mo, Co) for a product you already found via searchFertilizers.",
+        parameters: z.object({
+            b_id_farm: z.string().describe("The ID of the farm"),
+            p_id_catalogues: z
+                .array(z.string())
+                .describe("One or more fertilizer catalogue IDs to look up"),
+        }) as any,
+        execute: async (input: any, context?: Context) => {
+            if (!context) throw new Error("Context is required")
+            const principalId = context.state.get("principalId") as PrincipalId
+
+            if (!fdm || !principalId || !input.b_id_farm) {
+                return { fertilizers: [] }
+            }
+
+            const farmFertilizers = await getCachedFertilizers(principalId, input.b_id_farm)
+            const ids: string[] = input.p_id_catalogues ?? []
+            const results = farmFertilizers.filter((f) =>
+                ids.includes(f.p_id_catalogue),
+            )
+
+            return {
+                fertilizers: results.map((f) => ({
+                    p_id_catalogue: f.p_id_catalogue,
+                    p_name_nl: f.p_name_nl,
+                    p_type: f.p_type,
                     p_n_rt: f.p_n_rt,
                     p_n_wc: f.p_n_wc,
                     p_p_rt: f.p_p_rt,
@@ -322,12 +403,17 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     p_cu_rt: f.p_cu_rt,
                     p_zn_rt: f.p_zn_rt,
                     p_b_rt: f.p_b_rt,
+                    p_mn_rt: (f as any).p_mn_rt,
+                    p_mo_rt: (f as any).p_mo_rt,
+                    p_co_rt: (f as any).p_co_rt,
                     p_om: f.p_om,
                     p_eom: f.p_eom,
                     p_ef_nh3: f.p_ef_nh3,
-                    p_source: f.p_source,
-                    p_app_amount_unit: f.p_app_amount_unit,
+                    p_dm: f.p_dm,
                     p_density: f.p_density,
+                    p_app_amount_unit: f.p_app_amount_unit,
+                    p_app_method_options: f.p_app_method_options || [],
+                    p_source: f.p_source,
                 })),
             }
         },
@@ -435,7 +521,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     args.b_id_farm,
                     timeframe,
                 ),
-                getFertilizers(fdm, principalId, args.b_id_farm),
+                getCachedFertilizers(principalId, args.b_id_farm),
             ])
 
             const normFuncs = createFunctionsForNorms("NL", calendar as any)
@@ -946,11 +1032,31 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         },
     })
 
+    const getCropFertilizerGuideTool = new FunctionTool({
+        name: "getCropFertilizerGuide",
+        description:
+            "Get crop-specific fertilizer preferences and restrictions for the given crop catalogue codes. Call this once early in planning with all crop codes present on the farm before selecting fertilizers for individual fields.",
+        parameters: z.object({
+            crop_codes: z
+                .array(z.string())
+                .describe(
+                    "Array of crop catalogue codes present on the farm, e.g. ['nl_265', 'nl_256']",
+                ),
+        }) as any,
+        execute: async (input: any) => {
+            const guideContent = readFileSync(CROP_GUIDE_PATH, "utf-8")
+            const filtered = filterCropGuide(guideContent, (input as { crop_codes: string[] }).crop_codes)
+            return { guide: filtered }
+        },
+    })
+
     return [
         getFarmFieldsTool,
         getFarmNutrientAdviceTool,
         getFarmLegalNormsTool,
         searchFertilizersTool,
+        getFertilizerDetailsTool,
+        getCropFertilizerGuideTool,
         simulateFarmPlanTool,
     ]
 }

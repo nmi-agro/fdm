@@ -18,6 +18,7 @@ import {
     type NutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
 import {
+    fromKgPerHa,
     getCurrentSoilData,
     getFertilizers,
     getFertilizerParametersDescription,
@@ -78,14 +79,23 @@ export async function enrichAndComputePlan(
                 const methodMeta = applicationMethods?.options?.find(
                     (x: any) => x.value === app.p_app_method,
                 )
+                const unit = fert?.p_app_amount_unit ?? "kg/ha"
+                const display = fromKgPerHa(
+                    app.p_app_amount,
+                    unit,
+                    fert?.p_density,
+                )
                 return {
                     ...app,
                     p_name_nl: fert?.p_name_nl || app.p_id_catalogue,
                     p_type: fert?.p_type || "other",
                     p_app_method_name:
                         methodMeta?.label ?? app.p_app_method ?? null,
+                    p_app_amount_display: display ?? app.p_app_amount,
+                    p_app_amount_unit: unit,
                 }
             }),
+            fieldRecommendation: (proposedField as any)?.fieldRecommendation ?? undefined,
             fieldMetrics: (proposedField as any)?.fieldMetrics ?? null,
         }
     })
@@ -107,7 +117,7 @@ export async function enrichAndComputePlan(
         summary: parsedPlan.summary ?? "",
         suggestedFollowUps: parsedPlan.suggestedFollowUps ?? [],
         plan: enrichedPlan,
-        metrics: metrics ? { farmTotals: metrics.farmTotals } : null,
+        metrics: metrics ? { farmTotals: metrics.farmTotals as import("~/components/blocks/gerrit/types").FarmTotals } : null,
         rawPlan: parsedPlan,
     }
 }
@@ -397,7 +407,13 @@ async function computePlanMetrics(
         farmTotals: {
             normsFilling: farmFillingsKg,
             norms: farmNormsKg,
-            nBalance: farmNBalance,
+            nBalance: farmNBalance
+                ? {
+                      balance: farmNBalance.balance,
+                      target: farmNBalance.target,
+                      emission: farmNBalance.emission,
+                  }
+                : null,
         },
     }
 }
