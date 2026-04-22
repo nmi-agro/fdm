@@ -51,8 +51,8 @@ function buildChartDataAndLegend({
         type === "farm"
             ? balanceData.emission.nitrate
             : balanceData.emission.nitrate.total
-    const chartData: Record<string, number | undefined> = {
-        name: "Balans" as unknown as undefined, // Needed for chart to render at y-axis points called "Balans" - see the JSX below
+    const chartData: Record<string, string | number | undefined> = {
+        name: "Balans", // Needed for chart to render at y-axis points called "Balans" - see the JSX below
         deposition: Math.abs(
             type === "farm"
                 ? balanceData.supply.deposition
@@ -538,8 +538,11 @@ export function NitrogenBalanceChart(
                 <ChartTooltip
                     shared={false}
                     content={({ payload }) => {
-                        if (payload.length === 0) return null
-                        const { name } = payload[0]
+                        const validPayloadItem = payload.find(
+                            (item) => item && item.type !== "none",
+                        )
+                        if (!validPayloadItem) return null
+                        const { name } = validPayloadItem
                         if (!name) return null
                         const itemConfig = chartConfig[name]
                         if (!itemConfig) return null
