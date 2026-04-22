@@ -3,7 +3,7 @@ ARG PROJECT=@nmi-agro/fdm-app
 
 # Base stage
 FROM node:${NODE_VERSION}-alpine AS base
-RUN apk update && apk add --no-cache libc6-compat
+RUN apk update && apk add --no-cache libc6-compat git
 RUN npm install -g pnpm turbo
 WORKDIR /app
 
