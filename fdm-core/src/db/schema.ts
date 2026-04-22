@@ -78,11 +78,7 @@ export const fieldAcquiring = fdmSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_id, table.b_id_farm] }),
-            },
-        ]
+        return [primaryKey({ columns: [table.b_id, table.b_id_farm] })]
     },
 )
 
@@ -112,24 +108,15 @@ export const fields = fdmSchema.table(
 export type fieldsTypeSelect = typeof fields.$inferSelect
 export type fieldsTypeInsert = typeof fields.$inferInsert
 
-export const fieldDiscarding = fdmSchema.table(
-    "field_discarding",
-    {
-        b_id: text()
-            .notNull()
-            .references(() => fields.b_id),
-        b_end: timestamp({ withTimezone: true }),
-        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
-        updated: timestamp({ withTimezone: true }),
-    },
-    (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_id] }),
-            },
-        ]
-    },
-)
+export const fieldDiscarding = fdmSchema.table("field_discarding", {
+    b_id: text()
+        .primaryKey()
+        .notNull()
+        .references(() => fields.b_id),
+    b_end: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+})
 
 export type fieldDiscardingTypeSelect = typeof fieldDiscarding.$inferSelect
 export type fieldDiscardingTypeInsert = typeof fieldDiscarding.$inferInsert
@@ -414,11 +401,7 @@ export const cultivationStarting = fdmSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_id, table.b_lu] }),
-            },
-        ]
+        return [primaryKey({ columns: [table.b_id, table.b_lu] })]
     },
 )
 
@@ -532,14 +515,12 @@ export const harvestableSampling = fdmSchema.table(
     },
     (table) => {
         return [
-            {
-                pk: primaryKey({
-                    columns: [
-                        table.b_id_harvestable,
-                        table.b_id_harvestable_analysis,
-                    ],
-                }),
-            },
+            primaryKey({
+                columns: [
+                    table.b_id_harvestable,
+                    table.b_id_harvestable_analysis,
+                ],
+            }),
         ]
     },
 )
@@ -603,25 +584,16 @@ export type cultivationHarvestingTypeInsert =
     typeof cultivationHarvesting.$inferInsert
 
 // Define cultivation ending table
-export const cultivationEnding = fdmSchema.table(
-    "cultivation_ending",
-    {
-        b_lu: text()
-            .notNull()
-            .references(() => cultivations.b_lu),
-        b_lu_end: timestamp({ withTimezone: true }),
-        m_cropresidue: boolean(),
-        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
-        updated: timestamp({ withTimezone: true }),
-    },
-    (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_lu] }),
-            },
-        ]
-    },
-)
+export const cultivationEnding = fdmSchema.table("cultivation_ending", {
+    b_lu: text()
+        .primaryKey()
+        .notNull()
+        .references(() => cultivations.b_lu),
+    b_lu_end: timestamp({ withTimezone: true }),
+    m_cropresidue: boolean(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+})
 
 export type cultivationEndingTypeSelect = typeof cultivationEnding.$inferSelect
 export type cultivationEndingTypeInsert = typeof cultivationEnding.$inferInsert
@@ -901,11 +873,13 @@ export const intendingGrazing = fdmSchema.table(
         created: timestamp({ withTimezone: true }).notNull().defaultNow(),
         updated: timestamp({ withTimezone: true }),
     },
-    (table) => ({
-        pk: primaryKey({
-            columns: [table.b_id_farm, table.b_grazing_intention_year],
-        }),
-    }),
+    (table) => {
+        return [
+            primaryKey({
+                columns: [table.b_id_farm, table.b_grazing_intention_year],
+            }),
+        ]
+    },
 )
 
 export type intendingGrazingTypeSelect = typeof intendingGrazing.$inferSelect
@@ -923,11 +897,7 @@ export const fertilizerCatalogueEnabling = fdmSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_id_farm, table.p_source] }),
-            },
-        ]
+        return [primaryKey({ columns: [table.b_id_farm, table.p_source] })]
     },
 )
 
@@ -948,13 +918,7 @@ export const cultivationCatalogueSelecting = fdmSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => {
-        return [
-            {
-                pk: primaryKey({
-                    columns: [table.b_id_farm, table.b_lu_source],
-                }),
-            },
-        ]
+        return [primaryKey({ columns: [table.b_id_farm, table.b_lu_source] })]
     },
 )
 

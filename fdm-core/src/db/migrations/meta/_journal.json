@@ -190,6 +190,13 @@
             "when": 1775635544356,
             "tag": "0026_p_app_amount_unit",
             "breakpoints": true
+        },
+        {
+            "idx": 27,
+            "version": "7",
+            "when": 1776861576967,
+            "tag": "0027_add_missing_indices",
+            "breakpoints": true
         }
     ]
 }
