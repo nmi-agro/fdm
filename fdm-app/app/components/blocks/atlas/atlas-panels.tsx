@@ -1,6 +1,6 @@
 import type { FeatureCollection } from "geojson"
 import throttle from "lodash.throttle"
-import { Check, Info } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
 import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
@@ -18,6 +18,7 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { Spinner } from "~/components/ui/spinner"
+import { Separator } from "~/components/ui/separator"
 import { cn } from "~/lib/utils"
 
 export function FieldsPanelHover({
@@ -316,11 +317,9 @@ export function FieldsPanelSelection({
                         [],
                     )
 
-                    const pseudoElemClasses =
-                        "before:absolute before:h-16 before:left-0 before:right-0 before:from-card before:to-transparent before:opacity-0 before:transition-opacity before:duration-250 before:pointer-events-none"
                     setPanel(
                         <Card className="w-full flex-initial min-h-0 flex flex-col gap-4">
-                            <CardHeader>
+                            <CardHeader className="pb-0">
                                 <CardTitle>Percelen</CardTitle>
                                 <CardDescription>
                                     {fieldCountText}
@@ -328,8 +327,14 @@ export function FieldsPanelSelection({
                             </CardHeader>
                             <CardContent
                                 ref={scrollContainerRef}
-                                className={`p-0 relative flex-initial min-h-0 overflow-hidden flex items-stretch before:top-0 after:bottom-0 before:bg-linear-to-b after:bg-linear-to-t data-scroll-start:before:opacity-100 data-scroll-end:after:opacity-100 ${pseudoElemClasses} ${pseudoElemClasses.replaceAll("before:", "after:")}`}
+                                className="p-0 relative flex-initial min-h-0 overflow-hidden flex items-stretch group"
                             >
+                                {/* Top scroll indicator */}
+                                <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-center pointer-events-none opacity-0 transition-opacity duration-200 group-data-[scroll-start]:opacity-100">
+                                    <Separator />
+                                    <ChevronUp className="h-4 w-4 text-muted-foreground my-1" />
+                                </div>
+
                                 <div
                                     ref={scrollRef}
                                     className="overflow-y-auto"
@@ -366,6 +371,12 @@ export function FieldsPanelSelection({
                                             ),
                                         )}
                                     </div>
+                                </div>
+
+                                {/* Bottom scroll indicator */}
+                                <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center pointer-events-none opacity-0 transition-opacity duration-200 group-data-[scroll-end]:opacity-100">
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground my-1" />
+                                    <Separator />
                                 </div>
                             </CardContent>
                             <CardFooter>
