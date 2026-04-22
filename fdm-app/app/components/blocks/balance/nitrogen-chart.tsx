@@ -6,7 +6,7 @@ import type {
 import { format } from "date-fns/format"
 import { useId, useMemo, useState } from "react"
 import { nl } from "react-day-picker/locale"
-import { Bar, BarChart, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
 import { cn } from "@/app/lib/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
@@ -201,7 +201,7 @@ function buildChartDataAndLegend({
                     fa.p_app_id === applicationResult.id,
             )
             chartData[dataKey] = Math.abs(applicationResult.value)
-            ;(chartConfig as ExtendedChartConfig)[dataKey] = application
+            chartConfig[dataKey] = application
                 ? {
                       styleId: dataKeyPrefix,
                       label: label,
@@ -434,31 +434,16 @@ export function NitrogenBalanceChart(
           },
 ) {
     const { type, balanceData, fieldInput } = props
-    const [tooltipFocus, setTooltipFocus] = useState<string>()
+    const [barOutlineFocus, setBarOutlineFocus] = useState<
+        string | number | undefined
+    >()
+
     // biome-ignore lint/correctness/useExhaustiveDependencies: each value in props is passed separately
     const { legend, chartData, chartConfig, supplyBar, removalBar } = useMemo(
         () => buildChartDataAndLegend(props),
         [type, balanceData, fieldInput],
     )
     const svgId = useId()
-
-    type ChartMouseEvent = {
-        tooltipPayload: { dataKey: string }[]
-    }
-
-    const onTooltipFocus = (e: ChartMouseEvent) => {
-        const dataKey = e.tooltipPayload[0].dataKey
-        if (tooltipFocus !== dataKey) setTooltipFocus(dataKey)
-    }
-
-    const onTooltipBlur = (e: ChartMouseEvent) => {
-        const dataKey = e.tooltipPayload[0].dataKey
-        if (tooltipFocus === dataKey) setTooltipFocus(undefined)
-    }
-
-    const clearTooltipFocus = () => {
-        setTooltipFocus(undefined)
-    }
 
     const barRadius = 5
     const barRadiusStart: [number, number, number, number] = [
@@ -502,8 +487,7 @@ export function NitrogenBalanceChart(
                             radius={pickBarRadius(i, barItem)}
                             stackId={stackId}
                             fill={barStyle.color}
-                            onMouseEnter={onTooltipFocus}
-                            onMouseLeave={onTooltipBlur}
+                            onMouseOver={() => setBarOutlineFocus(dataKey)}
                         />
                     )
                 })
@@ -521,15 +505,19 @@ export function NitrogenBalanceChart(
                     radius={barRadius}
                     stackId={stackId}
                     fill={barStyle.color}
-                    onMouseEnter={onTooltipFocus}
-                    onMouseLeave={onTooltipBlur}
+                    onMouseOver={() => setBarOutlineFocus(dataKey)}
                 />
             )
         })
     }
 
     return (
-        <ChartContainer config={chartConfig} onMouseLeave={clearTooltipFocus}>
+        <ChartContainer
+            config={chartConfig}
+            onMouseLeave={() => {
+                setBarOutlineFocus("")
+            }}
+        >
             <BarChart
                 accessibilityLayer
                 data={[chartData]}
@@ -545,53 +533,50 @@ export function NitrogenBalanceChart(
                     tickLine={false}
                     tickMargin={10}
                     axisLine={false}
-                    tickFormatter={(value) => value.slice(0, 3)}
+                    tickFormatter={() => ""}
                 />
                 <ChartTooltip
-                    cursor={false}
-                    content={({ active }) => {
-                        if (active && tooltipFocus) {
-                            const dataKey =
-                                tooltipFocus as keyof typeof chartConfig
-                            const itemConfig = chartConfig[dataKey]
-
-                            return (
-                                <Card>
-                                    <CardHeader className="p-4 pb-0">
-                                        <div>
-                                            <div
-                                                className="inline-block me-2 h-2 w-2 rounded-[2px]"
-                                                style={{
-                                                    backgroundColor:
-                                                        itemConfig.styleId
-                                                            ? chartConfig[
-                                                                  itemConfig
-                                                                      .styleId
-                                                              ].color
-                                                            : itemConfig.color,
-                                                }}
-                                            />
-                                            {itemConfig.label}
-                                        </div>
-                                        {itemConfig.detail?.map((detail, i) => (
-                                            // biome-ignore lint/suspicious/noArrayIndexKey: detail is constant
-                                            <div key={i}>
-                                                <div className="inline-block me-2 h-2 w-2 rounded-[2px]" />
-                                                {detail}
-                                            </div>
-                                        ))}
-                                    </CardHeader>
-                                    <CardContent className="p-4">
-                                        <div className="font-bold">
+                    shared={false}
+                    content={({ payload }) => {
+                        if (payload.length === 0) return null
+                        const { name } = payload[0]
+                        if (!name) return null
+                        const itemConfig = chartConfig[name]
+                        if (!itemConfig) return null
+                        return (
+                            <Card>
+                                <CardHeader className="p-4 pb-0">
+                                    <div>
+                                        <div
+                                            className="inline-block me-2 h-2 w-2 rounded-[2px]"
+                                            style={{
+                                                backgroundColor:
+                                                    itemConfig.styleId
+                                                        ? chartConfig[
+                                                              itemConfig.styleId
+                                                          ].color
+                                                        : itemConfig.color,
+                                            }}
+                                        />
+                                        {itemConfig.label}
+                                    </div>
+                                    {itemConfig.detail?.map((detail, i) => (
+                                        // biome-ignore lint/suspicious/noArrayIndexKey: detail is constant
+                                        <div key={i}>
                                             <div className="inline-block me-2 h-2 w-2 rounded-[2px]" />
-                                            {chartData[dataKey]}{" "}
-                                            {itemConfig.unit ?? "kg N / ha"}
+                                            {detail}
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            )
-                        }
-                        return null
+                                    ))}
+                                </CardHeader>
+                                <CardContent className="p-4">
+                                    <div className="font-bold">
+                                        <div className="inline-block me-2 h-2 w-2 rounded-[2px]" />
+                                        {chartData[name]}{" "}
+                                        {itemConfig.unit ?? "kg N / ha"}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
                     }}
                 />
                 <ChartLegend
@@ -627,15 +612,18 @@ export function NitrogenBalanceChart(
                 />
                 {renderBar("a", supplyBar)}
                 {renderBar("b", removalBar)}
-                {tooltipFocus && (
-                    <use
-                        href={`#${svgId}_${tooltipFocus}`}
-                        fill="none"
-                        stroke="black"
-                        strokeWidth={5}
-                        style={{ pointerEvents: "none" }}
-                    />
-                )}
+                <ZIndexLayer zIndex={2000}>
+                    {barOutlineFocus && (
+                        <use
+                            className="recharts-zIndex-layer_2000"
+                            href={`#${svgId}_${barOutlineFocus}`}
+                            fill="none"
+                            stroke="black"
+                            strokeWidth={5}
+                            style={{ pointerEvents: "none" }}
+                        />
+                    )}
+                </ZIndexLayer>
             </BarChart>
         </ChartContainer>
     )
