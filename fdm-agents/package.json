@@ -14,6 +14,9 @@
             "import": "./dist/index.js"
         }
     },
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "build": "tsdown",
         "check-types": "tsc --noEmit",
