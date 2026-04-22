@@ -2,6 +2,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
     addFertilizerApplication,
     type Fertilizer,
+    type FertilizerApplication,
+    fromKgPerHa,
+    getCultivations,
+    getCurrentSoilData,
     getFarms,
     getFertilizerApplications,
     getFertilizers,
@@ -155,6 +159,297 @@ export async function action({ request, params }: ActionFunctionArgs) {
         })
     }
 
+    if (intent === "generate") {
+        const { errors, data: formValues } = await getValidatedFormData<
+            z.infer<typeof GerritFormSchema>
+        >(clonedRequest, zodResolver(GerritFormSchema) as any)
+        if (errors || !formValues) {
+            return dataWithError(
+                null,
+                "Ongeldige invoer, controleer het formulier.",
+            )
+        }
+
+        try {
+            const strategies = {
+                isOrganic: formValues.isOrganic,
+                fillManureSpace: formValues.fillManureSpace,
+                reduceAmmoniaEmissions: formValues.reduceAmmoniaEmissions,
+                keepNitrogenBalanceBelowTarget:
+                    formValues.keepNitrogenBalanceBelowTarget,
+                workOnRotationLevel: formValues.workOnRotationLevel,
+                isDerogation: formValues.isDerogation ?? false,
+            }
+            const additionalContext = formValues.additionalContext
+            const modelName = formValues.geminiModel
+
+            const rawFields = await getFields(
+                fdm,
+                session.principal_id,
+                b_id_farm,
+                timeframe,
+            )
+            const fieldsData = await Promise.all(
+                rawFields.map(async (field) => {
+                    const [cultivations, soilData] = await Promise.all([
+                        getCultivations(
+                            fdm,
+                            session.principal_id,
+                            field.b_id,
+                            timeframe,
+                        ),
+                        getCurrentSoilData(
+                            fdm,
+                            session.principal_id,
+                            field.b_id,
+                        ),
+                    ])
+                    const mainCultivation = getDefaultCultivation(
+                        cultivations,
+                        calendar,
+                    )
+                    const getSoilParam = (param: string) =>
+                        soilData.find((d) => d.parameter === param)?.value ??
+                        null
+                    return {
+                        b_id: field.b_id,
+                        b_name: field.b_name || field.b_id,
+                        b_area: field.b_area,
+                        b_bufferstrip: field.b_bufferstrip,
+                        b_lu_catalogue:
+                            mainCultivation?.b_lu_catalogue || "Onbekend",
+                        b_lu_name:
+                            mainCultivation?.b_lu_name || "Onbekend gewas",
+                        b_lu_croprotation:
+                            mainCultivation?.b_lu_croprotation || null,
+                        b_soiltype_agr: getSoilParam("b_soiltype_agr") as
+                            | string
+                            | null,
+                        b_gwl_class: getSoilParam("b_gwl_class") as
+                            | string
+                            | null,
+                        a_som_loi: getSoilParam("a_som_loi") as number | null,
+                    }
+                }),
+            )
+            const fieldsSummary: FarmFieldSummary[] = fieldsData.map((f) => ({
+                b_id: f.b_id,
+                b_name: f.b_name,
+                b_area: f.b_area ?? 0,
+                b_bufferstrip: f.b_bufferstrip ?? false,
+                b_lu_catalogue: f.b_lu_catalogue,
+                b_lu_name: f.b_lu_name,
+                b_soiltype_agr: f.b_soiltype_agr,
+                b_gwl_class: f.b_gwl_class,
+                a_som_loi: f.a_som_loi,
+            }))
+            const fertilizers = await getFertilizers(
+                fdm,
+                session.principal_id,
+                b_id_farm,
+            )
+            const agent = createFertilizerPlannerAgent(
+                fdm,
+                serverConfig.integrations.gemini?.api_key,
+                modelName,
+            )
+            const prompt = buildFertilizerPlanPrompt(
+                { b_id_farm },
+                strategies,
+                calendar,
+                additionalContext,
+                fieldsSummary,
+            )
+            const agentContext = {
+                principalId: session.principal_id,
+                b_id_farm,
+                calendar,
+                nmiApiKey: serverConfig.integrations.nmi?.api_key,
+                strategies,
+                additionalContext: additionalContext ?? "",
+            }
+
+            const startTime = Date.now()
+            let rawResult = ""
+            let usageData: OneShotAgentResult["usage"] = null
+            let toolCalls: string[] | undefined
+
+            try {
+                const agentResult = await runOneShotAgent(
+                    agent,
+                    prompt,
+                    agentContext,
+                )
+                rawResult = agentResult.result
+                usageData = agentResult.usage
+                toolCalls = agentResult.toolCalls
+            } catch (err: unknown) {
+                if (err instanceof AgentTimeoutError) {
+                    return dataWithError(
+                        null,
+                        "Het duurde te lang om een plan te genereren. Probeer het opnieuw.",
+                    )
+                }
+                return dataWithError(
+                    null,
+                    err instanceof Error
+                        ? err.message
+                        : "Gerrit kon geen plan genereren.",
+                )
+            }
+
+            const firstBrace = rawResult.indexOf("{")
+            const lastBrace = rawResult.lastIndexOf("}")
+            if (firstBrace === -1 || lastBrace <= firstBrace)
+                return dataWithError(
+                    null,
+                    "Gerrit gaf een onleesbaar antwoord. Probeer het opnieuw.",
+                )
+
+            let parsedPlan: ParsedPlan
+            try {
+                parsedPlan = JSON.parse(
+                    rawResult.slice(firstBrace, lastBrace + 1),
+                ) as ParsedPlan
+            } catch {
+                return dataWithError(
+                    null,
+                    "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
+                )
+            }
+
+            const fertilizerParameterDescription =
+                getFertilizerParametersDescription()
+            const applicationMethods = fertilizerParameterDescription.find(
+                (x: any) => x.parameter === "p_app_method_options",
+            )
+
+            const enrichedPlan = fieldsData.map((fd) => {
+                const proposedField = parsedPlan.plan?.find(
+                    (p) => p.b_id === fd.b_id,
+                )
+                return {
+                    b_id: fd.b_id,
+                    b_name: fd.b_name,
+                    b_lu_catalogue: fd.b_lu_catalogue,
+                    b_lu_name: fd.b_lu_name,
+                    b_lu_croprotation: fd.b_lu_croprotation,
+                    b_area: fd.b_area,
+                    b_bufferstrip: fd.b_bufferstrip ?? false,
+                    applications: (proposedField?.applications || []).map(
+                        (app) => {
+                            const fert = fertilizers.find(
+                                (f: Fertilizer) =>
+                                    f.p_id_catalogue === app.p_id_catalogue,
+                            )
+                            const methodMeta =
+                                applicationMethods?.options?.find(
+                                    (x: any) => x.value === app.p_app_method,
+                                )
+                            const p_app_amount_display = fert
+                                ? fromKgPerHa(
+                                      app.p_app_amount,
+                                      fert.p_app_amount_unit,
+                                      fert.p_density,
+                                  )
+                                : null
+                            const unitConvertedAmount =
+                                fert && p_app_amount_display !== null
+                                    ? {
+                                          p_app_amount_display:
+                                              p_app_amount_display,
+                                          p_app_amount_unit:
+                                              fert.p_app_amount_unit,
+                                      }
+                                    : {
+                                          p_app_amount_display:
+                                              app.p_app_amount,
+                                          p_app_amount_unit: "kg/ha",
+                                      }
+                            return {
+                                ...app,
+                                ...unitConvertedAmount,
+                                p_name_nl:
+                                    fert?.p_name_nl || app.p_id_catalogue,
+                                p_type: fert?.p_type || "other",
+                                p_app_method_name:
+                                    methodMeta?.label ?? app.p_app_method,
+                            }
+                        },
+                    ),
+                    fieldMetrics:
+                        (proposedField as any)?.fieldMetrics ??
+                        (null as FieldMetrics | null),
+                }
+            })
+
+            const serverMetrics = await computePlanMetrics(
+                session.principal_id,
+                b_id_farm,
+                calendar,
+                enrichedPlan,
+                fertilizers,
+                serverConfig.integrations.nmi?.api_key,
+            ).catch(() => null)
+            for (const field of enrichedPlan) {
+                field.fieldMetrics =
+                    serverMetrics?.fieldMetricsMap?.[field.b_id] ?? null
+            }
+
+            const latencySeconds = (Date.now() - startTime) / 1000
+            if (posthog) {
+                try {
+                    posthog.capture({
+                        distinctId: session.principal_id,
+                        event: "$ai_generation",
+                        properties: {
+                            $ai_model: modelName,
+                            $ai_latency: latencySeconds,
+                            $ai_input_tokens: usageData?.inputTokens ?? null,
+                            $ai_output_tokens: usageData?.outputTokens ?? null,
+                            $ai_total_tokens: usageData?.totalTokens ?? null,
+                            $ai_input: [
+                                {
+                                    role: "user",
+                                    content: prompt.slice(0, 2000),
+                                },
+                            ],
+                            $ai_output_choices: [
+                                {
+                                    role: "assistant",
+                                    content: rawResult.slice(0, 2000),
+                                },
+                            ],
+                            $ai_tools_called: toolCalls || [],
+                            $ai_tool_call_count: toolCalls?.length || 0,
+                            $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
+                            b_id_farm,
+                            calendar,
+                            field_count: fieldsData.length,
+                        },
+                    })
+                    await posthog.flush()
+                } catch (e) {
+                    console.error("[gerrit] PostHog tracking failed:", e)
+                }
+            }
+
+            return data({
+                intent: "generate",
+                plan: {
+                    summary: parsedPlan.summary,
+                    plan: enrichedPlan,
+                    metrics: serverMetrics
+                        ? { farmTotals: serverMetrics.farmTotals }
+                        : null,
+                },
+                strategies,
+            })
+        } catch (e: unknown) {
+            return handleActionError(e)
+        }
+    }
+
     if (intent === "accept") {
         const planStr = formData.get("plan")?.toString()
         if (!planStr)
@@ -214,12 +509,24 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             )
                         }
 
+                        const amount = fromKgPerHa(
+                            app.p_app_amount,
+                            fertilizer.p_app_amount_unit,
+                            fertilizer.p_density,
+                        )
+
+                        if (amount === null) {
+                            throw new Error(
+                                `Meststof "${fertilizer.p_name_nl}" moet een waarde hebben voor zijn dichtheid.`,
+                            )
+                        }
+
                         await addFertilizerApplication(
                             tx,
                             session.principal_id,
                             field.b_id,
                             fertilizer.p_id,
-                            app.p_app_amount,
+                            amount,
                             app.p_app_method,
                             new Date(app.p_app_date),
                         )

@@ -52,6 +52,9 @@
         "onlyBuiltDependencies": [
             "@biomejs/biome",
             "@geomatico/maplibre-cog-protocol",
+            "@nmi-agro/fdm-calculator",
+            "@nmi-agro/fdm-core",
+            "@nmi-agro/fdm-data",
             "@nmi-agro/rvo-connector",
             "@prisma/engines",
             "@sentry-internal/node-cpu-profiler",

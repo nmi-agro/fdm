@@ -61,6 +61,7 @@ export function buildFertilizerDefaults(
         p_hg_rt: toUndefined(fertilizer.p_hg_rt),
         p_cl_rt: toUndefined(fertilizer.p_cl_rt),
         p_app_method_options: fertilizer.p_app_method_options || [],
+        p_app_amount_unit: fertilizer.p_app_amount_unit || "kg/ha",
     }
 }
 
@@ -125,5 +126,6 @@ export function buildCataloguePayload(
         p_cl_rt: formValues.p_cl_rt,
         p_ef_nh3: undefined,
         p_app_method_options: formValues.p_app_method_options,
+        p_app_amount_unit: formValues.p_app_amount_unit,
     }
 }

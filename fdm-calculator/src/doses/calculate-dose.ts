@@ -1,4 +1,4 @@
-import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
+import type { BaseFertilizerApplication, Fertilizer } from "@nmi-agro/fdm-core"
 import type { Dose, NumericDoseKeys } from "./d"
 
 /**
@@ -38,7 +38,7 @@ export function calculateDose({
     applications,
     fertilizers,
 }: {
-    applications: FertilizerApplication[]
+    applications: BaseFertilizerApplication[]
     fertilizers: Fertilizer[]
 }): { dose: Dose; applications: Dose[] } {
     if (applications.some((app) => (app.p_app_amount ?? 0) < 0)) {

@@ -1,6 +1,6 @@
 import {
+    type BaseFertilizerApplication,
     type Fertilizer,
-    type FertilizerApplication,
     withCalculationCache,
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
@@ -70,12 +70,12 @@ export function calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNor
 
     // Separate applications into standard and organic-rich
     const standardApplications: {
-        application: FertilizerApplication
+        application: BaseFertilizerApplication
         p_p_rt: Decimal
         p_app_amount: Decimal
     }[] = []
     const organicRichApplications: {
-        application: FertilizerApplication
+        application: BaseFertilizerApplication
         p_p_rt: Decimal
         p_app_amount: Decimal
         p_type_rvo: string
@@ -237,13 +237,13 @@ export function calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNor
  * Determines if at least 20 kg P2O5 / ha is applied with organic-rich fertilizers.
  * This is Condition 1 for the "Stimuleren organische stofrijke meststoffen" regulation.
  *
- * @param {FertilizerApplication[]} applications - An array of fertilizer applications.
+ * @param {BaseFertilizerApplication[]} applications - An array of fertilizer applications.
  * @param {Map<string, Fertilizer>} fertilizersMap - A map of fertilizers for efficient lookup.
  * @param {boolean} has_organic_certification - Indicates if the farm has organic certification.
  * @returns {boolean} True if the 20 kg/ha threshold is met, false otherwise.
  */
 function determineCondition1StimuleringOrganischeStofrijkeMeststoffen(
-    applications: FertilizerApplication[],
+    applications: BaseFertilizerApplication[],
     fertilizersMap: Map<string, Fertilizer>,
     has_organic_certification: boolean,
 ): boolean {

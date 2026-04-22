@@ -1,8 +1,8 @@
 import type * as schema from "@nmi-agro/fdm-core"
 import type {
+    BaseFertilizerApplication,
     Cultivation,
     Fertilizer,
-    FertilizerApplication,
     Field,
 } from "@nmi-agro/fdm-core"
 import type { RegionKey } from "../value/types"
@@ -37,7 +37,7 @@ export type WorkingCoefficientDetails = {
 
 export type NL2026NormsFillingInput = {
     cultivations: Cultivation[]
-    applications: FertilizerApplication[]
+    applications: BaseFertilizerApplication[]
     fertilizers: Fertilizer[]
     has_organic_certification: boolean
     has_grazing_intention: boolean
