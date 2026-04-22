@@ -326,6 +326,19 @@ export async function getNSupplyForFarm({
  *
  * @internal
  */
+/** Subset of fertilizer properties needed by the DYNA request builder. */
+type FertilizerNutrientProps = {
+    p_id: string
+    p_n_rt?: number | null
+    p_n_if?: number | null
+    p_n_of?: number | null
+    p_n_wc?: number | null
+    p_p_rt?: number | null
+    p_k_rt?: number | null
+    p_dm?: number | null
+    p_om?: number | null
+}
+
 async function runDynaForPrefetchedField({
     field,
     soilDataArray,
@@ -342,7 +355,7 @@ async function runDynaForPrefetchedField({
     soilDataArray: Awaited<ReturnType<typeof getCurrentSoilData>>
     cultivations: Awaited<ReturnType<typeof getCultivations>>
     applications: Awaited<ReturnType<typeof getFertilizerApplicationsForFarm>> extends Map<string, infer T> ? T : any
-    fertilizerMap: Map<string, Awaited<ReturnType<typeof getFertilizers>>[number]>
+    fertilizerMap: Map<string, FertilizerNutrientProps>
     catalogueEntries: Awaited<ReturnType<typeof getCultivationsFromCatalogue>>
     harvestsMap: Awaited<ReturnType<typeof getHarvestsForFarm>>
     farmSector: string
@@ -517,7 +530,7 @@ export async function getDynaForField({
         p_app_amount: f.p_dose ?? 0,
         p_app_method: f.p_app_method ?? null,
     }))
-    const fertilizerMap = new Map(
+    const fertilizerMap = new Map<string, FertilizerNutrientProps>(
         (fertilizers ?? []).map((f) => [
             f.p_id,
             {
@@ -539,7 +552,7 @@ export async function getDynaForField({
         soilDataArray,
         cultivations,
         applications,
-        fertilizerMap: fertilizerMap as any,
+        fertilizerMap,
         catalogueEntries,
         harvestsMap,
         farmSector,

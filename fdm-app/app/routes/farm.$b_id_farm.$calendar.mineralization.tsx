@@ -120,8 +120,12 @@ export default function MineralizationLayout() {
     const location = useLocation()
     const { b_id } = useParams() // Get the field ID from child routes
 
+    // Prefer the server-evaluated flag (avoids flicker on initial render and
+    // eliminates a redundant PostHog call). Fall back to the client hook only
+    // when the server value is absent (e.g. PostHog unavailable server-side).
+    const clientFlagEnabled = useFeatureFlagEnabled("mineralization")
     const isMineralizationEnabled =
-        useFeatureFlagEnabled("mineralization") ?? true
+        loaderData.isMineralizationEnabled ?? clientFlagEnabled ?? true
 
     const isField = !!b_id
     const isDyna = location.pathname.endsWith("/dyna")
