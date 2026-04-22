@@ -36,7 +36,7 @@ RUN pnpm build
 # Create a self-contained production deployment bundle.
 # pnpm deploy resolves all production deps (including git-hosted packages) from
 # the already-built node_modules, so no --prod re-install is needed in the runner.
-RUN pnpm --filter=@nmi-agro/fdm-app deploy --prod /app/deployed
+RUN pnpm --filter=@nmi-agro/fdm-app deploy --prod --legacy /app/deployed
 
 # Production runner stage
 FROM node:${NODE_VERSION}-alpine AS runner
