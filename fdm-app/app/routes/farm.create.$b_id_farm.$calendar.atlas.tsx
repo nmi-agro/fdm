@@ -221,6 +221,7 @@ export default function Index() {
     const fieldsSaved = loaderData.fieldsSaved
     const fieldsSavedStyle = getFieldsStyle(fieldsSavedId)
 
+    const fieldsSelectedOutlineStyle = getFieldsStyle("fieldsSelectedOutline")
     const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
 
     // Set selected fields
@@ -367,6 +368,12 @@ export default function Index() {
                                             layout: layerLayout,
                                         } as any)}
                                     />
+                                    <Layer
+                                        {...({
+                                            ...fieldsSelectedOutlineStyle,
+                                            layout: layerLayout,
+                                        } as any)}
+                                    />
                                 </FieldsSourceSelected>
 
                                 <FieldsSourceNotClickable
@@ -383,7 +390,7 @@ export default function Index() {
                                     />
                                 </FieldsSourceNotClickable>
 
-                                <div className="fields-panel grid gap-4 w-[350px]">
+                                <div className="fields-panel">
                                     <FieldsPanelSelection
                                         fields={selectedFieldsData}
                                         numFieldsSaved={
@@ -397,15 +404,11 @@ export default function Index() {
                                     />
                                     <FieldsPanelHover
                                         zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                                        layer={fieldsAvailableId}
-                                        layerExclude={[
+                                        layer={[
+                                            fieldsAvailableId,
                                             fieldsSelectedId,
-                                            fieldsSavedId,
                                         ]}
-                                    />
-                                    <FieldsPanelHover
-                                        zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                                        layer={fieldsSelectedId}
+                                        layerExclude={[fieldsSavedId]}
                                     />
                                 </div>
                             </MapGL>
