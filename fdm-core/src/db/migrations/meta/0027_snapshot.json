@@ -1,5 +1,5 @@
 {
-  "id": "9811c4b7-5380-408a-a183-20712eb986e0",
+  "id": "8d40d8f9-6950-44ba-a4ba-dc9085f7117f",
   "prevId": "fb39566c-e775-4a6e-8953-3be53ff56e54",
   "version": "7",
   "dialect": "postgresql",
@@ -634,7 +634,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "derogation_applying_pk": {
+          "name": "derogation_applying_pk",
+          "columns": [
+            "b_id_farm",
+            "b_id_derogation"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -1925,8 +1933,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "harvestable_sampling_b_id_harvestable_b_id_harvestable_analysis_pk": {
-          "name": "harvestable_sampling_b_id_harvestable_b_id_harvestable_analysis_pk",
+        "harvestable_sampling_pk": {
+          "name": "harvestable_sampling_pk",
           "columns": [
             "b_id_harvestable",
             "b_id_harvestable_analysis"
@@ -2186,7 +2194,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "organic_certifications_holding_b_id_farm_b_id_organic_pk": {
+          "name": "organic_certifications_holding_b_id_farm_b_id_organic_pk",
+          "columns": [
+            "b_id_farm",
+            "b_id_organic"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

@@ -516,6 +516,7 @@ export const harvestableSampling = fdmSchema.table(
     (table) => {
         return [
             primaryKey({
+                name: "harvestable_sampling_pk",
                 columns: [
                     table.b_id_harvestable,
                     table.b_id_harvestable_analysis,
@@ -798,11 +799,10 @@ export const derogationApplying = fdmSchema.table(
     },
     (table) => {
         return [
-            {
-                pk: primaryKey({
-                    columns: [table.b_id_farm, table.b_id_derogation],
-                }),
-            },
+            primaryKey({
+                name: "derogation_applying_pk",
+                columns: [table.b_id_farm, table.b_id_derogation],
+            }),
             uniqueIndex("derogation_one_per_farm_per").on(
                 table.b_id_derogation,
             ),
@@ -846,11 +846,9 @@ export const organicCertificationsHolding = fdmSchema.table(
     },
     (table) => {
         return [
-            {
-                pk: primaryKey({
-                    columns: [table.b_id_farm, table.b_id_organic],
-                }),
-            },
+            primaryKey({
+                columns: [table.b_id_farm, table.b_id_organic],
+            }),
             uniqueIndex("organic_one_farm_per_cert").on(table.b_id_organic),
         ]
     },
