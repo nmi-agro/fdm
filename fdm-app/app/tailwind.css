@@ -165,13 +165,19 @@
 
 .fields-panel {
     position: absolute;
+    box-sizing: border-box;
     top: 0;
     left: 0;
-    /* max-width: 320px; */
+    max-height: 100%;
+    width: 320px;
     /* background: #fff; */
     /* box-shadow: 0 2px 4px rgba(0,0,0,0.3); */
-    padding: 12px 24px;
-    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    margin-left: 44px;
+    padding-block: 32px;
+    gap: 16px;
+    /* margin: 20px; */
     /* font-size: 13px; */
     /* line-height: 2; */
     /* color: #6b6b76; */

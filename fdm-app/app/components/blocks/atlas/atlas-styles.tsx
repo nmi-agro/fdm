@@ -29,6 +29,17 @@ function getFieldsStyleInner(layerId: string): LayerProps {
     }
 
     if (layerId === "fieldsSelected") {
+        // This layer should not be visible but still clickable
+        return {
+            type: "fill",
+            paint: {
+                "fill-color": "#000000",
+                "fill-opacity": 0,
+            },
+        }
+    }
+
+    if (layerId === "fieldsSelectedOutline") {
         return {
             type: "line",
             paint: {
