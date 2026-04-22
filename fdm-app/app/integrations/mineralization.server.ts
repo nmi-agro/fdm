@@ -35,7 +35,6 @@ import {
     getField,
     getFields,
     getGrazingIntention,
-    getHarvests,
     getHarvestsForFarm,
     type Timeframe,
 } from "@nmi-agro/fdm-core"
