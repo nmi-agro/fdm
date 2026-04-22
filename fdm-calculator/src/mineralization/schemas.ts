@@ -47,18 +47,30 @@ export const nsupplyResponseSchema = z.object({
 export const dynaDailyPointSchema = z.object({
     /** Calendar date of this simulation step (ISO 8601) */
     b_date_calculation: z.string(),
-    /** N availability — central estimate */
+    /** N availability */
     b_nw: z.number(),
-    /** N availability — lower bound */
+    /** N availability — minimal scenario */
     b_nw_min: z.number(),
-    /** N availability — upper bound */
+    /** N availability — maximal scenario */
     b_nw_max: z.number(),
-    /** N availability — recommended target */
+    /** N availability — recommended scenario */
     b_nw_recommended: z.number().nullable(),
     /** Crop N uptake */
     b_n_uptake: z.number().nullable(),
+    /** Crop N uptake — minimal scenario */
+    b_n_uptake_min: z.number(),
+    /** Crop N uptake — maximal scenario */
+    b_n_uptake_max: z.number(),
+    /** Crop N uptake — recommended scenario */
+    b_n_uptake_recommended: z.number(),
     /** Cumulative NO3 leaching */
     b_no3_leach: z.number().nullable(),
+    /** NO3 leaching — minimal scenario */
+    b_no3_leach_min: z.number(),
+    /** NO3 leaching — maximal scenario */
+    b_no3_leach_max: z.number(),
+    /** NO3 leaching — recommended scenario */
+    b_no3_leach_recommended: z.number(),
 })
 
 /**
