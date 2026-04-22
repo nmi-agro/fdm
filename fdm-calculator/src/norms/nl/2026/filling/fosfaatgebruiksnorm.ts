@@ -1,6 +1,6 @@
 import {
+    type BaseFertilizerApplication,
     type Fertilizer,
-    type FertilizerApplication,
     withCalculationCache,
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
@@ -70,12 +70,12 @@ export function calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNor
 
     // Separate applications into standard and organic-rich
     const standardApplications: {
-        application: FertilizerApplication
+        application: BaseFertilizerApplication
         p_p_rt: Decimal
         p_app_amount: Decimal
     }[] = []
     const organicRichApplications: {
-        application: FertilizerApplication
+        application: BaseFertilizerApplication
         p_p_rt: Decimal
         p_app_amount: Decimal
         p_type_rvo: string
@@ -243,7 +243,7 @@ export function calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNor
  * @returns {boolean} True if the 20 kg/ha threshold is met, false otherwise.
  */
 function determineCondition1StimuleringOrganischeStofrijkeMeststoffen(
-    applications: FertilizerApplication[],
+    applications: BaseFertilizerApplication[],
     fertilizersMap: Map<string, Fertilizer>,
     has_organic_certification: boolean,
 ): boolean {

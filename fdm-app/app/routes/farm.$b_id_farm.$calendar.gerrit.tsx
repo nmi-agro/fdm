@@ -26,6 +26,7 @@ import {
     addFertilizerApplication,
     type Fertilizer,
     type FertilizerApplication,
+    fromKgPerHa,
     getCultivations,
     getCurrentSoilData,
     getFarms,
@@ -711,8 +712,29 @@ export async function action({ request, params }: ActionFunctionArgs) {
                                 applicationMethods?.options?.find(
                                     (x: any) => x.value === app.p_app_method,
                                 )
+                            const p_app_amount_display = fert
+                                ? fromKgPerHa(
+                                      app.p_app_amount,
+                                      fert.p_app_amount_unit,
+                                      fert.p_density,
+                                  )
+                                : null
+                            const unitConvertedAmount =
+                                fert && p_app_amount_display !== null
+                                    ? {
+                                          p_app_amount_display:
+                                              p_app_amount_display,
+                                          p_app_amount_unit:
+                                              fert.p_app_amount_unit,
+                                      }
+                                    : {
+                                          p_app_amount_display:
+                                              app.p_app_amount,
+                                          p_app_amount_unit: "kg/ha",
+                                      }
                             return {
                                 ...app,
+                                ...unitConvertedAmount,
                                 p_name_nl:
                                     fert?.p_name_nl || app.p_id_catalogue,
                                 p_type: fert?.p_type || "other",
@@ -853,12 +875,24 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             )
                         }
 
+                        const amount = fromKgPerHa(
+                            app.p_app_amount,
+                            fertilizer.p_app_amount_unit,
+                            fertilizer.p_density,
+                        )
+
+                        if (amount === null) {
+                            throw new Error(
+                                `Meststof "${fertilizer.p_name_nl}" moet een waarde hebben voor zijn dichtheid.`,
+                            )
+                        }
+
                         await addFertilizerApplication(
                             tx,
                             session.principal_id,
                             field.b_id,
                             fertilizer.p_id,
-                            app.p_app_amount,
+                            amount,
                             app.p_app_method,
                             new Date(app.p_app_date),
                         )

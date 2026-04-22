@@ -255,52 +255,40 @@ export function withCalculationCache<T_Input extends object, T_Output>(
             const result = await calculationFunction(input)
 
             // If the initial cache read was successful (meaning the cache is healthy),
-            // then attempt to store the new calculation result in the cache.
+            // then store the new calculation result in the cache.
+            // Fire-and-forget: don't await the cache write to avoid blocking the response
+            // when many parallel calculations complete simultaneously (lock contention).
             if (cacheResultOfCalculation) {
-                try {
-                    await setCachedCalculation(
-                        fdm,
-                        calculationHash,
-                        calculationFunctionName,
-                        calculatorVersion,
-                        inputForCache,
-                        result,
-                    )
-                } catch (e: unknown) {
+                setCachedCalculation(
+                    fdm,
+                    calculationHash,
+                    calculationFunctionName,
+                    calculatorVersion,
+                    inputForCache,
+                    result,
+                ).catch((e: unknown) => {
                     const errorMessage =
                         e instanceof Error ? e.message : String(e)
                     console.error(
                         `Failed to write to calculation cache for ${calculationFunctionName} (hash: ${calculationHash}): ${errorMessage}`,
                     )
-                    // Continue execution - the calculation succeeded, only caching failed
-                }
-                // console.log(
-                //     `Calculation for ${calculationFunctionName} (hash: ${calculationHash}) completed and cached.`,
-                // )
-            } else {
-                // If cache read failed, log that the result is not being cached.
-                // console.log(
-                //     `Calculation for ${calculationFunctionName} (hash: ${calculationHash}) completed and not cached due to prior cache read failure.`,
-                // )
+                })
             }
 
             return result
         } catch (e: unknown) {
-            // If the calculation itself fails, record the error in the database
-            // and re-throw it to propagate the failure to the caller.
+            // Record the error in the database (fire-and-forget to avoid blocking error propagation).
             const errorMessage = e instanceof Error ? e.message : String(e)
             const stackTrace = e instanceof Error ? e.stack : undefined
 
-            try {
-                await setCalculationError(
-                    fdm,
-                    calculationFunctionName,
-                    calculatorVersion,
-                    inputForCache,
-                    errorMessage,
-                    stackTrace,
-                )
-            } catch (loggingError: unknown) {
+            setCalculationError(
+                fdm,
+                calculationFunctionName,
+                calculatorVersion,
+                inputForCache,
+                errorMessage,
+                stackTrace,
+            ).catch((loggingError: unknown) => {
                 const loggingErrorMessage =
                     loggingError instanceof Error
                         ? loggingError.message
@@ -308,8 +296,7 @@ export function withCalculationCache<T_Input extends object, T_Output>(
                 console.error(
                     `Failed to log calculation error for ${calculationFunctionName}: ${loggingErrorMessage}`,
                 )
-                // Continue to re-throw the original calculation error
-            }
+            })
 
             throw e
         }

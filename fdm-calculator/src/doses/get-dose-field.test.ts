@@ -104,6 +104,7 @@ describe("getDoseForField", () => {
                 p_cl_rt: 0,
                 p_type: "manure",
                 p_app_method_options: undefined,
+                p_app_amount_unit: "kg/ha",
                 p_no3_rt: undefined,
                 p_nh4_rt: undefined,
                 p_cr_rt: undefined,

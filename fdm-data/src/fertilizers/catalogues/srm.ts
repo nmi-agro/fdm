@@ -1,5 +1,6 @@
 import type {
     ApplicationMethods,
+    ApplicationUnits,
     CatalogueFertilizer,
     CatalogueFertilizerItem,
 } from "../d"
@@ -30,6 +31,11 @@ export async function getCatalogueSrm(): Promise<CatalogueFertilizer> {
                     : (fertilizer.p_app_method_options.split(
                           "||",
                       ) as ApplicationMethods[]),
+            p_app_amount_unit:
+                (fertilizer as any).p_app_amount_unit === undefined
+                    ? "kg/ha"
+                    : ((fertilizer as any)
+                          .p_app_amount_unit as ApplicationUnits),
             p_dm: fertilizer.p_dm === undefined ? null : fertilizer.p_dm,
             p_density:
                 fertilizer.p_density === undefined

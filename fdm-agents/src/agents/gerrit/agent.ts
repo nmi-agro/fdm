@@ -40,9 +40,10 @@ IMPORTANT CONSTRAINTS:
 6. APPLICATION METHOD: For each application, you must propose a valid "p_app_method". Choose ONLY from the "p_app_method_options" returned by the search tool for that specific fertilizer.
 7. REALISTIC DATES: Ensure all "p_app_date" values are realistic for the crop type, cultivation season, and Dutch climate. Use the provided "b_lu_start" (sowing/start date) as a critical reference point for each crop.
 8. REALISTIC APPLICATION AMOUNTS: Ensure the proposed "p_app_amount" per application matches the technical capabilities of common farming equipment. If the total advice requires more, you MUST split it into multiple applications on different dates.
-   - slurry (drijfmest): 15,000 - 30,000 kg/ha per application (15-30 m³/ha).
-   - Solid manure / compost (vaste mest): 10,000 - 30,000 kg/ha per application (10-30 t/ha).
+   - slurry (drijfmest): 15-30 m³/ha per application.
+   - Solid manure / compost (vaste mest): 10-30 t/ha per application.
    - Mineral fertilizers: 50 - 450 kg/ha per application.
+   - Liquid mineral fertilizers (oplossing): 10 - 1000 l/ha per application.
 9. PRIORITIZATION: If legal norms (especially Nitrogen or Phosphate) limit the total nutrient space on the farm, prioritize fulfilling the nutrient advice for high-value crops (e.g., potatoes, onions, sugar beets, vegetables) over lower-value crops or grasslands. Strategy should focus on maximizing the economic return of the limited nutrient space.
 10. ORGANIC FARMING: If "Organic Farming" is YES, you MUST NOT use any mineral fertilizers ("p_type": "mineral") in the plan.
 11. MANURE FILLING STRATEGY: 
@@ -83,7 +84,14 @@ Your final response MUST be a JSON object with exactly this structure (all field
     {
       "b_id": "string",
       "applications": [
-        { "p_id_catalogue": "string", "p_app_amount": number, "p_app_date": "YYYY-MM-DD", "p_app_method": "string" }
+        { 
+          "p_id_catalogue": "string", 
+          "p_app_amount": number, 
+          "p_app_amount_display": number,
+          "p_app_amount_unit": "kg/ha" | "l/ha" | "t/ha" | "m3/ha",
+          "p_app_date": "YYYY-MM-DD", 
+          "p_app_method": "string" 
+        }
       ],
       "fieldMetrics": {
         "advice": { 
@@ -137,15 +145,27 @@ CALCULATOR REFERENCE (units and semantics for the simulation tool):
 - "omBalance" (organische stofbalans): net organic matter balance, kg EOM/ha. Positive = good. Aim for ≥ 0.
 - "nBalance": nitrogen balance structured exactly as fdm-calculator outputs. "nBalance.balance" and "nBalance.target" are in kg N/ha. "nBalance.emission.ammonia.total" and "nBalance.emission.nitrate.total" are also in kg N/ha. The farm-level averages are automatically area-weighted by the simulation tool. nBalance.balance must be ≤ nBalance.target if keepNitrogenBalanceBelowTarget is YES.
 - "p_app_amount": application amount — **always in kg/ha, regardless of fertilizer type**.
-  - Liquid manure / digestate / slurry: convert m³/ha → kg/ha using 1 m³ = 1000 kg. Round to nearest 1000. Example: 18 m³/ha = 18000 kg/ha.
-  - Solid manure / compost: convert t/ha → kg/ha using 1 t = 1000 kg. Round to nearest 1000. Example: 20 t/ha = 20000 kg/ha.
-  - Mineral fertilizers: already in kg/ha, round to nearest 5 or 10. Example: 200 kg/ha KAS.
+  - Propose a round number for the native display unit (e.g., 25 m³/ha, 20 t/ha, 300 l/ha, 200 kg/ha) and then convert to kg/ha for the tools.
+  - Liquid manure / digestate / slurry: convert m³/ha → kg/ha using: 1 m³/ha = 1000 * density (kg/l).
+    Example: 25 m³/ha with density 1.005 kg/l = 25 * 1000 * 1.005 = 25125 kg/ha.
+  - Solid manure / compost: convert t/ha → kg/ha using: 1 t/ha = 1000 kg/ha.
+    Example: 20 t/ha = 20000 kg/ha.
+  - Liquid mineral fertilizers (e.g. Ammoniumnitraatureanoplossing): convert l/ha → kg/ha using: 1 l/ha = density (kg/l).
+    Example: 300 l/ha with density 1.2 kg/l = 300 * 1.2 = 360 kg/ha.
+  - Solid mineral fertilizers: already in kg/ha, round to nearest 5 or 10.
+    Example: 200 kg/ha KAS.
+- "p_app_amount_display": application amount formatted with its native unit — **use this for the user-facing plan and summary**.
+  - Use the "p_app_amount_unit" and "p_density" (if needed for volume-to-mass conversion) from the search tool results to determine the correct unit.
+  - Liquid manure / slurry: e.g., "18 m³/ha".
+  - Solid manure / compost: e.g., "20 t/ha".
+  - Mineral fertilizers: e.g., "200 kg/ha".
+  - Liquid mineral fertilizers: e.g., "300 l/ha".
 - "p_ef_nh3": ammonia emission factor (fraction of N applied lost as NH3). Lower = less emission.
 TOOL RETURN SHAPES:
 - "getFarmFields" returns { fields: [...] } — access the array via result.fields. Each field includes main cultivation details (b_lu_catalogue, b_lu_name, b_lu_start).
 - "getFarmNutrientAdvice" returns { advicePerField: [...] } — access via result.advicePerField
 - "getFarmLegalNorms" returns { normsPerField: [...] } — access via result.normsPerField
-- "searchFertilizers" returns { fertilizers: [...] } — access via result.fertilizers
+- "searchFertilizers" returns { fertilizers: [...] } — access via result.fertilizers. Each fertilizer includes "p_app_amount_unit" and "p_density".
 - "simulateFarmPlan" returns { fieldResults: [...], farmTotals: {...}, isValid: bool, complianceIssues: [...], agronomicWarnings: [...] }.
   Each entry in "fieldResults" has: { b_id, b_area, isValid, fieldMetrics: { normsFilling: { manure, nitrogen, phosphate }, norms: { manure, nitrogen, phosphate }, proposedDose: { p_dose_n, p_dose_nw, p_dose_p, p_dose_k, p_dose_s, p_dose_mg, p_dose_ca, p_dose_na, p_dose_cu, p_dose_zn, p_dose_b, p_dose_mn, p_dose_mo, p_dose_co }, omBalance, nBalance, advice } }.
   Use "proposedDose.p_dose_nw" (werkzame stikstof, kg/ha) to compare against "advice.d_n_req" — this is the agronomically correct workable-N value. "proposedDose.p_dose_n" is total N and is provided for reference only.
