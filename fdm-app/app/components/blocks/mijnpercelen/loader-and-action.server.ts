@@ -166,7 +166,9 @@ export async function genericAction(
                 b_id_farm,
             )
 
-            const files = formData.getAll("shapefile") as File[]
+            const files = formData
+                .getAll("shapefile")
+                .filter((entry): entry is File => entry instanceof File)
 
             const shp_file = files.find((f) => f.name.endsWith(".shp"))
             const shx_file = files.find((f) => f.name.endsWith(".shx"))
@@ -190,16 +192,21 @@ export async function genericAction(
                 prj_file,
             )
 
+            /** Calculates the perimeter of the given polygon geometry in meters */
             function perimeter(geometry: Polygon | MultiPolygon) {
                 if (geometry.type === "Polygon") {
                     return geometry.coordinates
-                        .map((ring) => length(lineString(ring)))
+                        .map((ring) =>
+                            length(lineString(ring), { units: "meters" }),
+                        )
                         .reduce((a, b) => a + b, 0)
                 }
                 if (geometry.type === "MultiPolygon") {
                     return geometry.coordinates
                         .flatMap((polygon) =>
-                            polygon.flatMap((ring) => length(lineString(ring))),
+                            polygon.flatMap((ring) =>
+                                length(lineString(ring), { units: "meters" }),
+                            ),
                         )
                         .reduce((a, b) => a + b, 0)
                 }
@@ -217,8 +224,8 @@ export async function genericAction(
             for (const item of rvoFields) {
                 item.properties.mestData = {
                     IndBufferstrook: determineIfFieldIsBuffer(
-                        area(item.geometry),
-                        perimeter(item.geometry),
+                        area(item.geometry) / 10000, // m2 to ha
+                        perimeter(item.geometry), // already in meters
                         item.properties.CropFieldDesignator,
                     )
                         ? "J"
