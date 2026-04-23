@@ -435,6 +435,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                                     ),
                             ).sort((a, b) => b[1] - a[1]),
                         ),
+                        b_lu_catalogue: b_lu_catalogue,
                         b_lu_croprotation:
                             cultivationsForCatalogue[0]?.b_lu_croprotation ??
                             "",

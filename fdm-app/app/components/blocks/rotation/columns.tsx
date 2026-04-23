@@ -58,6 +58,7 @@ export type FieldRow = {
     b_lu_eom_residue: number | null
     m_cropresidue_ending: [Date, boolean][]
     b_lu_variety: Record<string, number>
+    b_lu_catalogue: string
     b_lu_croprotation: string
     harvests: {
         b_lu: string

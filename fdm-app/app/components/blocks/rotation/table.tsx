@@ -23,7 +23,7 @@ import { NavLink, useLocation, useParams } from "react-router-dom"
 import { toast as notify } from "sonner"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
-import { useRotationFilterStore } from "@/app/store/field-filter"
+import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useRotationSelectionStore } from "@/app/store/rotation-selection"
 import { Button } from "~/components/ui/button"
 import {
@@ -65,7 +65,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-    const fieldFilter = useRotationFilterStore()
+    const fieldFilter = useFieldFilterStore()
     const isMobile = useIsMobile()
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
         isMobile
@@ -255,9 +255,12 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 crop.fields.every(
                     (field) =>
                         !fuzzySearchAndProductivityFilter(
-                            { original: field } as unknown as Row<TData>,
-                            null,
+                            {
+                                original: field,
+                            } as unknown as Row<MemoizedTData>,
+                            "",
                             fieldFilter,
+                            () => {},
                         ) || selection[crop.b_lu_catalogue]?.[field.b_id],
                 ),
             ]),
