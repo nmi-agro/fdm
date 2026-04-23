@@ -379,7 +379,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
             <div className="sticky top-0 z-5 bg-background py-4 flex flex-col sm:flex-row gap-2 items-center">
                 <Input
                     placeholder="Zoek op gewas, meststof of datum"
-                    value={fieldFilter?.searchTerms ?? ""}
+                    value={fieldFilter.searchTerms ?? ""}
                     onChange={(event) =>
                         fieldFilter.setSearchTerms(event.target.value)
                     }
@@ -557,17 +557,14 @@ export function DataTable<TData extends RotationExtended, TValue>({
                                               : row.original.type === "field" &&
                                                 "bg-muted/50 hover:bg-muted",
                                         row.original.type === "field" &&
-                                            ((
-                                                row.getParentRow() as Row<MemoizedTData>
-                                            )?.subRows.length === 1
+                                            (row.getParentRow()?.subRows
+                                                .length === 1
                                                 ? "shadow-[inset_0_1em_2em_-2em_#00000088,inset_0_-1em_2em_-2em_#00000088]"
                                                 : row.index === 0
                                                   ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
-                                                  : row.index ===
-                                                        (
-                                                            row.getParentRow() as Row<MemoizedTData>
-                                                        )?.subRows.length -
-                                                            1 &&
+                                                  : row.index + 1 ===
+                                                        row.getParentRow()
+                                                            ?.subRows.length &&
                                                     "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
                                     )}
                                 >
