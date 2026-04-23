@@ -264,7 +264,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
         },
         enableHiding: true, // Enable hiding for mobile
         cell: (props) =>
-            (props.row.original.b_lu_eom_residue ?? 0) !== 0 && (
+            props.row.original.b_lu_croprotation === "cereal" && (
                 <CropResidueCheckbox {...props} />
             ),
     },

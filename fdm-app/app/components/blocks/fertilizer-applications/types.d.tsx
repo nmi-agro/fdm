@@ -1,3 +1,4 @@
+import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 
 export interface FertilizerApplication {
@@ -16,6 +17,7 @@ export interface FertilizerOption {
         value: ApplicationMethods
         label: string
     }[]
+    p_app_amount_unit: AppAmountUnit
 }
 
 export interface FertilizerApplicationsFormProps {

@@ -12,8 +12,7 @@ import type {
     UserChoiceMap,
 } from "@nmi-agro/fdm-rvo/types"
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
-import { AlertTriangle, CloudDownload, Loader2 } from "lucide-react"
-import { useFeatureFlagEnabled } from "posthog-js/react"
+import { AlertTriangle, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
     type ActionFunctionArgs,
@@ -198,8 +197,6 @@ export default function RvoImportCreatePage() {
     const navigation = useNavigation()
     const location = useLocation()
 
-    const isRvoEnabled = useFeatureFlagEnabled("rvo") ?? true
-
     const isImporting =
         navigation.state === "submitting" &&
         navigation.formData?.get("intent") === "start_import"
@@ -247,33 +244,6 @@ export default function RvoImportCreatePage() {
 
     const handleChoiceChange = (id: string, action: ImportReviewAction) => {
         setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
-    }
-
-    if (isRvoEnabled === false) {
-        return (
-            <SidebarInset>
-                <Header action={undefined}>
-                    <HeaderFarmCreate b_name_farm={b_name_farm} />
-                </Header>
-                <FarmContent>
-                    <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
-                        <div className="bg-primary/10 border border-primary/20 p-8 rounded-xl">
-                            <CloudDownload className="w-12 h-12 text-primary mx-auto mb-4" />
-                            <h2 className="text-2xl font-bold text-foreground mb-2">
-                                Percelen ophalen bij RVO is nog niet beschikbaar
-                                voor je.
-                            </h2>
-                            <p className="text-muted-foreground mb-6">
-                                Deze functionaliteit is momenteel in
-                                ontwikkeling en is nog niet voor iedereen
-                                beschikbaar. Neem contact op met Ondersteuning
-                                als je hier vragen over hebt.
-                            </p>
-                        </div>
-                    </div>
-                </FarmContent>
-            </SidebarInset>
-        )
     }
 
     if (error) {
@@ -350,7 +320,7 @@ export default function RvoImportCreatePage() {
                             <AlertDescription>
                                 De RVO koppeling is nog niet ingesteld op deze
                                 server. Neem contact op met de beheerder om de
-                                RVO toeggangegevens toe te voegen.
+                                RVO toegangsgegevens toe te voegen.
                             </AlertDescription>
                         </Alert>
                     </div>
