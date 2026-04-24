@@ -8,6 +8,7 @@ import {
 import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react"
 import { Fragment } from "react"
 import { Form } from "react-router"
+import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -36,7 +37,6 @@ import {
 } from "~/components/ui/tooltip"
 import { FertilizerIcon } from "./fertilizer-icon"
 import type { ParsedPlan, PlanRow } from "./types"
-import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
 
 const columnHelper = createColumnHelper<PlanRow>()
 
@@ -173,29 +173,34 @@ export function PlanTable({
         <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div className="space-y-1.5">
-                    <CardTitle className="text-lg">
-                        Voorgesteld bemestingsplan
-                    </CardTitle>
+                    <CardTitle>Voorgesteld bemestingsplan</CardTitle>
                     <CardDescription>
                         Klik op een rij of gebruik de uitklapknop voor
                         perceeldetails (normen, N-balans, organische
                         stofbalans).
                     </CardDescription>
                 </div>
-                <Form method="post">
+                <Form method="post" className="min-w-0 flex-initial">
                     <input type="hidden" name="intent" value="accept" />
                     <input
                         type="hidden"
                         name="plan"
                         value={JSON.stringify(plan)}
                     />
-                    <Button type="submit" size="sm" disabled={isSaving}>
+                    <Button
+                        type="submit"
+                        size="sm"
+                        disabled={isSaving}
+                        className="h-auto whitespace-normal"
+                    >
                         {isSaving ? (
                             <Spinner className="mr-2" />
                         ) : (
                             <CheckCircle2 className="mr-2 h-4 w-4" />
                         )}
-                        Plan definitief maken en toepassen
+                        <span className="grow text-left">
+                            Plan definitief maken en toepassen
+                        </span>
                     </Button>
                 </Form>
             </CardHeader>
@@ -208,7 +213,7 @@ export function PlanTable({
                                     {hg.headers.map((h) => (
                                         <TableHead
                                             key={h.id}
-                                            className="font-semibold"
+                                            className="font-semibold first:ps-6"
                                         >
                                             {h.isPlaceholder
                                                 ? null
@@ -218,7 +223,7 @@ export function PlanTable({
                                                   )}
                                         </TableHead>
                                     ))}
-                                    <TableHead className="w-8" />
+                                    <TableHead className="w-8 pe-6" />
                                 </TableRow>
                             ))}
                         </TableHeader>
@@ -260,7 +265,7 @@ export function PlanTable({
                                                     .map((cell) => (
                                                         <TableCell
                                                             key={cell.id}
-                                                            className="py-3"
+                                                            className="py-3 first:ps-6"
                                                         >
                                                             {flexRender(
                                                                 cell.column
@@ -270,7 +275,7 @@ export function PlanTable({
                                                             )}
                                                         </TableCell>
                                                     ))}
-                                                <TableCell className="py-3">
+                                                <TableCell className="py-3 pe-6">
                                                     <div className="flex items-center gap-1.5 flex-wrap">
                                                         {hasMetrics &&
                                                             advice &&

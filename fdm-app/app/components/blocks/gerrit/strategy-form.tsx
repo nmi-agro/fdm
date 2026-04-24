@@ -22,6 +22,7 @@ interface StrategyFormProps {
     additionalContextValue: string | undefined
     calendar: string
     onSubmit: () => void
+    onGoBack?: (() => void) | undefined
 }
 
 export function StrategyForm({
@@ -30,6 +31,7 @@ export function StrategyForm({
     additionalContextValue,
     calendar,
     onSubmit,
+    onGoBack,
 }: StrategyFormProps) {
     const additionalContextLength = additionalContextValue?.length ?? 0
     const showDerogation = Number.parseInt(calendar, 10) < 2026
@@ -40,6 +42,15 @@ export function StrategyForm({
                 <CardTitle className="flex items-center gap-2 text-xl font-semibold">
                     <Bot className="w-6 h-6 text-primary" />
                     Bedrijfsstrategie & voorkeuren
+                    {onGoBack && (
+                        <Button
+                            variant="outline"
+                            className="ms-auto"
+                            onClick={onGoBack}
+                        >
+                            Terug naar voorgesteld plan
+                        </Button>
+                    )}
                 </CardTitle>
                 <CardDescription>
                     Stel de kaders in waarbinnen Gerrit het optimale

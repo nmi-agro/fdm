@@ -45,6 +45,7 @@ import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
 import {
     GerritExplanationCard,
     NormStatusCard,
+    StrategySummaryCard,
 } from "~/components/blocks/gerrit/summary-cards"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -1064,15 +1065,24 @@ export default function GerritApp() {
                     />
                 </Header>
                 <FarmContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 overflow-auto lg:h-[calc(100vh-64px-24px)]">
                         {/* Left: main area (Strategy or Plan) */}
-                        <div className="lg:col-span-2 flex flex-col gap-6">
+                        <div className="lg:col-span-2 flex flex-col gap-6 overflow-auto">
                             {hasPlan && currentPlan && !showStrategyForm ? (
                                 <>
+                                    <StrategySummaryCard
+                                        activeStrategyLabels={
+                                            activeStrategyLabels
+                                        }
+                                        onEditStrategy={() =>
+                                            setShowStrategyForm(true)
+                                        }
+                                    />
                                     <NormStatusCard
-                                        farmTotals={currentPlan.metrics?.farmTotals}
-                                        activeStrategyLabels={activeStrategyLabels}
-                                        onEditStrategy={() => setShowStrategyForm(true)}
+                                        calendar={calendar}
+                                        farmTotals={
+                                            currentPlan.metrics?.farmTotals
+                                        }
                                     />
                                     <PlanTable
                                         plan={currentPlan}
@@ -1082,23 +1092,29 @@ export default function GerritApp() {
                                     />
                                 </>
                             ) : (
-                                <div>
-                                    <StrategyForm
-                                        form={form as any}
-                                        isGenerating={
-                                            phase === "generating" ||
-                                            phase === "loading_intent"
-                                        }
-                                        additionalContextValue={additionalContextValue}
-                                        calendar={calendar}
-                                        onSubmit={loadIntentQuestions}
-                                    />
-                                </div>
+                                <StrategyForm
+                                    form={form as any}
+                                    isGenerating={
+                                        phase === "generating" ||
+                                        phase === "loading_intent"
+                                    }
+                                    additionalContextValue={
+                                        additionalContextValue
+                                    }
+                                    calendar={calendar}
+                                    onSubmit={loadIntentQuestions}
+                                    onGoBack={
+                                        hasPlan && currentPlan
+                                            ? () =>
+                                                    setShowStrategyForm(false)
+                                            : undefined
+                                    }
+                                />
                             )}
                         </div>
 
                         {/* Right: assistant area (Empty -> Intent -> Thinking -> Chat) */}
-                        <div className="lg:col-span-1 flex flex-col gap-6">
+                        <div className="lg:col-span-1 flex flex-col gap-6 overflow-auto">
                             {hasPlan && currentPlan ? (
                                 <>
                                     <GerritExplanationCard

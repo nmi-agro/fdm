@@ -90,7 +90,7 @@ export function GerritChat({
                         ref={scrollContainerRef}
                         className="space-y-3 max-h-80 overflow-y-auto pr-1 scroll-smooth"
                     >
-                        {messages.map((msg, i) => (
+                        {messages.filter(msg => msg.content.length > 0).map((msg, i) => (
                             <div
                                 key={i}
                                 className={`flex gap-3 text-sm ${

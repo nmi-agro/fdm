@@ -14,13 +14,13 @@ export function SuggestedFollowUps({
     if (suggestions.length === 0) return null
 
     return (
-        <div className="flex overflow-x-auto pb-1.5 -mx-1 px-1 gap-2 scroll-smooth scrollbar-hide">
+        <div className="space-y-2">
             {suggestions.map((text) => (
                 <Button
                     key={text}
                     variant="secondary"
                     size="sm"
-                    className="text-[11px] h-7 px-3 shrink-0 whitespace-nowrap bg-secondary/50 hover:bg-secondary border-none"
+                    className="inline-block text-[11px] h-7 px-3 shrink-0 whitespace-nowrap bg-secondary/50 hover:bg-secondary border-none"
                     onClick={() => onSelect(text)}
                     disabled={disabled}
                 >

@@ -1,24 +1,78 @@
-import { Bot, Info, Pencil } from "lucide-react"
+import { Bot, CircleCheck, CircleX, Info, Pencil } from "lucide-react"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
     Card,
     CardContent,
+    CardDescription,
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
 import { Progress } from "~/components/ui/progress"
+import { Separator } from "~/components/ui/separator"
 import { GerritFeedback } from "./feedback"
 import type { FarmTotals } from "./types"
+
+interface StrategySummaryCardProps {
+    activeStrategyLabels: string[]
+    onEditStrategy: () => void
+}
+
+export function StrategySummaryCard({
+    activeStrategyLabels,
+    onEditStrategy,
+}: StrategySummaryCardProps) {
+    return (
+        <Card className="shadow-sm">
+            <CardHeader className="flex-row gap-4">
+                <Bot className="text-lg text-muted-foreground shrink-0" />
+                <div>
+                    <CardTitle className="text-lg">
+                        De bemestingsplan door Gerrit staat klaar.
+                    </CardTitle>
+                    <CardDescription>
+                        Gerrit heeft the onderstande strategie gevolgd.
+                    </CardDescription>
+                </div>
+                <Button
+                    variant="outline"
+                    className="ms-auto gap-2 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={onEditStrategy}
+                >
+                    <Pencil className="h-4 w-4" />
+                    Wijzig strategie
+                </Button>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center gap-1.5 flex-wrap flex-1">
+                    {activeStrategyLabels.length > 0 ? (
+                        activeStrategyLabels.map((label) => (
+                            <Badge
+                                key={label}
+                                variant="secondary"
+                                className="text-[10px] py-0 h-5"
+                            >
+                                {label}
+                            </Badge>
+                        ))
+                    ) : (
+                        <span className="text-[11px] text-muted-foreground">
+                            Standaard strategie
+                        </span>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 // ---------------------------------------------------------------------------
 // NormStatusCard — compact single card: norm bars + N-balance + strategy
 // ---------------------------------------------------------------------------
 
 interface NormStatusCardProps {
+    calendar: string
     farmTotals?: FarmTotals
-    activeStrategyLabels: string[]
-    onEditStrategy: () => void
 }
 
 function InlineNormBar({
@@ -53,14 +107,15 @@ function InlineNormBar({
     )
 }
 
-export function NormStatusCard({
-    farmTotals,
-    activeStrategyLabels,
-    onEditStrategy,
-}: NormStatusCardProps) {
+export function NormStatusCard({ calendar, farmTotals }: NormStatusCardProps) {
     return (
         <Card className="shadow-sm">
-            <CardContent className="pt-4 pb-3 space-y-3">
+            <CardHeader>
+                <CardTitle>
+                    Gebruiksruimte in {calendar} na de voorgestelde bemestingen
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
                 {/* Norm bars — 3 columns */}
                 {farmTotals && (
                     <div className="grid grid-cols-3 gap-4">
@@ -81,42 +136,22 @@ export function NormStatusCard({
                         />
                     </div>
                 )}
-
-                {/* N-balance + strategy + edit — single row */}
-                <div className="flex items-center gap-2 flex-wrap pt-1 border-t">
-                    {farmTotals?.nBalance && (
-                        <span
-                            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${
-                                farmTotals.nBalance.balance <= farmTotals.nBalance.target
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                            }`}
-                        >
-                            N-balans {Math.round(farmTotals.nBalance.balance)}/{Math.round(farmTotals.nBalance.target)} kg/ha
-                        </span>
-                    )}
-                    <div className="flex items-center gap-1.5 flex-wrap flex-1">
-                        <Bot className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        {activeStrategyLabels.length > 0 ? (
-                            activeStrategyLabels.map((label) => (
-                                <Badge key={label} variant="secondary" className="text-[10px] py-0 h-5">
-                                    {label}
-                                </Badge>
-                            ))
-                        ) : (
-                            <span className="text-[11px] text-muted-foreground">Standaard strategie</span>
-                        )}
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-[11px] gap-1 shrink-0 text-muted-foreground hover:text-foreground"
-                        onClick={onEditStrategy}
-                    >
-                        <Pencil className="h-3 w-3" />
-                        Wijzig
-                    </Button>
-                </div>
+            </CardContent>
+            <Separator />
+            <CardHeader>
+                <CardTitle>Stikstofbalans (Overschot / Doel)</CardTitle>
+            </CardHeader>
+            {/* N-balance + strategy + edit — single row */}
+            <CardContent className="flex items-center gap-4">
+                <p>
+                    {Math.round(farmTotals.nBalance.balance)}/
+                    {Math.round(farmTotals.nBalance.target)} kg/ha
+                </p>
+                {farmTotals.nBalance.balance <= farmTotals.nBalance.target ? (
+                    <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full " />
+                ) : (
+                    <CircleX className="text-red-500 bg-red-100 rounded-full " />
+                )}
             </CardContent>
         </Card>
     )
@@ -184,7 +219,10 @@ export function SummaryCards({
                 activeStrategyLabels={activeStrategyLabels}
                 onEditStrategy={onEditStrategy}
             />
-            <GerritExplanationCard planSummary={planSummary} traceId={traceId} />
+            <GerritExplanationCard
+                planSummary={planSummary}
+                traceId={traceId}
+            />
         </>
     )
 }
