@@ -177,6 +177,13 @@ export function GerritExplanationCard({
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold text-primary">
                     <Info className="w-4 h-4" />
                     Toelichting van Gerrit
+                    <Button
+                        asChild
+                        variant="link"
+                        className="ms-auto px-0 text-muted-foreground underline hover:text-primary"
+                    >
+                        <a href="#chat">Stel er een vraag over...</a>
+                    </Button>
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">

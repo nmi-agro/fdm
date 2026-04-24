@@ -74,7 +74,7 @@ export function GerritChat({
                     Vraag om uitleg of verzoek een aanpassing aan het plan.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent id="chat" className="space-y-4">
                 {/* Suggested follow-ups */}
                 {messages.length === 0 && (
                     <SuggestedFollowUps

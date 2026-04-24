@@ -2,7 +2,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
     addFertilizerApplication,
     type Fertilizer,
-    type FertilizerApplication,
     fromKgPerHa,
     getCultivations,
     getCurrentSoilData,
@@ -34,7 +33,6 @@ import type { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { GerritChat } from "~/components/blocks/gerrit/chat"
 import { GerritIntentPanel } from "~/components/blocks/gerrit/intent-panel"
-import { ThinkingSteps } from "~/components/blocks/gerrit/thinking-steps"
 import { GerritOnboarding } from "~/components/blocks/gerrit/onboarding"
 import { PlanTable } from "~/components/blocks/gerrit/plan-table"
 import {
@@ -47,6 +45,7 @@ import {
     NormStatusCard,
     StrategySummaryCard,
 } from "~/components/blocks/gerrit/summary-cards"
+import { ThinkingSteps } from "~/components/blocks/gerrit/thinking-steps"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import {
@@ -1067,7 +1066,7 @@ export default function GerritApp() {
                 <FarmContent>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 overflow-auto lg:h-[calc(100vh-64px-24px)]">
                         {/* Left: main area (Strategy or Plan) */}
-                        <div className="lg:col-span-2 flex flex-col gap-6 overflow-auto">
+                        <div className="lg:col-span-2 flex flex-col gap-6 overflow-auto scroll-smooth">
                             {hasPlan && currentPlan && !showStrategyForm ? (
                                 <>
                                     <StrategySummaryCard
@@ -1114,7 +1113,7 @@ export default function GerritApp() {
                         </div>
 
                         {/* Right: assistant area (Empty -> Intent -> Thinking -> Chat) */}
-                        <div className="lg:col-span-1 flex flex-col gap-6 overflow-auto">
+                        <div className="lg:col-span-1 flex flex-col gap-6 overflow-auto scroll-smooth">
                             {hasPlan && currentPlan ? (
                                 <>
                                     <GerritExplanationCard

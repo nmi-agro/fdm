@@ -37,7 +37,7 @@ export function StrategyForm({
     const showDerogation = Number.parseInt(calendar, 10) < 2026
 
     return (
-        <Card className="h-fit sticky top-6">
+        <Card className="h-fit sticky">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl font-semibold">
                     <Bot className="w-6 h-6 text-primary" />
@@ -45,7 +45,7 @@ export function StrategyForm({
                     {onGoBack && (
                         <Button
                             variant="outline"
-                            className="ms-auto"
+                            className="ms-auto text-muted-foreground hover:text-foreground"
                             onClick={onGoBack}
                         >
                             Terug naar voorgesteld plan
