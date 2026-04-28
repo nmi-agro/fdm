@@ -69,11 +69,6 @@ const config: Config = {
                 ],
                 tsconfig: "./tsconfig.json", // Use local tsconfig
                 out: "api-reference", // Output directory relative to package root (fdm-docs)
-                sidebar: {
-                    categoryLabel: "Reference",
-                    position: 0,
-                    fullNames: true, // Use full names for classes/interfaces
-                },
                 // Markdown Plugin options
                 plugin: ["typedoc-plugin-markdown"],
                 readme: "none", // Don't include root README

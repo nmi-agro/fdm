@@ -13,7 +13,8 @@
         "fdm-core/src/**/*",
         "fdm-data/src/**/*",
         "fdm-calculator/src/**/*",
-        "fdm-rvo/src/**/*"
+        "fdm-rvo/src/**/*",
+        "fdm-agents/src/**/*"
     ],
     "exclude": ["node_modules", "**/*.test.ts", "**/dist", "**/build"]
 }
