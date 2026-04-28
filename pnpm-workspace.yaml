@@ -23,7 +23,3 @@ catalog:
 
 blockExoticSubdeps: true
 strictDepBuilds: true
-trustPolicy: 'no-downgrade'
-minimumReleaseAge: 1440
-minimumReleaseAgeExclude:
-- '@nmi-agro/rvo-connector'
