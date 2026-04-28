@@ -487,7 +487,12 @@ export function NitrogenBalanceChart(
                             radius={pickBarRadius(i, barItem)}
                             stackId={stackId}
                             fill={barStyle.color}
-                            onMouseOver={() => setBarOutlineFocus(dataKey)}
+                            onMouseEnter={() => setBarOutlineFocus(dataKey)}
+                            onMouseLeave={() => {
+                                if (dataKey === barOutlineFocus) {
+                                    setBarOutlineFocus(undefined)
+                                }
+                            }}
                         />
                     )
                 })
@@ -505,7 +510,12 @@ export function NitrogenBalanceChart(
                     radius={barRadius}
                     stackId={stackId}
                     fill={barStyle.color}
-                    onMouseOver={() => setBarOutlineFocus(dataKey)}
+                    onMouseEnter={() => setBarOutlineFocus(dataKey)}
+                    onMouseLeave={() => {
+                        if (dataKey === barOutlineFocus) {
+                            setBarOutlineFocus(undefined)
+                        }
+                    }}
                 />
             )
         })
@@ -515,7 +525,7 @@ export function NitrogenBalanceChart(
         <ChartContainer
             config={chartConfig}
             onMouseLeave={() => {
-                setBarOutlineFocus("")
+                setBarOutlineFocus(undefined)
             }}
         >
             <BarChart
