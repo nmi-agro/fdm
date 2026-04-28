@@ -16,7 +16,12 @@ const config: Config = {
     deploymentBranch: "gh-pages",
 
     onBrokenLinks: "throw",
-    onBrokenMarkdownLinks: "warn",
+    markdown: {
+        hooks: {
+            onBrokenMarkdownLinks: "warn",
+        },
+    },
+
     i18n: {
         defaultLocale: "en",
         locales: ["en"],
@@ -59,6 +64,8 @@ const config: Config = {
                     "../fdm-core/src/index.ts",
                     "../fdm-data/src/index.ts",
                     "../fdm-calculator/src/index.ts",
+                    "../fdm-rvo/src/index.ts",
+                    "../fdm-agents/src/index.ts",
                 ],
                 tsconfig: "./tsconfig.json", // Use local tsconfig
                 out: "api-reference", // Output directory relative to package root (fdm-docs)
@@ -190,7 +197,7 @@ const config: Config = {
     } satisfies Preset.ThemeConfig,
     future: {
         v4: true,
-        experimental_faster: true,
+        faster: true,
     },
 }
 
