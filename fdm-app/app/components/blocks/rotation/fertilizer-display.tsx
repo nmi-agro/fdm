@@ -62,7 +62,9 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
         const fieldIds =
             row.original.type === "field"
                 ? [row.original.b_id]
-                : row.original.fields.map((field) => field.b_id)
+                : row.subRows.map(
+                      (fieldRow) => (fieldRow.original as FieldRow).b_id,
+                  )
         return (
             <div className="flex items-start flex-col space-y-2">
                 {uniqueFertilizers.map((fertilizer) => {

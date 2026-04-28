@@ -55,11 +55,14 @@ function TableVarietySelectorForm({
                                 if (formValues[name] !== value) {
                                     const fieldIds = (
                                         row.original.type === "crop"
-                                            ? row.original.fields
-                                            : [row.original]
+                                            ? (row.subRows ?? [])
+                                            : [row]
                                     )
-                                        .map((field) =>
-                                            encodeURIComponent(field.b_id),
+                                        .map((fieldRow) =>
+                                            encodeURIComponent(
+                                                (fieldRow.original as FieldRow)
+                                                    .b_id,
+                                            ),
                                         )
                                         .join(",")
                                     const cultivationIds = encodeURIComponent(

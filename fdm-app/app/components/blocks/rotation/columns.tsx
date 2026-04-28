@@ -207,10 +207,12 @@ export const columns: ColumnDef<RotationExtended>[] = [
                 cultivation.b_lu_harvestable === "multiple"
                     ? 0
                     : (row.original.type === "crop"
-                          ? row.original.fields
-                          : [row.original]
+                          ? (row.subRows ?? [])
+                          : [row]
                       ).reduce(
-                          (sum, fieldRow) => sum + fieldRow.harvests.length,
+                          (sum, fieldRow) =>
+                              sum +
+                              (fieldRow.original as FieldRow).harvests.length,
                           0,
                       )
             return cultivation.b_lu_harvestable !== "multiple" ? (
