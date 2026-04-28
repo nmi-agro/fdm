@@ -152,7 +152,6 @@ export function FarmMineralizationChart({
                         x={currentDoy}
                         stroke="hsl(0, 72%, 51%)"
                         strokeWidth={2}
-                        isFront
                         label={{
                             value: "Vandaag",
                             position: "insideTopRight",
@@ -322,7 +321,6 @@ export function FieldMineralizationChart({
                         x={currentDoy}
                         stroke="hsl(0, 72%, 51%)"
                         strokeWidth={2}
-                        isFront
                         label={{
                             value: "Vandaag",
                             position: "insideTopRight",
