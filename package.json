@@ -65,7 +65,8 @@
             "core-js-pure",
             "esbuild",
             "prisma",
-            "protobufjs"
+            "protobufjs",
+            "sharp"
         ],
         "ignoredBuiltDependencies": [
             "sqlite3"

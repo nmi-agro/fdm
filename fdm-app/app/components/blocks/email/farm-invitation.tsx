@@ -1,4 +1,4 @@
-import { Button, Heading, Link, Section, Text } from "@react-email/components"
+import { Button, Heading, Link, Section, Text } from "react-email"
 import BaseEmailLayout from "./layout"
 
 interface FarmInvitationEmailProps {
