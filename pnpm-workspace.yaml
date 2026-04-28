@@ -20,3 +20,10 @@ catalog:
   typescript: ^6.0.3
   vite-tsconfig-paths: ^5.1.4
   vitest: ^4.1.5
+
+blockExoticSubdeps: true
+strictDepBuilds: true
+trustPolicy: 'no-downgrade'
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+- '@nmi-agro/rvo-connector'
