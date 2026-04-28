@@ -27,11 +27,11 @@ export function OrganicMatterBalanceChart({
     const chartConfig = {
         supply: {
             label: "Aanvoer",
-            color: "hsl(var(--chart-1))",
+            color: "var(--color-chart-1)",
         },
         degradation: {
             label: "Afbraak",
-            color: "hsl(var(--chart-2))",
+            color: "var(--color-chart-2)",
         },
     } satisfies ChartConfig
 
