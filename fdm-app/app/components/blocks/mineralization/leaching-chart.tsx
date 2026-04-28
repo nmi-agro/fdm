@@ -1,0 +1,182 @@
+"use client"
+
+import {
+    Area,
+    CartesianGrid,
+    ComposedChart,
+    ReferenceLine,
+    XAxis,
+    YAxis,
+} from "recharts"
+import {
+    type ChartConfig,
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+} from "~/components/ui/chart"
+import type { DynaDailyPoint } from "~/integrations/mineralization.server"
+import {
+    type DynaChartEvent,
+    EVENT_COLORS,
+    EventDot,
+    groupEventsByDate,
+} from "./dyna-chart"
+
+const MONTH_LABELS_NL = [
+    "Jan",
+    "Feb",
+    "Mrt",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Dec",
+]
+
+function parseLocalDate(dateStr: string): Date {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [year, month, day] = dateStr.split("-").map(Number)
+        return new Date(year, month - 1, day)
+    }
+    return new Date(dateStr)
+}
+
+function formatDateTick(dateStr: string): string {
+    const d = parseLocalDate(dateStr)
+    if (Number.isNaN(d.getTime())) return dateStr
+    return MONTH_LABELS_NL[d.getMonth()] ?? dateStr
+}
+
+function formatDateLabel(dateStr: string): string {
+    const d = parseLocalDate(dateStr)
+    if (Number.isNaN(d.getTime())) return dateStr
+    return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long" })
+}
+
+function getMonthTicks(data: DynaDailyPoint[]): string[] {
+    const seen = new Set<string>()
+    return data
+        .filter((d) => {
+            const month = d.b_date_calculation.slice(0, 7)
+            if (seen.has(month)) return false
+            seen.add(month)
+            return true
+        })
+        .map((d) => d.b_date_calculation)
+}
+
+const leachingChartConfig = {
+    b_no3_leach: {
+        label: "N-NO₃ uitspoeling",
+        color: "hsl(0, 72%, 51%)",
+    },
+} satisfies ChartConfig
+
+interface LeachingChartProps {
+    data: DynaDailyPoint[]
+    events?: DynaChartEvent[]
+}
+
+export function LeachingChart({ data, events = [] }: LeachingChartProps) {
+    const monthTicks = getMonthTicks(data)
+
+    // Group events by date and only include dates present in the data
+    const eventsByDate = groupEventsByDate(events)
+    const chartDates = new Set(data.map((d) => d.b_date_calculation))
+    const uniqueEventDates = Array.from(eventsByDate.entries()).filter(
+        ([date]) => chartDates.has(date),
+    )
+
+    const chartData = data.map((d) => ({
+        date: d.b_date_calculation,
+        b_no3_leach: d.b_no3_leach,
+    }))
+
+    return (
+        <ChartContainer
+            config={leachingChartConfig}
+            className="h-[220px] w-full"
+        >
+            <ComposedChart
+                data={chartData}
+                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            >
+                <defs>
+                    <linearGradient
+                        id="leachGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                    >
+                        <stop
+                            offset="5%"
+                            stopColor="var(--color-b_no3_leach)"
+                            stopOpacity={0.4}
+                        />
+                        <stop
+                            offset="95%"
+                            stopColor="var(--color-b_no3_leach)"
+                            stopOpacity={0.05}
+                        />
+                    </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                    dataKey="date"
+                    ticks={monthTicks}
+                    tickFormatter={formatDateTick}
+                    tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                    tick={{ fontSize: 12 }}
+                    label={{
+                        value: "kg N-NO₃/ha",
+                        angle: -90,
+                        position: "insideLeft",
+                        offset: 10,
+                        style: { fontSize: 11 },
+                    }}
+                />
+                <ChartTooltip
+                    content={
+                        <ChartTooltipContent
+                            labelFormatter={(label, payload) => {
+                                const raw = payload?.[0]?.payload?.date ?? label
+                                return formatDateLabel(raw)
+                            }}
+                            formatter={(value) => [
+                                `${Math.round(Number(value))} kg N-NO₃/ha`,
+                                "Uitspoeling",
+                            ]}
+                        />
+                    }
+                />
+                <Area
+                    dataKey="b_no3_leach"
+                    stroke="var(--color-b_no3_leach)"
+                    strokeWidth={2}
+                    fill="url(#leachGradient)"
+                    isAnimationActive={false}
+                />
+
+                {/* Field events */}
+                {uniqueEventDates.map(([date, evs]) => (
+                    <ReferenceLine
+                        key={date}
+                        x={date}
+                        stroke={EVENT_COLORS[evs[0].type]}
+                        strokeDasharray="4 3"
+                        label={(props) => (
+                            <EventDot viewBox={props.viewBox} events={evs} />
+                        )}
+                    />
+                ))}
+            </ComposedChart>
+        </ChartContainer>
+    )
+}

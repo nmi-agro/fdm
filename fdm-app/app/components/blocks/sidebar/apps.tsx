@@ -102,6 +102,7 @@ export function SidebarApps() {
     } else {
         omBalanceLink = undefined
     }
+
     return (
         <TooltipProvider>
             <SidebarGroup>
