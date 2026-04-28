@@ -176,6 +176,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
                     name="b_lu_start"
                     row={row}
                     cellId={cell.id}
+                    required={true}
                 />
             )
         },
@@ -231,7 +232,12 @@ export const columns: ColumnDef<RotationExtended>[] = [
                     </Tooltip>
                 </span>
             ) : (
-                <TableDateSelector name="b_lu_end" row={row} cellId={cell.id} />
+                <TableDateSelector
+                    name="b_lu_end"
+                    row={row}
+                    cellId={cell.id}
+                    required={false}
+                />
             )
         },
     },

@@ -20,12 +20,14 @@ function TableDateSelectorForm({
     name,
     value,
     row,
+    required,
     onHide,
 }: {
     fetcher: ReturnType<typeof useFetcher>
     name: keyof AllowedFormSchemaType
     value: Date[]
     row: Row<RotationExtended>
+    required?: boolean
     onHide?: () => unknown
 }) {
     const form = useForm({
@@ -42,11 +44,15 @@ function TableDateSelectorForm({
                     render={({ field, fieldState }) => (
                         <DatePicker
                             label={undefined}
+                            required={required}
                             field={{
                                 ...field,
                                 onChange: (value) => {
                                     const formValues = form.getValues()
-                                    if (formValues[name as string] !== value) {
+                                    const shouldSubmit =
+                                        row.original.type === "crop" ||
+                                        formValues[name] !== value
+                                    if (shouldSubmit) {
                                         const fieldIds = encodeURIComponent(
                                             row.original.type === "field"
                                                 ? row.original.b_id
@@ -99,10 +105,12 @@ export function TableDateSelector({
     name,
     row,
     cellId,
+    required,
 }: {
     name: keyof AllowedFormSchemaType
     row: Row<RotationExtended>
     cellId: string
+    required: boolean
 }) {
     const fetcher = useFetcher()
     const activeTableFormStore = useActiveTableFormStore()
@@ -135,6 +143,7 @@ export function TableDateSelector({
                     name={name}
                     value={value}
                     row={row}
+                    required={required}
                     onHide={() => {
                         const currentState = useActiveTableFormStore.getState()
                         if (currentState.activeForm === cellId)
