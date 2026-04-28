@@ -7,7 +7,7 @@ import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { DatePicker } from "../../custom/date-picker-v2"
-import type { CropRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, RotationExtended } from "./columns"
 import { DateRangeDisplay } from "./date-range-display"
 import type { RotationTableFormSchemaType } from "./schema"
 
@@ -18,15 +18,16 @@ type AllowedFormSchemaType = Pick<
 function TableDateSelectorForm({
     fetcher,
     name,
+    value,
     row,
     onHide,
 }: {
     fetcher: ReturnType<typeof useFetcher>
     name: keyof AllowedFormSchemaType
+    value: Date[]
     row: Row<RotationExtended>
     onHide?: () => unknown
 }) {
-    const value = row.original[name]
     const form = useForm({
         defaultValues: {
             [name]: value?.length ? value[0].toISOString() : undefined,
@@ -46,15 +47,18 @@ function TableDateSelectorForm({
                                 onChange: (value) => {
                                     const formValues = form.getValues()
                                     if (formValues[name as string] !== value) {
-                                        const fieldIds = (
-                                            row.original.type === "crop"
-                                                ? row.original.fields
-                                                : [row.original]
+                                        const fieldIds = encodeURIComponent(
+                                            row.original.type === "field"
+                                                ? row.original.b_id
+                                                : (row.subRows ?? [])
+                                                      .map(
+                                                          (fieldRow) =>
+                                                              (
+                                                                  fieldRow.original as FieldRow
+                                                              ).b_id,
+                                                      )
+                                                      .join(","),
                                         )
-                                            .map((field) =>
-                                                encodeURIComponent(field.b_id),
-                                            )
-                                            .join(",")
                                         const cultivationIds =
                                             encodeURIComponent(
                                                 (
@@ -102,7 +106,12 @@ export function TableDateSelector({
 }) {
     const fetcher = useFetcher()
     const activeTableFormStore = useActiveTableFormStore()
-    const value = row.original[name]
+    const value =
+        row.original.type === "field"
+            ? row.original[name]
+            : (row.subRows ?? [])
+                  .flatMap((fieldRow) => (fieldRow.original as FieldRow)[name])
+                  .sort((d1, d2) => d1.getTime() - d2.getTime())
 
     const showForm =
         fetcher.state !== "idle" || activeTableFormStore.activeForm === cellId
@@ -124,6 +133,7 @@ export function TableDateSelector({
                 <TableDateSelectorForm
                     fetcher={fetcher}
                     name={name}
+                    value={value}
                     row={row}
                     onHide={() => {
                         const currentState = useActiveTableFormStore.getState()

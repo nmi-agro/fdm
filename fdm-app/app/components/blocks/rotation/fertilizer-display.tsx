@@ -1,3 +1,4 @@
+import type { Row } from "@tanstack/react-table"
 import { Circle, Diamond, Square, Triangle } from "lucide-react"
 import React from "react"
 import { NavLink } from "react-router"
@@ -10,7 +11,7 @@ import {
 import type { FieldRow, RotationExtended } from "./columns"
 
 type FertilizerDisplayProps = {
-    cultivation: RotationExtended
+    row: Row<RotationExtended>
 }
 
 const fertilizerIconClassMap = {
@@ -45,31 +46,30 @@ const fertilizerIconClassMap = {
 } as const
 
 export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
-    cultivation,
+    row,
 }) => {
-    const resolvedFertilizers =
-        cultivation.type === "field" ? cultivation.fertilizers : null
-    const uniqueFertilizers = React.useMemo(() => {
-        const fields = cultivation.fields
-        const fertilizers =
-            resolvedFertilizers ??
-            (fields as FieldRow[]).flatMap((field) => field.fertilizers)
-        return Array.from(new Map(fertilizers.map((f) => [f.p_id, f])).values())
-    }, [resolvedFertilizers, cultivation.fields])
-
     const fertilizerDisplay = React.useMemo(() => {
-        const fields = cultivation.fields
+        const fields =
+            row.original.type === "field"
+                ? [row.original]
+                : (row.subRows ?? []).map(
+                      (fieldRow) => fieldRow.original as FieldRow,
+                  )
+        const fertilizers = fields.flatMap((field) => field.fertilizers)
+        const uniqueFertilizers = Array.from(
+            new Map(fertilizers.map((f) => [f.p_id, f])).values(),
+        )
         const fieldIds =
-            cultivation.type === "field"
-                ? [cultivation.b_id]
-                : cultivation.fields.map((field) => field.b_id)
+            row.original.type === "field"
+                ? [row.original.b_id]
+                : row.original.fields.map((field) => field.b_id)
         return (
             <div className="flex items-start flex-col space-y-2">
                 {uniqueFertilizers.map((fertilizer) => {
                     const isFertilizerUsedOnAllFieldsForThisCultivation =
-                        cultivation.type === "field" ||
-                        (fields as FieldRow[]).every((field) =>
-                            field.fertilizers.some(
+                        row.original.type === "field" ||
+                        (row.subRows as Row<FieldRow>[]).every((fieldRow) =>
+                            fieldRow.original.fertilizers.some(
                                 (f) => f.p_id === fertilizer.p_id,
                             ),
                         )
@@ -111,7 +111,7 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
                         </NavLink>
                     )
 
-                    return cultivation.type === "field" ? (
+                    return row.original.type === "field" ? (
                         component
                     ) : (
                         <Tooltip key={fertilizer.p_id}>
@@ -126,12 +126,7 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({
                 })}
             </div>
         )
-    }, [
-        uniqueFertilizers,
-        (cultivation as FieldRow).b_id,
-        cultivation.type,
-        cultivation.fields,
-    ])
+    }, [row.original, row.subRows])
 
     return fertilizerDisplay
 }

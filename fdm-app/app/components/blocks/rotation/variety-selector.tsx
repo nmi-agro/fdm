@@ -13,32 +13,28 @@ import {
     SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
-import type { CropRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, RotationExtended } from "./columns"
 import type { RotationTableFormSchemaType } from "./schema"
 
 type AllowedFormSchemaType = Pick<RotationTableFormSchemaType, "b_lu_variety">
 function TableVarietySelectorForm({
     name,
+    value,
     row,
     b_lu_variety_options,
     onHide,
     fetcher,
 }: {
     name: keyof AllowedFormSchemaType
+    value: string[]
     row: Row<RotationExtended>
     b_lu_variety_options: { label: string; value: string }[]
     onHide?: () => unknown
     fetcher: ReturnType<typeof useFetcher>
 }) {
-    const currentSortedValues = (
-        Object.entries(row.original[name]) as [string, number][]
-    )
-        .sort((a, b) => b[1] - a[1])
-        .map(([key]) => key)
-    const value = currentSortedValues?.length ? currentSortedValues[0] : null
     const form = useForm({
         defaultValues: {
-            [name]: value,
+            [name]: value[0],
         },
     })
 
@@ -133,7 +129,26 @@ export function TableVarietySelector({
 }) {
     const activeTableFormStore = useActiveTableFormStore()
     const fetcher = useFetcher()
-    const value = row.original[name] ? Object.keys(row.original[name]) : null
+    const varietyCounts =
+        row.original.type === "field"
+            ? // Return the variety counts directly
+              row.original[name]
+            : // Merge variety counts from each displayed field
+              Object.entries(
+                  (row.subRows ?? []).reduce(
+                      (acc, fieldRow) => {
+                          ;(fieldRow.original as FieldRow).b_lu_variety.forEach(
+                              ([variety, count]) => {
+                                  acc[variety] = (acc[variety] ?? 0) + count
+                              },
+                          )
+                          return acc
+                      },
+                      {} as Record<string, number>,
+                  ),
+              ).sort((a, b) => b[1] - a[1])
+    const value = varietyCounts.map((v) => v[0])
+
     const b_lu_variety_options = (
         (row.getParentRow() ?? row).original as CropRow
     ).b_lu_variety_options
@@ -178,6 +193,7 @@ export function TableVarietySelector({
             {showForm && (
                 <TableVarietySelectorForm
                     name={name}
+                    value={value}
                     row={row}
                     b_lu_variety_options={b_lu_variety_options}
                     onHide={() => {
