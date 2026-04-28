@@ -65,19 +65,19 @@ function getMonthTicks(data: DynaDailyPoint[]): string[] {
 const dynaChartConfig = {
     band: {
         label: "Bandbreedte",
-        color: "hsl(var(--chart-2))",
+        color: "var(--chart-2)",
     },
     b_nw: {
         label: "N aanbod",
-        color: "hsl(var(--chart-2))",
+        color: "var(--chart-2)",
     },
     b_n_uptake: {
         label: "N opname",
-        color: "hsl(var(--chart-1))",
+        color: "var(--chart-1)",
     },
     b_nw_difference: {
         label: "N beschikbaar",
-        color: "hsl(var(--chart-2))",
+        color: "var(--chart-2)",
     },
 } satisfies ChartConfig
 
