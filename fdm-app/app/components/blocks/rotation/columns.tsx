@@ -299,9 +299,10 @@ export const columns: ColumnDef<RotationExtended>[] = [
             const cultivation = row.original
 
             const fieldsDisplay = React.useMemo(() => {
-                const fieldsSorted = [...(cultivation.fields ?? [])].sort(
-                    (a, b) => a.b_name.localeCompare(b.b_name),
-                )
+                if (row.original.type === "field") return null
+                const fieldsSorted = (row.subRows ?? [])
+                    .map((row) => row.original as FieldRow)
+                    .sort((a, b) => a.b_name.localeCompare(b.b_name))
                 return (
                     cultivation.type === "crop" && (
                         <DropdownMenu>
@@ -339,7 +340,12 @@ export const columns: ColumnDef<RotationExtended>[] = [
                         </DropdownMenu>
                     )
                 )
-            }, [cultivation.type, cultivation.calendar, cultivation.fields])
+            }, [
+                cultivation.type,
+                cultivation.calendar,
+                row.original.type,
+                row.subRows,
+            ])
 
             return fieldsDisplay
         },
