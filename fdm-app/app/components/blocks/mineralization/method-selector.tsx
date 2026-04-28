@@ -4,7 +4,6 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
 } from "~/components/ui/select"
 import type { NSupplyMethod } from "~/integrations/mineralization.server"
 
@@ -52,7 +51,7 @@ export function MethodSelector({ value }: MethodSelectorProps) {
     return (
         <Select value={currentMethod} onValueChange={handleChange}>
             <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Kies methode" />
+                {METHOD_OPTIONS.find(opt => opt.value === currentMethod)?.label ?? currentMethod}
             </SelectTrigger>
             <SelectContent>
                 {METHOD_OPTIONS.map((opt) => (
