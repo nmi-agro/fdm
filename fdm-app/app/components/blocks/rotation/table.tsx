@@ -374,6 +374,23 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 searchParams.set("create", "")
         })
     }
+
+    function isFirstFieldRowForACrop(
+        flatRows: Row<MemoizedTData>[],
+        i: number,
+    ) {
+        if (flatRows[i].original.type !== "field") return false
+        return i === 0 || flatRows[i - 1].original.type === "crop"
+    }
+
+    function isLastFieldRowForACrop(flatRows: Row<MemoizedTData>[], i: number) {
+        if (flatRows[i].original.type !== "field") return false
+        return (
+            i + 1 === flatRows.length ||
+            flatRows[i + 1].original.type === "crop"
+        )
+    }
+
     return (
         <div className="w-full flex flex-col h-full min-w-0">
             <div className="sticky top-0 z-5 bg-background py-4 flex flex-col sm:flex-row gap-2 items-center">
@@ -541,7 +558,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
+                            table.getRowModel().rows.map((row, i, flatRows) => (
                                 <TableRow
                                     key={row.id}
                                     onClick={(event) =>
@@ -560,11 +577,15 @@ export function DataTable<TData extends RotationExtended, TValue>({
                                             (row.getParentRow()?.subRows
                                                 .length === 1
                                                 ? "shadow-[inset_0_1em_2em_-2em_#00000088,inset_0_-1em_2em_-2em_#00000088]"
-                                                : row.index === 0
+                                                : isFirstFieldRowForACrop(
+                                                        flatRows,
+                                                        i,
+                                                    )
                                                   ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
-                                                  : row.index + 1 ===
-                                                        row.getParentRow()
-                                                            ?.subRows.length &&
+                                                  : isLastFieldRowForACrop(
+                                                        flatRows,
+                                                        i,
+                                                    ) &&
                                                     "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
                                     )}
                                 >
