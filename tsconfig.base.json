@@ -1,10 +1,10 @@
 {
     "compilerOptions": {
         "target": "ES2022",
-        "module": "NodeNext",
+        "module": "ESNext",
         "lib": ["ES2022", "DOM", "DOM.Iterable"],
         "skipLibCheck": true,
-        "moduleResolution": "NodeNext",
+        "moduleResolution": "bundler",
         "isolatedModules": true,
         "moduleDetection": "force",
         "strict": true,
