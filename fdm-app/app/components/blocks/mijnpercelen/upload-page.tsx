@@ -244,6 +244,7 @@ export function UploadMijnPercelenPage({
                             <div className="w-full">
                                 <RvoImportReviewTable
                                     data={rvoImportReviewData}
+                                    calendar={calendar}
                                     userChoices={userChoices}
                                     flags={{
                                         b_bufferstrip_info_available: false,

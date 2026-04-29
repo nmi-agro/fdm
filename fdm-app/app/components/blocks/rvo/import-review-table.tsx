@@ -52,6 +52,7 @@ import { cn } from "~/lib/utils"
 
 declare module "@tanstack/react-table" {
     interface TableMeta<TData extends RowData> {
+        calendar: string
         userChoices: UserChoiceMap
         flags?: ImportReviewFlags
         /** Function to replace a review item. `getItemId(replacement)` will return the same value as the original. */
@@ -66,6 +67,7 @@ export interface ImportReviewFlags {
 
 interface RvoImportReviewTableProps {
     data: RvoImportReviewItem<any>[]
+    calendar: string
     userChoices: UserChoiceMap
     flags?: ImportReviewFlags
     /** Function to replace a review item. `getItemId(replacement)` will return the same value as the original. Replacements won't work if this is not provided. */
@@ -443,21 +445,38 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            const { userChoices } = table.options.meta!
+            const { calendar, userChoices } = table.options.meta!
             const action = userChoices[id] as ImportReviewAction
 
-            return (
+            const local = item.localField
+                ? item.localField.b_end
+                    ? formatDate(item.localField.b_end)
+                    : "-"
+                : undefined
+            const remote = item.rvoField
+                ? item.rvoField.properties.EndDate
+                    ? formatDate(item.rvoField.properties.EndDate)
+                    : "-"
+                : undefined
+
+            return item.status === "EXPIRED_LOCAL" ? (
                 <DiffCell
-                    local={
-                        item.localField?.b_end
-                            ? formatDate(item.localField.b_end)
-                            : undefined
+                    local={local}
+                    remote={formatDate(
+                        new Date(Number.parseInt(calendar, 10) - 1, 11, 31),
+                    )}
+                    status={"CONFLICT"}
+                    action={
+                        action === "CLOSE_LOCAL"
+                            ? "UPDATE_FROM_REMOTE"
+                            : "KEEP_LOCAL"
                     }
-                    remote={
-                        item.rvoField?.properties.EndDate
-                            ? formatDate(item.rvoField.properties.EndDate)
-                            : undefined
-                    }
+                    formatter={(val) => val || "-"}
+                />
+            ) : (
+                <DiffCell
+                    local={local}
+                    remote={remote}
                     status={item.status}
                     action={action}
                     formatter={(val) => val || "-"}
@@ -715,6 +734,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
 
 export function RvoImportReviewTable({
     data,
+    calendar,
     userChoices,
     flags,
     onItemChange,
@@ -753,6 +773,7 @@ export function RvoImportReviewTable({
         getCoreRowModel: getCoreRowModel(),
         meta: {
             userChoices,
+            calendar,
             flags,
             onItemChange,
             onChoiceChange,
