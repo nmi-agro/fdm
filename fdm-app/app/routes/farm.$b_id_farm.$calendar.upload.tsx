@@ -42,12 +42,14 @@ export default function UpdateWithMijnPercelenPage() {
     return (
         <SidebarInset>
             <Header action={undefined}>
-                <BreadcrumbItem>Bedrijf</BreadcrumbItem>
+                <BreadcrumbItem className="hidden xl:block">
+                    Bedrijf
+                </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden xl:block" />
                 <BreadcrumbItem>
                     {loaderData.b_name_farm ?? "Geen bedrijf geselecteerd"}
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden xl:block" />
+                <BreadcrumbSeparator />
                 <BreadcrumbLink>Shapefile uploaden</BreadcrumbLink>
             </Header>
             <UploadMijnPercelenPage
