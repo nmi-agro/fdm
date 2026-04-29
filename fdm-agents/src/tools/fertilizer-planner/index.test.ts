@@ -325,9 +325,9 @@ describe("fertilizer-planner tools", () => {
     })
 
     describe("createFertilizerPlannerTools", () => {
-        it("should return the correct set of 5 tools", () => {
+        it("should return the correct set of 6 tools", () => {
             const tools = createFertilizerPlannerTools(mockFdm)
-            expect(tools).toHaveLength(5)
+            expect(tools).toHaveLength(6)
 
             const names = tools.map((t) => t.name)
             expect(names).toContain("getFarmFields")
@@ -335,6 +335,7 @@ describe("fertilizer-planner tools", () => {
             expect(names).toContain("getFarmLegalNorms")
             expect(names).toContain("searchFertilizers")
             expect(names).toContain("simulateFarmPlan")
+            expect(names).toContain("getCropFertilizerGuide")
         })
     })
 })

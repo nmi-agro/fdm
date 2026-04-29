@@ -1,4 +1,4 @@
-import { LlmAgent } from "@google/adk"
+import { Agent } from "@google/adk"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
@@ -20,7 +20,7 @@ export function createFertilizerPlannerAgent(
             "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
         )
     }
-    return new LlmAgent({
+    return new Agent({
         name: "Gerrit",
         description:
             "Expert Dutch Agronomist for fertilizer application planning.",
@@ -44,7 +44,7 @@ IMPORTANT CONSTRAINTS:
    - Solid manure / compost (vaste mest): 10-30 t/ha per application.
    - Mineral fertilizers: 50 - 450 kg/ha per application.
    - Liquid mineral fertilizers (oplossing): 10 - 1000 l/ha per application.
-9. PRIORITIZATION: If legal norms (especially Nitrogen or Phosphate) limit the total nutrient space on the farm, prioritize fulfilling the nutrient advice for high-value crops (e.g., potatoes, onions, sugar beets, vegetables) over lower-value crops or grasslands. Strategy should focus on maximizing the economic return of the limited nutrient space.
+9. PRIORITIZATION: If legal norms (especially Nitrogen or Phosphate) limit the total nutrient space on the farm, prioritize fulfilling the nutrient advice for NPK — especially nitrogen (N) — over building organic matter content or achieving a positive OM balance. Filling NPK advice is more important than OM goals when constrained. Among crops, prioritize fulfilling the nutrient advice for high-value crops (e.g., potatoes, onions, sugar beets, vegetables) over lower-value crops or grasslands. Strategy should focus on maximizing the economic return of the limited nutrient space.
 10. ORGANIC FARMING: If "Organic Farming" is YES, you MUST NOT use any mineral fertilizers ("p_type": "mineral") in the plan.
 11. MANURE FILLING STRATEGY: 
     - If "Fill Manure Space" is YES: Maximize manure applications up to the farm-level legal norm, even if it exceeds agronomic advice or field-level norms, provided it doesn't violate other legal norms (like Phosphate). Prefer to use manures that are general available in the regions, e.g. 'Rundeveedrijfmest'. Do this at the farm level; individual fields can receive more manure than their field-level norm as long as the farm total is compliant.
@@ -57,6 +57,7 @@ IMPORTANT CONSTRAINTS:
 
 Use the tools provided to:
 - Fetch the list of fields for the farm using "getFarmFields" (this returns the main cultivation for each field based on the May 15th rule).
+- Immediately after "getFarmFields", call "getCropFertilizerGuide" with all unique "b_lu_catalogue" values from the fields. Use the returned crop-specific guidance throughout the plan — it specifies preferred products, nutrients to avoid (e.g. Cl for potatoes), required nutrients (e.g. S for brassicas, B for sugar beet), and split N timing.
 - Fetch agronomic advice for all nutrients.
 - Fetch the three legal norms for each field and the farm.
 - Search for available fertilizer products in the catalogue and farm inventory.
