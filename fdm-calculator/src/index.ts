@@ -92,6 +92,31 @@ export type {
     NutrientAdviceInputs,
     NutrientAdviceResponse,
 } from "./nutrient-advice/types"
+export {
+    NmiApiError,
+    assessDataCompleteness,
+    buildDynaRequest,
+    buildNSupplyRequest,
+    dynaResponseDataSchema,
+    getDyna,
+    getMainCultivation,
+    getNSupply,
+    methodRequirements,
+    requestDyna,
+    requestNSupply,
+} from "./mineralization"
+export type {
+    DataCompleteness,
+    DynaComputeInput,
+    DynaDailyPoint,
+    DynaFertilizerAdvice,
+    DynaNitrogenBalance,
+    DynaResult,
+    NSupplyComputeInput,
+    NSupplyDataPoint,
+    NSupplyMethod,
+    NSupplyResult,
+} from "./mineralization"
 export type { NlvSupplyBySomParams } from "./other/nlv-supply-by-som"
 export { calculateNlvSupplyBySom } from "./other/nlv-supply-by-som"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"

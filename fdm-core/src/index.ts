@@ -2,7 +2,7 @@
  * A library to interact with the Farm Data Model using PostgreSQL as backend
  *
  * @remarks
- * The `fdm` defines the {@link fdmLocal} and {@link fdmServer} class to store, retrieve and update the Farm Data Model
+ * The `fdm` defines the {@link createFdmServer} and {@link FdmServerType} to store, retrieve and update the Farm Data Model
  *
  * Created by Nutriënten Management Instituut (www.nmi-agro.nl)
  * Source code available at https://github.com/nmi-agro/fdm
@@ -12,7 +12,7 @@
  * @packageDocumentation
  */
 
-/** {@inheritDoc fdmServer} */
+/** {@inheritDoc createFdmServer} */
 import * as fdmSchema from "./db/schema"
 
 export type { FdmAuth } from "./authentication"

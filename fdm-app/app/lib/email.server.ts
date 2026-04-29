@@ -1,5 +1,5 @@
 import { TZDate } from "@date-fns/tz"
-import { render } from "@react-email/components"
+import { render } from "react-email"
 import type { User } from "better-auth"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"

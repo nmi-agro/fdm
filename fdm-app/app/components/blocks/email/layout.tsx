@@ -8,9 +8,9 @@ import {
     Link,
     Preview,
     Section,
+    Tailwind,
     Text,
-} from "@react-email/components"
-import { Tailwind } from "@react-email/tailwind"
+} from "react-email"
 import type * as React from "react"
 
 interface BaseEmailLayoutProps {
@@ -50,7 +50,7 @@ export const BaseEmailLayout = ({
     appName,
     appBaseUrl = "",
     senderName,
-    logoFileName = "/fdm-high-resolution-logo-transparent.png",
+    logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
     preview,
     children,
     showLogo = true,
