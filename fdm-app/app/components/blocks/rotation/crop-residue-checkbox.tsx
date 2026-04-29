@@ -2,7 +2,7 @@ import type { CellContext } from "@tanstack/react-table"
 import { useFetcher } from "react-router"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Spinner } from "~/components/ui/spinner"
-import type { CropRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, RotationExtended } from "./columns"
 
 export function CropResidueCheckbox({
     cell,
@@ -10,10 +10,15 @@ export function CropResidueCheckbox({
 }: CellContext<RotationExtended, unknown>) {
     const fetcher = useFetcher()
 
+    const fields =
+        row.original.type === "crop"
+            ? (row.subRows ?? []).map(
+                  (fieldRow) => fieldRow.original as FieldRow,
+              )
+            : [row.original]
+
     const submit = (value: boolean) => {
-        const fieldIds = (
-            row.original.type === "crop" ? row.original.fields : [row.original]
-        )
+        const fieldIds = fields
             .map((field) => encodeURIComponent(field.b_id))
             .join(",")
         const cultivationIds = encodeURIComponent(
@@ -33,13 +38,19 @@ export function CropResidueCheckbox({
 
     const inputId = `${cell.id}_checkbox`
 
+    const m_cropresidue = fields.every((field) => field.m_cropresidue === "all")
+        ? "all"
+        : fields.every((field) => field.m_cropresidue === "none")
+          ? "none"
+          : "some"
+
     const checkedState = (
         {
             all: true,
             some: "indeterminate",
             none: false,
         } as const
-    )[row.original.m_cropresidue]
+    )[m_cropresidue]
 
     return fetcher.state !== "idle" ? (
         <Spinner />
@@ -63,7 +74,7 @@ export function CropResidueCheckbox({
                             some: "Gedeeltelijk",
                             none: "Nee",
                         } as const
-                    )[row.original.m_cropresidue]
+                    )[m_cropresidue]
                 }
             </label>
         </div>
