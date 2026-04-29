@@ -65,7 +65,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         parameters: z.object({
             b_id_farm: z.string().describe("The ID of the farm"),
             calendar: z.string().describe('The calendar year (e.g. "2025")'),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const principalId = context.state.get("principalId") as PrincipalId
@@ -140,7 +140,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             b_ids: z
                 .array(z.string())
                 .describe("List of field IDs (b_id) to fetch advice for"),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const principalId = context.state.get("principalId") as PrincipalId
@@ -205,7 +205,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             b_ids: z
                 .array(z.string())
                 .describe("List of field IDs (b_id) to check"),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const principalId = context.state.get("principalId") as PrincipalId
@@ -269,7 +269,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 .enum(["manure", "mineral", "compost"])
                 .optional()
                 .describe("Filter by fertilizer type"),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const args = input as SearchArgs
@@ -396,7 +396,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     }),
                 )
                 .describe("Proposed applications per field"),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const args = input as SimulationArgs
