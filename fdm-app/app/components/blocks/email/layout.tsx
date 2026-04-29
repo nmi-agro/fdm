@@ -50,7 +50,7 @@ export const BaseEmailLayout = ({
     appName,
     appBaseUrl = "",
     senderName,
-    logoFileName = "/fdm-high-resolution-logo-transparent.png",
+    logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
     preview,
     children,
     showLogo = true,

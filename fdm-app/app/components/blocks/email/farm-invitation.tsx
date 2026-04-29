@@ -28,7 +28,7 @@ export const FarmInvitationEmail = ({
     appName,
     appBaseUrl,
     senderName,
-    logoFileName = "/fdm-high-resolution-logo-transparent.png",
+    logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
     isUnregistered = false,
 }: FarmInvitationEmailProps) => {
     const roleLabel = roleLabels[role] ?? role

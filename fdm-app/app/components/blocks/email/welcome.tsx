@@ -16,7 +16,7 @@ export function WelcomeEmail({
     appName,
     appBaseUrl = "",
     senderName,
-    logoFileName = "/fdm-high-resolution-logo-transparent.png",
+    logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
 }: WelcomeEmailProps) {
     const previewText = "Ga aan de slag en krijg beter agronomisch inzicht."
     const absoluteUrl = url.startsWith("http") ? url : `https://${url}`
