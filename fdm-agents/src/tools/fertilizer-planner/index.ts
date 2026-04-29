@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
+import { join, dirname } from "node:path"
 import { type Context, FunctionTool } from "@google/adk"
 import {
     aggregateNormFillingsToFarmLevel,
@@ -941,12 +944,80 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         },
     })
 
+    /**
+     * Tool for loading crop-specific fertilizer preferences from the skill reference files.
+     * Returns guidance for the crops present on the farm, loaded from individual per-crop
+     * markdown files so only relevant content is returned.
+     */
+    const getCropFertilizerGuideTool = new FunctionTool({
+        name: "getCropFertilizerGuide",
+        description:
+            "Load crop-specific fertilizer preferences and restrictions for the crops on this farm. Call this once after getFarmFields, passing all unique b_lu_catalogue values found on the farm. Returns agronomic rules (preferred products, split timings, nutrients to avoid) per crop group.",
+        parameters: z.object({
+            b_lu_catalogues: z
+                .array(z.string())
+                .describe(
+                    "List of unique crop catalogue codes present on the farm (e.g. ['nl_2014', 'nl_259', 'nl_265'])",
+                ),
+        }),
+        execute: async (input: { b_lu_catalogues: string[] }) => {
+            const currentDir = dirname(fileURLToPath(import.meta.url))
+            // Resolve the skills base path — works for both bundled dist and source/test.
+            const distPath = join(
+                currentDir,
+                "skills",
+                "crop-specific-fertilizer-preferences",
+            )
+            const srcPath = join(
+                currentDir,
+                "..",
+                "..",
+                "skills",
+                "crop-specific-fertilizer-preferences",
+            )
+            const skillBase = existsSync(distPath) ? distPath : srcPath
+
+            const indexPath = join(skillBase, "assets", "crop-index.json")
+            const cropIndex: Record<string, string> = JSON.parse(
+                readFileSync(indexPath, "utf-8"),
+            )
+
+            // Deduplicate filenames so each guide file is loaded at most once.
+            const filesToLoad = new Set<string>()
+            for (const code of input.b_lu_catalogues) {
+                const file = cropIndex[code]
+                if (file) filesToLoad.add(file)
+            }
+
+            if (filesToLoad.size === 0) {
+                return {
+                    guide: "No crop-specific fertilizer guidance found for the provided crop codes.",
+                    matchedCrops: [],
+                }
+            }
+
+            const sections: string[] = []
+            for (const file of filesToLoad) {
+                const filePath = join(skillBase, "references", file)
+                if (existsSync(filePath)) {
+                    sections.push(readFileSync(filePath, "utf-8"))
+                }
+            }
+
+            return {
+                guide: sections.join("\n\n---\n\n"),
+                matchedCrops: [...filesToLoad],
+            }
+        },
+    })
+
     return [
         getFarmFieldsTool,
         getFarmNutrientAdviceTool,
         getFarmLegalNormsTool,
         searchFertilizersTool,
         simulateFarmPlanTool,
+        getCropFertilizerGuideTool,
     ]
 }
 

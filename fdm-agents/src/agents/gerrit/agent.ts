@@ -57,6 +57,7 @@ IMPORTANT CONSTRAINTS:
 
 Use the tools provided to:
 - Fetch the list of fields for the farm using "getFarmFields" (this returns the main cultivation for each field based on the May 15th rule).
+- Immediately after "getFarmFields", call "getCropFertilizerGuide" with all unique "b_lu_catalogue" values from the fields. Use the returned crop-specific guidance throughout the plan — it specifies preferred products, nutrients to avoid (e.g. Cl for potatoes), required nutrients (e.g. S for brassicas, B for sugar beet), and split N timing.
 - Fetch agronomic advice for all nutrients.
 - Fetch the three legal norms for each field and the farm.
 - Search for available fertilizer products in the catalogue and farm inventory.
