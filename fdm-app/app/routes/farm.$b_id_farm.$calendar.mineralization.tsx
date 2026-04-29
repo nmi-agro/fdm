@@ -1,0 +1,210 @@
+import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import { Bubbles } from "lucide-react"
+import { useFeatureFlagEnabled } from "posthog-js/react"
+import {
+    data,
+    type LoaderFunctionArgs,
+    type MetaFunction,
+    Outlet,
+    useLoaderData,
+    useLocation,
+    useParams,
+} from "react-router"
+import { Header } from "~/components/blocks/header/base"
+import { HeaderFarm } from "~/components/blocks/header/farm"
+import { HeaderMineralization } from "~/components/blocks/header/mineralization"
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "~/components/ui/empty"
+import { SidebarInset } from "~/components/ui/sidebar"
+import { getSession } from "~/lib/auth.server"
+import { getTimeframe } from "~/lib/calendar"
+import { clientConfig } from "~/lib/config"
+import { handleLoaderError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
+import PostHogClient from "~/posthog.server"
+
+export const meta: MetaFunction = () => {
+    return [
+        { title: `Mineralisatie | ${clientConfig.name}` },
+        {
+            name: "description",
+            content:
+                "Bekijk de stikstofmineralisatie voor je percelen en bedrijf.",
+        },
+    ]
+}
+
+export async function loader({ request, params }: LoaderFunctionArgs) {
+    try {
+        const b_id_farm = params.b_id_farm
+        if (!b_id_farm) {
+            throw data("invalid: b_id_farm", {
+                status: 400,
+                statusText: "invalid: b_id_farm",
+            })
+        }
+
+        const session = await getSession(request)
+        const posthog = PostHogClient()
+
+        // Check if Mineralization is enabled for this user
+        const isMineralizationEnabled =
+            (await posthog?.isFeatureEnabled(
+                "mineralization",
+                session.principal_id,
+            )) ?? true
+
+        const timeframe = getTimeframe(params)
+
+        const farm = await getFarm(fdm, session.principal_id, b_id_farm)
+        if (!farm) {
+            throw data("not found: b_id_farm", {
+                status: 404,
+                statusText: "not found: b_id_farm",
+            })
+        }
+
+        const farms = await getFarms(fdm, session.principal_id)
+        if (!farms || farms.length === 0) {
+            throw data("not found: farms", {
+                status: 404,
+                statusText: "not found: farms",
+            })
+        }
+
+        const farmOptions = farms.map((f) => ({
+            b_id_farm: f.b_id_farm,
+            b_name_farm: f.b_name_farm,
+        }))
+
+        const fields = await getFields(
+            fdm,
+            session.principal_id,
+            b_id_farm,
+            timeframe,
+        )
+        const fieldOptions = fields
+            .filter((field) => !field.b_bufferstrip)
+            .map((field) => {
+                if (!field?.b_id) throw new Error("Invalid field data")
+                return {
+                    b_id: field.b_id,
+                    b_name: field.b_name,
+                    b_area:
+                        field.b_area != null
+                            ? Math.round(field.b_area * 10) / 10
+                            : 0,
+                }
+            })
+
+        return {
+            farm,
+            b_id_farm,
+            farmOptions,
+            fieldOptions,
+            isMineralizationEnabled,
+        }
+    } catch (error) {
+        const normalized = handleLoaderError(error)
+        throw normalized ?? error
+    }
+}
+
+export default function MineralizationLayout() {
+    const loaderData = useLoaderData<typeof loader>()
+    const location = useLocation()
+    const { b_id } = useParams() // Get the field ID from child routes
+
+    // Prefer the server-evaluated flag (avoids flicker on initial render and
+    // eliminates a redundant PostHog call). Fall back to the client hook only
+    // when the server value is absent (e.g. PostHog unavailable server-side).
+    const clientFlagEnabled = useFeatureFlagEnabled("mineralization")
+    const isMineralizationEnabled =
+        loaderData.isMineralizationEnabled ?? clientFlagEnabled ?? true
+
+    const isField = !!b_id
+    const isDyna = location.pathname.endsWith("/dyna")
+
+    const title = isField
+        ? isDyna
+            ? "DYNA"
+            : "Bodem N-levering"
+        : "Mineralisatie"
+
+    const description = isField
+        ? isDyna
+            ? "Gedetailleerde N-beschikbaarheid op basis van bodem, gewas en bemesting."
+            : "Schatting van N-levering uit bodemorganische stof."
+        : "Stikstofmineralisatie per perceel en bedrijf."
+
+    if (isMineralizationEnabled === false) {
+        return (
+            <SidebarInset>
+                <Header action={undefined}>
+                    <HeaderFarm
+                        b_id_farm={loaderData.b_id_farm}
+                        farmOptions={loaderData.farmOptions}
+                    />
+                </Header>
+                <main className="flex flex-1 flex-col items-center justify-center p-6">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Bubbles className="h-10 w-10 text-muted-foreground" />
+                            </EmptyMedia>
+                            <EmptyTitle>
+                                Mineralisatie is nog niet beschikbaar voor je.
+                            </EmptyTitle>
+                            <EmptyDescription>
+                                Mineralisatie is momenteel in ontwikkeling en is
+                                nog niet voor iedereen geactiveerd. Als je meer
+                                wilt weten, neem dan contact op met
+                                Ondersteuning.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                </main>
+            </SidebarInset>
+        )
+    }
+
+    return (
+        <SidebarInset>
+            <Header action={undefined}>
+                <HeaderFarm
+                    b_id_farm={loaderData.b_id_farm}
+                    farmOptions={loaderData.farmOptions}
+                />
+                <HeaderMineralization
+                    b_id_farm={loaderData.b_id_farm}
+                    b_id={b_id}
+                    fieldOptions={loaderData.fieldOptions}
+                />
+            </Header>
+            <main>
+                <div className="space-y-6 py-5 px-10 pb-0">
+                    <div className="flex items-center gap-4">
+                        <div className="space-y-0.5">
+                            <h2 className="text-2xl font-bold tracking-tight">
+                                {title}
+                            </h2>
+                            <p className="text-muted-foreground">
+                                {description}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
+                        <div className="flex-1">
+                            <Outlet />
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </SidebarInset>
+    )
+}

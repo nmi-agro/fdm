@@ -54,7 +54,7 @@ export async function calculateNitrogenBalance(
  * using `calculateNitrogenBalancesFieldToFarm`.
  *
  * @param fdm - The FDM instance for database access (caching).
- * @param nitrogenBalanceInput - The input data for the nitrogen balance calculation, including all fields.
+ * @param inputs - The input data for the nitrogen balance calculation for multiple farms.
  * @returns A promise that resolves an array where each item is the aggregated nitrogen balance of a farm,
  * including the b_id_farm.
  */
@@ -328,7 +328,6 @@ export function calculateNitrogenBalanceField(
  * same input. The cache is managed by `withCalculationCache` and uses the
  * `pkg.calculatorVersion` as part of its cache key.
  *
- * @param nitrogenBalanceInput - The input data for the nitrogen balance calculation.
  * @returns A promise that resolves with the calculated nitrogen balance, with numeric values as numbers.
  */
 export const getNitrogenBalanceField = withCalculationCache(

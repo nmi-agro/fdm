@@ -43,7 +43,8 @@
         "@nmi-agro/fdm-core": "workspace:^",
         "date-fns": "^4.1.0",
         "decimal.js": "^10.6.0",
-        "geotiff": "^3.0.5"
+        "geotiff": "^3.0.5",
+        "zod": "^4.3.6"
     },
     "devDependencies": {
         "@dotenvx/dotenvx": "catalog:",
@@ -63,5 +64,5 @@
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
     },
-    "packageManager": "pnpm@10.33.0"
+    "packageManager": "pnpm@10.33.2"
 }

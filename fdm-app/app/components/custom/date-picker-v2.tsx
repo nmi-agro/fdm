@@ -167,6 +167,7 @@ export function DatePicker({
                             startMonth={new Date(1970, 0)}
                             endMonth={endMonth}
                             locale={calenderLocale}
+                            required={required}
                         />
                     </PopoverContent>
                 </Popover>

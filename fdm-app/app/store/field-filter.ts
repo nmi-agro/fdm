@@ -41,7 +41,3 @@ const createFilterStore = (name: string) =>
     )
 
 export const useFieldFilterStore = createFilterStore("field-filter-storage")
-
-export const useRotationFilterStore = createFilterStore(
-    "rotation-filter-storage",
-)

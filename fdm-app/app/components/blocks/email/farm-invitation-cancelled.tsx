@@ -1,4 +1,4 @@
-import { Heading, Text } from "@react-email/components"
+import { Heading, Text } from "react-email"
 import BaseEmailLayout from "./layout"
 
 interface FarmInvitationCancelledEmailProps {
@@ -18,7 +18,7 @@ export const FarmInvitationCancelledEmail = ({
     appName,
     appBaseUrl,
     senderName,
-    logoFileName = "/fdm-high-resolution-logo-transparent.png",
+    logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
 }: FarmInvitationCancelledEmailProps) => {
     const previewText = `Je uitnodiging voor ${farmName} is ingetrokken.`
 

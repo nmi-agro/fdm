@@ -29,7 +29,7 @@
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/fdm-data": "workspace:^",
-        "posthog-node": "^5.29.5",
+        "posthog-node": "^5.30.6",
         "zod": "^3.25.76"
     },
     "engines": {
