@@ -35,7 +35,7 @@ import type { NSupplyMethod } from "./types"
  *
  * @internal
  */
-function getMainCultivation<
+export function getMainCultivation<
     T extends {
         b_lu_catalogue?: string | null
         b_lu_start?: Date | null

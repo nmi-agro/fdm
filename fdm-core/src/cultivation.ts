@@ -518,7 +518,7 @@ export async function addCultivation(
  * @returns A promise that resolves with the cultivation details.
  * @throws {Error} If no cultivation matches the provided identifier.
  *
- * @remark A permission check is performed to ensure the requesting principal has read access.
+ * @remarks A permission check is performed to ensure the requesting principal has read access.
  */
 export async function getCultivation(
     fdm: FdmType,

@@ -57,7 +57,7 @@ export async function calculateOrganicMatterBalance(
  * The final output is a numeric representation of the balance, suitable for display or further analysis.
  *
  * @param fdm - The FDM instance for database access (caching).
- * @param organicMatterBalanceInput - The complete dataset required for the calculation, including all fields,
+ * @param inputs - The complete dataset required for the calculation, including all fields,
  *   fertilizer catalogues, and cultivation catalogues for the farm.
  * @returns A promise that resolves to the aggregated `OrganicMatterBalanceNumeric` object for the farm.
  * @throws {Error} Throws an error if the calculation process fails for any reason.
@@ -244,7 +244,6 @@ export function calculateOrganicMatterBalanceField(
  * same input. The cache is managed by `withCalculationCache` and uses the
  * `pkg.calculatorVersion` as part of its cache key.
  *
- * @param organicMatterBalanceFieldInput - The input data for the organic matter balance calculation for a single field.
  * @returns A promise that resolves with the calculated organic matter balance, with numeric values as numbers.
  */
 export const getOrganicMatterBalanceField = withCalculationCache(

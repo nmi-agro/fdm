@@ -277,6 +277,15 @@ export default function SignIn() {
         }
     }, [rawRedirectTo, redirectTo, setSearchParams])
 
+    useEffect(() => {
+        const error = searchParams.get("error")
+        if (error === "microsoft_no_email") {
+            setSocialSignInError(
+                "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen.",
+            )
+        }
+    }, [searchParams])
+
     const socialProviderNewUserCallbackUrl = modifySearchParams(
         "/welcome",
         (searchParams) => searchParams.set("redirectTo", redirectTo),

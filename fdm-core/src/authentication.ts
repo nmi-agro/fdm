@@ -73,20 +73,25 @@ export function createFdmAuth(
             clientSecret: microsoft.clientSecret,
             tenantId: "common",
             prompt: "select_account" as const,
-            mapProfileToUser: async (profile: {
-                name: string | undefined
-                email: string
-                picture: string
-            }) => {
-                const { firstname, surname } = splitFullName(profile.name)
+            mapProfileToUser: async (profile) => {
+                const email = profile.email || (profile as any).mail
+                if (!email) {
+                    throw new Error("microsoft_no_email")
+                }
+
+                const name = profile.name || (profile as any).displayName || email.split("@")[0]
+
+                const picture = (profile as any).picture ?? profile.image ?? null
+
+                const { firstname, surname } = splitFullName(name)
                 return {
-                    name: profile.name,
-                    email: profile.email,
+                    name: name,
+                    email: email,
                     emailVerified: true,
-                    image: profile.picture,
+                    image: picture,
                     firstname: firstname,
                     surname: surname,
-                    username: await createUsername(fdm, profile.email),
+                    username: await createUsername(fdm, email),
                     displayUsername: createDisplayUsername(firstname, surname),
                 }
             },

@@ -33,6 +33,11 @@ fdm-rvo:
   description: Posts related to the RVO Synchronization Logic for FDM (@nmi-agro/fdm-rvo).
   permalink: /fdm-rvo
 
+fdm-agents:
+  label: fdm-agents
+  description: Posts related to the AI agents for FDM (@nmi-agro/fdm-agents).
+  permalink: /fdm-agents
+
 update:
   label: Update
   description: General updates and improvements to the FDM ecosystem.

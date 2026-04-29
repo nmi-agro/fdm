@@ -37,9 +37,10 @@
 
 export { NmiApiError } from "./errors"
 export { assessDataCompleteness, methodRequirements } from "./assessment"
-export { buildDynaRequest, buildNSupplyRequest } from "./builders"
+export { buildDynaRequest, buildNSupplyRequest, getMainCultivation } from "./builders"
 export { getDyna, requestDyna } from "./dyna"
 export { getNSupply, requestNSupply } from "./nsupply"
+export { dynaResponseDataSchema } from "./schemas"
 export type {
     DataCompleteness,
     DynaComputeInput,

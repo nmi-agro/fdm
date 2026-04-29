@@ -8,6 +8,7 @@
         "isolatedModules": true,
         "moduleDetection": "force",
         "strict": true,
+        "types": ["node"],
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
