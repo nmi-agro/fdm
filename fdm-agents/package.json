@@ -24,7 +24,7 @@
         "test-coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "@google/adk": "^0.6.1",
+        "@google/adk": "^1.1.0",
         "@google/genai": "^1.50.1",
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",

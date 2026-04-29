@@ -1,4 +1,4 @@
-import { LlmAgent } from "@google/adk"
+import { Agent } from "@google/adk"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
@@ -20,7 +20,7 @@ export function createFertilizerPlannerAgent(
             "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
         )
     }
-    return new LlmAgent({
+    return new Agent({
         name: "Gerrit",
         description:
             "Expert Dutch Agronomist for fertilizer application planning.",
