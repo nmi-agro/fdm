@@ -91,6 +91,9 @@ export function UploadMijnPercelenPage({
                 let defaultAction: ImportReviewAction
 
                 switch (item.status) {
+                    case "CONFLICT":
+                        defaultAction = "UPDATE_FROM_REMOTE"
+                        break
                     case "NEW_REMOTE":
                         defaultAction = "ADD_REMOTE"
                         break
