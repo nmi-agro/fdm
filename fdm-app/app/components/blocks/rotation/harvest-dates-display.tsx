@@ -1,3 +1,4 @@
+import type { Row } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import React from "react"
@@ -7,7 +8,7 @@ import { Button } from "~/components/ui/button"
 import type { FieldRow, RotationExtended } from "./columns"
 
 type HarvestDatesDisplayProps = {
-    row: RotationExtended
+    row: Row<RotationExtended>
 }
 
 type HarvestRecordItem = {
@@ -23,9 +24,7 @@ function compareDates(a: Date | null, b: Date | null) {
     return a && b ? a.getTime() - b.getTime() : !a && !b ? 0 : !a ? 1 : -1
 }
 
-function groupAndOrderHarvests(row: RotationExtended) {
-    const fields = row.type === "field" ? [row] : row.fields
-
+function groupAndOrderHarvests(fields: FieldRow[]) {
     const grouped: FieldRow["harvests"][] = []
 
     for (const field of fields) {
@@ -117,7 +116,11 @@ export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({
     row,
 }) => {
     const formattedHarvestDates = React.useMemo(() => {
-        const harvestsByOrder = groupAndOrderHarvests(row)
+        const harvestsByOrder = groupAndOrderHarvests(
+            row.original.type === "field"
+                ? [row.original]
+                : row.subRows.map((fieldRow) => fieldRow.original as FieldRow),
+        )
 
         if (harvestsByOrder.length === 1) {
             return (
@@ -128,7 +131,7 @@ export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({
         }
 
         if (harvestsByOrder.length > 1) {
-            if (row.b_lu_harvestable === "once") {
+            if (row.original.b_lu_harvestable === "once") {
                 const combined = combineRecords(harvestsByOrder)
                 return (
                     <HarvestDatesDisplayButton record={combined}>
@@ -145,7 +148,7 @@ export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({
                                 key={record.id}
                                 record={record}
                             >
-                                {`${idx + 1}e ${row.b_lu_croprotation === "grass" ? "snede" : "oogst"}:`}
+                                {`${idx + 1}e ${row.original.b_lu_croprotation === "grass" ? "snede" : "oogst"}:`}
                                 <br />
                                 {formatDateRange(record.dates)}
                             </HarvestDatesDisplayButton>
@@ -155,7 +158,7 @@ export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({
             )
         }
         return null // Should not happen
-    }, [row, row.type, row.fields, row.b_lu_harvestable, row.b_lu_croprotation])
+    }, [row.original, row.subRows])
 
     return formattedHarvestDates
 }

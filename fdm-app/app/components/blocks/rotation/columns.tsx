@@ -32,16 +32,11 @@ export type CropRow = {
     b_lu_catalogue: string
     b_lu: string[]
     b_lu_name: string
-    m_cropresidue: "all" | "some" | "none"
     b_lu_eom_residue: number | null
-    b_lu_variety: Record<string, number>
     b_lu_variety_options: { label: string; value: string }[] | null
     b_lu_croprotation: string
     b_lu_harvestable: "once" | "multiple" | "none"
     calendar: string
-    b_lu_start: Date[]
-    b_lu_end: Date[]
-    b_bufferstrip: boolean
     fields: FieldRow[]
 }
 
@@ -57,7 +52,8 @@ export type FieldRow = {
     m_cropresidue: "all" | "some" | "none"
     b_lu_eom_residue: number | null
     m_cropresidue_ending: [Date, boolean][]
-    b_lu_variety: Record<string, number>
+    b_lu_variety: [string, number][]
+    b_lu_catalogue: string
     b_lu_croprotation: string
     harvests: {
         b_lu: string
@@ -163,19 +159,27 @@ export const columns: ColumnDef<RotationExtended>[] = [
             return <DataTableColumnHeader column={column} title="Zaaidatum" />
         },
         enableHiding: true, // Enable hiding for mobile
-        cell: ({ cell, row }) =>
-            !row.original.canModify ? (
-                <DateRangeDisplay
-                    range={row.original.b_lu_start}
-                    emptyContent="Geen"
-                />
+        cell: ({ cell, row }) => {
+            const dates =
+                row.original.type === "field"
+                    ? row.original.b_lu_start
+                    : (row.subRows ?? [])
+                          .flatMap(
+                              (fieldRow) =>
+                                  (fieldRow.original as FieldRow).b_lu_start,
+                          )
+                          .sort((d1, d2) => d1.getTime() - d2.getTime())
+            return !row.original.canModify ? (
+                <DateRangeDisplay range={dates} emptyContent="Geen" />
             ) : (
                 <TableDateSelector
                     name="b_lu_start"
                     row={row}
                     cellId={cell.id}
+                    required={true}
                 />
-            ),
+            )
+        },
     },
     {
         accessorKey: "b_lu_end",
@@ -186,23 +190,29 @@ export const columns: ColumnDef<RotationExtended>[] = [
         },
         enableHiding: true, // Enable hiding for mobile
         cell: ({ cell, row }) => {
+            const dates =
+                row.original.type === "field"
+                    ? row.original.b_lu_end
+                    : (row.subRows ?? [])
+                          .flatMap(
+                              (fieldRow) =>
+                                  (fieldRow.original as FieldRow).b_lu_end,
+                          )
+                          .sort((d1, d2) => d1.getTime() - d2.getTime())
             if (!row.original.canModify) {
-                return (
-                    <DateRangeDisplay
-                        range={row.original.b_lu_end}
-                        emptyContent="Geen"
-                    />
-                )
+                return <DateRangeDisplay range={dates} emptyContent="Geen" />
             }
             const cultivation = (row.getParentRow() ?? row).original as CropRow
             const tooltipMessageNumHarvests =
                 cultivation.b_lu_harvestable === "multiple"
                     ? 0
                     : (row.original.type === "crop"
-                          ? row.original.fields
-                          : [row.original]
+                          ? (row.subRows ?? [])
+                          : [row]
                       ).reduce(
-                          (sum, fieldRow) => sum + fieldRow.harvests.length,
+                          (sum, fieldRow) =>
+                              sum +
+                              (fieldRow.original as FieldRow).harvests.length,
                           0,
                       )
             return cultivation.b_lu_harvestable !== "multiple" ? (
@@ -210,7 +220,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
                     <Tooltip>
                         <TooltipTrigger>
                             <DateRangeDisplay
-                                range={row.original.b_lu_end}
+                                range={dates}
                                 emptyContent="Geen"
                             />
                         </TooltipTrigger>
@@ -224,7 +234,12 @@ export const columns: ColumnDef<RotationExtended>[] = [
                     </Tooltip>
                 </span>
             ) : (
-                <TableDateSelector name="b_lu_end" row={row} cellId={cell.id} />
+                <TableDateSelector
+                    name="b_lu_end"
+                    row={row}
+                    cellId={cell.id}
+                    required={false}
+                />
             )
         },
     },
@@ -236,8 +251,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
         },
         enableHiding: true, // Enable hiding for mobile
         cell: ({ row }) => {
-            const cultivation = row.original
-            return <HarvestDatesDisplay row={cultivation} />
+            return <HarvestDatesDisplay row={row} />
         },
     },
     {
@@ -278,8 +292,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
             )
         },
         cell: ({ row }) => {
-            const cultivation = row.original
-            return <FertilizerDisplay cultivation={cultivation} />
+            return <FertilizerDisplay row={row} />
         },
     },
     {
@@ -298,9 +311,10 @@ export const columns: ColumnDef<RotationExtended>[] = [
             const cultivation = row.original
 
             const fieldsDisplay = React.useMemo(() => {
-                const fieldsSorted = [...(cultivation.fields ?? [])].sort(
-                    (a, b) => a.b_name.localeCompare(b.b_name),
-                )
+                if (cultivation.type === "field") return null
+                const fieldsSorted = (row.subRows ?? [])
+                    .map((row) => row.original as FieldRow)
+                    .sort((a, b) => a.b_name.localeCompare(b.b_name))
                 return (
                     cultivation.type === "crop" && (
                         <DropdownMenu>
@@ -338,7 +352,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
                         </DropdownMenu>
                     )
                 )
-            }, [cultivation.type, cultivation.calendar, cultivation.fields])
+            }, [cultivation.type, cultivation.calendar, row.subRows])
 
             return fieldsDisplay
         },
@@ -368,21 +382,21 @@ export const columns: ColumnDef<RotationExtended>[] = [
         },
         enableHiding: true, // Enable hiding for mobile
         cell: ({ row }) => {
-            const cultivation = row.original
-
-            const provided_b_area =
-                cultivation.type === "field" ? cultivation.b_area : null
             const formattedArea = React.useMemo(() => {
+                // There will always be some field rows below the crop row
+                // Otherwise, the crop row wouldn't be displayed altogether
                 const b_area =
-                    cultivation.type === "field"
-                        ? (provided_b_area ?? 0)
-                        : cultivation.fields.reduce(
-                              (acc, field) => acc + field.b_area,
+                    row.original.type === "field"
+                        ? (row.original.b_area ?? 0)
+                        : (row.subRows ?? []).reduce(
+                              (total, fieldRow) =>
+                                  total +
+                                  (fieldRow.original as FieldRow).b_area,
                               0,
                           )
 
                 return b_area < 0.1 ? "< 0.1 ha" : `${b_area.toFixed(1)} ha`
-            }, [cultivation.type, provided_b_area, cultivation.fields])
+            }, [row.original, row.subRows])
 
             return <p className="text-muted-foreground">{formattedArea}</p>
         },
