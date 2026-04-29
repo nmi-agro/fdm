@@ -72,7 +72,7 @@ export function UploadMijnPercelenPage({
     const actionRvoImportReviewData = actionData?.RvoImportReviewData
 
     const isSaving =
-        navigation.state === "submitting" &&
+        navigation.state !== "idle" &&
         navigation.formData?.get("intent") === "save_fields"
 
     useEffect(() => {
