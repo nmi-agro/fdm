@@ -512,7 +512,7 @@ export default function FarmDashboardIndex() {
                                                     </div>
                                                     <div>
                                                         <CardTitle>
-                                                            Upload Shapefile
+                                                            Shapefile uploaden
                                                         </CardTitle>
                                                         <CardDescription>
                                                             Importeer nieuwe of
