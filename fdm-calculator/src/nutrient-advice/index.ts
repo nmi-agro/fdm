@@ -24,7 +24,11 @@ export async function requestNutrientAdvice({
     b_bufferstrip,
 }: NutrientAdviceInputs): Promise<NutrientAdvice> {
     try {
-        if (b_bufferstrip) {
+        const brpSegments = b_lu_catalogue.split("_")
+        const brpRaw = brpSegments[brpSegments.length - 1]
+        const brpCode = Number.parseInt(brpRaw ?? "", 10)
+
+        if (b_bufferstrip || !brpRaw || Number.isNaN(brpCode)) {
             return {
                 d_n_req: 0,
                 d_n_norm: 0,
@@ -70,12 +74,6 @@ export async function requestNutrientAdvice({
         }
 
         // Create request body for the NMI API
-        const brpSegments = b_lu_catalogue.split("_")
-        const brpRaw = brpSegments[brpSegments.length - 1]
-        const brpCode = Number.parseInt(brpRaw ?? "", 10)
-        if (!brpRaw || Number.isNaN(brpCode)) {
-            throw new Error(`Invalid b_lu_catalogue provided: "${b_lu_catalogue}"`)
-        }
         const body = {
             a_lon: b_centroid[0],
             a_lat: b_centroid[1],

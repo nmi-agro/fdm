@@ -173,4 +173,22 @@ describe("requestNutrientAdvice", () => {
         expect(result.d_p_req).toBe(0)
         expect(result.d_k_req).toBe(0)
     })
+
+    it('should return zero advice for "Onbekend" b_lu_catalogue without calling NMI API', async () => {
+        const inputs: NutrientAdviceInputs = {
+            b_lu_catalogue: "Onbekend",
+            b_centroid: [4.3, 52.4],
+            currentSoilData: mockCurrentSoilData,
+            nmiApiKey: "mock-api-key",
+        }
+
+        const result = await requestNutrientAdvice(inputs)
+
+        expect(fetch).not.toHaveBeenCalled()
+        expect(result.d_n_req).toBe(0)
+        expect(result.d_p_req).toBe(0)
+        expect(result.d_k_req).toBe(0)
+        expect(result.d_n_norm).toBe(0)
+        expect(result.d_p_norm).toBe(0)
+    })
 })
