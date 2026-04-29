@@ -7,10 +7,9 @@ import {
     FlaskConical,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { useWatch } from "react-hook-form"
 import { Form, NavLink, useActionData, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { parseDbf } from "shpjs"
-import { toast as notify } from "sonner"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
@@ -36,7 +35,6 @@ import {
     FormMessage,
 } from "~/components/ui/form"
 import { Spinner } from "~/components/ui/spinner"
-
 import { MijnPercelenUploadAnimation } from "./upload-animation"
 
 type UploadState = "idle" | "animating" | "success" | "error"
@@ -46,11 +44,12 @@ const ANIMATION_ENABLED = true // Switch for the animation
 export function MijnPercelenUploadForm({
     b_id_farm,
     calendar,
+    backUrl = `/farm/create/${b_id_farm}/${calendar}`,
 }: {
     b_id_farm: string
     calendar: string
+    backUrl?: string
 }) {
-    const [fieldNames, setFieldNames] = useState<string[]>([])
     const [uploadState, setUploadState] = useState<UploadState>("idle")
     const uploadStartTime = useRef<number | null>(null)
 
@@ -60,6 +59,7 @@ export function MijnPercelenUploadForm({
         mode: "onTouched",
         resolver: zodResolver(FormSchema),
         defaultValues: {
+            intent: "upload",
             shapefile: [],
         },
     })
@@ -111,7 +111,11 @@ export function MijnPercelenUploadForm({
         }
     }, [uploadState, form.reset])
 
-    const selectedFiles = form.watch("shapefile")
+    const selectedFiles = useWatch({
+        control: form.control,
+        name: "shapefile",
+        defaultValue: [],
+    })
 
     const selectedFileExtensions = selectedFiles.map((file) =>
         getFileExtension(file.name),
@@ -129,29 +133,6 @@ export function MijnPercelenUploadForm({
     const handleFilesSet = async (validFiles: File[]) => {
         form.setValue("shapefile", validFiles)
         setUploadState("idle")
-
-        const dbfFile = validFiles.find(
-            (file) => getFileExtension(file.name) === ".dbf",
-        )
-        if (dbfFile) {
-            try {
-                const dbfBuffer = await dbfFile.arrayBuffer()
-                const dbfData = parseDbf(dbfBuffer) as any[]
-                let unnamedCount = 0
-                const names = dbfData.map((row) => {
-                    const trimmedNaam =
-                        typeof row?.NAAM === "string" ? row.NAAM.trim() : ""
-                    return trimmedNaam || `Naamloos perceel ${++unnamedCount}`
-                })
-                setFieldNames(names)
-            } catch (error) {
-                console.error("Failed to parse DBF file:", error)
-                notify.error("Kon het DBF bestand niet verwerken")
-                setFieldNames([])
-            }
-        } else {
-            setFieldNames([])
-        }
     }
 
     const disabledForm = (
@@ -240,7 +221,7 @@ export function MijnPercelenUploadForm({
     return (
         <div className="flex justify-center">
             {uploadState === "animating" && ANIMATION_ENABLED ? (
-                <MijnPercelenUploadAnimation fieldNames={fieldNames}>
+                <MijnPercelenUploadAnimation>
                     {disabledForm}
                 </MijnPercelenUploadAnimation>
             ) : uploadState === "animating" && !ANIMATION_ENABLED ? (
@@ -271,6 +252,11 @@ export function MijnPercelenUploadForm({
                                 encType="multipart/form-data"
                             >
                                 <fieldset disabled={isSubmitting}>
+                                    <input
+                                        name="intent"
+                                        type="hidden"
+                                        value="upload"
+                                    />
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 gap-4">
                                             <FormField
@@ -399,7 +385,7 @@ export function MijnPercelenUploadForm({
                                                 )}
                                             </Button>
                                             <NavLink
-                                                to={`/farm/create/${b_id_farm}/${calendar}`}
+                                                to={backUrl}
                                                 className="w-full"
                                             >
                                                 <Button
@@ -457,6 +443,7 @@ function RequiredFilesStatus({
 
 const fileSizeLimit = 5 * 1024 * 1024 // 5MB
 export const FormSchema = z.object({
+    intent: z.string().optional(),
     shapefile: z
         .array(z.instanceof(File))
         .refine(

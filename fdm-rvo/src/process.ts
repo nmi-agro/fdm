@@ -52,15 +52,16 @@ export async function processRvoImport(
     year: number,
     onFieldAdded?: (tx: FdmType, b_id: string, geometry: any) => Promise<void>,
 ) {
-    for (const item of rvoImportReviewData) {
-        const id = getItemId(item)
-        const action = userChoices[id]
+    await fdm.transaction(async (tx) => {
+        const addedFields: Array<{ b_id: string; geometry: any }> = []
+        async function handleItem(item: RvoImportReviewItem<any>) {
+            const id = getItemId(item)
+            const action = userChoices[id]
 
-        if (!action || action === "IGNORE" || action === "NO_ACTION") {
-            continue
-        }
+            if (!action || action === "IGNORE" || action === "NO_ACTION") {
+                return
+            }
 
-        await fdm.transaction(async (tx: FdmType) => {
             switch (action) {
                 case "ADD_REMOTE":
                     if (item.rvoField) {
@@ -105,9 +106,10 @@ export async function processRvoImport(
                             defaultDates.b_lu_end,
                         )
 
-                        if (onFieldAdded) {
-                            await onFieldAdded(tx, b_id, item.rvoField.geometry)
-                        }
+                        addedFields.push({
+                            b_id: b_id,
+                            geometry: item.rvoField.geometry,
+                        })
                     }
                     break
                 case "UPDATE_FROM_REMOTE":
@@ -221,6 +223,16 @@ export async function processRvoImport(
                     }
                     break
             }
-        })
-    }
+        }
+
+        await Promise.all(rvoImportReviewData.map((item) => handleItem(item)))
+
+        if (onFieldAdded) {
+            await Promise.all(
+                addedFields.map(({ b_id, geometry }) =>
+                    onFieldAdded(tx, b_id, geometry),
+                ),
+            )
+        }
+    })
 }

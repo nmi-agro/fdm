@@ -63,6 +63,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function ChooseFieldImportMethod() {
     const { farm, isRvoConfigured } = useLoaderData<typeof loader>()
+
     const showRvoOption = isRvoConfigured
 
     return (
