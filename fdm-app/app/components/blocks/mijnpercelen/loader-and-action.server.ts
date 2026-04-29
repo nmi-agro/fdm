@@ -2,7 +2,6 @@ import fs from "node:fs/promises"
 import {
     addSoilAnalysis,
     determineIfFieldIsBuffer,
-    type FdmType,
     type Field,
     getCultivationsForFarm,
     getCultivationsFromCatalogue,
@@ -289,40 +288,8 @@ export async function genericAction(
                 throw new Error("Invalid user choices format")
             }
 
+            const addedFields: { b_id: string; geometry: any }[] = []
             await fdm.transaction(async (tx) => {
-                const onFieldAdded = async (
-                    tx: FdmType,
-                    b_id: string,
-                    geometry: any,
-                ) => {
-                    const nmiApiKey = getNmiApiKey()
-                    if (nmiApiKey) {
-                        try {
-                            const soilEstimates =
-                                await getSoilParameterEstimates(
-                                    geometry,
-                                    nmiApiKey,
-                                )
-                            await addSoilAnalysis(
-                                tx,
-                                session.principal_id,
-                                undefined,
-                                "nl-other-nmi",
-                                b_id,
-                                soilEstimates.a_depth_lower ?? 30,
-                                undefined,
-                                soilEstimates,
-                                soilEstimates.a_depth_upper,
-                            )
-                        } catch (e) {
-                            console.warn(
-                                `Failed to fetch soil estimates for field ${b_id}:`,
-                                e,
-                            )
-                        }
-                    }
-                }
-
                 await processRvoImport(
                     tx,
                     session.principal_id,
@@ -330,7 +297,11 @@ export async function genericAction(
                     rvoImportReviewData,
                     userChoices,
                     year,
-                    onFieldAdded,
+                    (_tx, b_id, geometry) => {
+                        // Do this synchronously
+                        addedFields.push({ b_id, geometry })
+                        return Promise.resolve()
+                    },
                 )
 
                 // Override field properties for columns that are always "updated from RVO"
@@ -361,6 +332,34 @@ export async function genericAction(
                     }
                 }
             })
+
+            const nmiApiKey = getNmiApiKey()
+            if (nmiApiKey) {
+                for (const { b_id, geometry } of addedFields) {
+                    try {
+                        const soilEstimates = await getSoilParameterEstimates(
+                            geometry,
+                            nmiApiKey,
+                        )
+                        await addSoilAnalysis(
+                            fdm,
+                            session.principal_id,
+                            undefined,
+                            "nl-other-nmi",
+                            b_id,
+                            soilEstimates.a_depth_lower ?? 30,
+                            undefined,
+                            soilEstimates,
+                            soilEstimates.a_depth_upper,
+                        )
+                    } catch (e) {
+                        console.warn(
+                            `Failed to fetch soil estimates for field ${b_id}:`,
+                            e,
+                        )
+                    }
+                }
+            }
 
             return redirectWithSuccess(
                 returnUrl,
