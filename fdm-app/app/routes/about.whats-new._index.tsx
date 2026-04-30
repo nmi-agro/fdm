@@ -24,6 +24,28 @@ export const meta: MetaFunction = () => {
 
 export const changelogEntries: ChangelogEntry[] = [
     {
+        version: "v0.30.0",
+        date: "30 april 2026",
+        title: "Bemesting in de eenheid die past bij de meststof, shapefiles uploaden bij bestaand bedrijf en RVO-import voor alle gebruikers",
+        description:
+            "Een bemesting wordt nu ingevoerd en weergegeven in de eenheid die past bij de meststof. Shapefiles kunt u nu ook uploaden nadat een bedrijf is aangemaakt, en het importeren van percelen vanuit RVO via eHerkenning is voor alle gebruikers beschikbaar.",
+        items: [
+            "Bemesting in de eenheid die past bij de meststof: U hoeft een bemesting niet meer altijd in kg/ha in te voeren. Vloeibare meststoffen voert u nu in m³/ha in, compost in ton/ha, enzovoort. De ingevoerde en getoonde eenheid sluit aan bij de meststof, zodat u niet meer hoeft om te rekenen.",
+            "Shapefiles uploaden bij een bestaand bedrijf: Het uploaden van een shapefile met percelen is niet langer alleen mogelijk bij het aanmaken van een nieuw bedrijf, maar ook daarna via de perceelpagina. In een vergelijkingstabel ziet u welke percelen worden toegevoegd, gewijzigd of verwijderd, zodat u de wijzigingen kunt beoordelen voordat u ze samenvoegt. De werkwijze sluit aan bij die van het importeren van percelen via RVO.",
+            "Percelen importeren vanuit RVO voor alle gebruikers: Het importeren van percelen vanuit RVO via eHerkenning is niet langer beperkt tot een testgroep en is nu voor alle gebruikers beschikbaar. Na het inloggen met eHerkenning komt u nu ook weer terug op de RVO-pagina in plaats van op de homepage.",
+            "Uitgebreide gewashistorie in Atlas: Op de detailpagina van een perceel in de Atlas kunt u nu kiezen tussen het tabblad 'Eenvoudig' en het tabblad 'Uitgebreid'. Het uitgebreide tabblad toont in een ruimtelijk stroomdiagram welke teelten in eerdere jaren op de geometrie van het huidige perceel hebben gelegen. Omdat percelen in voorgaande jaren anders ingedeeld kunnen zijn geweest (bijvoorbeeld als één groter perceel of juist als meerdere kleinere), maakt deze weergave inzichtelijk welke teelten op welk deel van de huidige geometrie hebben gestaan. Uw keuze van tabblad blijft tijdens de sessie bewaard.",
+            "Filter op bufferstroken: Het filter voor bufferstroken in de bouwplantabel werkt weer. De zoekterm en de keuze van dit filter worden nu gedeeld tussen de bouwplan- en perceelstabel, zodat de tabellen consistent met elkaar blijven.",
+            "Sortering meerdere sneden: De sortering van sneden binnen een jaar wordt nu correct weergegeven in de bouwplantabel.",
+            "Gewashistorie op jaar gesorteerd: De gewashistorie van een perceel in de Atlas wordt nu aflopend op jaar gesorteerd weergegeven.",
+            "Gewasresten achterlaten alleen bij granen: Het invulveld 'Gewasresten achterlaten' wordt alleen getoond wanneer dit relevant is voor het geselecteerde gewas, namelijk bij granen.",
+            "Atlas-perceelselectie scrollbaar: Op pagina's waar u percelen op de kaart selecteert is de lijst met geselecteerde gewassen nu scrollbaar wanneer er veel gewassen in zitten. Hierdoor blijft de knop 'Sla geselecteerde percelen op' altijd bereikbaar.",
+            "Inloggen met Microsoft zonder e-mailadres: Als Microsoft bij het aanmelden geen e-mailadres deelt met FDM, wordt u nu gevraagd in te loggen via een aanmeldlink in plaats van een onduidelijke foutmelding te krijgen.",
+            "Foutmelding 'Not a FlatGeobuf file' in Atlas: Een hardnekkige foutmelding die kon optreden door een verouderde browsercache wordt nu automatisch hersteld zonder dat u zelf actie hoeft te ondernemen.",
+            "Correctie organische stofbalans bij gewasresten: De organische stofbalans rekent nu ook correct met gewasresten waarvan niet expliciet is vastgelegd dat ze van het perceel zijn afgevoerd; eerder werd in dat geval ten onrechte geen aanvoer berekend.",
+            "Prestatieverbeteringen voor grote bedrijven: Pagina's en berekeningen voor bedrijven met veel percelen laden sneller en betrouwbaarder. De databasequery's voor verschillende overzichten zijn versneld door aanvullende indexen, de stikstofbalans had last van vergrendeling op de berekeningscache en dat is opgelost, het ophalen van depositiegegevens vindt nu plaats buiten de databasetransactie en de tijdslimiet voor het samenstellen van pagina's is verruimd.",
+        ],
+    },
+    {
         version: "v0.29.0",
         date: "2 april 2026",
         title: "Verbeterd meststoffenbeheer, balansoverzicht per organisatie en bufferstrook in perceelstabel",
