@@ -41,9 +41,9 @@ export async function parseShapefileGeometry(
 ): Promise<(Polygon | MultiPolygon)[]> {
     try {
         const [shpData, shxData, projection] = await Promise.all([
-            shp_file instanceof Blob ? await shp_file.arrayBuffer() : shp_file,
-            shx_file instanceof Blob ? await shx_file.arrayBuffer() : shx_file,
-            prj_file instanceof Blob ? await prj_file.text() : prj_file,
+            shp_file instanceof Blob ? shp_file.arrayBuffer() : shp_file,
+            shx_file instanceof Blob ? shx_file.arrayBuffer() : shx_file,
+            prj_file instanceof Blob ? prj_file.text() : prj_file,
         ])
 
         const geometries: Geometry[] = await parseShp(shpData, shxData)

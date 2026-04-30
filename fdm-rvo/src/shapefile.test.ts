@@ -141,46 +141,41 @@ describe("getRvoFieldsFromShapefile", () => {
     })
 
     it("should handle multi-polygon geometry", async () => {
-        try {
-            const MOCK_MULTIPOLYGON = geometry("MultiPolygon", [
+        const MOCK_MULTIPOLYGON = geometry("MultiPolygon", [
+            [
                 [
-                    [
-                        [0, 0],
-                        [1, 0],
-                        [1, 1],
-                        [0, 1],
-                        [0, 0],
-                    ],
-                    [
-                        [1, 0],
-                        [2, 0],
-                        [2, 1],
-                        [1, 1],
-                        [1, 0],
-                    ],
+                    [0, 0],
+                    [1, 0],
+                    [1, 1],
+                    [0, 1],
+                    [0, 0],
                 ],
-            ])
+                [
+                    [1, 0],
+                    [2, 0],
+                    [2, 1],
+                    [1, 1],
+                    [1, 0],
+                ],
+            ],
+        ])
 
-            vi.mocked(shpjs.parseShp).mockResolvedValueOnce([MOCK_MULTIPOLYGON])
-            vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([MOCK_PROPERTIES])
+        vi.mocked(shpjs.parseShp).mockResolvedValueOnce([MOCK_MULTIPOLYGON])
+        vi.mocked(shpjs.parseDbf).mockResolvedValueOnce([MOCK_PROPERTIES])
 
-            const parsed = await getRvoFieldsFromShapefile(
-                new File([], "shapefile.shp"),
-                undefined,
-                new File([], "shapefile.dbf"),
-                undefined,
-            )
+        const parsed = await getRvoFieldsFromShapefile(
+            new File([], "shapefile.shp"),
+            undefined,
+            new File([], "shapefile.dbf"),
+            undefined,
+        )
 
-            expect(parsed).toHaveLength(1)
+        expect(parsed).toHaveLength(1)
 
-            expect((parsed[0].geometry as Geometry).type).toBe("MultiPolygon")
-            expect((parsed[0].geometry as Polygon).coordinates).toStrictEqual(
-                MOCK_MULTIPOLYGON.coordinates,
-            )
-        } catch (e) {
-            console.error(e)
-            throw e
-        }
+        expect((parsed[0].geometry as Geometry).type).toBe("MultiPolygon")
+        expect((parsed[0].geometry as Polygon).coordinates).toStrictEqual(
+            MOCK_MULTIPOLYGON.coordinates,
+        )
     })
 
     it("should handle not-supported geometry", async () => {
