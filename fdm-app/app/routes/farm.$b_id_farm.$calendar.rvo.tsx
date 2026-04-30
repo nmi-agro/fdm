@@ -17,11 +17,8 @@ import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
-    type ActionFunctionArgs,
     data,
     Form,
-    type LoaderFunctionArgs,
-    type MetaFunction,
     redirect,
     useActionData,
     useLoaderData,
@@ -70,12 +67,13 @@ import {
     generateAuthUrl,
     processRvoImport,
 } from "~/lib/rvo.server"
+import type { Route } from "./+types/farm.$b_id_farm.$calendar.rvo"
 
-export const meta: MetaFunction = ({ params }) => {
+export const meta: Route.MetaFunction = ({ params }) => {
     return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
     const { b_id_farm, calendar: yearString } = params
     if (!b_id_farm) {
         throw new Response("Farm ID is required", { status: 400 })
@@ -532,6 +530,7 @@ export default function RvoImportReviewPage() {
                                 </div>
                                 <div className="w-full">
                                     <RvoImportReviewTable
+                                        calendar={calendar}
                                         data={rvoImportReviewData}
                                         userChoices={userChoices}
                                         onChoiceChange={handleChoiceChange}
@@ -546,7 +545,7 @@ export default function RvoImportReviewPage() {
     )
 }
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params }: Route.ActionArgs) {
     const { b_id_farm, calendar: yearString } = params
     if (!b_id_farm || !yearString) {
         throw data("Farm ID is required", {

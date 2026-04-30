@@ -399,6 +399,7 @@ export default function RvoImportCreatePage() {
                                 </div>
                                 <div className="w-full">
                                     <RvoImportReviewTable
+                                        calendar={calendar}
                                         data={rvoImportReviewData}
                                         userChoices={userChoices}
                                         onChoiceChange={handleChoiceChange}

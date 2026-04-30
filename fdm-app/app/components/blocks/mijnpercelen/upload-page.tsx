@@ -48,6 +48,12 @@ export function UploadMijnPercelenPage({
     const handleItemChange = (id: string, item: RvoImportReviewItem<any>) => {
         // Note: there is the assumption that getItemId will keep returning the same id.
         // Therefore, make sure that `item` doesn't have a different rvoField id and localField id.
+        if (getItemId(item) !== id) {
+            console.warn(
+                `Mismatched item id in handleItemChange: expected ${id}, got ${getItemId(item)}. Ignoring update.`,
+            )
+            return
+        }
         setRvoImportReviewData((data) => {
             if (!data) return data
             const index = data.findIndex(
@@ -144,6 +150,13 @@ export function UploadMijnPercelenPage({
             }
         }
     }, [actionData])
+
+    // Mark unload as not safe if action data changes to unsuccessful
+    useEffect(() => {
+        if (!actionData?.success && rvoImportReviewData?.length) {
+            setCanUnloadSafely(false)
+        }
+    }, [actionData?.success, rvoImportReviewData])
 
     // Warn the user before refreshing or leaving when data is present
     useEffect(() => {
