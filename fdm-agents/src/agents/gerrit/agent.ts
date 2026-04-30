@@ -84,6 +84,7 @@ Your final response MUST be a JSON object with exactly this structure (all field
   "plan": [
     {
       "b_id": "string",
+      "fieldSummary": "string — brief Dutch explanation (≤ 75 words) specific to this field",
       "applications": [
         { 
           "p_id_catalogue": "string", 
@@ -124,6 +125,7 @@ Your final response MUST be a JSON object with exactly this structure (all field
 
 Rules:
 - "summary": Provide a clear, concise and professional narrative in Dutch (< 250 words) tailored for farmers and agricultural advisors (CEFR B2 level). Speak as an expert agronomist explaining the reasoning behind the plan. Be direct and to the point. Focus on the agronomical reasoning: why these fertilizers, the balance of nutrients, and soil health (organic matter). Feel free to use agricultural jargon and policy terms that Dutch farmers are familiar with. Refer to "goede landbouwpraktijk" where applicable. Avoid generic or redundant opening sentences (e.g., "Als agronoom heb ik...", "Hieronder volgt..."). Use the names of fertilizers, cultivations and fields when you need to mention them, NEVER mention the ID's. DO NOT use IT jargon, internal strategy keys, or database IDs. Focus on what the farmer needs to know about the resulting plan.
+- "fieldSummary": Write a short Dutch explanation (≤ 75 words) specific to this field. Explain the key choices: which fertilizer(s) were selected and why (including any crop-specific preferences or avoidances from the getCropFertilizerGuide skill, e.g. K₂SO₄ over KCl for potatoes to protect onderwatergewicht, required S for brassicas, B for sugar beet), the split-application timing rationale, and the chosen application method. Mention any field-specific consideration the farmer should be aware of (soil type risk, crop quality target, norm constraint). Do NOT repeat farm-level totals or the overall plan summary.
 - "metrics.farmTotals": Copy the farmTotals values directly from the final simulateFarmPlan result.
 - "plan": Only include fields with at least one application. Buffer strips MUST NOT appear.
 - "fieldMetrics": Copy advice, proposedDose, normsFilling, norms, omBalance, nBalance directly from the "fieldMetrics" object returned for that field in the "fieldResults" array of the final simulateFarmPlan result.

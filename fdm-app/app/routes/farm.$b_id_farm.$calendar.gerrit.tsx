@@ -746,6 +746,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     fieldMetrics:
                         (proposedField as any)?.fieldMetrics ??
                         (null as FieldMetrics | null),
+                    fieldSummary: proposedField?.fieldSummary ?? null,
                 }
             })
 
