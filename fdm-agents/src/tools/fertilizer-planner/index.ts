@@ -689,6 +689,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 args.b_id_farm,
                 timeframe,
             )
+            const failedNormFields: string[] = []
             const allFarmFieldNorms = await Promise.all(
                 allFarmFields
                     .filter((f) => !f.b_bufferstrip && f.b_area)
@@ -721,6 +722,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                 norms: { manure, phosphate, nitrogen },
                             }
                         } catch {
+                            failedNormFields.push(f.b_id)
                             return null
                         }
                     }),
@@ -761,6 +763,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             const complianceIssues: string[] = []
             const agronomicWarnings: string[] = []
+
+            if (failedNormFields.length > 0) {
+                agronomicWarnings.push(
+                    `Norm computation failed for ${failedNormFields.length} field(s): [${failedNormFields.join(", ")}]. Farm-level norms may be slightly understated.`,
+                )
+            }
 
             if (hasBufferStripViolations) {
                 const bufferFields = fieldResults
@@ -1004,7 +1012,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     "List of unique crop catalogue codes present on the farm (e.g. ['nl_2014', 'nl_259', 'nl_265'])",
                 ),
         }),
-        execute: async (input: { b_lu_catalogues: string[] }) => {
+        execute: async (rawInput) => {
+            const input = rawInput as { b_lu_catalogues: string[] }
+            const catalogues = input.b_lu_catalogues.filter(Boolean)
             const currentDir = dirname(fileURLToPath(import.meta.url))
             // Resolve the skills base path — works for both bundled dist and source/test.
             const distPath = join(
@@ -1028,7 +1038,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             // Deduplicate filenames so each guide file is loaded at most once.
             const filesToLoad = new Set<string>()
-            for (const code of input.b_lu_catalogues) {
+            for (const code of catalogues) {
                 const file = cropIndex[code]
                 if (file) filesToLoad.add(file)
             }

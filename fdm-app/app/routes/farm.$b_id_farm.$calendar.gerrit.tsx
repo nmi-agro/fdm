@@ -175,14 +175,14 @@ function repairTruncatedJson(json: string): string | null {
     let openBraces = 0
     let openBrackets = 0
     let inString = false
-    let escape = false
+    let isEscaped = false
     for (const ch of trimmed) {
-        if (escape) {
-            escape = false
+        if (isEscaped) {
+            isEscaped = false
             continue
         }
         if (ch === "\\") {
-            escape = true
+            isEscaped = true
             continue
         }
         if (ch === '"') {
@@ -512,11 +512,46 @@ async function computePlanMetrics(
 
     if (validFields.length === 0) return null
 
+    // Compute norms from ALL farm fields (matching simulateFarmPlan logic)
+    // so the farm-level norm denominator is consistent.
+    const allFarmFields = await getFields(fdm, principalId, b_id_farm, timeframe)
+    const allFarmFieldNorms = await Promise.all(
+        allFarmFields
+            .filter((f) => !f.b_bufferstrip && f.b_area)
+            .map(async (f) => {
+                try {
+                    const normsInput = await normFuncs.collectInputForNorms(
+                        fdm,
+                        principalId,
+                        f.b_id,
+                    )
+                    const [manure, phosphate, nitrogen] = await Promise.all([
+                        normFuncs.calculateNormForManure(fdm, normsInput as any),
+                        normFuncs.calculateNormForPhosphate(
+                            fdm,
+                            normsInput as any,
+                        ),
+                        normFuncs.calculateNormForNitrogen(
+                            fdm,
+                            normsInput as any,
+                        ),
+                    ])
+                    return {
+                        b_id: f.b_id,
+                        b_area: f.b_area as number,
+                        norms: { manure, phosphate, nitrogen },
+                    }
+                } catch {
+                    return null
+                }
+            }),
+    )
+
     const farmNormsKg = aggregateNormsToFarmLevel(
-        validFields.map((f) => ({
-            b_id: f.b_id,
-            b_area: f.b_area,
-            norms: fieldMetricsMap[f.b_id].norms,
+        allFarmFieldNorms.filter(Boolean).map((r) => ({
+            b_id: r!.b_id,
+            b_area: r!.b_area,
+            norms: r!.norms,
         })),
     )
 
