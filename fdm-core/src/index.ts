@@ -129,6 +129,7 @@ export {
 } from "./fertilizer-application-unit-conversion"
 export {
     addField,
+    determineIfFieldIsBuffer,
     getField,
     getFields,
     listAvailableAcquiringMethods,
