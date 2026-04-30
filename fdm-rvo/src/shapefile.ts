@@ -97,8 +97,7 @@ export async function parseShapefileAttributes(
 /**
  * Converts a feature found in a Shapefile to a RvoField object to be used with the RVO import system
  *
- * `properties.mestData.IndBufferstrook` will be estimated using fdm-core's buffer strip estimation.
- * Callers must be aware that this is just an estimate.
+ * `mestData` is not available in Shapefiles and will not be available in the result, thus no buffer strip information
  *
  * @param shapefileFeatures
  * @returns a RvoField object
