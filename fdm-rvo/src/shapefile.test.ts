@@ -134,7 +134,7 @@ describe("getRvoFieldsFromShapefile", () => {
             getRvoFieldsFromShapefile(
                 new File([], "invalid.shp"),
                 undefined,
-                new File([], "invalid.shx"),
+                new File([], "invalid.dbf"),
                 new File([], "invalid.prj"),
             ),
         ).rejects.toThrow("Shapefile does not contain any fields")
