@@ -1,0 +1,109 @@
+---
+slug: release-april-2026
+title: April 2026 Release
+authors: [svenverweij]
+tags: [release, fdm-app, fdm-core, fdm-calculator, fdm-data, fdm-rvo, fdm-agents]
+date: 2026-04-30
+---
+
+The April 2026 release reworks how fertilizer application amounts are recorded and displayed — moving from a single `kg/ha` convention to fertilizer-native units — and introduces a new Mineralisatie Labs feature backed by a Mineralization module in `fdm-calculator`. RVO field import becomes available to all users, the Atlas gains an advanced cultivation history view, and Gerrit receives a crop-specific preferences skill and a field-level plan explanation. The release also includes a number of performance, reliability, and tooling improvements that have been published as hotfixes since the previous release.
+
+{/* truncate */}
+
+### Fertilizer Application Units
+
+Fertilizer application amounts are now expressed in the unit that is natural for the fertilizer in question — for example liquid manures in m³/ha and granular fertilizers in kg/ha — rather than always in kg/ha. This removes the need for users to convert amounts before entering them.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+*   `addFertilizerApplication` and `updateFertilizerApplication` now accept the application value through a `p_app_amount_display` parameter, interpreted in the fertilizer's own unit instead of always `kg/ha`. The function converts to `kg/ha` internally for storage.
+*   `getFertilizer`, `getFertilizers` and related functions now also return `p_app_amount_unit`.
+*   `getFertilizerApplication`, `getFertilizerApplications` and related functions now additionally return `p_app_amount_display` and `p_app_amount_unit` for display purposes. The original `p_app_amount` (in `kg/ha`) is still returned, so existing read-side consumers continue to work unchanged.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   Application amounts in forms and tables are shown in the fertilizer's native unit.
+*   In the rotation and field-level fertilizer-application detail tables, equivalent fertilizer applications are now displayed on separate rows rather than collapsed.
+
+**FDM Data (`@nmi-agro/fdm-data`)**
+
+*   Default values for `p_app_amount_unit` have been added to the BAAT catalogue.
+
+### Mineralisatie and the Mineralization Module (Labs)
+
+A new Labs feature, **Mineralisatie**, makes it possible to inspect mineralization at farm and field level using the MINIP and DYNA models. The feature is enabled through a PostHog feature flag.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+*   A new Mineralization module exposes the NMI API endpoints `nsupply` and `dyna`, providing the calculation backbone for the Mineralisatie feature.
+
+### Atlas and Cultivation History
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   **Advanced cultivation history view:** The field-detail page in the Atlas now offers a spatial flow diagram that visualises how a field's parcel boundaries changed over time — splits, merges, expansions, and shrinkage. Users can switch between the existing simple timeline ("Eenvoudig") and the new advanced view ("Uitgebreid") via a tab control. The selected tab is persisted in session storage.
+*   Cultivation history items are now correctly sorted by descending year.
+*   A persistent "Not a FlatGeobuf file" error caused by browser HTTP cache poisoning is now resolved automatically: the FGB fetch is retried with `nocache=true`, recovering without user action.
+
+### RVO Field Import
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   Importing fields from RVO with eHerkenning sign-in is now available to all users. It is no longer behind a feature flag.
+*   The RVO OAuth callback redirect has been fixed: after eHerkenning sign-in users now return to the originating RVO page instead of the application root.
+
+**FDM RVO (`@nmi-agro/fdm-rvo`)**
+
+*   `exchangeToken` now correctly returns `tokenResponse.access_token`. The previous camelCase property returned `unknown`.
+
+### Gerrit — AI Fertilizer Planning Assistant (Labs)
+
+**FDM Agents (`@nmi-agro/fdm-agents`)**
+
+*   **Crop-specific preferences:** A new skill lets Gerrit take crop-specific fertilizer preferences into account when proposing a plan.
+*   **Constrained planning:** When constraints prevent satisfying every objective, Gerrit now prioritises supplying nitrogen, phosphorus and potassium over achieving a positive organic-matter balance.
+*   A type issue where `fieldMetrics` could be `null` has been fixed.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   Each field in the generated plan now carries a short field-level explanation, providing more insight into why Gerrit proposed a particular set of applications.
+
+### Performance and Reliability
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+*   **Calculator cache contention:** Cache writes (`setCachedCalculation`) and error logging (`setCalculationError`) in `withCalculationCache` are now fire-and-forget. This eliminates an `INSERT` bottleneck that previously caused PostgreSQL lock contention and ~90 s timeouts on the nitrogen balance page under concurrent load.
+*   **Database indices:** Missing indices have been added on the field-acquiring and -discarding, cultivation-starting and -ending, fertilizer-catalogue-enabling, and cultivation-catalogue-selecting tables, improving the performance of the corresponding `getSomething` functions.
+*   **Drop pglite:** Support for `pglite` has been removed; it is not used and there are no plans to use it.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+*   GeoTIFF deposition fetches in the nitrogen-balance data collection now run outside the database transaction, freeing the database connection during HTTP and raster operations and reducing connection-pool pressure.
+*   A bug in the organic-matter supply calculation where `undefined` crop residues yielded zero supply has been fixed; supply is now correctly calculated for residues that are not explicitly removed.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   The SSR stream timeout has been raised from 90 s to 150 s to prevent React stream aborts for farms with many fields.
+
+### UI and Workflow Improvements
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   The cultivation and field-count list on field-selection Atlas pages becomes scrollable when there are too many cultivations to display, ensuring that the "Sla geselecteerde percelen op" button is always reachable.
+*   The "show productive only" toggle on rotation tables works again. Search terms and the "show productive only" selection are now shared between the field and rotation tables, and the shared state is reflected consistently in the UI.
+*   The rotation-table harvest-date display sorting has been corrected.
+*   The "Gewasresten achterlaten" input is now only shown when the cultivation belongs to the cereal crop-rotation category (`b_lu_croprotation === 'cereal'`); when hidden its value defaults to `undefined`.
+*   When Microsoft sign-in does not provide an email address, users are asked to use the magic link instead. Both `fdm-core` and `fdm-app` were updated to support this flow.
+*   `turf` imports have been narrowed so that only the modules actually used are loaded.
+
+### Technical Improvements
+
+*   **TypeScript v6:** All packages in the monorepo have been bumped to TypeScript v6.
+*   **Build tooling:** `fdm-calculator`, `fdm-agents`, `fdm-core`, `fdm-data`, and `fdm-rvo` have been migrated from rollup to tsdown.
+*   **Faster cold dev start:** Heavy transitive dependencies that workspace packages pull in are now pre-bundled, so they are processed once instead of on every cold dev start.
+*   **Docker images:** The application Docker build now installs production dependencies only, reducing image size.
+*   **Vite 8 / react-router:** The application has been updated for Vite v8, including the corresponding react-router configuration changes.
+
+---
+
+For a detailed list of changes, please refer to the package-specific changelogs for [fdm-app](https://github.com/nmi-agro/fdm/blob/main/fdm-app/CHANGELOG.md), [fdm-calculator](https://github.com/nmi-agro/fdm/blob/main/fdm-calculator/CHANGELOG.md), [fdm-core](https://github.com/nmi-agro/fdm/blob/main/fdm-core/CHANGELOG.md), [fdm-data](https://github.com/nmi-agro/fdm/blob/main/fdm-data/CHANGELOG.md), [fdm-rvo](https://github.com/nmi-agro/fdm/blob/main/fdm-rvo/CHANGELOG.md), and [fdm-agents](https://github.com/nmi-agro/fdm/blob/main/fdm-agents/CHANGELOG.md). Feedback and contributions are welcome on our GitHub repository.
