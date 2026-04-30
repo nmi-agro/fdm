@@ -43,11 +43,20 @@ Some reference files cover several agronomic segments under one umbrella crop. W
 file is returned, pick the subsection whose catalogue codes match the field, *not* the first
 section in the file:
 
+**Important**: If catalogue codes are shared across multiple subsections (e.g., "consumptie" in
+aardappelen.md), the agent must also match a secondary context field (such as "destination" or
+"use" — e.g., frites vs tafel) before selecting a subsection. If that secondary context is
+missing, either request the field from the user or fall back to not selecting that ambiguous
+subsection.
+
 - **`aardappelen.md`** — separate sections for zetmeelaardappelen, fritesaardappelen,
   tafelaardappelen and pootaardappelen. The generic "consumptie" codes are routed to
-  `consumptieaardappelen.md` and the early codes to `vroegeaardappelen.md`.
+  `consumptieaardappelen.md` and the early codes to `vroegeaardappelen.md`. If subsection
+  selection is ambiguous due to shared codes, use the secondary context field (destination or
+  use type) to disambiguate.
 - **`koolgewassen.md`** — common rules for all brassicas plus subsections for spruitkool,
-  bloemkool/broccoli, and sluitkool.
+  bloemkool/broccoli, and sluitkool. When catalogue codes appear in multiple subsections, match
+  the secondary context before selecting.
 - **`peulvruchten.md`** — common rules plus genus subsections (Vicia faba, Pisum sativum,
   Glycine max, Phaseolus vulgaris) which differ in N₂-fixation strength and starter-N need.
 
@@ -80,5 +89,5 @@ When you apply a crop-specific rule:
 3. If an intent question has already established the farmer's preference (e.g. they specifically
    want to use a certain manure product), respect that preference unless it creates a legal
    violation or a serious quality risk — in which case, flag the conflict clearly.
-4. When soil-type dependent recommendations apply (e.g. Mn on calcareous soils, schurft pH
+4. When soil-type-dependent recommendations apply (e.g. Mn on calcareous soils, schurft pH
    management on sand), verify the field's soil type before applying the rule.

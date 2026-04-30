@@ -53,7 +53,7 @@ Christmas trees (mainly *Picea abies* and *Abies nordmanniana*) grow on sand wit
 inputs:
 
 - N moderate to low, early in the season; no autumn application.
-- K, Mg and S per advice — Mg deficiency causes the typical yellow old needles.
+- K, Mg and S per advice — Mg deficiency causes the typical yellowing of older needles.
 - Liming with care: Nordmann tolerates slightly higher pH than Norway spruce; consult
   `advice.d_ca_req`.
 - No fresh slurry in established plantings.

@@ -1,5 +1,9 @@
 import { cpSync, mkdirSync } from "node:fs"
 import { defineConfig } from "tsdown"
+import { fileURLToPath } from "node:url"
+import { dirname, join } from "node:path"
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
     entry: ["src/index.ts"],
@@ -15,8 +19,10 @@ export default defineConfig({
             name: "copy-skills-folder",
             buildEnd() {
                 try {
-                    mkdirSync("dist/skills", { recursive: true })
-                    cpSync("src/skills", "dist/skills", { recursive: true })
+                    const srcSkills = join(__dirname, "src/skills")
+                    const distSkills = join(__dirname, "dist/skills")
+                    mkdirSync(distSkills, { recursive: true })
+                    cpSync(srcSkills, distSkills, { recursive: true })
                     console.log("Copied skills folder to dist/skills")
                 } catch (err) {
                     console.error("Error copying skills folder:", err)
