@@ -20,6 +20,7 @@ export interface ParsedPlanApplication {
 export interface ParsedPlan {
     plan?: Array<{
         b_id: string
+        fieldSummary?: string
         applications: ParsedPlanApplication[]
         fieldMetrics?: FieldMetrics | null
     }>
@@ -54,6 +55,7 @@ export interface PlanRow {
     b_lu_name: string | null
     b_lu_croprotation: string | null
     b_area: number | null
+    fieldSummary?: string | null
     applications: Array<
         ParsedPlanApplication & {
             p_name_nl: string | null
