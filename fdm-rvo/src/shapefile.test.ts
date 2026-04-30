@@ -272,4 +272,50 @@ describe("convertShapefileFeatureIntoRvoField", () => {
             }),
         ).toThrow("Field does not have the required attributes")
     })
+
+    it("should accept falsy values for required props", () => {
+        const geometry = createMockGeometry()
+        const parsed = convertShapefileFeatureIntoRvoField({
+            type: "Feature",
+            geometry: geometry,
+            properties: {
+                SECTORID: "", // b_id_source
+                NAAM: null, // b_name
+                BEGINDAT: 0, // b_start
+                EINDDAT: 0, // b_end
+                GEWASCODE: "", // b_lu_catalogue[1]
+                TITEL: "", // b_acquiring_method
+                SECTORVER: 0,
+                NEN3610ID: "",
+                VOLGNR: 0,
+                GEWASOMSCH: "",
+                TITELOMSCH: "",
+            },
+        })
+
+        expect(parsed.properties.CropFieldID).toBe("")
+        expect(parsed.properties.CropFieldDesignator).toBe("")
+        expect(new Date(parsed.properties.BeginDate).getTime()).toBe(0)
+        expect(new Date(parsed.properties.EndDate ?? "").getTime()).toBe(0)
+        expect(parsed.properties.CropTypeCode).toBe("")
+        expect(parsed.properties.UseTitleCode).toBe("")
+    })
+
+    it("should not accept invalid dates", () => {
+        const geometry = createMockGeometry()
+        expect(() =>
+            convertShapefileFeatureIntoRvoField({
+                type: "Feature",
+                geometry: geometry,
+                properties: { ...MOCK_PROPERTIES, BEGINDAT: -1e20 },
+            }),
+        ).toThrow("Field does not have the required attributes")
+        expect(() =>
+            convertShapefileFeatureIntoRvoField({
+                type: "Feature",
+                geometry: geometry,
+                properties: { ...MOCK_PROPERTIES, EINDDAT: -1e20 },
+            }),
+        ).toThrow("Field does not have the required attributes")
+    })
 })

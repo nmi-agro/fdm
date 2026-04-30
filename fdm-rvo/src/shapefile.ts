@@ -106,6 +106,7 @@ export async function parseShapefileAttributes(
 export function convertShapefileFeatureIntoRvoField(
     feature: Feature<Polygon, Partial<RvoProperties>>,
 ): RvoField {
+    const isDefined = (x: unknown) => x !== null && typeof x !== "undefined"
     const { properties, geometry } = feature
     const {
         SECTORID,
@@ -121,18 +122,33 @@ export function convertShapefileFeatureIntoRvoField(
         TITELOMSCH,
     } = properties
 
+    let beginDate: string | undefined
+    let endDate: string | undefined
+    try {
+        if (isDefined(BEGINDAT)) {
+            beginDate = new Date(BEGINDAT).toISOString()
+        }
+    } catch (_) {}
+    try {
+        // 253402297199 (the "null" date) can successfully be converted to a JS Date object
+        // so just doing that is easier
+        if (isDefined(EINDDAT)) {
+            endDate = new Date(EINDDAT).toISOString()
+        }
+    } catch (_) {}
+
     if (
-        !SECTORID ||
-        !SECTORVER ||
-        !NEN3610ID ||
-        !VOLGNR ||
-        NAAM === undefined ||
-        !BEGINDAT ||
-        !EINDDAT ||
-        !GEWASCODE ||
-        !GEWASOMSCH ||
-        !TITEL ||
-        !TITELOMSCH
+        !isDefined(SECTORID) ||
+        !isDefined(SECTORVER) ||
+        !isDefined(NEN3610ID) ||
+        !isDefined(VOLGNR) ||
+        NAAM === undefined || // null is accepted
+        !isDefined(beginDate) ||
+        !isDefined(endDate) ||
+        !isDefined(GEWASCODE) ||
+        !isDefined(GEWASOMSCH) ||
+        !isDefined(TITEL) ||
+        !isDefined(TITELOMSCH)
     ) {
         throw new Error("Field does not have the required attributes")
     }
@@ -146,15 +162,12 @@ export function convertShapefileFeatureIntoRvoField(
             CropFieldID: SECTORID, // b_id_source
             CropFieldVersion: "1.0.0", // not needed
             CropFieldDesignator: trimmedNaam, // b_name
-            BeginDate: new Date(BEGINDAT).toISOString(), // b_start
+            BeginDate: beginDate, // b_start
             Country: "nl", // b_lu_catalogue[0]
             CropTypeCode: GEWASCODE, // b_lu_catalogue[1]
             UseTitleCode: TITEL, // b_acquiring_method
             ThirdPartyCropFieldID: undefined, // not needed
-            EndDate:
-                EINDDAT !== 253402297199
-                    ? new Date(EINDDAT).toISOString()
-                    : undefined, // b_end
+            EndDate: EINDDAT !== 253402297199 ? endDate : undefined, // b_end
             VarietyCode: undefined, // not needed
             CropProductionPurposeCode: undefined, // not needed
             FieldUseCode: undefined, // not needed

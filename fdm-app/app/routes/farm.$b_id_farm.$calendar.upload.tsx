@@ -33,7 +33,7 @@ export { loader }
 
 export function action(ctx: Route.LoaderArgs) {
     const { b_id_farm, calendar } = ctx.params
-    return genericAction(ctx, `/farm/${b_id_farm}/${calendar}/field`)
+    return genericAction(ctx, `/farm/${b_id_farm}/${calendar}/rotation`)
 }
 
 export default function UpdateWithMijnPercelenPage() {
