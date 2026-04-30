@@ -682,13 +682,57 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 (r: any) => r.isValid && r.b_area,
             )
 
+            // Compute norms for ALL farm fields.
+            const allFarmFields = await getFields(
+                fdm,
+                principalId,
+                args.b_id_farm,
+                timeframe,
+            )
+            const allFarmFieldNorms = await Promise.all(
+                allFarmFields
+                    .filter((f) => !f.b_bufferstrip && f.b_area)
+                    .map(async (f) => {
+                        try {
+                            const normsInput =
+                                await normFuncs.collectInputForNorms(
+                                    fdm,
+                                    principalId,
+                                    f.b_id,
+                                )
+                            const [manure, phosphate, nitrogen] =
+                                await Promise.all([
+                                    normFuncs.calculateNormForManure(
+                                        fdm,
+                                        normsInput as any,
+                                    ),
+                                    normFuncs.calculateNormForPhosphate(
+                                        fdm,
+                                        normsInput as any,
+                                    ),
+                                    normFuncs.calculateNormForNitrogen(
+                                        fdm,
+                                        normsInput as any,
+                                    ),
+                                ])
+                            return {
+                                b_id: f.b_id,
+                                b_area: f.b_area as number,
+                                norms: { manure, phosphate, nitrogen },
+                            }
+                        } catch {
+                            return null
+                        }
+                    }),
+            )
+
             // Aggregate to farm level using fdm-calculator functions.
-            // Norms are in kg/ha per field; aggregation multiplies by area to get total kg for the farm.
+            // Norms cover ALL farm fields; fillings cover only the simulated fields.
             const farmNormsKg = aggregateNormsToFarmLevel(
-                validFieldResults.map((r: any) => ({
-                    b_id: r.b_id,
-                    b_area: r.b_area,
-                    norms: r.fieldMetrics.norms,
+                allFarmFieldNorms.filter(Boolean).map((r) => ({
+                    b_id: r!.b_id,
+                    b_area: r!.b_area,
+                    norms: r!.norms,
                 })),
             )
 

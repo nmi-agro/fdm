@@ -157,6 +157,59 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 }
 
+/**
+ * Attempts to repair truncated JSON by removing the last incomplete element
+ * and closing any open arrays/objects. Returns null if repair is not possible.
+ */
+function repairTruncatedJson(json: string): string | null {
+    // Find the last complete array element in the "plan" array by locating
+    // the last occurrence of "},\n" or "}\n" that closes a plan entry.
+    // Strategy: progressively strip trailing content and try closing brackets.
+    const lastCompleteObject = json.lastIndexOf("},")
+    if (lastCompleteObject === -1) return null
+
+    // Take everything up to and including the last complete object in the array
+    const trimmed = json.slice(0, lastCompleteObject + 1)
+
+    // Count unclosed brackets
+    let openBraces = 0
+    let openBrackets = 0
+    let inString = false
+    let escape = false
+    for (const ch of trimmed) {
+        if (escape) {
+            escape = false
+            continue
+        }
+        if (ch === "\\") {
+            escape = true
+            continue
+        }
+        if (ch === '"') {
+            inString = !inString
+            continue
+        }
+        if (inString) continue
+        if (ch === "{") openBraces++
+        else if (ch === "}") openBraces--
+        else if (ch === "[") openBrackets++
+        else if (ch === "]") openBrackets--
+    }
+
+    // Close any remaining open brackets
+    let repaired = trimmed
+    for (let i = 0; i < openBrackets; i++) repaired += "]"
+    for (let i = 0; i < openBraces; i++) repaired += "}"
+
+    // Validate the result
+    try {
+        JSON.parse(repaired)
+        return repaired
+    } catch {
+        return null
+    }
+}
+
 async function computePlanMetrics(
     principalId: PrincipalId,
     b_id_farm: string,
@@ -598,17 +651,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     }
                 }),
             )
-            const fieldsSummary: FarmFieldSummary[] = fieldsData.map((f) => ({
-                b_id: f.b_id,
-                b_name: f.b_name,
-                b_area: f.b_area ?? 0,
-                b_bufferstrip: f.b_bufferstrip ?? false,
-                b_lu_catalogue: f.b_lu_catalogue,
-                b_lu_name: f.b_lu_name,
-                b_soiltype_agr: f.b_soiltype_agr,
-                b_gwl_class: f.b_gwl_class,
-                a_som_loi: f.a_som_loi,
-            }))
+            const fieldsSummary: FarmFieldSummary[] = fieldsData
+                .filter((f) => !f.b_bufferstrip)
+                .map((f) => ({
+                    b_id: f.b_id,
+                    b_name: f.b_name,
+                    b_area: f.b_area ?? 0,
+                    b_bufferstrip: false,
+                    b_lu_catalogue: f.b_lu_catalogue,
+                    b_lu_name: f.b_lu_name,
+                    b_soiltype_agr: f.b_soiltype_agr,
+                    b_gwl_class: f.b_gwl_class,
+                    a_som_loi: f.a_som_loi,
+                }))
             const fertilizers = await getFertilizers(
                 fdm,
                 session.principal_id,
@@ -678,10 +733,24 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     rawResult.slice(firstBrace, lastBrace + 1),
                 ) as ParsedPlan
             } catch {
-                return dataWithError(
-                    null,
-                    "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
-                )
+                // Attempt to recover truncated JSON by closing open brackets
+                const truncated = rawResult.slice(firstBrace, lastBrace + 1)
+                const repaired = repairTruncatedJson(truncated)
+                if (repaired) {
+                    try {
+                        parsedPlan = JSON.parse(repaired) as ParsedPlan
+                    } catch {
+                        return dataWithError(
+                            null,
+                            "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
+                        )
+                    }
+                } else {
+                    return dataWithError(
+                        null,
+                        "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
+                    )
+                }
             }
 
             const fertilizerParameterDescription =
@@ -778,13 +847,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             $ai_input: [
                                 {
                                     role: "user",
-                                    content: prompt.slice(0, 2000),
+                                    content: prompt.slice(0, 100000),
                                 },
                             ],
                             $ai_output_choices: [
                                 {
                                     role: "assistant",
-                                    content: rawResult.slice(0, 2000),
+                                    content: rawResult.slice(0, 100000),
                                 },
                             ],
                             $ai_tools_called: toolCalls || [],
