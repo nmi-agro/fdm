@@ -5,7 +5,7 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react"
+import { CheckCircle2, ChevronDown, ChevronUp, Info } from "lucide-react"
 import { Fragment } from "react"
 import { Form } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -230,6 +230,9 @@ export function PlanTable({
                                     )
                                     const hasMetrics =
                                         row.original.fieldMetrics != null
+                                    const hasSummary =
+                                        !!row.original.fieldSummary
+                                    const canExpand = hasMetrics || hasSummary
                                     const dose =
                                         row.original.fieldMetrics?.proposedDose
                                     const advice =
@@ -246,9 +249,9 @@ export function PlanTable({
                                     return (
                                         <Fragment key={row.id}>
                                             <TableRow
-                                                className={`hover:bg-muted/20 transition-colors ${hasMetrics ? "cursor-pointer" : ""}`}
+                                                className={`hover:bg-muted/20 transition-colors ${canExpand ? "cursor-pointer" : ""}`}
                                                 onClick={() =>
-                                                    hasMetrics &&
+                                                    canExpand &&
                                                     toggleRow(row.original.b_id)
                                                 }
                                             >
@@ -406,7 +409,7 @@ export function PlanTable({
                                                                     </TooltipProvider>
                                                                 )
                                                             })()}
-                                                        {hasMetrics && (
+                                                        {canExpand && (
                                                             <button
                                                                 type="button"
                                                                 onClick={(
@@ -440,7 +443,7 @@ export function PlanTable({
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
-                                            {isExpanded && hasMetrics && (
+                                            {isExpanded && canExpand && (
                                                 <TableRow className="bg-muted/10 hover:bg-muted/10">
                                                     <TableCell
                                                         colSpan={
@@ -450,8 +453,22 @@ export function PlanTable({
                                                     >
                                                         <div
                                                             id={`details-${row.original.b_id}`}
-                                                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3"
+                                                            className="space-y-4"
                                                         >
+                                                            {/* ── Toelichting per perceel ── */}
+                                                            {hasSummary && (
+                                                                <div className="flex gap-2 items-start text-sm text-muted-foreground italic border-b pb-3">
+                                                                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary/60" />
+                                                                    <span>
+                                                                        {
+                                                                            row
+                                                                                .original
+                                                                                .fieldSummary
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
                                                             {/* ── Normen ── */}
                                                             {normsFilling &&
                                                                 norms && (
@@ -869,6 +886,7 @@ export function PlanTable({
                                                                         </div>
                                                                     )
                                                                 })()}
+                                                        </div>
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>

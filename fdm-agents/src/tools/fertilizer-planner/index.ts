@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
+import { join, dirname } from "node:path"
 import { type Context, FunctionTool } from "@google/adk"
 import {
     aggregateNormFillingsToFarmLevel,
@@ -65,7 +68,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         parameters: z.object({
             b_id_farm: z.string().describe("The ID of the farm"),
             calendar: z.string().describe('The calendar year (e.g. "2025")'),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const principalId = context.state.get("principalId") as PrincipalId
@@ -140,7 +143,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             b_ids: z
                 .array(z.string())
                 .describe("List of field IDs (b_id) to fetch advice for"),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const principalId = context.state.get("principalId") as PrincipalId
@@ -205,7 +208,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             b_ids: z
                 .array(z.string())
                 .describe("List of field IDs (b_id) to check"),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const principalId = context.state.get("principalId") as PrincipalId
@@ -269,7 +272,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 .enum(["manure", "mineral", "compost"])
                 .optional()
                 .describe("Filter by fertilizer type"),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const args = input as SearchArgs
@@ -396,7 +399,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     }),
                 )
                 .describe("Proposed applications per field"),
-        }) as any,
+        }),
         execute: async (input: any, context?: Context) => {
             if (!context) throw new Error("Context is required")
             const args = input as SimulationArgs
@@ -679,13 +682,59 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 (r: any) => r.isValid && r.b_area,
             )
 
+            // Compute norms for ALL farm fields.
+            const allFarmFields = await getFields(
+                fdm,
+                principalId,
+                args.b_id_farm,
+                timeframe,
+            )
+            const failedNormFields: string[] = []
+            const allFarmFieldNorms = await Promise.all(
+                allFarmFields
+                    .filter((f) => !f.b_bufferstrip && f.b_area)
+                    .map(async (f) => {
+                        try {
+                            const normsInput =
+                                await normFuncs.collectInputForNorms(
+                                    fdm,
+                                    principalId,
+                                    f.b_id,
+                                )
+                            const [manure, phosphate, nitrogen] =
+                                await Promise.all([
+                                    normFuncs.calculateNormForManure(
+                                        fdm,
+                                        normsInput as any,
+                                    ),
+                                    normFuncs.calculateNormForPhosphate(
+                                        fdm,
+                                        normsInput as any,
+                                    ),
+                                    normFuncs.calculateNormForNitrogen(
+                                        fdm,
+                                        normsInput as any,
+                                    ),
+                                ])
+                            return {
+                                b_id: f.b_id,
+                                b_area: f.b_area as number,
+                                norms: { manure, phosphate, nitrogen },
+                            }
+                        } catch {
+                            failedNormFields.push(f.b_id)
+                            return null
+                        }
+                    }),
+            )
+
             // Aggregate to farm level using fdm-calculator functions.
-            // Norms are in kg/ha per field; aggregation multiplies by area to get total kg for the farm.
+            // Norms cover ALL farm fields; fillings cover only the simulated fields.
             const farmNormsKg = aggregateNormsToFarmLevel(
-                validFieldResults.map((r: any) => ({
-                    b_id: r.b_id,
-                    b_area: r.b_area,
-                    norms: r.fieldMetrics.norms,
+                allFarmFieldNorms.filter(Boolean).map((r) => ({
+                    b_id: r!.b_id,
+                    b_area: r!.b_area,
+                    norms: r!.norms,
                 })),
             )
 
@@ -714,6 +763,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             const complianceIssues: string[] = []
             const agronomicWarnings: string[] = []
+
+            if (failedNormFields.length > 0) {
+                agronomicWarnings.push(
+                    `Norm computation failed for ${failedNormFields.length} field(s): [${failedNormFields.join(", ")}]. Farm-level norms may be slightly understated.`,
+                )
+            }
 
             if (hasBufferStripViolations) {
                 const bufferFields = fieldResults
@@ -941,12 +996,82 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         },
     })
 
+    /**
+     * Tool for loading crop-specific fertilizer preferences from the skill reference files.
+     * Returns guidance for the crops present on the farm, loaded from individual per-crop
+     * markdown files so only relevant content is returned.
+     */
+    const getCropFertilizerGuideTool = new FunctionTool({
+        name: "getCropFertilizerGuide",
+        description:
+            "Load crop-specific fertilizer preferences and restrictions for the crops on this farm. Call this once after getFarmFields, passing all unique b_lu_catalogue values found on the farm. Returns agronomic rules (preferred products, split timings, nutrients to avoid) per crop group.",
+        parameters: z.object({
+            b_lu_catalogues: z
+                .array(z.string())
+                .describe(
+                    "List of unique crop catalogue codes present on the farm (e.g. ['nl_2014', 'nl_259', 'nl_265'])",
+                ),
+        }),
+        execute: async (rawInput) => {
+            const input = rawInput as { b_lu_catalogues: string[] }
+            const catalogues = input.b_lu_catalogues.filter(Boolean)
+            const currentDir = dirname(fileURLToPath(import.meta.url))
+            // Resolve the skills base path — works for both bundled dist and source/test.
+            const distPath = join(
+                currentDir,
+                "skills",
+                "crop-specific-fertilizer-preferences",
+            )
+            const srcPath = join(
+                currentDir,
+                "..",
+                "..",
+                "skills",
+                "crop-specific-fertilizer-preferences",
+            )
+            const skillBase = existsSync(distPath) ? distPath : srcPath
+
+            const indexPath = join(skillBase, "assets", "crop-index.json")
+            const cropIndex: Record<string, string> = JSON.parse(
+                readFileSync(indexPath, "utf-8"),
+            )
+
+            // Deduplicate filenames so each guide file is loaded at most once.
+            const filesToLoad = new Set<string>()
+            for (const code of catalogues) {
+                const file = cropIndex[code]
+                if (file) filesToLoad.add(file)
+            }
+
+            if (filesToLoad.size === 0) {
+                return {
+                    guide: "No crop-specific fertilizer guidance found for the provided crop codes.",
+                    matchedCrops: [],
+                }
+            }
+
+            const sections: string[] = []
+            for (const file of filesToLoad) {
+                const filePath = join(skillBase, "references", file)
+                if (existsSync(filePath)) {
+                    sections.push(readFileSync(filePath, "utf-8"))
+                }
+            }
+
+            return {
+                guide: sections.join("\n\n---\n\n"),
+                matchedCrops: [...filesToLoad],
+            }
+        },
+    })
+
     return [
         getFarmFieldsTool,
         getFarmNutrientAdviceTool,
         getFarmLegalNormsTool,
         searchFertilizersTool,
         simulateFarmPlanTool,
+        getCropFertilizerGuideTool,
     ]
 }
 
