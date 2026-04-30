@@ -23,7 +23,6 @@ Fertilizer application amounts are now expressed in the unit that is natural for
 **FDM Application (`@nmi-agro/fdm-app`)**
 
 *   Application amounts in forms and tables are shown in the fertilizer's native unit.
-*   In the rotation and field-level fertilizer-application detail tables, equivalent fertilizer applications are now displayed on separate rows rather than collapsed.
 
 **FDM Data (`@nmi-agro/fdm-data`)**
 
@@ -41,7 +40,7 @@ A new Labs feature, **Mineralisatie**, makes it possible to inspect mineralizati
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   **Advanced cultivation history view:** The field-detail page in the Atlas now offers a spatial flow diagram that visualises how a field's parcel boundaries changed over time — splits, merges, expansions, and shrinkage. Users can switch between the existing simple timeline ("Eenvoudig") and the new advanced view ("Uitgebreid") via a tab control. The selected tab is persisted in session storage.
+*   **Advanced cultivation history view:** The field-detail page in the Atlas now offers a tab control to switch between the existing simple timeline ("Eenvoudig") and a new advanced view ("Uitgebreid"). The advanced view shows, in a spatial flow diagram, which cultivations have been grown in earlier years on the geometry of the current field. Because that geometry may previously have belonged to a different parcel arrangement — a single larger field, several smaller fields, or other layouts — the view makes clear which cultivations covered which part of the current geometry. The selected tab is persisted in session storage.
 *   Cultivation history items are now correctly sorted by descending year.
 *   A persistent "Not a FlatGeobuf file" error caused by browser HTTP cache poisoning is now resolved automatically: the FGB fetch is retried with `nocache=true`, recovering without user action.
 
@@ -96,8 +95,8 @@ A new Labs feature, **Mineralisatie**, makes it possible to inspect mineralizati
 **FDM Application (`@nmi-agro/fdm-app`)**
 
 *   The cultivation and field-count list on field-selection Atlas pages becomes scrollable when there are too many cultivations to display, ensuring that the "Sla geselecteerde percelen op" button is always reachable.
-*   The "show productive only" toggle on rotation tables works again. Search terms and the "show productive only" selection are now shared between the field and rotation tables, and the shared state is reflected consistently in the UI.
-*   The rotation-table harvest-date display sorting has been corrected.
+*   The buffer-strip filter on rotation tables works again. Search terms and the buffer-strip filter selection are now shared between the field and rotation tables, and the shared state is reflected consistently in the UI.
+*   The sorting of harvests within a multi-cut cultivation (for example grassland) in the rotation table has been corrected.
 *   The "Gewasresten achterlaten" input is now only shown when the cultivation belongs to the cereal crop-rotation category (`b_lu_croprotation === 'cereal'`); when hidden its value defaults to `undefined`.
 *   When Microsoft sign-in does not provide an email address, users are asked to use the magic link instead. Both `fdm-core` and `fdm-app` were updated to support this flow.
 *   `turf` imports have been narrowed so that only the modules actually used are loaded.
