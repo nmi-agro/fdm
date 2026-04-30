@@ -194,18 +194,14 @@ export async function genericAction(
             /** Calculates the perimeter of the given polygon geometry in meters */
             function perimeter(geometry: Polygon | MultiPolygon) {
                 if (geometry.type === "Polygon") {
-                    return geometry.coordinates
-                        .map((ring) =>
-                            length(lineString(ring), { units: "meters" }),
-                        )
-                        .reduce((a, b) => a + b, 0)
+                    return length(lineString(geometry.coordinates[0]), {
+                        units: "meters",
+                    })
                 }
                 if (geometry.type === "MultiPolygon") {
                     return geometry.coordinates
-                        .flatMap((polygon) =>
-                            polygon.flatMap((ring) =>
-                                length(lineString(ring), { units: "meters" }),
-                            ),
+                        .map((polygon) =>
+                            length(lineString(polygon[0]), { units: "meters" }),
                         )
                         .reduce((a, b) => a + b, 0)
                 }
