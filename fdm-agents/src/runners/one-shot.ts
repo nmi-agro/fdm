@@ -1,5 +1,5 @@
-import type { BaseAgent } from "@google/adk"
-import { InMemoryRunner, isFinalResponse, stringifyContent } from "@google/adk"
+import { isAIMessage } from "@langchain/core/messages"
+import type { LangChainCallbackHandler } from "@posthog/ai/langchain"
 
 export interface OneShotAgentResult {
     result: string
@@ -18,156 +18,138 @@ export class AgentTimeoutError extends Error {
     }
 }
 
+// Structural type for any LangGraph compiled agent graph
+interface StreamableAgentGraph {
+    stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
+}
+
+function buildCallbacks(
+    posthog?: { client: any; distinctId: string },
+    context?: Record<string, any>,
+): LangChainCallbackHandler[] | undefined {
+    if (!posthog?.client) return undefined
+    try {
+        // Dynamic import to avoid hard dep when posthog not configured
+        const { LangChainCallbackHandler } =
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            require("@posthog/ai/langchain") as {
+                LangChainCallbackHandler: new (opts: any) => LangChainCallbackHandler
+            }
+        return [
+            new LangChainCallbackHandler({
+                client: posthog.client,
+                distinctId: posthog.distinctId,
+                properties: {
+                    b_id_farm: context?.b_id_farm,
+                },
+            }),
+        ]
+    } catch {
+        return undefined
+    }
+}
+
 /**
  * Common runner for one-shot agent execution in fdm-agents.
- * @param agent The agent instance to run.
+ * @param agent The compiled LangGraph agent to run.
  * @param input The user input string.
- * @param context Extra context to provide to the agent (e.g. fdm, principalId).
+ * @param context Extra context to provide via config.configurable (e.g. principalId, nmiApiKey).
  * @param posthog Optional PostHog client and distinctId for tracking.
  * @param timeoutMs Maximum milliseconds to wait for the agent to complete (default: 20 minutes). Throws AgentTimeoutError on expiry.
  * @returns The final response and token usage from the agent.
  */
 export async function runOneShotAgent(
-    agent: BaseAgent,
+    agent: StreamableAgentGraph,
     input: string,
     context: Record<string, any> = {},
     posthog?: { client: any; distinctId: string },
     timeoutMs = 20 * 60 * 1000,
 ): Promise<OneShotAgentResult> {
-    const runner = new InMemoryRunner({ agent, appName: "fdm-agents" })
-
-    const stream = runner.runEphemeral({
-        userId: "system",
-        newMessage: {
-            role: "user",
-            parts: [{ text: input }],
-        },
-        stateDelta: context,
-    })
-
-    let finalResponse = ""
-    let inputTokens = 0
-    let outputTokens = 0
-    let totalTokens = 0
-    const toolCalls: string[] = []
-
-    function extractToolCalls(obj: any, visited = new Set<any>()) {
-        if (!obj || typeof obj !== "object" || visited.has(obj)) return
-        visited.add(obj)
-
-        if (Array.isArray(obj)) {
-            for (const item of obj) extractToolCalls(item, visited)
-            return
-        }
-
-        // 1. Check for standard ADK/Gemini function call structure
-        const calls = obj.modelTurn?.parts?.filter((p: any) => !!p.functionCall)
-        if (calls && Array.isArray(calls)) {
-            for (const p of calls) {
-                if (p.functionCall?.name) {
-                    toolCalls.push(p.functionCall.name)
-                }
-            }
-        }
-
-        // 2. Fallback for other potential structures or raw tool calls
-        const rawName = obj.functionCall?.name || obj.toolCall?.name
-        if (typeof rawName === "string") {
-            const cleanName = rawName.replace(/[[\]"]/g, "").trim()
-            if (cleanName) {
-                toolCalls.push(cleanName)
-            }
-        }
-
-        for (const key of Object.keys(obj)) {
-            extractToolCalls(obj[key], visited)
-        }
-    }
+    const abortController = new AbortController()
+    const callbacks = buildCallbacks(posthog, context)
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-    const closeStream = async () => {
-        const iterator = stream as AsyncIterator<unknown> & {
-            return?: () => Promise<unknown>
-        }
-        if (typeof iterator.return === "function") {
-            try {
-                await iterator.return()
-            } catch {
-                // best effort
-            }
-        }
-    }
     const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(() => {
-            void closeStream()
+            abortController.abort()
             reject(new AgentTimeoutError(timeoutMs))
         }, timeoutMs)
     })
 
-    const streamPromise = (async () => {
-        for await (const event of stream) {
-            // Surface model errors immediately instead of silently returning empty string.
-            // When Gemini returns a non-200 (e.g. 400), the LlmAgent emits an event
-            // with errorCode/errorMessage but no content.
-            if (event.errorCode) {
-                throw new Error(
-                    `Gemini API error [${event.errorCode}]: ${event.errorMessage ?? "unknown error"}`,
-                )
-            }
+    const streamPromise = (async (): Promise<OneShotAgentResult> => {
+        let finalResponse = ""
+        let inputTokens = 0
+        let outputTokens = 0
+        const toolCalls: string[] = []
 
-            // Accumulate usage metadata across all events.
-            const usage = event.usageMetadata
-            if (usage) {
-                inputTokens += usage.promptTokenCount ?? 0
-                outputTokens += usage.candidatesTokenCount ?? 0
-                totalTokens += usage.totalTokenCount ?? 0
-            }
+        const stream = (await agent.stream(
+            { messages: [{ role: "user", content: input }] },
+            {
+                configurable: context,
+                streamMode: ["updates", "custom"],
+                signal: abortController.signal,
+                ...(callbacks ? { callbacks } : {}),
+            },
+        )) as AsyncIterable<unknown>
 
-            extractToolCalls(event)
+        for await (const rawChunk of stream) {
+            const chunk = rawChunk as [string, Record<string, any>] | Record<string, any>
+            // streamMode array yields [mode, data] tuples
+            const [mode, data] = Array.isArray(chunk)
+                ? (chunk as [string, Record<string, any>])
+                : (["updates", chunk] as [string, Record<string, any>])
 
-            // Only capture the final text response, not intermediate reasoning or tool calls.
-            if (isFinalResponse(event)) {
-                const text = stringifyContent(event)
-                if (text) {
-                    finalResponse = text
+            if (mode === "updates") {
+                const node = Object.keys(data ?? {})[0]
+                const nodeData = node ? data[node] : data
+
+                if (node === "agent" && Array.isArray(nodeData?.messages)) {
+                    const lastMsg = nodeData.messages.at(-1)
+                    if (isAIMessage(lastMsg)) {
+                        if (lastMsg.usage_metadata) {
+                            inputTokens += lastMsg.usage_metadata.input_tokens ?? 0
+                            outputTokens += lastMsg.usage_metadata.output_tokens ?? 0
+                        }
+                        if (lastMsg.tool_calls?.length) {
+                            for (const tc of lastMsg.tool_calls) {
+                                if (tc.name) toolCalls.push(tc.name)
+                            }
+                        } else {
+                            // No pending tool calls — this is the final response
+                            const content = lastMsg.content
+                            finalResponse =
+                                typeof content === "string"
+                                    ? content
+                                    : JSON.stringify(content)
+                        }
+                    }
+                }
+
+                if (node === "tools" && Array.isArray(nodeData?.messages)) {
+                    for (const msg of nodeData.messages) {
+                        if (msg?.name && !toolCalls.includes(msg.name)) {
+                            toolCalls.push(msg.name)
+                        }
+                    }
                 }
             }
+            // "custom" mode: progress events from config.writer — consumed by callers
+            // who use the raw stream; ignored here since runOneShotAgent is one-shot.
+        }
+
+        const uniqueToolCalls = [...new Set(toolCalls)]
+        const totalTokens = inputTokens + outputTokens
+
+        return {
+            result: finalResponse,
+            usage: totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
+            toolCalls: uniqueToolCalls,
         }
     })()
 
     try {
-        await Promise.race([streamPromise, timeoutPromise])
+        return await Promise.race([streamPromise, timeoutPromise])
     } finally {
         clearTimeout(timeoutHandle)
-    }
-
-    const uniqueToolCalls = [...new Set(toolCalls)]
-
-    // PostHog LLM Tracking
-    if (posthog?.client) {
-        try {
-            posthog.client.capture({
-                distinctId: posthog.distinctId,
-                event: "$ai_generation",
-                properties: {
-                    agent_name: agent.name,
-                    b_id_farm: context.b_id_farm,
-                    principal_id: context.principalId,
-                    strategies: context.strategies,
-                    additional_context: context.additionalContext,
-                    $ai_tools_called: uniqueToolCalls,
-                    $ai_tool_call_count: uniqueToolCalls.length,
-                },
-            })
-        } catch (e) {
-            console.error("Failed to log to PostHog:", e)
-        }
-    }
-
-    return {
-        result: finalResponse,
-        usage:
-            totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
-        toolCalls: uniqueToolCalls,
     }
 }

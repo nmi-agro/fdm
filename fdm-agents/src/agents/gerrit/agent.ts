@@ -1,31 +1,13 @@
-import { Agent } from "@google/adk"
+import { createReactAgent } from "@langchain/langgraph/prebuilt"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
 
-/**
- * Creates the Fertilizer Application Planner Agent: "Gerrit"
- * @param fdm The non-serializable FDM database instance.
- * @param apiKey Optional API key for the Gemini model.
- * @param model Optional model name override.
- */
-export function createFertilizerPlannerAgent(
-    fdm: FdmType,
-    apiKey?: string,
-    model?: string,
-) {
-    const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
-    if (!resolvedKey) {
-        throw new Error(
-            "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
-        )
-    }
-    return new Agent({
-        name: "Gerrit",
-        description:
-            "Expert Dutch Agronomist for fertilizer application planning.",
-        model: createDefaultModel(resolvedKey, model),
-        instruction: `You are Gerrit, an expert Dutch Agronomist.
+export const GERRIT_NAME = "Gerrit"
+export const GERRIT_DESCRIPTION =
+    "Expert Dutch Agronomist for fertilizer application planning."
+
+export const GERRIT_INSTRUCTION = `You are Gerrit, an expert Dutch Agronomist.
 Your goal is to create a legally compliant and agronomically sound fertilizer plan for the entire farm.
 
 IMPORTANT CONSTRAINTS:
@@ -151,7 +133,28 @@ TOOL RETURN SHAPES:
   Use "proposedDose.p_dose_nw" (werkzame stikstof, kg/ha) to compare against "advice.d_n_req" — this is the agronomically correct workable-N value. "proposedDose.p_dose_n" is total N and is provided for reference only.
   If "isValid" is false, you MUST read the "complianceIssues" array. It contains exact string messages explaining which hard legal norms you violated (and by how many kg). You must adjust your plan to fix these issues in the next iteration.
   You should also read "agronomicWarnings", which provides hints on soft limits (like organic matter balance, nitrogen targets, or filling manure space). Use these warnings to refine your plan to better match the requested strategies.
-`,
+`
+
+/**
+ * Creates the Fertilizer Application Planner Agent: "Gerrit"
+ * @param fdm The non-serializable FDM database instance.
+ * @param apiKey Optional API key for the Gemini model.
+ * @param model Optional model name override.
+ */
+export function createFertilizerPlannerAgent(
+    fdm: FdmType,
+    apiKey?: string,
+    model?: string,
+): ReturnType<typeof createReactAgent> {
+    const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
+    if (!resolvedKey) {
+        throw new Error(
+            "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
+        )
+    }
+    return createReactAgent({
+        llm: createDefaultModel(resolvedKey, model),
         tools: createFertilizerPlannerTools(fdm),
+        stateModifier: GERRIT_INSTRUCTION,
     })
 }

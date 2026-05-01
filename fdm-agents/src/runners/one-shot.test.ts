@@ -1,213 +1,210 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import { runOneShotAgent } from "./one-shot"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { AgentTimeoutError, runOneShotAgent } from "./one-shot"
 
-// Mock ADK
-const mockRunEphemeral = vi.fn()
-vi.mock("@google/adk", async (importOriginal) => {
-    const actual = await importOriginal<any>()
+function makeAIMessage(
+    content: string,
+    opts: { tool_calls?: any[]; usage_metadata?: any } = {},
+): any {
     return {
-        ...actual,
-        InMemoryRunner: class {
-            runEphemeral = mockRunEphemeral
-        },
-        isFinalResponse: vi.fn(),
-        stringifyContent: vi.fn(),
+        _getType: () => "ai",
+        content,
+        tool_calls: opts.tool_calls ?? [],
+        usage_metadata: opts.usage_metadata ?? null,
     }
-})
+}
 
-import { isFinalResponse, stringifyContent } from "@google/adk"
+function makeToolMessage(name: string): any {
+    return { _getType: () => "tool", name }
+}
+
+function createMockAgent(chunks: Array<[string, Record<string, any>]>): any {
+    return {
+        stream: vi.fn().mockResolvedValue(
+            (async function* () {
+                for (const chunk of chunks) {
+                    yield chunk
+                }
+            })(),
+        ),
+    }
+}
+
+function createThrowingAgent(error: Error): any {
+    return {
+        stream: vi.fn().mockResolvedValue(
+            (async function* () {
+                throw error
+                // biome-ignore lint: unreachable but needed for generator type
+                yield ["updates", {}] as any
+            })(),
+        ),
+    }
+}
 
 describe("runOneShotAgent", () => {
-    const mockAgent = { name: "TestAgent" } as any
     const mockPosthog = {
         client: { capture: vi.fn() },
         distinctId: "user-123",
     }
 
-    beforeEach(() => {
+    afterEach(() => {
         vi.clearAllMocks()
     })
 
     it("should return the final response on success", async () => {
-        const mockEvent = { type: "final" }
-        const mockStream = (async function* () {
-            yield mockEvent
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-        ;(isFinalResponse as any).mockReturnValue(true)
-        ;(stringifyContent as any).mockReturnValue("The plan is ready.")
-
-        const result = await runOneShotAgent(mockAgent, "Generate plan")
+        const agent = createMockAgent([
+            [
+                "updates",
+                { agent: { messages: [makeAIMessage("The plan is ready.")] } },
+            ],
+        ])
+        const result = await runOneShotAgent(agent, "Generate plan")
         expect(result.result).toBe("The plan is ready.")
     })
 
-    it("should throw an error if the model returns an error code", async () => {
-        const mockStream = (async function* () {
-            yield { errorCode: "400", errorMessage: "Bad Request" }
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-
-        await expect(
-            runOneShotAgent(mockAgent, "Generate plan"),
-        ).rejects.toThrow("Gemini API error [400]: Bad Request")
-    })
-
-    it("should capture an event in PostHog if provided", async () => {
-        const mockEvent = { type: "final" }
-        const mockStream = (async function* () {
-            yield mockEvent
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-        ;(isFinalResponse as any).mockReturnValue(true)
-        ;(stringifyContent as any).mockReturnValue("Done.")
-
-        const context = {
-            principalId: "p-1",
-            b_id_farm: "f-1",
-            strategies: { isOrganic: true },
-            additionalContext: "None",
-        }
-
-        await runOneShotAgent(mockAgent, "Generate plan", context, mockPosthog)
-
-        expect(mockPosthog.client.capture).toHaveBeenCalledWith({
-            distinctId: "user-123",
-            event: "$ai_generation",
-            properties: expect.objectContaining({
-                agent_name: "TestAgent",
-                b_id_farm: "f-1",
-                principal_id: "p-1",
-                strategies: { isOrganic: true },
-                additional_context: "None",
-            }),
-        })
-    })
-
-    it("should accumulate usage metadata from stream events", async () => {
-        const mockStream = (async function* () {
-            yield {
-                usageMetadata: {
-                    promptTokenCount: 100,
-                    candidatesTokenCount: 50,
-                    totalTokenCount: 150,
-                },
-            }
-            yield { type: "final" }
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-        ;(isFinalResponse as any).mockImplementation(
-            (e: any) => e.type === "final",
+    it("should throw when the stream throws an error", async () => {
+        const agent = createThrowingAgent(
+            new Error("Gemini API error [400]: Bad Request"),
         )
-        ;(stringifyContent as any).mockReturnValue("Done.")
+        await expect(runOneShotAgent(agent, "Generate plan")).rejects.toThrow(
+            "Gemini API error [400]: Bad Request",
+        )
+    })
 
-        const result = await runOneShotAgent(mockAgent, "Generate plan")
+    it("should pass context to agent.stream when posthog is provided", async () => {
+        const agent = createMockAgent([
+            ["updates", { agent: { messages: [makeAIMessage("Done.")] } }],
+        ])
+        const context = { principalId: "p-1", b_id_farm: "f-1" }
+        const result = await runOneShotAgent(agent, "Generate plan", context, mockPosthog)
+        // Verify the run succeeded and context was passed through
+        expect(result.result).toBe("Done.")
+        expect(agent.stream).toHaveBeenCalledWith(
+            expect.objectContaining({ messages: expect.any(Array) }),
+            expect.objectContaining({ configurable: context }),
+        )
+    })
+
+    it("should accumulate usage metadata across multiple LLM calls", async () => {
+        const agent = createMockAgent([
+            [
+                "updates",
+                {
+                    agent: {
+                        messages: [
+                            makeAIMessage("", {
+                                tool_calls: [{ name: "getFarmFields" }],
+                                usage_metadata: {
+                                    input_tokens: 100,
+                                    output_tokens: 50,
+                                },
+                            }),
+                        ],
+                    },
+                },
+            ],
+            [
+                "updates",
+                {
+                    agent: {
+                        messages: [
+                            makeAIMessage("Done.", {
+                                usage_metadata: {
+                                    input_tokens: 20,
+                                    output_tokens: 30,
+                                },
+                            }),
+                        ],
+                    },
+                },
+            ],
+        ])
+        const result = await runOneShotAgent(agent, "Generate plan")
         expect(result.usage).toEqual({
-            inputTokens: 100,
-            outputTokens: 50,
-            totalTokens: 150,
+            inputTokens: 120,
+            outputTokens: 80,
+            totalTokens: 200,
         })
     })
 
     it("should return null usage when no usage metadata is present", async () => {
-        const mockStream = (async function* () {
-            yield { type: "final" }
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-        ;(isFinalResponse as any).mockReturnValue(true)
-        ;(stringifyContent as any).mockReturnValue("Done.")
-
-        const result = await runOneShotAgent(mockAgent, "Generate plan")
+        const agent = createMockAgent([
+            ["updates", { agent: { messages: [makeAIMessage("Done.")] } }],
+        ])
+        const result = await runOneShotAgent(agent, "Generate plan")
         expect(result.usage).toBeNull()
     })
 
-    it("should extract tool call names from modelTurn.parts", async () => {
-        const mockStream = (async function* () {
-            yield {
-                modelTurn: {
-                    parts: [
-                        { functionCall: { name: "getFarmFields" } },
-                        { text: "thinking..." },
-                    ],
-                },
-            }
-            yield { type: "final" }
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-        ;(isFinalResponse as any).mockImplementation(
-            (e: any) => e.type === "final",
-        )
-        ;(stringifyContent as any).mockReturnValue("Done.")
-
-        const result = await runOneShotAgent(mockAgent, "Generate plan")
+    it("should extract tool call names from tools node updates", async () => {
+        const agent = createMockAgent([
+            [
+                "updates",
+                { tools: { messages: [makeToolMessage("getFarmFields")] } },
+            ],
+            ["updates", { agent: { messages: [makeAIMessage("Done.")] } }],
+        ])
+        const result = await runOneShotAgent(agent, "Generate plan")
         expect(result.toolCalls).toContain("getFarmFields")
     })
 
-    it("should extract tool call names from direct functionCall property", async () => {
-        const mockStream = (async function* () {
-            yield { functionCall: { name: "simulateFarmPlan" } }
-            yield { type: "final" }
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-        ;(isFinalResponse as any).mockImplementation(
-            (e: any) => e.type === "final",
-        )
-        ;(stringifyContent as any).mockReturnValue("Done.")
-
-        const result = await runOneShotAgent(mockAgent, "Generate plan")
+    it("should also capture tool call names from agent node tool_calls", async () => {
+        const agent = createMockAgent([
+            [
+                "updates",
+                {
+                    agent: {
+                        messages: [
+                            makeAIMessage("", {
+                                tool_calls: [{ name: "simulateFarmPlan" }],
+                            }),
+                        ],
+                    },
+                },
+            ],
+            ["updates", { agent: { messages: [makeAIMessage("Done.")] } }],
+        ])
+        const result = await runOneShotAgent(agent, "Generate plan")
         expect(result.toolCalls).toContain("simulateFarmPlan")
     })
 
     it("should deduplicate repeated tool call names", async () => {
-        const mockStream = (async function* () {
-            yield { functionCall: { name: "searchFertilizers" } }
-            yield { functionCall: { name: "searchFertilizers" } }
-            yield { type: "final" }
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-        ;(isFinalResponse as any).mockImplementation(
-            (e: any) => e.type === "final",
-        )
-        ;(stringifyContent as any).mockReturnValue("Done.")
-
-        const result = await runOneShotAgent(mockAgent, "Generate plan")
+        const agent = createMockAgent([
+            [
+                "updates",
+                { tools: { messages: [makeToolMessage("searchFertilizers")] } },
+            ],
+            [
+                "updates",
+                { tools: { messages: [makeToolMessage("searchFertilizers")] } },
+            ],
+            ["updates", { agent: { messages: [makeAIMessage("Done.")] } }],
+        ])
+        const result = await runOneShotAgent(agent, "Generate plan")
         expect(
             result.toolCalls?.filter((n) => n === "searchFertilizers"),
         ).toHaveLength(1)
     })
 
-    it("should handle PostHog capture failure gracefully", async () => {
-        const failingPosthog = {
-            client: {
-                capture: vi.fn().mockImplementation(() => {
-                    throw new Error("PostHog unavailable")
-                }),
-            },
-            distinctId: "user-1",
+    it("should throw AgentTimeoutError when the agent exceeds timeoutMs", async () => {
+        vi.useFakeTimers()
+        const neverYieldingAgent = {
+            stream: vi.fn().mockResolvedValue(
+                (async function* () {
+                    await new Promise(() => {})
+                    yield ["updates", {}] as any
+                })(),
+            ),
         }
-
-        const mockStream = (async function* () {
-            yield { type: "final" }
-        })()
-
-        mockRunEphemeral.mockReturnValue(mockStream)
-        ;(isFinalResponse as any).mockReturnValue(true)
-        ;(stringifyContent as any).mockReturnValue("Done.")
-
-        // Should not throw even though PostHog throws
-        const result = await runOneShotAgent(
-            mockAgent,
+        const runPromise = runOneShotAgent(
+            neverYieldingAgent,
             "Generate plan",
             {},
-            failingPosthog,
+            undefined,
+            5000,
         )
-        expect(result.result).toBe("Done.")
+        vi.advanceTimersByTime(6000)
+        await expect(runPromise).rejects.toThrow(AgentTimeoutError)
+        vi.useRealTimers()
     })
 })
+

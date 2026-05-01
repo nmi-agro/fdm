@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { type Context, FunctionTool } from "@google/adk"
+import { tool } from "@langchain/core/tools"
+import type { RunnableConfig } from "@langchain/core/runnables"
 import {
     aggregateNormFillingsToFarmLevel,
     aggregateNormsToFarmLevel,
@@ -61,17 +62,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
     /**
      * Tool for fetching the list of fields for a farm.
      */
-    const getFarmFieldsTool = new FunctionTool({
-        name: "getFarmFields",
-        description:
-            "Get the list of all fields belonging to the farm for the current year, including their main cultivation details and key soil properties (agricultural soil type, texture, groundwater class, organic matter).",
-        parameters: z.object({
-            b_id_farm: z.string().describe("The ID of the farm"),
-            calendar: z.string().describe('The calendar year (e.g. "2025")'),
-        }),
-        execute: async (input: any, context?: Context) => {
-            if (!context) throw new Error("Context is required")
-            const principalId = context.state.get("principalId") as PrincipalId
+    const getFarmFieldsTool = tool(
+        async (input: any, config?: RunnableConfig) => {
+            const principalId = config?.configurable?.principalId as PrincipalId
             const timeframe = {
                 start: new Date(`${input.calendar}-01-01`),
                 end: new Date(`${input.calendar}-12-31`),
@@ -130,25 +123,25 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             // Must return an object (not array) — Gemini rejects array as top-level function_response.
             return { fields: fieldDetails }
         },
-    })
+        {
+            name: "getFarmFields",
+            description:
+                "Get the list of all fields belonging to the farm for the current year, including their main cultivation details and key soil properties (agricultural soil type, texture, groundwater class, organic matter).",
+            schema: z.object({
+                b_id_farm: z.string().describe("The ID of the farm"),
+                calendar: z.string().describe('The calendar year (e.g. "2025")'),
+            }),
+        },
+    )
 
     /**
      * Tool for fetching nutrient advice (N, P, K and others).
      */
-    const getFarmNutrientAdviceTool = new FunctionTool({
-        name: "getFarmNutrientAdvice",
-        description:
-            "Get the full nutrient advice (N, P, K, Ca, Mg, S, micro-nutrients) for specific fields based on soil samples and crop rotation.",
-        parameters: z.object({
-            b_ids: z
-                .array(z.string())
-                .describe("List of field IDs (b_id) to fetch advice for"),
-        }),
-        execute: async (input: any, context?: Context) => {
-            if (!context) throw new Error("Context is required")
-            const principalId = context.state.get("principalId") as PrincipalId
+    const getFarmNutrientAdviceTool = tool(
+        async (input: any, config?: RunnableConfig) => {
+            const principalId = config?.configurable?.principalId as PrincipalId
             const calendar =
-                (context.state.get("calendar") as string) ||
+                (config?.configurable?.calendar as string) ||
                 new Date().getFullYear().toString()
             const timeframe = {
                 start: new Date(`${calendar}-01-01`),
@@ -156,7 +149,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             }
 
             // nmiApiKey is injected server-side via context state — never exposed to the LLM.
-            const nmiApiKey = context.state.get("nmiApiKey") as
+            const nmiApiKey = config?.configurable?.nmiApiKey as
                 | string
                 | undefined
             const args = input as AdviceArgs
@@ -194,26 +187,26 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             // Must return an object (not array) — Gemini rejects array as top-level function_response.
             return { advicePerField: results }
         },
-    })
+        {
+            name: "getFarmNutrientAdvice",
+            description:
+                "Get the full nutrient advice (N, P, K, Ca, Mg, S, micro-nutrients) for specific fields based on soil samples and crop rotation.",
+            schema: z.object({
+                b_ids: z
+                    .array(z.string())
+                    .describe("List of field IDs (b_id) to fetch advice for"),
+            }),
+        },
+    )
 
     /**
      * Tool for fetching legal norms (Animal Manure N, Workable N, Phosphate).
      */
-    const getFarmLegalNormsTool = new FunctionTool({
-        name: "getFarmLegalNorms",
-        description:
-            "Get the three legal limits (Animal Manure Nitrogen, Total Workable Nitrogen, and Phosphate) for fields.",
-        parameters: z.object({
-            b_id_farm: z.string().describe("The ID of the farm"),
-            b_ids: z
-                .array(z.string())
-                .describe("List of field IDs (b_id) to check"),
-        }),
-        execute: async (input: any, context?: Context) => {
-            if (!context) throw new Error("Context is required")
-            const principalId = context.state.get("principalId") as PrincipalId
+    const getFarmLegalNormsTool = tool(
+        async (input: any, config?: RunnableConfig) => {
+            const principalId = config?.configurable?.principalId as PrincipalId
             const calendar =
-                (context.state.get("calendar") as string) ||
+                (config?.configurable?.calendar as string) ||
                 new Date().getFullYear().toString()
 
             const normFunctions = createFunctionsForNorms("NL", calendar as any)
@@ -251,32 +244,26 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             // Must return an object (not array) — Gemini rejects array as top-level function_response.
             return { normsPerField: results }
         },
-    })
+        {
+            name: "getFarmLegalNorms",
+            description:
+                "Get the three legal limits (Animal Manure Nitrogen, Total Workable Nitrogen, and Phosphate) for fields.",
+            schema: z.object({
+                b_id_farm: z.string().describe("The ID of the farm"),
+                b_ids: z
+                    .array(z.string())
+                    .describe("List of field IDs (b_id) to check"),
+            }),
+        },
+    )
 
     /**
      * Tool for searching fertilizers in the farm inventory.
      */
-    const searchFertilizersTool = new FunctionTool({
-        name: "searchFertilizers",
-        description:
-            "Search for fertilizer products available in the farm inventory (including custom ones) by name or type.",
-        parameters: z.object({
-            b_id_farm: z
-                .string()
-                .describe("The ID of the farm to search inventory for"),
-            query: z
-                .string()
-                .optional()
-                .describe('Search term (e.g. "pig manure", "KAS")'),
-            p_type: z
-                .enum(["manure", "mineral", "compost"])
-                .optional()
-                .describe("Filter by fertilizer type"),
-        }),
-        execute: async (input: any, context?: Context) => {
-            if (!context) throw new Error("Context is required")
+    const searchFertilizersTool = tool(
+        async (input: any, config?: RunnableConfig) => {
             const args = input as SearchArgs
-            const principalId = context.state.get("principalId") as PrincipalId
+            const principalId = config?.configurable?.principalId as PrincipalId
 
             if (!fdm || !principalId || !args.b_id_farm) {
                 return { fertilizers: [] }
@@ -329,85 +316,37 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 })),
             }
         },
-    })
+        {
+            name: "searchFertilizers",
+            description:
+                "Search for fertilizer products available in the farm inventory (including custom ones) by name or type.",
+            schema: z.object({
+                b_id_farm: z
+                    .string()
+                    .describe("The ID of the farm to search inventory for"),
+                query: z
+                    .string()
+                    .optional()
+                    .describe('Search term (e.g. "pig manure", "KAS")'),
+                p_type: z
+                    .enum(["manure", "mineral", "compost"])
+                    .optional()
+                    .describe("Filter by fertilizer type"),
+            }),
+        },
+    )
 
     /**
      * Tool for simulating farm plans and checking compliance across all 3 norms and organic matter balance.
      */
-    const simulateFarmPlanTool = new FunctionTool({
-        name: "simulateFarmPlan",
-        description:
-            "Simulates a proposed fertilizer plan to check compliance against all 3 legal norms, organic matter balance, and nitrogen balance.",
-        parameters: z.object({
-            b_id_farm: z.string().describe("The ID of the farm"),
-            strategies: z
-                .object({
-                    isOrganic: z.boolean().optional(),
-                    fillManureSpace: z.boolean().optional(),
-                    reduceAmmoniaEmissions: z.boolean().optional(),
-                    keepNitrogenBalanceBelowTarget: z.boolean().optional(),
-                    workOnRotationLevel: z.boolean().optional(),
-                    isDerogation: z.boolean().optional(),
-                })
-                .optional()
-                .describe("User strategies to enforce in warnings"),
-            fields: z
-                .array(
-                    z.object({
-                        b_id: z.string().describe("The field ID"),
-                        b_lu_catalogue: z
-                            .string()
-                            .describe(
-                                "The crop catalogue ID (e.g., nl_265) for this field",
-                            ),
-                        b_lu_name: z
-                            .string()
-                            .describe(
-                                "The name of the crop (e.g., Wintertarwe)",
-                            ),
-                        b_lu_start: z
-                            .string()
-                            .describe(
-                                "The sowing or start date of the crop (YYYY-MM-DD)",
-                            ),
-                        applications: z.array(
-                            z.object({
-                                p_id_catalogue: z.string(),
-                                p_app_amount: z
-                                    .number()
-                                    .describe("Application amount in kg/ha"),
-                                p_app_amount_unit: z
-                                    .string()
-                                    .optional()
-                                    .describe(
-                                        "The unit of the application amount (e.g., m3/ha, kg/ha, l/ha, t/ha)",
-                                    ),
-                                p_app_amount_display: z
-                                    .number()
-                                    .optional()
-                                    .describe(
-                                        "The numeric application amount (unit is carried separately in p_app_amount_unit)",
-                                    ),
-                                p_app_date: z
-                                    .string()
-                                    .describe(
-                                        "Application date in YYYY-MM-DD format",
-                                    ),
-                                p_app_method: z.string().optional(),
-                            }),
-                        ),
-                    }),
-                )
-                .describe("Proposed applications per field"),
-        }),
-        execute: async (input: any, context?: Context) => {
-            if (!context) throw new Error("Context is required")
+    const simulateFarmPlanTool = tool(
+        async (input: any, config?: RunnableConfig) => {
             const args = input as SimulationArgs
-            const principalId = context.state.get("principalId") as PrincipalId
+            const principalId = config?.configurable?.principalId as PrincipalId
             const calendar =
-                (context.state.get("calendar") as string) ||
+                (config?.configurable?.calendar as string) ||
                 new Date().getFullYear().toString()
-            const nmiApiKey = context.state.get("nmiApiKey") as
+            const nmiApiKey = config?.configurable?.nmiApiKey as
                 | string
                 | undefined
 
@@ -998,26 +937,83 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 agronomicWarnings,
             }
         },
-    })
+        {
+            name: "simulateFarmPlan",
+            description:
+                "Simulates a proposed fertilizer plan to check compliance against all 3 legal norms, organic matter balance, and nitrogen balance.",
+            schema: z.object({
+                b_id_farm: z.string().describe("The ID of the farm"),
+                strategies: z
+                    .object({
+                        isOrganic: z.boolean().optional(),
+                        fillManureSpace: z.boolean().optional(),
+                        reduceAmmoniaEmissions: z.boolean().optional(),
+                        keepNitrogenBalanceBelowTarget: z.boolean().optional(),
+                        workOnRotationLevel: z.boolean().optional(),
+                        isDerogation: z.boolean().optional(),
+                    })
+                    .optional()
+                    .describe("User strategies to enforce in warnings"),
+                fields: z
+                    .array(
+                        z.object({
+                            b_id: z.string().describe("The field ID"),
+                            b_lu_catalogue: z
+                                .string()
+                                .describe(
+                                    "The crop catalogue ID (e.g., nl_265) for this field",
+                                ),
+                            b_lu_name: z
+                                .string()
+                                .describe(
+                                    "The name of the crop (e.g., Wintertarwe)",
+                                ),
+                            b_lu_start: z
+                                .string()
+                                .describe(
+                                    "The sowing or start date of the crop (YYYY-MM-DD)",
+                                ),
+                            applications: z.array(
+                                z.object({
+                                    p_id_catalogue: z.string(),
+                                    p_app_amount: z
+                                        .number()
+                                        .describe("Application amount in kg/ha"),
+                                    p_app_amount_unit: z
+                                        .string()
+                                        .optional()
+                                        .describe(
+                                            "The unit of the application amount (e.g., m3/ha, kg/ha, l/ha, t/ha)",
+                                        ),
+                                    p_app_amount_display: z
+                                        .number()
+                                        .optional()
+                                        .describe(
+                                            "The numeric application amount (unit is carried separately in p_app_amount_unit)",
+                                        ),
+                                    p_app_date: z
+                                        .string()
+                                        .describe(
+                                            "Application date in YYYY-MM-DD format",
+                                        ),
+                                    p_app_method: z.string().optional(),
+                                }),
+                            ),
+                        }),
+                    )
+                    .describe("Proposed applications per field"),
+            }),
+        },
+    )
 
     /**
      * Tool for loading crop-specific fertilizer preferences from the skill reference files.
      * Returns guidance for the crops present on the farm, loaded from individual per-crop
      * markdown files so only relevant content is returned.
      */
-    const getCropFertilizerGuideTool = new FunctionTool({
-        name: "getCropFertilizerGuide",
-        description:
-            "Load crop-specific fertilizer preferences and restrictions for the crops on this farm. Call this once after getFarmFields, passing all unique b_lu_catalogue values found on the farm. Returns agronomic rules (preferred products, split timings, nutrients to avoid) per crop group.",
-        parameters: z.object({
-            b_lu_catalogues: z
-                .array(z.string())
-                .describe(
-                    "List of unique crop catalogue codes present on the farm (e.g. ['nl_2014', 'nl_259', 'nl_265'])",
-                ),
-        }),
-        execute: async (rawInput) => {
-            const input = rawInput as { b_lu_catalogues: string[] }
+    const getCropFertilizerGuideTool = tool(
+        async (rawInput: { b_lu_catalogues: string[] }) => {
+            const input = rawInput
             const catalogues = input.b_lu_catalogues.filter(Boolean)
             const currentDir = dirname(fileURLToPath(import.meta.url))
             // Resolve the skills base path — works for both bundled dist and source/test.
@@ -1067,7 +1063,19 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 matchedCrops: [...filesToLoad],
             }
         },
-    })
+        {
+            name: "getCropFertilizerGuide",
+            description:
+                "Load crop-specific fertilizer preferences and restrictions for the crops on this farm. Call this once after getFarmFields, passing all unique b_lu_catalogue values found on the farm. Returns agronomic rules (preferred products, split timings, nutrients to avoid) per crop group.",
+            schema: z.object({
+                b_lu_catalogues: z
+                    .array(z.string())
+                    .describe(
+                        "List of unique crop catalogue codes present on the farm (e.g. ['nl_2014', 'nl_259', 'nl_265'])",
+                    ),
+            }),
+        },
+    )
 
     return [
         getFarmFieldsTool,

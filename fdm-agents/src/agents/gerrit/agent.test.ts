@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest"
-import { createFertilizerPlannerAgent } from "./agent"
+import {
+    GERRIT_DESCRIPTION,
+    GERRIT_INSTRUCTION,
+    GERRIT_NAME,
+    createFertilizerPlannerAgent,
+} from "./agent"
 
 // Mock models and tools to avoid external calls
 vi.mock("../../models/default", () => ({
@@ -11,22 +16,16 @@ vi.mock("../../tools/fertilizer-planner", () => ({
 }))
 
 describe("Gerrit Agent", () => {
-    it("should create a Fertilizer Planner Agent with correct name", () => {
-        const mockFdm = {} as any
-        const agent = createFertilizerPlannerAgent(mockFdm, "fake-api-key")
-
-        expect(agent.name).toBe("Gerrit")
-        expect(agent.description).toContain("Dutch Agronomist")
+    it("should have the correct name and description", () => {
+        expect(GERRIT_NAME).toBe("Gerrit")
+        expect(GERRIT_DESCRIPTION).toContain("Dutch Agronomist")
     })
 
     it("should have instruction containing critical constraints", () => {
-        const mockFdm = {} as any
-        const agent = createFertilizerPlannerAgent(mockFdm, "fake-api-key")
-
-        expect(agent.instruction).toContain("LEGAL NORMS")
-        expect(agent.instruction).toContain("BUFFER STRIPS")
-        expect(agent.instruction).toContain("ROTATION LEVEL")
-        expect(agent.instruction).toContain("SECURITY & CONTEXT BOUNDARIES")
+        expect(GERRIT_INSTRUCTION).toContain("LEGAL NORMS")
+        expect(GERRIT_INSTRUCTION).toContain("BUFFER STRIPS")
+        expect(GERRIT_INSTRUCTION).toContain("ROTATION LEVEL")
+        expect(GERRIT_INSTRUCTION).toContain("SECURITY & CONTEXT BOUNDARIES")
     })
 
     it("should throw when no API key is provided and GEMINI_API_KEY env is not set", () => {
