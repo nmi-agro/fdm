@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck, Loader2 } from "lucide-react"
+import { CircleCheck, Loader2, TriangleAlert } from "lucide-react"
 import { Suspense, use } from "react"
 import { NavLink } from "react-router"
 import {
@@ -139,13 +139,13 @@ function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
                         </span>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <CircleAlert
+                                <TriangleAlert
                                     className="h-4 w-4 text-orange-500 mx-auto"
                                     aria-hidden="true"
                                 />
                             </TooltipTrigger>
                             <TooltipContent>
-                                Fout: {error || "Geen data"}
+                                {error || "Geen data"}
                             </TooltipContent>
                         </Tooltip>
                     </>
