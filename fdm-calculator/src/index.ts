@@ -55,6 +55,31 @@ export type {
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"
 export { getDoseForField } from "./doses/get-dose-field"
+export type {
+    DataCompleteness,
+    DynaComputeInput,
+    DynaDailyPoint,
+    DynaFertilizerAdvice,
+    DynaNitrogenBalance,
+    DynaResult,
+    NSupplyComputeInput,
+    NSupplyDataPoint,
+    NSupplyMethod,
+    NSupplyResult,
+} from "./mineralization"
+export {
+    assessDataCompleteness,
+    buildDynaRequest,
+    buildNSupplyRequest,
+    dynaResponseDataSchema,
+    getDyna,
+    getMainCultivation,
+    getNSupply,
+    methodRequirements,
+    NmiApiError,
+    requestDyna,
+    requestNSupply,
+} from "./mineralization"
 export {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,

@@ -14,15 +14,11 @@ import {
     type UserChoiceMap,
 } from "@nmi-agro/fdm-rvo/types"
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
-import { AlertTriangle, CloudDownload, Loader2 } from "lucide-react"
-import { useFeatureFlagEnabled } from "posthog-js/react"
+import { AlertTriangle, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
-    type ActionFunctionArgs,
     data,
     Form,
-    type LoaderFunctionArgs,
-    type MetaFunction,
     redirect,
     useActionData,
     useLoaderData,
@@ -71,12 +67,13 @@ import {
     generateAuthUrl,
     processRvoImport,
 } from "~/lib/rvo.server"
+import type { Route } from "./+types/farm.$b_id_farm.$calendar.rvo"
 
-export const meta: MetaFunction = ({ params }) => {
+export const meta: Route.MetaFunction = ({ params }) => {
     return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
     const { b_id_farm, calendar: yearString } = params
     if (!b_id_farm) {
         throw new Response("Farm ID is required", { status: 400 })
@@ -225,8 +222,6 @@ export default function RvoImportReviewPage() {
     const navigation = useNavigation()
     const location = useLocation()
 
-    const isRvoEnabled = useFeatureFlagEnabled("rvo")
-
     const isImporting =
         navigation.state === "submitting" &&
         navigation.formData?.get("intent") === "start_import"
@@ -297,39 +292,6 @@ export default function RvoImportReviewPage() {
         { add: 0, remove: 0, update: 0, close: 0 },
     )
     const hasChanges = Object.values(changes).some((count) => count > 0)
-
-    if (isRvoEnabled === false) {
-        return (
-            <SidebarInset>
-                <Header
-                    action={{
-                        to: `/farm/${b_id_farm}`,
-                        label: "Terug naar bedrijf",
-                        disabled: false,
-                    }}
-                >
-                    <HeaderFarm b_id_farm={b_id_farm} farmOptions={farms} />
-                </Header>
-                <FarmContent>
-                    <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
-                        <div className="bg-primary/10 border border-primary/20 p-8 rounded-xl">
-                            <CloudDownload className="w-12 h-12 text-primary mx-auto mb-4" />
-                            <h2 className="text-2xl font-bold text-foreground mb-2">
-                                Percelen ophalen bij RVO is nog niet beschikbaar
-                                voor je.
-                            </h2>
-                            <p className="text-muted-foreground mb-6">
-                                Deze functionaliteit is momenteel in
-                                ontwikkeling en is nog niet voor iedereen
-                                beschikbaar. Neem contact op met Ondersteuning
-                                als je hier vragen over hebt.
-                            </p>
-                        </div>
-                    </div>
-                </FarmContent>
-            </SidebarInset>
-        )
-    }
 
     if (error) {
         return (
@@ -568,6 +530,7 @@ export default function RvoImportReviewPage() {
                                 </div>
                                 <div className="w-full">
                                     <RvoImportReviewTable
+                                        calendar={calendar}
                                         data={rvoImportReviewData}
                                         userChoices={userChoices}
                                         onChoiceChange={handleChoiceChange}
@@ -582,7 +545,7 @@ export default function RvoImportReviewPage() {
     )
 }
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params }: Route.ActionArgs) {
     const { b_id_farm, calendar: yearString } = params
     if (!b_id_farm || !yearString) {
         throw data("Farm ID is required", {

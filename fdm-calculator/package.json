@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-calculator",
     "private": false,
-    "version": "0.13.3",
+    "version": "0.14.0",
     "description": "Calculate various insights based on the Farm Data Model",
     "license": "MIT",
     "homepage": "https://github.com/nmi-agro/fdm",
@@ -31,7 +31,7 @@
         "db:generate": "npx drizzle-kit generate",
         "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
         "dotenvx": "dotenvx",
-        "build": "dotenvx run -- rollup -c && tsc -p tsconfig.build.json",
+        "build": "tsdown",
         "check-types": "tsc --noEmit",
         "preinstall": "npx only-allow pnpm",
         "preview": "vite preview",
@@ -43,19 +43,16 @@
         "@nmi-agro/fdm-core": "workspace:^",
         "date-fns": "^4.1.0",
         "decimal.js": "^10.6.0",
-        "geotiff": "^3.0.5"
+        "geotiff": "^3.0.5",
+        "zod": "^4.3.6"
     },
     "devDependencies": {
         "@dotenvx/dotenvx": "catalog:",
         "@nmi-agro/fdm-core": "workspace:*",
-        "@rollup/plugin-commonjs": "catalog:",
-        "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
-        "postgres": "^3.4.8",
-        "rollup": "catalog:",
-        "rollup-plugin-esbuild": "catalog:",
-        "rollup-plugin-polyfill-node": "catalog:",
+        "postgres": "^3.4.9",
+        "tsdown": "catalog:",
         "typedoc": "catalog:",
         "typedoc-plugin-missing-exports": "catalog:",
         "typescript": "catalog:",
@@ -67,5 +64,5 @@
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
     },
-    "packageManager": "pnpm@10.33.0"
+    "packageManager": "pnpm@10.33.2"
 }

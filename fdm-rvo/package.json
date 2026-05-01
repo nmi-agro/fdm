@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-rvo",
     "private": false,
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "RVO Synchronization Logic for FDM",
     "homepage": "https://svenvw.github.io/fdm/",
     "repository": {
@@ -37,6 +37,12 @@
                 "types": "./dist/utils.d.ts",
                 "default": "./dist/utils.js"
             }
+        },
+        "./shapefile": {
+            "import": {
+                "types": "./dist/shapefile.d.ts",
+                "default": "./dist/shapefile.js"
+            }
         }
     },
     "files": [
@@ -45,7 +51,7 @@
     "scripts": {
         "coverage": "vitest run --coverage",
         "document": "typedoc",
-        "build": "rollup -c && tsc -p tsconfig.build.json",
+        "build": "tsdown",
         "check-types": "tsc --noEmit",
         "test": "vitest run",
         "test-coverage": "vitest run --coverage"
@@ -53,21 +59,21 @@
     "dependencies": {
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/rvo-connector": "^2.2.3",
-        "@turf/area": "^7.3.4",
-        "@turf/bbox": "^7.3.4",
-        "@turf/helpers": "^7.3.4",
-        "@turf/intersect": "^7.3.4",
-        "@turf/union": "^7.3.4",
+        "@types/geojson": "^7946.0.16",
+        "@turf/area": "^7.3.5",
+        "@turf/bbox": "^7.3.5",
+        "@turf/helpers": "^7.3.5",
+        "@turf/intersect": "^7.3.5",
+        "@turf/union": "^7.3.5",
+        "proj4": "^2.20.4",
+        "shpjs": "^6.2.0",
         "zod": "^4.3.6"
     },
     "devDependencies": {
         "@nmi-agro/fdm-core": "workspace:*",
-        "@rollup/plugin-commonjs": "catalog:",
-        "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
-        "rollup": "catalog:",
-        "rollup-plugin-esbuild": "catalog:",
+        "tsdown": "catalog:",
         "typedoc": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
@@ -75,7 +81,7 @@
     "engines": {
         "node": ">=24.0.0"
     },
-    "packageManager": "pnpm@10.33.0",
+    "packageManager": "pnpm@10.33.2",
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
     }

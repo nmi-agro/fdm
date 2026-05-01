@@ -5,7 +5,7 @@ import {
     calculationCache as calculationCacheTable,
     calculationErrors as calculationErrorsTable,
 } from "./db/schema-calculator"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
 
 /**
@@ -60,7 +60,7 @@ export function getCachedCalculation<T_Output>(
         .limit(1)
 
     // Process the query result: if a row is found, return its 'result' field, otherwise return null.
-    return result.then((rows: { result: T_Output }[]) =>
+    return result.then((rows) =>
         rows?.length ? (rows[0].result as T_Output) : null,
     )
 }

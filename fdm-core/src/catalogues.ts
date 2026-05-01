@@ -1,3 +1,7 @@
+import type {
+    CatalogueFertilizer,
+    CatalogueFertilizerItem,
+} from "@nmi-agro/fdm-data"
 import {
     getCultivationCatalogue,
     getFertilizersCatalogue,
@@ -6,11 +10,11 @@ import {
 } from "@nmi-agro/fdm-data"
 import { and, eq, inArray } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmType } from "./fdm.types"
+import type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
 
 /**
  * Gets all enabled fertilizer catalogues for a farm.
@@ -489,10 +493,17 @@ async function syncFertilizerCatalogue(fdm: FdmType) {
     const baatCatalogue = await getFertilizersCatalogue("baat")
     const fertilizersCatalogue = [...srmCatalogue, ...baatCatalogue]
 
-    await fdm.transaction(async (tx: FdmServerType) => {
+    return syncFertilizerCatalogueArray(fdm, fertilizersCatalogue)
+}
+
+export async function syncFertilizerCatalogueArray(
+    fdm: FdmType,
+    fertilizersCatalogue: CatalogueFertilizer,
+) {
+    await fdm.transaction(async (tx) => {
         try {
-            for (const item of fertilizersCatalogue) {
-                const hash = await hashFertilizer(item)
+            for (const catalogueItem of fertilizersCatalogue) {
+                const item = await extendCatalogueFertilizer(catalogueItem)
                 const existing = await tx
                     .select({ hash: schema.fertilizersCatalogue.hash })
                     .from(schema.fertilizersCatalogue)
@@ -505,20 +516,17 @@ async function syncFertilizerCatalogue(fdm: FdmType) {
                     .limit(1)
                 if (existing.length === 0) {
                     //add the item if does not exist
-                    await tx.insert(schema.fertilizersCatalogue).values({
-                        ...item,
-                        hash: hash,
-                    })
+                    await tx.insert(schema.fertilizersCatalogue).values(item)
                 } else {
                     // update the hash if it is undefined, null or different
                     if (
                         existing[0].hash === null ||
                         existing[0].hash === undefined ||
-                        existing[0].hash !== hash
+                        existing[0].hash !== item.hash
                     ) {
                         await tx
                             .update(schema.fertilizersCatalogue)
-                            .set({ ...item, hash: hash, updated: new Date() })
+                            .set({ ...item, updated: new Date() })
                             .where(
                                 eq(
                                     schema.fertilizersCatalogue.p_id_catalogue,
@@ -534,10 +542,30 @@ async function syncFertilizerCatalogue(fdm: FdmType) {
     })
 }
 
+/**
+ * Extends a catalogue fertilizer with computed properties and its up-to-date hash
+ *
+ * @param catalogueFertilizer fertilizer out of the catalogue
+ * @returns a fertilizer object, ready for fertilizers_catalogue table insertion/update
+ */
+async function extendCatalogueFertilizer(
+    catalogueFertilizer: CatalogueFertilizerItem,
+) {
+    const fertWithComputedProps = {
+        ...catalogueFertilizer,
+        p_app_amount_unit: (catalogueFertilizer.p_app_amount_unit ??
+            "kg/ha") as AppAmountUnit,
+    }
+    return {
+        ...fertWithComputedProps,
+        hash: await hashFertilizer(fertWithComputedProps),
+    }
+}
+
 async function syncCultivationCatalogue(fdm: FdmType) {
     const brpCatalogue = await getCultivationCatalogue("brp")
 
-    await fdm.transaction(async (tx: FdmServerType) => {
+    await fdm.transaction(async (tx) => {
         try {
             for (const item of brpCatalogue) {
                 const hash = await hashCultivation(item)

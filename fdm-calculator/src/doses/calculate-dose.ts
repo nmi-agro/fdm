@@ -1,4 +1,4 @@
-import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
+import type { BaseFertilizerApplication, Fertilizer } from "@nmi-agro/fdm-core"
 import type { Dose, NumericDoseKeys } from "./d"
 
 /**
@@ -6,8 +6,9 @@ import type { Dose, NumericDoseKeys } from "./d"
  *
  * This function processes an array of fertilizer applications, matching each with its corresponding fertilizer definition to calculate the dose of each nutrient. The nutrient rates are converted from grams or milligrams per kilogram to kilograms per kilogram and then multiplied by the application amount to determine the dose in kg/ha.
  *
- * @param applications An array of fertilizer application objects, each specifying the fertilizer `p_id` and the applied amount `p_app_amount` in kg/ha.
- * @param fertilizers An array of fertilizer objects, providing the nutrient rates for each fertilizer. Nutrient rates are expected to be non-negative.
+ * @param input - An object containing:
+ *   - `applications`: An array of fertilizer application objects, each specifying the fertilizer `p_id` and the applied amount `p_app_amount` in kg/ha.
+ *   - `fertilizers`: An array of fertilizer objects, providing the nutrient rates for each fertilizer. Nutrient rates are expected to be non-negative.
  * @returns An object containing:
  *   - `dose`: An object with the total cumulative doses for all nutrients in kg/ha.
  *   - `applications`: An array of objects, each detailing the individual nutrient doses for each fertilizer application.
@@ -38,7 +39,7 @@ export function calculateDose({
     applications,
     fertilizers,
 }: {
-    applications: FertilizerApplication[]
+    applications: BaseFertilizerApplication[]
     fertilizers: Fertilizer[]
 }): { dose: Dose; applications: Dose[] } {
     if (applications.some((app) => (app.p_app_amount ?? 0) < 0)) {

@@ -277,6 +277,15 @@ export default function SignIn() {
         }
     }, [rawRedirectTo, redirectTo, setSearchParams])
 
+    useEffect(() => {
+        const error = searchParams.get("error")
+        if (error === "microsoft_no_email") {
+            setSocialSignInError(
+                "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen.",
+            )
+        }
+    }, [searchParams])
+
     const socialProviderNewUserCallbackUrl = modifySearchParams(
         "/welcome",
         (searchParams) => searchParams.set("redirectTo", redirectTo),
@@ -1296,14 +1305,11 @@ export default function SignIn() {
                                 </h3>
                                 <p className="text-muted-foreground">
                                     Start direct door uw percelen in te lezen
-                                    via een RVO shapefile. Uw percelen staan
-                                    binnen enkele seconden correct op de kaart,
-                                    inclusief het gewas.
-                                </p>
-                                <p className="text-muted-foreground text-sm">
-                                    Binnenkort heeft u ook de mogelijkheid
-                                    direct vanuit RVO percelen te importeren met
-                                    behulp van eHerkenning.
+                                    via een RVO shapefile of direct te
+                                    importeren vanuit RVO met behulp van
+                                    eHerkenning. Uw percelen staan daarmee
+                                    direct goed in de applicatie, inclusief het
+                                    gewas.
                                 </p>
                             </div>
 

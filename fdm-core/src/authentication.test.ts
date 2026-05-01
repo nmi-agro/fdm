@@ -8,7 +8,7 @@ import {
     updateUserProfile,
 } from "./authentication"
 import * as authNSchema from "./db/schema-authn"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
 import { createId } from "./id"
 

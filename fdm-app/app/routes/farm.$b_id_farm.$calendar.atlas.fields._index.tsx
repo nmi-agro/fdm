@@ -1,5 +1,5 @@
 import { getFields } from "@nmi-agro/fdm-core"
-import { simplify } from "@turf/turf"
+import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import maplibregl from "maplibre-gl"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -235,16 +235,11 @@ export default function FarmAtlasFieldsBlock() {
                 </FieldsSourceNotClickable>
             )}
 
-            <div className="fields-panel grid gap-4 w-[350px]">
+            <div className="fields-panel">
                 <FieldsPanelHover
                     zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                    layer={fieldsAvailableId}
-                    layerExclude={id}
+                    layer={[fieldsAvailableId, id]}
                     clickRedirectsToDetailsPage={true}
-                />
-                <FieldsPanelHover
-                    zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                    layer={id}
                 />
             </div>
         </MapGL>

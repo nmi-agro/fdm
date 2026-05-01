@@ -10,6 +10,7 @@ import {
     BookOpenText,
     ChevronUp,
     CloudDownload,
+    CloudUpload,
     DownloadIcon,
     FileStack,
     Home,
@@ -25,7 +26,6 @@ import {
     Trash2,
     UserRoundCheck,
 } from "lucide-react"
-import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState } from "react"
 import {
     data,
@@ -156,7 +156,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmDashboardIndex() {
     const loaderData = useLoaderData<typeof loader>()
-    const isRvoEnabled = useFeatureFlagEnabled("rvo")
 
     const calendar = useCalendarStore((state) => state.calendar)
     const setCalendar = useCalendarStore((state) => state.setCalendar)
@@ -328,7 +327,7 @@ export default function FarmDashboardIndex() {
                                         </Card>
                                     </NavLink>
                                     <NavLink
-                                        to={`${calendar}/balance/nitrogen`}
+                                        to={`${calendar}/balance/organic-matter`}
                                     >
                                         <Card className="transition-all hover:shadow-md h-full">
                                             <CardHeader>
@@ -451,46 +450,84 @@ export default function FarmDashboardIndex() {
                                             </CardHeader>
                                         </Card>
                                     </NavLink>
-                                    {loaderData.isRvoConfigured &&
-                                        isRvoEnabled !== false && (
-                                            <NavLink
-                                                to={`${calendar}/rvo`}
-                                                className={cn(
-                                                    !loaderData.farmWritePermission &&
-                                                        "pointer-events-none opacity-50",
-                                                )}
-                                                aria-disabled={
-                                                    !loaderData.farmWritePermission ||
-                                                    undefined
-                                                }
-                                                tabIndex={
-                                                    !loaderData.farmWritePermission
-                                                        ? -1
-                                                        : undefined
-                                                }
-                                            >
-                                                <Card className="transition-all hover:shadow-md h-full">
-                                                    <CardHeader>
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="rounded-lg bg-muted p-3">
-                                                                <CloudDownload className="h-6 w-6 text-primary" />
-                                                            </div>
-                                                            <div>
-                                                                <CardTitle>
-                                                                    Ophalen bij
-                                                                    RVO
-                                                                </CardTitle>
-                                                                <CardDescription>
-                                                                    Importeer
-                                                                    percelen
-                                                                    vanuit RVO.
-                                                                </CardDescription>
-                                                            </div>
+                                    {loaderData.isRvoConfigured && (
+                                        <NavLink
+                                            to={`${calendar}/rvo`}
+                                            className={cn(
+                                                !loaderData.farmWritePermission &&
+                                                    "pointer-events-none opacity-50",
+                                            )}
+                                            aria-disabled={
+                                                !loaderData.farmWritePermission ||
+                                                undefined
+                                            }
+                                            tabIndex={
+                                                !loaderData.farmWritePermission
+                                                    ? -1
+                                                    : undefined
+                                            }
+                                        >
+                                            <Card className="transition-all hover:shadow-md h-full">
+                                                <CardHeader>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="rounded-lg bg-muted p-3">
+                                                            <CloudDownload className="h-6 w-6 text-primary" />
                                                         </div>
-                                                    </CardHeader>
-                                                </Card>
-                                            </NavLink>
+                                                        <div>
+                                                            <CardTitle>
+                                                                Ophalen bij RVO
+                                                            </CardTitle>
+                                                            <CardDescription>
+                                                                Importeer
+                                                                percelen vanuit
+                                                                RVO.
+                                                            </CardDescription>
+                                                        </div>
+                                                    </div>
+                                                </CardHeader>
+                                            </Card>
+                                        </NavLink>
+                                    )}
+                                    <NavLink
+                                        to={`/farm/${loaderData.b_id_farm}/${calendar}/upload`}
+                                        className={cn(
+                                            !loaderData.farmWritePermission &&
+                                                "pointer-events-none opacity-50",
                                         )}
+                                        aria-disabled={
+                                            !loaderData.farmWritePermission ||
+                                            undefined
+                                        }
+                                        tabIndex={
+                                            !loaderData.farmWritePermission
+                                                ? -1
+                                                : undefined
+                                        }
+                                    >
+                                        <Card className="transition-all hover:shadow-md h-full">
+                                            <CardHeader>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="rounded-lg bg-muted p-3">
+                                                        <CloudUpload className="h-6 w-6 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle>
+                                                            RVO Shapefile
+                                                            uploaden
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            Importeer nieuwe of
+                                                            bijgewerkte percelen
+                                                            door een shapefile
+                                                            van RVO Mijn
+                                                            Percelen te
+                                                            uploaden.
+                                                        </CardDescription>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                        </Card>
+                                    </NavLink>
                                     <NavLink to={`${calendar}/field/new`}>
                                         <Card className="transition-all hover:shadow-md h-full">
                                             <CardHeader>

@@ -3,7 +3,7 @@ ARG PROJECT=@nmi-agro/fdm-app
 
 # Base stage
 FROM node:${NODE_VERSION}-alpine AS base
-RUN apk update && apk add --no-cache libc6-compat
+RUN apk update && apk add --no-cache libc6-compat git
 RUN npm install -g pnpm turbo
 WORKDIR /app
 
@@ -33,6 +33,11 @@ COPY --from=pruner /app/tsconfig*.json ./
 # Build the project
 RUN pnpm build
 
+# Create a self-contained production deployment bundle.
+# pnpm deploy resolves all production deps (including git-hosted packages) from
+# the already-built node_modules, so no --prod re-install is needed in the runner.
+RUN pnpm --filter=@nmi-agro/fdm-app deploy --prod --legacy /app/deployed
+
 # Production runner stage
 FROM node:${NODE_VERSION}-alpine AS runner
 WORKDIR /app
@@ -43,13 +48,11 @@ RUN addgroup --system --gid 1001 nodejs && \
     apk add --no-cache libc6-compat curl && \
     npm install -g pnpm
 
-# Copy package.json files for workspace installation
-COPY --from=pruner --chown=user:nodejs /app/out/json/ .
-COPY --from=pruner --chown=user:nodejs /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=pruner --chown=user:nodejs /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
-
-# Install production dependencies
-RUN pnpm install --frozen-lockfile
+# Copy production node_modules from the deploy bundle.
+# This avoids re-fetching and re-building git-hosted packages (like
+# @geomatico/maplibre-cog-protocol) which fail when tsc is unavailable in --prod mode.
+COPY --from=builder --chown=user:nodejs /app/deployed/node_modules ./fdm-app/node_modules
+COPY --from=builder --chown=user:nodejs /app/deployed/package.json ./fdm-app/package.json
 
 # Copy built artifacts
 # App build
@@ -57,10 +60,6 @@ COPY --from=builder --chown=user:nodejs /app/fdm-app/build ./fdm-app/build
 COPY --from=builder --chown=user:nodejs /app/fdm-app/app ./fdm-app/app
 COPY --from=builder --chown=user:nodejs /app/fdm-app/public ./fdm-app/public
 COPY --from=builder --chown=user:nodejs /app/fdm-app/instrument.server.mjs ./fdm-app/instrument.server.mjs
-# Workspace dependencies builds
-COPY --from=builder --chown=user:nodejs /app/fdm-core/dist ./fdm-core/dist
-COPY --from=builder --chown=user:nodejs /app/fdm-data/dist ./fdm-data/dist
-COPY --from=builder --chown=user:nodejs /app/fdm-calculator/dist ./fdm-calculator/dist
 
 # Set production environment
 ENV NODE_ENV=production

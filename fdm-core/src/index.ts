@@ -2,7 +2,7 @@
  * A library to interact with the Farm Data Model using PostgreSQL as backend
  *
  * @remarks
- * The `fdm` defines the {@link fdmLocal} and {@link fdmServer} class to store, retrieve and update the Farm Data Model
+ * The `fdm` defines the {@link createFdmServer} and {@link FdmServerType} to store, retrieve and update the Farm Data Model
  *
  * Created by Nutriënten Management Instituut (www.nmi-agro.nl)
  * Source code available at https://github.com/nmi-agro/fdm
@@ -12,7 +12,7 @@
  * @packageDocumentation
  */
 
-/** {@inheritDoc fdmServer} */
+/** {@inheritDoc createFdmServer} */
 import * as fdmSchema from "./db/schema"
 
 export type { FdmAuth } from "./authentication"
@@ -23,7 +23,7 @@ export {
     updateUserProfile,
 } from "./authentication"
 export { checkPermission } from "./authorization"
-export type { PrincipalId } from "./authorization.d"
+export type { PrincipalId } from "./authorization.types"
 export {
     getCachedCalculation,
     setCachedCalculation,
@@ -60,7 +60,7 @@ export type {
     Cultivation,
     CultivationCatalogue,
     CultivationPlan,
-} from "./cultivation.d"
+} from "./cultivation.types"
 export {
     acquiringMethodOptions,
     gwlClassesOptions,
@@ -93,9 +93,9 @@ export {
     updateRoleOfInvitationForFarm,
     updateRoleOfPrincipalAtFarm,
 } from "./farm"
-export type { FdmType } from "./fdm.d"
+export type { FdmType } from "./fdm.types"
 export { createFdmServer } from "./fdm-server"
-export type { FdmServerType } from "./fdm-server.d"
+export type { FdmServerType } from "./fdm-server.types"
 export {
     addFertilizer,
     addFertilizerApplication,
@@ -114,22 +114,29 @@ export {
     updateFertilizerFromCatalogue,
 } from "./fertilizer"
 export type {
+    BaseFertilizerApplication,
     Fertilizer,
     FertilizerApplication,
     FertilizerCatalogue,
     FertilizerParameterDescription,
     FertilizerParameterDescriptionItem,
     FertilizerParameters,
-} from "./fertilizer.d"
+} from "./fertilizer.types"
+export type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
+export {
+    fromKgPerHa,
+    toKgPerHa,
+} from "./fertilizer-application-unit-conversion"
 export {
     addField,
+    determineIfFieldIsBuffer,
     getField,
     getFields,
     listAvailableAcquiringMethods,
     removeField,
     updateField,
 } from "./field"
-export type { Field } from "./field.d"
+export type { Field } from "./field.types"
 export {
     getGrazingIntention,
     getGrazingIntentions,
@@ -153,7 +160,7 @@ export type {
     HarvestableAnalysis,
     HarvestParameters,
     HarvestParametersDefault,
-} from "./harvest.d"
+} from "./harvest.types"
 export {
     acceptInvitation,
     autoAcceptInvitationsForNewUser,
@@ -173,7 +180,7 @@ export {
     listOrganicCertifications,
     removeOrganicCertification,
 } from "./organic"
-export type { OrganicCertification } from "./organic.d"
+export type { OrganicCertification } from "./organic.types"
 export { lookupPrincipal } from "./principal"
 export {
     addSoilAnalysis,
@@ -191,6 +198,6 @@ export type {
     SoilAnalysis,
     SoilParameterDescription,
     SoilParameters,
-} from "./soil.d"
+} from "./soil.types"
 export type { Timeframe } from "./timeframe.d"
 export { fdmSchema }

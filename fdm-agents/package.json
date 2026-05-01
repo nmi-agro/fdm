@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-agents",
     "private": false,
-    "version": "0.2.1",
+    "version": "0.3.0",
     "description": "AI Agent for Fertilizer Planning",
     "license": "MIT",
     "type": "module",
@@ -14,33 +14,34 @@
             "import": "./dist/index.js"
         }
     },
+    "files": [
+        "dist"
+    ],
     "scripts": {
-        "build": "rollup -c",
+        "build": "tsdown",
         "check-types": "tsc --noEmit",
         "test": "vitest run",
         "test-coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "@google/adk": "^0.6.1",
-        "@google/genai": "^1.48.0",
+        "@google/adk": "^1.1.0",
+        "@google/genai": "^1.50.1",
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/fdm-data": "workspace:^",
-        "posthog-node": "^5.28.9",
-        "zod": "^3.25.76"
+        "posthog-node": "^5.30.8",
+        "zod": "^4.3.6"
+    },
+    "engines": {
+        "node": ">=24.0.0"
     },
     "devDependencies": {
         "@nmi-agro/fdm-calculator": "workspace:*",
         "@nmi-agro/fdm-core": "workspace:*",
         "@nmi-agro/fdm-data": "workspace:*",
-        "@rollup/plugin-commonjs": "catalog:",
-        "@rollup/plugin-json": "catalog:",
-        "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
-        "rollup": "catalog:",
-        "rollup-plugin-dts": "^6.4.1",
-        "rollup-plugin-esbuild": "catalog:",
+        "tsdown": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
     }

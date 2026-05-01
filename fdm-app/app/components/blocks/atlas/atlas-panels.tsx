@@ -1,8 +1,8 @@
 import type { FeatureCollection } from "geojson"
 import throttle from "lodash.throttle"
-import { Check, Info } from "lucide-react"
-import type { MapLibreZoomEvent } from "maplibre-gl"
-import { useCallback, useEffect, useState } from "react"
+import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
+import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
@@ -17,6 +17,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
@@ -27,29 +28,47 @@ export function FieldsPanelHover({
     clickRedirectsToDetailsPage = false,
 }: {
     zoomLevelFields: number
-    layer: string
+    layer: string[] | string
     layerExclude?: string[] | string
     clickRedirectsToDetailsPage?: boolean
 }) {
     const { current: map } = useMap()
     const [panel, setPanel] = useState<React.ReactNode | null>(null)
+    const layerIds = Array.isArray(layer) ? layer : [layer]
+    const excludedLayerIds = layerExclude
+        ? Array.isArray(layerExclude)
+            ? layerExclude
+            : [layerExclude]
+        : []
+    const layerIdsKey = layerIds.join("|")
+    const excludedLayerIdsKey = excludedLayerIds.join("|")
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: effective changes in layer and layerExclude are detected through layerIdsKey and excludedLayerIdsKey
     useEffect(() => {
         function updatePanel(evt: MapMouseEvent | MapLibreZoomEvent) {
             if (map) {
                 // Set message about zoom level
                 const zoom = map.getZoom()
                 if (zoom && zoom > zoomLevelFields) {
-                    if (!map.getStyle() || !map.getLayer(layer)) return
-
+                    if (!map.getStyle()) return
+                    if (!("point" in evt)) {
+                        setPanel(makePanel({}))
+                        return
+                    }
+                    const validLayers = layerIds.filter((l) => map.getLayer(l))
+                    if (validLayers.length === 0) return
                     const features = map.queryRenderedFeatures(evt.point, {
-                        layers: [layer],
+                        layers: validLayers,
                     })
+                    // Layer, whose id is specified last in the layer prop, has the highest priority
+                    features.sort(
+                        (f1, f2) =>
+                            validLayers.indexOf(f2.layer.id) -
+                            validLayers.indexOf(f1.layer.id),
+                    )
 
                     if (layerExclude) {
-                        const layers = Array.isArray(layerExclude)
-                            ? layerExclude
-                            : [layerExclude]
-                        const validLayers = layers.filter((l) =>
+                        const validLayers = excludedLayerIds.filter((l) =>
                             map.getLayer(l),
                         )
 
@@ -61,25 +80,40 @@ export function FieldsPanelHover({
                                 },
                             )
                             if (featuresExclude && featuresExclude.length > 0) {
-                                setPanel(null)
+                                setPanel(makePanel({}))
                                 return
                             }
                         }
                     }
 
-                    if (
-                        features &&
-                        features.length > 0 &&
-                        features[0].properties
-                    ) {
+                    const top = features[0]
+                    if (top?.properties) {
                         setPanel(
-                            <Card className={cn("w-full")}>
+                            makePanel({ layer: top.layer.id, feature: top }),
+                        )
+                    } else {
+                        setPanel(makePanel({}))
+                    }
+
+                    function makePanel({
+                        layer,
+                        feature,
+                    }: {
+                        layer?: string
+                        feature?: MapGeoJSONFeature
+                    }) {
+                        const active = layer && feature
+                        const name = feature
+                            ? layer === "fieldsSaved"
+                                ? feature.properties.b_name
+                                : feature.properties.b_lu_name
+                            : "Naam"
+                        return (
+                            <Card
+                                className={cn("w-full", !active && "invisible")}
+                            >
                                 <CardHeader>
-                                    <CardTitle>
-                                        {layer === "fieldsSaved"
-                                            ? features[0].properties.b_name
-                                            : features[0].properties.b_lu_name}
-                                    </CardTitle>
+                                    <CardTitle>{name}</CardTitle>
                                     <CardDescription>
                                         {layer === "fieldsSaved"
                                             ? `${features[0].properties.b_area} ha`
@@ -90,32 +124,63 @@ export function FieldsPanelHover({
                                                 : "Klik om te verwijderen"}
                                     </CardDescription>
                                 </CardHeader>
-                            </Card>,
+                            </Card>
                         )
-                    } else {
-                        setPanel(null)
                     }
+                } else {
+                    setPanel(null)
                 }
             }
         }
 
-        const throttledUpdatePanel = throttle(updatePanel, 250, {
-            trailing: true,
-        })
+        // Throttle panel updates to not overwhelm React, the rendering thread etc.
+        const throttleInterval = 200
+        const throttledUpdatePanelInner = throttle(
+            updatePanel,
+            throttleInterval,
+            {
+                trailing: true,
+            },
+        )
+
+        // Delay handling of clicks so that if the field selection under the mouse changes we catch it
+        let delayedUpdateTimeout: ReturnType<typeof setTimeout>
+        const delayedUpdatePanel: typeof updatePanel = (e) => {
+            delayedUpdateTimeout = setTimeout(
+                () => throttledUpdatePanelInner(e),
+                throttleInterval,
+            )
+        }
+
+        // Cancels any timed out invocations and tries to invoke again
+        const throttledUpdatePanel: typeof updatePanel = (e) => {
+            clearTimeout(delayedUpdateTimeout)
+            throttledUpdatePanelInner(e)
+        }
 
         if (map) {
             map.on("mousemove", throttledUpdatePanel)
-            map.on("click", updatePanel)
+            map.on("mousedown", delayedUpdatePanel)
             map.on("zoom", throttledUpdatePanel)
-            map.on("load", updatePanel)
+            map.once("load", updatePanel)
             return () => {
                 map.off("mousemove", throttledUpdatePanel)
-                map.off("click", updatePanel)
+                map.off("mousedown", delayedUpdatePanel)
                 map.off("zoom", throttledUpdatePanel)
                 map.off("load", updatePanel)
+
+                // Cancel pending updates
+                clearTimeout(delayedUpdateTimeout)
+                throttledUpdatePanelInner.cancel()
             }
         }
-    }, [map, zoomLevelFields, layer, layerExclude, clickRedirectsToDetailsPage])
+    }, [
+        map,
+        zoomLevelFields,
+        layerIdsKey,
+        excludedLayerIdsKey,
+        clickRedirectsToDetailsPage,
+    ])
 
     return panel
 }
@@ -149,7 +214,7 @@ export function FieldsPanelZoom({
             }
         }
 
-        const throttledUpdatePanel = throttle(updatePanel, 250, {
+        const throttledUpdatePanel = throttle(updatePanel, 200, {
             trailing: true,
         })
 
@@ -179,6 +244,8 @@ export function FieldsPanelSelection({
     const fetcher = useFetcher()
     const { current: map } = useMap()
     const [panel, setPanel] = useState<React.ReactNode | null>(null)
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
+    const scrollRef = useRef<HTMLDivElement>(null)
 
     const isSubmitting = fetcher.state !== "idle"
 
@@ -230,19 +297,18 @@ export function FieldsPanelSelection({
                             }[],
                             feature,
                         ) => {
-                            if (!feature.properties) return acc
+                            const cropField = feature.properties
+                            if (!cropField) return acc
                             const existingCultivation = acc.find(
-                                (c) =>
-                                    c.b_lu_name ===
-                                    feature.properties.b_lu_name,
+                                (c) => c.b_lu_name === cropField.b_lu_name,
                             )
                             if (existingCultivation) {
                                 existingCultivation.count++
                             } else {
                                 acc.push({
-                                    b_lu_name: feature.properties.b_lu_name,
+                                    b_lu_name: cropField.b_lu_name,
                                     b_lu_croprotation:
-                                        feature.properties.b_lu_croprotation,
+                                        cropField.b_lu_croprotation,
                                     count: 1,
                                 })
                             }
@@ -252,45 +318,70 @@ export function FieldsPanelSelection({
                     )
 
                     setPanel(
-                        <Card className={cn("w-full")}>
-                            <CardHeader>
+                        <Card className="w-full flex-initial min-h-0 flex flex-col gap-4">
+                            <CardHeader className="pb-0">
                                 <CardTitle>Percelen</CardTitle>
                                 <CardDescription>
                                     {fieldCountText}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="grid gap-4">
-                                <div>
-                                    {cultivations.map((cultivation, _index) => (
-                                        // let cultivationCountText = `${cultivation.count + 1} percelen`
+                            <CardContent
+                                ref={scrollContainerRef}
+                                className="p-0 relative flex-initial min-h-0 overflow-hidden flex items-stretch group"
+                            >
+                                {/* Top scroll indicator */}
+                                <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-center pointer-events-none opacity-0 transition-opacity duration-200 group-data-[scroll-start]:opacity-100">
+                                    <Separator />
+                                    <ChevronUp className="h-4 w-4 text-muted-foreground my-1" />
+                                </div>
 
-                                        <div
-                                            key={cultivation.b_lu_name}
-                                            className="mb-2 grid grid-cols-[25px_1fr] items-start pb-2 last:mb-0 last:pb-0"
-                                        >
-                                            <span
-                                                className="flex h-2 w-2 translate-y-1 rounded-full"
-                                                style={{
-                                                    backgroundColor:
-                                                        getCultivationColor(
-                                                            cultivation.b_lu_croprotation,
-                                                        ),
-                                                }}
-                                            />
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-medium leading-none">
-                                                    {cultivation.b_lu_name}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {`${cultivation.count} percelen`}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div
+                                    ref={scrollRef}
+                                    className="overflow-y-auto"
+                                >
+                                    <div className="px-6 py-4 space-y-4">
+                                        {cultivations.map(
+                                            (cultivation, _index) => (
+                                                // let cultivationCountText = `${cultivation.count + 1} percelen`
+
+                                                <div
+                                                    key={cultivation.b_lu_name}
+                                                    className="grid grid-cols-[25px_1fr] items-start"
+                                                >
+                                                    <span
+                                                        className="flex h-2 w-2 translate-y-1 rounded-full"
+                                                        style={{
+                                                            backgroundColor:
+                                                                getCultivationColor(
+                                                                    cultivation.b_lu_croprotation,
+                                                                ),
+                                                        }}
+                                                    />
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-medium leading-none">
+                                                            {
+                                                                cultivation.b_lu_name
+                                                            }
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {`${cultivation.count} percelen`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Bottom scroll indicator */}
+                                <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center pointer-events-none opacity-0 transition-opacity duration-200 group-data-[scroll-end]:opacity-100">
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground my-1" />
+                                    <Separator />
                                 </div>
                             </CardContent>
                             <CardFooter>
                                 <Button
+                                    className="w-full"
                                     onClick={() => submitSelectedFields(fields)}
                                     disabled={isSubmitting}
                                 >
@@ -357,6 +448,44 @@ export function FieldsPanelSelection({
         continueTo,
         numFieldsSaved,
     ])
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: refs will change when the panel changes
+    useEffect(() => {
+        const scrollElement = scrollRef.current
+        const scrollContainerElement = scrollContainerRef.current
+        if (!scrollElement || !scrollContainerElement) return
+
+        function handleScroll(
+            scrollElement: HTMLDivElement,
+            scrollContainerElement: HTMLDivElement,
+        ) {
+            if (scrollElement.scrollTop > 5) {
+                scrollContainerElement.dataset.scrollStart = ""
+            } else {
+                delete scrollContainerElement.dataset.scrollStart
+            }
+
+            if (
+                scrollElement.scrollHeight - scrollElement.scrollTop >
+                5 + scrollElement.offsetHeight
+            ) {
+                scrollContainerElement.dataset.scrollEnd = ""
+            } else {
+                delete scrollContainerElement.dataset.scrollEnd
+            }
+        }
+
+        const handler = () => {
+            handleScroll(scrollElement, scrollContainerElement)
+        }
+
+        const timeout = setTimeout(handler, 100)
+        scrollElement.addEventListener("scroll", handler, { passive: true })
+        return () => {
+            scrollElement.removeEventListener("scroll", handler)
+            clearTimeout(timeout)
+        }
+    }, [panel])
 
     return panel
 }

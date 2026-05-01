@@ -20,9 +20,9 @@ import {
 } from "./cultivation"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmServerType } from "./fdm-server.types"
 import {
     addFertilizer,
     addFertilizerApplication,
@@ -1582,6 +1582,7 @@ describe("Cultivation Data Model", () => {
                 b_id_farm,
                 {
                     p_app_method_options: null,
+                    p_app_amount_unit: undefined,
                     p_name_nl,
                     p_name_en,
                     p_description,

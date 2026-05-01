@@ -11,6 +11,7 @@ import {
     timestamp,
     uniqueIndex,
 } from "drizzle-orm/pg-core"
+import { APP_AMOUNT_UNITS } from "../fertilizer-application-unit-conversion"
 import { geometry, numericCasted } from "./schema-custom-types"
 
 // Define postgres schema
@@ -77,11 +78,7 @@ export const fieldAcquiring = fdmSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_id, table.b_id_farm] }),
-            },
-        ]
+        return [primaryKey({ columns: [table.b_id, table.b_id_farm] })]
     },
 )
 
@@ -111,24 +108,15 @@ export const fields = fdmSchema.table(
 export type fieldsTypeSelect = typeof fields.$inferSelect
 export type fieldsTypeInsert = typeof fields.$inferInsert
 
-export const fieldDiscarding = fdmSchema.table(
-    "field_discarding",
-    {
-        b_id: text()
-            .notNull()
-            .references(() => fields.b_id),
-        b_end: timestamp({ withTimezone: true }),
-        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
-        updated: timestamp({ withTimezone: true }),
-    },
-    (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_id] }),
-            },
-        ]
-    },
-)
+export const fieldDiscarding = fdmSchema.table("field_discarding", {
+    b_id: text()
+        .primaryKey()
+        .notNull()
+        .references(() => fields.b_id),
+    b_end: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+})
 
 export type fieldDiscardingTypeSelect = typeof fieldDiscarding.$inferSelect
 export type fieldDiscardingTypeInsert = typeof fieldDiscarding.$inferInsert
@@ -183,6 +171,7 @@ export const applicationMethodEnum = fdmSchema.enum(
     "p_app_method",
     applicationMethodOptions.map((x) => x.value) as [string, ...string[]],
 )
+
 export const fertilizerApplication = fdmSchema.table(
     "fertilizer_applying",
     {
@@ -284,6 +273,10 @@ export const typeRvoEnum = fdmSchema.enum(
     "p_type_rvo",
     typeRvoOptions.map((x) => x.value) as [string, ...string[]],
 )
+export const typeApplicationAmountUnitsEnum = fdmSchema.enum(
+    "p_app_amount_unit",
+    APP_AMOUNT_UNITS.map((x) => x.value) as [string, ...string[]],
+)
 
 // Define fertilizers_catalogue table
 export const fertilizersCatalogue = fdmSchema.table(
@@ -295,6 +288,9 @@ export const fertilizersCatalogue = fdmSchema.table(
         p_name_en: text(),
         p_description: text(),
         p_app_method_options: applicationMethodEnum().array(),
+        p_app_amount_unit: typeApplicationAmountUnitsEnum()
+            .notNull()
+            .default("kg/ha"),
         p_dm: numericCasted(),
         p_density: numericCasted(),
         p_om: numericCasted(),
@@ -405,11 +401,7 @@ export const cultivationStarting = fdmSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_id, table.b_lu] }),
-            },
-        ]
+        return [primaryKey({ columns: [table.b_id, table.b_lu] })]
     },
 )
 
@@ -523,14 +515,13 @@ export const harvestableSampling = fdmSchema.table(
     },
     (table) => {
         return [
-            {
-                pk: primaryKey({
-                    columns: [
-                        table.b_id_harvestable,
-                        table.b_id_harvestable_analysis,
-                    ],
-                }),
-            },
+            primaryKey({
+                name: "harvestable_sampling_pk",
+                columns: [
+                    table.b_id_harvestable,
+                    table.b_id_harvestable_analysis,
+                ],
+            }),
         ]
     },
 )
@@ -594,25 +585,16 @@ export type cultivationHarvestingTypeInsert =
     typeof cultivationHarvesting.$inferInsert
 
 // Define cultivation ending table
-export const cultivationEnding = fdmSchema.table(
-    "cultivation_ending",
-    {
-        b_lu: text()
-            .notNull()
-            .references(() => cultivations.b_lu),
-        b_lu_end: timestamp({ withTimezone: true }),
-        m_cropresidue: boolean(),
-        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
-        updated: timestamp({ withTimezone: true }),
-    },
-    (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_lu] }),
-            },
-        ]
-    },
-)
+export const cultivationEnding = fdmSchema.table("cultivation_ending", {
+    b_lu: text()
+        .primaryKey()
+        .notNull()
+        .references(() => cultivations.b_lu),
+    b_lu_end: timestamp({ withTimezone: true }),
+    m_cropresidue: boolean(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+})
 
 export type cultivationEndingTypeSelect = typeof cultivationEnding.$inferSelect
 export type cultivationEndingTypeInsert = typeof cultivationEnding.$inferInsert
@@ -629,6 +611,7 @@ export const soilTypesOptions = [
     { value: "duinzand", label: "Duinzand" },
     { value: "maasklei", label: "Maasklei" },
 ]
+export type SoilTypes = (typeof soilTypesOptions)[number]["value"]
 export const soiltypeEnum = fdmSchema.enum(
     "b_soiltype_agr",
     soilTypesOptions.map((x) => x.value) as [string, ...string[]],
@@ -667,6 +650,7 @@ export const gwlClassesOptions = [
     { value: "VIIIo", label: "VIIIo" },
     { value: "VIIId", label: "VIIId" },
 ]
+export type GwlClasses = (typeof gwlClassesOptions)[number]["value"]
 export const gwlClassEnum = fdmSchema.enum(
     "b_gwl_class",
     gwlClassesOptions.map((x) => x.value) as [string, ...string[]],
@@ -815,11 +799,10 @@ export const derogationApplying = fdmSchema.table(
     },
     (table) => {
         return [
-            {
-                pk: primaryKey({
-                    columns: [table.b_id_farm, table.b_id_derogation],
-                }),
-            },
+            primaryKey({
+                name: "derogation_applying_pk",
+                columns: [table.b_id_farm, table.b_id_derogation],
+            }),
             uniqueIndex("derogation_one_per_farm_per").on(
                 table.b_id_derogation,
             ),
@@ -863,11 +846,9 @@ export const organicCertificationsHolding = fdmSchema.table(
     },
     (table) => {
         return [
-            {
-                pk: primaryKey({
-                    columns: [table.b_id_farm, table.b_id_organic],
-                }),
-            },
+            primaryKey({
+                columns: [table.b_id_farm, table.b_id_organic],
+            }),
             uniqueIndex("organic_one_farm_per_cert").on(table.b_id_organic),
         ]
     },
@@ -890,11 +871,13 @@ export const intendingGrazing = fdmSchema.table(
         created: timestamp({ withTimezone: true }).notNull().defaultNow(),
         updated: timestamp({ withTimezone: true }),
     },
-    (table) => ({
-        pk: primaryKey({
-            columns: [table.b_id_farm, table.b_grazing_intention_year],
-        }),
-    }),
+    (table) => {
+        return [
+            primaryKey({
+                columns: [table.b_id_farm, table.b_grazing_intention_year],
+            }),
+        ]
+    },
 )
 
 export type intendingGrazingTypeSelect = typeof intendingGrazing.$inferSelect
@@ -912,11 +895,7 @@ export const fertilizerCatalogueEnabling = fdmSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => {
-        return [
-            {
-                pk: primaryKey({ columns: [table.b_id_farm, table.p_source] }),
-            },
-        ]
+        return [primaryKey({ columns: [table.b_id_farm, table.p_source] })]
     },
 )
 
@@ -937,13 +916,7 @@ export const cultivationCatalogueSelecting = fdmSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => {
-        return [
-            {
-                pk: primaryKey({
-                    columns: [table.b_id_farm, table.b_lu_source],
-                }),
-            },
-        ]
+        return [primaryKey({ columns: [table.b_id_farm, table.b_lu_source] })]
     },
 )
 

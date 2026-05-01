@@ -22,8 +22,8 @@ import {
     getSoilAnalyses,
     getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
-import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import Decimal from "decimal.js"
+import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import { handleInputCollectionError } from "../shared/errors"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 import type { FieldInput, NitrogenBalanceInput } from "./types"
@@ -112,13 +112,12 @@ async function collectInputForNitrogenBalanceForFarm(
                     timeframe,
                 )
 
-                const fertilizerApplications =
-                    await getFertilizerApplications(
-                        tx,
-                        principal_id,
-                        field.b_id,
-                        timeframe,
-                    )
+                const fertilizerApplications = await getFertilizerApplications(
+                    tx,
+                    principal_id,
+                    field.b_id,
+                    timeframe,
+                )
 
                 return {
                     farmFields,
@@ -187,9 +186,9 @@ async function collectInputForNitrogenBalanceForFarm(
         return dbResult.fieldData.map(
             (entry): FieldInput => ({
                 ...entry,
-                depositionSupply: depositionByField.get(
-                    entry.field.b_id,
-                ) ?? { total: new Decimal(0) },
+                depositionSupply: depositionByField.get(entry.field.b_id) ?? {
+                    total: new Decimal(0),
+                },
             }),
         )
     } catch (error) {
@@ -362,7 +361,12 @@ export async function collectInputForNitrogenBalance(
     b_id?: fdmSchema.fieldsTypeSelect["b_id"],
 ): Promise<NitrogenBalanceInput> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
+            if (!timeframe.start || !timeframe.end) {
+                throw new Error(
+                    "Timeframe start and end must be provided for nitrogen balance calculation",
+                )
+            }
             const cultivationDetails = await getCultivationsFromCatalogue(
                 tx,
                 principal_id,
@@ -385,7 +389,10 @@ export async function collectInputForNitrogenBalance(
                 fields,
                 fertilizerDetails,
                 cultivationDetails,
-                timeFrame: timeframe,
+                timeFrame: {
+                    start: timeframe.start,
+                    end: timeframe.end,
+                },
             }
         })
     } catch (error) {

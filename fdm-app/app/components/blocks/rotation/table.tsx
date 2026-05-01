@@ -1,7 +1,6 @@
 import {
     type ColumnDef,
     type ColumnFiltersState,
-    type FilterFn,
     flexRender,
     getCoreRowModel,
     getExpandedRowModel,
@@ -23,7 +22,7 @@ import { NavLink, useLocation, useParams } from "react-router-dom"
 import { toast as notify } from "sonner"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
-import { useRotationFilterStore } from "@/app/store/field-filter"
+import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useRotationSelectionStore } from "@/app/store/rotation-selection"
 import { Button } from "~/components/ui/button"
 import {
@@ -65,7 +64,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-    const fieldFilter = useRotationFilterStore()
+    const fieldFilter = useFieldFilterStore()
     const isMobile = useIsMobile()
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
         isMobile
@@ -110,7 +109,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
             table
                 .getFilteredRowModel()
                 .rows.map((row) => [
-                    (row.original as CropRow).b_lu_catalogue,
+                    row.original.b_lu_catalogue,
                     Object.fromEntries(
                         row.subRows.map((fieldRow) => [
                             (fieldRow.original as FieldRow).b_id,
@@ -123,7 +122,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
     }
 
     const handleRowClick = (
-        row: Row<TData>,
+        row: Row<MemoizedTData>,
         event: React.MouseEvent<HTMLTableRowElement>,
     ) => {
         // Ignore clicks on interactive elements inside the row
@@ -147,7 +146,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 table.getRow(lastSelectedRowIndex.current)
             if (lastSelectedRow) {
                 const newRowSelection = { ...table.getState().rowSelection }
-                const visibleRows = table.getRowModel().flatRows
+                const visibleRows = table.getRowModel().rows
 
                 // Select or deselect everything in between
                 const mode = lastSelectedRow.getIsSelected()
@@ -161,15 +160,29 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 const start = Math.min(lastIndex, currentIndex)
                 const end = Math.max(lastIndex, currentIndex)
 
+                let somethingSelected = false
+
                 for (let i = start; i <= end; i++) {
                     const r = visibleRows[i]
+                    if ((newRowSelection[r.id] ?? false) !== mode) {
+                        somethingSelected = true
+                    }
                     newRowSelection[r.id] = mode
                     if (r.original.type === "crop" && r.getCanExpand()) {
                         // Also select subrows
                         for (const sub of r.subRows) {
+                            if ((newRowSelection[sub.id] ?? false) !== mode) {
+                                somethingSelected = true
+                            }
                             newRowSelection[sub.id] = mode
+                            if (sub.id === visibleRows[end].id) break
                         }
                     }
+                }
+
+                if (!somethingSelected) {
+                    // Fall back to toggling last clicked row's selection if no visible selection change happens
+                    newRowSelection[row.id] = !row.getIsSelected()
                 }
 
                 handleSelection(newRowSelection)
@@ -183,8 +196,8 @@ export function DataTable<TData extends RotationExtended, TValue>({
     }
 
     const memoizedData = useMemo(() => {
-        return data.map((item) => {
-            const commonTerms = (item as CropRow).b_lu_name
+        return (data as CropRow[]).map((item) => {
+            const commonTerms = item.b_lu_name
             const crop_b_lu_start = new Set<string>()
             const crop_b_lu_end = new Set<string>()
             const crop_b_lu_harvest_date = new Set<string>()
@@ -194,7 +207,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
             const dateTermsArr = (dates: Date[]) =>
                 [...new Set(dates.map(formatDate))].join(" ")
 
-            const fields = (item as CropRow).fields.map((field) => {
+            const fields = item.fields.map((field) => {
                 field.b_lu_start.forEach((v) => {
                     crop_b_lu_start.add(formatDate(v))
                 })
@@ -210,7 +223,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
 
                 return {
                     ...field,
-                    b_lu_catalogue: (item as CropRow).b_lu_catalogue,
+                    b_lu_catalogue: item.b_lu_catalogue,
                     searchTarget: `${field.b_name} ${commonTerms} ${dateTermsArr(field.b_lu_start)} ${dateTermsArr(field.b_lu_end)} ${dateTermsArr(field.harvests.flatMap((harvest) => harvest.b_lu_harvest_date ?? []))}`,
                 }
             })
@@ -222,27 +235,27 @@ export function DataTable<TData extends RotationExtended, TValue>({
             }
         })
     }, [data])
-    type MemoizedTData = (typeof memoizedData)[number]
+    type MemoizedTData =
+        | (typeof memoizedData)[number] // Memoized CropRow
+        | (typeof memoizedData)[number]["fields"][number] // Memoized FieldRow
 
-    const fuzzySearchAndProductivityFilter: FilterFn<MemoizedTData> = (
-        row,
-        _columnId,
-        { searchTerms, showProductiveOnly },
+    const fuzzySearchAndProductivityFilter = (
+        data: MemoizedTData,
+        searchTerms: string,
+        showProductiveOnly: boolean,
     ) => {
         if (
             showProductiveOnly &&
-            !(row.original.type === "crop"
-                ? row.original.fields.some((field) => !field.b_bufferstrip)
-                : !row.original.b_bufferstrip)
+            !(data.type === "crop"
+                ? data.fields.some((field) => !field.b_bufferstrip)
+                : !data.b_bufferstrip)
         ) {
             return false
         }
 
         return (
             searchTerms === "" ||
-            fuzzysort.go(searchTerms, [
-                (row.original as MemoizedTData).searchTarget,
-            ]).length > 0
+            fuzzysort.go(searchTerms, [data.searchTarget]).length > 0
         )
     }
 
@@ -255,9 +268,9 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 crop.fields.every(
                     (field) =>
                         !fuzzySearchAndProductivityFilter(
-                            { original: field } as unknown as Row<TData>,
-                            null,
-                            fieldFilter,
+                            field,
+                            fieldFilter.searchTerms,
+                            fieldFilter.showProductiveOnly,
                         ) || selection[crop.b_lu_catalogue]?.[field.b_id],
                 ),
             ]),
@@ -271,9 +284,9 @@ export function DataTable<TData extends RotationExtended, TValue>({
         ])
     }, [selection, memoizedData, fieldFilter])
 
-    const table = useReactTable({
+    const table = useReactTable<MemoizedTData>({
         data: memoizedData,
-        columns,
+        columns: columns as ColumnDef<MemoizedTData>[],
         getRowId: (row) =>
             row.type === "crop"
                 ? `crop_${row.b_lu_catalogue}`
@@ -285,8 +298,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
         getFilteredRowModel: getFilteredRowModel(),
         getFacetedRowModel: getFacetedRowModel(),
         getExpandedRowModel: getExpandedRowModel(),
-        getSubRows: (row) =>
-            row.type === "crop" ? (row.fields as TData[]) : undefined,
+        getSubRows: (row) => (row.type === "crop" ? row.fields : undefined),
         onColumnVisibilityChange: setColumnVisibility,
         onGlobalFilterChange: (fn) => {
             const result = typeof fn === "function" ? fn(fieldFilter) : fn
@@ -299,7 +311,12 @@ export function DataTable<TData extends RotationExtended, TValue>({
             const selection = typeof fn === "function" ? fn(rowSelection) : fn
             handleSelection(selection)
         },
-        globalFilterFn: fuzzySearchAndProductivityFilter,
+        globalFilterFn: (row) =>
+            fuzzySearchAndProductivityFilter(
+                row.original,
+                fieldFilter.searchTerms,
+                fieldFilter.showProductiveOnly,
+            ),
         // There are nulls in the columns which can cause false assumptions if this is not provided
         // The global filter checks the searchTarget field anyways
         // Filter only one of the columns to gain performance
@@ -316,15 +333,14 @@ export function DataTable<TData extends RotationExtended, TValue>({
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: rowSelection is needed for Oogst button activation
     const selectedCultivations = useMemo(() => {
-        return (
-            table
-                .getFilteredRowModel()
-                .rows.filter(
-                    (row) =>
-                        row.original.type === "crop" &&
-                        (row.getIsSelected() || row.getIsSomeSelected()),
-                ) as Row<CropRow>[]
-        ).map((row) => row.original)
+        return table
+            .getFilteredRowModel()
+            .rows.filter(
+                (row) =>
+                    row.original.type === "crop" &&
+                    (row.getIsSelected() || row.getIsSomeSelected()),
+            )
+            .map((row) => row.original)
     }, [table, rowSelection])
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: rowSelection is needed for Bemesting button activation
@@ -372,12 +388,29 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 searchParams.set("create", "")
         })
     }
+
+    function isFirstFieldRowForACrop(
+        flatRows: Row<MemoizedTData>[],
+        i: number,
+    ) {
+        if (flatRows[i].original.type !== "field") return false
+        return i === 0 || flatRows[i - 1].original.type === "crop"
+    }
+
+    function isLastFieldRowForACrop(flatRows: Row<MemoizedTData>[], i: number) {
+        if (flatRows[i].original.type !== "field") return false
+        return (
+            i + 1 === flatRows.length ||
+            flatRows[i + 1].original.type === "crop"
+        )
+    }
+
     return (
         <div className="w-full flex flex-col h-full min-w-0">
             <div className="sticky top-0 z-5 bg-background py-4 flex flex-col sm:flex-row gap-2 items-center">
                 <Input
                     placeholder="Zoek op gewas, meststof of datum"
-                    value={fieldFilter?.searchTerms ?? ""}
+                    value={fieldFilter.searchTerms ?? ""}
                     onChange={(event) =>
                         fieldFilter.setSearchTerms(event.target.value)
                     }
@@ -539,7 +572,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
+                            table.getRowModel().rows.map((row, i, flatRows) => (
                                 <TableRow
                                     key={row.id}
                                     onClick={(event) =>
@@ -555,16 +588,18 @@ export function DataTable<TData extends RotationExtended, TValue>({
                                               : row.original.type === "field" &&
                                                 "bg-muted/50 hover:bg-muted",
                                         row.original.type === "field" &&
-                                            ((row.getParentRow() as Row<TData>)
-                                                ?.subRows.length === 1
+                                            (row.getParentRow()?.subRows
+                                                .length === 1
                                                 ? "shadow-[inset_0_1em_2em_-2em_#00000088,inset_0_-1em_2em_-2em_#00000088]"
-                                                : row.index === 0
+                                                : isFirstFieldRowForACrop(
+                                                        flatRows,
+                                                        i,
+                                                    )
                                                   ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
-                                                  : row.index ===
-                                                        (
-                                                            row.getParentRow() as Row<TData>
-                                                        )?.subRows.length -
-                                                            1 &&
+                                                  : isLastFieldRowForACrop(
+                                                        flatRows,
+                                                        i,
+                                                    ) &&
                                                     "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
                                     )}
                                 >

@@ -278,35 +278,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                         ),
                 )
 
-                // Get all unique b_lu_start of cultivation
-                const b_lu_start = collectUniqueDates(
-                    cultivationsForCatalogue
-                        .filter((cultivation) => cultivation.b_lu_start != null)
-                        .map((cultivation) => cultivation.b_lu_start),
-                )
-                const b_lu_end = collectUniqueDates(
-                    cultivationsForCatalogue
-                        .filter((cultivation) => cultivation.b_lu_end)
-                        .map((cultivation) => cultivation.b_lu_end),
-                )
-
                 const b_lu = cultivationsForCatalogue.map(
                     (cultivation: { b_lu: string }) => cultivation.b_lu,
                 )
 
-                const cropResidue = fieldsWithThisCultivation.flatMap((field) =>
-                    field.cultivations
-                        .filter(
-                            (cultivation) =>
-                                cultivation.b_lu_catalogue === b_lu_catalogue,
-                        )
-                        .map((cultivation) => cultivation.m_cropresidue),
-                )
-                const aggr_m_crop_residue = cropResidue.every((a) => a)
-                    ? "all"
-                    : cropResidue.some((a) => a)
-                      ? "some"
-                      : "none"
                 const b_lu_eom_residue =
                     cultivationsForCatalogue[0]?.b_lu_eom_residue
                 const b_lu_harvestable =
@@ -317,35 +292,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                     b_lu_catalogue: b_lu_catalogue,
                     b_lu: b_lu,
                     b_lu_name: cultivationsForCatalogue[0]?.b_lu_name ?? "",
-                    b_lu_variety: Object.fromEntries(
-                        Object.entries(
-                            fieldsWithThisCultivation
-                                .flatMap((field) =>
-                                    field.cultivations
-                                        .filter(
-                                            (cultivation) =>
-                                                cultivation.b_lu_catalogue ===
-                                                b_lu_catalogue,
-                                        )
-                                        .flatMap(
-                                            (cultivation: {
-                                                b_lu_variety: string | null
-                                            }) =>
-                                                cultivation.b_lu_variety
-                                                    ? [cultivation.b_lu_variety]
-                                                    : [],
-                                        ),
-                                )
-                                .reduce(
-                                    (counts, variety) => {
-                                        counts[variety] =
-                                            (counts[variety] ?? 0) + 1
-                                        return counts
-                                    },
-                                    {} as Record<string, number>,
-                                ),
-                        ).sort((a, b) => b[1] - a[1]),
-                    ),
                     b_lu_variety_options:
                         cultivationCatalogue
                             .find(
@@ -360,13 +306,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                         cultivationsForCatalogue[0]?.b_lu_croprotation ?? "",
                     b_lu_eom_residue: b_lu_eom_residue,
                     b_lu_harvestable: b_lu_harvestable,
-                    b_lu_start: b_lu_start,
-                    b_lu_end: b_lu_end,
                     calendar: calendar,
-                    m_cropresidue: aggr_m_crop_residue,
-                    b_bufferstrip: fieldsWithThisCultivation.some(
-                        (field) => field.b_bufferstrip,
-                    ),
                     fields: fieldsWithThisCultivation.map((field, _i) => ({
                         // TODO: Define a proper type for field
                         type: "field",
@@ -409,32 +349,31 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                                 }
                             }),
                         b_lu_harvestable: b_lu_harvestable,
-                        b_lu_variety: Object.fromEntries(
-                            Object.entries(
-                                field.cultivations
-                                    .filter(
-                                        (cultivation) =>
-                                            cultivation.b_lu_catalogue ===
-                                            b_lu_catalogue,
-                                    )
-                                    .flatMap(
-                                        (cultivation: {
-                                            b_lu_variety: string | null
-                                        }) =>
-                                            cultivation.b_lu_variety
-                                                ? [cultivation.b_lu_variety]
-                                                : [],
-                                    )
-                                    .reduce(
-                                        (counts, variety) => {
-                                            counts[variety] =
-                                                (counts[variety] ?? 0) + 1
-                                            return counts
-                                        },
-                                        {} as Record<string, number>,
-                                    ),
-                            ).sort((a, b) => b[1] - a[1]),
-                        ),
+                        b_lu_variety: Object.entries(
+                            field.cultivations
+                                .filter(
+                                    (cultivation) =>
+                                        cultivation.b_lu_catalogue ===
+                                        b_lu_catalogue,
+                                )
+                                .flatMap(
+                                    (cultivation: {
+                                        b_lu_variety: string | null
+                                    }) =>
+                                        cultivation.b_lu_variety
+                                            ? [cultivation.b_lu_variety]
+                                            : [],
+                                )
+                                .reduce(
+                                    (counts, variety) => {
+                                        counts[variety] =
+                                            (counts[variety] ?? 0) + 1
+                                        return counts
+                                    },
+                                    {} as Record<string, number>,
+                                ),
+                        ).sort((a, b) => b[1] - a[1]),
+                        b_lu_catalogue: b_lu_catalogue,
                         b_lu_croprotation:
                             cultivationsForCatalogue[0]?.b_lu_croprotation ??
                             "",

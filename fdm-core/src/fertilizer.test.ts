@@ -16,7 +16,7 @@ import * as schema from "./db/schema"
 import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.d"
+import type { FdmServerType } from "./fdm-server.types"
 import {
     addFertilizer,
     addFertilizerApplication,
@@ -108,6 +108,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: ["injection", "incorporation"],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -188,6 +189,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -266,6 +268,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -375,6 +378,7 @@ describe("Fertilizer Data Model", () => {
                             randomAppMethod(),
                         ]),
                     ],
+                    p_app_amount_unit: undefined,
                 })
                 return fert as Parameters<typeof addFertilizerToCatalogue>[3]
             }
@@ -550,6 +554,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -650,6 +655,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en: "Test Fertilizer (EN)",
                     p_description: "This is a test fertilizer",
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -867,6 +873,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en: "Test Fertilizer (EN) 2",
                     p_description: "This is a test fertilizer 2",
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -939,6 +946,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en: "RVO-mapped fertilizer (EN)",
                     p_description: "This is a test fertilizer for RVO mapping",
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 100,
                     p_density: 1,
                     p_om: 0,
@@ -1020,6 +1028,7 @@ describe("Fertilizer Data Model", () => {
     describe("Fertilizer Application", () => {
         let b_id: string
         let p_id: string
+        let p_id_liquid: string
 
         beforeAll(async () => {
             const farmName = "Test Farm"
@@ -1071,6 +1080,7 @@ describe("Fertilizer Data Model", () => {
                     p_name_en,
                     p_description,
                     p_app_method_options: [],
+                    p_app_amount_unit: undefined,
                     p_dm: 37,
                     p_density: 20,
                     p_om: 20,
@@ -1129,13 +1139,83 @@ describe("Fertilizer Data Model", () => {
                 p_acquiring_amount,
                 p_acquiring_date,
             )
+
+            // Fertilizer whose application amount is given in volume per ha
+            const p_id_catalogue_liquid = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                {
+                    p_name_nl,
+                    p_name_en,
+                    p_description,
+                    p_app_method_options: [],
+                    p_app_amount_unit: "l/ha",
+                    p_dm: 37,
+                    p_density: 1.2,
+                    p_om: 20,
+                    p_a: 30,
+                    p_hc: 40,
+                    p_eom: 50,
+                    p_eoc: 60,
+                    p_c_rt: 70,
+                    p_c_of: 80,
+                    p_c_if: 90,
+                    p_c_fr: 100,
+                    p_cn_of: 110,
+                    p_n_rt: 120,
+                    p_n_if: 130,
+                    p_n_of: 140,
+                    p_n_wc: 150,
+                    p_no3_rt: 400,
+                    p_nh4_rt: 410,
+                    p_p_rt: 160,
+                    p_k_rt: 170,
+                    p_mg_rt: 180,
+                    p_ca_rt: 190,
+                    p_ne: 200,
+                    p_s_rt: 210,
+                    p_s_wc: 220,
+                    p_cu_rt: 230,
+                    p_zn_rt: 240,
+                    p_na_rt: 250,
+                    p_si_rt: 260,
+                    p_b_rt: 270,
+                    p_mn_rt: 280,
+                    p_ni_rt: 290,
+                    p_fe_rt: 300,
+                    p_mo_rt: 310,
+                    p_co_rt: 320,
+                    p_as_rt: 330,
+                    p_cd_rt: 340,
+                    p_cr_rt: 350,
+                    p_cr_vi: 360,
+                    p_pb_rt: 370,
+                    p_hg_rt: 380,
+                    p_cl_rt: 390,
+                    p_ef_nh3: 0.8,
+                    p_type: "mineral",
+                    p_type_rvo: "115",
+                },
+            )
+
+            const p_acquiring_amount_liquid = 1000
+            const p_acquiring_date_liquid = new Date()
+            p_id_liquid = await addFertilizer(
+                fdm,
+                principal_id,
+                p_id_catalogue_liquid,
+                b_id_farm,
+                p_acquiring_amount_liquid,
+                p_acquiring_date_liquid,
+            )
         })
 
         afterAll(async () => {
             // Clean up the database after each test (optional)
         })
 
-        it("should add a new fertilizer application", async () => {
+        it("should add a new fertilizer application with no amount specified", async () => {
             const p_app_date = new Date("2024-03-15")
 
             const new_p_app_id = await addFertilizerApplication(
@@ -1143,7 +1223,7 @@ describe("Fertilizer Data Model", () => {
                 principal_id,
                 b_id,
                 p_id,
-                100,
+                0,
                 "broadcasting",
                 p_app_date,
             )
@@ -1156,7 +1236,60 @@ describe("Fertilizer Data Model", () => {
             )
             expect(fertilizerApplication).toBeDefined()
             expect(fertilizerApplication?.p_id).toBe(p_id)
-            expect(fertilizerApplication?.p_app_amount).toBe(100)
+            expect(fertilizerApplication?.p_app_amount).toBe(0)
+            expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
+            expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
+        })
+
+        it("should add a new fertilizer application with amount specified", async () => {
+            const p_app_date = new Date("2024-03-15")
+
+            const new_p_app_id = await addFertilizerApplication(
+                fdm,
+                principal_id,
+                b_id,
+                p_id_liquid,
+                120,
+                "broadcasting",
+                p_app_date,
+            )
+            expect(new_p_app_id).toBeDefined()
+
+            const fertilizerApplication = await getFertilizerApplication(
+                fdm,
+                principal_id,
+                new_p_app_id,
+            )
+            expect(fertilizerApplication).toBeDefined()
+            expect(fertilizerApplication?.p_id).toBe(p_id_liquid)
+            expect(fertilizerApplication?.p_app_amount).toBe(144)
+            expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
+            expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
+        })
+
+        it("should add a new fertilizer application with no amount specified", async () => {
+            const p_app_date = new Date("2024-03-15")
+
+            const new_p_app_id = await addFertilizerApplication(
+                fdm,
+                principal_id,
+                b_id,
+                p_id_liquid,
+                0,
+                "broadcasting",
+                p_app_date,
+            )
+            expect(new_p_app_id).toBeDefined()
+
+            const fertilizerApplication = await getFertilizerApplication(
+                fdm,
+                principal_id,
+                new_p_app_id,
+            )
+            expect(fertilizerApplication).toBeDefined()
+            expect(fertilizerApplication?.p_id).toBe(p_id_liquid)
+            expect(fertilizerApplication?.p_app_amount).toBe(0)
+            expect(fertilizerApplication?.p_app_amount_display).toBe(0)
             expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
             expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
         })
@@ -1191,6 +1324,40 @@ describe("Fertilizer Data Model", () => {
                 p_app_id,
             )
             expect(updatedApplication?.p_app_amount).toBe(200)
+            expect(updatedApplication?.p_app_method).toBe("injection")
+            expect(updatedApplication?.p_app_date).toEqual(p_app_date2)
+        })
+
+        it("should update a fertilizer application with amount specified in volume per ha", async () => {
+            const p_app_date1 = new Date("2024-03-15")
+            const p_app_date2 = new Date("2024-04-20")
+
+            const p_app_id = await addFertilizerApplication(
+                fdm,
+                principal_id,
+                b_id,
+                p_id_liquid,
+                100,
+                "broadcasting",
+                p_app_date1,
+            )
+
+            await updateFertilizerApplication(
+                fdm,
+                principal_id,
+                p_app_id,
+                p_id_liquid,
+                200,
+                "injection",
+                p_app_date2,
+            )
+
+            const updatedApplication = await getFertilizerApplication(
+                fdm,
+                principal_id,
+                p_app_id,
+            )
+            expect(updatedApplication?.p_app_amount).toBe(240)
             expect(updatedApplication?.p_app_method).toBe("injection")
             expect(updatedApplication?.p_app_date).toEqual(p_app_date2)
         })
@@ -1368,7 +1535,7 @@ describe("Fertilizer Data Model", () => {
 describe("getFertilizerParametersDescription", () => {
     it("should return the correct fertilizer parameter descriptions for NL-nl locale", () => {
         const descriptions = getFertilizerParametersDescription("NL-nl")
-        expect(descriptions).toHaveLength(24)
+        expect(descriptions).toHaveLength(25)
         for (const description of descriptions) {
             expect(description).toHaveProperty("parameter")
             expect(description).toHaveProperty("unit")
@@ -1393,7 +1560,7 @@ describe("getFertilizerParametersDescription", () => {
 
     it("should return the correct fertilizer parameter descriptions for default locale", () => {
         const descriptions = getFertilizerParametersDescription()
-        expect(descriptions).toHaveLength(24)
+        expect(descriptions).toHaveLength(25)
         for (const description of descriptions) {
             expect(description).toHaveProperty("parameter")
             expect(description).toHaveProperty("unit")
@@ -1434,6 +1601,7 @@ describe("getFertilizerApplicationsForFarm", () => {
         p_name_en: "Test Fertilizer EN",
         p_description: "desc",
         p_app_method_options: [] as [],
+        p_app_amount_unit: undefined,
         p_dm: 37,
         p_density: 20,
         p_om: 20,

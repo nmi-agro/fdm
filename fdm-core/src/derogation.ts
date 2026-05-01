@@ -1,9 +1,9 @@
 import { and, eq, inArray } from "drizzle-orm"
 import { checkPermission } from "./authorization"
-import type { PrincipalId } from "./authorization.d"
+import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm"
+import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
 
 /**
@@ -29,7 +29,7 @@ export async function addDerogation(
         throw new Error("Derogation year must be between 2006 and 2025.")
     }
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -104,7 +104,7 @@ export async function removeDerogation(
     b_id_derogation: schema.derogationsTypeInsert["b_id_derogation"],
 ): Promise<void> {
     try {
-        await fdm.transaction(async (tx: FdmType) => {
+        await fdm.transaction(async (tx) => {
             const application = await tx
                 .select()
                 .from(schema.derogationApplying)
@@ -165,7 +165,7 @@ export async function listDerogations(
     b_id_farm: schema.farmsTypeInsert["b_id_farm"],
 ): Promise<schema.derogationsTypeSelect[]> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",
@@ -221,7 +221,7 @@ export async function isDerogationGrantedForYear(
     year: number,
 ): Promise<boolean> {
     try {
-        return await fdm.transaction(async (tx: FdmType) => {
+        return await fdm.transaction(async (tx) => {
             await checkPermission(
                 tx,
                 "farm",

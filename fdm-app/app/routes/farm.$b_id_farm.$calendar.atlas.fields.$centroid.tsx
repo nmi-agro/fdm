@@ -19,7 +19,8 @@ import {
     useLocation,
 } from "react-router"
 import { CarbonSequestrationCard } from "~/components/blocks/atlas-fields/carbon-sequestration"
-import { CultivationHistoryCard } from "~/components/blocks/atlas-fields/cultivation-history"
+import type { AdvancedCultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
+import { CultivationHistoryToggle } from "~/components/blocks/atlas-fields/cultivation-history-toggle"
 import { FieldDetailsCard } from "~/components/blocks/atlas-fields/field-details"
 import { GroundwaterCard } from "~/components/blocks/atlas-fields/groundwater"
 import { FieldDetailsAtlasLayout } from "~/components/blocks/atlas-fields/layout"
@@ -87,13 +88,90 @@ export async function loader({ params }: LoaderFunctionArgs) {
     }
 }
 
+function buildAdvancedCultivationHistory(
+    rawAdvanced:
+        | {
+              year: number
+              fields: {
+                  b_lu_brp: number
+                  b_area: number
+                  b_area_overlap: number
+              }[]
+          }[]
+        | undefined,
+    catalogueMap: Map<
+        string,
+        { b_lu_name: string; b_lu_croprotation?: string }
+    >,
+    officialAreaHa: number,
+    calendarYear: number,
+): AdvancedCultivationHistory | null {
+    if (!rawAdvanced || rawAdvanced.length === 0) return null
+
+    const sortedYears = [...rawAdvanced].sort((a, b) => b.year - a.year)
+
+    // Find the overlap sum for the year specified in the calendar.
+    // This ensures that the scale factor is relative to the year the user actually selected.
+    const selectedYearEntry =
+        rawAdvanced.find((y) => y.year === calendarYear) || sortedYears[0]
+
+    const selectedYearOverlapAreaHa = selectedYearEntry.fields.reduce(
+        (sum, f) => sum + f.b_area_overlap,
+        0,
+    )
+    if (selectedYearOverlapAreaHa <= 0) return null
+
+    const scaleFactor =
+        officialAreaHa > 0 ? officialAreaHa / selectedYearOverlapAreaHa : 1
+
+    const enrichedHistory = sortedYears.map((yearEntry) => {
+        const fields = yearEntry.fields.map((field) => {
+            const b_lu_catalogue = `nl_${field.b_lu_brp}`
+            const catalogueItem = catalogueMap.get(b_lu_catalogue)
+            const scaledOverlap = field.b_area_overlap * scaleFactor
+            return {
+                b_lu_brp: field.b_lu_brp,
+                b_lu_catalogue,
+                b_lu_name: catalogueItem?.b_lu_name ?? "Onbekend gewas",
+                b_lu_croprotation: catalogueItem?.b_lu_croprotation ?? "other",
+                b_area: field.b_area,
+                b_area_overlap: scaledOverlap,
+                overlap_pct_of_selected:
+                    field.b_area_overlap / selectedYearOverlapAreaHa,
+                overlap_pct_of_historical:
+                    field.b_area > 0 ? field.b_area_overlap / field.b_area : 0,
+            }
+        })
+        const total_overlap_pct = fields.reduce(
+            (sum, f) => sum + f.overlap_pct_of_selected,
+            0,
+        )
+        return { year: yearEntry.year, fields, total_overlap_pct }
+    })
+
+    const history = enrichedHistory.map((yearEntry) => {
+        const total_area_ha = yearEntry.fields.reduce(
+            (sum, f) => sum + f.b_area_overlap,
+            0,
+        )
+        return { ...yearEntry, total_area_ha }
+    })
+
+    return { selected_field_area_ha: officialAreaHa, history }
+}
+
 async function loadAsyncData(
-    calendar: string,
+    _calendar: string,
     latitude: number,
     longitude: number,
 ) {
     try {
-        const fieldPromise = getFieldByCentroid(longitude, latitude, calendar)
+        const latestStatusYear = "2025"
+        const fieldPromise = getFieldByCentroid(
+            longitude,
+            latitude,
+            latestStatusYear,
+        )
         const field = {
             type: "Feature",
             properties: {},
@@ -136,8 +214,12 @@ async function loadAsyncData(
             ]),
         )
 
-        const cultivationHistory = estimates.cultivations.map(
-            (cultivation: { year: number; b_lu_brp: string }) => {
+        const officialAreaHa = queriedField?.properties?.b_area
+            ? Math.round((queriedField.properties.b_area / 10000) * 100) / 100
+            : 0
+
+        const cultivationHistory = estimates.cultivations
+            .map((cultivation) => {
                 const b_lu_catalogue = `nl_${cultivation.b_lu_brp}`
                 const catalogueItem =
                     cultivationCatalogueMap.get(b_lu_catalogue)
@@ -153,8 +235,16 @@ async function loadAsyncData(
             // Sort by descending year
             .sort((c1, c2) => c2.year - c1.year)
 
+        const advancedCultivationHistory = buildAdvancedCultivationHistory(
+            estimates.cultivations_advanced,
+            cultivationCatalogueMap,
+            officialAreaHa,
+            Number.parseInt(latestStatusYear, 10),
+        )
+
         return {
             cultivationHistory,
+            advancedCultivationHistory,
             groundwaterEstimates: {
                 b_gwl_class: estimates.b_gwl_class,
                 b_gwl_ghg: estimates.b_gwl_ghg,
@@ -190,11 +280,7 @@ async function loadAsyncData(
                 ),
             },
             fieldDetails: {
-                b_area: queriedField?.properties?.b_area
-                    ? Math.round(
-                          (queriedField.properties.b_area / 10000) * 100,
-                      ) / 100
-                    : 0,
+                b_area: officialAreaHa,
                 isNvGebied,
                 isGWBGGebied,
                 isNatura2000Area,
@@ -236,6 +322,7 @@ function FieldDetailsAtlas({
     const {
         fieldDetails,
         cultivationHistory,
+        advancedCultivationHistory,
         groundwaterEstimates,
         soilParameterEstimates,
         carbonEstimates,
@@ -260,8 +347,11 @@ function FieldDetailsAtlas({
         <>
             <FieldDetailsAtlasLayout
                 cultivationHistory={
-                    <CultivationHistoryCard
+                    <CultivationHistoryToggle
                         cultivationHistory={cultivationHistory}
+                        advancedCultivationHistory={
+                            advancedCultivationHistory ?? null
+                        }
                     />
                 }
                 fieldDetails={<FieldDetailsCard fieldDetails={fieldDetails} />}

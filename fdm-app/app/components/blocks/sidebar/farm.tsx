@@ -1,6 +1,7 @@
 import type { getFarm } from "@nmi-agro/fdm-core"
 import {
     Bot,
+    Bubbles,
     Calendar,
     Check,
     ChevronRight,
@@ -376,33 +377,53 @@ export function SidebarLabs() {
     const selectedCalendar = useCalendarStore((state) => state.calendar)
     const location = useLocation()
     const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
+    const isMineralizationEnabled =
+        useFeatureFlagEnabled("mineralization") ?? true
 
     const isFarmSelected = farmId && farmId !== "undefined"
     if (!isFarmSelected) return null
-
-    if (!isGerritEnabled) return null
 
     return (
         <SidebarGroup>
             <SidebarGroupLabel>Labs</SidebarGroupLabel>
             <SidebarGroupContent>
                 <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={location.pathname.includes(
-                                `/farm/${farmId}/${selectedCalendar}/gerrit`,
-                            )}
-                            tooltip="Gerrit's Bemestingsplan"
-                        >
-                            <NavLink
-                                to={`/farm/${farmId}/${selectedCalendar}/gerrit`}
+                    {isMineralizationEnabled && (
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={location.pathname.includes(
+                                    `/farm/${farmId}/${selectedCalendar}/mineralization`,
+                                )}
+                                tooltip="Stikstofmineralisatie per perceel"
                             >
-                                <Bot />
-                                <span>Gerrit</span>
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
+                                <NavLink
+                                    to={`/farm/${farmId}/${selectedCalendar}/mineralization`}
+                                >
+                                    <Bubbles />
+                                    <span>Mineralisatie</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
+                    {isGerritEnabled && (
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={location.pathname.includes(
+                                    `/farm/${farmId}/${selectedCalendar}/gerrit`,
+                                )}
+                                tooltip="Gerrit's Bemestingsplan"
+                            >
+                                <NavLink
+                                    to={`/farm/${farmId}/${selectedCalendar}/gerrit`}
+                                >
+                                    <Bot />
+                                    <span>Gerrit</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
                 </SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>

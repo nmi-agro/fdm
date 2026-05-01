@@ -8,14 +8,24 @@ import {
     type ColumnDef,
     flexRender,
     getCoreRowModel,
+    type RowData,
     useReactTable,
 } from "@tanstack/react-table"
-import { area } from "@turf/turf"
+import { area } from "@turf/area"
 import { format, parseISO } from "date-fns"
-import { Archive, ArrowLeftRight, Check, Plus, Trash2, X } from "lucide-react"
+import {
+    Archive,
+    ArrowLeftRight,
+    Check,
+    Info,
+    Plus,
+    Trash2,
+    X,
+} from "lucide-react"
 import { useMemo } from "react"
 import { clientConfig } from "@/app/lib/config"
 import { Badge } from "~/components/ui/badge"
+import { Checkbox } from "~/components/ui/checkbox"
 import {
     Select,
     SelectContent,
@@ -41,15 +51,27 @@ import { acquiringMethodOptions } from "~/lib/constants"
 import { cn } from "~/lib/utils"
 
 declare module "@tanstack/react-table" {
-    interface TableMeta<TData extends object> {
+    interface TableMeta<TData extends RowData> {
+        calendar: string
         userChoices: UserChoiceMap
+        flags?: ImportReviewFlags
+        /** Function to replace a review item. `getItemId(replacement)` will return the same value as the original. */
+        onItemChange?: (id: string, item: RvoImportReviewItem<any>) => void
         onChoiceChange: (id: string, action: ImportReviewAction) => void
     }
 }
 
+export interface ImportReviewFlags {
+    b_bufferstrip_info_available?: boolean
+}
+
 interface RvoImportReviewTableProps {
     data: RvoImportReviewItem<any>[]
+    calendar: string
     userChoices: UserChoiceMap
+    flags?: ImportReviewFlags
+    /** Function to replace a review item. `getItemId(replacement)` will return the same value as the original. Replacements won't work if this is not provided. */
+    onItemChange?: (id: string, action: RvoImportReviewItem<any>) => void
     onChoiceChange: (id: string, action: ImportReviewAction) => void
 }
 
@@ -87,7 +109,9 @@ const DiffCell = ({
     // If MATCH, just show one value
     if (status === "MATCH") {
         return (
-            <span className="text-sm text-foreground">{formatter(local)}</span>
+            <span className="text-sm text-muted-foreground">
+                {formatter(local)}
+            </span>
         )
     }
 
@@ -314,7 +338,9 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                     status={item.status}
                     action={action}
                     formatter={(val) => (
-                        <span className="font-medium">{val || "Naamloos"}</span>
+                        <span className="font-medium text-foreground">
+                            {val || "Naamloos"}
+                        </span>
                     )}
                 />
             )
@@ -419,21 +445,38 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
         cell: ({ row, table }) => {
             const item = row.original
             const id = getItemId(item)
-            const { userChoices } = table.options.meta!
+            const { calendar, userChoices } = table.options.meta!
             const action = userChoices[id] as ImportReviewAction
 
-            return (
+            const local = item.localField
+                ? item.localField.b_end
+                    ? formatDate(item.localField.b_end)
+                    : "-"
+                : undefined
+            const remote = item.rvoField
+                ? item.rvoField.properties.EndDate
+                    ? formatDate(item.rvoField.properties.EndDate)
+                    : "-"
+                : undefined
+
+            return item.status === "EXPIRED_LOCAL" ? (
                 <DiffCell
-                    local={
-                        item.localField?.b_end
-                            ? formatDate(item.localField.b_end)
-                            : undefined
+                    local={local}
+                    remote={formatDate(
+                        new Date(Number.parseInt(calendar, 10) - 1, 11, 31),
+                    )}
+                    status={"CONFLICT"}
+                    action={
+                        action === "CLOSE_LOCAL"
+                            ? "UPDATE_FROM_REMOTE"
+                            : "KEEP_LOCAL"
                     }
-                    remote={
-                        item.rvoField?.properties.EndDate
-                            ? formatDate(item.rvoField.properties.EndDate)
-                            : undefined
-                    }
+                    formatter={(val) => val || "-"}
+                />
+            ) : (
+                <DiffCell
+                    local={local}
+                    remote={remote}
                     status={item.status}
                     action={action}
                     formatter={(val) => val || "-"}
@@ -523,6 +566,66 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                     action={action}
                     formatter={(val) => val ?? "-"}
                 />
+            )
+        },
+    },
+    {
+        id: "bufferstrook_editable",
+        header: () => (
+            <Tooltip>
+                <TooltipTrigger className="flex flex-row items-center gap-1">
+                    Bufferstrook
+                    <Info className="w-4 h-4" />
+                </TooltipTrigger>
+                <TooltipContent>
+                    <div className="max-w-75 text-center">
+                        Shapefile bevat geen informatie over bufferstroken. De
+                        getoonde waarden zijn schattingen of de huidige
+                        ingevulde status voor het perceel.
+                    </div>
+                </TooltipContent>
+            </Tooltip>
+        ),
+        cell: ({ row, table }) => {
+            if (!row.original.rvoField) {
+                // Bufferstrip status shouldn't be editable for local fields
+                return (
+                    <div className="ps-5 text-muted-foreground">
+                        {row.original.localField?.b_bufferstrip ? "Ja" : "Nee"}
+                    </div>
+                )
+            }
+            const value =
+                row.original.rvoField.properties.mestData?.IndBufferstrook ===
+                "J"
+            function handleUpdateValue(newValue: boolean) {
+                if (table.options.meta?.onItemChange && row.original.rvoField) {
+                    table.options.meta.onItemChange(getItemId(row.original), {
+                        ...row.original,
+                        rvoField: {
+                            ...row.original.rvoField,
+                            properties: {
+                                ...row.original.rvoField?.properties,
+                                mestData: {
+                                    ...row.original.rvoField?.properties
+                                        .mestData,
+                                    IndBufferstrook: newValue ? "J" : "N",
+                                },
+                            },
+                        },
+                    } as RvoImportReviewItem<any>)
+                }
+            }
+
+            return (
+                // biome-ignore lint/a11y/noLabelWithoutControl: input is nested inside the label
+                <label className="flex flex-row items-center gap-1 text-muted-foreground">
+                    <Checkbox
+                        checked={value}
+                        onCheckedChange={handleUpdateValue}
+                    />
+                    <span className="align-top">{value ? "Ja" : "Nee"}</span>
+                </label>
             )
         },
     },
@@ -631,7 +734,10 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
 
 export function RvoImportReviewTable({
     data,
+    calendar,
     userChoices,
+    flags,
+    onItemChange,
     onChoiceChange,
 }: RvoImportReviewTableProps) {
     const sortedData = useMemo(() => {
@@ -654,13 +760,26 @@ export function RvoImportReviewTable({
         })
     }, [data])
 
+    const b_bufferstrip_info_available =
+        flags?.b_bufferstrip_info_available ?? true
+    const columnVisibility = {
+        bufferstrook: b_bufferstrip_info_available,
+        bufferstrook_editable: !b_bufferstrip_info_available,
+    }
+
     const table = useReactTable({
         data: sortedData,
         columns,
         getCoreRowModel: getCoreRowModel(),
         meta: {
             userChoices,
+            calendar,
+            flags,
+            onItemChange,
             onChoiceChange,
+        },
+        state: {
+            columnVisibility: columnVisibility,
         },
     })
 

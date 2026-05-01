@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-data",
     "private": false,
-    "version": "0.19.3",
+    "version": "0.20.0",
     "description": "Extend Farm Data Model with catalogue data",
     "license": "MIT",
     "homepage": "https://github.com/nmi-agro/fdm",
@@ -34,7 +34,7 @@
         "dev": "vite",
         "db:generate": "npx drizzle-kit generate",
         "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
-        "build": "dotenvx run -- rollup -c && tsc -p tsconfig.build.json",
+        "build": "tsdown",
         "check-types": "tsc --noEmit",
         "preinstall": "npx only-allow pnpm",
         "preview": "vite preview",
@@ -44,20 +44,15 @@
     },
     "devDependencies": {
         "@dotenvx/dotenvx": "catalog:",
-        "@rollup/plugin-commonjs": "catalog:",
-        "@rollup/plugin-json": "catalog:",
-        "@rollup/plugin-node-resolve": "catalog:",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
-        "rollup": "catalog:",
-        "rollup-plugin-esbuild": "catalog:",
-        "rollup-plugin-polyfill-node": "catalog:",
+        "tsdown": "catalog:",
         "typedoc": "catalog:",
         "typedoc-plugin-missing-exports": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
     },
-    "packageManager": "pnpm@10.33.0",
+    "packageManager": "pnpm@10.33.2",
     "engines": {
         "node": ">=24.0.0"
     },

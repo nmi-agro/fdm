@@ -1,5 +1,26 @@
 # Changelog fdm-core
 
+## 0.32.0
+
+### Minor Changes
+
+- [#565](https://github.com/nmi-agro/fdm/pull/565) [`3ce3f81`](https://github.com/nmi-agro/fdm/commit/3ce3f81256b84d1311b1ffda2eeabd9785f48964) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - addFertilizerApplication and updateFertilizerApplication functions now expect an application value in the unit defined for the fertilizer, instead of kg/ha for every fertilizer. The unit is included in the return values of `getFertilizer`, `getFertilizers` etc. as `p_app_amount_unit`. `getFertilizerApplication`, `getFertilizerApplications` etc. now include `p_app_amount_display` and `p_app_amount_unit` which are to be shown to the user instead of p_app_amount and `kg/ha`.
+
+### Patch Changes
+
+- [#557](https://github.com/nmi-agro/fdm/pull/557) [`fa0fc06`](https://github.com/nmi-agro/fdm/commit/fa0fc06516ec743dd29b285c020e501c98d5868b) Thanks [@SvenVw](https://github.com/SvenVw)! - Bump to TypeScript V6
+
+- [#591](https://github.com/nmi-agro/fdm/pull/591) [`e396027`](https://github.com/nmi-agro/fdm/commit/e396027e4422b0dbb402ed7d965d155c7c79424c) Thanks [@SvenVw](https://github.com/SvenVw)! - In case Microsoft does not provide an email address at sign-in, ask users to use the magic link instead
+
+- [#587](https://github.com/nmi-agro/fdm/pull/587) [`b278794`](https://github.com/nmi-agro/fdm/commit/b278794c06af35ce5996965f6bfa020332e6270f) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Created missing database indices for the field acquiring and discarding, cultivation starting and ending, fertilizer catalogue enabling, and cultivation catalogue selecting tables, improving the performance of various getSomething functions.
+
+- [#559](https://github.com/nmi-agro/fdm/pull/559) [`7d01bfc`](https://github.com/nmi-agro/fdm/commit/7d01bfcebb3e17dfa16217d462012976dff034d9) Thanks [@SvenVw](https://github.com/SvenVw)! - Drop support for pglite as it is not used and not planned to be used anymore
+
+- [#559](https://github.com/nmi-agro/fdm/pull/559) [`1d8bbf1`](https://github.com/nmi-agro/fdm/commit/1d8bbf18f00b237dfd99272b9a0662d352d27d53) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate from rollup to tsdown
+
+- Updated dependencies [[`a922790`](https://github.com/nmi-agro/fdm/commit/a922790e92121bf5c1371885e17533fab3c27bf8), [`fa0fc06`](https://github.com/nmi-agro/fdm/commit/fa0fc06516ec743dd29b285c020e501c98d5868b), [`1d8bbf1`](https://github.com/nmi-agro/fdm/commit/1d8bbf18f00b237dfd99272b9a0662d352d27d53)]:
+  - @nmi-agro/fdm-data@0.20.0
+
 ## 0.31.2
 
 ### Patch Changes

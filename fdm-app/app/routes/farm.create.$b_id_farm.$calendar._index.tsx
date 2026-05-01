@@ -1,6 +1,5 @@
 import { getFarm } from "@nmi-agro/fdm-core"
 import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
-import { useFeatureFlagEnabled } from "posthog-js/react"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { data, NavLink, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
@@ -64,8 +63,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function ChooseFieldImportMethod() {
     const { farm, isRvoConfigured } = useLoaderData<typeof loader>()
-    const isRvoEnabled = useFeatureFlagEnabled("rvo")
-    const showRvoOption = isRvoConfigured && isRvoEnabled !== false
+
+    const showRvoOption = isRvoConfigured
 
     return (
         <SidebarInset>
