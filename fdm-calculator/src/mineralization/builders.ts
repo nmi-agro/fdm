@@ -58,8 +58,7 @@ export function getMainCultivation<
         )
         .reduce<T | undefined>(
             (best, c) =>
-                !best ||
-                (c.b_lu_start!.getTime() > best.b_lu_start!.getTime())
+                !best || c.b_lu_start?.getTime() > best.b_lu_start?.getTime()
                     ? c
                     : best,
             undefined,
@@ -76,8 +75,7 @@ export function getMainCultivation<
         )
         .reduce<T | undefined>(
             (best, c) =>
-                !best ||
-                (c.b_lu_start!.getTime() > best.b_lu_start!.getTime())
+                !best || c.b_lu_start?.getTime() > best.b_lu_start?.getTime()
                     ? c
                     : best,
             undefined,
@@ -401,8 +399,8 @@ export function buildDynaRequest(
                     ? actualHarvestRecords
                           .filter((h) => h.b_lu_harvest_date != null)
                           .map((h) => ({
-                              b_date_harvest: h
-                                  .b_lu_harvest_date!.toISOString()
+                              b_date_harvest: h.b_lu_harvest_date
+                                  ?.toISOString()
                                   .split("T")[0],
                               ...(h.b_lu_yield != null
                                   ? { b_lu_yield: h.b_lu_yield }

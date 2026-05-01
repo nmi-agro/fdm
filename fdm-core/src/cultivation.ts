@@ -1054,7 +1054,7 @@ export async function getCultivationPlan(
                     acc.push(existingCultivation)
                 }
 
-                let existingField = existingCultivation!.fields.find(
+                let existingField = existingCultivation?.fields.find(
                     (field) => field.b_id === curr.b_id,
                 )
 
@@ -1068,7 +1068,7 @@ export async function getCultivationPlan(
                         fertilizer_applications: [],
                         harvests: [],
                     }
-                    existingCultivation!.fields.push(existingField)
+                    existingCultivation?.fields.push(existingField)
                     if (curr.b_area) {
                         existingCultivation!.b_area += curr.b_area
                     }
@@ -1076,7 +1076,7 @@ export async function getCultivationPlan(
 
                 if (curr.p_app_id) {
                     // Only add if it's a fertilizer application
-                    existingField!.fertilizer_applications.push({
+                    existingField?.fertilizer_applications.push({
                         p_id_catalogue: curr.p_id_catalogue!,
                         p_name_nl: curr.p_name_nl!,
                         p_app_amount: curr.p_app_amount,
@@ -1088,7 +1088,7 @@ export async function getCultivationPlan(
 
                 if (curr.b_id_harvesting) {
                     // Only add if it's a harvest
-                    existingField!.harvests.push({
+                    existingField?.harvests.push({
                         b_id_harvesting: curr.b_id_harvesting,
                         b_lu_harvest_date: curr.b_lu_harvest_date,
                         harvestable: {
@@ -1366,7 +1366,8 @@ export async function updateCultivation(
 
                     if (result.length > 0) {
                         if (
-                            result[0].b_lu_start!.getTime() >= b_lu_end.getTime()
+                            result[0].b_lu_start?.getTime() >=
+                            b_lu_end.getTime()
                         ) {
                             throw new Error(
                                 "Terminate date must be after sowing date",

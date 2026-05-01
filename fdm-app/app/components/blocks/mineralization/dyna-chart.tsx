@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
     Area,
     CartesianGrid,
@@ -9,7 +10,6 @@ import {
     XAxis,
     YAxis,
 } from "recharts"
-import { useState } from "react"
 import {
     type ChartConfig,
     ChartContainer,
@@ -165,8 +165,10 @@ function DynaTooltipContent({
     const visibleEntries = isBalance
         ? payload.filter((p) => p.dataKey === "b_nw_difference")
         : payload.filter((p) =>
-            SERIES_TO_SHOW.includes(p.dataKey as (typeof SERIES_TO_SHOW)[number]),
-        )
+              SERIES_TO_SHOW.includes(
+                  p.dataKey as (typeof SERIES_TO_SHOW)[number],
+              ),
+          )
 
     return (
         <div className="grid min-w-40 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
@@ -270,7 +272,9 @@ export function DynaChart({
                 className="w-full"
             >
                 <TabsList className="grid grid-cols-2">
-                    <TabsTrigger value="dynamics">N aanbod & opname</TabsTrigger>
+                    <TabsTrigger value="dynamics">
+                        N aanbod & opname
+                    </TabsTrigger>
                     <TabsTrigger value="balance">N beschikbaar</TabsTrigger>
                 </TabsList>
 
@@ -324,12 +328,8 @@ export function DynaChart({
                                     style: { fontSize: 11 },
                                 }}
                             />
-                            <ChartTooltip
-                                content={<DynaTooltipContent />}
-                            />
-                            <ChartLegend
-                                content={<ChartLegendContent />}
-                            />
+                            <ChartTooltip content={<DynaTooltipContent />} />
+                            <ChartLegend content={<ChartLegendContent />} />
 
                             {/* Min-max band — only for current year */}
                             {isCurrentYear && (
@@ -392,7 +392,9 @@ export function DynaChart({
                             {/* Fertilizing Recommendation */}
                             {fertilizingRecommendations?.b_date_recommended && (
                                 <ReferenceLine
-                                    x={fertilizingRecommendations.b_date_recommended}
+                                    x={
+                                        fertilizingRecommendations.b_date_recommended
+                                    }
                                     stroke="hsl(var(--destructive))"
                                     strokeDasharray="3 3"
                                     label={{
@@ -477,9 +479,7 @@ export function DynaChart({
                             <ChartTooltip
                                 content={<DynaTooltipContent isBalance />}
                             />
-                            <ChartLegend
-                                content={<ChartLegendContent />}
-                            />
+                            <ChartLegend content={<ChartLegendContent />} />
 
                             {/* Surplus/deficit as area */}
                             <Area

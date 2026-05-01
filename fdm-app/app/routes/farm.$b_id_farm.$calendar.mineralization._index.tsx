@@ -21,11 +21,11 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import {
-    getNSupplyForFarm,
+    type FarmDynaResult,
     getDynaForFarm,
+    getNSupplyForFarm,
     type NSupplyMethod,
     type NSupplyResult,
-    type FarmDynaResult,
 } from "~/integrations/mineralization.server"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -153,8 +153,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function MineralizationFarmOverview() {
     const loaderData = useLoaderData<typeof loader>()
-    const { b_id_farm, method, calendar, asyncNSupply, asyncDynaPromises, fields } =
-        loaderData
+    const {
+        b_id_farm,
+        method,
+        calendar,
+        asyncNSupply,
+        asyncDynaPromises,
+        fields,
+    } = loaderData
 
     return (
         <div className="space-y-8">
@@ -271,8 +277,8 @@ function MineralizationFarmContent({
                         <CardTitle>Resultaten per perceel</CardTitle>
                         <CardDescription>
                             Dag-voor-dag berekening van N-beschikbaarheid en
-                            gewasopname op basis van bodem, gewas én
-                            bemesting. Resultaten laden per perceel.
+                            gewasopname op basis van bodem, gewas én bemesting.
+                            Resultaten laden per perceel.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="overflow-auto max-h-[500px]">

@@ -25,10 +25,10 @@
 
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import { z } from "zod"
+import pkg from "../package"
 import { NmiApiError } from "./errors"
 import { nsupplyResponseSchema } from "./schemas"
 import type { NSupplyComputeInput, NSupplyResult } from "./types"
-import pkg from "../package"
 
 // ─── API call ─────────────────────────────────────────────────────────────────
 
@@ -107,7 +107,7 @@ export async function requestNSupply(
         let json: unknown
         try {
             json = await response.json()
-        } catch (err) {
+        } catch (_err) {
             throw new Error("Ongeldig antwoord van NMI API: Geen geldige JSON")
         }
 

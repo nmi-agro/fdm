@@ -113,8 +113,8 @@ export interface NSupplyComputeInput {
     method: NSupplyMethod
     /** Pre-computed completeness assessment — stored in the result */
     completeness: DataCompleteness
-    /** 
-     * Current date (YYYY-MM-DD) used for cache invalidation. 
+    /**
+     * Current date (YYYY-MM-DD) used for cache invalidation.
      * Since NMI forecast data refreshes nightly, the cache should expire daily.
      */
     cacheDate: string
@@ -226,8 +226,8 @@ export interface DynaComputeInput {
     nmiApiKey: string
     /** Fully-formed request body for `POST /bemestingsplan/dyna` */
     requestBody: Record<string, unknown>
-    /** 
-     * Current date (YYYY-MM-DD) used for cache invalidation. 
+    /**
+     * Current date (YYYY-MM-DD) used for cache invalidation.
      */
     cacheDate: string
 }

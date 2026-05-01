@@ -514,7 +514,12 @@ async function computePlanMetrics(
 
     // Compute norms from ALL farm fields (matching simulateFarmPlan logic)
     // so the farm-level norm denominator is consistent.
-    const allFarmFields = await getFields(fdm, principalId, b_id_farm, timeframe)
+    const allFarmFields = await getFields(
+        fdm,
+        principalId,
+        b_id_farm,
+        timeframe,
+    )
     const allFarmFieldNorms = await Promise.all(
         allFarmFields
             .filter((f) => !f.b_bufferstrip && f.b_area)
@@ -526,7 +531,10 @@ async function computePlanMetrics(
                         f.b_id,
                     )
                     const [manure, phosphate, nitrogen] = await Promise.all([
-                        normFuncs.calculateNormForManure(fdm, normsInput as any),
+                        normFuncs.calculateNormForManure(
+                            fdm,
+                            normsInput as any,
+                        ),
                         normFuncs.calculateNormForPhosphate(
                             fdm,
                             normsInput as any,
@@ -549,9 +557,9 @@ async function computePlanMetrics(
 
     const farmNormsKg = aggregateNormsToFarmLevel(
         allFarmFieldNorms.filter(Boolean).map((r) => ({
-            b_id: r!.b_id,
-            b_area: r!.b_area,
-            norms: r!.norms,
+            b_id: r?.b_id,
+            b_area: r?.b_area,
+            norms: r?.norms,
         })),
     )
 

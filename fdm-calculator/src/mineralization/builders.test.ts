@@ -1,8 +1,12 @@
+import type { Timeframe } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
 import { buildDynaRequest, buildNSupplyRequest } from "./builders"
-import type { Timeframe } from "@nmi-agro/fdm-core"
 
-const baseField = { b_id: "field-1", b_centroid: [5.0, 52.0] as [number, number], b_area: 5 }
+const baseField = {
+    b_id: "field-1",
+    b_centroid: [5.0, 52.0] as [number, number],
+    b_area: 5,
+}
 const soilData = { a_som_loi: 3.5, b_soiltype_agr: "clay" }
 const timeframe2025: Timeframe = {
     start: new Date("2025-01-01"),
@@ -21,8 +25,18 @@ describe("buildDynaRequest – rotation building", () => {
                 m_cropresidue: false,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "arable", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { year: number; b_lu: string }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            year: number
+            b_lu: string
+        }[]
         expect(rotation).toHaveLength(1)
         expect(rotation[0].year).toBe(2025)
         expect(rotation[0].b_lu).toBe("bwt")
@@ -38,8 +52,18 @@ describe("buildDynaRequest – rotation building", () => {
                 m_cropresidue: null,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "dairy", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { year: number; b_lu: string }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "dairy",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            year: number
+            b_lu: string
+        }[]
         expect(rotation).toHaveLength(1)
         expect(rotation[0].year).toBe(2025)
         expect(rotation[0].b_lu).toBe("grs")
@@ -55,8 +79,18 @@ describe("buildDynaRequest – rotation building", () => {
                 m_cropresidue: null,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "dairy", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { year: number; b_lu: string }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "dairy",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            year: number
+            b_lu: string
+        }[]
         expect(rotation).toHaveLength(1)
         expect(rotation[0].b_lu).toBe("grs")
     })
@@ -71,8 +105,16 @@ describe("buildDynaRequest – rotation building", () => {
                 m_cropresidue: false,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "arable", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as unknown[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>)
+            .rotation as unknown[]
         // Falls back to the empty fallback entry (no b_lu)
         expect(rotation).toHaveLength(1)
         expect((rotation[0] as Record<string, unknown>).b_lu).toBeUndefined()
@@ -95,8 +137,18 @@ describe("buildDynaRequest – rotation building", () => {
                 m_cropresidue: false,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "arable", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { year: number; b_lu: string }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            year: number
+            b_lu: string
+        }[]
         // Only 2025 entry is produced — 2024 cultivation is excluded (ended before 2025)
         expect(rotation).toHaveLength(1)
         expect(rotation[0].year).toBe(2025)
@@ -124,8 +176,19 @@ describe("buildDynaRequest – rotation building", () => {
                 m_cropresidue: null,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "dairy", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { year: number; b_lu: string; b_lu_green?: string }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "dairy",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            year: number
+            b_lu: string
+            b_lu_green?: string
+        }[]
         expect(rotation).toHaveLength(1)
         expect(rotation[0].b_lu).toBe("grs")
         expect(rotation[0].b_lu_green).toBe("phc")
@@ -148,17 +211,34 @@ describe("buildDynaRequest – harvests", () => {
             [
                 "cult-grass",
                 [
-                    { b_lu_harvest_date: new Date("2025-05-10"), b_lu_yield: 3200 },
-                    { b_lu_harvest_date: new Date("2025-07-01"), b_lu_yield: 2800 },
-                    { b_lu_harvest_date: new Date("2025-09-15"), b_lu_yield: 2600 },
+                    {
+                        b_lu_harvest_date: new Date("2025-05-10"),
+                        b_lu_yield: 3200,
+                    },
+                    {
+                        b_lu_harvest_date: new Date("2025-07-01"),
+                        b_lu_yield: 2800,
+                    },
+                    {
+                        b_lu_harvest_date: new Date("2025-09-15"),
+                        b_lu_yield: 2600,
+                    },
                 ],
             ],
         ])
         const result = buildDynaRequest(
-            baseField, soilData, cultivations, [], "dairy", timeframe2025,
-            undefined, harvestsByBlu,
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "dairy",
+            timeframe2025,
+            undefined,
+            harvestsByBlu,
         )
-        const rotation = (result.field as Record<string, unknown>).rotation as { harvests: { b_date_harvest: string; b_lu_yield: number }[] }[]
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            harvests: { b_date_harvest: string; b_lu_yield: number }[]
+        }[]
         expect(rotation).toHaveLength(1)
         expect(rotation[0].harvests).toHaveLength(3)
         expect(rotation[0].harvests[0].b_date_harvest).toBe("2025-05-10")
@@ -178,11 +258,18 @@ describe("buildDynaRequest – harvests", () => {
             },
         ]
         const result = buildDynaRequest(
-            baseField, soilData, cultivations, [], "arable", timeframe2025,
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
             [{ b_lu_catalogue: "bwt", b_lu_yield: 1800 }],
             new Map(),
         )
-        const rotation = (result.field as Record<string, unknown>).rotation as { harvests: { b_date_harvest: string; b_lu_yield?: number }[] }[]
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            harvests: { b_date_harvest: string; b_lu_yield?: number }[]
+        }[]
         expect(rotation[0].harvests).toHaveLength(1)
         expect(rotation[0].harvests[0].b_date_harvest).toBe("2025-08-15")
         expect(rotation[0].harvests[0].b_lu_yield).toBe(1800)
@@ -202,15 +289,27 @@ describe("buildDynaRequest – harvests", () => {
         const harvestsByBlu = new Map([
             [
                 "cult-grass",
-                [{ b_lu_harvest_date: new Date("2025-05-10"), b_lu_yield: null }],
+                [
+                    {
+                        b_lu_harvest_date: new Date("2025-05-10"),
+                        b_lu_yield: null,
+                    },
+                ],
             ],
         ])
         const result = buildDynaRequest(
-            baseField, soilData, cultivations, [], "dairy", timeframe2025,
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "dairy",
+            timeframe2025,
             [{ b_lu_catalogue: "grs", b_lu_yield: 1838 }],
             harvestsByBlu,
         )
-        const rotation = (result.field as Record<string, unknown>).rotation as { harvests: { b_date_harvest: string; b_lu_yield?: number }[] }[]
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            harvests: { b_date_harvest: string; b_lu_yield?: number }[]
+        }[]
         expect(rotation[0].harvests[0].b_lu_yield).toBe(1838)
     })
 
@@ -225,8 +324,17 @@ describe("buildDynaRequest – harvests", () => {
                 m_cropresidue: null,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "dairy", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { harvests: unknown[] }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "dairy",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            harvests: unknown[]
+        }[]
         expect(rotation[0].harvests).toHaveLength(0)
     })
 })
@@ -269,13 +377,22 @@ describe("buildDynaRequest – fertilizers", () => {
                 p_k_rt: null,
                 p_dm: null,
                 p_om: null,
-                p_date: new Date("2024-04-01"),  // prior year – excluded from amendments
+                p_date: new Date("2024-04-01"), // prior year – excluded from amendments
                 p_dose: 15,
                 p_app_method: null,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, fertilizers, "arable", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { amendments: { p_id: string; p_app_method: string }[] }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            fertilizers,
+            "arable",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            amendments: { p_id: string; p_app_method: string }[]
+        }[]
         expect(rotation[0].amendments).toHaveLength(1)
         expect(rotation[0].amendments[0].p_id).toBe("fert-1")
         expect(rotation[0].amendments[0].p_app_method).toBe("injection")
@@ -291,18 +408,52 @@ describe("buildDynaRequest – fertilizers", () => {
                 p_app_method: null,
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, fertilizers, "arable", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { amendments: { p_app_method: string }[] }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            fertilizers,
+            "arable",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            amendments: { p_app_method: string }[]
+        }[]
         expect(rotation[0].amendments[0].p_app_method).toBe("broadcasting")
     })
 
     it("deduplicates fertilizer_properties by p_id", () => {
         const fertilizers = [
-            { p_id: "fert-A", p_n_rt: 100, p_date: new Date("2025-04-01"), p_dose: 10, p_app_method: "broadcasting" },
-            { p_id: "fert-A", p_n_rt: 100, p_date: new Date("2025-05-01"), p_dose: 15, p_app_method: "broadcasting" },
-            { p_id: "fert-B", p_n_rt: 60, p_date: new Date("2025-06-01"), p_dose: 12, p_app_method: "broadcasting" },
+            {
+                p_id: "fert-A",
+                p_n_rt: 100,
+                p_date: new Date("2025-04-01"),
+                p_dose: 10,
+                p_app_method: "broadcasting",
+            },
+            {
+                p_id: "fert-A",
+                p_n_rt: 100,
+                p_date: new Date("2025-05-01"),
+                p_dose: 15,
+                p_app_method: "broadcasting",
+            },
+            {
+                p_id: "fert-B",
+                p_n_rt: 60,
+                p_date: new Date("2025-06-01"),
+                p_dose: 12,
+                p_app_method: "broadcasting",
+            },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, fertilizers, "arable", timeframe2025)
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            fertilizers,
+            "arable",
+            timeframe2025,
+        )
         const props = result.fertilizer_properties as { p_id: string }[]
         expect(props).toHaveLength(2)
         expect(props.map((p) => p.p_id)).toEqual(["fert-A", "fert-B"])
@@ -325,13 +476,35 @@ describe("buildDynaRequest – fertilizers", () => {
                 p_app_method: "injection",
             },
         ]
-        const result = buildDynaRequest(baseField, soilData, cultivations, fertilizers, "arable", timeframe2025)
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            fertilizers,
+            "arable",
+            timeframe2025,
+        )
         const props = result.fertilizer_properties as Record<string, unknown>[]
-        expect(props[0]).toMatchObject({ p_n_if: 0.5, p_n_of: 0.3, p_n_wc: 0.1, p_p_rt: 30, p_k_rt: 50, p_dm: 25, p_om: 10 })
+        expect(props[0]).toMatchObject({
+            p_n_if: 0.5,
+            p_n_of: 0.3,
+            p_n_wc: 0.1,
+            p_p_rt: 30,
+            p_k_rt: 50,
+            p_dm: 25,
+            p_om: 10,
+        })
     })
 
     it("returns null for fertilizer_properties when no fertilizers provided", () => {
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "arable", timeframe2025)
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+        )
         expect(result.fertilizer_properties).toBeNull()
     })
 })
@@ -349,39 +522,97 @@ describe("buildDynaRequest – crop_properties and misc", () => {
     ]
 
     it("includes crop_properties when provided", () => {
-        const cropProperties = [{ b_lu_catalogue: "bwt", b_lu_yield: 1800, b_lu_n_harvestable: 20, b_lu_n_residue: 5 }]
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "arable", timeframe2025, cropProperties)
-        const props = result.crop_properties as { b_lu: string; b_lu_yield: number }[]
+        const cropProperties = [
+            {
+                b_lu_catalogue: "bwt",
+                b_lu_yield: 1800,
+                b_lu_n_harvestable: 20,
+                b_lu_n_residue: 5,
+            },
+        ]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+            cropProperties,
+        )
+        const props = result.crop_properties as {
+            b_lu: string
+            b_lu_yield: number
+        }[]
         expect(props).toHaveLength(1)
         expect(props[0].b_lu).toBe("bwt")
         expect(props[0].b_lu_yield).toBe(1800)
     })
 
     it("returns null for crop_properties when not provided", () => {
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "arable", timeframe2025)
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+        )
         expect(result.crop_properties).toBeNull()
     })
 
     it("defaults sector to arable when farmSector is empty string", () => {
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "", timeframe2025)
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "",
+            timeframe2025,
+        )
         expect((result.farm as { sector: string }).sector).toBe("arable")
     })
 
     it("omits b_id from field when not provided", () => {
-        const fieldNoId = { b_centroid: [5.0, 52.0] as [number, number], b_area: 5 }
-        const result = buildDynaRequest(fieldNoId, soilData, cultivations, [], "arable", timeframe2025)
+        const fieldNoId = {
+            b_centroid: [5.0, 52.0] as [number, number],
+            b_area: 5,
+        }
+        const result = buildDynaRequest(
+            fieldNoId,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+        )
         expect((result.field as Record<string, unknown>).b_id).toBeUndefined()
     })
 
     it("includes m_cropresidue on rotation entry when set", () => {
-        const result = buildDynaRequest(baseField, soilData, cultivations, [], "arable", timeframe2025)
-        const rotation = (result.field as Record<string, unknown>).rotation as { m_cropresidue: boolean }[]
+        const result = buildDynaRequest(
+            baseField,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+        )
+        const rotation = (result.field as Record<string, unknown>).rotation as {
+            m_cropresidue: boolean
+        }[]
         expect(rotation[0].m_cropresidue).toBe(true)
     })
 
     it("omits a_lat/a_lon when no centroid provided", () => {
         const fieldNoCentroid = { b_id: "f1", b_area: 5 }
-        const result = buildDynaRequest(fieldNoCentroid, soilData, cultivations, [], "arable", timeframe2025)
+        const result = buildDynaRequest(
+            fieldNoCentroid,
+            soilData,
+            cultivations,
+            [],
+            "arable",
+            timeframe2025,
+        )
         const fieldObj = result.field as Record<string, unknown>
         expect(fieldObj.a_lat).toBeUndefined()
         expect(fieldObj.a_lon).toBeUndefined()
@@ -395,7 +626,10 @@ describe("buildNSupplyRequest", () => {
     }
 
     it("builds a basic nsupply request with all fields", () => {
-        const field = { b_centroid: [5.585, 53.288] as [number, number], b_area: 10 }
+        const field = {
+            b_centroid: [5.585, 53.288] as [number, number],
+            b_area: 10,
+        }
         const soilData = {
             a_som_loi: 3.5,
             a_clay_mi: 10,
@@ -408,9 +642,22 @@ describe("buildNSupplyRequest", () => {
             b_soiltype_agr: "sand",
             a_depth_lower: 0.3,
         }
-        const cultivations = [{ b_lu_catalogue: "nl_256", b_lu_start: new Date("2025-04-01"), b_lu_end: new Date("2025-09-01"), b_lu_croprotation: "main" }]
+        const cultivations = [
+            {
+                b_lu_catalogue: "nl_256",
+                b_lu_start: new Date("2025-04-01"),
+                b_lu_end: new Date("2025-09-01"),
+                b_lu_croprotation: "main",
+            },
+        ]
 
-        const result = buildNSupplyRequest(field, soilData, cultivations, "minip", timeframe2025)
+        const result = buildNSupplyRequest(
+            field,
+            soilData,
+            cultivations,
+            "minip",
+            timeframe2025,
+        )
 
         expect(result.d_n_supply_method).toBe("minip")
         expect(result.d_start).toBe("2025-01-01")
@@ -436,8 +683,21 @@ describe("buildNSupplyRequest", () => {
     })
 
     it("omits b_lu_brp when catalogue code cannot be parsed as integer", () => {
-        const cultivations = [{ b_lu_catalogue: "grs", b_lu_start: new Date("2025-05-01"), b_lu_end: null, b_lu_croprotation: "main" }]
-        const result = buildNSupplyRequest({}, {}, cultivations, "minip", timeframe2025)
+        const cultivations = [
+            {
+                b_lu_catalogue: "grs",
+                b_lu_start: new Date("2025-05-01"),
+                b_lu_end: null,
+                b_lu_croprotation: "main",
+            },
+        ]
+        const result = buildNSupplyRequest(
+            {},
+            {},
+            cultivations,
+            "minip",
+            timeframe2025,
+        )
         expect(result.b_lu_brp).toBeUndefined()
     })
 
@@ -447,21 +707,35 @@ describe("buildNSupplyRequest", () => {
     })
 
     it("uses a_depth_lower value from soilData when provided", () => {
-        const result = buildNSupplyRequest({}, { a_depth_lower: 0.25 }, [], "minip", timeframe2025)
+        const result = buildNSupplyRequest(
+            {},
+            { a_depth_lower: 0.25 },
+            [],
+            "minip",
+            timeframe2025,
+        )
         expect(result.a_depth).toBe(0.25)
     })
 
     it("omits d_start and d_end when timeframe has no dates", () => {
-        const result = buildNSupplyRequest({}, {}, [], "minip", { start: undefined, end: undefined })
+        const result = buildNSupplyRequest({}, {}, [], "minip", {
+            start: undefined,
+            end: undefined,
+        })
         expect(result.d_start).toBeUndefined()
         expect(result.d_end).toBeUndefined()
     })
 
     it("skips null/undefined soil params", () => {
-        const result = buildNSupplyRequest({}, { a_som_loi: null, a_clay_mi: undefined, a_n_rt: 1000 }, [], "minip", timeframe2025)
+        const result = buildNSupplyRequest(
+            {},
+            { a_som_loi: null, a_clay_mi: undefined, a_n_rt: 1000 },
+            [],
+            "minip",
+            timeframe2025,
+        )
         expect(result.a_som_loi).toBeUndefined()
         expect(result.a_clay_mi).toBeUndefined()
         expect(result.a_n_rt).toBe(1000)
     })
 })
-

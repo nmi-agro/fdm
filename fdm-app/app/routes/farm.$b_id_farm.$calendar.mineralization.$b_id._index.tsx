@@ -1,4 +1,8 @@
-import { getCurrentSoilData, getField, getCultivations } from "@nmi-agro/fdm-core"
+import {
+    getCultivations,
+    getCurrentSoilData,
+    getField,
+} from "@nmi-agro/fdm-core"
 import { Component, Lightbulb, Slash, Zap } from "lucide-react"
 import { Suspense, use } from "react"
 import {
@@ -9,7 +13,10 @@ import {
     useLoaderData,
 } from "react-router"
 import { DataCompletenessCard } from "~/components/blocks/mineralization/data-completeness"
-import { FieldMineralizationChart, getCurrentDoy } from "~/components/blocks/mineralization/mineralization-chart"
+import {
+    FieldMineralizationChart,
+    getCurrentDoy,
+} from "~/components/blocks/mineralization/mineralization-chart"
 import { FieldNSupplyDetailsCard } from "~/components/blocks/mineralization/nsupply-kpi"
 import { MineralizationFieldDetailFallback } from "~/components/blocks/mineralization/skeletons"
 import { Button } from "~/components/ui/button"

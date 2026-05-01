@@ -34,9 +34,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
+import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
 import { FertilizerIcon } from "./fertilizer-icon"
 import type { ParsedPlan, PlanRow } from "./types"
-import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
 
 const columnHelper = createColumnHelper<PlanRow>()
 
@@ -468,425 +468,425 @@ export function PlanTable({
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
-                                                            {/* ── Normen ── */}
-                                                            {normsFilling &&
-                                                                norms && (
-                                                                    <div className="space-y-2">
-                                                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                            Gebruiksruimte
-                                                                            (kg/ha)
-                                                                        </p>
-                                                                        {[
-                                                                            {
-                                                                                label: "Dierlijke mest N",
-                                                                                fill:
-                                                                                    normsFilling
-                                                                                        .manure
-                                                                                        ?.normFilling ??
-                                                                                    0,
-                                                                                norm:
-                                                                                    norms
-                                                                                        .manure
-                                                                                        ?.normValue ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                label: "Werkzame N",
-                                                                                fill:
-                                                                                    normsFilling
-                                                                                        .nitrogen
-                                                                                        ?.normFilling ??
-                                                                                    0,
-                                                                                norm:
-                                                                                    norms
-                                                                                        .nitrogen
-                                                                                        ?.normValue ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                label: "Fosfaat P₂O₅",
-                                                                                fill:
-                                                                                    normsFilling
-                                                                                        .phosphate
-                                                                                        ?.normFilling ??
-                                                                                    0,
-                                                                                norm:
-                                                                                    norms
-                                                                                        .phosphate
-                                                                                        ?.normValue ??
-                                                                                    0,
-                                                                            },
-                                                                        ].map(
-                                                                            ({
-                                                                                label,
-                                                                                fill,
-                                                                                norm,
-                                                                            }) => (
-                                                                                <div
-                                                                                    key={
-                                                                                        label
-                                                                                    }
-                                                                                    className="space-y-1"
-                                                                                >
-                                                                                    <div className="flex justify-between text-xs">
-                                                                                        <span className="text-muted-foreground">
-                                                                                            {
-                                                                                                label
-                                                                                            }
-                                                                                        </span>
-                                                                                        <span
-                                                                                            className={`tabular-nums font-medium ${fill > norm ? "text-red-600" : "text-foreground"}`}
-                                                                                        >
-                                                                                            {Math.round(
-                                                                                                fill,
-                                                                                            )}{" "}
-                                                                                            /{" "}
-                                                                                            {Math.round(
-                                                                                                norm,
-                                                                                            )}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <Progress
-                                                                                        value={
-                                                                                            fill >
-                                                                                            norm
-                                                                                                ? 100
-                                                                                                : norm >
-                                                                                                    0
-                                                                                                  ? (fill /
-                                                                                                        norm) *
-                                                                                                    100
-                                                                                                  : 0
-                                                                                        }
-                                                                                        colorBar={
-                                                                                            fill >
-                                                                                            norm
-                                                                                                ? "red-500"
-                                                                                                : "green-500"
-                                                                                        }
-                                                                                        className="h-1.5"
-                                                                                    />
-                                                                                </div>
-                                                                            ),
-                                                                        )}
-                                                                    </div>
-                                                                )}
-
-                                                            {/* ── Balansen ── */}
-                                                            <div className="space-y-6">
-                                                                {nBalance && (
-                                                                    <div className="space-y-2">
-                                                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                            Stikstofbalans
-                                                                        </p>
-                                                                        <div className="flex justify-between text-sm items-center">
-                                                                            <span className="text-muted-foreground">
-                                                                                Balans
-                                                                                vs.
-                                                                                doel
-                                                                                (kg/ha)
-                                                                            </span>
-                                                                            <span
-                                                                                className={`font-semibold tabular-nums ${nBalance.balance <= nBalance.target ? "text-green-600" : "text-red-600"}`}
-                                                                            >
-                                                                                {Math.round(
-                                                                                    nBalance.balance,
-                                                                                )}{" "}
-                                                                                /{" "}
-                                                                                {Math.round(
-                                                                                    nBalance.target,
-                                                                                )}
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                                {omBalance !=
-                                                                    null && (
-                                                                    <div className="space-y-2">
-                                                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                            Organische
-                                                                            stof
-                                                                        </p>
-                                                                        <div className="flex justify-between items-center text-sm">
-                                                                            <span className="text-muted-foreground">
-                                                                                OS
-                                                                                Balans
-                                                                                (kg/ha)
-                                                                            </span>
-                                                                            <span
-                                                                                className={`font-semibold tabular-nums ${omBalance >= 0 ? "text-green-600" : "text-red-600"}`}
-                                                                            >
-                                                                                {omBalance >
-                                                                                0
-                                                                                    ? "+"
-                                                                                    : ""}
-                                                                                {Math.round(
-                                                                                    omBalance,
-                                                                                )}{" "}
-                                                                                kg
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            {/* ── Nutrientenadvies ── */}
-                                                            {advice &&
-                                                                dose &&
-                                                                (() => {
-                                                                    const allAdvices =
-                                                                        [
-                                                                            {
-                                                                                key: "N",
-                                                                                fill:
-                                                                                    dose.p_dose_nw ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_n_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "P",
-                                                                                fill:
-                                                                                    dose.p_dose_p ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_p_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "K",
-                                                                                fill:
-                                                                                    dose.p_dose_k ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_k_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "S",
-                                                                                fill:
-                                                                                    dose.p_dose_s ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_s_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "Mg",
-                                                                                fill:
-                                                                                    dose.p_dose_mg ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_mg_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "Ca",
-                                                                                fill:
-                                                                                    dose.p_dose_ca ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_ca_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "Na",
-                                                                                fill:
-                                                                                    dose.p_dose_na ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_na_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "Cu",
-                                                                                fill:
-                                                                                    dose.p_dose_cu ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_cu_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "Zn",
-                                                                                fill:
-                                                                                    dose.p_dose_zn ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_zn_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "B",
-                                                                                fill:
-                                                                                    dose.p_dose_b ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_b_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "Mn",
-                                                                                fill:
-                                                                                    dose.p_dose_mn ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_mn_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "Mo",
-                                                                                fill:
-                                                                                    dose.p_dose_mo ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_mo_req ??
-                                                                                    0,
-                                                                            },
-                                                                            {
-                                                                                key: "Co",
-                                                                                fill:
-                                                                                    dose.p_dose_co ??
-                                                                                    0,
-                                                                                ref:
-                                                                                    advice.d_co_req ??
-                                                                                    0,
-                                                                            },
-                                                                        ].filter(
-                                                                            (
-                                                                                n,
-                                                                            ) =>
-                                                                                n.ref >
-                                                                                    0 ||
-                                                                                n.fill >
-                                                                                    0,
-                                                                        )
-
-                                                                    if (
-                                                                        allAdvices.length ===
-                                                                        0
-                                                                    )
-                                                                        return null
-
-                                                                    return (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+                                                                {/* ── Normen ── */}
+                                                                {normsFilling &&
+                                                                    norms && (
                                                                         <div className="space-y-2">
                                                                             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                                                Nutriëntenbehoefte
+                                                                                Gebruiksruimte
+                                                                                (kg/ha)
                                                                             </p>
-                                                                            <TooltipProvider>
-                                                                                <div className="flex flex-wrap gap-1.5">
-                                                                                    {allAdvices.map(
-                                                                                        ({
-                                                                                            key,
-                                                                                            fill,
-                                                                                            ref,
-                                                                                        }) => {
-                                                                                            const noReq =
-                                                                                                ref ===
-                                                                                                0
-                                                                                            const pct =
-                                                                                                noReq
-                                                                                                    ? null
-                                                                                                    : Math.round(
-                                                                                                          (fill /
-                                                                                                              ref) *
-                                                                                                              100,
-                                                                                                      )
-                                                                                            const isUnder =
-                                                                                                pct !==
-                                                                                                    null &&
-                                                                                                pct <
-                                                                                                    90
-                                                                                            const isExceed =
-                                                                                                pct !==
-                                                                                                    null &&
-                                                                                                pct >
-                                                                                                    110
-                                                                                            const colorClass =
-                                                                                                noReq
-                                                                                                    ? "bg-amber-100 text-amber-700 border-amber-200"
-                                                                                                    : isUnder
-                                                                                                      ? "bg-red-100 text-red-700 border-red-200"
-                                                                                                      : isExceed
-                                                                                                        ? "bg-amber-100 text-amber-700 border-amber-200"
-                                                                                                        : "bg-green-100 text-green-700 border-green-200"
-
-                                                                                            return (
-                                                                                                <Tooltip
-                                                                                                    key={
-                                                                                                        key
-                                                                                                    }
-                                                                                                >
-                                                                                                    <TooltipTrigger
-                                                                                                        asChild
-                                                                                                    >
-                                                                                                        <span
-                                                                                                            className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums cursor-default ${colorClass}`}
-                                                                                                        >
-                                                                                                            {
-                                                                                                                key
-                                                                                                            }{" "}
-                                                                                                            {noReq
-                                                                                                                ? `+${Math.round(fill)} kg/ha`
-                                                                                                                : `${pct}%`}
-                                                                                                        </span>
-                                                                                                    </TooltipTrigger>
-                                                                                                    <TooltipContent
-                                                                                                        side="top"
-                                                                                                        className="text-xs"
-                                                                                                    >
-                                                                                                        <div className="space-y-1">
-                                                                                                            <p className="font-semibold">
-                                                                                                                {key ===
-                                                                                                                "N"
-                                                                                                                    ? "Stikstof"
-                                                                                                                    : key ===
-                                                                                                                        "P"
-                                                                                                                      ? "Fosfaat"
-                                                                                                                      : key ===
-                                                                                                                          "K"
-                                                                                                                        ? "Kali"
-                                                                                                                        : key}
-                                                                                                            </p>
-                                                                                                            {noReq ? (
-                                                                                                                <p>
-                                                                                                                    Geen
-                                                                                                                    advies,
-                                                                                                                    wel
-                                                                                                                    aanvoer
-                                                                                                                </p>
-                                                                                                            ) : (
-                                                                                                                <>
-                                                                                                                    <p>
-                                                                                                                        Advies:{" "}
-                                                                                                                        {Math.round(
-                                                                                                                            ref,
-                                                                                                                        )}{" "}
-                                                                                                                        kg/ha
-                                                                                                                    </p>
-                                                                                                                    <p>
-                                                                                                                        Aangevoerd:{" "}
-                                                                                                                        {Math.round(
-                                                                                                                            fill,
-                                                                                                                        )}{" "}
-                                                                                                                        kg/ha
-                                                                                                                    </p>
-                                                                                                                </>
-                                                                                                            )}
-                                                                                                        </div>
-                                                                                                    </TooltipContent>
-                                                                                                </Tooltip>
-                                                                                            )
-                                                                                        },
-                                                                                    )}
-                                                                                </div>
-                                                                            </TooltipProvider>
+                                                                            {[
+                                                                                {
+                                                                                    label: "Dierlijke mest N",
+                                                                                    fill:
+                                                                                        normsFilling
+                                                                                            .manure
+                                                                                            ?.normFilling ??
+                                                                                        0,
+                                                                                    norm:
+                                                                                        norms
+                                                                                            .manure
+                                                                                            ?.normValue ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    label: "Werkzame N",
+                                                                                    fill:
+                                                                                        normsFilling
+                                                                                            .nitrogen
+                                                                                            ?.normFilling ??
+                                                                                        0,
+                                                                                    norm:
+                                                                                        norms
+                                                                                            .nitrogen
+                                                                                            ?.normValue ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    label: "Fosfaat P₂O₅",
+                                                                                    fill:
+                                                                                        normsFilling
+                                                                                            .phosphate
+                                                                                            ?.normFilling ??
+                                                                                        0,
+                                                                                    norm:
+                                                                                        norms
+                                                                                            .phosphate
+                                                                                            ?.normValue ??
+                                                                                        0,
+                                                                                },
+                                                                            ].map(
+                                                                                ({
+                                                                                    label,
+                                                                                    fill,
+                                                                                    norm,
+                                                                                }) => (
+                                                                                    <div
+                                                                                        key={
+                                                                                            label
+                                                                                        }
+                                                                                        className="space-y-1"
+                                                                                    >
+                                                                                        <div className="flex justify-between text-xs">
+                                                                                            <span className="text-muted-foreground">
+                                                                                                {
+                                                                                                    label
+                                                                                                }
+                                                                                            </span>
+                                                                                            <span
+                                                                                                className={`tabular-nums font-medium ${fill > norm ? "text-red-600" : "text-foreground"}`}
+                                                                                            >
+                                                                                                {Math.round(
+                                                                                                    fill,
+                                                                                                )}{" "}
+                                                                                                /{" "}
+                                                                                                {Math.round(
+                                                                                                    norm,
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <Progress
+                                                                                            value={
+                                                                                                fill >
+                                                                                                norm
+                                                                                                    ? 100
+                                                                                                    : norm >
+                                                                                                        0
+                                                                                                      ? (fill /
+                                                                                                            norm) *
+                                                                                                        100
+                                                                                                      : 0
+                                                                                            }
+                                                                                            colorBar={
+                                                                                                fill >
+                                                                                                norm
+                                                                                                    ? "red-500"
+                                                                                                    : "green-500"
+                                                                                            }
+                                                                                            className="h-1.5"
+                                                                                        />
+                                                                                    </div>
+                                                                                ),
+                                                                            )}
                                                                         </div>
-                                                                    )
-                                                                })()}
-                                                        </div>
+                                                                    )}
+
+                                                                {/* ── Balansen ── */}
+                                                                <div className="space-y-6">
+                                                                    {nBalance && (
+                                                                        <div className="space-y-2">
+                                                                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                                                                Stikstofbalans
+                                                                            </p>
+                                                                            <div className="flex justify-between text-sm items-center">
+                                                                                <span className="text-muted-foreground">
+                                                                                    Balans
+                                                                                    vs.
+                                                                                    doel
+                                                                                    (kg/ha)
+                                                                                </span>
+                                                                                <span
+                                                                                    className={`font-semibold tabular-nums ${nBalance.balance <= nBalance.target ? "text-green-600" : "text-red-600"}`}
+                                                                                >
+                                                                                    {Math.round(
+                                                                                        nBalance.balance,
+                                                                                    )}{" "}
+                                                                                    /{" "}
+                                                                                    {Math.round(
+                                                                                        nBalance.target,
+                                                                                    )}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    {omBalance !=
+                                                                        null && (
+                                                                        <div className="space-y-2">
+                                                                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                                                                Organische
+                                                                                stof
+                                                                            </p>
+                                                                            <div className="flex justify-between items-center text-sm">
+                                                                                <span className="text-muted-foreground">
+                                                                                    OS
+                                                                                    Balans
+                                                                                    (kg/ha)
+                                                                                </span>
+                                                                                <span
+                                                                                    className={`font-semibold tabular-nums ${omBalance >= 0 ? "text-green-600" : "text-red-600"}`}
+                                                                                >
+                                                                                    {omBalance >
+                                                                                    0
+                                                                                        ? "+"
+                                                                                        : ""}
+                                                                                    {Math.round(
+                                                                                        omBalance,
+                                                                                    )}{" "}
+                                                                                    kg
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* ── Nutrientenadvies ── */}
+                                                                {advice &&
+                                                                    dose &&
+                                                                    (() => {
+                                                                        const allAdvices =
+                                                                            [
+                                                                                {
+                                                                                    key: "N",
+                                                                                    fill:
+                                                                                        dose.p_dose_nw ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_n_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "P",
+                                                                                    fill:
+                                                                                        dose.p_dose_p ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_p_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "K",
+                                                                                    fill:
+                                                                                        dose.p_dose_k ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_k_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "S",
+                                                                                    fill:
+                                                                                        dose.p_dose_s ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_s_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "Mg",
+                                                                                    fill:
+                                                                                        dose.p_dose_mg ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_mg_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "Ca",
+                                                                                    fill:
+                                                                                        dose.p_dose_ca ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_ca_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "Na",
+                                                                                    fill:
+                                                                                        dose.p_dose_na ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_na_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "Cu",
+                                                                                    fill:
+                                                                                        dose.p_dose_cu ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_cu_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "Zn",
+                                                                                    fill:
+                                                                                        dose.p_dose_zn ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_zn_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "B",
+                                                                                    fill:
+                                                                                        dose.p_dose_b ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_b_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "Mn",
+                                                                                    fill:
+                                                                                        dose.p_dose_mn ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_mn_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "Mo",
+                                                                                    fill:
+                                                                                        dose.p_dose_mo ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_mo_req ??
+                                                                                        0,
+                                                                                },
+                                                                                {
+                                                                                    key: "Co",
+                                                                                    fill:
+                                                                                        dose.p_dose_co ??
+                                                                                        0,
+                                                                                    ref:
+                                                                                        advice.d_co_req ??
+                                                                                        0,
+                                                                                },
+                                                                            ].filter(
+                                                                                (
+                                                                                    n,
+                                                                                ) =>
+                                                                                    n.ref >
+                                                                                        0 ||
+                                                                                    n.fill >
+                                                                                        0,
+                                                                            )
+
+                                                                        if (
+                                                                            allAdvices.length ===
+                                                                            0
+                                                                        )
+                                                                            return null
+
+                                                                        return (
+                                                                            <div className="space-y-2">
+                                                                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                                                                    Nutriëntenbehoefte
+                                                                                </p>
+                                                                                <TooltipProvider>
+                                                                                    <div className="flex flex-wrap gap-1.5">
+                                                                                        {allAdvices.map(
+                                                                                            ({
+                                                                                                key,
+                                                                                                fill,
+                                                                                                ref,
+                                                                                            }) => {
+                                                                                                const noReq =
+                                                                                                    ref ===
+                                                                                                    0
+                                                                                                const pct =
+                                                                                                    noReq
+                                                                                                        ? null
+                                                                                                        : Math.round(
+                                                                                                              (fill /
+                                                                                                                  ref) *
+                                                                                                                  100,
+                                                                                                          )
+                                                                                                const isUnder =
+                                                                                                    pct !==
+                                                                                                        null &&
+                                                                                                    pct <
+                                                                                                        90
+                                                                                                const isExceed =
+                                                                                                    pct !==
+                                                                                                        null &&
+                                                                                                    pct >
+                                                                                                        110
+                                                                                                const colorClass =
+                                                                                                    noReq
+                                                                                                        ? "bg-amber-100 text-amber-700 border-amber-200"
+                                                                                                        : isUnder
+                                                                                                          ? "bg-red-100 text-red-700 border-red-200"
+                                                                                                          : isExceed
+                                                                                                            ? "bg-amber-100 text-amber-700 border-amber-200"
+                                                                                                            : "bg-green-100 text-green-700 border-green-200"
+
+                                                                                                return (
+                                                                                                    <Tooltip
+                                                                                                        key={
+                                                                                                            key
+                                                                                                        }
+                                                                                                    >
+                                                                                                        <TooltipTrigger
+                                                                                                            asChild
+                                                                                                        >
+                                                                                                            <span
+                                                                                                                className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums cursor-default ${colorClass}`}
+                                                                                                            >
+                                                                                                                {
+                                                                                                                    key
+                                                                                                                }{" "}
+                                                                                                                {noReq
+                                                                                                                    ? `+${Math.round(fill)} kg/ha`
+                                                                                                                    : `${pct}%`}
+                                                                                                            </span>
+                                                                                                        </TooltipTrigger>
+                                                                                                        <TooltipContent
+                                                                                                            side="top"
+                                                                                                            className="text-xs"
+                                                                                                        >
+                                                                                                            <div className="space-y-1">
+                                                                                                                <p className="font-semibold">
+                                                                                                                    {key ===
+                                                                                                                    "N"
+                                                                                                                        ? "Stikstof"
+                                                                                                                        : key ===
+                                                                                                                            "P"
+                                                                                                                          ? "Fosfaat"
+                                                                                                                          : key ===
+                                                                                                                              "K"
+                                                                                                                            ? "Kali"
+                                                                                                                            : key}
+                                                                                                                </p>
+                                                                                                                {noReq ? (
+                                                                                                                    <p>
+                                                                                                                        Geen
+                                                                                                                        advies,
+                                                                                                                        wel
+                                                                                                                        aanvoer
+                                                                                                                    </p>
+                                                                                                                ) : (
+                                                                                                                    <>
+                                                                                                                        <p>
+                                                                                                                            Advies:{" "}
+                                                                                                                            {Math.round(
+                                                                                                                                ref,
+                                                                                                                            )}{" "}
+                                                                                                                            kg/ha
+                                                                                                                        </p>
+                                                                                                                        <p>
+                                                                                                                            Aangevoerd:{" "}
+                                                                                                                            {Math.round(
+                                                                                                                                fill,
+                                                                                                                            )}{" "}
+                                                                                                                            kg/ha
+                                                                                                                        </p>
+                                                                                                                    </>
+                                                                                                                )}
+                                                                                                            </div>
+                                                                                                        </TooltipContent>
+                                                                                                    </Tooltip>
+                                                                                                )
+                                                                                            },
+                                                                                        )}
+                                                                                    </div>
+                                                                                </TooltipProvider>
+                                                                            </div>
+                                                                        )
+                                                                    })()}
+                                                            </div>
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>

@@ -51,7 +51,8 @@ export function MethodSelector({ value }: MethodSelectorProps) {
     return (
         <Select value={currentMethod} onValueChange={handleChange}>
             <SelectTrigger className="w-[180px]">
-                {METHOD_OPTIONS.find(opt => opt.value === currentMethod)?.label ?? currentMethod}
+                {METHOD_OPTIONS.find((opt) => opt.value === currentMethod)
+                    ?.label ?? currentMethod}
             </SelectTrigger>
             <SelectContent>
                 {METHOD_OPTIONS.map((opt) => (

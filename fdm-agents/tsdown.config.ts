@@ -1,7 +1,7 @@
 import { cpSync, mkdirSync } from "node:fs"
-import { defineConfig } from "tsdown"
-import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
+import { defineConfig } from "tsdown"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

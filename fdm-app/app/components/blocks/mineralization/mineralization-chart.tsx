@@ -54,9 +54,7 @@ function doyToDate(doy: number, year: number): string {
 export function getCurrentDoy(): number {
     const now = new Date()
     const start = new Date(now.getFullYear(), 0, 0)
-    return Math.floor(
-        (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-    )
+    return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 // ─── Single-series chart (farm overview) ─────────────────────────────────────
@@ -136,9 +134,7 @@ export function FarmMineralizationChart({
                                         doy?: number
                                     }
                                 )?.doy
-                                return doy
-                                    ? doyToDate(doy, year)
-                                    : _label
+                                return doy ? doyToDate(doy, year) : _label
                             }}
                             formatter={(value) => [
                                 `${Number(value).toFixed(1)} kg N/ha`,
@@ -245,23 +241,14 @@ export function FieldMineralizationChart({
     const activeSeries = series.filter((s) => !s.error)
 
     return (
-        <ChartContainer
-            config={fieldChartConfig}
-            className="h-[350px] w-full"
-        >
+        <ChartContainer config={fieldChartConfig} className="h-[350px] w-full">
             <AreaChart
                 data={mergedData}
                 margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
             >
                 <defs>
                     {/* Only MINIP gets a fill gradient */}
-                    <linearGradient
-                        id="fill-minip"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                    >
+                    <linearGradient id="fill-minip" x1="0" y1="0" x2="0" y2="1">
                         <stop
                             offset="5%"
                             stopColor={METHOD_STYLE.minip.color}
@@ -304,9 +291,7 @@ export function FieldMineralizationChart({
                                         doy?: number
                                     }
                                 )?.doy
-                                return doy
-                                    ? doyToDate(doy, year)
-                                    : _label
+                                return doy ? doyToDate(doy, year) : _label
                             }}
                             formatter={(value, name) => [
                                 `${Number(value).toFixed(1)} kg N/ha`,
@@ -360,4 +345,3 @@ export function FieldMineralizationChart({
         </ChartContainer>
     )
 }
-

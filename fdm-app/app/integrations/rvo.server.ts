@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid"
 import { createCookie } from "react-router"
-import { createRvoClient } from "~/lib/rvo.server"
 import { serverConfig } from "~/lib/config.server"
+import { createRvoClient } from "~/lib/rvo.server"
 
 const sessionSecret = serverConfig.auth.fdm_session_secret
 if (!sessionSecret?.trim() || sessionSecret === "undefined") {

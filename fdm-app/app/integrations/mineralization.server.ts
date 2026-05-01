@@ -17,12 +17,12 @@
  */
 
 import {
-    type NSupplyComputeInput,
     assessDataCompleteness,
     buildDynaRequest,
     buildNSupplyRequest,
     getDyna,
     getNSupply,
+    type NSupplyComputeInput,
 } from "@nmi-agro/fdm-calculator"
 import {
     getCultivations,
@@ -44,18 +44,18 @@ import { fdm } from "~/lib/fdm.server"
 // Re-export types consumed by route files and UI components
 export type {
     DataCompleteness,
+    DynaDailyPoint,
     DynaFertilizerAdvice,
     DynaNitrogenBalance,
     DynaResult,
-    DynaDailyPoint,
     NSupplyDataPoint,
     NSupplyMethod,
     NSupplyResult,
 } from "@nmi-agro/fdm-calculator"
 export {
-    NmiApiError,
     assessDataCompleteness,
     buildNSupplyRequest,
+    NmiApiError,
 } from "@nmi-agro/fdm-calculator"
 
 /**
@@ -251,7 +251,9 @@ export async function getNSupplyForFarm({
             chunk.map(
                 async (
                     field,
-                ): Promise<import("@nmi-agro/fdm-calculator").NSupplyResult> => {
+                ): Promise<
+                    import("@nmi-agro/fdm-calculator").NSupplyResult
+                > => {
                     try {
                         return await getNSupplyForField({
                             principal_id,
@@ -354,7 +356,11 @@ async function runDynaForPrefetchedField({
     field: Awaited<ReturnType<typeof getField>>
     soilDataArray: Awaited<ReturnType<typeof getCurrentSoilData>>
     cultivations: Awaited<ReturnType<typeof getCultivations>>
-    applications: Awaited<ReturnType<typeof getFertilizerApplicationsForFarm>> extends Map<string, infer T> ? T : any
+    applications: Awaited<
+        ReturnType<typeof getFertilizerApplicationsForFarm>
+    > extends Map<string, infer T>
+        ? T
+        : any
     fertilizerMap: Map<string, FertilizerNutrientProps>
     catalogueEntries: Awaited<ReturnType<typeof getCultivationsFromCatalogue>>
     harvestsMap: Awaited<ReturnType<typeof getHarvestsForFarm>>
@@ -374,7 +380,9 @@ async function runDynaForPrefetchedField({
     for (const crop of ongoingMainCrops) {
         if (!crop.b_lu) continue
         const harvests = harvestsMap.get(crop.b_lu) ?? []
-        const hasDatedHarvest = harvests.some((h) => h.b_lu_harvest_date != null)
+        const hasDatedHarvest = harvests.some(
+            (h) => h.b_lu_harvest_date != null,
+        )
         if (!hasDatedHarvest) {
             throw new Error("Oogstdatum ontbreekt voor lopend gewas")
         }

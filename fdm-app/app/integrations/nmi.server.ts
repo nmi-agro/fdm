@@ -186,19 +186,18 @@ const soilParameterEstimatesSchema = z.object({
     b_c_st03_potential: z.number(),
     b_c_delta: z.number(),
     cultivations: z.array(z.object({ year: z.number(), b_lu_brp: z.number() })),
-    cultivations_advanced: z
-        .array(
-            z.object({
-                year: z.number(),
-                fields: z.array(
-                    z.object({
-                        b_lu_brp: z.number(),
-                        b_area: z.number(),
-                        b_area_overlap: z.number(),
-                    }),
-                ),
-            }),
-        ),
+    cultivations_advanced: z.array(
+        z.object({
+            year: z.number(),
+            fields: z.array(
+                z.object({
+                    b_lu_brp: z.number(),
+                    b_area: z.number(),
+                    b_area_overlap: z.number(),
+                }),
+            ),
+        }),
+    ),
     a_source: z.string(),
 })
 

@@ -29,10 +29,18 @@ export function DynaFieldList({
             <TableHeader>
                 <TableRow>
                     <TableHead>Perceel</TableHead>
-                    <TableHead className="text-right">N Aanbod (kg/ha)</TableHead>
-                    <TableHead className="text-right">N Opname (kg/ha)</TableHead>
-                    <TableHead className="text-right">Uitspoeling (kg/ha)</TableHead>
-                    <TableHead className="text-center w-[80px]">Status</TableHead>
+                    <TableHead className="text-right">
+                        N Aanbod (kg/ha)
+                    </TableHead>
+                    <TableHead className="text-right">
+                        N Opname (kg/ha)
+                    </TableHead>
+                    <TableHead className="text-right">
+                        Uitspoeling (kg/ha)
+                    </TableHead>
+                    <TableHead className="text-center w-[80px]">
+                        Status
+                    </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -86,7 +94,8 @@ function DynaTableRow({
 function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
     const { result, error } = use(promise)
 
-    const lastPoint = result?.calculationDyna?.[result.calculationDyna.length - 1]
+    const lastPoint =
+        result?.calculationDyna?.[result.calculationDyna.length - 1]
     const hasValue =
         !error && !!result?.calculationDyna?.length && lastPoint !== undefined
     const nAvailability = lastPoint?.b_nw ?? 0

@@ -106,7 +106,9 @@ function YearRow({
                 )}
             >
                 {significantFields.map((field) => (
-                    <TooltipProvider key={`${field.b_lu_name}-${field.overlap_pct_of_selected}-${field.b_area_overlap}`}>
+                    <TooltipProvider
+                        key={`${field.b_lu_name}-${field.overlap_pct_of_selected}-${field.b_area_overlap}`}
+                    >
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div
@@ -189,7 +191,9 @@ export function AdvancedCultivationFlow({
                     return (
                         <div
                             key={yearEntry.year}
-                            className={cn(isHiddenOnMobile && "hidden lg:block")}
+                            className={cn(
+                                isHiddenOnMobile && "hidden lg:block",
+                            )}
                         >
                             <YearRow
                                 yearEntry={yearEntry}
