@@ -26,7 +26,7 @@ export const changelogEntries: ChangelogEntry[] = [
     {
         version: "v0.30.0",
         date: "30 april 2026",
-        title: "Percelen ophalen bij RVO, bemesting in de eenheid die past bij de meststof, RVO shapefiles uploaden bij bestaand bedrijf",
+        title: "Percelen ophalen bij RVO, bemesting in de eenheid die past bij de meststof en meer",
         description:
             "Het ophalen van percelen bij RVO is nu mogelijk door middel van eHerkenning en KvK nummer. Een bemesting wordt nu ingevoerd en weergegeven in de eenheid die past bij de meststof. Shapefiles kunt u nu ook uploaden nadat een bedrijf is aangemaakt.",
         items: [
