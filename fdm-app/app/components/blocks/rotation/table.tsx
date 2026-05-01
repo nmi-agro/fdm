@@ -146,7 +146,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 table.getRow(lastSelectedRowIndex.current)
             if (lastSelectedRow) {
                 const newRowSelection = { ...table.getState().rowSelection }
-                const visibleRows = table.getRowModel().flatRows
+                const visibleRows = table.getRowModel().rows
 
                 // Select or deselect everything in between
                 const mode = lastSelectedRow.getIsSelected()
@@ -160,15 +160,29 @@ export function DataTable<TData extends RotationExtended, TValue>({
                 const start = Math.min(lastIndex, currentIndex)
                 const end = Math.max(lastIndex, currentIndex)
 
+                let somethingSelected = false
+
                 for (let i = start; i <= end; i++) {
                     const r = visibleRows[i]
+                    if (newRowSelection[r.id] !== mode) {
+                        somethingSelected = true
+                    }
                     newRowSelection[r.id] = mode
                     if (r.original.type === "crop" && r.getCanExpand()) {
                         // Also select subrows
                         for (const sub of r.subRows) {
+                            if (newRowSelection[sub.id] !== mode) {
+                                somethingSelected = true
+                            }
                             newRowSelection[sub.id] = mode
+                            if (sub.id === visibleRows[end].id) break
                         }
                     }
+                }
+
+                if (!somethingSelected) {
+                    // Fall back to toggling last clicked row's selection if no visible selection change happens
+                    newRowSelection[row.id] = !row.getIsSelected()
                 }
 
                 handleSelection(newRowSelection)
