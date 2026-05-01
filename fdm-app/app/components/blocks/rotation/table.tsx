@@ -164,14 +164,14 @@ export function DataTable<TData extends RotationExtended, TValue>({
 
                 for (let i = start; i <= end; i++) {
                     const r = visibleRows[i]
-                    if (newRowSelection[r.id] !== mode) {
+                    if ((newRowSelection[r.id] ?? false) !== mode) {
                         somethingSelected = true
                     }
                     newRowSelection[r.id] = mode
                     if (r.original.type === "crop" && r.getCanExpand()) {
                         // Also select subrows
                         for (const sub of r.subRows) {
-                            if (newRowSelection[sub.id] !== mode) {
+                            if ((newRowSelection[sub.id] ?? false) !== mode) {
                                 somethingSelected = true
                             }
                             newRowSelection[sub.id] = mode
