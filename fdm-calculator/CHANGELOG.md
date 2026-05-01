@@ -1,5 +1,20 @@
 # fdm-calculator
 
+## 0.14.0
+
+### Minor Changes
+
+- [#553](https://github.com/nmi-agro/fdm/pull/553) [`16692f1`](https://github.com/nmi-agro/fdm/commit/16692f1c368e4ff24497ae1a3cbb61f4a0d1a04e) Thanks [@SvenVw](https://github.com/SvenVw)! - Add Mineralization module to request the nsupply and dyna endpoint at NMI API
+
+### Patch Changes
+
+- [#557](https://github.com/nmi-agro/fdm/pull/557) [`fa0fc06`](https://github.com/nmi-agro/fdm/commit/fa0fc06516ec743dd29b285c020e501c98d5868b) Thanks [@SvenVw](https://github.com/SvenVw)! - Bump to TypeScript V6
+
+- [#559](https://github.com/nmi-agro/fdm/pull/559) [`1d8bbf1`](https://github.com/nmi-agro/fdm/commit/1d8bbf18f00b237dfd99272b9a0662d352d27d53) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate from rollup to tsdown
+
+- Updated dependencies [[`fa0fc06`](https://github.com/nmi-agro/fdm/commit/fa0fc06516ec743dd29b285c020e501c98d5868b), [`e396027`](https://github.com/nmi-agro/fdm/commit/e396027e4422b0dbb402ed7d965d155c7c79424c), [`3ce3f81`](https://github.com/nmi-agro/fdm/commit/3ce3f81256b84d1311b1ffda2eeabd9785f48964), [`b278794`](https://github.com/nmi-agro/fdm/commit/b278794c06af35ce5996965f6bfa020332e6270f), [`7d01bfc`](https://github.com/nmi-agro/fdm/commit/7d01bfcebb3e17dfa16217d462012976dff034d9), [`1d8bbf1`](https://github.com/nmi-agro/fdm/commit/1d8bbf18f00b237dfd99272b9a0662d352d27d53)]:
+  - @nmi-agro/fdm-core@0.32.0
+
 ## 0.13.3
 
 ### Patch Changes

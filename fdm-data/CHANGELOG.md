@@ -1,5 +1,17 @@
 # fdm-data
 
+## 0.20.0
+
+### Minor Changes
+
+- [#565](https://github.com/nmi-agro/fdm/pull/565) [`a922790`](https://github.com/nmi-agro/fdm/commit/a922790e92121bf5c1371885e17533fab3c27bf8) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Add default values for p_app_amount_unit to baat catalogue
+
+### Patch Changes
+
+- [#557](https://github.com/nmi-agro/fdm/pull/557) [`fa0fc06`](https://github.com/nmi-agro/fdm/commit/fa0fc06516ec743dd29b285c020e501c98d5868b) Thanks [@SvenVw](https://github.com/SvenVw)! - Bump to TypeScript V6
+
+- [#559](https://github.com/nmi-agro/fdm/pull/559) [`1d8bbf1`](https://github.com/nmi-agro/fdm/commit/1d8bbf18f00b237dfd99272b9a0662d352d27d53) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate from rollup to tsdown
+
 ## 0.19.3
 
 ### Patch Changes
