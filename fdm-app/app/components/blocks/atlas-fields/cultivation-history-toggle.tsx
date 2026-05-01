@@ -1,13 +1,12 @@
-import { GitBranch, List, Copy } from "lucide-react"
-import { useAtlasCultivationHistoryStore } from "~/store/atlas-cultivation-history"
+import { Copy, GitBranch, List } from "lucide-react"
 import { toast } from "sonner"
-import type { AdvancedCultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
-import { AdvancedCultivationFlow } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
+import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
 import {
     CultivationHistoryCard,
     CultivationHistoryTimeline,
 } from "~/components/blocks/atlas-fields/cultivation-history"
-import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
+import type { AdvancedCultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
+import { AdvancedCultivationFlow } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -24,6 +23,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
+import { useAtlasCultivationHistoryStore } from "~/store/atlas-cultivation-history"
 
 export function CultivationHistoryToggle({
     cultivationHistory,

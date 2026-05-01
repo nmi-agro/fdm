@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
+import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { join, dirname } from "node:path"
 import { type Context, FunctionTool } from "@google/adk"
 import {
     aggregateNormFillingsToFarmLevel,
@@ -731,11 +731,15 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             // Aggregate to farm level using fdm-calculator functions.
             // Norms cover ALL farm fields; fillings cover only the simulated fields.
             const farmNormsKg = aggregateNormsToFarmLevel(
-                allFarmFieldNorms.filter(Boolean).map((r) => ({
-                    b_id: r!.b_id,
-                    b_area: r!.b_area,
-                    norms: r!.norms,
-                })),
+                allFarmFieldNorms
+                    .filter(
+                        (r): r is NonNullable<typeof r> => r != null,
+                    )
+                    .map((r) => ({
+                        b_id: r.b_id,
+                        b_area: r.b_area,
+                        norms: r.norms,
+                    })),
             )
 
             const farmFillingsKg = aggregateNormFillingsToFarmLevel(

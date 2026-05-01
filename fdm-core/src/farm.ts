@@ -215,22 +215,20 @@ export async function getFarms(
                 .orderBy(asc(schema.farms.b_name_farm))
 
             const farms = await Promise.all(
-                results.map(
-                    async (farm) => {
-                        // Get roles on farm
-                        const roles = await getRolesOfPrincipalForResource(
-                            tx,
-                            "farm",
-                            farm.b_id_farm,
-                            principal_id,
-                        )
+                results.map(async (farm) => {
+                    // Get roles on farm
+                    const roles = await getRolesOfPrincipalForResource(
+                        tx,
+                        "farm",
+                        farm.b_id_farm,
+                        principal_id,
+                    )
 
-                        return {
-                            ...farm,
-                            roles: roles,
-                        }
-                    },
-                ),
+                    return {
+                        ...farm,
+                        roles: roles,
+                    }
+                }),
             )
 
             return farms
@@ -583,7 +581,7 @@ export async function listPrincipalsForFarm(
 
                     principalsMap.set(u.id, {
                         id: u.id,
-                        username: u.username ?? 'unknown',
+                        username: u.username ?? "unknown",
                         email: u.email,
                         initials: initials.toUpperCase(),
                         displayUserName: u.displayUserName,

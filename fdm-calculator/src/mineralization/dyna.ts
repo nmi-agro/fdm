@@ -30,10 +30,10 @@
 
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import { z } from "zod"
+import pkg from "../package"
 import { NmiApiError } from "./errors"
 import { dynaResponseSchema } from "./schemas"
 import type { DynaComputeInput, DynaResult } from "./types"
-import pkg from "../package"
 
 // ─── API call ─────────────────────────────────────────────────────────────────
 
@@ -109,7 +109,7 @@ export async function requestDyna(
         let json: unknown
         try {
             json = await response.json()
-        } catch (err) {
+        } catch (_err) {
             throw new Error(
                 "Ongeldig DYNA-antwoord van NMI API: Geen geldige JSON",
             )

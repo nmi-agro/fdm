@@ -377,7 +377,8 @@ export function SidebarLabs() {
     const selectedCalendar = useCalendarStore((state) => state.calendar)
     const location = useLocation()
     const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
-    const isMineralizationEnabled = useFeatureFlagEnabled("mineralization") ?? true
+    const isMineralizationEnabled =
+        useFeatureFlagEnabled("mineralization") ?? true
 
     const isFarmSelected = farmId && farmId !== "undefined"
     if (!isFarmSelected) return null

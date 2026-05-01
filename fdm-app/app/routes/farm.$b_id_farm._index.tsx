@@ -327,7 +327,7 @@ export default function FarmDashboardIndex() {
                                         </Card>
                                     </NavLink>
                                     <NavLink
-                                        to={`${calendar}/balance/nitrogen`}
+                                        to={`${calendar}/balance/organic-matter`}
                                     >
                                         <Card className="transition-all hover:shadow-md h-full">
                                             <CardHeader>

@@ -17,8 +17,8 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import { Spinner } from "~/components/ui/spinner"
 import { Separator } from "~/components/ui/separator"
+import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
 export function FieldsPanelHover({

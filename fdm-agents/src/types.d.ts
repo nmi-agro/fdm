@@ -2,16 +2,16 @@
 // The wildcard declaration is replaced with explicit type re-exports to enable
 // type checking on tool implementations that call fdm-calculator functions.
 export type {
-    NutrientAdvice,
-    NutrientAdviceInputs,
-    NutrientAdviceResponse,
-    NL2025NormsInput,
     GebruiksnormResult,
-    NormFilling,
     NitrogenBalanceFieldInput,
     NitrogenBalanceFieldNumeric,
     NitrogenBalanceFieldResultNumeric,
     NitrogenBalanceInput,
+    NL2025NormsInput,
+    NormFilling,
+    NutrientAdvice,
+    NutrientAdviceInputs,
+    NutrientAdviceResponse,
     OrganicMatterBalanceFieldNumeric,
     OrganicMatterBalanceFieldResultNumeric,
     OrganicMatterBalanceInput,

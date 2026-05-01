@@ -1,5 +1,11 @@
 # fdm-docs
 
+## 0.11.1
+
+### Patch Changes
+
+- [#557](https://github.com/nmi-agro/fdm/pull/557) [`fa0fc06`](https://github.com/nmi-agro/fdm/commit/fa0fc06516ec743dd29b285c020e501c98d5868b) Thanks [@SvenVw](https://github.com/SvenVw)! - Bump to TypeScript V6
+
 ## 0.11.0
 
 ### Minor Changes

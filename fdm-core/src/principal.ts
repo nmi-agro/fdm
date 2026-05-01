@@ -111,7 +111,9 @@ export async function getPrincipal(
             if (organization.length === 0) {
                 return undefined
             }
-            const metadata = organization[0].metadata ? JSON.parse(organization[0].metadata) : null
+            const metadata = organization[0].metadata
+                ? JSON.parse(organization[0].metadata)
+                : null
 
             return {
                 id: principal_id,
@@ -288,7 +290,9 @@ export async function lookupPrincipal(
                         return details
                     }),
                 )
-                return principalsDetails.filter((p): p is Principal => p !== undefined)
+                return principalsDetails.filter(
+                    (p): p is Principal => p !== undefined,
+                )
             }
 
             return []

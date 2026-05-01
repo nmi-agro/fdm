@@ -57,7 +57,9 @@ export function DynaAdviceCard({
                                     Aanbevolen gift
                                 </dt>
                                 <dd className="font-semibold tabular-nums">
-                                    {Math.round(fertilizingRecommendations.b_n_recommended)}{" "}
+                                    {Math.round(
+                                        fertilizingRecommendations.b_n_recommended,
+                                    )}{" "}
                                     kg N/ha
                                 </dd>
                             </div>
@@ -76,7 +78,9 @@ export function DynaAdviceCard({
                                     Resterende ruimte
                                 </dt>
                                 <dd className="tabular-nums">
-                                    {Math.round(fertilizingRecommendations.b_n_remaining)}{" "}
+                                    {Math.round(
+                                        fertilizingRecommendations.b_n_remaining,
+                                    )}{" "}
                                     kg N/ha
                                 </dd>
                             </div>

@@ -1,4 +1,4 @@
-import { CircleCheck, CircleX, Loader2 } from "lucide-react"
+import { CircleCheck, Loader2, TriangleAlert } from "lucide-react"
 import { Suspense, use } from "react"
 import { NavLink } from "react-router"
 import {
@@ -9,6 +9,11 @@ import {
     TableHeader,
     TableRow,
 } from "~/components/ui/table"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 import type { FarmDynaResult } from "~/integrations/mineralization.server"
 
 interface DynaFieldListProps {
@@ -29,10 +34,18 @@ export function DynaFieldList({
             <TableHeader>
                 <TableRow>
                     <TableHead>Perceel</TableHead>
-                    <TableHead className="text-right">N Aanbod (kg/ha)</TableHead>
-                    <TableHead className="text-right">N Opname (kg/ha)</TableHead>
-                    <TableHead className="text-right">Uitspoeling (kg/ha)</TableHead>
-                    <TableHead className="text-center w-[80px]">Status</TableHead>
+                    <TableHead className="text-right">
+                        N Aanbod (kg/ha)
+                    </TableHead>
+                    <TableHead className="text-right">
+                        N Opname (kg/ha)
+                    </TableHead>
+                    <TableHead className="text-right">
+                        Uitspoeling (kg/ha)
+                    </TableHead>
+                    <TableHead className="text-center w-[80px]">
+                        Status
+                    </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -86,7 +99,8 @@ function DynaTableRow({
 function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
     const { result, error } = use(promise)
 
-    const lastPoint = result?.calculationDyna?.[result.calculationDyna.length - 1]
+    const lastPoint =
+        result?.calculationDyna?.[result.calculationDyna.length - 1]
     const hasValue =
         !error && !!result?.calculationDyna?.length && lastPoint !== undefined
     const nAvailability = lastPoint?.b_nw ?? 0
@@ -108,20 +122,32 @@ function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
                 {hasValue ? (
                     <>
                         <span className="sr-only">Succes</span>
-                        <CircleCheck
-                            className="h-4 w-4 text-green-500 mx-auto"
-                            aria-hidden="true"
-                        />
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <CircleCheck
+                                    className="h-4 w-4 text-green-500 mx-auto"
+                                    aria-hidden="true"
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>Succes</TooltipContent>
+                        </Tooltip>
                     </>
                 ) : (
                     <>
                         <span className="sr-only">
                             Fout: {error || "Geen data"}
                         </span>
-                        <CircleX
-                            className="h-4 w-4 text-destructive mx-auto"
-                            aria-hidden="true"
-                        />
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <TriangleAlert
+                                    className="h-4 w-4 text-orange-500 mx-auto"
+                                    aria-hidden="true"
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {error || "Geen data"}
+                            </TooltipContent>
+                        </Tooltip>
                     </>
                 )}
             </TableCell>

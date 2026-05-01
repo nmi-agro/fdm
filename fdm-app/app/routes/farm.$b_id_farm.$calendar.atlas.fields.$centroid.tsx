@@ -161,7 +161,7 @@ function buildAdvancedCultivationHistory(
 }
 
 async function loadAsyncData(
-    calendar: string,
+    _calendar: string,
     latitude: number,
     longitude: number,
 ) {
@@ -239,7 +239,7 @@ async function loadAsyncData(
             estimates.cultivations_advanced,
             cultivationCatalogueMap,
             officialAreaHa,
-            Number.parseInt(latestStatusYear),
+            Number.parseInt(latestStatusYear, 10),
         )
 
         return {

@@ -1,12 +1,12 @@
 import {
+    type Fertilizer,
+    type FertilizerApplication,
+    getCultivations,
     getFertilizerApplications,
     getFertilizers,
     getField,
     getGrazingIntention,
-    getCultivations,
     getHarvestsForFarm,
-    type FertilizerApplication,
-    type Fertilizer,
 } from "@nmi-agro/fdm-core"
 import { CalendarOff, Component, Slash, Zap } from "lucide-react"
 import { Suspense, use } from "react"
@@ -108,29 +108,35 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const farmSector = isGrazing ? "dairy" : "arable"
 
         // Get fertilizer applications, fertilizer properties, cultivations, and harvests in parallel
-        const [applications, fertilizers, cultivations, harvestsMap] = await Promise.all([
-            getFertilizerApplications(
-                fdm,
-                session.principal_id,
-                b_id,
-                timeframe,
-            ),
-            getFertilizers(fdm, session.principal_id, b_id_farm),
-            getCultivations(fdm, session.principal_id, b_id, timeframe),
-            getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        ])
+        const [applications, fertilizers, cultivations, harvestsMap] =
+            await Promise.all([
+                getFertilizerApplications(
+                    fdm,
+                    session.principal_id,
+                    b_id,
+                    timeframe,
+                ),
+                getFertilizers(fdm, session.principal_id, b_id_farm),
+                getCultivations(fdm, session.principal_id, b_id, timeframe),
+                getHarvestsForFarm(
+                    fdm,
+                    session.principal_id,
+                    b_id_farm,
+                    timeframe,
+                ),
+            ])
 
         // Pre-flight check: any main crop without a harvest date will cause
         // the DYNA API to return 400 "b_date_harvest is missing".
         const ongoingMainCrops = cultivations.filter(
-            (c) =>
-                c.b_lu_end == null &&
-                c.b_lu_croprotation !== "catchcrop",
+            (c) => c.b_lu_end == null && c.b_lu_croprotation !== "catchcrop",
         )
         for (const crop of ongoingMainCrops) {
             if (!crop.b_lu) continue
             const harvests = harvestsMap.get(crop.b_lu) ?? []
-            const hasDatedHarvest = harvests.some((h) => h.b_lu_harvest_date != null)
+            const hasDatedHarvest = harvests.some(
+                (h) => h.b_lu_harvest_date != null,
+            )
             if (!hasDatedHarvest) {
                 return {
                     missingHarvestDate: true as const,
@@ -148,23 +154,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
 
         // Map fdm-core FertilizerApplication → DYNA fertilizer input
-        const dynaFertilizers = applications.map((app: FertilizerApplication) => {
-            const props = fertilizerMap.get(app.p_id)
-            return {
-                p_id: app.p_id,
-                p_n_rt: props?.p_n_rt ?? null,
-                p_n_if: props?.p_n_if ?? null,
-                p_n_of: props?.p_n_of ?? null,
-                p_n_wc: props?.p_n_wc ?? null,
-                p_p_rt: props?.p_p_rt ?? null,
-                p_k_rt: props?.p_k_rt ?? null,
-                p_dm: props?.p_dm ?? null,
-                p_om: props?.p_om ?? null,
-                p_date: app.p_app_date,
-                p_dose: app.p_app_amount,
-                p_app_method: app.p_app_method ?? null,
-            }
-        })
+        const dynaFertilizers = applications.map(
+            (app: FertilizerApplication) => {
+                const props = fertilizerMap.get(app.p_id)
+                return {
+                    p_id: app.p_id,
+                    p_n_rt: props?.p_n_rt ?? null,
+                    p_n_if: props?.p_n_if ?? null,
+                    p_n_of: props?.p_n_of ?? null,
+                    p_n_wc: props?.p_n_wc ?? null,
+                    p_p_rt: props?.p_p_rt ?? null,
+                    p_k_rt: props?.p_k_rt ?? null,
+                    p_dm: props?.p_dm ?? null,
+                    p_om: props?.p_om ?? null,
+                    p_date: app.p_app_date,
+                    p_dose: app.p_app_amount,
+                    p_app_method: app.p_app_method ?? null,
+                }
+            },
+        )
 
         // Stream DYNA calculation
         const asyncData = getDynaForField({
@@ -213,7 +221,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         : (c.b_lu_name ?? "Oogst")
 
                     chartEvents.push({
-                        date: h.b_lu_harvest_date.toISOString().split("T")[0] ?? "",
+                        date:
+                            h.b_lu_harvest_date.toISOString().split("T")[0] ??
+                            "",
                         type: "harvest",
                         label,
                     })
@@ -223,10 +233,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         for (const app of applications) {
             if (app.p_app_date) {
                 const name =
-                    fertilizerNameMap.get(app.p_id) ??
-                    app.p_name_nl ??
-                    "Mest"
-                const amount = app.p_app_amount_display ?? app.p_app_amount ?? "?"
+                    fertilizerNameMap.get(app.p_id) ?? app.p_name_nl ?? "Mest"
+                const amount =
+                    app.p_app_amount_display ?? app.p_app_amount ?? "?"
                 const unit = app.p_app_amount_unit ?? "kg"
                 chartEvents.push({
                     date: app.p_app_date.toISOString().split("T")[0] ?? "",
@@ -346,7 +355,11 @@ function DynaContent({
 }: {
     asyncData: Promise<DynaResult>
     year: number
-    chartEvents: { date: string; type: "sowing" | "harvest" | "fertilizer"; label: string }[]
+    chartEvents: {
+        date: string
+        type: "sowing" | "harvest" | "fertilizer"
+        label: string
+    }[]
 }) {
     const result = use(asyncData)
     const {
@@ -376,9 +389,9 @@ function DynaContent({
     // Format date label for non-current years
     const lastPointDateLabel = lastPoint
         ? new Date(lastPoint.b_date_calculation).toLocaleDateString("nl-NL", {
-            day: "2-digit",
-            month: "short",
-        })
+              day: "2-digit",
+              month: "short",
+          })
         : ""
 
     return (

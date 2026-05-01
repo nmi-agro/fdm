@@ -30,7 +30,7 @@ type FileInterface = Blob | ArrayBuffer
 /**
  * Parses the files found in a MijnPercelen Shapefile export and compiles a GeoJSON feature collection where each feature's properties represent the field properties registered by RVO.
  * @param shp_file Shapefile or ArrayBuffer to parse
- * @param _shx_file Shapefile index or ArrayBuffer  file to parse, the library might be able to optimize lookups in the shp file using this
+ * @param shx_file Shapefile index or ArrayBuffer  file to parse, the library might be able to optimize lookups in the shp file using this
  * @param prj_file Projection definition file or ArrayBuffer for coordinates found in the shp file, if not provided EPSG:4326 is assumed
  * @returns an array of geometries which can be passed to the shpjs combine function
  */
@@ -99,7 +99,7 @@ export async function parseShapefileAttributes(
  *
  * `mestData` is not available in Shapefiles and will not be available in the result, thus no buffer strip information
  *
- * @param shapefileFeatures
+ * @param feature
  * @returns a RvoField object
  * @throws if any of the required properties are missing
  */

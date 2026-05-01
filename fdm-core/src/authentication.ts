@@ -79,9 +79,13 @@ export function createFdmAuth(
                     throw new Error("microsoft_no_email")
                 }
 
-                const name = profile.name || (profile as any).displayName || email.split("@")[0]
+                const name =
+                    profile.name ||
+                    (profile as any).displayName ||
+                    email.split("@")[0]
 
-                const picture = (profile as any).picture ?? profile.image ?? null
+                const picture =
+                    (profile as any).picture ?? profile.image ?? null
 
                 const { firstname, surname } = splitFullName(name)
                 return {

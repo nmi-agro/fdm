@@ -235,7 +235,10 @@ export function FieldsSourceAvailable({
                         if (signal.aborted) return
 
                         try {
-                            const iter = deserializeFgb(availableFieldsUrl, bbox)
+                            const iter = deserializeFgb(
+                                availableFieldsUrl,
+                                bbox,
+                            )
 
                             let i = 0
                             const featureClass = generateFeatureClass()
