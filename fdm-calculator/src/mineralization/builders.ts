@@ -58,7 +58,9 @@ export function getMainCultivation<
         )
         .reduce<T | undefined>(
             (best, c) =>
-                !best || c.b_lu_start?.getTime() > best.b_lu_start?.getTime()
+                !best ||
+                (c.b_lu_start?.getTime() ?? 0) >
+                    (best.b_lu_start?.getTime() ?? 0)
                     ? c
                     : best,
             undefined,
@@ -75,7 +77,9 @@ export function getMainCultivation<
         )
         .reduce<T | undefined>(
             (best, c) =>
-                !best || c.b_lu_start?.getTime() > best.b_lu_start?.getTime()
+                !best ||
+                (c.b_lu_start?.getTime() ?? 0) >
+                    (best.b_lu_start?.getTime() ?? 0)
                     ? c
                     : best,
             undefined,
