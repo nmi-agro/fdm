@@ -88,6 +88,10 @@ export async function runOneShotAgent(
                 configurable: context,
                 streamMode: ["updates", "custom"],
                 signal: abortController.signal,
+                runName: "gerrit-one-shot",
+                metadata: {
+                    b_id_farm: context.b_id_farm,
+                },
                 ...(callbacks ? { callbacks } : {}),
             },
         )) as AsyncIterable<unknown>
