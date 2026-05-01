@@ -1,4 +1,4 @@
-import { CircleCheck, CircleX, Loader2 } from "lucide-react"
+import { CircleAlert, CircleCheck, Loader2 } from "lucide-react"
 import { Suspense, use } from "react"
 import { NavLink } from "react-router"
 import {
@@ -9,6 +9,11 @@ import {
     TableHeader,
     TableRow,
 } from "~/components/ui/table"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 import type { FarmDynaResult } from "~/integrations/mineralization.server"
 
 interface DynaFieldListProps {
@@ -117,20 +122,32 @@ function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
                 {hasValue ? (
                     <>
                         <span className="sr-only">Succes</span>
-                        <CircleCheck
-                            className="h-4 w-4 text-green-500 mx-auto"
-                            aria-hidden="true"
-                        />
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <CircleCheck
+                                    className="h-4 w-4 text-green-500 mx-auto"
+                                    aria-hidden="true"
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>Succes</TooltipContent>
+                        </Tooltip>
                     </>
                 ) : (
                     <>
                         <span className="sr-only">
                             Fout: {error || "Geen data"}
                         </span>
-                        <CircleX
-                            className="h-4 w-4 text-destructive mx-auto"
-                            aria-hidden="true"
-                        />
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <CircleAlert
+                                    className="h-4 w-4 text-orange-500 mx-auto"
+                                    aria-hidden="true"
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                Fout: {error || "Geen data"}
+                            </TooltipContent>
+                        </Tooltip>
                     </>
                 )}
             </TableCell>
