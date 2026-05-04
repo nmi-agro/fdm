@@ -1,9 +1,15 @@
+import type { Field } from "@nmi-agro/fdm-core"
 import {
     type CatalogueCultivationItem,
     getCultivationCatalogue,
 } from "@nmi-agro/fdm-data"
 import centroid from "@turf/centroid"
-import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
+import type {
+    Feature,
+    FeatureCollection,
+    GeoJsonProperties,
+    Geometry,
+} from "geojson"
 import throttle from "lodash.throttle"
 import type { MapLayerMouseEvent } from "maplibre-gl"
 import {
@@ -302,6 +308,56 @@ export function FieldsSourceAvailable({
 
     return (
         <Source id={id} type="geojson" data={data}>
+            {children}
+        </Source>
+    )
+}
+
+export function FieldSourceClickable({
+    id,
+    fieldsData,
+    children,
+    onFieldClick,
+}: {
+    id: string
+    fieldsData: FeatureCollection<Geometry, GeoJsonProperties>
+    children: ReactNode
+    onFieldClick: (feature: Feature<Geometry, Field>) => unknown
+}) {
+    const { current: map } = useMap()
+
+    useEffect(() => {
+        function clickOnMap(evt: MapLayerMouseEvent) {
+            if (!map) return
+
+            if (
+                id &&
+                map.queryRenderedFeatures(evt.point, {
+                    layers: [id],
+                }).length
+            ) {
+                return
+            }
+
+            const features = map.queryRenderedFeatures(evt.point, {
+                layers: [id],
+            })
+
+            if (features.length > 0 && features[0].layer.id === id) {
+                onFieldClick(features[0] as unknown as Feature<Geometry, Field>)
+            }
+        }
+
+        if (map) {
+            map.on("click", clickOnMap)
+            return () => {
+                map.off("click", clickOnMap)
+            }
+        }
+    }, [map, id, onFieldClick])
+
+    return (
+        <Source id={id} type="geojson" data={fieldsData}>
             {children}
         </Source>
     )
