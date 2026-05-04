@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { AgentTimeoutError, runOneShotAgent } from "./one-shot"
 
 function makeAIMessage(
-    content: string,
+    content: string | Array<Record<string, unknown>>,
     opts: { tool_calls?: any[]; usage_metadata?: any } = {},
 ): any {
     return {
@@ -49,6 +49,26 @@ describe("runOneShotAgent", () => {
 
     afterEach(() => {
         vi.clearAllMocks()
+    })
+
+    it("should extract text from array content (e.g. Gemini thinking models)", async () => {
+        const agent = createMockAgent([
+            [
+                "updates",
+                {
+                    agent: {
+                        messages: [
+                            makeAIMessage([
+                                { type: "thinking", thinking: "Let me plan..." },
+                                { type: "text", text: '{"summary":"s","plan":[]}' },
+                            ]),
+                        ],
+                    },
+                },
+            ],
+        ])
+        const result = await runOneShotAgent(agent, "Generate plan")
+        expect(result.result).toBe('{"summary":"s","plan":[]}')
     })
 
     it("should return the final response on success", async () => {

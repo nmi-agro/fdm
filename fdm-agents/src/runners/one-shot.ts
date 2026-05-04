@@ -18,6 +18,25 @@ export class AgentTimeoutError extends Error {
     }
 }
 
+/**
+ * Extracts the text string from an AI message content value.
+ * @langchain/google-genai can return content as an array of content parts
+ * (e.g. [{type:"thinking",...},{type:"text",text:"..."}]) instead of a plain string.
+ * This helper finds the last text part and returns its value.
+ */
+function extractTextContent(content: unknown): string {
+    if (typeof content === "string") return content
+    if (Array.isArray(content)) {
+        for (let i = content.length - 1; i >= 0; i--) {
+            const part = content[i] as Record<string, unknown>
+            if (part?.type === "text" && typeof part.text === "string")
+                return part.text
+            if (typeof part === "string") return part
+        }
+    }
+    return JSON.stringify(content)
+}
+
 // Structural type for any LangGraph compiled agent graph
 interface StreamableAgentGraph {
     stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
@@ -120,11 +139,7 @@ export async function runOneShotAgent(
                             }
                         } else {
                             // No pending tool calls — this is the final response
-                            const content = lastMsg.content
-                            finalResponse =
-                                typeof content === "string"
-                                    ? content
-                                    : JSON.stringify(content)
+                            finalResponse = extractTextContent(lastMsg.content)
                         }
                     }
                 }

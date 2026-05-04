@@ -10,5 +10,6 @@ export function createDefaultModel(apiKey?: string, model?: string) {
     return new ChatGoogleGenerativeAI({
         model: model ?? "gemini-3.1-pro-preview",
         apiKey: apiKey,
+        maxOutputTokens: 65536,
     })
 }
