@@ -877,6 +877,24 @@ describe("Measures Catalogue Sync", () => {
         fdm = createFdmServer(host, port, user, password, database)
     })
 
+    it("should update entry with null hash (treats as stale)", async () => {
+        await syncMeasuresCatalogueArray(fdm, [measureA])
+
+        // Simulate a row with null hash (e.g., from an old migration)
+        await fdm
+            .update(schema.measuresCatalogue)
+            .set({ hash: null })
+            .where(eq(schema.measuresCatalogue.m_id, measureA.m_id))
+
+        await syncMeasuresCatalogueArray(fdm, [measureA])
+
+        const rows = await fdm
+            .select({ hash: schema.measuresCatalogue.hash })
+            .from(schema.measuresCatalogue)
+            .where(eq(schema.measuresCatalogue.m_id, measureA.m_id))
+        expect(rows[0].hash).not.toBeNull()
+    })
+
     it("should insert new catalogue entries", async () => {
         await syncMeasuresCatalogueArray(fdm, [measureA, measureB])
 

@@ -304,6 +304,30 @@ describe("Measure Data Model", () => {
             expect(map.get(b_id)?.length).toBe(1)
         })
 
+        it("should accumulate multiple measures per field in the Map", async () => {
+            await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-03-01"),
+            )
+            await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM2",
+                new Date("2023-05-01"),
+            )
+
+            const map = await getMeasuresForFarm(
+                fdm,
+                principal_id,
+                b_id_farm,
+            )
+            expect(map.get(b_id)?.length).toBe(2)
+        })
+
         it("should return empty Map when farm has no measures", async () => {
             const map = await getMeasuresForFarm(
                 fdm,
