@@ -82,17 +82,19 @@ function SoilDataCard({
     date,
     source,
     sourceLabel,
+    canModify,
 }: {
     title: string
     description: string
-    value: number | string
+    value: number | string | null
     label: string | undefined
     unit: string
     type: "numeric" | "enum"
     link: string
-    date: Date
-    source: string
+    date: Date | null
+    source: string | null
     sourceLabel: string
+    canModify: boolean
 }) {
     return (
         <Card className="flex flex-col h-full transition-colors hover:bg-accent/5">
@@ -111,7 +113,7 @@ function SoilDataCard({
                         </Tooltip>
                     </TooltipProvider>
                 </div>
-                {source !== "nl-other-nmi" ? (
+                {source !== "nl-other-nmi" && canModify ? (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -126,7 +128,9 @@ function SoilDataCard({
             </CardHeader>
             <CardContent className="mt-auto pt-0 space-y-3">
                 <div className="flex items-baseline space-x-1.5">
-                    {type === "enum" ? (
+                    {value === null ? (
+                        "Onbekend"
+                    ) : type === "enum" ? (
                         <div className="text-xl font-bold leading-tight">
                             {label && type === "enum" ? label : value}
                         </div>
@@ -191,9 +195,13 @@ function SoilDataCard({
 export function SoilDataCards({
     currentSoilData,
     soilParameterDescription,
+    canModifyAllSoilAnalyses = false,
+    canModifySoilAnalysis = {},
 }: {
     currentSoilData: CurrentSoilData
     soilParameterDescription: SoilParameterDescription
+    canModifyAllSoilAnalyses?: boolean
+    canModifySoilAnalysis?: Record<string, boolean>
 }) {
     const cards = constructSoilDataCards(
         currentSoilData,
@@ -248,6 +256,10 @@ export function SoilDataCards({
                                         date={card.date}
                                         source={card.source}
                                         sourceLabel={sourceLabel}
+                                        canModify={
+                                            canModifyAllSoilAnalyses ||
+                                            canModifySoilAnalysis[card.a_id]
+                                        }
                                     />
                                 )
                             })}
@@ -264,47 +276,44 @@ function constructSoilDataCards(
     soilParameterDescription: SoilParameterDescription,
 ) {
     // Construct the soil data cards
-    const cardValues = currentSoilData.map(
-        (item: {
-            parameter: string
-            value: string | number | undefined
-            a_id: string
-            b_sampling_date: Date
-            a_source: string
-        }) => {
-            const description = soilParameterDescription.find(
-                (x: { parameter: string }) => {
-                    return x.parameter === item.parameter
-                },
+    const cardValues = currentSoilData.map((item) => {
+        const description = soilParameterDescription.find(
+            (x: { parameter: string }) => {
+                return x.parameter === item.parameter
+            },
+        )
+
+        if (!description) {
+            console.warn(
+                `No description found for parameter: ${item.parameter}`,
             )
+            return null
+        }
 
-            if (!description) {
-                console.warn(
-                    `No description found for parameter: ${item.parameter}`,
-                )
-                return null
-            }
+        if (description.type !== "numeric" && description.type !== "enum") {
+            return null
+        }
 
-            let label
-            if (description.type === "enum") {
-                label = description.options?.find(
-                    (option: { value: string }) => option.value === item.value,
-                )?.label
-            }
+        let label: string | undefined
+        if (description.type === "enum") {
+            label = description.options?.find(
+                (option: { value: string }) => option.value === item.value,
+            )?.label
+        }
 
-            return {
-                parameter: item.parameter,
-                title: description.name,
-                description: description.description,
-                value: item.value,
-                label: label,
-                unit: description.unit,
-                type: description.type,
-                link: `./analysis/${item.a_id}`,
-                date: item.b_sampling_date,
-                source: item.a_source,
-            }
-        },
-    )
-    return cardValues.filter(Boolean) as any[]
+        return {
+            parameter: item.parameter,
+            title: description.name,
+            description: description.description,
+            value: item.value,
+            label: label,
+            unit: description.unit,
+            type: description.type,
+            a_id: item.a_id,
+            link: `./analysis/${item.a_id}`,
+            date: item.b_sampling_date,
+            source: item.a_source,
+        }
+    })
+    return cardValues.filter((x) => x !== null)
 }

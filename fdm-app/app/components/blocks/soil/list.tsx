@@ -90,7 +90,11 @@ export function SoilAnalysesList({
                                                     "nl-other-nmi"
                                             }
                                         >
-                                            Bewerk
+                                            {canModifySoilAnalysis[
+                                                analysis.a_id
+                                            ]
+                                                ? "Bewerk"
+                                                : "Bekijk"}
                                         </Button>
                                     </NavLink>
                                     <Button
