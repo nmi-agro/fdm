@@ -1229,6 +1229,9 @@ export async function removeFarm(
                         b_id_farm,
                     ),
                 )
+            await tx
+                .delete(schema.measureCatalogueEnabling)
+                .where(eq(schema.measureCatalogueEnabling.b_id_farm, b_id_farm))
 
             // Delete custom fertilizers from the catalogue that belong to this farm
             await tx

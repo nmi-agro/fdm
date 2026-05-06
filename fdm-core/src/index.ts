@@ -33,15 +33,20 @@ export {
 export {
     disableCultivationCatalogue,
     disableFertilizerCatalogue,
+    disableMeasureCatalogue,
     enableCultivationCatalogue,
     enableFertilizerCatalogue,
+    enableMeasureCatalogue,
     getEnabledCultivationCatalogues,
     getEnabledCultivationCataloguesForFarms,
     getEnabledFertilizerCatalogues,
     getEnabledFertilizerCataloguesForFarms,
+    getEnabledMeasureCatalogues,
     isCultivationCatalogueEnabled,
     isFertilizerCatalogueEnabled,
+    isMeasureCatalogueEnabled,
     syncCatalogues,
+    syncMeasuresCatalogueArray,
 } from "./catalogues"
 export {
     addCultivation,
@@ -76,6 +81,16 @@ export {
     listDerogations,
     removeDerogation,
 } from "./derogation"
+export {
+    addMeasure,
+    getMeasure,
+    getMeasures,
+    getMeasuresForFarm,
+    getMeasuresFromCatalogue,
+    removeMeasure,
+    updateMeasure,
+} from "./measure"
+export type { Measure, MeasureCatalogue } from "./measure.types"
 export {
     addFarm,
     cancelInvitationForFarm,
