@@ -30,6 +30,7 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
           : isSoil
             ? "Bodemkaart"
             : "Gewaspercelen"
+    const isFarmSelected = b_id_farm && b_id_farm !== "undefined"
 
     return (
         <>
@@ -47,30 +48,43 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
                         <ChevronDown className="h-4 w-4 shrink-0" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
+                        {isFarmSelected && (
+                            <DropdownMenuGroup>
+                                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                    Bedrijf
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem asChild>
+                                    <NavLink
+                                        to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}
+                                    >
+                                        Gewaspercelen
+                                    </NavLink>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <NavLink
+                                        to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}
+                                    >
+                                        Bodemanalyses
+                                    </NavLink>
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        )}
+                        {isFarmSelected && <DropdownMenuSeparator />}
                         <DropdownMenuGroup>
-                            <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                Bedrijf
-                            </DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
-                                <NavLink
-                                    to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}
-                                >
-                                    Gewaspercelen
-                                </NavLink>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <NavLink
-                                    to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}
-                                >
-                                    Bodemanalyses
-                                </NavLink>
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                            <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                Overig
-                            </DropdownMenuLabel>
+                            {isFarmSelected && (
+                                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                    Overig
+                                </DropdownMenuLabel>
+                            )}
+                            {!isFarmSelected && (
+                                <DropdownMenuItem asChild>
+                                    <NavLink
+                                        to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}
+                                    >
+                                        Gewaspercelen
+                                    </NavLink>
+                                </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem asChild>
                                 <NavLink
                                     to={`/farm/${b_id_farm}/${calendar}/atlas/elevation`}

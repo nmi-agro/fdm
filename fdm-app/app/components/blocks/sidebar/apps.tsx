@@ -57,7 +57,7 @@ export function SidebarApps() {
         atlasElevationLink = undefined
         atlasSoilLink = undefined
         atlasSoilAnalysisLink = undefined
-    } else if (farmId) {
+    } else if (farmId && farmId !== "undefined") {
         atlasLink = `/farm/${farmId}/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/${farmId}/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/${farmId}/${selectedCalendar}/atlas/elevation`
@@ -68,7 +68,7 @@ export function SidebarApps() {
         atlasFieldsLink = `/farm/undefined/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/undefined/${selectedCalendar}/atlas/elevation`
         atlasSoilLink = `/farm/undefined/${selectedCalendar}/atlas/soil`
-        atlasSoilAnalysisLink = `/farm/undefined/${selectedCalendar}/atlas/soil-analysis`
+        atlasSoilAnalysisLink = undefined
     }
 
     const activeAtlasTab =
@@ -165,8 +165,8 @@ export function SidebarApps() {
                                 )}
                                 <CollapsibleContent>
                                     <SidebarMenuSub>
-                                        <SidebarMenuSubItem>
-                                            {atlasFieldsLink ? (
+                                        {atlasFieldsLink ? (
+                                            <SidebarMenuSubItem>
                                                 <SidebarMenuSubButton
                                                     asChild
                                                     isActive={
@@ -182,10 +182,10 @@ export function SidebarApps() {
                                                         </span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            {atlasSoilAnalysisLink ? (
+                                            </SidebarMenuSubItem>
+                                        ) : null}
+                                        {atlasSoilAnalysisLink ? (
+                                            <SidebarMenuSubItem>
                                                 <SidebarMenuSubButton
                                                     asChild
                                                     isActive={
@@ -203,10 +203,10 @@ export function SidebarApps() {
                                                         </span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            {atlasElevationLink ? (
+                                            </SidebarMenuSubItem>
+                                        ) : null}
+                                        {atlasElevationLink ? (
+                                            <SidebarMenuSubItem>
                                                 <SidebarMenuSubButton
                                                     asChild
                                                     isActive={
@@ -220,10 +220,10 @@ export function SidebarApps() {
                                                         <span>Hoogtekaart</span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            {atlasSoilLink ? (
+                                            </SidebarMenuSubItem>
+                                        ) : null}
+                                        {atlasSoilLink ? (
+                                            <SidebarMenuSubItem>
                                                 <SidebarMenuSubButton
                                                     asChild
                                                     isActive={
@@ -235,8 +235,8 @@ export function SidebarApps() {
                                                         <span>Bodemkaart</span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
+                                            </SidebarMenuSubItem>
+                                        ) : null}
                                     </SidebarMenuSub>
                                 </CollapsibleContent>
                             </SidebarMenuItem>
