@@ -26,24 +26,16 @@ import {
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import { SoilAnalysisLegend } from "~/components/blocks/atlas/atlas-legend"
 import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import {
-    getShadedSoilParameters,
     getShadingParameterMapper,
     getSoilAnalysisLayerStyle,
     SHADED_SOIL_TYPES,
-    type ShadedSoilParameters,
-    SoilAnalysisLegend,
 } from "~/components/blocks/atlas/atlas-soil-analysis"
 import { FieldSourceClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-} from "~/components/ui/select"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -185,7 +177,6 @@ export default function FarmAtlasFieldSoilBlock() {
     const setSelectedParameter = useSelectedAtlasSoilParameterStore(
         (store) => store.setSelectedParameter,
     )
-    const shadedSoilParameters = new Set(getShadedSoilParameters())
 
     const [min, max] = useMemo(() => {
         if (!fieldsData || fieldsData?.features.length === 0) {
@@ -374,52 +365,14 @@ export default function FarmAtlasFieldSoilBlock() {
             )}
 
             <div className="fields-panel" style={{ maxWidth: "200px" }}>
-                <Card className="p-4">
-                    <Select
-                        value={selectedParameter}
-                        onValueChange={(val) =>
-                            setSelectedParameter(val as ShadedSoilParameters)
-                        }
-                    >
-                        <SelectTrigger className="bg-white hover:bg-gray-100!">
-                            {parameterDescription?.name}
-                        </SelectTrigger>
-                        <SelectContent>
-                            {soilParametersDescriptions
-                                .filter((item) =>
-                                    shadedSoilParameters.has(
-                                        item.parameter as ShadedSoilParameters,
-                                    ),
-                                )
-                                .map((opt) => {
-                                    return (
-                                        <SelectItem
-                                            key={opt.parameter}
-                                            value={opt.parameter}
-                                        >
-                                            <div>
-                                                <div className="font-medium">
-                                                    {opt.name}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {opt.description}
-                                                    <span className="text-sm text-destructive font-mono">
-                                                        {opt.parameter}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </SelectItem>
-                                    )
-                                })}
-                        </SelectContent>
-                    </Select>
-                    <SoilAnalysisLegend
-                        parameter={selectedParameter}
-                        soilParametersDescriptions={soilParametersDescriptions}
-                        min={min}
-                        max={max}
-                    />
-                </Card>
+                <SoilAnalysisLegend
+                    fieldsData={fieldsData}
+                    selectedParameter={selectedParameter}
+                    setSelectedParameter={setSelectedParameter}
+                    soilParametersDescriptions={soilParametersDescriptions}
+                    min={min}
+                    max={max}
+                />
                 <FieldsPanelHover
                     zoomLevelFields={ZOOM_LEVEL_FIELDS}
                     layer={[heatmapLayerId]}

@@ -1,5 +1,30 @@
+import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
+import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
+import { useId, useMemo } from "react"
+import {
+    Bar,
+    BarChart,
+    type BarShapeProps,
+    Rectangle,
+    XAxis,
+    YAxis,
+} from "recharts"
 import { Card, CardContent } from "~/components/ui/card"
+import { ChartContainer } from "~/components/ui/chart"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+} from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
+import {
+    GRADIENT_DEFINITIONS,
+    GRADIENT_SHADED_SOIL_PARAMETERS,
+    getShadedSoilParameters,
+    SHADED_SOIL_TYPES,
+    type ShadedSoilParameters,
+} from "./atlas-soil-analysis"
 
 interface ElevationLegendProps {
     min?: number
@@ -84,5 +109,178 @@ export function ElevationLegend({
                 </CardContent>
             </Card>
         </div>
+    )
+}
+interface SoilAnalysisLegendProps {
+    fieldsData?: FeatureCollection<Geometry, GeoJsonProperties>
+    selectedParameter: ShadedSoilParameters
+    setSelectedParameter: (parameter: ShadedSoilParameters) => void
+    soilParametersDescriptions: SoilParameterDescription
+    min?: number
+    max?: number
+}
+
+export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
+    const {
+        selectedParameter,
+        setSelectedParameter,
+        soilParametersDescriptions,
+    } = props
+
+    // Parameter shading config
+    const shadingConfig = Object.fromEntries(
+        getShadedSoilParameters().map((item) => [item.parameter, item]),
+    )
+
+    // Parameter description
+    const soilParameterOptions = soilParametersDescriptions.filter(
+        (item) => item.parameter in shadingConfig,
+    )
+    const parameterDescription = soilParametersDescriptions.find(
+        (opt) => opt.parameter === selectedParameter,
+    )
+
+    return (
+        <Card className="p-4 space-y-4">
+            <Select
+                value={selectedParameter}
+                onValueChange={(val) =>
+                    setSelectedParameter(val as ShadedSoilParameters)
+                }
+            >
+                <SelectTrigger className="bg-white hover:bg-gray-100!">
+                    {parameterDescription?.name}
+                </SelectTrigger>
+                <SelectContent>
+                    {soilParameterOptions.map((opt) => {
+                        return (
+                            <SelectItem
+                                key={opt.parameter}
+                                value={opt.parameter}
+                            >
+                                <div>
+                                    <div className="font-medium">
+                                        {opt.name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {opt.description}
+                                    </div>
+                                </div>
+                            </SelectItem>
+                        )
+                    })}
+                </SelectContent>
+            </Select>
+            {shadingConfig[selectedParameter].shading === "enum" ? (
+                <EnumSoilAnalysisLegend {...props} />
+            ) : (
+                <GradientSoilAnalysisLegend
+                    {...props}
+                    selectedParameter={selectedParameter}
+                />
+            )}
+        </Card>
+    )
+}
+
+function EnumSoilAnalysisLegend(props: SoilAnalysisLegendProps) {
+    const displayedOptions = useMemo(() => {
+        if (props.selectedParameter !== "b_soiltype_agr") return []
+        if (!props.fieldsData) return SHADED_SOIL_TYPES
+
+        const found = new Set<string>()
+
+        for (const feature of props.fieldsData.features) {
+            const value = feature.properties?.[props.selectedParameter]
+            if (typeof value !== "undefined") {
+                found.add(value as string)
+            }
+        }
+
+        return SHADED_SOIL_TYPES.filter((item) => found.has(item.value))
+    }, [props.selectedParameter, props.fieldsData])
+
+    return (
+        <table className="border-separate border-spacing-1">
+            {displayedOptions.map((opt) => (
+                <tr key={opt.value}>
+                    <td className="align-middle">
+                        <div
+                            className="size-3"
+                            style={{ backgroundColor: opt.fill }}
+                        />
+                    </td>
+                    <td className="align-middle">{opt.label}</td>
+                </tr>
+            ))}
+        </table>
+    )
+}
+
+function GradientSoilAnalysisLegend(
+    props: SoilAnalysisLegendProps & {
+        selectedParameter: ShadedSoilParameters
+    },
+) {
+    const gradDef =
+        GRADIENT_DEFINITIONS[
+            GRADIENT_SHADED_SOIL_PARAMETERS[
+                props.selectedParameter as keyof typeof GRADIENT_SHADED_SOIL_PARAMETERS
+            ]
+        ]
+
+    let min = props.min as number
+    let max = props.max as number
+    if (typeof gradDef.center === "number") {
+        const radius = Math.max(max - gradDef.center, gradDef.center - min)
+        min = gradDef.center - radius
+        max = gradDef.center + radius
+    }
+
+    const chartData = [{ name: "Legenda", min: min, max: max }]
+    const gradient = gradDef.gradient
+
+    const gradientId = useId()
+
+    const gradientSvg: React.ReactNode[] = []
+    for (let i = 0; i < gradient.length; i += 2) {
+        gradientSvg.push(
+            <stop
+                key={i}
+                offset={`${100 * (gradient[i] as number)}%`}
+                stopColor={gradient[i + 1] as string}
+            />,
+        )
+    }
+    return (
+        <ChartContainer
+            config={{}}
+            initialDimension={{ width: 100, height: 55 }}
+            className="-mx-3"
+        >
+            <BarChart
+                className="overflow-visible"
+                data={chartData}
+                layout="vertical"
+                margin={{ left: 15, right: 15, top: 0, bottom: 0 }}
+            >
+                <defs>
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                        {gradientSvg}
+                    </linearGradient>
+                </defs>
+                <XAxis type="number" domain={[min, max]} interval={0} />
+                <YAxis type="category" tickLine={false} hide />
+                <Bar
+                    isAnimationActive={false}
+                    dataKey={(
+                        entry: (typeof chartData)[number],
+                    ): [number, number] => [entry.min, entry.max]}
+                    shape={(props: BarShapeProps) => (
+                        <Rectangle {...props} fill={`url(#${gradientId})`} />
+                    )}
+                />
+            </BarChart>
+        </ChartContainer>
     )
 }

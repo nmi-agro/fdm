@@ -1,16 +1,5 @@
-import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import type { ExpressionSpecification } from "maplibre-gl"
-import { useId } from "react"
 import type { LayerProps } from "react-map-gl"
-import {
-    Bar,
-    BarChart,
-    type BarShapeProps,
-    Rectangle,
-    XAxis,
-    YAxis,
-} from "recharts"
-import { ChartContainer } from "~/components/ui/chart"
 
 /* ================ SHADING DEFINITIONS ================ */
 
@@ -136,7 +125,7 @@ export const SHADED_SOIL_TYPES = [
 /** Which gradient definition to use for gradient-shaded parameters.
  *  Add items here to let the user select other parameters.
  */
-const GRADIENT_SHADED_SOIL_PARAMETERS = {
+export const GRADIENT_SHADED_SOIL_PARAMETERS = {
     a_al_ox: "aluminum",
     a_c_of: "carbon",
     a_ca_co: "calcium",
@@ -176,7 +165,7 @@ const GRADIENT_SHADED_SOIL_PARAMETERS = {
 type GradientShadedSoilParameters = keyof typeof GRADIENT_SHADED_SOIL_PARAMETERS
 
 /** Actual gradient definitions */
-const GRADIENT_DEFINITIONS: {
+export const GRADIENT_DEFINITIONS: {
     [k in (typeof GRADIENT_SHADED_SOIL_PARAMETERS)[GradientShadedSoilParameters]]: {
         gradient: (string | number)[]
         center?: number
@@ -216,9 +205,15 @@ export type ShadedSoilParameters =
 
 export function getShadedSoilParameters() {
     return [
-        ...Object.keys(GRADIENT_SHADED_SOIL_PARAMETERS),
-        ...Object.keys(ENUM_SHADED_SOIL_PARAMETERS),
-    ] as ShadedSoilParameters[]
+        ...Object.keys(GRADIENT_SHADED_SOIL_PARAMETERS).map((parameter) => ({
+            parameter,
+            shading: "gradient",
+        })),
+        ...Object.keys(ENUM_SHADED_SOIL_PARAMETERS).map((parameter) => ({
+            parameter,
+            shading: "enum",
+        })),
+    ] as { parameter: ShadedSoilParameters; shading: "gradient" | "enum" }[]
 }
 
 export function getSoilAnalysisLayerStyle(
@@ -372,80 +367,4 @@ export function getShadingParameterMapper(parameter: ShadedSoilParameters) {
         )
     }
     return SHADING_PARAMETER_MAPPERS[parameter] ?? DEFAULT_PARAMETER_MAPPER
-}
-
-interface SoilAnalysisLegendProps {
-    parameter: ShadedSoilParameters
-    soilParametersDescriptions: SoilParameterDescription
-    min?: number
-    max?: number
-}
-
-export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
-    if (props.parameter in ENUM_SHADED_SOIL_PARAMETERS) {
-        return <EnumSoilAnalysisLegend {...props} />
-    }
-
-    return <GradientSoilAnalysisLegend {...props} />
-}
-
-function EnumSoilAnalysisLegend(props: SoilAnalysisLegendProps) {
-    return null
-}
-
-function GradientSoilAnalysisLegend(props: SoilAnalysisLegendProps) {
-    const gradDef =
-        GRADIENT_DEFINITIONS[
-            GRADIENT_SHADED_SOIL_PARAMETERS[
-                props.parameter as GradientShadedSoilParameters
-            ]
-        ]
-
-    let min = props.min as number
-    let max = props.max as number
-    if (typeof gradDef.center === "number") {
-        const radius = Math.max(max - gradDef.center, gradDef.center - min)
-        min = gradDef.center - radius
-        max = gradDef.center + radius
-    }
-
-    const chartData = [{ name: "Legenda", min: min, max: max }]
-    const gradient = gradDef.gradient
-
-    const gradientId = useId()
-
-    const gradientSvg: React.ReactNode[] = []
-    for (let i = 0; i < gradient.length; i += 2) {
-        gradientSvg.push(
-            <stop
-                key={i}
-                offset={`${100 * (gradient[i] as number)}%`}
-                stopColor={gradient[i + 1] as string}
-            />,
-        )
-    }
-    return (
-        <ChartContainer
-            config={{}}
-            initialDimension={{ width: 100, height: 55 }}
-        >
-            <BarChart data={chartData} layout="vertical" responsive>
-                <defs>
-                    <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
-                        {gradientSvg}
-                    </linearGradient>
-                </defs>
-                <XAxis type="number" domain={[min, max]} />
-                <YAxis type="category" tickLine={false} hide />
-                <Bar
-                    dataKey={(
-                        entry: (typeof chartData)[number],
-                    ): [number, number] => [entry.min, entry.max]}
-                    shape={(props: BarShapeProps) => (
-                        <Rectangle {...props} fill={`url(#${gradientId})`} />
-                    )}
-                />
-            </BarChart>
-        </ChartContainer>
-    )
 }
