@@ -1,5 +1,6 @@
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
+import { TriangleAlert } from "lucide-react"
 import { useId, useMemo } from "react"
 import {
     Bar,
@@ -22,6 +23,7 @@ import {
     GRADIENT_DEFINITIONS,
     GRADIENT_SHADED_SOIL_PARAMETERS,
     getShadedSoilParameters,
+    getShadingParameterMapper,
     SHADED_SOIL_TYPES,
     type ShadedSoilParameters,
 } from "./atlas-soil-analysis"
@@ -122,6 +124,7 @@ interface SoilAnalysisLegendProps {
 
 export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
     const {
+        fieldsData,
         selectedParameter,
         setSelectedParameter,
         soilParametersDescriptions,
@@ -138,6 +141,11 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
     )
     const parameterDescription = soilParametersDescriptions.find(
         (opt) => opt.parameter === selectedParameter,
+    )
+
+    const anyDataAvailable = fieldsData?.features.some(
+        (feature) =>
+            feature.properties && selectedParameter in feature.properties,
     )
 
     return (
@@ -178,6 +186,12 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
                     {...props}
                     selectedParameter={selectedParameter}
                 />
+            )}
+            {fieldsData && !anyDataAvailable && (
+                <p className="flex flex-row items-center gap-2">
+                    <TriangleAlert className="h-4 w-4 text-orange-500" />
+                    Geen data op hele bedrijf
+                </p>
             )}
         </Card>
     )
@@ -228,6 +242,7 @@ function GradientSoilAnalysisLegend(
                 props.selectedParameter as keyof typeof GRADIENT_SHADED_SOIL_PARAMETERS
             ]
         ]
+    const parameterMapper = getShadingParameterMapper(props.selectedParameter)
 
     let min = props.min as number
     let max = props.max as number
@@ -269,7 +284,16 @@ function GradientSoilAnalysisLegend(
                         {gradientSvg}
                     </linearGradient>
                 </defs>
-                <XAxis type="number" domain={[min, max]} interval={0} />
+                <XAxis
+                    type="number"
+                    domain={[min, max]}
+                    niceTicks="snap125"
+                    tickFormatter={(n) =>
+                        (
+                            Math.round(parameterMapper.inverse(n) * 100) / 100
+                        ).toString()
+                    }
+                />
                 <YAxis type="category" tickLine={false} hide />
                 <Bar
                     isAnimationActive={false}
