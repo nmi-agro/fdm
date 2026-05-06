@@ -655,6 +655,26 @@ export async function removeField(
             await tx
                 .delete(schema.fertilizerApplication)
                 .where(eq(schema.fertilizerApplication.b_id, b_id))
+
+            // Delete measures linked to this field
+            const measuresToDelete = await tx
+                .select({ b_id_measure: schema.measureAdopting.b_id_measure })
+                .from(schema.measureAdopting)
+                .where(eq(schema.measureAdopting.b_id, b_id))
+            await tx
+                .delete(schema.measureAdopting)
+                .where(eq(schema.measureAdopting.b_id, b_id))
+            if (measuresToDelete.length > 0) {
+                const measureIds = measuresToDelete.map(
+                    (m: {
+                        b_id_measure: schema.measuresTypeSelect["b_id_measure"]
+                    }) => m.b_id_measure,
+                )
+                await tx
+                    .delete(schema.measures)
+                    .where(inArray(schema.measures.b_id_measure, measureIds))
+            }
+
             await tx
                 .delete(schema.fieldDiscarding)
                 .where(eq(schema.fieldDiscarding.b_id, b_id))

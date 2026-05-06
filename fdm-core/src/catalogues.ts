@@ -5,9 +5,12 @@ import type {
 import {
     getCultivationCatalogue,
     getFertilizersCatalogue,
+    getMeasuresCatalogue,
     hashCultivation,
     hashFertilizer,
+    hashMeasure,
 } from "@nmi-agro/fdm-data"
+import type { CatalogueMeasure } from "@nmi-agro/fdm-data"
 import { and, eq, inArray } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.types"
@@ -478,14 +481,188 @@ export async function isCultivationCatalogueEnabled(
 }
 
 /**
- * Synchronizes the fertilizer and cultivation catalogues in the FDM database with the data from fdm-data.
+ * Gets all enabled measure catalogues for a farm.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @returns A Promise that resolves to an array of enabled measure catalogue sources.
+ * @throws If retrieving the catalogues fails.
+ */
+export async function getEnabledMeasureCatalogues(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<string[]> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "getEnabledMeasureCatalogues",
+        )
+        const result = await fdm
+            .select({
+                m_source: schema.measureCatalogueEnabling.m_source,
+            })
+            .from(schema.measureCatalogueEnabling)
+            .where(eq(schema.measureCatalogueEnabling.b_id_farm, b_id_farm))
+
+        return result.map((row) => row.m_source)
+    } catch (err) {
+        throw handleError(err, "Exception for getEnabledMeasureCatalogues", {
+            principal_id,
+            b_id_farm,
+        })
+    }
+}
+
+/**
+ * Enables a measure catalogue for a farm.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param m_source The source/name of the measure catalogue to enable.
+ * @returns A Promise that resolves when the catalogue has been enabled.
+ * @throws If enabling the catalogue fails.
+ */
+export async function enableMeasureCatalogue(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    m_source: string,
+): Promise<void> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "write",
+            b_id_farm,
+            principal_id,
+            "enableMeasureCatalogue",
+        )
+        await fdm.insert(schema.measureCatalogueEnabling).values({
+            b_id_farm,
+            m_source,
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for enableMeasureCatalogue", {
+            principal_id,
+            b_id_farm,
+            m_source,
+        })
+    }
+}
+
+/**
+ * Disables a measure catalogue for a farm.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param m_source The source/name of the measure catalogue to disable.
+ * @returns A Promise that resolves when the catalogue has been disabled.
+ * @throws If disabling the catalogue fails.
+ */
+export async function disableMeasureCatalogue(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    m_source: string,
+): Promise<void> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "write",
+            b_id_farm,
+            principal_id,
+            "disableMeasureCatalogue",
+        )
+        await fdm
+            .delete(schema.measureCatalogueEnabling)
+            .where(
+                and(
+                    eq(schema.measureCatalogueEnabling.b_id_farm, b_id_farm),
+                    eq(schema.measureCatalogueEnabling.m_source, m_source),
+                ),
+            )
+    } catch (err) {
+        throw handleError(err, "Exception for disableMeasureCatalogue", {
+            principal_id,
+            b_id_farm,
+            m_source,
+        })
+    }
+}
+
+/**
+ * Checks if a measure catalogue is enabled for a farm.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param m_source The source/name of the measure catalogue to check.
+ * @returns A Promise that resolves to true if the catalogue is enabled, false otherwise.
+ * @throws If checking the catalogue status fails.
+ */
+export async function isMeasureCatalogueEnabled(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+    m_source: string,
+): Promise<boolean> {
+    try {
+        await checkPermission(
+            fdm,
+            "farm",
+            "read",
+            b_id_farm,
+            principal_id,
+            "isMeasureCatalogueEnabled",
+        )
+        const result = await fdm
+            .select({
+                b_id_farm: schema.measureCatalogueEnabling.b_id_farm,
+                m_source: schema.measureCatalogueEnabling.m_source,
+            })
+            .from(schema.measureCatalogueEnabling)
+            .where(
+                and(
+                    eq(schema.measureCatalogueEnabling.b_id_farm, b_id_farm),
+                    eq(schema.measureCatalogueEnabling.m_source, m_source),
+                ),
+            )
+
+        return result.length > 0
+    } catch (err) {
+        throw handleError(err, "Exception for isMeasureCatalogueEnabled", {
+            principal_id,
+            b_id_farm,
+            m_source,
+        })
+    }
+}
+
+/**
+ * Synchronizes the fertilizer, cultivation, and optionally measures catalogues in the FDM database.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param options Optional configuration. Provide `nmiApiKey` to also sync the measures catalogue from the NMI API.
  * @returns A promise that resolves when the synchronization is complete.
  */
-export async function syncCatalogues(fdm: FdmType): Promise<void> {
+export async function syncCatalogues(
+    fdm: FdmType,
+    options?: { nmiApiKey?: string },
+): Promise<void> {
     await syncFertilizerCatalogue(fdm)
     await syncCultivationCatalogue(fdm)
+    if (options?.nmiApiKey) {
+        await syncMeasuresCatalogue(fdm, options.nmiApiKey)
+    }
 }
 
 async function syncFertilizerCatalogue(fdm: FdmType) {
@@ -606,6 +783,65 @@ async function syncCultivationCatalogue(fdm: FdmType) {
             }
         } catch (error) {
             throw handleError(error, "Exception for syncCultivationCatalogue")
+        }
+    })
+}
+
+async function syncMeasuresCatalogue(
+    fdm: FdmType,
+    nmiApiKey: string,
+): Promise<void> {
+    const measures = await getMeasuresCatalogue("bln", nmiApiKey)
+    return syncMeasuresCatalogueArray(fdm, measures)
+}
+
+/**
+ * Synchronizes the measures catalogue with the provided array of catalogue items.
+ *
+ * Public so that tests and custom data injection can call it directly without a live API key.
+ * Mirrors {@link syncFertilizerCatalogueArray}.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param measures Array of catalogue items (in pandex naming convention from fdm-data).
+ */
+export async function syncMeasuresCatalogueArray(
+    fdm: FdmType,
+    measures: CatalogueMeasure,
+): Promise<void> {
+    await fdm.transaction(async (tx) => {
+        try {
+            for (const catalogueItem of measures) {
+                const hash = await hashMeasure(catalogueItem)
+                const item = { ...catalogueItem, hash }
+                const existing = await tx
+                    .select({ hash: schema.measuresCatalogue.hash })
+                    .from(schema.measuresCatalogue)
+                    .where(
+                        eq(schema.measuresCatalogue.m_id, item.m_id),
+                    )
+                    .limit(1)
+                if (existing.length === 0) {
+                    await tx.insert(schema.measuresCatalogue).values(item)
+                } else {
+                    if (
+                        existing[0].hash === null ||
+                        existing[0].hash === undefined ||
+                        existing[0].hash !== item.hash
+                    ) {
+                        await tx
+                            .update(schema.measuresCatalogue)
+                            .set({ ...item, updated: new Date() })
+                            .where(
+                                eq(
+                                    schema.measuresCatalogue.m_id,
+                                    item.m_id,
+                                ),
+                            )
+                    }
+                }
+            }
+        } catch (error) {
+            throw handleError(error, "Exception for syncMeasuresCatalogue")
         }
     })
 }

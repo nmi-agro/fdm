@@ -7,13 +7,18 @@ import { beforeEach, describe, expect, inject, it } from "vitest"
 import {
     disableCultivationCatalogue,
     disableFertilizerCatalogue,
+    disableMeasureCatalogue,
     enableCultivationCatalogue,
     enableFertilizerCatalogue,
+    enableMeasureCatalogue,
     getEnabledCultivationCatalogues,
     getEnabledFertilizerCatalogues,
+    getEnabledMeasureCatalogues,
     isCultivationCatalogueEnabled,
     isFertilizerCatalogueEnabled,
+    isMeasureCatalogueEnabled,
     syncCatalogues,
+    syncMeasuresCatalogueArray,
 } from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
@@ -829,3 +834,171 @@ describe("Catalogues syncing", () => {
         ).toBe(true)
     })
 })
+
+describe("Measures Catalogue Sync", () => {
+    let fdm: FdmType
+
+    const measureA = {
+        m_id: "bln_BM10",
+        m_source: "bln",
+        m_name: "Maatregel A",
+        m_description: "Beschrijving A",
+        m_summary: "Samenvatting A",
+        m_source_url: null,
+        m_conflicts: null,
+    }
+
+    const measureB = {
+        m_id: "bln_BM11",
+        m_source: "bln",
+        m_name: "Maatregel B",
+        m_description: null,
+        m_summary: null,
+        m_source_url: "https://example.com/BM11",
+        m_conflicts: ["bln_BM10"],
+    }
+
+    beforeEach(async () => {
+        const host = inject("host")
+        const port = inject("port")
+        const user = inject("user")
+        const password = inject("password")
+        const database = inject("database")
+        fdm = createFdmServer(host, port, user, password, database)
+    })
+
+    it("should insert new catalogue entries", async () => {
+        await syncMeasuresCatalogueArray(fdm, [measureA, measureB])
+
+        const rows = await fdm
+            .select()
+            .from(schema.measuresCatalogue)
+            .where(
+                eq(schema.measuresCatalogue.m_source, "bln"),
+            )
+
+        const ids = rows.map((r) => r.m_id)
+        expect(ids).toContain("bln_BM10")
+        expect(ids).toContain("bln_BM11")
+    })
+
+    it("should update changed entries (hash mismatch)", async () => {
+        await syncMeasuresCatalogueArray(fdm, [measureA])
+
+        const updated = { ...measureA, m_name: "Maatregel A — updated" }
+        await syncMeasuresCatalogueArray(fdm, [updated])
+
+        const rows = await fdm
+            .select()
+            .from(schema.measuresCatalogue)
+            .where(eq(schema.measuresCatalogue.m_id, "bln_BM10"))
+        expect(rows[0].m_name).toBe("Maatregel A — updated")
+        expect(rows[0].updated).not.toBeNull()
+    })
+
+    it("should skip unchanged entries (hash match)", async () => {
+        await syncMeasuresCatalogueArray(fdm, [measureA])
+
+        const rowsBefore = await fdm
+            .select({ updated: schema.measuresCatalogue.updated })
+            .from(schema.measuresCatalogue)
+            .where(eq(schema.measuresCatalogue.m_id, "bln_BM10"))
+
+        await syncMeasuresCatalogueArray(fdm, [measureA])
+
+        const rowsAfter = await fdm
+            .select({ updated: schema.measuresCatalogue.updated })
+            .from(schema.measuresCatalogue)
+            .where(eq(schema.measuresCatalogue.m_id, "bln_BM10"))
+
+        // updated timestamp should not have changed
+        expect(rowsAfter[0].updated).toEqual(rowsBefore[0].updated)
+    })
+
+    it("syncCatalogues without nmiApiKey should not insert measures_catalogue rows", async () => {
+        const countBefore = (
+            await fdm.select().from(schema.measuresCatalogue)
+        ).length
+
+        await syncCatalogues(fdm) // no nmiApiKey
+
+        const countAfter = (
+            await fdm.select().from(schema.measuresCatalogue)
+        ).length
+
+        expect(countAfter).toBe(countBefore)
+    })
+})
+
+describe("Measure Catalogues", () => {
+    let fdm: FdmType
+    let principal_id: string
+    let b_id_farm: string
+
+    beforeEach(async () => {
+        const host = inject("host")
+        const port = inject("port")
+        const user = inject("user")
+        const password = inject("password")
+        const database = inject("database")
+        fdm = createFdmServer(host, port, user, password, database)
+        principal_id = "test_principal"
+        b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Test Farm",
+            "123456",
+            "123 Farm Lane",
+            "12345",
+        )
+    })
+
+    it("should enable and check measure catalogue", async () => {
+        await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
+        expect(
+            await isMeasureCatalogueEnabled(fdm, principal_id, b_id_farm, "bln"),
+        ).toBe(true)
+    })
+
+    it("should disable measure catalogue", async () => {
+        await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
+        await disableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
+        expect(
+            await isMeasureCatalogueEnabled(fdm, principal_id, b_id_farm, "bln"),
+        ).toBe(false)
+    })
+
+    it("should return enabled measure catalogues", async () => {
+        await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
+        const enabled = await getEnabledMeasureCatalogues(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+        expect(enabled).toContain("bln")
+    })
+
+    it("should return empty array when no measure catalogues are enabled", async () => {
+        const enabled = await getEnabledMeasureCatalogues(
+            fdm,
+            principal_id,
+            b_id_farm,
+        )
+        expect(enabled).toEqual([])
+    })
+
+    it("should not disable a different source", async () => {
+        await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
+        await disableMeasureCatalogue(fdm, principal_id, b_id_farm, "other")
+        expect(
+            await isMeasureCatalogueEnabled(fdm, principal_id, b_id_farm, "bln"),
+        ).toBe(true)
+    })
+
+    it("should throw when permission check fails", async () => {
+        await expect(
+            enableMeasureCatalogue(fdm, "wrong_principal", b_id_farm, "bln"),
+        ).rejects.toThrow()
+    })
+})
+

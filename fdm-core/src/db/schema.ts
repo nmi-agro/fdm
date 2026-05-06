@@ -924,3 +924,86 @@ export type cultivationCatalogueSelectingTypeSelect =
     typeof cultivationCatalogueSelecting.$inferSelect
 export type cultivationCatalogueSelectingTypeInsert =
     typeof cultivationCatalogueSelecting.$inferInsert
+
+// Define measures_catalogue table
+export const measuresCatalogue = fdmSchema.table(
+    "measures_catalogue",
+    {
+        m_id: text().primaryKey(), // "bln_BM1", "bln_BM2", etc.
+        m_source: text().notNull(), // "bln"; future: "ANLb", etc.
+        m_name: text().notNull(),
+        m_description: text(),
+        m_summary: text(),
+        m_source_url: text(),
+        m_conflicts: text().array(), // Conflicting m_id values
+        hash: text(),
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        updated: timestamp({ withTimezone: true }),
+    },
+    (table) => [
+        uniqueIndex("m_id_idx").on(table.m_id),
+        index("m_source_idx").on(table.m_source),
+    ],
+)
+
+export type measuresCatalogueTypeSelect = typeof measuresCatalogue.$inferSelect
+export type measuresCatalogueTypeInsert = typeof measuresCatalogue.$inferInsert
+
+// Define measures table
+export const measures = fdmSchema.table(
+    "measures",
+    {
+        b_id_measure: text().primaryKey(),
+        m_id: text()
+            .notNull()
+            .references(() => measuresCatalogue.m_id),
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        updated: timestamp({ withTimezone: true }),
+    },
+    (table) => [uniqueIndex("b_id_measure_idx").on(table.b_id_measure)],
+)
+
+export type measuresTypeSelect = typeof measures.$inferSelect
+export type measuresTypeInsert = typeof measures.$inferInsert
+
+// Define measure_adopting table
+export const measureAdopting = fdmSchema.table(
+    "measure_adopting",
+    {
+        b_id: text()
+            .notNull()
+            .references(() => fields.b_id),
+        b_id_measure: text()
+            .notNull()
+            .references(() => measures.b_id_measure),
+        m_start: timestamp({ withTimezone: true }),
+        m_end: timestamp({ withTimezone: true }), // NULL = ongoing / doorlopend
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        updated: timestamp({ withTimezone: true }),
+    },
+    (table) => [primaryKey({ columns: [table.b_id, table.b_id_measure] })],
+)
+
+export type measureAdoptingTypeSelect = typeof measureAdopting.$inferSelect
+export type measureAdoptingTypeInsert = typeof measureAdopting.$inferInsert
+
+// Define measure_catalogue_enabling table
+export const measureCatalogueEnabling = fdmSchema.table(
+    "measure_catalogue_enabling",
+    {
+        b_id_farm: text()
+            .notNull()
+            .references(() => farms.b_id_farm),
+        m_source: text().notNull(),
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        updated: timestamp({ withTimezone: true }),
+    },
+    (table) => {
+        return [primaryKey({ columns: [table.b_id_farm, table.m_source] })]
+    },
+)
+
+export type measureCatalogueEnablingTypeSelect =
+    typeof measureCatalogueEnabling.$inferSelect
+export type measureCatalogueEnablingTypeInsert =
+    typeof measureCatalogueEnabling.$inferInsert
