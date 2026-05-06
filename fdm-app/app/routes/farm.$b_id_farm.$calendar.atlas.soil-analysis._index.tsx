@@ -18,7 +18,11 @@ import {
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import type { MetaFunction } from "react-router"
-import { type LoaderFunctionArgs, useLoaderData } from "react-router"
+import {
+    type LoaderFunctionArgs,
+    useLoaderData,
+    useNavigate,
+} from "react-router"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -46,6 +50,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useSelectedAtlasSoilParameterStore } from "~/store/selected-soil-parameter"
 
 export const meta: MetaFunction = () => {
     return [
@@ -86,10 +91,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Get the fields of the farm
         let fieldsData: FeatureCollection | undefined
-        const currentSoilData: {
-            b_id: string
-            currentSoilData: CurrentSoilData
-        }[] = []
         if (b_id_farm && b_id_farm !== "undefined") {
             const fields = await getFields(
                 fdm,
@@ -108,10 +109,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             const features = fields.map((field) => {
                 const fieldCurrentSoilData =
                     currentSoilDataForFarm.get(field.b_id) ?? []
-                currentSoilData.push({
-                    b_id: field.b_id,
-                    currentSoilData: fieldCurrentSoilData,
-                })
                 const feature = {
                     type: "Feature" as const,
                     properties: {
@@ -154,9 +151,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Return user information from loader
         return {
             calendar: calendar,
+            b_id_farm: b_id_farm,
             fieldsData: fieldsData,
             mapStyle: mapStyle,
-            currentSoilData: currentSoilData,
             soilParametersDescriptions: soilParametersDescriptions,
         }
     } catch (error) {
@@ -172,36 +169,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmAtlasFieldSoilBlock() {
     const {
+        calendar,
+        b_id_farm,
         mapStyle,
         fieldsData,
         soilParametersDescriptions,
-        currentSoilData,
     } = useLoaderData<typeof loader>()
+    const navigate = useNavigate()
 
-    const heatmapLayerId = "fieldsSavedHeatmap"
-    const heatmapStrokeLayerId = "fieldsSavedHeatmapStroke"
-    const [selectedParameter, setSelectedParameter] =
-        useState<ShadedSoilParameters>("a_som_loi")
+    const heatmapLayerId = "fieldsSaved"
+    const heatmapStrokeLayerId = "fieldsSavedStroke"
+    const selectedParameter = useSelectedAtlasSoilParameterStore(
+        (store) => store.selectedParameter,
+    )
+    const setSelectedParameter = useSelectedAtlasSoilParameterStore(
+        (store) => store.setSelectedParameter,
+    )
     const shadedSoilParameters = new Set(getShadedSoilParameters())
 
     const [min, max] = useMemo(() => {
-        if (currentSoilData.length === 0) {
+        if (!fieldsData || fieldsData?.features.length === 0) {
             return [0, 1]
         }
         const parameterDescription = soilParametersDescriptions.find(
             (item) => item.parameter === selectedParameter,
         )
         if (parameterDescription?.type !== "numeric") return [0, 1]
+        const parameterMapper = getShadingParameterMapper(selectedParameter)
         let min: number | null = null
         let max: number | null = null
-        for (const field of currentSoilData) {
-            const parameterValue = field.currentSoilData.find(
-                (item) => item.parameter === selectedParameter,
-            )
-            if (parameterValue) {
-                const mappedValue = getShadingParameterMapper(
-                    selectedParameter,
-                ).forward(parameterValue.value as number)
+        for (const field of fieldsData.features) {
+            if (!field.properties) continue
+            const parameterValue = field.properties[selectedParameter]
+            if (typeof parameterValue !== "undefined") {
+                const mappedValue = parameterMapper.forward(
+                    parameterValue as number,
+                )
                 min = min === null ? mappedValue : Math.min(min, mappedValue)
                 max = max === null ? mappedValue : Math.max(max, mappedValue)
             }
@@ -211,7 +214,7 @@ export default function FarmAtlasFieldSoilBlock() {
         return defaultedMin === defaultedMax
             ? [defaultedMin - 0.01, defaultedMin + 0.01]
             : [defaultedMin, defaultedMax]
-    }, [selectedParameter, currentSoilData, soilParametersDescriptions])
+    }, [selectedParameter, fieldsData, soilParametersDescriptions])
 
     const parameterDescription = soilParametersDescriptions.find(
         (item) => item.parameter === selectedParameter,
@@ -350,7 +353,11 @@ export default function FarmAtlasFieldSoilBlock() {
                 <FieldSourceClickable
                     id={heatmapLayerId}
                     fieldsData={fieldsData}
-                    onFieldClick={() => {}}
+                    onFieldClick={(feature) => {
+                        navigate(
+                            `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,
+                        )
+                    }}
                 >
                     <Layer
                         id={heatmapLayerId}

@@ -315,11 +315,13 @@ export function FieldsSourceAvailable({
 
 export function FieldSourceClickable({
     id,
+    excludedLayerId,
     fieldsData,
     children,
     onFieldClick,
 }: {
     id: string
+    excludedLayerId?: string
     fieldsData: FeatureCollection<Geometry, GeoJsonProperties>
     children: ReactNode
     onFieldClick: (feature: Feature<Geometry, Field>) => unknown
@@ -331,9 +333,9 @@ export function FieldSourceClickable({
             if (!map) return
 
             if (
-                id &&
+                excludedLayerId &&
                 map.queryRenderedFeatures(evt.point, {
-                    layers: [id],
+                    layers: [excludedLayerId],
                 }).length
             ) {
                 return
@@ -354,7 +356,7 @@ export function FieldSourceClickable({
                 map.off("click", clickOnMap)
             }
         }
-    }, [map, id, onFieldClick])
+    }, [map, id, excludedLayerId, onFieldClick])
 
     return (
         <Source id={id} type="geojson" data={fieldsData}>
