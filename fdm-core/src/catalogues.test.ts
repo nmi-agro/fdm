@@ -1,9 +1,10 @@
 import {
     getCultivationCatalogue,
     getFertilizersCatalogue,
+    getMeasuresCatalogue,
 } from "@nmi-agro/fdm-data"
 import { eq, isNotNull } from "drizzle-orm"
-import { beforeEach, describe, expect, inject, it } from "vitest"
+import { beforeEach, describe, expect, inject, it, vi } from "vitest"
 import {
     disableCultivationCatalogue,
     disableFertilizerCatalogue,
@@ -24,6 +25,15 @@ import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
+
+vi.mock("@nmi-agro/fdm-data", async (importOriginal) => {
+    const original =
+        await importOriginal<typeof import("@nmi-agro/fdm-data")>()
+    return {
+        ...original,
+        getMeasuresCatalogue: vi.fn().mockResolvedValue([]),
+    }
+})
 
 describe("Catalogues", () => {
     let fdm: FdmType
@@ -915,18 +925,38 @@ describe("Measures Catalogue Sync", () => {
         expect(rowsAfter[0].updated).toEqual(rowsBefore[0].updated)
     })
 
-    it("syncCatalogues without nmiApiKey should not insert measures_catalogue rows", async () => {
-        const countBefore = (
-            await fdm.select().from(schema.measuresCatalogue)
-        ).length
+    it("syncCatalogues without nmiApiKey should not call getMeasuresCatalogue", async () => {
+        vi.mocked(getMeasuresCatalogue).mockClear()
 
         await syncCatalogues(fdm) // no nmiApiKey
 
-        const countAfter = (
-            await fdm.select().from(schema.measuresCatalogue)
-        ).length
+        expect(vi.mocked(getMeasuresCatalogue)).not.toHaveBeenCalled()
+    })
 
-        expect(countAfter).toBe(countBefore)
+    it("syncCatalogues with nmiApiKey should sync measures catalogue", async () => {
+        vi.mocked(getMeasuresCatalogue).mockResolvedValue([
+            {
+                m_id: "bln_SYNC1",
+                m_source: "bln",
+                m_name: "Test Sync Measure",
+                m_description: null,
+                m_summary: null,
+                m_source_url: null,
+                m_conflicts: null,
+            },
+        ])
+
+        await syncCatalogues(fdm, { nmiApiKey: "test-key" })
+
+        expect(vi.mocked(getMeasuresCatalogue)).toHaveBeenCalledWith(
+            "bln",
+            "test-key",
+        )
+        const rows = await fdm
+            .select({ m_id: schema.measuresCatalogue.m_id })
+            .from(schema.measuresCatalogue)
+            .where(eq(schema.measuresCatalogue.m_id, "bln_SYNC1"))
+        expect(rows).toHaveLength(1)
     })
 })
 
@@ -998,6 +1028,24 @@ describe("Measure Catalogues", () => {
     it("should throw when permission check fails", async () => {
         await expect(
             enableMeasureCatalogue(fdm, "wrong_principal", b_id_farm, "bln"),
+        ).rejects.toThrow()
+    })
+
+    it("should throw when permission check fails for getEnabledMeasureCatalogues", async () => {
+        await expect(
+            getEnabledMeasureCatalogues(fdm, "wrong_principal", b_id_farm),
+        ).rejects.toThrow()
+    })
+
+    it("should throw when permission check fails for disableMeasureCatalogue", async () => {
+        await expect(
+            disableMeasureCatalogue(fdm, "wrong_principal", b_id_farm, "bln"),
+        ).rejects.toThrow()
+    })
+
+    it("should throw when permission check fails for isMeasureCatalogueEnabled", async () => {
+        await expect(
+            isMeasureCatalogueEnabled(fdm, "wrong_principal", b_id_farm, "bln"),
         ).rejects.toThrow()
     })
 })

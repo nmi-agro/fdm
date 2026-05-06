@@ -313,6 +313,36 @@ describe("Measure Data Model", () => {
             expect(map).toBeInstanceOf(Map)
             expect(map.size).toBe(0)
         })
+
+        it("should filter by timeframe", async () => {
+            // Measure within timeframe
+            await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-03-01"),
+                new Date("2023-06-30"),
+            )
+            // Measure outside timeframe
+            await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM2",
+                new Date("2020-01-01"),
+                new Date("2020-12-31"),
+            )
+
+            const map = await getMeasuresForFarm(
+                fdm,
+                principal_id,
+                b_id_farm,
+                { start: new Date("2023-01-01"), end: new Date("2023-12-31") },
+            )
+            expect(map.get(b_id)?.length).toBe(1)
+            expect(map.get(b_id)?.[0].m_id).toBe("bln_BM1")
+        })
     })
 
     describe("updateMeasure", () => {
