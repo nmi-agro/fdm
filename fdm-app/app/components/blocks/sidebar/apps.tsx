@@ -50,22 +50,39 @@ export function SidebarApps() {
     let atlasFieldsLink: string | undefined
     let atlasElevationLink: string | undefined
     let atlasSoilLink: string | undefined
+    let atlasSoilAnalysisLink: string | undefined
     if (isCreateFarmWizard) {
         atlasLink = undefined
         atlasFieldsLink = undefined
         atlasElevationLink = undefined
         atlasSoilLink = undefined
+        atlasSoilAnalysisLink = undefined
     } else if (farmId) {
         atlasLink = `/farm/${farmId}/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/${farmId}/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/${farmId}/${selectedCalendar}/atlas/elevation`
         atlasSoilLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil`
+        atlasSoilAnalysisLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil-analysis`
     } else {
         atlasLink = `/farm/undefined/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/undefined/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/undefined/${selectedCalendar}/atlas/elevation`
         atlasSoilLink = `/farm/undefined/${selectedCalendar}/atlas/soil`
+        atlasSoilAnalysisLink = `/farm/undefined/${selectedCalendar}/atlas/soil-analysis`
     }
+
+    const activeAtlasTab =
+        atlasFieldsLink && location.pathname.includes(atlasFieldsLink)
+            ? "fields"
+            : atlasElevationLink &&
+                location.pathname.includes(atlasElevationLink)
+              ? "elevation"
+              : atlasSoilAnalysisLink &&
+                  location.pathname.includes(atlasSoilAnalysisLink)
+                ? "soil-analysis"
+                : atlasSoilLink && location.pathname.includes(atlasSoilLink)
+                  ? "soil"
+                  : undefined
 
     let nitrogenBalanceLink: string | undefined
     if (isCreateFarmWizard || isFarmOverview) {
@@ -152,9 +169,10 @@ export function SidebarApps() {
                                             {atlasFieldsLink ? (
                                                 <SidebarMenuSubButton
                                                     asChild
-                                                    isActive={location.pathname.includes(
-                                                        atlasFieldsLink,
-                                                    )}
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "fields"
+                                                    }
                                                 >
                                                     <NavLink
                                                         to={atlasFieldsLink}
@@ -167,12 +185,34 @@ export function SidebarApps() {
                                             ) : null}
                                         </SidebarMenuSubItem>
                                         <SidebarMenuSubItem>
+                                            {atlasSoilAnalysisLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "soil-analysis"
+                                                    }
+                                                >
+                                                    <NavLink
+                                                        to={
+                                                            atlasSoilAnalysisLink
+                                                        }
+                                                    >
+                                                        <span>
+                                                            Bodemanalyses
+                                                        </span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
                                             {atlasElevationLink ? (
                                                 <SidebarMenuSubButton
                                                     asChild
-                                                    isActive={location.pathname.includes(
-                                                        atlasElevationLink,
-                                                    )}
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "elevation"
+                                                    }
                                                 >
                                                     <NavLink
                                                         to={atlasElevationLink}
@@ -186,9 +226,10 @@ export function SidebarApps() {
                                             {atlasSoilLink ? (
                                                 <SidebarMenuSubButton
                                                     asChild
-                                                    isActive={location.pathname.includes(
-                                                        atlasSoilLink,
-                                                    )}
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "soil"
+                                                    }
                                                 >
                                                     <NavLink to={atlasSoilLink}>
                                                         <span>Bodemkaart</span>
