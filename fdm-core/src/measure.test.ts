@@ -443,7 +443,7 @@ describe("Measure cascade deletion", () => {
         await syncMeasuresCatalogueArray(fdm, [
             { m_id: "bln_DEL1", m_source: "bln", m_name: "Del Measure", m_description: null, m_summary: null, m_source_url: null, m_conflicts: null },
         ])
-        await addMeasure(fdm, principal_id, b_id, "bln_DEL1", new Date("2023-01-01"), null)
+        await addMeasure(fdm, principal_id, b_id, "bln_DEL1", new Date("2023-01-01"), undefined)
     })
 
     it("should delete measures when the field is removed", async () => {
