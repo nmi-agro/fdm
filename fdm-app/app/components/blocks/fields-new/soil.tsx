@@ -95,6 +95,7 @@ export function NewFieldSoilAnalysisBlock({
                         <SoilDataCards
                             currentSoilData={currentSoilData}
                             soilParameterDescription={soilParameterDescription}
+                            canModifyAllSoilAnalyses={true}
                         />
                     </div>
                 </div>
