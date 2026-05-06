@@ -53,7 +53,8 @@ const fdm = drizzle(client, {
     logger: false,
     schema: schema,
 })
-await syncCatalogues(fdm).catch((error) =>
+const nmiApiKey = process.env.NMI_API_KEY
+await syncCatalogues(fdm, { nmiApiKey }).catch((error) =>
     console.error("Error in syncing catalogues 🚨:", error),
 )
 
