@@ -28,7 +28,7 @@ import { fdm } from "~/lib/fdm.server"
  *
  * @param request - The HTTP request object.
  * @param params - The route parameters, including `b_id_farm` and `b_id`.
- * @returns An object containing the field details, current soil data, soil parameter descriptions, and soil analyses.
+ * @returns An object containing the calendar, field details, soil parameter descriptions, and soil analyses.
  *
  * @throws {Response} If the farm ID is missing (HTTP 400).
  * @throws {Error} If the field ID is missing (HTTP 400).
@@ -94,7 +94,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Get soil parameter descriptions and filter on the available soil parameters
         const soilParameterDescription = getSoilParametersDescription().filter(
-            (item) => soilAnalysis[item.parameter],
+            (item) =>
+                typeof soilAnalysis[item.parameter] !== "undefined" &&
+                soilAnalysis[item.parameter] !== null,
         )
 
         // Return user information from loader
@@ -125,7 +127,7 @@ export default function FarmFieldSoilOverviewBlock() {
                 <div>
                     <h3 className="text-lg font-medium">Bodem</h3>
                     <p className="text-sm text-muted-foreground">
-                        Bekijk en bewerk de gegevens van deze bodemanalyse
+                        Bekijk de gegevens van deze bodemanalyse
                     </p>
                 </div>
                 <Button asChild>

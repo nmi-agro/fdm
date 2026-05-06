@@ -120,7 +120,7 @@ export const GRADIENT_SHADED_SOIL_PARAMETERS = {
     a_c_of: "carbon",
     a_ca_co: "calcium",
     a_ca_co_po: "calcium",
-    a_cao3_if: "calcium",
+    a_caco3_if: "calcium",
     a_cec_co: "earth_light",
     a_clay_mi: "earth_heavy",
     a_cn_fr: "carbon_ratio",
@@ -352,7 +352,10 @@ const DEFAULT_PARAMETER_MAPPER: ValueMapper = {
  * @returns object containing mapping functions
  */
 export function getShadingParameterMapper(parameter: ShadedSoilParameters) {
-    if (!(parameter in GRADIENT_SHADED_SOIL_PARAMETERS)) {
+    if (
+        parameter in SHADING_PARAMETER_MAPPERS &&
+        !(parameter in GRADIENT_SHADED_SOIL_PARAMETERS)
+    ) {
         console.warn(
             `Custom value mapper used for non-gradient-shaded parameter: ${parameter}`,
         )

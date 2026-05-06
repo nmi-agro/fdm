@@ -4,7 +4,14 @@ import type {
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns/format"
 import { nl } from "date-fns/locale/nl"
-import { Calendar, Microscope, Pencil, Sparkles, User } from "lucide-react"
+import {
+    Calendar,
+    ExternalLink,
+    Microscope,
+    Pencil,
+    Sparkles,
+    User,
+} from "lucide-react"
 import { NavLink } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
@@ -96,6 +103,7 @@ function SoilDataCard({
     sourceLabel: string
     canModify: boolean
 }) {
+    const EditIcon = canModify ? Pencil : ExternalLink
     return (
         <Card className="flex flex-col h-full transition-colors hover:bg-accent/5">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 space-x-2">
@@ -113,15 +121,17 @@ function SoilDataCard({
                         </Tooltip>
                     </TooltipProvider>
                 </div>
-                {source !== "nl-other-nmi" && canModify ? (
+                {source !== "nl-other-nmi" ? (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <NavLink to={link} className="h-4 w-4 shrink-0">
-                                    <Pencil className="text-xs text-muted-foreground h-full w-full opacity-50 hover:opacity-100 transition-opacity" />
+                                    <EditIcon className="text-xs text-muted-foreground h-full w-full opacity-50 hover:opacity-100 transition-opacity" />
                                 </NavLink>
                             </TooltipTrigger>
-                            <TooltipContent>Bewerken</TooltipContent>
+                            <TooltipContent>
+                                {canModify ? "Bewerken" : "Bekijken"}
+                            </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
                 ) : null}

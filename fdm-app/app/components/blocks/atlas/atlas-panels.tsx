@@ -25,6 +25,21 @@ import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
+/**
+ * Renders a panel showing the field name or the cultivation name and the corresponding area,
+ * for the farm or cultivation field that is currently hovered on with the mouse pointer.
+ * It can also include contextual information if the field IDs "fieldsSaved", "fieldsAvailable" etc. are used.
+ *
+ * This component will always contain some HTML, but it will have hidden visibility if there is no intersected feature
+ *
+ * - `zoomLevelFields` is the zoom threshold after which no panel is shown
+ * - `layer` is a layer ID or an array of IDs for which the panel is shown
+ * - `layerExclude` can be a layerId or an array of IDs which block the panel from being shown
+ * - `render` can be used to render a custom panel instead of the default one.
+ *    It **SHOULD** be a stable reference since when it changes the event handlers on the map are reinstantiated.
+ * - `clickRedirectsToDetailsPage`, if set to true, causes the default panel to tell the user that clicking will navigate to a different page
+ * @returns the output of the render function, or a Card containing the information mentioned above.
+ */
 export function FieldsPanelHover({
     zoomLevelFields,
     layer,
@@ -35,7 +50,7 @@ export function FieldsPanelHover({
     zoomLevelFields: number
     layer: string[] | string
     layerExclude?: string[] | string
-    render: (feature: GeoJSONFeature) => ReactNode
+    render?: (feature: GeoJSONFeature) => ReactNode
     clickRedirectsToDetailsPage?: boolean
 }) {
     const { current: map } = useMap()

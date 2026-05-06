@@ -216,17 +216,19 @@ function EnumSoilAnalysisLegend(props: SoilAnalysisLegendProps) {
 
     return (
         <table className="border-separate border-spacing-1">
-            {displayedOptions.map((opt) => (
-                <tr key={opt.value}>
-                    <td className="align-middle">
-                        <div
-                            className="size-3"
-                            style={{ backgroundColor: opt.fill }}
-                        />
-                    </td>
-                    <td className="align-middle">{opt.label}</td>
-                </tr>
-            ))}
+            <tbody>
+                {displayedOptions.map((opt) => (
+                    <tr key={opt.value}>
+                        <td className="align-middle">
+                            <div
+                                className="size-3"
+                                style={{ backgroundColor: opt.fill }}
+                            />
+                        </td>
+                        <td className="align-middle">{opt.label}</td>
+                    </tr>
+                ))}
+            </tbody>
         </table>
     )
 }

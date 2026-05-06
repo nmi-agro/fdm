@@ -360,6 +360,7 @@ export default function FarmAtlasFieldSoilBlock() {
                         id={heatmapStrokeLayerId}
                         type="line"
                         paint={{ "line-color": "#ffffff", "line-width": 1.5 }}
+                        layout={layerLayout}
                     />
                 </FieldSourceClickable>
             )}

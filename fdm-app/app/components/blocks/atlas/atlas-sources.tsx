@@ -331,6 +331,7 @@ export function FieldSourceClickable({
     useEffect(() => {
         function clickOnMap(evt: MapLayerMouseEvent) {
             if (!map) return
+            if (!(evt.features && evt.features.length > 0)) return
 
             if (
                 excludedLayerId &&
@@ -341,19 +342,13 @@ export function FieldSourceClickable({
                 return
             }
 
-            const features = map.queryRenderedFeatures(evt.point, {
-                layers: [id],
-            })
-
-            if (features.length > 0 && features[0].layer.id === id) {
-                onFieldClick(features[0] as unknown as Feature<Geometry, Field>)
-            }
+            onFieldClick(evt.features[0] as unknown as Feature<Geometry, Field>)
         }
 
         if (map) {
-            map.on("click", clickOnMap)
+            map.on("click", id, clickOnMap)
             return () => {
-                map.off("click", clickOnMap)
+                map.off("click", id, clickOnMap)
             }
         }
     }, [map, id, excludedLayerId, onFieldClick])

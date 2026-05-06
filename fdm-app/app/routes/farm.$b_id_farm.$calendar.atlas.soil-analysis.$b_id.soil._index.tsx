@@ -72,24 +72,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             })
         }
 
-        // Get the soil analyses
-        const soilAnalyses = await getSoilAnalyses(
-            fdm,
-            session.principal_id,
-            b_id,
-            {
+        // Get the current soil data (for the parameters tab) and soil analyses (for the analyses tab)
+        const [soilAnalyses, currentSoilData] = await Promise.all([
+            getSoilAnalyses(fdm, session.principal_id, b_id, {
                 start: null,
                 end: timeframe.end,
-            },
-        )
-
-        // Get current soil data
-        const currentSoilData = await getCurrentSoilData(
-            fdm,
-            session.principal_id,
-            b_id,
-            timeframe,
-        )
+            }),
+            getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
+        ])
 
         // Get soil parameter descriptions
         const soilParameterDescription = getSoilParametersDescription()
@@ -129,7 +119,7 @@ export default function FarmFieldSoilOverviewBlock() {
                             In de gegevens hieronder vind je de meest recente
                             waarde gemeten voor elke bodemparameter
                         </p>
-                    </div>{" "}
+                    </div>
                     <div className="ml-auto">
                         <Button asChild>
                             <NavLink to={"../soil-analysis"}>
