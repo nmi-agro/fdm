@@ -7,16 +7,6 @@ function evenlySpaced(...args: string[]) {
     return args.flatMap((item, i) => [i / (args.length - 1), item])
 }
 
-const COLORBREWER_REDS = evenlySpaced(
-    "#fff5f0",
-    "#fee0d2",
-    "#fcbba1",
-    "#fc9272",
-    "#fb6a4a",
-    "#ef3b2c",
-    "#cb181d",
-    "#99000d",
-)
 const COLORBREWER_ORANGES = evenlySpaced(
     "#fff5eb",
     "#fee6ce",
@@ -27,16 +17,6 @@ const COLORBREWER_ORANGES = evenlySpaced(
     "#d94801",
     "#a63603",
     "#7f2704",
-)
-const COLORBREWER_GREENS = evenlySpaced(
-    "#f7fcf5",
-    "#e5f5e0",
-    "#c7e9c0",
-    "#a1d99b",
-    "#74c476",
-    "#41ab5d",
-    "#238b45",
-    "#005a32",
 )
 const COLORBREWER_BLUES = evenlySpaced(
     "#f7fbff",
@@ -108,18 +88,28 @@ const COLORBREWER_RDPU = evenlySpaced(
     "#ae017e",
     "#7a0177",
 )
-const CUSTOM_SILVER = evenlySpaced("#f7f7f7", "#cccccc", "#969696", "#636363")
+const COLORBREWER_PUBUGN = evenlySpaced(
+    "#fff7fb",
+    "#ece2f0",
+    "#d0d1e6",
+    "#a6bddb",
+    "#67a9cf",
+    "#3690c0",
+    "#02818a",
+    "#016c59",
+    "#014636",
+)
 
 export const SHADED_SOIL_TYPES = [
-    { value: "moerige_klei", label: "Moerige klei", fill: "#d9d9d9" },
-    { value: "rivierklei", label: "Rivierklei", fill: "#8dd3c7" },
-    { value: "dekzand", label: "Dekzand", fill: "#bebada" },
-    { value: "zeeklei", label: "Zeeklei", fill: "#fb8072" },
-    { value: "dalgrond", label: "Dalgrond", fill: "#fccde5" },
-    { value: "veen", label: "Veen", fill: "#b3de69" },
-    { value: "loess", label: "Löss", fill: "#fdb462" },
-    { value: "duinzand", label: "Duinzand", fill: "#ffffb3" },
-    { value: "maasklei", label: "Maasklei", fill: "#80b1d3" },
+    { value: "moerige_klei", label: "Moerige klei", fill: "rgb(45, 0, 168)" },
+    { value: "rivierklei", label: "Rivierklei", fill: "rgb(112, 194, 0)" },
+    { value: "dekzand", label: "Dekzand", fill: "rgb(244, 244, 70)" },
+    { value: "zeeklei", label: "Zeeklei", fill: "rgb(6, 158, 200)" },
+    { value: "dalgrond", label: "Dalgrond", fill: "rgb(195, 195, 195)" },
+    { value: "veen", label: "Veen", fill: "rgb(223, 115, 255)" },
+    { value: "loess", label: "Löss", fill: "rgb(255, 255, 255)" },
+    { value: "duinzand", label: "Duinzand", fill: "rgb(255, 100, 0)" },
+    { value: "maasklei", label: "Maasklei", fill: "rgb(152, 158, 0)" },
 ]
 
 /** Which gradient definition to use for gradient-shaded parameters.
@@ -171,24 +161,24 @@ export const GRADIENT_DEFINITIONS: {
         center?: number
     }
 } = {
-    aluminum: { gradient: CUSTOM_SILVER },
+    aluminum: { gradient: COLORBREWER_GREYS },
     bacterium: { gradient: COLORBREWER_GNBU },
     calcium: { gradient: COLORBREWER_BUGN },
     carbon: { gradient: COLORBREWER_GREYS },
     carbon_ratio: { gradient: COLORBREWER_GREYS },
-    copper: { gradient: COLORBREWER_REDS },
+    copper: { gradient: COLORBREWER_BLUES },
     earth_heavy: { gradient: COLORBREWER_YLORBR },
     earth_light: { gradient: COLORBREWER_ORANGES },
     nitrogen: { gradient: COLORBREWER_BLUES },
     iron: { gradient: COLORBREWER_ORANGES },
-    magnesium: { gradient: COLORBREWER_GREENS },
+    magnesium: { gradient: COLORBREWER_PUBUGN },
     phosphorus: { gradient: COLORBREWER_RDPU },
     potassium: { gradient: COLORBREWER_RDPU },
     ph: { gradient: COLORBREWER_RDBU, center: 7 },
     sand_dark: { gradient: COLORBREWER_YLORBR },
     sand_light: { gradient: COLORBREWER_ORANGES },
     sulfur: { gradient: COLORBREWER_YLORBR },
-    zinc: { gradient: CUSTOM_SILVER },
+    zinc: { gradient: COLORBREWER_GREYS },
 }
 
 const ENUM_SHADED_SOIL_PARAMETERS = {
@@ -233,6 +223,7 @@ export function getSoilAnalysisLayerStyle(
         return {
             type: "fill",
             paint: {
+                "fill-opacity": 0.8,
                 "fill-color": ["match", dataGetter, ...fillColor],
             },
         }
