@@ -1,8 +1,12 @@
 import type { FeatureCollection } from "geojson"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
-import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
-import { useCallback, useEffect, useRef, useState } from "react"
+import type {
+    GeoJSONFeature,
+    MapGeoJSONFeature,
+    MapLibreZoomEvent,
+} from "maplibre-gl"
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
@@ -25,11 +29,13 @@ export function FieldsPanelHover({
     zoomLevelFields,
     layer,
     layerExclude,
+    render,
     clickRedirectsToDetailsPage = false,
 }: {
     zoomLevelFields: number
     layer: string[] | string
     layerExclude?: string[] | string
+    render: (feature: GeoJSONFeature) => ReactNode
     clickRedirectsToDetailsPage?: boolean
 }) {
     const { current: map } = useMap()
@@ -108,7 +114,9 @@ export function FieldsPanelHover({
                                 ? feature.properties.b_name
                                 : feature.properties.b_lu_name
                             : "Naam"
-                        return (
+                        return active && render ? (
+                            render(feature)
+                        ) : (
                             <Card
                                 className={cn("w-full", !active && "invisible")}
                             >
@@ -179,6 +187,7 @@ export function FieldsPanelHover({
         zoomLevelFields,
         layerIdsKey,
         excludedLayerIdsKey,
+        render,
         clickRedirectsToDetailsPage,
     ])
 

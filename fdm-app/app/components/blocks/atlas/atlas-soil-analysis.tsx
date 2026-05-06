@@ -121,7 +121,7 @@ const COLORBREWER_RDPU = evenlySpaced(
 )
 const CUSTOM_SILVER = evenlySpaced("#f7f7f7", "#cccccc", "#969696", "#636363")
 
-const SHADED_SOIL_TYPES = [
+export const SHADED_SOIL_TYPES = [
     { value: "moerige_klei", label: "Moerige klei", fill: "#d9d9d9" },
     { value: "rivierklei", label: "Rivierklei", fill: "#8dd3c7" },
     { value: "dekzand", label: "Dekzand", fill: "#bebada" },
@@ -222,28 +222,19 @@ export function getShadedSoilParameters() {
 }
 
 export function getSoilAnalysisLayerStyle(
-    dataPath: string[],
+    parameter: ShadedSoilParameters,
     min: number,
     max: number,
 ): { paint: LayerProps["paint"]; type: "fill" } {
-    if (dataPath.length === 0) {
-        throw new Error("dataPath needs to contain at least one item")
-    }
-    const key = dataPath[dataPath.length - 1]
     // MapLibreGL expression to get the data path out of the input object (which is the feature properties)
-    const dataGetter = getShadingParameterMapper(
-        key as ShadedSoilParameters,
-    ).paint(
-        dataPath.reduce(
-            (acc, current) =>
-                acc !== null ? ["get", current, acc] : ["get", current],
-            null as unknown[] | null,
-        ) as ExpressionSpecification,
-    )
+    const dataGetter = getShadingParameterMapper(parameter).paint([
+        "get",
+        parameter,
+    ])
 
-    if (key in ENUM_SHADED_SOIL_PARAMETERS) {
+    if (parameter in ENUM_SHADED_SOIL_PARAMETERS) {
         const fillColor =
-            ENUM_SHADED_SOIL_PARAMETERS[key as EnumShadedSoilParameters]
+            ENUM_SHADED_SOIL_PARAMETERS[parameter as EnumShadedSoilParameters]
         return {
             type: "fill",
             paint: {
@@ -252,9 +243,11 @@ export function getSoilAnalysisLayerStyle(
         }
     }
 
-    if (key in GRADIENT_SHADED_SOIL_PARAMETERS) {
+    if (parameter in GRADIENT_SHADED_SOIL_PARAMETERS) {
         const gradientName =
-            GRADIENT_SHADED_SOIL_PARAMETERS[key as GradientShadedSoilParameters]
+            GRADIENT_SHADED_SOIL_PARAMETERS[
+                parameter as GradientShadedSoilParameters
+            ]
         const fillColor = GRADIENT_DEFINITIONS[gradientName]
         function transparentIfUndefined(
             expr: ExpressionSpecification,

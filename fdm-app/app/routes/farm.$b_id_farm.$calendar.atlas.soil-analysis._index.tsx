@@ -5,8 +5,10 @@ import {
     getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
+import { formatDate } from "date-fns"
+import { nl } from "date-fns/locale"
 import type { FeatureCollection, Geometry } from "geojson"
-import maplibregl from "maplibre-gl"
+import maplibregl, { type GeoJSONFeature } from "maplibre-gl"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
     Layer,
@@ -25,12 +27,13 @@ import {
     getShadedSoilParameters,
     getShadingParameterMapper,
     getSoilAnalysisLayerStyle,
+    SHADED_SOIL_TYPES,
     type ShadedSoilParameters,
     SoilAnalysisLegend,
 } from "~/components/blocks/atlas/atlas-soil-analysis"
 import { FieldSourceClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { Card } from "~/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
     Select,
     SelectContent,
@@ -112,13 +115,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 const feature = {
                     type: "Feature" as const,
                     properties: {
-                        b_id: field.b_id,
-                        b_name: field.b_name,
-                        b_area: Math.round(field.b_area * 10) / 10,
-                        b_lu_name: field.b_lu_name,
-                        b_id_source: field.b_id_source,
-                        // For efficient access
-                        currentSoilData: fieldCurrentSoilData.reduce(
+                        ...fieldCurrentSoilData.reduce(
                             (acc, data) => {
                                 if (data.value !== null)
                                     acc[data.parameter] = data.value
@@ -129,6 +126,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                                 string | number
                             >,
                         ),
+                        b_id: field.b_id,
+                        b_name: field.b_name,
+                        b_area: Math.round(field.b_area * 10) / 10,
+                        b_lu_name: field.b_lu_name,
+                        b_id_source: field.b_id_source,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {
                         tolerance: 0.00001,
@@ -216,7 +218,7 @@ export default function FarmAtlasFieldSoilBlock() {
     )
 
     const heatmapLayerStyle = getSoilAnalysisLayerStyle(
-        ["currentSoilData", selectedParameter],
+        selectedParameter,
         min,
         max,
     )
@@ -258,6 +260,50 @@ export default function FarmAtlasFieldSoilBlock() {
     }, [viewState])
 
     const layerLayout = { visibility: showFields ? "visible" : "none" } as const
+
+    const renderHoverPanel = useCallback(
+        (feature: GeoJSONFeature) => {
+            const value = feature.properties[selectedParameter]
+            return (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>
+                            {feature.properties.b_name}
+                            <span className="float-end text-muted-foreground font-normal">
+                                {feature.properties.b_area} ha
+                            </span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            {parameterDescription?.name}
+                        </p>
+                        {typeof value === "undefined" ? (
+                            <p>Geen data</p>
+                        ) : parameterDescription?.type === "date" ? (
+                            <p>
+                                {formatDate(value, "PP", {
+                                    locale: nl,
+                                })}
+                            </p>
+                        ) : selectedParameter === "b_soiltype_agr" ? (
+                            <p>
+                                {SHADED_SOIL_TYPES.find(
+                                    (item) => item.value === value,
+                                )?.label ?? value}
+                            </p>
+                        ) : (
+                            <p>
+                                {value} {parameterDescription?.unit}
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+            )
+        },
+        [selectedParameter, parameterDescription],
+    )
+
     return (
         <MapGL
             {...viewState}
@@ -371,6 +417,7 @@ export default function FarmAtlasFieldSoilBlock() {
                     zoomLevelFields={ZOOM_LEVEL_FIELDS}
                     layer={[heatmapLayerId]}
                     clickRedirectsToDetailsPage={true}
+                    render={renderHoverPanel}
                 />
             </div>
         </MapGL>
