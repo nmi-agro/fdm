@@ -6,6 +6,7 @@ packages:
   - fdm-app
   - fdm-rvo
   - fdm-agents
+  - fdm-helpdesk
 
 catalog:
   '@dotenvx/dotenvx': ^1.64.0
