@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import type { MiddlewareHandler } from "hono"
 import { nanoid } from "nanoid"
 import { rateLimit, type FdmType } from "@nmi-agro/fdm-core"

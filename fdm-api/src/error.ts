@@ -1,4 +1,5 @@
 import type { Context, ErrorHandler, NotFoundHandler } from "hono"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { nanoid } from "nanoid"
 
 const TITLES: Record<string, string> = {
@@ -74,7 +75,7 @@ export function problemResponse(
             error_id: nanoid(),
             ...extras,
         },
-        status as Parameters<typeof c.json>[1],
+        status as ContentfulStatusCode,
         { "content-type": "application/problem+json" },
     )
 }

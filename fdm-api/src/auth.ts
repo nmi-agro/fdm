@@ -46,7 +46,10 @@ export function createApiKeyAuth(
         const result = await auth.api.verifyApiKey({ body: { key: rawKey } })
 
         if (!result.valid || !result.key) {
-            throw new ApiError(401, "unauthorized", result.error?.message ?? "Invalid, expired, or revoked API key.")
+            const msg = typeof result.error?.message === "string"
+                ? result.error.message
+                : "Invalid, expired, or revoked API key."
+            throw new ApiError(401, "unauthorized", msg)
         }
 
         const principal: ApiPrincipalContext = {

@@ -1,5 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import type { OpenAPIHono } from "@hono/zod-openapi"
+import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import type { getFarm, getFarms } from "@nmi-agro/fdm-core"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
@@ -85,9 +85,10 @@ export function registerFarmRoutes(
     app.use("/farms", rateLimitMiddleware(fdm, "general"))
     app.use("/farms/*", rateLimitMiddleware(fdm, "general"))
 
-    app.openapi(listFarmsRoute, async (c) => {
-        const principal = c.get("principal") as ApiPrincipalContext
-        const { limit, offset } = c.req.valid("query")
+    const listFarmsHandler: RouteHandler<typeof listFarmsRoute> = async (c) => {
+        const principal = c.get("principal") as unknown as ApiPrincipalContext
+        // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+        const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
         const farms = await services.getFarms(fdm, principal.effectivePrincipalId)
         const projected = farms.map((f) => ({
             b_id_farm: f.b_id_farm,
@@ -97,11 +98,12 @@ export function registerFarmRoutes(
             b_postalcode_farm: f.b_postalcode_farm,
         }))
         return c.json(paginatedResponse(projected, limit, offset), 200)
-    })
+    }
 
-    app.openapi(getFarmRoute, async (c) => {
-        const principal = c.get("principal") as ApiPrincipalContext
-        const { farmId } = c.req.valid("param")
+    const getFarmHandler: RouteHandler<typeof getFarmRoute> = async (c) => {
+        const principal = c.get("principal") as unknown as ApiPrincipalContext
+        // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+        const { farmId } = c.req.valid("param") as { farmId: string }
         const farm = await services.getFarm(fdm, principal.effectivePrincipalId, farmId)
         if (!farm?.b_id_farm) {
             throw new ApiError(404, "not-found", `Farm '${farmId}' not found.`)
@@ -113,5 +115,8 @@ export function registerFarmRoutes(
             b_address_farm: farm.b_address_farm,
             b_postalcode_farm: farm.b_postalcode_farm,
         }, 200)
-    })
+    }
+
+    app.openapi(listFarmsRoute, listFarmsHandler)
+    app.openapi(getFarmRoute, getFarmHandler)
 }

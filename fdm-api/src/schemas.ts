@@ -86,7 +86,7 @@ export const commonErrorResponses = {
         description: "Internal server error.",
         content: { "application/problem+json": { schema: ProblemDetailsSchema } },
     },
-} as const
+}
 
 const GeoJsonPositionSchema = z.tuple([z.number(), z.number()])
 

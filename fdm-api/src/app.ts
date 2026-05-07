@@ -1,12 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { apiReference } from "@scalar/hono-api-reference"
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
-import {
-    getFarm,
-    getFarms,
-    getField,
-    getFields,
-} from "@nmi-agro/fdm-core"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { requestGuard } from "./guards"
 import { createApiKeyAuth } from "./auth"

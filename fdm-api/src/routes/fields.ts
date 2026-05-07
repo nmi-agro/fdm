@@ -1,5 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import type { OpenAPIHono } from "@hono/zod-openapi"
+import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import type { getField, getFields } from "@nmi-agro/fdm-core"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
@@ -113,21 +113,27 @@ export function registerFieldRoutes(
     app.use("/farms/*/fields", rateLimitMiddleware(fdm, "general"))
     app.use("/fields/*", rateLimitMiddleware(fdm, "general"))
 
-    app.openapi(listFieldsRoute, async (c) => {
-        const principal = c.get("principal") as ApiPrincipalContext
-        const { farmId } = c.req.valid("param")
-        const { limit, offset } = c.req.valid("query")
+    const listFieldsHandler: RouteHandler<typeof listFieldsRoute> = async (c) => {
+        const principal = c.get("principal") as unknown as ApiPrincipalContext
+        // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+        const { farmId } = c.req.valid("param") as { farmId: string }
+        // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+        const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
         const fields = await services.getFields(fdm, principal.effectivePrincipalId, farmId)
         return c.json(paginatedResponse(fields.map(serialiseField), limit, offset), 200)
-    })
+    }
 
-    app.openapi(getFieldRoute, async (c) => {
-        const principal = c.get("principal") as ApiPrincipalContext
-        const { fieldId } = c.req.valid("param")
+    const getFieldHandler: RouteHandler<typeof getFieldRoute> = async (c) => {
+        const principal = c.get("principal") as unknown as ApiPrincipalContext
+        // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+        const { fieldId } = c.req.valid("param") as { fieldId: string }
         const field = await services.getField(fdm, principal.effectivePrincipalId, fieldId)
         if (!field?.b_id) {
             throw new ApiError(404, "not-found", `Field '${fieldId}' not found.`)
         }
         return c.json(serialiseField(field), 200)
-    })
+    }
+
+    app.openapi(listFieldsRoute, listFieldsHandler)
+    app.openapi(getFieldRoute, getFieldHandler)
 }
