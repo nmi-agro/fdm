@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 ARG NODE_VERSION=24
 ARG PROJECT=@nmi-agro/fdm-app
 
@@ -22,7 +23,8 @@ COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # Copy source code of isolated subworkspace
 COPY --from=pruner /app/out/full/ .
