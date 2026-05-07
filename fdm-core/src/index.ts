@@ -75,6 +75,7 @@ export type {
     invitationTypeInsert,
     invitationTypeSelect,
 } from "./db/schema-authz"
+export { rateLimit } from "./db/schema-authn"
 export {
     addDerogation,
     isDerogationGrantedForYear,
