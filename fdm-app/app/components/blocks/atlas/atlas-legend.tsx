@@ -155,14 +155,14 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
     )
 
     return (
-        <Card className="p-4 space-y-4">
+        <Card className="p-4 space-y-4 flex-initial min-h-0 overflow-y-auto">
             <Select
                 value={selectedParameter}
                 onValueChange={(val) =>
                     setSelectedParameter(val as ShadedSoilParameters)
                 }
             >
-                <SelectTrigger className="bg-white hover:bg-gray-100!">
+                <SelectTrigger className="sticky top-0 z-10 bg-white hover:bg-gray-100!">
                     {parameterDescription?.name}
                 </SelectTrigger>
                 {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
@@ -283,23 +283,26 @@ function GradientSoilAnalysisLegend(
     return (
         <ChartContainer
             config={{}}
-            initialDimension={{ width: 100, height: 55 }}
-            className="-mx-3"
+            initialDimension={{ width: 40, height: 60 }}
+            className="aspect-4/6"
         >
             <BarChart
                 className="overflow-visible"
+                width={40}
+                barSize={50}
                 data={chartData}
-                layout="vertical"
-                margin={{ left: 15, right: 15, top: 0, bottom: 0 }}
+                layout="horizontal"
             >
                 <defs>
-                    <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                    <linearGradient id={gradientId} x1="0" y1="1" x2="0" y2="0">
                         {gradientSvg}
                     </linearGradient>
                 </defs>
-                <XAxis
+                <XAxis type="category" tickLine={false} hide />
+                <YAxis
                     type="number"
                     domain={[min, max]}
+                    interval={0}
                     niceTicks="snap125"
                     tickFormatter={(n) =>
                         (
@@ -307,7 +310,6 @@ function GradientSoilAnalysisLegend(
                         ).toString()
                     }
                 />
-                <YAxis type="category" tickLine={false} hide />
                 <Bar
                     isAnimationActive={false}
                     dataKey={(
