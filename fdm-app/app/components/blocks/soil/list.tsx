@@ -50,13 +50,15 @@ export function SoilAnalysesList({
                                 <p className="text-sm font-medium leading-none">
                                     {analysis.a_source === "nl-other-nmi"
                                         ? "Geschat met NMI BodemSchat"
-                                        : format(
-                                              analysis.b_sampling_date,
-                                              "PP",
-                                              {
-                                                  locale: nl,
-                                              },
-                                          )}
+                                        : analysis.b_sampling_date
+                                          ? format(
+                                                analysis.b_sampling_date,
+                                                "PP",
+                                                {
+                                                    locale: nl,
+                                                },
+                                            )
+                                          : "Onbekende datum"}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                     {analysis.a_source === "nl-other-nmi"
