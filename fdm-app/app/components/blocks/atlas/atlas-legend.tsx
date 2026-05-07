@@ -135,6 +135,13 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
         getShadedSoilParameters().map((item) => [item.parameter, item]),
     )
 
+    if (!shadingConfig[selectedParameter]) {
+        console.warn(
+            `${selectedParameter} not found in shaded soil parameters.`,
+        )
+        return null
+    }
+
     // Parameter description
     const soilParameterOptions = soilParametersDescriptions.filter(
         (item) => item.parameter in shadingConfig,
@@ -248,8 +255,8 @@ function GradientSoilAnalysisLegend(
         ]
     const parameterMapper = getShadingParameterMapper(props.selectedParameter)
 
-    let min = props.min as number
-    let max = props.max as number
+    let min = props.min ?? 0
+    let max = props.max ?? 1
     if (typeof gradDef.center === "number") {
         const radius = Math.max(max - gradDef.center, gradDef.center - min)
         min = gradDef.center - radius
