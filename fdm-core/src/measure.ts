@@ -39,6 +39,9 @@ export async function addMeasure(
     m_end?: Date,
 ): Promise<string> {
     try {
+        if (m_end !== undefined && m_end.getTime() < m_start.getTime()) {
+            throw new Error("m_end cannot be earlier than m_start")
+        }
         await checkPermission(
             fdm,
             "field",
@@ -47,11 +50,48 @@ export async function addMeasure(
             principal_id,
             "addMeasure",
         )
+
+        // Verify the catalogue is enabled for the farm this field belongs to
+        const fieldFarm = await fdm
+            .select({ b_id_farm: schema.fieldAcquiring.b_id_farm })
+            .from(schema.fieldAcquiring)
+            .where(eq(schema.fieldAcquiring.b_id, b_id))
+            .limit(1)
+        const catalogueSource = await fdm
+            .select({ m_source: schema.measuresCatalogue.m_source })
+            .from(schema.measuresCatalogue)
+            .where(eq(schema.measuresCatalogue.m_id, m_id))
+            .limit(1)
+        if (catalogueSource.length === 0) {
+            throw new Error(`Measure catalogue item not found: ${m_id}`)
+        }
+        if (fieldFarm.length > 0) {
+            const enabled = await fdm
+                .select()
+                .from(schema.measureCatalogueEnabling)
+                .where(
+                    and(
+                        eq(
+                            schema.measureCatalogueEnabling.b_id_farm,
+                            fieldFarm[0].b_id_farm,
+                        ),
+                        eq(
+                            schema.measureCatalogueEnabling.m_source,
+                            catalogueSource[0].m_source,
+                        ),
+                    ),
+                )
+                .limit(1)
+            if (enabled.length === 0) {
+                throw new Error(
+                    `Measure catalogue "${catalogueSource[0].m_source}" is not enabled for this farm`,
+                )
+            }
+        }
+
         const b_id_measure = createId()
         await fdm.transaction(async (tx) => {
-            await tx
-                .insert(schema.measures)
-                .values({ b_id_measure, m_id })
+            await tx.insert(schema.measures).values({ b_id_measure, m_id })
             await tx.insert(schema.measureAdopting).values({
                 b_id,
                 b_id_measure,
@@ -266,10 +306,7 @@ export async function getMeasuresForFarm(
             .where(
                 timeframeCondition
                     ? and(
-                          eq(
-                              schema.fieldAcquiring.b_id_farm,
-                              b_id_farm,
-                          ),
+                          eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
                           timeframeCondition,
                       )
                     : eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
@@ -348,7 +385,11 @@ export async function updateMeasure(
 ): Promise<void> {
     try {
         const applying = await fdm
-            .select({ b_id: schema.measureAdopting.b_id })
+            .select({
+                b_id: schema.measureAdopting.b_id,
+                m_start: schema.measureAdopting.m_start,
+                m_end: schema.measureAdopting.m_end,
+            })
             .from(schema.measureAdopting)
             .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
             .limit(1)
@@ -365,6 +406,16 @@ export async function updateMeasure(
             principal_id,
             "updateMeasure",
         )
+
+        const effectiveStart = m_start ?? applying[0].m_start ?? undefined
+        const effectiveEnd = m_end !== undefined ? m_end : applying[0].m_end
+        if (
+            effectiveStart &&
+            effectiveEnd instanceof Date &&
+            effectiveEnd.getTime() < effectiveStart.getTime()
+        ) {
+            throw new Error("m_end cannot be earlier than m_start")
+        }
 
         const updates: Partial<schema.measureAdoptingTypeInsert> = {
             updated: new Date(),
@@ -420,9 +471,7 @@ export async function removeMeasure(
         await fdm.transaction(async (tx) => {
             await tx
                 .delete(schema.measureAdopting)
-                .where(
-                    eq(schema.measureAdopting.b_id_measure, b_id_measure),
-                )
+                .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
             await tx
                 .delete(schema.measures)
                 .where(eq(schema.measures.b_id_measure, b_id_measure))

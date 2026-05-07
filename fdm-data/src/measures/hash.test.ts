@@ -40,6 +40,12 @@ describe("hashMeasure", () => {
         expect(hash1).toBe(hash2)
     })
 
+    it("should not mutate the input object", async () => {
+        const item = { ...baseMeasure, hash: "existing-hash" }
+        await hashMeasure(item)
+        expect(item.hash).toBe("existing-hash")
+    })
+
     it("should detect changes in m_conflicts array", async () => {
         const hash1 = await hashMeasure({ ...baseMeasure, m_conflicts: ["bln_BM2"] })
         const hash2 = await hashMeasure({ ...baseMeasure, m_conflicts: ["bln_BM3"] })

@@ -9,6 +9,8 @@ interface BLN3ApiMeasure {
     conflicts_with_measure: string[] | null
 }
 
+const FETCH_TIMEOUT_MS = 30_000
+
 /**
  * Fetches the BLN3 measures catalogue from the NMI API.
  *
@@ -22,15 +24,31 @@ interface BLN3ApiMeasure {
 export async function getCatalogueBln(
     nmiApiKey: string,
 ): Promise<CatalogueMeasure> {
-    const res = await fetch("https://api.nmi-agro.nl/maatwerk/bln3/measures", {
-        headers: { Authorization: `Bearer ${nmiApiKey}` },
-    })
+    let res: Response
+    try {
+        res = await fetch("https://api.nmi-agro.nl/maatwerk/bln3/measures", {
+            headers: { Authorization: `Bearer ${nmiApiKey}` },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        })
+    } catch (err) {
+        if (err instanceof DOMException && err.name === "TimeoutError") {
+            throw new Error(
+                `Fetching BLN measures catalogue timed out after ${FETCH_TIMEOUT_MS}ms`,
+            )
+        }
+        throw err
+    }
     if (!res.ok) {
         throw new Error(
             `Failed to fetch BLN measures catalogue: ${res.status} ${res.statusText}`,
         )
     }
     const json = await res.json()
+    if (!json || !Array.isArray(json.data)) {
+        throw new Error(
+            `Unexpected response shape from BLN measures catalogue API: expected json.data to be an array, got ${JSON.stringify(json)}`,
+        )
+    }
     return json.data.map((item: BLN3ApiMeasure) => ({
         m_id: `bln_${item.bln_id}`,
         m_source: "bln",

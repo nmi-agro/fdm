@@ -972,7 +972,7 @@ export const measureAdopting = fdmSchema.table(
     {
         b_id: text()
             .notNull()
-            .references(() => fields.b_id),
+            .references(() => fields.b_id, { onDelete: "cascade" }),
         b_id_measure: text()
             .notNull()
             .references(() => measures.b_id_measure),
@@ -993,7 +993,7 @@ export const measureCatalogueEnabling = fdmSchema.table(
     {
         b_id_farm: text()
             .notNull()
-            .references(() => farms.b_id_farm),
+            .references(() => farms.b_id_farm, { onDelete: "cascade" }),
         m_source: text().notNull(),
         created: timestamp({ withTimezone: true }).notNull().defaultNow(),
         updated: timestamp({ withTimezone: true }),

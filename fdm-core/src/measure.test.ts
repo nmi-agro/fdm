@@ -1,6 +1,9 @@
 import { eq, inArray } from "drizzle-orm"
 import { afterAll, beforeEach, describe, expect, inject, it } from "vitest"
-import { syncMeasuresCatalogueArray } from "./catalogues"
+import {
+    syncMeasuresCatalogueArray,
+    enableMeasureCatalogue,
+} from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm, removeFarm } from "./farm"
 import type { FdmType } from "./fdm.types"
@@ -90,6 +93,8 @@ describe("Measure Data Model", () => {
             TEST_CATALOGUE_ITEM,
             TEST_CATALOGUE_ITEM_2,
         ])
+        // Enable the 'bln' catalogue for the test farm
+        await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
     })
 
     afterAll(async () => {
@@ -148,9 +153,7 @@ describe("Measure Data Model", () => {
             const applyingRow = await fdm
                 .select()
                 .from(schema.measureAdopting)
-                .where(
-                    eq(schema.measureAdopting.b_id_measure, b_id_measure),
-                )
+                .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
                 .limit(1)
             expect(applyingRow.length).toBe(1)
             expect(applyingRow[0].b_id).toBe(b_id)
@@ -169,9 +172,7 @@ describe("Measure Data Model", () => {
             const rows = await fdm
                 .select({ m_end: schema.measureAdopting.m_end })
                 .from(schema.measureAdopting)
-                .where(
-                    eq(schema.measureAdopting.b_id_measure, b_id_measure),
-                )
+                .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
                 .limit(1)
             expect(rows[0].m_end).toBeNull()
         })
@@ -186,6 +187,62 @@ describe("Measure Data Model", () => {
                     new Date("2023-03-01"),
                 ),
             ).rejects.toThrow()
+        })
+
+        it("should throw when m_end is earlier than m_start", async () => {
+            await expect(
+                addMeasure(
+                    fdm,
+                    principal_id,
+                    b_id,
+                    "bln_BM1",
+                    new Date("2023-12-31"),
+                    new Date("2023-01-01"),
+                ),
+            ).rejects.toThrow("m_end cannot be earlier than m_start")
+        })
+
+        it("should throw when the catalogue is not enabled for the farm", async () => {
+            // Create a separate farm without enabling the 'bln' catalogue
+            const other_farm = await addFarm(
+                fdm,
+                principal_id,
+                "Other Farm",
+                "999999",
+                "999 Other Lane",
+                "99999",
+            )
+            const other_field = await addField(
+                fdm,
+                principal_id,
+                other_farm,
+                "other field",
+                "test source",
+                {
+                    type: "Polygon",
+                    coordinates: [
+                        [
+                            [30, 10],
+                            [40, 40],
+                            [20, 40],
+                            [10, 20],
+                            [30, 10],
+                        ],
+                    ],
+                },
+                new Date("2023-01-01"),
+                "nl_01",
+                new Date("2023-12-31"),
+            )
+            await expect(
+                addMeasure(
+                    fdm,
+                    principal_id,
+                    other_field,
+                    "bln_BM1",
+                    new Date("2023-03-01"),
+                ),
+            ).rejects.toThrow("not enabled")
         })
     })
 
@@ -294,11 +351,7 @@ describe("Measure Data Model", () => {
                 new Date("2023-03-01"),
             )
 
-            const map = await getMeasuresForFarm(
-                fdm,
-                principal_id,
-                b_id_farm,
-            )
+            const map = await getMeasuresForFarm(fdm, principal_id, b_id_farm)
             expect(map).toBeInstanceOf(Map)
             expect(map.has(b_id)).toBe(true)
             expect(map.get(b_id)?.length).toBe(1)
@@ -320,20 +373,12 @@ describe("Measure Data Model", () => {
                 new Date("2023-05-01"),
             )
 
-            const map = await getMeasuresForFarm(
-                fdm,
-                principal_id,
-                b_id_farm,
-            )
+            const map = await getMeasuresForFarm(fdm, principal_id, b_id_farm)
             expect(map.get(b_id)?.length).toBe(2)
         })
 
         it("should return empty Map when farm has no measures", async () => {
-            const map = await getMeasuresForFarm(
-                fdm,
-                principal_id,
-                b_id_farm,
-            )
+            const map = await getMeasuresForFarm(fdm, principal_id, b_id_farm)
             expect(map).toBeInstanceOf(Map)
             expect(map.size).toBe(0)
         })
@@ -358,12 +403,10 @@ describe("Measure Data Model", () => {
                 new Date("2020-12-31"),
             )
 
-            const map = await getMeasuresForFarm(
-                fdm,
-                principal_id,
-                b_id_farm,
-                { start: new Date("2023-01-01"), end: new Date("2023-12-31") },
-            )
+            const map = await getMeasuresForFarm(fdm, principal_id, b_id_farm, {
+                start: new Date("2023-01-01"),
+                end: new Date("2023-12-31"),
+            })
             expect(map.get(b_id)?.length).toBe(1)
             expect(map.get(b_id)?.[0].m_id).toBe("bln_BM1")
         })
@@ -417,6 +460,25 @@ describe("Measure Data Model", () => {
                 updateMeasure(fdm, principal_id, "nonexistent"),
             ).rejects.toThrow()
         })
+
+        it("should throw when m_end is earlier than m_start", async () => {
+            const b_id_measure = await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-03-01"),
+            )
+            await expect(
+                updateMeasure(
+                    fdm,
+                    principal_id,
+                    b_id_measure,
+                    undefined,
+                    new Date("2023-01-01"),
+                ),
+            ).rejects.toThrow("m_end cannot be earlier than m_start")
+        })
     })
 
     describe("removeMeasure", () => {
@@ -440,9 +502,7 @@ describe("Measure Data Model", () => {
             const applyingRows = await fdm
                 .select()
                 .from(schema.measureAdopting)
-                .where(
-                    eq(schema.measureAdopting.b_id_measure, b_id_measure),
-                )
+                .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
             expect(applyingRows.length).toBe(0)
         })
 
@@ -461,11 +521,15 @@ describe("FdmType compatibility", () => {
         const user = inject("user")
         const password = inject("password")
         const database = inject("database")
-        const fdm: FdmType = createFdmServer(host, port, user, password, database)
+        const fdm: FdmType = createFdmServer(
+            host,
+            port,
+            user,
+            password,
+            database,
+        )
         // Just check that the function signature accepts FdmType
-        await expect(
-            getMeasure(fdm, "any", "nonexistent"),
-        ).rejects.toThrow()
+        await expect(getMeasure(fdm, "any", "nonexistent")).rejects.toThrow()
     })
 })
 
@@ -483,21 +547,55 @@ describe("Measure cascade deletion", () => {
         const database = inject("database")
         fdm = createFdmServer(host, port, user, password, database)
         principal_id = "test_principal"
-        b_id_farm = await addFarm(fdm, principal_id, "Test Farm", "123456", "Addr", "1234AB")
+        b_id_farm = await addFarm(
+            fdm,
+            principal_id,
+            "Test Farm",
+            "123456",
+            "Addr",
+            "1234AB",
+        )
         b_id = await addField(
             fdm,
             principal_id,
             b_id_farm,
             "Test Field",
             "acquiring",
-            { type: "Polygon", coordinates: [[[30, 10], [40, 40], [20, 40], [10, 20], [30, 10]]] },
+            {
+                type: "Polygon",
+                coordinates: [
+                    [
+                        [30, 10],
+                        [40, 40],
+                        [20, 40],
+                        [10, 20],
+                        [30, 10],
+                    ],
+                ],
+            },
             new Date("2023-01-01"),
             "nl_01",
         )
         await syncMeasuresCatalogueArray(fdm, [
-            { m_id: "bln_DEL1", m_source: "bln", m_name: "Del Measure", m_description: null, m_summary: null, m_source_url: null, m_conflicts: null },
+            {
+                m_id: "bln_DEL1",
+                m_source: "bln",
+                m_name: "Del Measure",
+                m_description: null,
+                m_summary: null,
+                m_source_url: null,
+                m_conflicts: null,
+            },
         ])
-        await addMeasure(fdm, principal_id, b_id, "bln_DEL1", new Date("2023-01-01"), undefined)
+        await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
+        await addMeasure(
+            fdm,
+            principal_id,
+            b_id,
+            "bln_DEL1",
+            new Date("2023-01-01"),
+            undefined,
+        )
     })
 
     it("should delete measures when the field is removed", async () => {
@@ -514,7 +612,10 @@ describe("Measure cascade deletion", () => {
             .from(schema.measures)
             .innerJoin(
                 schema.measureAdopting,
-                eq(schema.measures.b_id_measure, schema.measureAdopting.b_id_measure),
+                eq(
+                    schema.measures.b_id_measure,
+                    schema.measureAdopting.b_id_measure,
+                ),
             )
             .where(eq(schema.measureAdopting.b_id, b_id))
         expect(measuresAfter).toHaveLength(0)

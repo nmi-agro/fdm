@@ -1,5 +1,5 @@
 {
-  "id": "ffd0e4a3-393c-43de-b04c-f24998fa778a",
+  "id": "e20ebae4-1145-4cbe-9bac-1c6f18377ef4",
   "prevId": "8d40d8f9-6950-44ba-a4ba-dc9085f7117f",
   "version": "7",
   "dialect": "postgresql",
@@ -2116,7 +2116,7 @@
           "columnsTo": [
             "b_id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "measure_adopting_b_id_measure_measures_b_id_measure_fk": {
@@ -2191,7 +2191,7 @@
           "columnsTo": [
             "b_id_farm"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
