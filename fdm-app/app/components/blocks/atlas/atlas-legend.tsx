@@ -139,7 +139,6 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
         console.warn(
             `${selectedParameter} not found in shaded soil parameters.`,
         )
-        return null
     }
 
     // Parameter description
@@ -166,7 +165,8 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
                 <SelectTrigger className="bg-white hover:bg-gray-100!">
                     {parameterDescription?.name}
                 </SelectTrigger>
-                <SelectContent>
+                {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
+                <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
                     {soilParameterOptions.map((opt) => {
                         return (
                             <SelectItem
@@ -186,7 +186,9 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
                     })}
                 </SelectContent>
             </Select>
-            {shadingConfig[selectedParameter].shading === "enum" ? (
+            {!shadingConfig[selectedParameter] ? null : shadingConfig[
+                  selectedParameter
+              ].shading === "enum" ? (
                 <EnumSoilAnalysisLegend {...props} />
             ) : (
                 <GradientSoilAnalysisLegend
