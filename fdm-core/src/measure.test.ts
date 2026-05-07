@@ -242,7 +242,9 @@ describe("Measure Data Model", () => {
                     "bln_BM1",
                     new Date("2023-03-01"),
                 ),
-            ).rejects.toThrow("not enabled")
+            ).rejects.toMatchObject({
+                cause: { message: expect.stringContaining("not enabled") },
+            })
         })
     })
 
@@ -477,7 +479,9 @@ describe("Measure Data Model", () => {
                     undefined,
                     new Date("2023-01-01"),
                 ),
-            ).rejects.toThrow("m_end cannot be earlier than m_start")
+            ).rejects.toMatchObject({
+                cause: { message: "m_end cannot be earlier than m_start" },
+            })
         })
     })
 

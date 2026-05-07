@@ -38,10 +38,10 @@ export async function addMeasure(
     m_start: Date,
     m_end?: Date,
 ): Promise<string> {
+    if (m_end !== undefined && m_end.getTime() < m_start.getTime()) {
+        throw new Error("m_end cannot be earlier than m_start")
+    }
     try {
-        if (m_end !== undefined && m_end.getTime() < m_start.getTime()) {
-            throw new Error("m_end cannot be earlier than m_start")
-        }
         await checkPermission(
             fdm,
             "field",
