@@ -110,23 +110,14 @@ export default function FarmFieldSoilOverviewBlock() {
     return (
         <Tabs defaultValue="parameters" className="p-6">
             <div className="space-y-4">
-                <div className="flex flex-col xl:flex-row xl:items-center gap-4">
-                    <div className="space-y-0.5 min-w-0 flex-1">
-                        <h2 className="text-2xl font-bold tracking-tight truncate xl:whitespace-normal">
-                            Bodem - {loaderData.field.b_name}
-                        </h2>
-                        <p className="text-muted-foreground wrap-break-word">
-                            In de gegevens hieronder vind je de meest recente
-                            waarde gemeten voor elke bodemparameter
-                        </p>
-                    </div>
-                    <div className="ml-auto">
-                        <Button asChild>
-                            <NavLink to={"../soil-analysis"}>
-                                Terug naar kaart
-                            </NavLink>
-                        </Button>
-                    </div>
+                <div className="space-y-0.5">
+                    <h2 className="text-2xl font-bold tracking-tight truncate xl:whitespace-normal">
+                        Bodem - {loaderData.field.b_name}
+                    </h2>
+                    <p className="text-muted-foreground wrap-break-word">
+                        In de gegevens hieronder vind je de meest recente waarde
+                        gemeten voor elke bodemparameter
+                    </p>
                 </div>
                 <div className="flex items-center justify-between">
                     <TabsList>
