@@ -1,0 +1,46 @@
+{
+    "name": "@nmi-agro/fdm-api",
+    "private": true,
+    "version": "0.1.0",
+    "description": "Hono-based REST API for the Farm Data Model",
+    "type": "module",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "files": ["dist"],
+    "scripts": {
+        "build": "tsdown",
+        "check-types": "tsc --noEmit",
+        "preinstall": "npx only-allow pnpm",
+        "test": "vitest run",
+        "test-coverage": "vitest run --coverage",
+        "watch": "vitest"
+    },
+    "dependencies": {
+        "@hono/zod-openapi": "catalog:",
+        "@nmi-agro/fdm-core": "workspace:*",
+        "@scalar/hono-api-reference": "catalog:",
+        "drizzle-orm": "catalog:",
+        "hono": "catalog:",
+        "nanoid": "^5.1.9",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "engines": {
+        "node": ">=24.0.0"
+    }
+}

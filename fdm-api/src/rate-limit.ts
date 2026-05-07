@@ -1,9 +1,8 @@
 import { eq, sql } from "drizzle-orm"
 import type { MiddlewareHandler } from "hono"
 import { nanoid } from "nanoid"
-import { rateLimit } from "@nmi-agro/fdm-core"
-import { fdm } from "~/lib/fdm.server"
-import type { ApiPrincipalContext } from "./auth"
+import { rateLimit, type FdmType } from "@nmi-agro/fdm-core"
+import type { ApiEnv, ApiPrincipalContext } from "./types"
 import { ApiError } from "./error"
 
 const WINDOW_MS = 60_000
@@ -16,12 +15,7 @@ export const RATE_LIMITS = {
 
 export type RateBucket = keyof typeof RATE_LIMITS
 
-/**
- * Returns a Hono middleware that enforces per-key rate limiting.
- * Uses the fdm-authn.rate_limit table with atomic upsert to avoid
- * race conditions under concurrent requests.
- */
-export function rateLimitMiddleware(bucket: RateBucket): MiddlewareHandler {
+export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): MiddlewareHandler<ApiEnv> {
     const limit = RATE_LIMITS[bucket]
 
     return async (c, next) => {
@@ -30,16 +24,9 @@ export function rateLimitMiddleware(bucket: RateBucket): MiddlewareHandler {
         const now = Date.now()
         const windowStart = now - WINDOW_MS
 
-        // Atomic upsert: reset count when window has expired, otherwise increment.
-        // Reading the resulting count in the same statement avoids read-then-write races.
         const [record] = await fdm
             .insert(rateLimit)
-            .values({
-                id: nanoid(),
-                key,
-                count: 1,
-                lastRequest: now,
-            })
+            .values({ id: nanoid(), key, count: 1, lastRequest: now })
             .onConflictDoUpdate({
                 target: rateLimit.key,
                 set: {
@@ -50,15 +37,9 @@ export function rateLimitMiddleware(bucket: RateBucket): MiddlewareHandler {
             .returning({ count: rateLimit.count, lastRequest: rateLimit.lastRequest })
 
         if (record.count > limit) {
-            const retryAfter = Math.ceil(
-                (record.lastRequest + WINDOW_MS - now) / 1000,
-            )
+            const retryAfter = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
             c.header("Retry-After", String(Math.max(retryAfter, 1)))
-            throw new ApiError(
-                429,
-                "rate-limit-exceeded",
-                `Rate limit exceeded. Try again in ${Math.max(retryAfter, 1)}s.`,
-            )
+            throw new ApiError(429, "rate-limit-exceeded", `Rate limit exceeded. Try again in ${Math.max(retryAfter, 1)}s.`)
         }
 
         return next()

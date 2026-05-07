@@ -6,6 +6,7 @@ packages:
   - fdm-app
   - fdm-rvo
   - fdm-agents
+  - fdm-api
 
 catalog:
   '@better-auth/api-key': ^1.6.9

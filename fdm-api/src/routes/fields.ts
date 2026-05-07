@@ -1,0 +1,115 @@
+import { createRoute, z } from "@hono/zod-openapi"
+import type { OpenAPIHono } from "@hono/zod-openapi"
+import type { getField, getFields } from "@nmi-agro/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
+import { ApiError } from "../error"
+import { rateLimitMiddleware } from "../rate-limit"
+import type { ApiEnv, ApiPrincipalContext } from "../types"
+import {
+    commonErrorResponses,
+    GeoJsonGeometrySchema,
+    paginatedResponse,
+    paginatedSchema,
+    PaginationQuerySchema,
+} from "../schemas"
+
+export interface FieldServices {
+    getFields: typeof getFields
+    getField: typeof getField
+}
+
+const FieldSchema = z.object({
+    b_id: z.string(),
+    b_name: z.string(),
+    b_id_farm: z.string(),
+    b_id_source: z.string().nullable(),
+    b_geometry: GeoJsonGeometrySchema.nullable(),
+    b_centroid: z.tuple([z.number(), z.number()]),
+    b_area: z.number().nullable(),
+    b_perimeter: z.number().nullable(),
+    b_bufferstrip: z.boolean(),
+    b_start: z.string().datetime({ offset: true }).nullable(),
+    b_end: z.string().datetime({ offset: true }).nullable(),
+    b_acquiring_method: z.string(),
+}).openapi("Field")
+
+const listFieldsRoute = createRoute({
+    method: "get",
+    path: "/farms/{farmId}/fields",
+    tags: ["Fields"],
+    summary: "List fields on a farm",
+    description: "Returns all fields belonging to the specified farm.",
+    security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+    request: {
+        params: z.object({ farmId: z.string() }),
+        query: PaginationQuerySchema,
+    },
+    responses: {
+        200: {
+            description: "A paginated list of fields.",
+            content: { "application/json": { schema: paginatedSchema(FieldSchema) } },
+        },
+        ...commonErrorResponses,
+    },
+})
+
+const getFieldRoute = createRoute({
+    method: "get",
+    path: "/fields/{fieldId}",
+    tags: ["Fields"],
+    summary: "Get a field",
+    description: "Returns a single field by ID.",
+    security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+    request: { params: z.object({ fieldId: z.string() }) },
+    responses: {
+        200: {
+            description: "The requested field.",
+            content: { "application/json": { schema: FieldSchema } },
+        },
+        ...commonErrorResponses,
+    },
+})
+
+function serialiseField(field: Awaited<ReturnType<typeof getField>>) {
+    return {
+        b_id: field.b_id,
+        b_name: field.b_name,
+        b_id_farm: field.b_id_farm,
+        b_id_source: field.b_id_source ?? null,
+        b_geometry: field.b_geometry as unknown as z.infer<typeof GeoJsonGeometrySchema> | null,
+        b_centroid: field.b_centroid,
+        b_area: field.b_area ?? null,
+        b_perimeter: field.b_perimeter ?? null,
+        b_bufferstrip: field.b_bufferstrip,
+        b_start: field.b_start ? field.b_start.toISOString() : null,
+        b_end: field.b_end ? field.b_end.toISOString() : null,
+        b_acquiring_method: field.b_acquiring_method,
+    }
+}
+
+export function registerFieldRoutes(
+    app: OpenAPIHono<ApiEnv>,
+    fdm: FdmType,
+    services: FieldServices,
+): void {
+    app.use("/farms/*/fields", rateLimitMiddleware(fdm, "general"))
+    app.use("/fields/*", rateLimitMiddleware(fdm, "general"))
+
+    app.openapi(listFieldsRoute, async (c) => {
+        const principal = c.get("principal") as ApiPrincipalContext
+        const { farmId } = c.req.valid("param")
+        const { limit, offset } = c.req.valid("query")
+        const fields = await services.getFields(fdm, principal.effectivePrincipalId, farmId)
+        return c.json(paginatedResponse(fields.map(serialiseField), limit, offset), 200)
+    })
+
+    app.openapi(getFieldRoute, async (c) => {
+        const principal = c.get("principal") as ApiPrincipalContext
+        const { fieldId } = c.req.valid("param")
+        const field = await services.getField(fdm, principal.effectivePrincipalId, fieldId)
+        if (!field?.b_id) {
+            throw new ApiError(404, "not-found", `Field '${fieldId}' not found.`)
+        }
+        return c.json(serialiseField(field), 200)
+    })
+}

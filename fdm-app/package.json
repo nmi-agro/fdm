@@ -23,6 +23,7 @@
         "@maplibre/maplibre-gl-geocoder": "^1.9.4",
         "@nmi-agro/fdm-agents": "workspace:*",
         "@better-auth/api-key": "catalog:",
+        "@nmi-agro/fdm-api": "workspace:*",
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/fdm-data": "workspace:*",
@@ -94,6 +95,7 @@
     },
     "devDependencies": {
         "@dotenvx/dotenvx": "catalog:",
+        "@nmi-agro/fdm-api": "workspace:*",
         "@nmi-agro/fdm-calculator": "workspace:*",
         "@nmi-agro/fdm-core": "workspace:*",
         "@nmi-agro/fdm-data": "workspace:*",
