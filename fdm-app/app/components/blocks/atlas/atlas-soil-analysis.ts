@@ -346,7 +346,7 @@ const DEFAULT_PARAMETER_MAPPER: ValueMapper = {
         return x
     },
 }
-/**Gets the forward and inverse mappings if a different mapping than linear is used for chromatic shading
+/**Gets the forward and inverse mappings if a different mapping than linear is used for gradient shading
  *
  * @param parameter parameter to get the mappings for
  * @returns object containing mapping functions

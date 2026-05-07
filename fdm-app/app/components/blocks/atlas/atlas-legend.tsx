@@ -249,12 +249,22 @@ function GradientSoilAnalysisLegend(
         selectedParameter: ShadedSoilParameters
     },
 ) {
+    const gradientId = useId()
+
     const gradDef =
         GRADIENT_DEFINITIONS[
             GRADIENT_SHADED_SOIL_PARAMETERS[
                 props.selectedParameter as keyof typeof GRADIENT_SHADED_SOIL_PARAMETERS
             ]
         ]
+
+    if (!gradDef) {
+        console.warn(
+            `No gradient definition found for parameter: ${props.selectedParameter}`,
+        )
+        return null
+    }
+
     const parameterMapper = getShadingParameterMapper(props.selectedParameter)
 
     let min = props.min ?? 0
@@ -267,8 +277,6 @@ function GradientSoilAnalysisLegend(
 
     const chartData = [{ name: "Legenda", min: min, max: max }]
     const gradient = gradDef.gradient
-
-    const gradientId = useId()
 
     const gradientSvg: React.ReactNode[] = []
     for (let i = 0; i < gradient.length; i += 2) {
