@@ -5,8 +5,16 @@ import { ApiError } from "./error"
 import type { ApiEnv, ApiPrincipalContext } from "./types"
 
 /**
- * Creates an API key authentication middleware bound to the given auth instance.
- * Skips authentication for OPTIONS requests and the provided skip paths.
+ * Creates middleware that authenticates requests with a user-owned API key.
+ *
+ * @param auth - Better Auth integration used to verify presented API keys.
+ * @param skipPaths - Absolute request paths that should bypass authentication, such as API documentation endpoints.
+ * @returns A Hono middleware that reads `X-API-Key` or `Authorization: Bearer`, verifies the key, and stores the principal on the request context.
+ * @throws {ApiError} Throws when both auth headers are supplied, when no API key is present, or when verification fails.
+ * @example
+ * ```ts
+ * app.use("*", createApiKeyAuth(auth, ["/api/docs", "/api/openapi.json"]))
+ * ```
  */
 export function createApiKeyAuth(
     auth: FdmAuth,

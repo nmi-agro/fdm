@@ -15,11 +15,25 @@ const TITLES: Record<string, string> = {
     "internal-error": "Internal Server Error",
 }
 
+/**
+ * Represents an HTTP error that should be rendered as RFC 9457 problem details.
+ */
 export class ApiError extends Error {
+    /**
+     * Creates an API error with HTTP metadata and optional problem details extensions.
+     *
+     * @param status - HTTP status code returned to the client.
+     * @param slug - Machine-readable problem type slug appended to the configured application URL.
+     * @param message - Human-readable problem detail included in the response payload.
+     * @param extras - Optional RFC 9457 extension members to merge into the problem document.
+     */
     constructor(
+        /** HTTP status code returned to the client. */
         public readonly status: number,
+        /** Machine-readable problem type slug. */
         public readonly slug: string,
         message: string,
+        /** Optional extension members included in the problem document. */
         public readonly extras?: Record<string, unknown>,
     ) {
         super(message)
@@ -27,6 +41,21 @@ export class ApiError extends Error {
     }
 }
 
+/**
+ * Builds an RFC 9457 `application/problem+json` response for the current request.
+ *
+ * @param c - Hono request context used to write the response.
+ * @param status - HTTP status code for the problem response.
+ * @param slug - Machine-readable problem type slug appended to the application URL.
+ * @param detail - Human-readable explanation of the failure.
+ * @param appUrl - Canonical application URL used to generate the absolute problem type URI.
+ * @param extras - Optional extension members to include in the problem details payload.
+ * @returns A JSON response with the `application/problem+json` content type.
+ * @example
+ * ```ts
+ * return problemResponse(c, 404, "not-found", "Farm not found.", "https://example.com")
+ * ```
+ */
 export function problemResponse(
     c: Context,
     status: number,
@@ -62,6 +91,13 @@ function isPermissionDenied(err: unknown): boolean {
     return false
 }
 
+/**
+ * Creates the global Hono error handler used by the API application.
+ *
+ * @param appUrl - Canonical application URL used to generate absolute problem type URIs.
+ * @returns An error handler that maps known API and permission failures to problem responses and falls back to a 500 response for unexpected errors.
+ * @throws {ApiError} Does not throw directly, but converts upstream `ApiError` instances into HTTP responses.
+ */
 export function createErrorHandler(appUrl: string): ErrorHandler {
     return (err, c) => {
         if (err instanceof ApiError) {
@@ -75,6 +111,16 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
     }
 }
 
+/**
+ * Creates the fallback handler for requests that do not match any API route.
+ *
+ * @param appUrl - Canonical application URL used to generate the problem type URI.
+ * @returns A not-found handler that responds with a 404 RFC 9457 problem document.
+ * @example
+ * ```ts
+ * app.notFound(createNotFoundHandler("https://example.com"))
+ * ```
+ */
 export function createNotFoundHandler(appUrl: string): NotFoundHandler {
     return (c) => problemResponse(c, 404, "not-found", `${c.req.path} does not exist.`, appUrl)
 }

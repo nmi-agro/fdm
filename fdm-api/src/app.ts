@@ -15,6 +15,19 @@ import { registerFieldRoutes } from "./routes/fields"
 import type { ApiEnv } from "./types"
 import type { FdmApiConfig, FdmApiServices } from "./index"
 
+/**
+ * Builds the OpenAPI-enabled Hono application that serves the FDM API.
+ *
+ * @param fdm - Database and service context used by route handlers and rate limiting.
+ * @param auth - Authentication service used to verify API keys on incoming requests.
+ * @param config - Public API configuration, including display metadata and the base path.
+ * @param services - Farm and field service implementations used by the registered routes.
+ * @returns An `OpenAPIHono` application configured with middleware, routes, OpenAPI metadata, and the Scalar docs UI.
+ * @example
+ * ```ts
+ * const app = buildApp(fdm, auth, config, services)
+ * ```
+ */
 export function buildApp(
     fdm: FdmType,
     auth: FdmAuth,

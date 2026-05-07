@@ -1,5 +1,8 @@
 import { z } from "zod"
 
+/**
+ * Describes the RFC 9457 problem details payload returned by API error responses.
+ */
 export const ProblemDetailsSchema = z.object({
     type: z.string().url(),
     title: z.string(),
@@ -9,6 +12,9 @@ export const ProblemDetailsSchema = z.object({
     error_id: z.string(),
 })
 
+/**
+ * Defines the standard `limit` and `offset` query parameters used by list endpoints.
+ */
 export const PaginationQuerySchema = z.object({
     limit: z.coerce.number().int().min(1).max(200).default(50)
         .describe("Maximum number of items to return (1–200, default 50)."),
@@ -16,6 +22,18 @@ export const PaginationQuerySchema = z.object({
         .describe("Number of items to skip before returning results."),
 })
 
+/**
+ * Builds a paginated response envelope from an in-memory collection.
+ *
+ * @param data - Full result set before pagination is applied.
+ * @param limit - Maximum number of items to include in the page.
+ * @param offset - Zero-based number of items to skip before slicing.
+ * @returns An object containing the paginated `data` slice together with the original total count.
+ * @example
+ * ```ts
+ * return paginatedResponse(items, 50, 0)
+ * ```
+ */
 export function paginatedResponse<T>(data: T[], limit: number, offset: number) {
     return {
         data: data.slice(offset, offset + limit),
@@ -25,6 +43,16 @@ export function paginatedResponse<T>(data: T[], limit: number, offset: number) {
     }
 }
 
+/**
+ * Wraps an item schema in the standard paginated response envelope.
+ *
+ * @param itemSchema - Zod schema describing a single item in the `data` array.
+ * @returns A Zod object schema with `data`, `limit`, `offset`, and `total` fields.
+ * @example
+ * ```ts
+ * const FarmListSchema = paginatedSchema(FarmSchema)
+ * ```
+ */
 export function paginatedSchema<T extends z.ZodTypeAny>(itemSchema: T) {
     return z.object({
         data: z.array(itemSchema),
@@ -34,6 +62,9 @@ export function paginatedSchema<T extends z.ZodTypeAny>(itemSchema: T) {
     })
 }
 
+/**
+ * Reusable OpenAPI response definitions for common API failure cases.
+ */
 export const commonErrorResponses = {
     401: {
         description: "Unauthorized — missing or invalid API key.",
@@ -69,4 +100,7 @@ const GeoJsonMultiPolygonSchema = z.object({
     coordinates: z.array(z.array(z.array(GeoJsonPositionSchema))),
 })
 
+/**
+ * Validates the GeoJSON geometry shapes accepted by field endpoints.
+ */
 export const GeoJsonGeometrySchema = z.union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema])

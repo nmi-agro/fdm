@@ -12,8 +12,13 @@ import {
     PaginationQuerySchema,
 } from "../schemas"
 
+/**
+ * Defines the farm data access functions required by the farm routes.
+ */
 export interface FarmServices {
+    /** Returns all farms visible to the authenticated principal. */
     getFarms: typeof getFarms
+    /** Returns a single farm visible to the authenticated principal. */
     getFarm: typeof getFarm
 }
 
@@ -59,6 +64,19 @@ const getFarmRoute = createRoute({
     },
 })
 
+/**
+ * Registers the farm listing and detail routes on the API application.
+ *
+ * @param app - OpenAPI-enabled Hono application that receives the route registrations.
+ * @param fdm - Database and service context used by route handlers and rate limiting.
+ * @param services - Farm service implementations invoked by the registered handlers.
+ * @returns Nothing.
+ * @throws {ApiError} Throws when a requested farm cannot be found.
+ * @example
+ * ```ts
+ * registerFarmRoutes(app, fdm, services)
+ * ```
+ */
 export function registerFarmRoutes(
     app: OpenAPIHono<ApiEnv>,
     fdm: FdmType,

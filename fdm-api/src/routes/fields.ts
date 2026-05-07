@@ -13,8 +13,13 @@ import {
     PaginationQuerySchema,
 } from "../schemas"
 
+/**
+ * Defines the field data access functions required by the field routes.
+ */
 export interface FieldServices {
+    /** Returns all fields for a farm that are visible to the authenticated principal. */
     getFields: typeof getFields
+    /** Returns a single field visible to the authenticated principal. */
     getField: typeof getField
 }
 
@@ -87,6 +92,19 @@ function serialiseField(field: Awaited<ReturnType<typeof getField>>) {
     }
 }
 
+/**
+ * Registers the field listing and detail routes on the API application.
+ *
+ * @param app - OpenAPI-enabled Hono application that receives the route registrations.
+ * @param fdm - Database and service context used by route handlers and rate limiting.
+ * @param services - Field service implementations invoked by the registered handlers.
+ * @returns Nothing.
+ * @throws {ApiError} Throws when a requested field cannot be found.
+ * @example
+ * ```ts
+ * registerFieldRoutes(app, fdm, services)
+ * ```
+ */
 export function registerFieldRoutes(
     app: OpenAPIHono<ApiEnv>,
     fdm: FdmType,
