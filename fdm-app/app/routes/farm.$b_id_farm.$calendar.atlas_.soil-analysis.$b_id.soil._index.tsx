@@ -7,13 +7,11 @@ import {
 import {
     data,
     type LoaderFunctionArgs,
-    NavLink,
     useFetcher,
     useLoaderData,
 } from "react-router"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
 import { SoilAnalysesList } from "~/components/blocks/soil/list"
-import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { getSession } from "~/lib/auth.server"
