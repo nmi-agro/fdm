@@ -61,6 +61,10 @@ COPY --from=builder --chown=user:nodejs /app/fdm-app/app ./fdm-app/app
 COPY --from=builder --chown=user:nodejs /app/fdm-app/public ./fdm-app/public
 COPY --from=builder --chown=user:nodejs /app/fdm-app/instrument.server.mjs ./fdm-app/instrument.server.mjs
 
+# Create uploads directory with correct ownership before switching to non-root user
+RUN mkdir -p /app/fdm-app/uploads/shapefiles && \
+    chown -R user:nodejs /app/fdm-app/uploads
+
 # Set production environment
 ENV NODE_ENV=production
 ENV PORT=8080
