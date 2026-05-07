@@ -153,6 +153,7 @@ export const permissions: Permission[] = [
  * @param principal_id - The principal identifier(s); supports a single ID or an array.
  * @param origin - The source origin used for audit logging the permission check.
  * @param strict - When set to false, the function will not perform an audit log, or throw an exception if the user has no permission.
+ * @param audit_channel - The channel that originated the request, used for audit logging. Defaults to "app".
  * @returns Resolves to true if the principal is permitted to perform the action.
  *
  * @throws {Error} When the principal does not have the required permission.
@@ -165,6 +166,7 @@ export async function checkPermission(
     principal_id: PrincipalId,
     origin: string,
     strict = true,
+    audit_channel: "app" | "api" = "app",
 ) {
     const start = performance.now()
     try {
@@ -184,6 +186,7 @@ export async function checkPermission(
             await fdm.insert(authZSchema.audit).values({
                 audit_id: createId(),
                 audit_origin: origin,
+                audit_channel: audit_channel,
                 principal_id:
                     permission?.matched_principal_id ||
                     (Array.isArray(principal_id)

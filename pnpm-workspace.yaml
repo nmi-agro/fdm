@@ -8,6 +8,7 @@ packages:
   - fdm-agents
 
 catalog:
+  '@better-auth/api-key': ^1.6.9
   '@dotenvx/dotenvx': ^1.64.0
   '@types/node': ^25.6.0
   '@vitest/coverage-v8': 4.1.5
