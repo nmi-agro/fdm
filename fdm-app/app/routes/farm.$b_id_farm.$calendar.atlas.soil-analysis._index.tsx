@@ -46,11 +46,11 @@ import { useSelectedAtlasSoilParameterStore } from "~/store/selected-soil-parame
 
 export const meta: MetaFunction = () => {
     return [
-        { title: `Percelen - Atlas | ${clientConfig.name}` },
+        { title: `Bodemanalyses - Atlas | ${clientConfig.name}` },
         {
             name: "description",
             content:
-                "Bekijk alle percelen van uw bedrijf op één interactieve kaart. Visualiseer de geografische spreiding en onderlinge relaties tussen uw percelen.",
+                "Bekijk alle percelen van uw bedrijf op één interactieve kaart en vergelijk bodemanalyses ruimtelijk per perceel.",
         },
     ]
 }

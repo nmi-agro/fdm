@@ -187,12 +187,14 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
                     selectedParameter={selectedParameter}
                 />
             )}
-            {fieldsData && !anyDataAvailable && (
-                <p className="flex flex-row items-center gap-2">
-                    <TriangleAlert className="h-4 w-4 text-orange-500" />
-                    Geen data op hele bedrijf
-                </p>
-            )}
+            {fieldsData &&
+                fieldsData.features.length > 0 &&
+                !anyDataAvailable && (
+                    <p className="flex flex-row items-center gap-2">
+                        <TriangleAlert className="h-4 w-4 text-orange-500" />
+                        Geen data op hele bedrijf
+                    </p>
+                )}
         </Card>
     )
 }
