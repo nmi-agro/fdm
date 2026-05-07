@@ -580,6 +580,9 @@ importers:
 
   fdm-helpdesk:
     dependencies:
+      '@nmi-agro/fdm-core':
+        specifier: workspace:*
+        version: link:../fdm-core
       better-auth:
         specifier: 'catalog:'
         version: 1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5)
