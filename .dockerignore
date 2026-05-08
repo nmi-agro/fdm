@@ -5,7 +5,14 @@
 .git
 /archive
 /coverage
+/.changeset
 **/.env
+**/*.test.*
+**/*.spec.*
+**/vitest.config.*
+**/coverage
+/fdm-docs
+/cloud-build-optimization.md
 
 /fdm-app/build
 /fdm-app/.react-router
@@ -22,5 +29,3 @@
 /fdm-data/dist
 /fdm-data/.turbo
 /fdm-data/node_modules
-
-/fdm-docs
