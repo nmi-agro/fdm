@@ -36,8 +36,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      fdm-api:
-        condition: service_healthy
     networks:
       - fdm-network
 
