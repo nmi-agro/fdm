@@ -184,3 +184,144 @@ describe("GET /farms/:b_id_farm", () => {
         expect(res.status).toBe(404)
     })
 })
+
+// ---------------------------------------------------------------------------
+// POST /farms
+// ---------------------------------------------------------------------------
+describe("POST /farms", () => {
+    beforeEach(() => {
+        validKey()
+    })
+
+    it("returns 201 with the created farm", async () => {
+        const newFarm = { b_id_farm: "farm-new", b_name_farm: "New Farm", b_businessid_farm: null, b_address_farm: null, b_postalcode_farm: null, roles: [] }
+        const app = makeApp({
+            addFarm: vi.fn().mockResolvedValue("farm-new"),
+            getFarm: vi.fn().mockResolvedValue(newFarm),
+        })
+        const res = await app.request("/farms", {
+            method: "POST",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_name_farm: "New Farm" }),
+        })
+        expect(res.status).toBe(201)
+        const body = await res.json()
+        expect(body.b_id_farm).toBe("farm-new")
+        expect(body.b_name_farm).toBe("New Farm")
+        expect(res.headers.get("location")).toContain("/farms/farm-new")
+    })
+
+    it("returns 415 without Content-Type: application/json", async () => {
+        const app = makeApp()
+        const res = await app.request("/farms", {
+            method: "POST",
+            headers: { "x-api-key": "valid" },
+            body: "{}",
+        })
+        expect(res.status).toBe(415)
+    })
+
+    it("returns 403 when principal lacks permission", async () => {
+        const app = makeApp({
+            addFarm: vi.fn().mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/farms", {
+            method: "POST",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_name_farm: "Farm" }),
+        })
+        expect(res.status).toBe(403)
+    })
+})
+
+// ---------------------------------------------------------------------------
+// PATCH /farms/:b_id_farm
+// ---------------------------------------------------------------------------
+describe("PATCH /farms/:b_id_farm", () => {
+    beforeEach(() => {
+        validKey()
+    })
+
+    it("returns 200 with the updated farm", async () => {
+        const existing = { b_id_farm: "farm-1", b_name_farm: "Old", b_businessid_farm: null, b_address_farm: null, b_postalcode_farm: null, roles: [] }
+        const updated = { b_id_farm: "farm-1", b_name_farm: "New", b_businessid_farm: null, b_address_farm: null, b_postalcode_farm: null }
+        const app = makeApp({
+            getFarm: vi.fn().mockResolvedValue(existing),
+            updateFarm: vi.fn().mockResolvedValue(updated),
+        })
+        const res = await app.request("/farms/farm-1", {
+            method: "PATCH",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_name_farm: "New" }),
+        })
+        expect(res.status).toBe(200)
+        const body = await res.json()
+        expect(body.b_name_farm).toBe("New")
+    })
+
+    it("returns 400 when body is empty", async () => {
+        const app = makeApp({ getFarm: vi.fn(), updateFarm: vi.fn() })
+        const res = await app.request("/farms/farm-1", {
+            method: "PATCH",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({}),
+        })
+        expect(res.status).toBe(400)
+        const body = await res.json()
+        expect(body.type).toContain("validation-failed")
+    })
+
+    it("returns 404 when farm not found", async () => {
+        const app = makeApp({
+            getFarm: vi.fn().mockResolvedValue({ b_id_principal: "u", roles: [] }),
+            updateFarm: vi.fn(),
+        })
+        const res = await app.request("/farms/missing", {
+            method: "PATCH",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_name_farm: "X" }),
+        })
+        expect(res.status).toBe(404)
+    })
+
+    it("returns 403 when principal lacks permission", async () => {
+        const app = makeApp({
+            getFarm: vi.fn().mockRejectedValue(new Error("Permission denied")),
+            updateFarm: vi.fn(),
+        })
+        const res = await app.request("/farms/farm-1", {
+            method: "PATCH",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_name_farm: "X" }),
+        })
+        expect(res.status).toBe(403)
+    })
+})
+
+// ---------------------------------------------------------------------------
+// DELETE /farms/:b_id_farm
+// ---------------------------------------------------------------------------
+describe("DELETE /farms/:b_id_farm", () => {
+    beforeEach(() => {
+        validKey()
+    })
+
+    it("returns 204 on success", async () => {
+        const app = makeApp({ removeFarm: vi.fn().mockResolvedValue(undefined) })
+        const res = await app.request("/farms/farm-1", {
+            method: "DELETE",
+            headers: { "x-api-key": "valid" },
+        })
+        expect(res.status).toBe(204)
+    })
+
+    it("returns 403 when principal lacks permission", async () => {
+        const app = makeApp({ removeFarm: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const res = await app.request("/farms/farm-1", {
+            method: "DELETE",
+            headers: { "x-api-key": "valid" },
+        })
+        expect(res.status).toBe(403)
+    })
+})
+

@@ -2,10 +2,59 @@
 
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import {
+    addCultivation,
+    addDerogation,
+    addFarm,
+    addFertilizer,
+    addFertilizerApplication,
+    addField,
+    addHarvest,
+    addMeasure,
+    addOrganicCertification,
+    addSoilAnalysis,
+    getCultivation,
+    getCultivations,
+    getCultivationsForFarm,
+    getCurrentSoilData,
     getFarm,
     getFarms,
+    getFertilizer,
+    getFertilizerApplication,
+    getFertilizerApplications,
+    getFertilizers,
+    getFertilizersFromCatalogue,
     getField,
     getFields,
+    getGrazingIntentions,
+    getHarvest,
+    getHarvests,
+    getMeasure,
+    getMeasures,
+    getOrganicCertification,
+    getSoilAnalysis,
+    getSoilAnalyses,
+    getSoilAnalysesForFarm,
+    listDerogations,
+    listOrganicCertifications,
+    removeCultivation,
+    removeDerogation,
+    removeFarm,
+    removeFertilizer,
+    removeFertilizerApplication,
+    removeField,
+    removeGrazingIntention,
+    removeHarvest,
+    removeMeasure,
+    removeOrganicCertification,
+    removeSoilAnalysis,
+    setGrazingIntention,
+    updateCultivation,
+    updateFarm,
+    updateFertilizerApplication,
+    updateField,
+    updateHarvest,
+    updateMeasure,
+    updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { buildApp } from "./app"
 
@@ -34,17 +83,127 @@ export interface FdmApiConfig {
  * Defines the core data access functions used by the API routes.
  */
 export interface FdmApiServices {
-    /** Resolves the farms visible to a principal. */
+    // Farms
     getFarms: typeof getFarms
-    /** Resolves a single farm by identifier for a principal. */
     getFarm: typeof getFarm
-    /** Resolves the fields that belong to a farm for a principal. */
+    addFarm: typeof addFarm
+    updateFarm: typeof updateFarm
+    removeFarm: typeof removeFarm
+    // Fields
     getFields: typeof getFields
-    /** Resolves a single field by identifier for a principal. */
     getField: typeof getField
+    addField: typeof addField
+    updateField: typeof updateField
+    removeField: typeof removeField
+    // Cultivations
+    getCultivations: typeof getCultivations
+    getCultivationsForFarm: typeof getCultivationsForFarm
+    getCultivation: typeof getCultivation
+    addCultivation: typeof addCultivation
+    updateCultivation: typeof updateCultivation
+    removeCultivation: typeof removeCultivation
+    // Harvests
+    getHarvests: typeof getHarvests
+    getHarvest: typeof getHarvest
+    addHarvest: typeof addHarvest
+    updateHarvest: typeof updateHarvest
+    removeHarvest: typeof removeHarvest
+    // Fertilizers
+    getFertilizers: typeof getFertilizers
+    addFertilizer: typeof addFertilizer
+    getFertilizer: typeof getFertilizer
+    removeFertilizer: typeof removeFertilizer
+    getFertilizersFromCatalogue: typeof getFertilizersFromCatalogue
+    // Fertilizer applications
+    getFertilizerApplications: typeof getFertilizerApplications
+    getFertilizerApplication: typeof getFertilizerApplication
+    addFertilizerApplication: typeof addFertilizerApplication
+    updateFertilizerApplication: typeof updateFertilizerApplication
+    removeFertilizerApplication: typeof removeFertilizerApplication
+    // Measures
+    getMeasures: typeof getMeasures
+    getMeasure: typeof getMeasure
+    addMeasure: typeof addMeasure
+    updateMeasure: typeof updateMeasure
+    removeMeasure: typeof removeMeasure
+    // Organic certifications
+    listOrganicCertifications: typeof listOrganicCertifications
+    addOrganicCertification: typeof addOrganicCertification
+    getOrganicCertification: typeof getOrganicCertification
+    removeOrganicCertification: typeof removeOrganicCertification
+    // Derogations
+    listDerogations: typeof listDerogations
+    addDerogation: typeof addDerogation
+    removeDerogation: typeof removeDerogation
+    // Grazing intentions
+    getGrazingIntentions: typeof getGrazingIntentions
+    setGrazingIntention: typeof setGrazingIntention
+    removeGrazingIntention: typeof removeGrazingIntention
+    // Soil analyses
+    getSoilAnalyses: typeof getSoilAnalyses
+    getSoilAnalysesForFarm: typeof getSoilAnalysesForFarm
+    getCurrentSoilData: typeof getCurrentSoilData
+    getSoilAnalysis: typeof getSoilAnalysis
+    addSoilAnalysis: typeof addSoilAnalysis
+    updateSoilAnalysis: typeof updateSoilAnalysis
+    removeSoilAnalysis: typeof removeSoilAnalysis
 }
 
-const defaultServices: FdmApiServices = { getFarms, getFarm, getFields, getField }
+const defaultServices: FdmApiServices = {
+    getFarms,
+    getFarm,
+    addFarm,
+    updateFarm,
+    removeFarm,
+    getFields,
+    getField,
+    addField,
+    updateField,
+    removeField,
+    getCultivations,
+    getCultivationsForFarm,
+    getCultivation,
+    addCultivation,
+    updateCultivation,
+    removeCultivation,
+    getHarvests,
+    getHarvest,
+    addHarvest,
+    updateHarvest,
+    removeHarvest,
+    getFertilizers,
+    addFertilizer,
+    getFertilizer,
+    removeFertilizer,
+    getFertilizersFromCatalogue,
+    getFertilizerApplications,
+    getFertilizerApplication,
+    addFertilizerApplication,
+    updateFertilizerApplication,
+    removeFertilizerApplication,
+    getMeasures,
+    getMeasure,
+    addMeasure,
+    updateMeasure,
+    removeMeasure,
+    listOrganicCertifications,
+    addOrganicCertification,
+    getOrganicCertification,
+    removeOrganicCertification,
+    listDerogations,
+    addDerogation,
+    removeDerogation,
+    getGrazingIntentions,
+    setGrazingIntention,
+    removeGrazingIntention,
+    getSoilAnalyses,
+    getSoilAnalysesForFarm,
+    getCurrentSoilData,
+    getSoilAnalysis,
+    addSoilAnalysis,
+    updateSoilAnalysis,
+    removeSoilAnalysis,
+}
 
 /**
  * Creates a fully configured Hono application for the FDM REST API.

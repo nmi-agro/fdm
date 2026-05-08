@@ -25,6 +25,7 @@
         "build": "tsdown",
         "dev": "tsx watch src/server.ts",
         "start": "node dist/server.js",
+        "document": "typedoc src/index.ts --plugin typedoc-plugin-missing-exports --skipErrorChecking",
         "check-types": "tsc --noEmit",
         "preinstall": "npx only-allow pnpm",
         "test": "vitest run",
@@ -46,6 +47,8 @@
         "@vitest/coverage-v8": "catalog:",
         "tsdown": "catalog:",
         "tsx": "^4.19.4",
+        "typedoc": "catalog:",
+        "typedoc-plugin-missing-exports": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
     },

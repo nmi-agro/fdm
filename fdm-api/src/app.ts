@@ -5,10 +5,19 @@ import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { requestGuard } from "./guards"
 import { createApiKeyAuth } from "./auth"
+import { registerCultivationRoutes } from "./routes/cultivations"
+import { registerDerogationRoutes } from "./routes/derogations"
 import { registerFarmRoutes } from "./routes/farms"
+import { registerFertilizerApplicationRoutes } from "./routes/fertilizer-applications"
+import { registerFertilizerRoutes } from "./routes/fertilizers"
 import { registerFieldRoutes } from "./routes/fields"
-import type { ApiEnv } from "./types"
+import { registerGrazingIntentionRoutes } from "./routes/grazing-intentions"
+import { registerHarvestRoutes } from "./routes/harvests"
+import { registerMeasureRoutes } from "./routes/measures"
+import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
+import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
 import type { FdmApiConfig, FdmApiServices } from "./index"
+import type { ApiEnv } from "./types"
 
 /**
  * Builds the OpenAPI-enabled Hono application that serves the FDM API.
@@ -88,6 +97,15 @@ export function buildApp(
 
     registerFarmRoutes(app, fdm, services)
     registerFieldRoutes(app, fdm, services)
+    registerCultivationRoutes(app, fdm, services)
+    registerHarvestRoutes(app, fdm, services)
+    registerFertilizerRoutes(app, fdm, services)
+    registerFertilizerApplicationRoutes(app, fdm, services)
+    registerMeasureRoutes(app, fdm, services)
+    registerOrganicCertificationRoutes(app, fdm, services)
+    registerDerogationRoutes(app, fdm, services)
+    registerGrazingIntentionRoutes(app, fdm, services)
+    registerSoilAnalysisRoutes(app, fdm, services)
 
     // Security schemes
     app.openAPIRegistry.registerComponent("securitySchemes", "ApiKeyHeader", {
@@ -119,6 +137,29 @@ export function buildApp(
                 description: "Manage cultivations on fields",
             },
             {
+                name: "Harvests",
+                description: "Manage harvests on cultivations",
+            },
+            {
+                name: "Fertilizers",
+                description:
+                    "Manage farm fertilizers and fertilizer catalogue entries",
+            },
+            {
+                name: "Fertilizer Applications",
+                description: "Manage fertilizer applications on fields",
+            },
+            { name: "Measures", description: "Manage measures on fields" },
+            {
+                name: "Organic Certifications",
+                description: "Manage farm organic certifications",
+            },
+            { name: "Derogations", description: "Manage farm derogations" },
+            {
+                name: "Grazing Intentions",
+                description: "Manage yearly grazing intentions for farms",
+            },
+            {
                 name: "Soil Analyses",
                 description: "Manage soil analyses on fields",
             },
@@ -134,12 +175,6 @@ export function buildApp(
             spec: { url: `${pathPrefix}/openapi.json` },
             theme: "saturn",
             layout: "modern",
-            operationTitleSource: "summary",
-            defaultOpenFirstTag: true,
-            orderSchemaPropertiesBy: "alpha",
-            orderRequiredPropertiesFirst: true,
-            persistAuth: false,
-            showDeveloperTools: false,
         }),
     )
 

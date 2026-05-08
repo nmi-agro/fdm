@@ -23,6 +23,36 @@ export const PaginationQuerySchema = z.object({
 })
 
 /**
+ * Defines optional ISO 8601 `from` and `to` query parameters for timeframe-aware list endpoints.
+ */
+export const TimeframeQuerySchema = z.object({
+    from: z.string().datetime({ offset: true }).optional()
+        .describe("Inclusive timeframe start (ISO 8601)."),
+    to: z.string().datetime({ offset: true }).optional()
+        .describe("Inclusive timeframe end (ISO 8601)."),
+})
+
+/**
+ * Extends the standard pagination query with optional timeframe filters.
+ */
+export const PaginationTimeframeQuerySchema = PaginationQuerySchema.extend({
+    from: TimeframeQuerySchema.shape.from,
+    to: TimeframeQuerySchema.shape.to,
+})
+
+/**
+ * Converts optional `from`/`to` query parameters into an fdm-core timeframe object.
+ */
+export function parseTimeframeQuery(query: z.infer<typeof TimeframeQuerySchema>) {
+    return query.from || query.to
+        ? {
+            start: query.from ? new Date(query.from) : undefined,
+            end: query.to ? new Date(query.to) : undefined,
+        }
+        : undefined
+}
+
+/**
  * Builds a paginated response envelope from an in-memory collection.
  *
  * @param data - Full result set before pagination is applied.
@@ -87,6 +117,72 @@ export const commonErrorResponses = {
         content: { "application/problem+json": { schema: ProblemDetailsSchema } },
     },
 }
+
+/**
+ * Extends `commonErrorResponses` with the additional failure codes relevant to write operations.
+ */
+export const writeErrorResponses = {
+    ...commonErrorResponses,
+    400: {
+        description: "Bad request — request body failed validation.",
+        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+    },
+    413: {
+        description: "Payload too large — request body exceeds the 5 MB limit.",
+        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+    },
+    415: {
+        description: "Unsupported media type — Content-Type must be application/json.",
+        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+    },
+    422: {
+        description: "Unprocessable entity — request data failed semantic validation.",
+        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+    },
+}
+
+/**
+ * Reusable schema for optional soil measurement fields accepted in create and update requests.
+ */
+export const SoilAnalysisDataSchema = z.object({
+    a_al_ox: z.number().nullable().optional(),
+    a_c_of: z.number().nullable().optional(),
+    a_ca_co: z.number().nullable().optional(),
+    a_ca_co_po: z.number().nullable().optional(),
+    a_caco3_if: z.number().nullable().optional(),
+    a_cec_co: z.number().nullable().optional(),
+    a_clay_mi: z.number().nullable().optional(),
+    a_cn_fr: z.number().nullable().optional(),
+    a_com_fr: z.number().nullable().optional(),
+    a_cu_cc: z.number().nullable().optional(),
+    a_density_sa: z.number().nullable().optional(),
+    a_fe_ox: z.number().nullable().optional(),
+    a_k_cc: z.number().nullable().optional(),
+    a_k_co: z.number().nullable().optional(),
+    a_k_co_po: z.number().nullable().optional(),
+    a_mg_cc: z.number().nullable().optional(),
+    a_mg_co: z.number().nullable().optional(),
+    a_mg_co_po: z.number().nullable().optional(),
+    a_n_pmn: z.number().nullable().optional(),
+    a_n_rt: z.number().nullable().optional(),
+    a_nh4_cc: z.number().nullable().optional(),
+    a_nmin_cc: z.number().nullable().optional(),
+    a_no3_cc: z.number().nullable().optional(),
+    a_p_al: z.number().nullable().optional(),
+    a_p_cc: z.number().nullable().optional(),
+    a_p_ox: z.number().nullable().optional(),
+    a_p_rt: z.number().nullable().optional(),
+    a_p_sg: z.number().nullable().optional(),
+    a_p_wa: z.number().nullable().optional(),
+    a_ph_cc: z.number().nullable().optional(),
+    a_s_rt: z.number().nullable().optional(),
+    a_sand_mi: z.number().nullable().optional(),
+    a_silt_mi: z.number().nullable().optional(),
+    a_som_loi: z.number().nullable().optional(),
+    a_zn_cc: z.number().nullable().optional(),
+    b_gwl_class: z.string().nullable().optional(),
+    b_soiltype_agr: z.string().nullable().optional(),
+})
 
 const GeoJsonPositionSchema = z.tuple([z.number(), z.number()])
 
