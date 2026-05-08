@@ -211,6 +211,13 @@
       "when": 1778165987722,
       "tag": "0029_real_fantastic_four",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1778226055111,
+      "tag": "0030_wakeful_spot",
+      "breakpoints": true
     }
   ]
 }

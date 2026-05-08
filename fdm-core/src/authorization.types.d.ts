@@ -36,3 +36,16 @@ export interface ResourceBead {
 }
 
 export type ResourceChain = ResourceBead[]
+
+/**
+ * Audit context carried implicitly through an async call chain.
+ * Set once at the boundary (HTTP handler, queue consumer, etc.) and
+ * read by `checkPermission` without threading extra arguments through
+ * every intermediate function.
+ */
+export interface AuditContext {
+    /** Channel that originated the request. Defaults to "app". */
+    channel: "app" | "api"
+    /** Session ID (app) or API key ID (api) that originated the request. */
+    credential_id?: string
+}

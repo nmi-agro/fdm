@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono"
 import { createMiddleware } from "hono/factory"
 import type { FdmAuth } from "@nmi-agro/fdm-core"
+import { withAuditContext } from "@nmi-agro/fdm-core"
 import { ApiError } from "./error"
 import type { ApiEnv, ApiPrincipalContext } from "./types"
 
@@ -61,6 +62,9 @@ export function createApiKeyAuth(
         }
 
         c.set("principal", principal)
-        return next()
+        return withAuditContext(
+            { channel: "api", credential_id: result.key.id },
+            () => next(),
+        )
     })
 }

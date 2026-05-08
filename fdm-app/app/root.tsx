@@ -25,6 +25,18 @@ import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
 import styles from "~/tailwind.css?url"
 import type { Route } from "./+types/root"
+import { auth } from "~/lib/auth.server"
+import { withAuditContext } from "@nmi-agro/fdm-core"
+
+export const middleware: Route.MiddlewareFunction[] = [
+    async function auditMiddleware({ request }, next) {
+        const session = await auth.api.getSession({ headers: request.headers })
+        return withAuditContext(
+            { channel: "app", credential_id: session?.session?.id },
+            () => next(),
+        )
+    },
+]
 
 export const links: LinksFunction = () => [
     { rel: "stylesheet", href: styles },
