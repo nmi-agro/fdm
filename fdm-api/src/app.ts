@@ -55,17 +55,34 @@ export function buildApp(
     app.notFound(createNotFoundHandler(appUrl))
 
     if (allowedOrigins && allowedOrigins.length > 0) {
-        app.use("*", cors({
-            origin: allowedOrigins,
-            allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-            allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
-            exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
-            maxAge: 86400,
-        }))
+        app.use(
+            "*",
+            cors({
+                origin: allowedOrigins,
+                allowMethods: [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE",
+                    "OPTIONS",
+                ],
+                allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
+                exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
+                maxAge: 86400,
+            }),
+        )
     }
 
     app.use("*", requestGuard)
-    app.use("*", createApiKeyAuth(auth, [`${pathPrefix}/docs`, `${pathPrefix}/openapi.json`, `${pathPrefix}/`]))
+    app.use(
+        "*",
+        createApiKeyAuth(auth, [
+            `${pathPrefix}/docs`,
+            `${pathPrefix}/openapi.json`,
+            `${pathPrefix}/`,
+        ]),
+    )
 
     app.get("/", (c) => c.redirect(`${pathPrefix}/docs`, 302))
 
@@ -97,14 +114,34 @@ export function buildApp(
         tags: [
             { name: "Farms", description: "Manage farms" },
             { name: "Fields", description: "Manage fields within farms" },
-            { name: "Cultivations", description: "Manage cultivations on fields" },
-            { name: "Soil Analyses", description: "Manage soil analyses on fields" },
+            {
+                name: "Cultivations",
+                description: "Manage cultivations on fields",
+            },
+            {
+                name: "Soil Analyses",
+                description: "Manage soil analyses on fields",
+            },
             { name: "Calculations", description: "Run agronomic calculations" },
         ],
     })
 
     // Scalar UI
-    app.get("/docs", apiReference({ spec: { url: `${pathPrefix}/openapi.json` }, theme: "saturn" }))
+    app.get(
+        "/docs",
+        apiReference({
+            pageTitle: `${appName} REST API`,
+            spec: { url: `${pathPrefix}/openapi.json` },
+            theme: "saturn",
+            layout: "modern",
+            operationTitleSource: "summary",
+            defaultOpenFirstTag: true,
+            orderSchemaPropertiesBy: "alpha",
+            orderRequiredPropertiesFirst: true,
+            persistAuth: false,
+            showDeveloperTools: false,
+        }),
+    )
 
     return app
 }
