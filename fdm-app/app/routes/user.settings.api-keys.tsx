@@ -1,4 +1,4 @@
-import { KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
+import { KeyIcon, PlusIcon, TrashIcon, BookOpenIcon } from "lucide-react"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -165,7 +165,23 @@ export default function UserSettingsApiKeys() {
                 description={`Gebruik API-sleutels voor programmatische toegang tot ${clientConfig.name}. Behandel sleutels als wachtwoorden — deel ze nooit en sla ze veilig op.`}
             />
             <div className="space-y-6 px-4 md:px-8 pb-8">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+                {clientConfig.apiUrl && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                    >
+                        <a
+                            href={`${clientConfig.apiUrl}/docs`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <BookOpenIcon className="mr-2 h-4 w-4" />
+                            API-documentatie
+                        </a>
+                    </Button>
+                )}
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
                         <Button size="sm">

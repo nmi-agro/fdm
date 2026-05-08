@@ -70,6 +70,8 @@ export interface ClientConfig {
     logo: string
     logomark: string
     url: string
+    /** Base URL of the fdm-api service. When set, a link to the API docs is shown in the UI. */
+    apiUrl?: string
     datasets_url: string
     analytics: {
         sentry?: {
