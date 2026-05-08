@@ -17,8 +17,17 @@ export interface FdmApiConfig {
     appName: string
     /** Canonical application URL used to build absolute problem type links. */
     appUrl: string
-    /** Base path under which the API, OpenAPI document, and docs UI are served. */
+    /**
+     * Base path under which the API, OpenAPI document, and docs UI are served.
+     * Defaults to `"/"` for standalone deployments (e.g. `api.yourdomain.com/docs`).
+     * Set to `"/api"` when embedding in another app (e.g. `app.yourdomain.com/api/docs`).
+     */
     basePath?: string
+    /**
+     * Allowed origins for CORS. When provided, CORS headers are added to all
+     * responses. Omit when the API is served from the same origin as the app.
+     */
+    allowedOrigins?: string[]
 }
 
 /**

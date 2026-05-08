@@ -1,5 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { apiReference } from "@scalar/hono-api-reference"
+import { cors } from "hono/cors"
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { requestGuard } from "./guards"
@@ -28,7 +29,8 @@ export function buildApp(
     config: FdmApiConfig,
     services: FdmApiServices,
 ): OpenAPIHono<ApiEnv> {
-    const { appName, appUrl, basePath = "/api" } = config
+    const { appName, appUrl, basePath = "/", allowedOrigins } = config
+    const pathPrefix = basePath === "/" ? "" : basePath
 
     const app = new OpenAPIHono<ApiEnv>({
         defaultHook: (result, c) => {
@@ -52,8 +54,20 @@ export function buildApp(
     app.onError(createErrorHandler(appUrl))
     app.notFound(createNotFoundHandler(appUrl))
 
+    if (allowedOrigins && allowedOrigins.length > 0) {
+        app.use("*", cors({
+            origin: allowedOrigins,
+            allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
+            exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
+            maxAge: 86400,
+        }))
+    }
+
     app.use("*", requestGuard)
-    app.use("*", createApiKeyAuth(auth, [`${basePath}/docs`, `${basePath}/openapi.json`]))
+    app.use("*", createApiKeyAuth(auth, [`${pathPrefix}/docs`, `${pathPrefix}/openapi.json`, `${pathPrefix}/`]))
+
+    app.get("/", (c) => c.redirect(`${pathPrefix}/docs`, 302))
 
     registerFarmRoutes(app, fdm, services)
     registerFieldRoutes(app, fdm, services)
@@ -90,7 +104,7 @@ export function buildApp(
     })
 
     // Scalar UI
-    app.get("/docs", apiReference({ spec: { url: `${basePath}/openapi.json` }, theme: "saturn" }))
+    app.get("/docs", apiReference({ spec: { url: `${pathPrefix}/openapi.json` }, theme: "saturn" }))
 
     return app
 }

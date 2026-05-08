@@ -50,7 +50,7 @@ function makeApp(services: Partial<FdmApiServices> = {}) {
 describe("API authentication", () => {
     it("returns 401 when no API key is provided", async () => {
         const app = makeApp()
-        const res = await app.request("/api/farms")
+        const res = await app.request("/farms")
         expect(res.status).toBe(401)
         expect(res.headers.get("content-type")).toContain("application/problem+json")
         const body = await res.json()
@@ -61,7 +61,7 @@ describe("API authentication", () => {
     it("returns 401 when API key is invalid", async () => {
         invalidKey()
         const app = makeApp()
-        const res = await app.request("/api/farms", {
+        const res = await app.request("/farms", {
             headers: { "x-api-key": "bad-key" },
         })
         expect(res.status).toBe(401)
@@ -69,7 +69,7 @@ describe("API authentication", () => {
 
     it("returns 400 when both X-API-Key and Authorization are provided", async () => {
         const app = makeApp()
-        const res = await app.request("/api/farms", {
+        const res = await app.request("/farms", {
             headers: {
                 "x-api-key": "some-key",
                 authorization: "Bearer some-key",
@@ -82,9 +82,9 @@ describe("API authentication", () => {
 })
 
 // ---------------------------------------------------------------------------
-// GET /api/farms
+// GET /farms
 // ---------------------------------------------------------------------------
-describe("GET /api/farms", () => {
+describe("GET /farms", () => {
     beforeEach(() => {
         validKey()
     })
@@ -95,7 +95,7 @@ describe("GET /api/farms", () => {
             { b_id_farm: "farm-2", b_name_farm: "Farm Two", b_businessid_farm: null, b_address_farm: null, b_postalcode_farm: null, roles: [] },
         ]
         const app = makeApp({ getFarms: vi.fn().mockResolvedValue(mockFarms) })
-        const res = await app.request("/api/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.data).toHaveLength(2)
@@ -115,7 +115,7 @@ describe("GET /api/farms", () => {
             roles: [],
         }))
         const app = makeApp({ getFarms: vi.fn().mockResolvedValue(mockFarms) })
-        const res = await app.request("/api/farms?limit=3&offset=2", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms?limit=3&offset=2", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.data).toHaveLength(3)
@@ -126,7 +126,7 @@ describe("GET /api/farms", () => {
     it("returns 403 when principal has no farm access", async () => {
         const permErr = new Error("Permission denied")
         const app = makeApp({ getFarms: vi.fn().mockRejectedValue(permErr) })
-        const res = await app.request("/api/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(403)
         const body = await res.json()
         expect(body.type).toContain("forbidden")
@@ -135,14 +135,14 @@ describe("GET /api/farms", () => {
     it("returns 403 for wrapped permission error", async () => {
         const wrapped = new Error("Principal does not have permission to perform this action")
         const app = makeApp({ getFarms: vi.fn().mockRejectedValue(wrapped) })
-        const res = await app.request("/api/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(403)
     })
 
     it("response shape uses FDM-native field names", async () => {
         const farm = { b_id_farm: "f1", b_name_farm: "Boerderij", b_businessid_farm: "BN01", b_address_farm: "Straat 1", b_postalcode_farm: "1234AB", roles: [] }
         const app = makeApp({ getFarms: vi.fn().mockResolvedValue([farm]) })
-        const res = await app.request("/api/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
         const body = await res.json()
         const item = body.data[0]
         expect(item).toHaveProperty("b_id_farm")
@@ -156,9 +156,9 @@ describe("GET /api/farms", () => {
 })
 
 // ---------------------------------------------------------------------------
-// GET /api/farms/:farmId
+// GET /farms/:farmId
 // ---------------------------------------------------------------------------
-describe("GET /api/farms/:farmId", () => {
+describe("GET /farms/:farmId", () => {
     beforeEach(() => {
         validKey()
     })
@@ -166,7 +166,7 @@ describe("GET /api/farms/:farmId", () => {
     it("returns 200 with the farm", async () => {
         const farm = { b_id_farm: "farm-1", b_name_farm: "My Farm", b_businessid_farm: null, b_address_farm: null, b_postalcode_farm: null, b_id_principal: "user-1", b_id_principal_owner: "user-1", roles: [] }
         const app = makeApp({ getFarm: vi.fn().mockResolvedValue(farm) })
-        const res = await app.request("/api/farms/farm-1", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms/farm-1", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.b_id_farm).toBe("farm-1")
@@ -174,13 +174,13 @@ describe("GET /api/farms/:farmId", () => {
 
     it("returns 403 when principal lacks access", async () => {
         const app = makeApp({ getFarm: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/api/farms/farm-x", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms/farm-x", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(403)
     })
 
     it("returns 404 when farm does not exist", async () => {
         const app = makeApp({ getFarm: vi.fn().mockResolvedValue({ b_id_principal: "u", b_id_principal_owner: "u", roles: [] }) })
-        const res = await app.request("/api/farms/missing", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms/missing", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(404)
     })
 })
