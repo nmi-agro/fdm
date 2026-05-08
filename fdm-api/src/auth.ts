@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono"
 import { createMiddleware } from "hono/factory"
+import * as Sentry from "@sentry/node"
 import type { FdmAuth } from "@nmi-agro/fdm-core"
 import { withAuditContext } from "@nmi-agro/fdm-core"
 import { ApiError } from "./error"
@@ -62,6 +63,8 @@ export function createApiKeyAuth(
         }
 
         c.set("principal", principal)
+        Sentry.setTag("api.key_id", principal.apiKeyId)
+        Sentry.setTag("audit_channel", "api")
         return withAuditContext(
             { channel: "api", credential_id: result.key.id },
             () => next(),

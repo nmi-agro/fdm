@@ -64,25 +64,26 @@ export function buildApp(
     app.onError(createErrorHandler(appUrl))
     app.notFound(createNotFoundHandler(appUrl))
 
-    if (allowedOrigins && allowedOrigins.length > 0) {
-        app.use(
-            "*",
-            cors({
-                origin: allowedOrigins,
-                allowMethods: [
-                    "GET",
-                    "POST",
-                    "PUT",
-                    "PATCH",
-                    "DELETE",
-                    "OPTIONS",
-                ],
-                allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
-                exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
-                maxAge: 86400,
-            }),
-        )
-    }
+    app.use(
+        "*",
+        cors({
+            origin:
+                allowedOrigins && allowedOrigins.length > 0
+                    ? allowedOrigins
+                    : "*",
+            allowMethods: [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS",
+            ],
+            allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
+            exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
+            maxAge: 86400,
+        }),
+    )
 
     app.use("*", requestGuard)
     app.use(
@@ -174,7 +175,7 @@ export function buildApp(
         "/docs",
         apiReference({
             pageTitle: `${appName} REST API`,
-            spec: { url: `${pathPrefix}/openapi.json` },
+            url: `${pathPrefix}/openapi.json`,
             theme: "saturn",
             layout: "modern",
         }),

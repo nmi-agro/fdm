@@ -78,7 +78,10 @@ const putGrazingIntentionRoute = createRoute({
     request: {
         params: z.object({
             b_id_farm: z.string(),
-            b_grazing_intention_year: z.coerce.number().int(),
+            b_grazing_intention_year: z.coerce
+                .number()
+                .int()
+                .openapi({ type: "integer", param: { required: true } }),
         }),
         body: {
             content: {
@@ -106,11 +109,14 @@ const deleteGrazingIntentionRoute = createRoute({
     request: {
         params: z.object({
             b_id_farm: z.string(),
-            b_grazing_intention_year: z.coerce.number().int(),
+            b_grazing_intention_year: z.coerce
+                .number()
+                .int()
+                .openapi({ type: "integer", param: { required: true } }),
         }),
     },
     responses: {
-        204: { description: "Grazing intention deleted." },
+        204:{ description: "Grazing intention deleted." },
         ...commonErrorResponses,
     },
 })

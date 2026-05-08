@@ -1,5 +1,6 @@
 import type { Context, ErrorHandler, NotFoundHandler } from "hono"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
+import * as Sentry from "@sentry/node"
 import { nanoid } from "nanoid"
 
 const TITLES: Record<string, string> = {
@@ -111,6 +112,7 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
             return problemResponse(c, 403, "forbidden", "You do not have permission to access this resource.", appUrl)
         }
         console.error("[fdm-api] Unhandled error:", err)
+        Sentry.captureException(err)
         return problemResponse(c, 500, "internal-error", "An unexpected error occurred.", appUrl)
     }
 }

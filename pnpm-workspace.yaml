@@ -8,10 +8,12 @@ packages:
   - fdm-agents
   - fdm-api
 
+blockExoticSubdeps: true
+
 catalog:
   '@better-auth/api-key': ^1.6.9
-  '@dotenvx/dotenvx': ^1.64.0
-  '@types/node': ^25.6.0
+  '@dotenvx/dotenvx': ^1.65.0
+  '@types/node': ^25.6.2
   '@vitest/coverage-v8': 4.1.5
   better-auth: ^1.6.9
   drizzle-kit: ^0.31.10
@@ -22,6 +24,4 @@ catalog:
   typescript: ^6.0.3
   vite-tsconfig-paths: ^5.1.4
   vitest: ^4.1.5
-
-blockExoticSubdeps: true
 strictDepBuilds: true
