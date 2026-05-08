@@ -58,7 +58,7 @@ Do not supply both headers in the same request.
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/farms` | List all farms accessible to the API key |
-| `GET` | `/farms/{farmId}` | Get a single farm by ID |
+| `GET` | `/farms/{b_id_farm}` | Get a single farm by ID |
 
 **Farm object**
 
@@ -76,8 +76,8 @@ Do not supply both headers in the same request.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/farms/{farmId}/fields` | List all fields on a farm |
-| `GET` | `/fields/{fieldId}` | Get a single field by ID |
+| `GET` | `/farms/{b_id_farm}/fields` | List all fields on a farm |
+| `GET` | `/fields/{b_id}` | Get a single field by ID |
 
 **Field object**
 

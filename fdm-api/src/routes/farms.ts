@@ -49,12 +49,12 @@ const listFarmsRoute = createRoute({
 
 const getFarmRoute = createRoute({
     method: "get",
-    path: "/farms/{farmId}",
+    path: "/farms/{b_id_farm}",
     tags: ["Farms"],
     summary: "Get a farm",
     description: "Returns a single farm by ID.",
     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-    request: { params: z.object({ farmId: z.string() }) },
+    request: { params: z.object({ b_id_farm: z.string() }) },
     responses: {
         200: {
             description: "The requested farm.",
@@ -103,10 +103,10 @@ export function registerFarmRoutes(
     const getFarmHandler: RouteHandler<typeof getFarmRoute> = async (c) => {
         const principal = c.get("principal") as unknown as ApiPrincipalContext
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-        const { farmId } = c.req.valid("param") as { farmId: string }
-        const farm = await services.getFarm(fdm, principal.effectivePrincipalId, farmId)
+        const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+        const farm = await services.getFarm(fdm, principal.effectivePrincipalId, b_id_farm)
         if (!farm?.b_id_farm) {
-            throw new ApiError(404, "not-found", `Farm '${farmId}' not found.`)
+            throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
         }
         return c.json({
             b_id_farm: farm.b_id_farm,

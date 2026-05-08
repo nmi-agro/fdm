@@ -41,9 +41,9 @@ function makeApp(services: Partial<FdmApiServices> = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// GET /farms/:farmId/fields
+// GET /farms/:b_id_farm/fields
 // ---------------------------------------------------------------------------
-describe("GET /farms/:farmId/fields", () => {
+describe("GET /farms/:b_id_farm/fields", () => {
     beforeEach(() => {
         validKey()
     })
@@ -98,9 +98,9 @@ describe("GET /farms/:farmId/fields", () => {
 })
 
 // ---------------------------------------------------------------------------
-// GET /fields/:fieldId
+// GET /fields/:b_id
 // ---------------------------------------------------------------------------
-describe("GET /fields/:fieldId", () => {
+describe("GET /fields/:b_id", () => {
     beforeEach(() => {
         validKey()
     })

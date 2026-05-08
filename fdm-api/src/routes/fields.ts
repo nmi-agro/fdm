@@ -40,13 +40,13 @@ const FieldSchema = z.object({
 
 const listFieldsRoute = createRoute({
     method: "get",
-    path: "/farms/{farmId}/fields",
+    path: "/farms/{b_id_farm}/fields",
     tags: ["Fields"],
     summary: "List fields on a farm",
     description: "Returns all fields belonging to the specified farm.",
     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
     request: {
-        params: z.object({ farmId: z.string() }),
+        params: z.object({ b_id_farm: z.string() }),
         query: PaginationQuerySchema,
     },
     responses: {
@@ -60,12 +60,12 @@ const listFieldsRoute = createRoute({
 
 const getFieldRoute = createRoute({
     method: "get",
-    path: "/fields/{fieldId}",
+    path: "/fields/{b_id}",
     tags: ["Fields"],
     summary: "Get a field",
     description: "Returns a single field by ID.",
     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-    request: { params: z.object({ fieldId: z.string() }) },
+    request: { params: z.object({ b_id: z.string() }) },
     responses: {
         200: {
             description: "The requested field.",
@@ -116,20 +116,20 @@ export function registerFieldRoutes(
     const listFieldsHandler: RouteHandler<typeof listFieldsRoute> = async (c) => {
         const principal = c.get("principal") as unknown as ApiPrincipalContext
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-        const { farmId } = c.req.valid("param") as { farmId: string }
+        const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-        const fields = await services.getFields(fdm, principal.effectivePrincipalId, farmId)
+        const fields = await services.getFields(fdm, principal.effectivePrincipalId, b_id_farm)
         return c.json(paginatedResponse(fields.map(serialiseField), limit, offset), 200)
     }
 
     const getFieldHandler: RouteHandler<typeof getFieldRoute> = async (c) => {
         const principal = c.get("principal") as unknown as ApiPrincipalContext
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-        const { fieldId } = c.req.valid("param") as { fieldId: string }
-        const field = await services.getField(fdm, principal.effectivePrincipalId, fieldId)
+        const { b_id } = c.req.valid("param") as { b_id: string }
+        const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
         if (!field?.b_id) {
-            throw new ApiError(404, "not-found", `Field '${fieldId}' not found.`)
+            throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
         }
         return c.json(serialiseField(field), 200)
     }

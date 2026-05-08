@@ -156,9 +156,9 @@ describe("GET /farms", () => {
 })
 
 // ---------------------------------------------------------------------------
-// GET /farms/:farmId
+// GET /farms/:b_id_farm
 // ---------------------------------------------------------------------------
-describe("GET /farms/:farmId", () => {
+describe("GET /farms/:b_id_farm", () => {
     beforeEach(() => {
         validKey()
     })
