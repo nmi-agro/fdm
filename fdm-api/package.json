@@ -23,7 +23,7 @@
     ],
     "scripts": {
         "build": "tsdown",
-        "dev": "tsx watch src/server.ts",
+        "dev": "dotenvx run -- tsx watch src/server.ts",
         "start": "node dist/server.js",
         "document": "typedoc src/index.ts --plugin typedoc-plugin-missing-exports --skipErrorChecking",
         "check-types": "tsc --noEmit",
@@ -44,6 +44,7 @@
         "zod": "^4.3.6"
     },
     "devDependencies": {
+        "@dotenvx/dotenvx": "catalog:",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
         "tsdown": "catalog:",
