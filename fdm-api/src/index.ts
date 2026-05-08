@@ -16,6 +16,7 @@ import {
     getCultivations,
     getCultivationsForFarm,
     getCurrentSoilData,
+    // getCultivationsFromCatalogue,
     getFarm,
     getFarms,
     getFertilizer,
@@ -25,9 +26,12 @@ import {
     getFertilizersFromCatalogue,
     getField,
     getFields,
+    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
+    // getGrazingIntention,
     getGrazingIntentions,
     getHarvest,
     getHarvests,
+    // getHarvestsForFarm,
     getMeasure,
     getMeasures,
     getOrganicCertification,
@@ -56,6 +60,23 @@ import {
     updateMeasure,
     updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
+import {
+    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
+    // assessDataCompleteness,
+    // buildDynaRequest,
+    // buildNSupplyRequest,
+    calculateNitrogenBalance,
+    calculateOrganicMatterBalance,
+    collectInputForNitrogenBalance,
+    collectInputForOrganicMatterBalance,
+    createFunctionsForNorms,
+    getDoseForField,
+    // getDyna,
+    // getNSupply,
+    getNitrogenBalanceField,
+    getNutrientAdvice,
+    getOrganicMatterBalanceField,
+} from "@nmi-agro/fdm-calculator"
 import { buildApp } from "./app"
 
 /**
@@ -147,6 +168,30 @@ export interface FdmApiServices {
     addSoilAnalysis: typeof addSoilAnalysis
     updateSoilAnalysis: typeof updateSoilAnalysis
     removeSoilAnalysis: typeof removeSoilAnalysis
+    // Calculations
+    collectInputForNitrogenBalance: typeof collectInputForNitrogenBalance
+    calculateNitrogenBalance: typeof calculateNitrogenBalance
+    getNitrogenBalanceField: typeof getNitrogenBalanceField
+    collectInputForOrganicMatterBalance: typeof collectInputForOrganicMatterBalance
+    calculateOrganicMatterBalance: typeof calculateOrganicMatterBalance
+    getOrganicMatterBalanceField: typeof getOrganicMatterBalanceField
+    getDoseForField: typeof getDoseForField
+    // Additional data fetching for norms/mineralization
+    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
+    // getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
+    // getHarvestsForFarm: typeof getHarvestsForFarm
+    // getGrazingIntention: typeof getGrazingIntention
+    // Norms
+    createFunctionsForNorms: typeof createFunctionsForNorms
+    // Nutrient advice
+    getNutrientAdvice: typeof getNutrientAdvice
+    // Mineralization (N-Supply + DYNA)
+    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
+    // buildNSupplyRequest: typeof buildNSupplyRequest
+    // assessDataCompleteness: typeof assessDataCompleteness
+    // getNSupply: typeof getNSupply
+    // buildDynaRequest: typeof buildDynaRequest
+    // getDyna: typeof getDyna
 }
 
 const defaultServices: FdmApiServices = {
@@ -203,6 +248,24 @@ const defaultServices: FdmApiServices = {
     addSoilAnalysis,
     updateSoilAnalysis,
     removeSoilAnalysis,
+    collectInputForNitrogenBalance,
+    calculateNitrogenBalance,
+    getNitrogenBalanceField,
+    collectInputForOrganicMatterBalance,
+    calculateOrganicMatterBalance,
+    getOrganicMatterBalanceField,
+    getDoseForField,
+    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
+    // getCultivationsFromCatalogue,
+    // getHarvestsForFarm,
+    // getGrazingIntention,
+    createFunctionsForNorms,
+    getNutrientAdvice,
+    // buildNSupplyRequest,
+    // assessDataCompleteness,
+    // getNSupply,
+    // buildDynaRequest,
+    // getDyna,
 }
 
 /**

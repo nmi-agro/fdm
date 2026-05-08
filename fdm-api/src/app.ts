@@ -5,6 +5,7 @@ import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { requestGuard } from "./guards"
 import { createApiKeyAuth } from "./auth"
+import { registerCalculationRoutes } from "./routes/calculations"
 import { registerCultivationRoutes } from "./routes/cultivations"
 import { registerDerogationRoutes } from "./routes/derogations"
 import { registerFarmRoutes } from "./routes/farms"
@@ -97,6 +98,7 @@ export function buildApp(
 
     registerFarmRoutes(app, fdm, services)
     registerFieldRoutes(app, fdm, services)
+    registerCalculationRoutes(app, fdm, services)
     registerCultivationRoutes(app, fdm, services)
     registerHarvestRoutes(app, fdm, services)
     registerFertilizerRoutes(app, fdm, services)

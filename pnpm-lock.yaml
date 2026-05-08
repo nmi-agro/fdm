@@ -110,6 +110,9 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.3.0
         version: 1.3.0(hono@4.12.15)(zod@4.3.6)
+      '@nmi-agro/fdm-calculator':
+        specifier: workspace:*
+        version: link:../fdm-calculator
       '@nmi-agro/fdm-core':
         specifier: workspace:*
         version: link:../fdm-core
@@ -158,7 +161,7 @@ importers:
     dependencies:
       '@better-auth/api-key':
         specifier: 'catalog:'
-        version: 1.6.9(@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(better-auth@1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5))
+        version: 1.6.9(@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(better-auth@1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5))
       '@date-fns/tz':
         specifier: ^1.4.1
         version: 1.4.1
@@ -245,7 +248,7 @@ importers:
         version: 7.3.5
       better-auth:
         specifier: 'catalog:'
-        version: 1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5)
+        version: 1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5)
       chrono-node:
         specifier: ^2.9.0
         version: 2.9.0
@@ -478,7 +481,7 @@ importers:
     dependencies:
       '@better-auth/api-key':
         specifier: 'catalog:'
-        version: 1.6.9(@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(better-auth@1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5))
+        version: 1.6.9(@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(better-auth@1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5))
       '@nmi-agro/fdm-data':
         specifier: workspace:*
         version: link:../fdm-data
@@ -487,7 +490,7 @@ importers:
         version: 7946.0.16
       better-auth:
         specifier: 'catalog:'
-        version: 1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5)
+        version: 1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5)
       decimal.js:
         specifier: ^10.6.0
         version: 10.6.0
@@ -14112,11 +14115,11 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@better-auth/api-key@1.6.9(@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(better-auth@1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5))':
+  '@better-auth/api-key@1.6.9(@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(better-auth@1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5))':
     dependencies:
       '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.0
-      better-auth: 1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5)
+      better-auth: 1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5)
       zod: 4.3.6
 
   '@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0)':
@@ -16540,7 +16543,7 @@ snapshots:
   '@mikro-orm/mariadb@6.6.11(@mikro-orm/core@6.6.13)(pg@8.20.0)':
     dependencies:
       '@mikro-orm/core': 6.6.13
-      '@mikro-orm/knex': 6.6.11(@mikro-orm/core@6.6.13)(mariadb@3.4.5)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)
+      '@mikro-orm/knex': 6.6.11(@mikro-orm/core@6.6.13)(mariadb@3.4.5)(pg@8.20.0)(sqlite3@5.1.7)
       mariadb: 3.4.5
     transitivePeerDependencies:
       - better-sqlite3
@@ -16594,7 +16597,7 @@ snapshots:
   '@mikro-orm/postgresql@6.6.11(@mikro-orm/core@6.6.13)(mariadb@3.4.5)':
     dependencies:
       '@mikro-orm/core': 6.6.13
-      '@mikro-orm/knex': 6.6.11(@mikro-orm/core@6.6.13)(mariadb@3.4.5)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)
+      '@mikro-orm/knex': 6.6.11(@mikro-orm/core@6.6.13)(mariadb@3.4.5)(pg@8.20.0)(sqlite3@5.1.7)
       pg: 8.20.0
       postgres-array: 3.0.4
       postgres-date: 2.1.0
@@ -20180,7 +20183,7 @@ snapshots:
 
   batch@0.6.1: {}
 
-  better-auth@1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5):
+  better-auth@1.6.9(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))(mysql2@3.20.0(@types/node@25.6.0))(next@16.2.3(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(pg@8.20.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.5):
     dependencies:
       '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/drizzle-adapter': 1.6.9(@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@opentelemetry/api@1.9.1)(better-call@1.3.5(zod@4.3.6))(jose@6.2.3)(kysely@0.28.16)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(knex@3.2.8(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(sqlite3@5.1.7))(kysely@0.28.16)(mysql2@3.20.0(@types/node@25.6.0))(pg@8.20.0)(postgres@3.4.9)(sqlite3@5.1.7))

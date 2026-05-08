@@ -13,6 +13,9 @@ const TITLES: Record<string, string> = {
     "unsupported-media-type": "Unsupported Media Type",
     "unprocessable-entity": "Unprocessable Entity",
     "rate-limit-exceeded": "Rate Limit Exceeded",
+    "service-unavailable": "Service Unavailable",
+    "bad-gateway": "Bad Gateway",
+    "gateway-timeout": "Gateway Timeout",
     "internal-error": "Internal Server Error",
 }
 
