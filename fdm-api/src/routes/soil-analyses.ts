@@ -16,11 +16,13 @@ import { rateLimitMiddleware } from "../rate-limit"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import {
     commonErrorResponses,
+    DateStringSchema,
     paginatedResponse,
     paginatedSchema,
     PaginationQuerySchema,
     PaginationTimeframeQuerySchema,
     parseTimeframeQuery,
+    serializeDate,
     SoilAnalysisDataSchema,
     writeErrorResponses,
 } from "../schemas"
@@ -50,19 +52,15 @@ export interface SoilAnalysisServices {
 const SoilAnalysisSchema = z
     .object({
         a_id: z.string(),
-        a_date: z
-            .string()
-            .datetime({ offset: true })
-            .describe("ISO 8601 datetime string."),
+        a_date: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
         a_source: z.string(),
         b_id_sampling: z.string(),
         a_depth_upper: z.number(),
         a_depth_lower: z.number(),
-        b_sampling_date: z
-            .string()
-            .datetime({ offset: true })
+        b_sampling_date: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
+            .describe("Date in YYYY-MM-DD format."),
         a_al_ox: z.number().nullable(),
         a_c_of: z.number().nullable(),
         a_ca_co: z.number().nullable(),
@@ -108,11 +106,9 @@ const CurrentSoilDataItemSchema = z
         parameter: z.string(),
         value: z.union([z.number(), z.string(), z.null()]),
         a_id: z.string(),
-        b_sampling_date: z
-            .string()
-            .datetime({ offset: true })
+        b_sampling_date: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
+            .describe("Date in YYYY-MM-DD format."),
         a_depth_upper: z.number().nullable(),
         a_depth_lower: z.number().nullable(),
         a_source: z.string(),
@@ -121,19 +117,15 @@ const CurrentSoilDataItemSchema = z
 
 const CreateSoilAnalysisBodySchema = z
     .object({
-        a_date: z
-            .string()
-            .datetime({ offset: true })
-            .describe("Date of the soil analysis (ISO 8601)."),
+        a_date: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
         a_source: z
             .string()
             .describe("Identifying source or lab that performed the analysis."),
         a_depth_lower: z.number().describe("Lower sampling depth in cm."),
-        b_sampling_date: z
-            .string()
-            .datetime({ offset: true })
+        b_sampling_date: DateStringSchema
             .nullable()
-            .describe("Date the soil sample was taken (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
         a_depth_upper: z
             .number()
             .optional()
@@ -144,11 +136,9 @@ const CreateSoilAnalysisBodySchema = z
 
 const UpdateSoilAnalysisBodySchema = z
     .object({
-        a_date: z
-            .string()
-            .datetime({ offset: true })
+        a_date: DateStringSchema
             .optional()
-            .describe("Date of the soil analysis (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
         a_source: z.string().optional().describe("Identifying source or lab."),
     })
     .merge(SoilAnalysisDataSchema)
@@ -310,18 +300,12 @@ const deleteSoilAnalysisRoute = createRoute({
 function serialiseSoilAnalysis(sa: SoilAnalysis) {
     return {
         a_id: sa.a_id,
-        a_date:
-            sa.a_date instanceof Date
-                ? sa.a_date.toISOString()
-                : (sa.a_date ?? null),
+        a_date: serializeDate(sa.a_date),
         a_source: sa.a_source,
         b_id_sampling: sa.b_id_sampling,
         a_depth_upper: sa.a_depth_upper,
         a_depth_lower: sa.a_depth_lower,
-        b_sampling_date:
-            sa.b_sampling_date instanceof Date
-                ? sa.b_sampling_date.toISOString()
-                : (sa.b_sampling_date ?? null),
+        b_sampling_date: serializeDate(sa.b_sampling_date),
         a_al_ox: sa.a_al_ox ?? null,
         a_c_of: sa.a_c_of ?? null,
         a_ca_co: sa.a_ca_co ?? null,
@@ -367,10 +351,7 @@ function serialiseCurrentSoilData(currentSoilData: CurrentSoilData) {
         parameter: item.parameter,
         value: item.value ?? null,
         a_id: item.a_id,
-        b_sampling_date:
-            item.b_sampling_date instanceof Date
-                ? item.b_sampling_date.toISOString()
-                : (item.b_sampling_date ?? null),
+        b_sampling_date: serializeDate(item.b_sampling_date),
         a_depth_upper: item.a_depth_upper ?? null,
         a_depth_lower: item.a_depth_lower ?? null,
         a_source: item.a_source,

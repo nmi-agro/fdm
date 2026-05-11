@@ -13,10 +13,12 @@ import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
+    DateStringSchema,
     paginatedResponse,
     paginatedSchema,
     PaginationTimeframeQuerySchema,
     parseTimeframeQuery,
+    serializeDate,
     writeErrorResponses,
 } from "../schemas"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
@@ -70,10 +72,8 @@ const HarvestableAnalysisSchema = z.object({
 const HarvestSchema = z
     .object({
         b_id_harvesting: z.string(),
-        b_lu_harvest_date: z
-            .string()
-            .datetime({ offset: true })
-            .describe("ISO 8601 datetime string."),
+        b_lu_harvest_date: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
         b_lu: z.string(),
         harvestable: z.object({
             b_id_harvestable: z.string(),
@@ -84,21 +84,17 @@ const HarvestSchema = z
 
 const CreateHarvestBodySchema = z
     .object({
-        b_lu_harvest_date: z
-            .string()
-            .datetime({ offset: true })
-            .describe("Harvest date (ISO 8601)."),
+        b_lu_harvest_date: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
         ...HarvestPropertyShape,
     })
     .openapi("CreateHarvest")
 
 const UpdateHarvestBodySchema = z
     .object({
-        b_lu_harvest_date: z
-            .string()
-            .datetime({ offset: true })
+        b_lu_harvest_date: DateStringSchema
             .optional()
-            .describe("Harvest date (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
         ...HarvestPropertyShape,
     })
     .openapi("UpdateHarvest")
@@ -209,10 +205,7 @@ const deleteHarvestRoute = createRoute({
 function serialiseHarvest(harvest: Harvest) {
     return {
         b_id_harvesting: harvest.b_id_harvesting,
-        b_lu_harvest_date:
-            harvest.b_lu_harvest_date instanceof Date
-                ? harvest.b_lu_harvest_date.toISOString()
-                : (harvest.b_lu_harvest_date ?? null),
+        b_lu_harvest_date: serializeDate(harvest.b_lu_harvest_date),
         b_lu: harvest.b_lu,
         harvestable: {
             b_id_harvestable: harvest.harvestable.b_id_harvestable,

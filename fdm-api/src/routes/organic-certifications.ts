@@ -12,9 +12,11 @@ import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
+    DateStringSchema,
     paginatedResponse,
     paginatedSchema,
     PaginationQuerySchema,
+    serializeDate,
     writeErrorResponses,
 } from "../schemas"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
@@ -34,16 +36,12 @@ const OrganicCertificationSchema = z
         b_id_organic: z.string(),
         b_organic_traces: z.string().nullable(),
         b_organic_skal: z.string().nullable(),
-        b_organic_issued: z
-            .string()
-            .datetime({ offset: true })
+        b_organic_issued: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
-        b_organic_expires: z
-            .string()
-            .datetime({ offset: true })
+            .describe("Date in YYYY-MM-DD format."),
+        b_organic_expires: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
+            .describe("Date in YYYY-MM-DD format."),
     })
     .openapi("OrganicCertification")
 
@@ -59,14 +57,10 @@ const CreateOrganicCertificationBodySchema = z
             .nullable()
             .optional()
             .describe("Organic SKAL number."),
-        b_organic_issued: z
-            .string()
-            .datetime({ offset: true })
-            .describe("Issue date (ISO 8601)."),
-        b_organic_expires: z
-            .string()
-            .datetime({ offset: true })
-            .describe("Expiry date (ISO 8601)."),
+        b_organic_issued: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
+        b_organic_expires: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
     })
     .openapi("CreateOrganicCertification")
 
@@ -161,14 +155,8 @@ function serialiseOrganicCertification(certification: OrganicCertification) {
         b_id_organic: certification.b_id_organic,
         b_organic_traces: certification.b_organic_traces ?? null,
         b_organic_skal: certification.b_organic_skal ?? null,
-        b_organic_issued:
-            certification.b_organic_issued instanceof Date
-                ? certification.b_organic_issued.toISOString()
-                : (certification.b_organic_issued ?? null),
-        b_organic_expires:
-            certification.b_organic_expires instanceof Date
-                ? certification.b_organic_expires.toISOString()
-                : (certification.b_organic_expires ?? null),
+        b_organic_issued: serializeDate(certification.b_organic_issued),
+        b_organic_expires: serializeDate(certification.b_organic_expires),
     }
 }
 

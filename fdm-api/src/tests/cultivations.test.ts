@@ -41,7 +41,7 @@ const baseCultivation = {
     b_lu_harvestcat: "MAIN",
     b_lu_harvestable: true,
     b_lu_variety: null,
-    b_lu_start: new Date("2023-10-01T00:00:00Z"),
+    b_lu_start: new Date("2023-10-01"),
     b_lu_end: new Date("2024-07-01T00:00:00Z"),
     m_cropresidue: false,
     b_id: "field-1",
@@ -81,7 +81,7 @@ describe("GET /fields/:b_id/cultivations", () => {
         expect(res.status).toBe(403)
     })
 
-    it("serialises dates as ISO strings", async () => {
+    it("serialises dates as YYYY-MM-DD strings", async () => {
         const app = makeApp({
             getCultivations: vi.fn().mockResolvedValue([baseCultivation]),
         })
@@ -89,8 +89,8 @@ describe("GET /fields/:b_id/cultivations", () => {
             headers: { "x-api-key": "valid" },
         })
         const body = await res.json()
-        expect(body.data[0].b_lu_start).toBe("2023-10-01T00:00:00.000Z")
-        expect(body.data[0].b_lu_end).toBe("2024-07-01T00:00:00.000Z")
+        expect(body.data[0].b_lu_start).toBe("2023-10-01")
+        expect(body.data[0].b_lu_end).toBe("2024-07-01")
     })
 })
 
@@ -117,7 +117,7 @@ describe("POST /fields/:b_id/cultivations", () => {
             },
             body: JSON.stringify({
                 b_lu_catalogue: "cat-001",
-                b_lu_start: "2023-10-01T00:00:00Z",
+                b_lu_start: "2023-10-01",
             }),
         })
         expect(res.status).toBe(201)
@@ -150,7 +150,7 @@ describe("POST /fields/:b_id/cultivations", () => {
             },
             body: JSON.stringify({
                 b_lu_catalogue: "cat-001",
-                b_lu_start: "2023-10-01T00:00:00Z",
+                b_lu_start: "2023-10-01",
             }),
         })
         expect(res.status).toBe(403)
@@ -164,7 +164,7 @@ describe("POST /fields/:b_id/cultivations", () => {
                 "x-api-key": "valid",
                 "content-type": "application/json",
             },
-            body: JSON.stringify({ b_lu_start: "2023-10-01T00:00:00Z" }), // missing b_lu_catalogue
+            body: JSON.stringify({ b_lu_start: "2023-10-01" }), // missing b_lu_catalogue
         })
         expect(res.status).toBe(400)
     })

@@ -13,10 +13,12 @@ import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
+    DateStringSchema,
     paginatedResponse,
     paginatedSchema,
     PaginationTimeframeQuerySchema,
     parseTimeframeQuery,
+    serializeDate,
     writeErrorResponses,
 } from "../schemas"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
@@ -41,10 +43,8 @@ const FertilizerApplicationSchema = z
         p_app_amount_unit: z.string(),
         p_app_amount_display: z.number().nullable(),
         p_app_method: z.string().nullable(),
-        p_app_date: z
-            .string()
-            .datetime({ offset: true })
-            .describe("ISO 8601 datetime string."),
+        p_app_date: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
         p_app_id: z.string(),
     })
     .openapi("FertilizerApplication")
@@ -56,10 +56,8 @@ const CreateFertilizerApplicationBodySchema = z
             .number()
             .describe("Application amount in the display unit."),
         p_app_method: z.string().nullable().describe("Application method."),
-        p_app_date: z
-            .string()
-            .datetime({ offset: true })
-            .describe("Application date (ISO 8601)."),
+        p_app_date: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
     })
     .openapi("CreateFertilizerApplication")
 
@@ -76,11 +74,9 @@ const UpdateFertilizerApplicationBodySchema = z
             .nullable()
             .optional()
             .describe("Application method."),
-        p_app_date: z
-            .string()
-            .datetime({ offset: true })
+        p_app_date: DateStringSchema
             .optional()
-            .describe("Application date (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
     })
     .openapi("UpdateFertilizerApplication")
 
@@ -208,10 +204,7 @@ function serialiseFertilizerApplication(application: FertilizerApplication) {
         p_app_amount_unit: application.p_app_amount_unit,
         p_app_amount_display: application.p_app_amount_display ?? null,
         p_app_method: application.p_app_method ?? null,
-        p_app_date:
-            application.p_app_date instanceof Date
-                ? application.p_app_date.toISOString()
-                : (application.p_app_date ?? null),
+        p_app_date: serializeDate(application.p_app_date),
         p_app_id: application.p_app_id,
     }
 }

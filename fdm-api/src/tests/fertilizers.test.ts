@@ -81,7 +81,7 @@ const baseCatalogue = {
 const baseFertilizer = {
     ...baseCatalogue,
     p_id: "fert-1",
-    p_date_acquiring: new Date("2024-02-01T00:00:00Z"),
+    p_date_acquiring: new Date("2024-02-01"),
     p_picking_date: new Date("2024-02-02T00:00:00Z"),
     p_app_amount: 100,
 }
@@ -134,7 +134,7 @@ describe("POST /farms/:b_id_farm/fertilizers", () => {
             body: JSON.stringify({
                 p_id_catalogue: "cat-1",
                 p_acquiring_amount: 100,
-                p_acquiring_date: "2024-02-01T00:00:00Z",
+                p_acquiring_date: "2024-02-01",
             }),
         })
         expect(res.status).toBe(201)
@@ -159,7 +159,7 @@ describe("POST /farms/:b_id_farm/fertilizers", () => {
             body: JSON.stringify({
                 p_id_catalogue: "cat-1",
                 p_acquiring_amount: 100,
-                p_acquiring_date: "2024-02-01T00:00:00Z",
+                p_acquiring_date: "2024-02-01",
             }),
         })
         expect(res.status).toBe(403)
@@ -173,7 +173,7 @@ describe("GET /fertilizers/:p_id", () => {
         const app = makeApp({ getFertilizer: vi.fn().mockResolvedValue(baseFertilizer) })
         const res = await app.request("/fertilizers/fert-1", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(200)
-        expect((await res.json()).p_date_acquiring).toBe("2024-02-01T00:00:00.000Z")
+        expect((await res.json()).p_date_acquiring).toBe("2024-02-01")
     })
 
     it("returns 404 when the fertilizer does not exist", async () => {

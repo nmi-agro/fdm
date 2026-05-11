@@ -15,9 +15,11 @@ import { rateLimitMiddleware } from "../rate-limit"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import {
     commonErrorResponses,
+    DateStringSchema,
     paginatedResponse,
     paginatedSchema,
     PaginationQuerySchema,
+    serializeDate,
     writeErrorResponses,
 } from "../schemas"
 
@@ -56,15 +58,11 @@ const CultivationSchema = z
         b_lu_harvestcat: z.string().nullable(),
         b_lu_harvestable: z.boolean(),
         b_lu_variety: z.string().nullable(),
-        b_lu_start: z
-            .string()
-            .datetime({ offset: true })
-            .describe("ISO 8601 datetime string."),
-        b_lu_end: z
-            .string()
-            .datetime({ offset: true })
+        b_lu_start: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
+        b_lu_end: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
+            .describe("Date in YYYY-MM-DD format."),
         m_cropresidue: z.boolean().nullable(),
         b_id: z.string(),
     })
@@ -75,16 +73,12 @@ const CreateCultivationBodySchema = z
         b_lu_catalogue: z
             .string()
             .describe("Cultivation catalogue identifier."),
-        b_lu_start: z
-            .string()
-            .datetime({ offset: true })
-            .describe("Cultivation start date (ISO 8601)."),
-        b_lu_end: z
-            .string()
-            .datetime({ offset: true })
+        b_lu_start: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
+        b_lu_end: DateStringSchema
             .nullable()
             .optional()
-            .describe("Cultivation end date (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
         m_cropresidue: z
             .boolean()
             .nullable()
@@ -106,17 +100,13 @@ const UpdateCultivationBodySchema = z
             .string()
             .optional()
             .describe("Cultivation catalogue identifier."),
-        b_lu_start: z
-            .string()
-            .datetime({ offset: true })
+        b_lu_start: DateStringSchema
             .optional()
-            .describe("Cultivation start date (ISO 8601)."),
-        b_lu_end: z
-            .string()
-            .datetime({ offset: true })
+            .describe("Date in YYYY-MM-DD format."),
+        b_lu_end: DateStringSchema
             .nullable()
             .optional()
-            .describe("Cultivation end date (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
         m_cropresidue: z
             .boolean()
             .nullable()
@@ -277,14 +267,8 @@ function serialiseCultivation(cultivation: Cultivation) {
         b_lu_harvestcat: cultivation.b_lu_harvestcat ?? null,
         b_lu_harvestable: cultivation.b_lu_harvestable,
         b_lu_variety: cultivation.b_lu_variety ?? null,
-        b_lu_start:
-            cultivation.b_lu_start instanceof Date
-                ? cultivation.b_lu_start.toISOString()
-                : (cultivation.b_lu_start ?? null),
-        b_lu_end:
-            cultivation.b_lu_end instanceof Date
-                ? cultivation.b_lu_end.toISOString()
-                : (cultivation.b_lu_end ?? null),
+        b_lu_start: serializeDate(cultivation.b_lu_start),
+        b_lu_end: serializeDate(cultivation.b_lu_end),
         m_cropresidue: cultivation.m_cropresidue ?? null,
         b_id: cultivation.b_id,
     }

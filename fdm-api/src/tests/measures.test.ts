@@ -27,7 +27,7 @@ const baseMeasure = {
     b_id_measure: "measure-1",
     m_id: "bm-1",
     b_id: "field-1",
-    m_start: new Date("2024-01-01T00:00:00Z"),
+    m_start: new Date("2024-01-01"),
     m_end: new Date("2024-06-01T00:00:00Z"),
     m_name: "Bufferstrook",
     m_summary: "Summary",
@@ -62,7 +62,7 @@ describe("POST /fields/:b_id/measures", () => {
         const res = await app.request("/fields/field-1/measures", {
             method: "POST",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
-            body: JSON.stringify({ m_id: "bm-1", m_start: "2024-01-01T00:00:00Z" }),
+            body: JSON.stringify({ m_id: "bm-1", m_start: "2024-01-01" }),
         })
         expect(res.status).toBe(201)
         expect((await res.json()).b_id_measure).toBe("measure-new")
@@ -83,7 +83,7 @@ describe("POST /fields/:b_id/measures", () => {
         const res = await app.request("/fields/field-1/measures", {
             method: "POST",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
-            body: JSON.stringify({ m_id: "bm-1", m_start: "2024-01-01T00:00:00Z" }),
+            body: JSON.stringify({ m_id: "bm-1", m_start: "2024-01-01" }),
         })
         expect(res.status).toBe(403)
     })
@@ -96,7 +96,7 @@ describe("GET /measures/:b_id_measure", () => {
         const app = makeApp({ getMeasure: vi.fn().mockResolvedValue(baseMeasure) })
         const res = await app.request("/measures/measure-1", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(200)
-        expect((await res.json()).m_start).toBe("2024-01-01T00:00:00.000Z")
+        expect((await res.json()).m_start).toBe("2024-01-01")
     })
 
     it("returns 404 when the measure does not exist", async () => {

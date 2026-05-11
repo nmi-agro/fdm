@@ -25,7 +25,7 @@ function makeApp(services: Partial<FdmApiServices> = {}) {
 
 const baseHarvest = {
     b_id_harvesting: "harvest-1",
-    b_lu_harvest_date: new Date("2024-08-15T00:00:00Z"),
+    b_lu_harvest_date: new Date("2024-08-15"),
     b_lu: "cult-1",
     harvestable: {
         b_id_harvestable: "harvestable-1",
@@ -79,7 +79,7 @@ describe("POST /cultivations/:b_lu/harvests", () => {
         const res = await app.request("/cultivations/cult-1/harvests", {
             method: "POST",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
-            body: JSON.stringify({ b_lu_harvest_date: "2024-08-15T00:00:00Z", b_lu_yield: 12000 }),
+            body: JSON.stringify({ b_lu_harvest_date: "2024-08-15", b_lu_yield: 12000 }),
         })
         expect(res.status).toBe(201)
         const body = await res.json()
@@ -102,7 +102,7 @@ describe("POST /cultivations/:b_lu/harvests", () => {
         const res = await app.request("/cultivations/cult-1/harvests", {
             method: "POST",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
-            body: JSON.stringify({ b_lu_harvest_date: "2024-08-15T00:00:00Z" }),
+            body: JSON.stringify({ b_lu_harvest_date: "2024-08-15" }),
         })
         expect(res.status).toBe(403)
     })
@@ -116,7 +116,7 @@ describe("GET /harvests/:b_id_harvesting", () => {
         const res = await app.request("/harvests/harvest-1", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(200)
         const body = await res.json()
-        expect(body.b_lu_harvest_date).toBe("2024-08-15T00:00:00.000Z")
+        expect(body.b_lu_harvest_date).toBe("2024-08-15")
     })
 
     it("returns 404 when the harvest does not exist", async () => {
@@ -138,16 +138,16 @@ describe("PATCH /harvests/:b_id_harvesting", () => {
     it("returns 200 with the updated harvest", async () => {
         const app = makeApp({
             updateHarvest: vi.fn().mockResolvedValue(undefined),
-            getHarvest: vi.fn().mockResolvedValue({ ...baseHarvest, b_lu_harvest_date: new Date("2024-08-20T00:00:00Z") }),
+            getHarvest: vi.fn().mockResolvedValue({ ...baseHarvest, b_lu_harvest_date: new Date("2024-08-20") }),
         })
         const res = await app.request("/harvests/harvest-1", {
             method: "PATCH",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
-            body: JSON.stringify({ b_lu_harvest_date: "2024-08-20T00:00:00Z", b_lu_yield: 12500 }),
+            body: JSON.stringify({ b_lu_harvest_date: "2024-08-20", b_lu_yield: 12500 }),
         })
         expect(res.status).toBe(200)
         const body = await res.json()
-        expect(body.b_lu_harvest_date).toBe("2024-08-20T00:00:00.000Z")
+        expect(body.b_lu_harvest_date).toBe("2024-08-20")
     })
 
     it("returns 400 when the body is empty", async () => {
@@ -165,7 +165,7 @@ describe("PATCH /harvests/:b_id_harvesting", () => {
         const res = await app.request("/harvests/harvest-1", {
             method: "PATCH",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
-            body: JSON.stringify({ b_lu_harvest_date: "2024-08-20T00:00:00Z" }),
+            body: JSON.stringify({ b_lu_harvest_date: "2024-08-20" }),
         })
         expect(res.status).toBe(403)
     })

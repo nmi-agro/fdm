@@ -14,10 +14,12 @@ import { rateLimitMiddleware } from "../rate-limit"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import {
     commonErrorResponses,
+    DateStringSchema,
     GeoJsonGeometrySchema,
     paginatedResponse,
     paginatedSchema,
     PaginationQuerySchema,
+    serializeDate,
     writeErrorResponses,
 } from "../schemas"
 
@@ -50,16 +52,12 @@ const FieldSchema = z
         b_area: z.number().nullable(),
         b_perimeter: z.number().nullable(),
         b_bufferstrip: z.boolean(),
-        b_start: z
-            .string()
-            .datetime({ offset: true })
+        b_start: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
-        b_end: z
-            .string()
-            .datetime({ offset: true })
+            .describe("Date in YYYY-MM-DD format."),
+        b_end: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
+            .describe("Date in YYYY-MM-DD format."),
         b_acquiring_method: z.string(),
     })
     .openapi("Field")
@@ -75,19 +73,15 @@ const CreateFieldBodySchema = z
         b_geometry: GeoJsonGeometrySchema.describe(
             "Field boundary as GeoJSON Polygon or MultiPolygon. Maximum 10,000 coordinates.",
         ),
-        b_start: z
-            .string()
-            .datetime({ offset: true })
-            .describe("Date the field was acquired (ISO 8601)."),
+        b_start: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
         b_acquiring_method: z
             .string()
             .describe("Method by which the field was acquired."),
-        b_end: z
-            .string()
-            .datetime({ offset: true })
+        b_end: DateStringSchema
             .nullable()
             .optional()
-            .describe("Date the field was discarded (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
         b_bufferstrip: z
             .boolean()
             .optional()
@@ -106,20 +100,16 @@ const UpdateFieldBodySchema = z
         b_geometry: GeoJsonGeometrySchema.nullable()
             .optional()
             .describe("Field boundary as GeoJSON Polygon or MultiPolygon."),
-        b_start: z
-            .string()
-            .datetime({ offset: true })
+        b_start: DateStringSchema
             .optional()
-            .describe("Date the field was acquired (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
         b_acquiring_method: z
             .string()
             .optional()
             .describe("Method by which the field was acquired."),
-        b_end: z
-            .string()
-            .datetime({ offset: true })
+        b_end: DateStringSchema
             .optional()
-            .describe("Date the field was discarded (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
         b_bufferstrip: z
             .boolean()
             .optional()
@@ -241,14 +231,8 @@ function serialiseField(field: Awaited<ReturnType<typeof getField>>) {
         b_area: field.b_area ?? null,
         b_perimeter: field.b_perimeter ?? null,
         b_bufferstrip: field.b_bufferstrip,
-        b_start:
-            field.b_start instanceof Date
-                ? field.b_start.toISOString()
-                : (field.b_start ?? null),
-        b_end:
-            field.b_end instanceof Date
-                ? field.b_end.toISOString()
-                : (field.b_end ?? null),
+        b_start: serializeDate(field.b_start),
+        b_end: serializeDate(field.b_end),
         b_acquiring_method: field.b_acquiring_method,
     }
 }

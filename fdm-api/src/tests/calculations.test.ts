@@ -30,8 +30,8 @@ function makeApp(services: Partial<FdmApiServices> = {}) {
     return createFdmApi(mockFdm, mockAuth, config, services)
 }
 
-const START = "2025-01-01T00:00:00Z"
-const END = "2025-12-31T23:59:59Z"
+const START = "2025-01-01"
+const END = "2025-12-31"
 
 afterEach(() => {
     vi.unstubAllEnvs()

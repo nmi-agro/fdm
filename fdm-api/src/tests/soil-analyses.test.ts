@@ -27,12 +27,12 @@ function makeApp(services: Partial<FdmApiServices> = {}) {
 
 const baseSoilAnalysis = {
     a_id: "sa-1",
-    a_date: new Date("2023-05-01T00:00:00Z"),
+    a_date: new Date("2023-05-01"),
     a_source: "Lab NL",
     b_id_sampling: "samp-1",
     a_depth_upper: 0,
     a_depth_lower: 30,
-    b_sampling_date: new Date("2023-04-28T00:00:00Z"),
+    b_sampling_date: new Date("2023-04-28"),
     a_ph_cc: 6.2,
     a_som_loi: 3.5,
     a_al_ox: null, a_c_of: null, a_ca_co: null, a_ca_co_po: null, a_caco3_if: null,
@@ -73,14 +73,14 @@ describe("GET /fields/:b_id/soil-analyses", () => {
         expect(res.status).toBe(403)
     })
 
-    it("serialises dates as ISO strings", async () => {
+    it("serialises dates as YYYY-MM-DD strings", async () => {
         const app = makeApp({ getSoilAnalyses: vi.fn().mockResolvedValue([baseSoilAnalysis]) })
         const res = await app.request("/fields/field-1/soil-analyses", {
             headers: { "x-api-key": "valid" },
         })
         const body = await res.json()
-        expect(body.data[0].a_date).toBe("2023-05-01T00:00:00.000Z")
-        expect(body.data[0].b_sampling_date).toBe("2023-04-28T00:00:00.000Z")
+        expect(body.data[0].a_date).toBe("2023-05-01")
+        expect(body.data[0].b_sampling_date).toBe("2023-04-28")
     })
 })
 
@@ -101,10 +101,10 @@ describe("POST /fields/:b_id/soil-analyses", () => {
             method: "POST",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
             body: JSON.stringify({
-                a_date: "2023-05-01T00:00:00Z",
+                a_date: "2023-05-01",
                 a_source: "Lab NL",
                 a_depth_lower: 30,
-                b_sampling_date: "2023-04-28T00:00:00Z",
+                b_sampling_date: "2023-04-28",
             }),
         })
         expect(res.status).toBe(201)
@@ -131,10 +131,10 @@ describe("POST /fields/:b_id/soil-analyses", () => {
             method: "POST",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
             body: JSON.stringify({
-                a_date: "2023-05-01T00:00:00Z",
+                a_date: "2023-05-01",
                 a_source: "Lab NL",
                 a_depth_lower: 30,
-                b_sampling_date: "2023-04-28T00:00:00Z",
+                b_sampling_date: "2023-04-28",
             }),
         })
         expect(res.status).toBe(403)
@@ -145,7 +145,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
         const res = await app.request("/fields/field-1/soil-analyses", {
             method: "POST",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
-            body: JSON.stringify({ a_date: "2023-05-01T00:00:00Z" }), // missing a_source, a_depth_lower, b_sampling_date
+            body: JSON.stringify({ a_date: "2023-05-01" }), // missing a_source, a_depth_lower, b_sampling_date
         })
         expect(res.status).toBe(400)
     })
@@ -300,7 +300,7 @@ describe("GET /fields/:b_id/current-soil-data", () => {
                 parameter: "a_ph_cc",
                 value: 6.2,
                 a_id: "sa-1",
-                b_sampling_date: new Date("2023-04-28T00:00:00Z"),
+                b_sampling_date: new Date("2023-04-28"),
                 a_depth_upper: 0,
                 a_depth_lower: 30,
                 a_source: "Lab NL",

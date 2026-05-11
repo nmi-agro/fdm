@@ -58,11 +58,11 @@ describe("GET /farms/:b_id_farm/fields", () => {
         expect(body.data[0].b_id).toBe("field-1")
     })
 
-    it("serialises Date to ISO string", async () => {
+    it("serialises Date as YYYY-MM-DD string", async () => {
         const app = makeApp({ getFields: vi.fn().mockResolvedValue([baseField]) })
         const res = await app.request("/farms/farm-1/fields", { headers: { "x-api-key": "valid" } })
         const body = await res.json()
-        expect(body.data[0].b_start).toBe("2023-01-01T00:00:00.000Z")
+        expect(body.data[0].b_start).toBe("2023-01-01")
         expect(body.data[0].b_end).toBeNull()
     })
 
@@ -131,8 +131,8 @@ describe("GET /fields/:b_id", () => {
         const app = makeApp({ getField: vi.fn().mockResolvedValue(field) })
         const res = await app.request("/fields/field-1", { headers: { "x-api-key": "valid" } })
         const body = await res.json()
-        expect(body.b_start).toBe("2024-03-15T08:00:00.000Z")
-        expect(body.b_end).toBe("2024-12-01T00:00:00.000Z")
+        expect(body.b_start).toBe("2024-03-15")
+        expect(body.b_end).toBe("2024-12-01")
     })
 })
 
@@ -160,7 +160,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
             body: JSON.stringify({
                 b_name: "Nieuw perceel",
                 b_geometry: validGeometry,
-                b_start: "2024-01-01T00:00:00Z",
+                b_start: "2024-01-01",
                 b_acquiring_method: "purchase",
             }),
         })
@@ -181,7 +181,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
             body: JSON.stringify({
                 b_name: "Too big",
                 b_geometry: geometry,
-                b_start: "2024-01-01T00:00:00Z",
+                b_start: "2024-01-01",
                 b_acquiring_method: "purchase",
             }),
         })
@@ -208,7 +208,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
             body: JSON.stringify({
                 b_name: "Perceel",
                 b_geometry: validGeometry,
-                b_start: "2024-01-01T00:00:00Z",
+                b_start: "2024-01-01",
                 b_acquiring_method: "purchase",
             }),
         })

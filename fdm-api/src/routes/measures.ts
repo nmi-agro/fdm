@@ -13,10 +13,12 @@ import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
+    DateStringSchema,
     paginatedResponse,
     paginatedSchema,
     PaginationTimeframeQuerySchema,
     parseTimeframeQuery,
+    serializeDate,
     writeErrorResponses,
 } from "../schemas"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
@@ -37,16 +39,12 @@ const MeasureSchema = z
         b_id_measure: z.string(),
         m_id: z.string(),
         b_id: z.string(),
-        m_start: z
-            .string()
-            .datetime({ offset: true })
+        m_start: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
-        m_end: z
-            .string()
-            .datetime({ offset: true })
+            .describe("Date in YYYY-MM-DD format."),
+        m_end: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
+            .describe("Date in YYYY-MM-DD format."),
         m_name: z.string(),
         m_summary: z.string().nullable(),
         m_conflicts: z.array(z.string()).nullable(),
@@ -56,32 +54,24 @@ const MeasureSchema = z
 const CreateMeasureBodySchema = z
     .object({
         m_id: z.string().describe("Measure catalogue identifier."),
-        m_start: z
-            .string()
-            .datetime({ offset: true })
-            .describe("Measure start date (ISO 8601)."),
-        m_end: z
-            .string()
-            .datetime({ offset: true })
+        m_start: DateStringSchema
+            .describe("Date in YYYY-MM-DD format."),
+        m_end: DateStringSchema
             .nullable()
             .optional()
-            .describe("Measure end date (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
     })
     .openapi("CreateMeasure")
 
 const UpdateMeasureBodySchema = z
     .object({
-        m_start: z
-            .string()
-            .datetime({ offset: true })
+        m_start: DateStringSchema
             .optional()
-            .describe("Measure start date (ISO 8601)."),
-        m_end: z
-            .string()
-            .datetime({ offset: true })
+            .describe("Date in YYYY-MM-DD format."),
+        m_end: DateStringSchema
             .nullable()
             .optional()
-            .describe("Measure end date (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
     })
     .openapi("UpdateMeasure")
 
@@ -193,14 +183,8 @@ function serialiseMeasure(measure: Measure) {
         b_id_measure: measure.b_id_measure,
         m_id: measure.m_id,
         b_id: measure.b_id,
-        m_start:
-            measure.m_start instanceof Date
-                ? measure.m_start.toISOString()
-                : (measure.m_start ?? null),
-        m_end:
-            measure.m_end instanceof Date
-                ? measure.m_end.toISOString()
-                : (measure.m_end ?? null),
+        m_start: serializeDate(measure.m_start),
+        m_end: serializeDate(measure.m_end),
         m_name: measure.m_name,
         m_summary: measure.m_summary ?? null,
         m_conflicts: measure.m_conflicts ?? null,

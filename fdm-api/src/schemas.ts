@@ -23,13 +23,31 @@ export const PaginationQuerySchema = z.object({
 })
 
 /**
- * Defines optional ISO 8601 `from` and `to` query parameters for timeframe-aware list endpoints.
+ * Validates and documents a calendar date string in YYYY-MM-DD format.
+ */
+export const DateStringSchema = z
+    .string()
+    .date()
+    .openapi({ example: "2024-01-15" })
+
+/**
+ * Serializes a date value to a YYYY-MM-DD string for API responses.
+ * Returns null for null/undefined inputs.
+ */
+export function serializeDate(date: Date | string | null | undefined): string | null {
+    if (date instanceof Date) return date.toISOString().slice(0, 10)
+    if (typeof date === "string" && date.length >= 10) return date.slice(0, 10)
+    return null
+}
+
+/**
+ * Defines optional `from` and `to` query parameters for timeframe-aware list endpoints.
  */
 export const TimeframeQuerySchema = z.object({
-    from: z.string().datetime({ offset: true }).optional()
-        .describe("Inclusive timeframe start (ISO 8601)."),
-    to: z.string().datetime({ offset: true }).optional()
-        .describe("Inclusive timeframe end (ISO 8601)."),
+    from: DateStringSchema.optional()
+        .describe("Inclusive timeframe start (YYYY-MM-DD)."),
+    to: DateStringSchema.optional()
+        .describe("Inclusive timeframe end (YYYY-MM-DD)."),
 })
 
 /**

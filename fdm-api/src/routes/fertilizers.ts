@@ -13,9 +13,11 @@ import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
+    DateStringSchema,
     paginatedResponse,
     paginatedSchema,
     PaginationQuerySchema,
+    serializeDate,
     writeErrorResponses,
 } from "../schemas"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
@@ -101,16 +103,12 @@ const FertilizerCatalogueSchema = z
 const FertilizerSchema = z
     .object({
         p_id: z.string(),
-        p_date_acquiring: z
-            .string()
-            .datetime({ offset: true })
+        p_date_acquiring: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
-        p_picking_date: z
-            .string()
-            .datetime({ offset: true })
+            .describe("Date in YYYY-MM-DD format."),
+        p_picking_date: DateStringSchema
             .nullable()
-            .describe("ISO 8601 datetime string."),
+            .describe("Date in YYYY-MM-DD format."),
         p_app_amount: z.number().nullable(),
         ...FertilizerCatalogueSchema.shape,
     })
@@ -124,12 +122,10 @@ const CreateFertilizerBodySchema = z
             .optional()
             .nullable()
             .describe("Acquired amount in kg."),
-        p_acquiring_date: z
-            .string()
-            .datetime({ offset: true })
+        p_acquiring_date: DateStringSchema
             .optional()
             .nullable()
-            .describe("Acquiring date (ISO 8601)."),
+            .describe("Date in YYYY-MM-DD format."),
     })
     .openapi("CreateFertilizer")
 
@@ -269,14 +265,10 @@ function serialiseFertilizer(fertilizer: Fertilizer) {
     }
     return {
         p_id: fertilizer.p_id,
-        p_date_acquiring: (() => {
-            const d = fertilizer.p_date_acquiring ?? withLegacyNames.p_acquiring_date ?? null
-            return d instanceof Date ? d.toISOString() : (d ?? null)
-        })(),
-        p_picking_date:
-            fertilizer.p_picking_date instanceof Date
-                ? fertilizer.p_picking_date.toISOString()
-                : (fertilizer.p_picking_date ?? null),
+        p_date_acquiring: serializeDate(
+            fertilizer.p_date_acquiring ?? withLegacyNames.p_acquiring_date ?? null,
+        ),
+        p_picking_date: serializeDate(fertilizer.p_picking_date),
         p_app_amount:
             fertilizer.p_app_amount ??
             withLegacyNames.p_acquiring_amount ??

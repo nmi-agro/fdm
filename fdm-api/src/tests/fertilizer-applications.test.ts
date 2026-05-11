@@ -31,7 +31,7 @@ const baseApplication = {
     p_app_amount_unit: "m3/ha",
     p_app_amount_display: 40,
     p_app_method: "injecteren",
-    p_app_date: new Date("2024-03-01T00:00:00Z"),
+    p_app_date: new Date("2024-03-01"),
     p_app_id: "app-1",
 }
 
@@ -69,7 +69,7 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
                 p_id: "fert-1",
                 p_app_amount_display: 40,
                 p_app_method: "injecteren",
-                p_app_date: "2024-03-01T00:00:00Z",
+                p_app_date: "2024-03-01",
             }),
         })
         expect(res.status).toBe(201)
@@ -95,7 +95,7 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
                 p_id: "fert-1",
                 p_app_amount_display: 40,
                 p_app_method: "injecteren",
-                p_app_date: "2024-03-01T00:00:00Z",
+                p_app_date: "2024-03-01",
             }),
         })
         expect(res.status).toBe(403)
@@ -109,7 +109,7 @@ describe("GET /fertilizer-applications/:p_app_id", () => {
         const app = makeApp({ getFertilizerApplication: vi.fn().mockResolvedValue(baseApplication) })
         const res = await app.request("/fertilizer-applications/app-1", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(200)
-        expect((await res.json()).p_app_date).toBe("2024-03-01T00:00:00.000Z")
+        expect((await res.json()).p_app_date).toBe("2024-03-01")
     })
 
     it("returns 404 when the fertilizer application does not exist", async () => {

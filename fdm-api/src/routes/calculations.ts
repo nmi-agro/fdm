@@ -31,7 +31,7 @@ import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
-import { commonErrorResponses } from "../schemas"
+import { commonErrorResponses, DateStringSchema } from "../schemas"
 
 // ---------------------------------------------------------------------------
 // Services
@@ -83,14 +83,10 @@ export interface CalculationServices {
 
 const TimeframeQuerySchema = z
     .object({
-        start: z
-            .string()
-            .datetime()
-            .describe("ISO 8601 start datetime (inclusive). Example: 2025-01-01T00:00:00Z"),
-        end: z
-            .string()
-            .datetime()
-            .describe("ISO 8601 end datetime (inclusive). Example: 2025-12-31T23:59:59Z"),
+        start: DateStringSchema
+            .describe("Inclusive start date in YYYY-MM-DD format."),
+        end: DateStringSchema
+            .describe("Inclusive end date in YYYY-MM-DD format."),
     })
     .refine((d) => new Date(d.start) <= new Date(d.end), {
         message: "start must be before or equal to end",

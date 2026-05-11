@@ -27,8 +27,8 @@ const baseCertification = {
     b_id_organic: "organic-1",
     b_organic_traces: "NL-BIO-01.528-0002967.2025.001",
     b_organic_skal: "026281",
-    b_organic_issued: new Date("2024-01-01T00:00:00Z"),
-    b_organic_expires: new Date("2025-01-01T00:00:00Z"),
+    b_organic_issued: new Date("2024-01-01"),
+    b_organic_expires: new Date("2025-01-01"),
 }
 
 describe("GET /farms/:b_id_farm/organic-certifications", () => {
@@ -62,8 +62,8 @@ describe("POST /farms/:b_id_farm/organic-certifications", () => {
             body: JSON.stringify({
                 b_organic_traces: baseCertification.b_organic_traces,
                 b_organic_skal: baseCertification.b_organic_skal,
-                b_organic_issued: "2024-01-01T00:00:00Z",
-                b_organic_expires: "2025-01-01T00:00:00Z",
+                b_organic_issued: "2024-01-01",
+                b_organic_expires: "2025-01-01",
             }),
         })
         expect(res.status).toBe(201)
@@ -86,8 +86,8 @@ describe("POST /farms/:b_id_farm/organic-certifications", () => {
             method: "POST",
             headers: { "x-api-key": "valid", "content-type": "application/json" },
             body: JSON.stringify({
-                b_organic_issued: "2024-01-01T00:00:00Z",
-                b_organic_expires: "2025-01-01T00:00:00Z",
+                b_organic_issued: "2024-01-01",
+                b_organic_expires: "2025-01-01",
             }),
         })
         expect(res.status).toBe(403)
@@ -101,7 +101,7 @@ describe("GET /organic-certifications/:b_id_organic", () => {
         const app = makeApp({ getOrganicCertification: vi.fn().mockResolvedValue(baseCertification) })
         const res = await app.request("/organic-certifications/organic-1", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(200)
-        expect((await res.json()).b_organic_issued).toBe("2024-01-01T00:00:00.000Z")
+        expect((await res.json()).b_organic_issued).toBe("2024-01-01")
     })
 
     it("returns 404 when the certification does not exist", async () => {
