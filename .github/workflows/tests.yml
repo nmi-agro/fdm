@@ -50,7 +50,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
-      - name: Setup pnpm 10
+      - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
           version: 11.0.9
@@ -142,7 +142,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
-      - name: Setup pnpm 10
+      - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
           version: 11.0.9
@@ -221,7 +221,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
-      - name: Setup pnpm 10
+      - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
           version: 11.0.9
@@ -298,7 +298,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
-      - name: Setup pnpm 10
+      - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
           version: 11.0.9
@@ -373,7 +373,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
-      - name: Setup pnpm 10
+      - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
           version: 11.0.9
