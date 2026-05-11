@@ -23,3 +23,16 @@ catalog:
 
 blockExoticSubdeps: true
 strictDepBuilds: true
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - '@nmi-agro/*'
+allowBuilds:
+  '@geomatico/maplibre-cog-protocol': true
+  '@sentry-internal/node-cpu-profiler': true
+  '@sentry/cli': true
+  '@swc/core': true
+  core-js: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+  sqlite3: true
