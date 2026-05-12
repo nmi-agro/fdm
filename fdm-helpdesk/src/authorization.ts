@@ -115,6 +115,7 @@ export async function getHelpdeskPermission(
     const users = await Promise.all(
         principal_ids.map((user_id) => getUserProfile(fdm, user_id)),
     )
+
     const role: ApplicationRole = users.every(
         (u) => u?.role === "helpdeskAdmin",
     )
@@ -125,11 +126,13 @@ export async function getHelpdeskPermission(
 
     // Agent management
     if (resource === "helpdesk") {
-        return action !== "read" && role === "helpdeskAdmin"
-            ? { granting_resource: "helpdesk" }
-            : action === "read" && helpdeskRoles.includes(role)
-              ? { granting_resource: "helpdesk" }
-              : null
+        const value: Awaited<ReturnType<typeof getHelpdeskPermission>> =
+            action !== "read" && role === "helpdeskAdmin"
+                ? { granting_resource: "helpdesk" }
+                : action === "read" && helpdeskRoles.includes(role)
+                  ? { granting_resource: "helpdesk" }
+                  : null
+        return value
     }
 
     // Agent's own data
@@ -141,14 +144,18 @@ export async function getHelpdeskPermission(
                     .from(schema.agents)
                     .where(eq(schema.agents.agent_id, resource_id))
                     .limit(1)
-            ).length === 0
+            ).length > 0
         ) {
-            return null
+            return helpdeskRoles.includes(role) &&
+                (action === "read" || resource_id === principal_id)
+                ? {
+                      granting_resource: "agent",
+                      granting_resource_id: resource_id,
+                  }
+                : null
         }
 
-        return helpdeskRoles.includes(role) && resource_id === principal_id
-            ? { granting_resource: "agent", granting_resource_id: resource_id }
-            : null
+        return null
     }
 
     // Agent's saved replies

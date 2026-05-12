@@ -5,7 +5,7 @@ import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
 import { addTagToTicket, createTag } from "./tag"
 import { test } from "./test-util"
-import { createTicket, getInbox, getTicket, getTickets } from "./ticket"
+import { createTicket, getInbox, getTickets } from "./ticket"
 import { assignTicket } from "./ticket-assignment"
 
 test.describe("Inbox", () => {
@@ -21,7 +21,7 @@ test.describe("Inbox", () => {
     let orange_tag_id: string
     let orange_tag_name: string
 
-    test.beforeAll(async ({ fdm, fdmAuth }) => {
+    test.beforeEach(async ({ fdm, fdmAuth }) => {
         // Create agent_id
         const agent_username = `testinboxagent${createId(8)}`
         const agent = await fdmAuth.api.signUpEmail({
@@ -125,7 +125,7 @@ test.describe("getTickets", () => {
     let orange_tag_id: string
     let orange_tag_name: string
 
-    test.beforeAll(async ({ fdm, fdmAuth }) => {
+    test.beforeEach(async ({ fdm, fdmAuth }) => {
         // Create agent_id
         const agent_username = `testinboxagent${createId(8)}`
         const agent = await fdmAuth.api.signUpEmail({
@@ -250,6 +250,34 @@ test.describe("getTickets", () => {
         expect(
             inbox.some((ticket) => ticket.ticket_id === new_ticket_id),
             "New ticket created in the past is found in inbox but shouldn't be",
+        ).toBe(false)
+    })
+
+    test("should only list regular user's own tickets", async ({ fdm }) => {
+        const new_ticket_id = await createTicket(
+            fdm,
+            agent_id,
+            "Ticket by Agent",
+            {
+                context: { b_id_farm: b_id_farm },
+                priority: "low",
+            },
+        )
+
+        const inbox = await getTickets(fdm, requester_id)
+
+        expect(inbox).toHaveLength(2)
+        expect(
+            inbox.some((ticket) => ticket.ticket_id === ticket_id_1),
+            "Ticket 1 is not found in inbox",
+        ).toBe(true)
+        expect(
+            inbox.some((ticket) => ticket.ticket_id === ticket_id_2),
+            "Ticket 2 is not found in inbox",
+        ).toBe(true)
+        expect(
+            inbox.some((ticket) => ticket.ticket_id === new_ticket_id),
+            "New ticket created by other user found in inbox but shouldn't be",
         ).toBe(false)
     })
 })

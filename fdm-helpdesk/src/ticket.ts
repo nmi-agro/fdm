@@ -321,6 +321,7 @@ async function createTicketInternal(
             {
                 ticket_id: ticket_id,
                 ticket_ref: ticket_ref,
+                requester_id: requester_id,
                 requester_email: requester_email,
                 channel: channel,
                 priority: options?.priority,

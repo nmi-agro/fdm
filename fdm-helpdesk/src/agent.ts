@@ -1,4 +1,5 @@
 import { type FdmType, handleError, type PrincipalId } from "@nmi-agro/fdm-core"
+import { eq, sql } from "drizzle-orm"
 import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
 
@@ -10,22 +11,71 @@ export type AgentSummary = {
 
 export type Agent = schema.AgentTypeSelect
 
+export async function getAgent(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    agent_id: schema.AgentTypeSelect["agent_id"],
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "agent",
+            "read",
+            agent_id,
+            principal_id,
+            "getAgent",
+        )
+
+        const found = await fdm
+            .select()
+            .from(schema.agents)
+            .where(eq(schema.agents.agent_id, agent_id))
+
+        return found[0]
+    } catch (err) {
+        throw handleError(err, "Exception for getAgent", {
+            principal_id,
+            agent_id,
+        })
+    }
+}
+
+export async function getAgents(fdm: FdmType, principal_id: PrincipalId) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "read",
+            "",
+            principal_id,
+            "getAgents",
+        )
+
+        return await fdm.select().from(schema.agents)
+    } catch (err) {
+        throw handleError(err, "Exception for getAgents", {
+            principal_id,
+        })
+    }
+}
+
 export async function addAgent(
     fdm: FdmType,
     principal_id: PrincipalId,
     agent_id: schema.AgentTypeInsert["agent_id"],
     display_name: schema.AgentTypeInsert["display_name"],
     is_active: schema.AgentTypeInsert["is_active"] = true,
-) {
-    await checkHelpdeskPermission(
-        fdm,
-        "helpdesk",
-        "write",
-        "",
-        principal_id,
-        "addAgent",
-    )
+): Promise<schema.AgentTypeSelect["agent_id"]> {
     try {
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "addAgent",
+        )
+
         await fdm.insert(schema.agents).values([
             {
                 agent_id: agent_id,
@@ -34,6 +84,37 @@ export async function addAgent(
                 is_active: is_active,
             },
         ])
+
+        return agent_id
+    } catch (err) {
+        throw handleError(err, "Error in addAgent")
+    }
+}
+
+export async function updateAgent(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    agent_id: schema.AgentTypeInsert["agent_id"],
+    display_name: schema.AgentTypeInsert["display_name"] | undefined,
+    is_active: schema.AgentTypeInsert["is_active"] | undefined,
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "addAgent",
+        )
+        await fdm
+            .update(schema.agents)
+            .set({
+                display_name: display_name,
+                is_active: is_active,
+                updated: sql`now()`,
+            })
+            .where(eq(schema.agents.agent_id, agent_id))
     } catch (err) {
         throw handleError(err, "Error in addAgent")
     }
