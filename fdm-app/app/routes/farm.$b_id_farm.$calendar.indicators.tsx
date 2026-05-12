@@ -77,13 +77,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function IndicatorsLayout() {
     const loaderData = useLoaderData<typeof loader>()
     const location = useLocation()
-    const isKaart = location.pathname.includes("/kaart")
+    const isKaart = location.pathname.includes("/atlas")
 
     const headerAction = {
-        label: isKaart ? "Tabel" : "Kaart",
+        label: isKaart ? "Naar tabel" : "Naar kaart",
         to: isKaart
             ? `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/indicators`
-            : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/indicators/kaart`,
+            : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/indicators/atlas`,
         disabled: false,
     }
 

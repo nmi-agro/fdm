@@ -8,7 +8,9 @@ import {
     useSearchParams,
 } from "react-router"
 import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
+import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
+import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { HeatmapTable } from "@/app/components/blocks/indicators/table"
 import {
     computeFarmAggregation,
@@ -117,6 +119,8 @@ export default function IndicatorsFarmIndex() {
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
 
     const [searchParams] = useSearchParams()
+
+    // Category filter from URL
     const rawCategory = searchParams.get("category")
     const activeCategory = (
         INDICATOR_CATEGORIES.includes(rawCategory as IndicatorCategory)
@@ -124,37 +128,46 @@ export default function IndicatorsFarmIndex() {
             : null
     ) as IndicatorCategory | null
 
+    // Measures toggle: default = "met maatregelen" (showIndex=false)
+    const showIndex = searchParams.get("measures") === "off"
+
     return (
         <div className="space-y-6 py-5 px-10">
-            <div className="space-y-0.5">
-                <h2 className="text-2xl font-bold tracking-tight">
-                    Indicatoren
-                </h2>
-                <p className="text-muted-foreground">
-                    BLN3 bodemkwaliteitsindicatoren voor alle percelen op dit
-                    bedrijf.
-                </p>
+            <div className="flex items-start justify-between gap-4">
+                <div className="space-y-0.5">
+                    <h2 className="text-2xl font-bold tracking-tight">
+                        Indicatoren
+                    </h2>
+                    <p className="text-muted-foreground">
+                        BLN3 bodemkwaliteitsindicatoren voor alle percelen op
+                        dit bedrijf.
+                    </p>
+                </div>
+                <Bln3HelpDialog />
             </div>
 
             <div className="flex gap-4 flex-wrap">
                 <AggregationCard
                     label="OBI"
-                    name="Organische Bodemindex"
+                    name="Open Bodem Index"
                     score01={obiScore}
                     index01={obiIndex}
-                    showIndex={false}
+                    showIndex={showIndex}
                 />
                 <AggregationCard
                     label="BBWP"
-                    name="Bodem & Watersysteem"
+                    name="BedrijfsBodemWaterPlan"
                     score01={bbwpScore}
                     index01={bbwpIndex}
-                    showIndex={false}
+                    showIndex={showIndex}
                 />
             </div>
 
             <div className="space-y-3">
-                <CategoryFilter />
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <CategoryFilter />
+                    <MeasuresToggle />
+                </div>
                 <HeatmapTable
                     fields={fields.map((field) => ({
                         b_id: field.b_id,
@@ -162,7 +175,7 @@ export default function IndicatorsFarmIndex() {
                     }))}
                     fieldScores={fieldScores}
                     activeCategory={activeCategory}
-                    showIndex={false}
+                    showIndex={showIndex}
                     basePath={basePath}
                 />
             </div>

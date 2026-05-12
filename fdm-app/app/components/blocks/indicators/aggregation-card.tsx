@@ -98,12 +98,8 @@ export function AggregationCard({
                         <ScoreBadge score={display} />
                     )}
                     {!showIndex && delta !== null && delta > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                            {name}: {scoreToDisplay(index01!)} → {scoreToDisplay(score01!)} (
-                            <span className="text-green-600 font-medium">
-                                +{delta}
-                            </span>
-                            )
+                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                            +{delta} met maatregelen
                         </span>
                     )}
                 </div>

@@ -16,8 +16,8 @@ import {
 export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
     const calendar = useCalendarStore((state) => state.calendar)
     const location = useLocation()
-    const isKaart = location.pathname.includes("/kaart")
-    const currentName = isKaart ? "Kaart" : "Tabel"
+    const isKaart = location.pathname.includes("/atlas")
+    const currentName = isKaart ? "Naar kaart" : "Naar tabel"
 
     return (
         <>
@@ -37,12 +37,12 @@ export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
                     <DropdownMenuContent align="start">
                         <DropdownMenuItem asChild>
                             <NavLink to={`/farm/${b_id_farm}/${calendar}/indicators`}>
-                                Tabel
+                                Naar tabel
                             </NavLink>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <NavLink to={`/farm/${b_id_farm}/${calendar}/indicators/kaart`}>
-                                Kaart
+                            <NavLink to={`/farm/${b_id_farm}/${calendar}/indicators/atlas`}>
+                                Naar kaart
                             </NavLink>
                         </DropdownMenuItem>
                     </DropdownMenuContent>

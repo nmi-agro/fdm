@@ -117,7 +117,7 @@ export function SidebarApps() {
     if (isCreateFarmWizard) {
         indicatorsKaartLink = undefined
     } else if (farmId && farmId !== "undefined") {
-        indicatorsKaartLink = `/farm/${farmId}/${selectedCalendar}/indicators/kaart`
+        indicatorsKaartLink = `/farm/${farmId}/${selectedCalendar}/indicators/atlas`
     } else {
         indicatorsKaartLink = undefined
     }
