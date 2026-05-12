@@ -3,13 +3,11 @@ import { defineConfig } from "drizzle-kit"
 export default defineConfig({
     dialect: "postgresql",
     extensionsFilters: ["postgis"],
-    schema: [
-        "./src/db/schema-helpdesk.ts",
-    ],
+    schema: ["./src/db/schema-helpdesk.ts"],
     out: "./src/db/migrations",
     migrations: {
         table: "migrations",
-        schema: "fdm-migration",
+        schema: "fdm-helpdesk-migration",
     },
     dbCredentials: {
         host: String(process.env.POSTGRES_HOST),

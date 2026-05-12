@@ -1,4 +1,5 @@
-import { runMigration as fdmCoreRunMigration } from "@nmi-agro/fdm-core"
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js"
+import { migrate } from "drizzle-orm/postgres-js/migrator"
 import type postgres from "postgres"
 
 /**
@@ -12,5 +13,16 @@ export async function runHelpdeskMigration(
     client: ReturnType<typeof postgres>,
     migrationsFolderPath = "node_modules/@nmi-agro/fdm-helpdesk/dist/db/migrations",
 ) {
-    return fdmCoreRunMigration(client, migrationsFolderPath)
+    console.log("Migration started ⌛")
+
+    const db: PostgresJsDatabase = drizzle(client)
+    try {
+        await migrate(db, {
+            migrationsFolder: migrationsFolderPath,
+            migrationsSchema: "fdm-helpdesk-migrations",
+        })
+        console.log("Migration completed ✅")
+    } catch (error) {
+        console.error("Migration failed 🚨:", error)
+    }
 }

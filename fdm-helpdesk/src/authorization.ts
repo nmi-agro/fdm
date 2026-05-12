@@ -1,0 +1,253 @@
+import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
+import { getUserProfile, handleError } from "@nmi-agro/fdm-core"
+import { and, eq, inArray, isNotNull, or } from "drizzle-orm"
+import * as schema from "./db/schema-helpdesk"
+
+export type HelpdeskRole = "helpdeskAgent" | "helpdeskAdmin"
+export type ApplicationRole = HelpdeskRole | "user"
+
+export const helpdeskRoles: ApplicationRole[] = [
+    "helpdeskAgent",
+    "helpdeskAdmin",
+]
+
+export const helpdeskActions = ["read", "write", "share"] as const
+export type HelpdeskAction = (typeof helpdeskActions)[number]
+
+type HelpdeskResource =
+    // Administration of the helpdesk
+    | "helpdesk"
+    // Agent-facing ticket details such as assignment status
+    | "ticket-agent-side"
+    // User-facing ticket details, the user can change these
+    | "ticket-user-side"
+    // Messages are readable as long as the ticket is readable but they may also be private
+    | "message"
+    // Agents themselves and their stored data
+    | "agent"
+    // Saved replies that may be private to the agent
+    | "saved_reply"
+
+/**
+ * Checks whether the principal is authorized to perform an action on a resource.
+ *
+ * This function retrieves the least privileged common role of the given principals and checks if this role
+ * is granted permission to perform the specified action on the resource.
+ * `strict` may be specified as false in order to disable the exception.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param resource - The type of resource being accessed.
+ * @param action - The action the principal intends to perform.
+ * @param resource_id - The unique identifier of the specific resource.
+ * @param principal_id - The principal identifier(s); supports a single ID or an array.
+ * @param origin - The source origin used for audit logging the permission check.
+ * @param strict - When set to false, the function will not perform an audit log, or throw an exception if the user has no permission.
+ * @returns Resolves to true if the principal is permitted to perform the action.
+ *
+ * @throws {Error} When the principal does not have the required permission.
+ */
+export async function checkHelpdeskPermission(
+    fdm: FdmType,
+    resource: HelpdeskResource,
+    action: HelpdeskAction,
+    resource_id: string,
+    principal_id: PrincipalId,
+    _origin: string,
+    strict = true,
+) {
+    try {
+        const permission = await getHelpdeskPermission(
+            fdm,
+            resource,
+            action,
+            resource_id,
+            principal_id,
+        )
+
+        // Throw exception if strict
+        if (strict && !permission) {
+            throw new Error("Permission denied")
+        }
+
+        return !!permission
+    } catch (err) {
+        let message = "Exception for checkPermission"
+        if (err instanceof Error && err.message === "Permission denied") {
+            message =
+                "Principal does not have permission to perform this action"
+        }
+        throw handleError(err, message, {
+            resource: resource,
+            action: action,
+            resource_id: resource_id,
+            principal_id: principal_id,
+        })
+    }
+}
+
+/**
+ * Gets the granting resource type and ID if the principal has permission to perform the action in the given resource.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param resource - The type of resource being accessed.
+ * @param action - The action the principal intends to perform.
+ * @param resource_id - The unique identifier of the specific resource.
+ * @param principal_id - The principal identifier(s); supports a single ID or an array.
+ * @param origin - The source origin used for audit logging the permission check.
+ * @returns `granting_resource` is the resource type, `granting_resource_id` is the id of the specific granting resource.
+ * `null` is returned if the principal does not have the permission.
+ *
+ * @throws {Error} When the principal does not have the required permission.
+ */
+export async function getHelpdeskPermission(
+    fdm: FdmType,
+    resource: HelpdeskResource,
+    action: HelpdeskAction,
+    resource_id: string,
+    principal_id: PrincipalId,
+): Promise<{
+    granting_resource: HelpdeskResource
+    granting_resource_id?: string
+} | null> {
+    const principal_ids = Array.isArray(principal_id)
+        ? principal_id
+        : [principal_id]
+    const users = await Promise.all(
+        principal_ids.map((user_id) => getUserProfile(fdm, user_id)),
+    )
+    const role: ApplicationRole = users.every(
+        (u) => u?.role === "helpdeskAdmin",
+    )
+        ? "helpdeskAdmin"
+        : users.every((u) => u?.role === "helpdeskAgent")
+          ? "helpdeskAgent"
+          : "user"
+
+    // Agent management
+    if (resource === "helpdesk") {
+        return action !== "read" && role === "helpdeskAdmin"
+            ? { granting_resource: "helpdesk" }
+            : action === "read" && helpdeskRoles.includes(role)
+              ? { granting_resource: "helpdesk" }
+              : null
+    }
+
+    // Agent's own data
+    if (resource === "agent") {
+        if (
+            (
+                await fdm
+                    .select()
+                    .from(schema.agents)
+                    .where(eq(schema.agents.agent_id, resource_id))
+                    .limit(1)
+            ).length === 0
+        ) {
+            return null
+        }
+
+        return helpdeskRoles.includes(role) && resource_id === principal_id
+            ? { granting_resource: "agent", granting_resource_id: resource_id }
+            : null
+    }
+
+    // Agent's saved replies
+    if (resource === "saved_reply") {
+        return helpdeskRoles.includes(role) &&
+            (
+                await fdm
+                    .select()
+                    .from(schema.savedReplies)
+                    .where(
+                        or(
+                            action === "read"
+                                ? schema.savedReplies.is_shared
+                                : undefined,
+                            inArray(
+                                schema.savedReplies.created_by,
+                                principal_ids,
+                            ),
+                        ),
+                    )
+                    .limit(1)
+            ).length > 0
+            ? {
+                  granting_resource: "saved_reply",
+                  granting_resource_id: resource_id,
+              }
+            : null
+    }
+
+    // Ticket
+    if (resource === "ticket-user-side" || resource === "ticket-agent-side") {
+        if (helpdeskRoles.includes(role)) {
+            return { granting_resource: "helpdesk" }
+        }
+
+        // Users can't modify ticket assignments etc. but they can see this status on their own tickets
+        if (action !== "read" && resource === "ticket-agent-side") {
+            return null
+        }
+
+        return (
+            await fdm
+                .select()
+                .from(schema.tickets)
+                .where(
+                    and(
+                        eq(schema.tickets.ticket_id, resource_id),
+                        isNotNull(schema.tickets.requester_id),
+                        inArray(schema.tickets.requester_id, principal_ids),
+                    ),
+                )
+                .limit(1)
+        ).length > 0
+            ? {
+                  granting_resource: resource,
+                  granting_resource_id: resource_id,
+              }
+            : null
+    }
+
+    // Message
+    if (resource === "message") {
+        if (role === "helpdeskAdmin") {
+            return { granting_resource: "helpdesk" }
+        }
+        return (
+            await fdm
+                .select()
+                .from(schema.messages)
+                .innerJoin(
+                    schema.tickets,
+                    eq(schema.messages.message_id, schema.tickets.ticket_id),
+                )
+                .where(
+                    and(
+                        eq(schema.messages.message_id, resource_id),
+                        action === "write"
+                            ? inArray(schema.messages.sender_id, principal_ids)
+                            : undefined,
+                        helpdeskRoles.includes(role)
+                            ? and(
+                                  isNotNull(schema.tickets.requester_id),
+                                  inArray(
+                                      schema.tickets.requester_id,
+                                      principal_ids,
+                                  ),
+                                  eq(schema.messages.is_internal, false),
+                              )
+                            : undefined,
+                    ),
+                )
+                .limit(1)
+        ).length > 0
+            ? {
+                  granting_resource: "message",
+                  granting_resource_id: resource_id,
+              }
+            : null
+    }
+
+    return null
+}

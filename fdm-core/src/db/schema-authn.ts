@@ -26,6 +26,10 @@ export const user = fdmAuthNSchema.table("user", {
         .notNull(),
     username: text("username").unique(),
     displayUsername: text("display_username"),
+    role: text("role"),
+    banned: boolean("banned").default(false),
+    banReason: text("ban_reason"),
+    banExpires: timestamp("ban_expires"),
     firstname: text("firstname"),
     surname: text("surname"),
     lang: text("lang").default("nl-NL").notNull(),
@@ -48,6 +52,7 @@ export const session = fdmAuthNSchema.table(
             .notNull()
             .references(() => user.id, { onDelete: "cascade" }),
         activeOrganizationId: text("active_organization_id"),
+        impersonatedBy: text("impersonated_by"),
     },
     (table) => [index("session_userId_idx").on(table.userId)],
 )

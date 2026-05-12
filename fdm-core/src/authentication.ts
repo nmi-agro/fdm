@@ -1,7 +1,14 @@
 import type { GoogleOptions, MicrosoftOptions, User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
-import { magicLink, organization, username } from "better-auth/plugins"
+import {
+    admin,
+    createAccessControl,
+    magicLink,
+    organization,
+    username,
+} from "better-auth/plugins"
+import { adminAc, defaultStatements } from "better-auth/plugins/admin/access"
 import { eq } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { generateFromEmail } from "unique-username-generator"
@@ -11,6 +18,25 @@ import type { FdmType } from "./fdm.types"
 import { autoAcceptInvitationsForNewUser } from "./invitation"
 
 export type BetterAuth = FdmAuth
+
+const ac = createAccessControl({
+    ...defaultStatements,
+    helpdesk: ["view-inbox", "manage-tickets", "manage-agents", "manage-kb"],
+})
+
+const userRole = ac.newRole({
+    helpdesk: [], // Regular users have no helpdesk access
+})
+
+const helpdeskAgentRole = ac.newRole({
+    helpdesk: ["view-inbox", "manage-tickets"],
+    user: ["impersonate"], // Agents CAN impersonate users for debugging
+})
+
+const helpdeskAdminRole = ac.newRole({
+    ...adminAc.statements, // Full admin permissions
+    helpdesk: ["view-inbox", "manage-tickets", "manage-agents", "manage-kb"],
+})
 
 /**
  * Initializes and configures the authentication system for the FDM application using Better Auth.
@@ -210,6 +236,17 @@ export function createFdmAuth(
                     }
                 },
             }),
+            admin({
+                ac: ac,
+                roles: {
+                    user: userRole,
+                    helpdeskAgent: helpdeskAgentRole,
+                    helpdeskAdmin: helpdeskAdminRole,
+                },
+                impersonationSessionDuration: 60 * 60, // 1 hour max
+                allowImpersonatingAdmins: false, // Safety: admins can't impersonate other admins
+                defaultBanReason: "Account suspended by support team",
+            }),
         ],
         databaseHooks: {
             user: {
@@ -305,6 +342,27 @@ export function createFdmAuth(
 }
 
 export type FdmAuth = ReturnType<typeof createFdmAuth>
+
+/**
+ * Gets the profile information of a user.
+ *
+ * This function returns the username, displayUsername, first name, surname, Better Auth role,and language
+ * preference of the user.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param user_id - The ID of the user to update.
+ * @returns A promise that resolves with a user profile object if the user is found, or with null if not found.
+ */
+export async function getUserProfile(fdm: FdmType, principal_id: string) {
+    return (
+        (
+            await fdm
+                .select()
+                .from(authNSchema.user)
+                .where(eq(authNSchema.user.id, principal_id))
+        )[0] ?? null
+    )
+}
 
 /**
  * Updates the profile information of a user.

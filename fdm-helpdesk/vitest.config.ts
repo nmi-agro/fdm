@@ -1,3 +1,4 @@
+import { createFdmServer } from "@nmi-agro/fdm-core"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
