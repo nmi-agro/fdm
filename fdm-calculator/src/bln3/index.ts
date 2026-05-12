@@ -50,6 +50,11 @@ export async function requestBln3Score(
         }
 
         const result: Bln3ScoreResponse = await response.json()
+        if (!result.success) {
+            throw new Error(
+                `BLN3 score API returned failure (status ${result.status}): ${result.message ?? "Unknown error"}`,
+            )
+        }
         // Map the API's "indicator" (singular) to "indicators" (plural) for ergonomics
         return {
             indicators: result.data.indicator,
