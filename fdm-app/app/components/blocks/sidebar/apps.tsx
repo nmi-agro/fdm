@@ -1,6 +1,7 @@
 import {
     ArrowRightLeft,
     BookOpenText,
+    Gauge,
     Landmark,
     MapIcon,
     Minus,
@@ -101,6 +102,15 @@ export function SidebarApps() {
         omBalanceLink = `/farm/${farmId}/${selectedCalendar}/balance/organic-matter`
     } else {
         omBalanceLink = undefined
+    }
+
+    let indicatorsLink: string | undefined
+    if (isCreateFarmWizard) {
+        indicatorsLink = undefined
+    } else if (farmId && farmId !== "undefined") {
+        indicatorsLink = `/farm/${farmId}/${selectedCalendar}/indicators`
+    } else {
+        indicatorsLink = undefined
     }
 
     return (
@@ -333,6 +343,39 @@ export function SidebarApps() {
                                     <TooltipContent side="right">
                                         Selecteer een bedrijf om de
                                         gebruiksruimte te berekenen
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            {indicatorsLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={location.pathname.includes(
+                                        indicatorsLink,
+                                    )}
+                                >
+                                    <NavLink to={indicatorsLink}>
+                                        <Gauge />
+                                        <span>Indicatoren</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            isActive={false}
+                                            className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                        >
+                                            <Gauge className="text-muted-foreground" />
+                                            <span className="text-muted-foreground">
+                                                Indicatoren
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om de
+                                        indicatoren te bekijken
                                     </TooltipContent>
                                 </Tooltip>
                             )}
