@@ -113,6 +113,15 @@ export function SidebarApps() {
         indicatorsLink = undefined
     }
 
+    let indicatorsKaartLink: string | undefined
+    if (isCreateFarmWizard) {
+        indicatorsKaartLink = undefined
+    } else if (farmId && farmId !== "undefined") {
+        indicatorsKaartLink = `/farm/${farmId}/${selectedCalendar}/indicators/kaart`
+    } else {
+        indicatorsKaartLink = undefined
+    }
+
     return (
         <TooltipProvider>
             <SidebarGroup>
@@ -347,39 +356,82 @@ export function SidebarApps() {
                                 </Tooltip>
                             )}
                         </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            {indicatorsLink ? (
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={location.pathname.includes(
-                                        indicatorsLink,
-                                    )}
-                                >
-                                    <NavLink to={indicatorsLink}>
-                                        <Gauge />
-                                        <span>Indicatoren</span>
-                                    </NavLink>
-                                </SidebarMenuButton>
-                            ) : (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
+                        <Collapsible
+                            defaultOpen={location.pathname.includes("/indicators")}
+                            className="group/collapsible"
+                        >
+                            <SidebarMenuItem>
+                                {indicatorsLink ? (
+                                    <CollapsibleTrigger asChild>
                                         <SidebarMenuButton
-                                            isActive={false}
-                                            className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                            isActive={location.pathname.includes(
+                                                "/indicators",
+                                            )}
                                         >
-                                            <Gauge className="text-muted-foreground" />
-                                            <span className="text-muted-foreground">
-                                                Indicatoren
-                                            </span>
+                                            <Gauge />
+                                            <span>Indicatoren</span>
+                                            <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
+                                            <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
                                         </SidebarMenuButton>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right">
-                                        Selecteer een bedrijf om de
-                                        indicatoren te bekijken
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                        </SidebarMenuItem>
+                                    </CollapsibleTrigger>
+                                ) : (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <SidebarMenuButton
+                                                isActive={false}
+                                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                            >
+                                                <Gauge className="text-muted-foreground" />
+                                                <span className="text-muted-foreground">
+                                                    Indicatoren
+                                                </span>
+                                            </SidebarMenuButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                            Selecteer een bedrijf om de
+                                            indicatoren te bekijken
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        <SidebarMenuSubItem>
+                                            {indicatorsLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={
+                                                        location.pathname.includes(
+                                                            indicatorsLink,
+                                                        ) &&
+                                                        !location.pathname.includes(
+                                                            "/kaart",
+                                                        )
+                                                    }
+                                                >
+                                                    <NavLink to={indicatorsLink}>
+                                                        <span>Tabel</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            {indicatorsKaartLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={location.pathname.includes(
+                                                        indicatorsKaartLink,
+                                                    )}
+                                                >
+                                                    <NavLink to={indicatorsKaartLink}>
+                                                        <span>Kaart</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>

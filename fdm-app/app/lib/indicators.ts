@@ -263,6 +263,19 @@ export const INDICATOR_CATEGORIES: IndicatorCategory[] = [
     "Oppervlaktewater",
 ]
 
+/**
+ * Short GeoJSON property names for per-category average scores stored on map features.
+ * Used to drive dynamic map colouring when a category filter is active.
+ */
+export const CATEGORY_MAP_PROP: Record<IndicatorCategory, string> = {
+    Biologisch:       "avg_bio",
+    Chemisch:         "avg_che",
+    Fysisch:          "avg_fys",
+    Grondwater:       "avg_grw",
+    "Nutriënten":     "avg_nut",
+    Oppervlaktewater: "avg_opp",
+}
+
 // ── Score utilities ─────────────────────────────────────────────────────────
 
 /** Convert 0–1 API score to 0–100 display value. */

@@ -5,9 +5,11 @@ import {
     type MetaFunction,
     useLoaderData,
     useParams,
+    useSearchParams,
 } from "react-router"
 import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
-import { HeatmapTable } from "~/components/blocks/indicators/heatmap-table"
+import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
+import { HeatmapTable } from "@/app/components/blocks/indicators/table"
 import {
     computeFarmAggregation,
     getIndicatorsForFarm,
@@ -17,7 +19,12 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { OBI_INDICATOR_IDS, BBWP_INDICATOR_IDS } from "~/lib/indicators"
+import {
+    OBI_INDICATOR_IDS,
+    BBWP_INDICATOR_IDS,
+    INDICATOR_CATEGORIES,
+    type IndicatorCategory,
+} from "~/lib/indicators"
 
 export const meta: MetaFunction = () => {
     return [
@@ -58,7 +65,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             timeframe,
         })
 
-        // Log any per-field errors for observability without failing the page
         for (const result of fieldScores) {
             if (result.error) {
                 reportError(
@@ -69,10 +75,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
         }
 
-        const obiScore = computeFarmAggregation(fieldScores, OBI_INDICATOR_IDS, "score")
-        const obiIndex = computeFarmAggregation(fieldScores, OBI_INDICATOR_IDS, "index")
-        const bbwpScore = computeFarmAggregation(fieldScores, BBWP_INDICATOR_IDS, "score")
-        const bbwpIndex = computeFarmAggregation(fieldScores, BBWP_INDICATOR_IDS, "index")
+        const obiScore = computeFarmAggregation(
+            fieldScores,
+            OBI_INDICATOR_IDS,
+            "score",
+        )
+        const obiIndex = computeFarmAggregation(
+            fieldScores,
+            OBI_INDICATOR_IDS,
+            "index",
+        )
+        const bbwpScore = computeFarmAggregation(
+            fieldScores,
+            BBWP_INDICATOR_IDS,
+            "score",
+        )
+        const bbwpIndex = computeFarmAggregation(
+            fieldScores,
+            BBWP_INDICATOR_IDS,
+            "index",
+        )
 
         return {
             fields,
@@ -94,49 +116,56 @@ export default function IndicatorsFarmIndex() {
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
 
+    const [searchParams] = useSearchParams()
+    const rawCategory = searchParams.get("category")
+    const activeCategory = (
+        INDICATOR_CATEGORIES.includes(rawCategory as IndicatorCategory)
+            ? rawCategory
+            : null
+    ) as IndicatorCategory | null
+
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                    <h2 className="text-2xl font-bold tracking-tight">
-                        Indicatoren
-                    </h2>
-                    <p className="text-muted-foreground">
-                        BLN3 bodemkwaliteitsindicatoren voor alle percelen op
-                        dit bedrijf.
-                    </p>
-                </div>
+        <div className="space-y-6 py-5 px-10">
+            <div className="space-y-0.5">
+                <h2 className="text-2xl font-bold tracking-tight">
+                    Indicatoren
+                </h2>
+                <p className="text-muted-foreground">
+                    BLN3 bodemkwaliteitsindicatoren voor alle percelen op dit
+                    bedrijf.
+                </p>
             </div>
 
-            {/* Aggregation cards */}
             <div className="flex gap-4 flex-wrap">
                 <AggregationCard
                     label="OBI"
-                    name="Open Bodem Index"
+                    name="Organische Bodemindex"
                     score01={obiScore}
                     index01={obiIndex}
                     showIndex={false}
                 />
                 <AggregationCard
                     label="BBWP"
-                    name="BedrijfsBodemWaterPlan"
+                    name="Bodem & Watersysteem"
                     score01={bbwpScore}
                     index01={bbwpIndex}
                     showIndex={false}
                 />
             </div>
 
-            {/* Heatmap table */}
-            <HeatmapTable
-                fields={fields.map((f) => ({
-                    b_id: f.b_id,
-                    b_name: f.b_name,
-                }))}
-                fieldScores={fieldScores}
-                activeCategory={null}
-                showIndex={false}
-                basePath={basePath}
-            />
+            <div className="space-y-3">
+                <CategoryFilter />
+                <HeatmapTable
+                    fields={fields.map((field) => ({
+                        b_id: field.b_id,
+                        b_name: field.b_name,
+                    }))}
+                    fieldScores={fieldScores}
+                    activeCategory={activeCategory}
+                    showIndex={false}
+                    basePath={basePath}
+                />
+            </div>
         </div>
     )
 }

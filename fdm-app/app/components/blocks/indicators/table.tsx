@@ -21,7 +21,7 @@ import {
     type IndicatorInfo,
 } from "~/lib/indicators"
 import type { FieldBln3Score } from "~/integrations/bln3.server"
-import { HeatmapCell } from "./heatmap-cell"
+import { HeatmapCell } from "./table-cell"
 import { cn } from "~/lib/utils"
 
 type FieldRow = {
@@ -54,6 +54,10 @@ type HeatmapTableProps = {
     activeCategory: IndicatorCategory | null
     showIndex: boolean
     basePath: string
+    /** Called when the user clicks a column header to pin/unpin that indicator on the map. */
+    onIndicatorClick?: (indicatorId: string | null) => void
+    /** ID of the currently pinned indicator (highlights the column). */
+    selectedIndicatorId?: string | null
 }
 
 /**
@@ -69,6 +73,8 @@ export function HeatmapTable({
     activeCategory,
     showIndex,
     basePath,
+    onIndicatorClick,
+    selectedIndicatorId,
 }: HeatmapTableProps) {
     // Build per-field score rows
     const data = useMemo<FieldRow[]>(() => {
@@ -250,7 +256,17 @@ export function HeatmapTable({
                                         className={cn(
                                             thBase,
                                             "h-36 w-12 min-w-[48px] pb-2 align-bottom overflow-hidden",
+                                            onIndicatorClick && "cursor-pointer hover:bg-muted/40",
+                                            selectedIndicatorId === header.column.id &&
+                                                "bg-muted/60 ring-2 ring-inset ring-primary/50",
                                         )}
+                                        onClick={() =>
+                                            onIndicatorClick?.(
+                                                selectedIndicatorId === header.column.id
+                                                    ? null
+                                                    : header.column.id,
+                                            )
+                                        }
                                     >
                                         <div className="flex justify-center items-end h-full overflow-hidden">
                                             {flexRender(

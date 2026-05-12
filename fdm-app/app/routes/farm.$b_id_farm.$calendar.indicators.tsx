@@ -5,6 +5,7 @@ import {
     type MetaFunction,
     Outlet,
     useLoaderData,
+    useLocation,
 } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -59,9 +60,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_name_farm: f.b_name_farm,
         }))
 
+        const calendar = params.calendar ?? ""
+
         return {
             farm,
             b_id_farm,
+            calendar,
             farmOptions,
         }
     } catch (error) {
@@ -72,20 +76,28 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function IndicatorsLayout() {
     const loaderData = useLoaderData<typeof loader>()
+    const location = useLocation()
+    const isKaart = location.pathname.includes("/kaart")
+
+    const headerAction = {
+        label: isKaart ? "Tabel" : "Kaart",
+        to: isKaart
+            ? `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/indicators`
+            : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/indicators/kaart`,
+        disabled: false,
+    }
 
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={headerAction}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}
                 />
                 <HeaderIndicators b_id_farm={loaderData.b_id_farm} />
             </Header>
-            <main className="min-w-0 overflow-hidden">
-                <div className="space-y-6 py-5 px-10 pb-0">
-                    <Outlet />
-                </div>
+            <main className="min-w-0">
+                <Outlet />
             </main>
         </SidebarInset>
     )

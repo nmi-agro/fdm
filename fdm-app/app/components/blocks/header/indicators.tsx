@@ -1,31 +1,52 @@
-import { NavLink } from "react-router"
+import { ChevronDown } from "lucide-react"
+import { NavLink, useLocation } from "react-router"
+import { useCalendarStore } from "@/app/store/calendar"
 import {
     BreadcrumbItem,
     BreadcrumbLink,
     BreadcrumbSeparator,
 } from "~/components/ui/breadcrumb"
-import { useCalendarStore } from "~/store/calendar"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 
-export function HeaderIndicators({
-    b_id_farm,
-}: {
-    b_id_farm: string
-}) {
+export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
     const calendar = useCalendarStore((state) => state.calendar)
+    const location = useLocation()
+    const isKaart = location.pathname.includes("/kaart")
+    const currentName = isKaart ? "Kaart" : "Tabel"
 
     return (
         <>
             <BreadcrumbSeparator className="hidden xl:block" />
             <BreadcrumbItem className="hidden xl:block">
-                <BreadcrumbLink
-                    asChild
-                >
-                    <NavLink
-                        to={`/farm/${b_id_farm}/${calendar}/indicators`}
-                    >
-                        Indicatoren
-                    </NavLink>
+                <BreadcrumbLink href={`/farm/${b_id_farm}/${calendar}/indicators`}>
+                    Indicatoren
                 </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+                <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center gap-1 max-w-30 sm:max-w-50 md:max-w-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                        <span className="truncate">{currentName}</span>
+                        <ChevronDown className="h-4 w-4 shrink-0" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        <DropdownMenuItem asChild>
+                            <NavLink to={`/farm/${b_id_farm}/${calendar}/indicators`}>
+                                Tabel
+                            </NavLink>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <NavLink to={`/farm/${b_id_farm}/${calendar}/indicators/kaart`}>
+                                Kaart
+                            </NavLink>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </BreadcrumbItem>
         </>
     )
