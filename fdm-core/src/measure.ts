@@ -7,6 +7,7 @@ import {
     isNotNull,
     isNull,
     lte,
+    ne,
     or,
     type SQL,
 } from "drizzle-orm"
@@ -18,6 +19,71 @@ import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
 import type { Timeframe } from "./timeframe"
+
+/**
+ * Throws if adding/updating a measure for `(b_id, m_id)` would create an
+ * overlapping time window with an existing instance of the same catalogue item
+ * on the same field.
+ *
+ * Two windows [A_start, A_end] and [B_start, B_end] overlap when:
+ *   A_start ≤ B_end  AND  A_end ≥ B_start
+ * A NULL end date means the measure is ongoing (doorlopend / end = ∞).
+ *
+ * @param excludeId Optional `b_id_measure` to skip (used during updates so a
+ *   measure is not compared against itself).
+ */
+async function assertNoMeasureOverlap(
+    fdm: FdmType,
+    b_id: schema.fieldsTypeSelect["b_id"],
+    m_id: schema.measuresCatalogueTypeSelect["m_id"],
+    m_start: Date,
+    m_end: Date | null | undefined,
+    excludeId?: schema.measuresTypeSelect["b_id_measure"],
+): Promise<void> {
+    const existing = await fdm
+        .select({
+            b_id_measure: schema.measures.b_id_measure,
+            m_start: schema.measureAdopting.m_start,
+            m_end: schema.measureAdopting.m_end,
+        })
+        .from(schema.measures)
+        .innerJoin(
+            schema.measureAdopting,
+            eq(
+                schema.measureAdopting.b_id_measure,
+                schema.measures.b_id_measure,
+            ),
+        )
+        .where(
+            and(
+                eq(schema.measureAdopting.b_id, b_id),
+                eq(schema.measures.m_id, m_id),
+                excludeId
+                    ? ne(schema.measures.b_id_measure, excludeId)
+                    : undefined,
+            ),
+        )
+
+    for (const row of existing) {
+        const existStart = row.m_start
+        const existEnd = row.m_end // null = doorlopend (∞)
+
+        if (!existStart) continue
+
+        // A_start ≤ B_end  (null B_end = ∞, so condition is always true)
+        const newStartBeforeExistEnd =
+            existEnd === null || m_start.getTime() <= existEnd.getTime()
+        // A_end ≥ B_start  (null A_end = ∞, so condition is always true)
+        const newEndAfterExistStart =
+            m_end == null || m_end.getTime() >= existStart.getTime()
+
+        if (newStartBeforeExistEnd && newEndAfterExistStart) {
+            throw new Error(
+                `Measure "${m_id}" already exists for this field with an overlapping time window`,
+            )
+        }
+    }
+}
 
 /**
  * Creates a measure instance and applies it to a field in a single transaction.
@@ -90,6 +156,7 @@ export async function addMeasure(
         }
 
         const b_id_measure = createId()
+        await assertNoMeasureOverlap(fdm, b_id, m_id, m_start, m_end ?? null)
         await fdm.transaction(async (tx) => {
             await tx.insert(schema.measures).values({ b_id_measure, m_id })
             await tx.insert(schema.measureAdopting).values({
@@ -415,6 +482,23 @@ export async function updateMeasure(
             effectiveEnd.getTime() < effectiveStart.getTime()
         ) {
             throw new Error("m_end cannot be earlier than m_start")
+        }
+
+        // Fetch m_id for the overlap check
+        const measureRow = await fdm
+            .select({ m_id: schema.measures.m_id })
+            .from(schema.measures)
+            .where(eq(schema.measures.b_id_measure, b_id_measure))
+            .limit(1)
+        if (measureRow.length > 0) {
+            await assertNoMeasureOverlap(
+                fdm,
+                applying[0].b_id,
+                measureRow[0].m_id,
+                effectiveStart ?? new Date(0),
+                effectiveEnd instanceof Date ? effectiveEnd : null,
+                b_id_measure,
+            )
         }
 
         const updates: Partial<schema.measureAdoptingTypeInsert> = {
