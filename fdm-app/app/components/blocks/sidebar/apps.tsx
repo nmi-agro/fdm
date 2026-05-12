@@ -404,7 +404,7 @@ export function SidebarApps() {
                                                             indicatorsLink,
                                                         ) &&
                                                         !location.pathname.includes(
-                                                            "/kaart",
+                                                            "/atlas",
                                                         )
                                                     }
                                                 >
