@@ -25,30 +25,45 @@ export async function requestBln3Score(
         throw new Error("NMI API key not provided")
     }
 
-    const response = await fetch(
-        "https://api.nmi-agro.nl/maatwerk/bln3/score/field",
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${nmiApiKey}`,
-                "Content-Type": "application/json",
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
+
+    try {
+        const response = await fetch(
+            "https://api.nmi-agro.nl/maatwerk/bln3/score/field",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${nmiApiKey}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(fieldData),
+                signal: controller.signal,
             },
-            body: JSON.stringify(fieldData),
-        },
-    )
-
-    if (!response.ok) {
-        const errorText = await response.text().catch(() => "")
-        throw new Error(
-            `BLN3 score request failed with status ${response.status}: ${response.statusText} - ${errorText}`,
         )
-    }
 
-    const result: Bln3ScoreResponse = await response.json()
-    // Map the API's "indicator" (singular) to "indicators" (plural) for ergonomics
-    return {
-        indicators: result.data.indicator,
-        aggregations: result.data.aggregations,
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => "")
+            throw new Error(
+                `BLN3 score request failed with status ${response.status}: ${response.statusText} - ${errorText}`,
+            )
+        }
+
+        const result: Bln3ScoreResponse = await response.json()
+        // Map the API's "indicator" (singular) to "indicators" (plural) for ergonomics
+        return {
+            indicators: result.data.indicator,
+            aggregations: result.data.aggregations,
+        }
+    } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+            throw new Error(
+                "BLN3 score request timed out (30s). The NMI API did not respond in time.",
+            )
+        }
+        throw err
+    } finally {
+        clearTimeout(timeout)
     }
 }
 
