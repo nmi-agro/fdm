@@ -25,56 +25,88 @@ const chipAllActive =
     "border-foreground bg-muted text-foreground"
 
 /**
- * Pill-shaped filter chips for indicator categories.
- * Active chip is synced with the `?category=…` URL search param so the
- * selection is preserved when sharing or navigating back.
+ * Parses the `?categories=` URL param into a validated IndicatorCategory array.
+ * Returns an empty array when no filter is active (= show all).
+ */
+export function parseActiveCategories(
+    searchParams: URLSearchParams,
+): IndicatorCategory[] {
+    const raw = searchParams.get("categories") ?? ""
+    return raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s): s is IndicatorCategory =>
+            INDICATOR_CATEGORIES.includes(s as IndicatorCategory),
+        )
+}
+
+/**
+ * Pill-shaped multi-select filter chips for indicator categories.
+ * Selection is stored in the `?categories=Chemisch,Fysisch` URL param so it
+ * is preserved when sharing or navigating back.
+ *
+ * Click a chip to toggle it on/off. "Alle" clears the selection (= show all).
  */
 export function CategoryFilter() {
     const [searchParams, setSearchParams] = useSearchParams()
-    const activeCategory =
-        (searchParams.get("category") as IndicatorCategory | null) ?? null
+    const activeCategories = parseActiveCategories(searchParams)
 
-    const select = (cat: IndicatorCategory | null) => {
+    const toggle = (cat: IndicatorCategory) => {
         setSearchParams(
             (prev) => {
-                if (cat === null) prev.delete("category")
-                else prev.set("category", cat)
+                const current = parseActiveCategories(prev)
+                const next = current.includes(cat)
+                    ? current.filter((c) => c !== cat)
+                    : [...current, cat]
+                if (next.length === 0) prev.delete("categories")
+                else prev.set("categories", next.join(","))
                 return prev
             },
             { preventScrollReset: true },
         )
     }
 
+    const clearAll = () => {
+        setSearchParams(
+            (prev) => {
+                prev.delete("categories")
+                return prev
+            },
+            { preventScrollReset: true },
+        )
+    }
+
+    const allActive = activeCategories.length === 0
+
     return (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="flex flex-wrap items-center gap-2">
             <button
                 type="button"
-                onClick={() => select(null)}
+                onClick={clearAll}
                 className={cn(
                     chipBase,
-                    "shrink-0",
-                    activeCategory === null ? chipAllActive : chipInactive,
+                    allActive ? chipAllActive : chipInactive,
                 )}
             >
                 Alle
             </button>
 
-            {INDICATOR_CATEGORIES.map((cat) => (
-                <button
-                    key={cat}
-                    type="button"
-                    onClick={() => select(cat)}
-                    className={cn(
-                        chipBase,
-                        "shrink-0",
-                        activeCategory === cat
-                            ? CHIP_ACTIVE[cat]
-                            : chipInactive,
-                    )}
-                >
-                    {cat}
-                </button>
-            ))}
+            {INDICATOR_CATEGORIES.map((cat) => {
+                const isActive = activeCategories.includes(cat)
+                return (
+                    <button
+                        key={cat}
+                        type="button"
+                        onClick={() => toggle(cat)}
+                        className={cn(
+                            chipBase,
+                            isActive ? CHIP_ACTIVE[cat] : chipInactive,
+                        )}
+                    >
+                        {cat}
+                    </button>
+                )
+            })}
         </div>
     )
 }

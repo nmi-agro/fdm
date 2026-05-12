@@ -9,9 +9,9 @@ import {
 } from "react-router"
 import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
 import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
-import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
+import { CategoryFilter, parseActiveCategories } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
-import { HeatmapTable } from "@/app/components/blocks/indicators/table"
+import { HeatmapTable } from "~/components/blocks/indicators/table"
 import {
     computeFarmAggregation,
     getIndicatorsForFarm,
@@ -24,8 +24,6 @@ import { fdm } from "~/lib/fdm.server"
 import {
     OBI_INDICATOR_IDS,
     BBWP_INDICATOR_IDS,
-    INDICATOR_CATEGORIES,
-    type IndicatorCategory,
 } from "~/lib/indicators"
 
 export const meta: MetaFunction = () => {
@@ -120,13 +118,8 @@ export default function IndicatorsFarmIndex() {
 
     const [searchParams] = useSearchParams()
 
-    // Category filter from URL
-    const rawCategory = searchParams.get("category")
-    const activeCategory = (
-        INDICATOR_CATEGORIES.includes(rawCategory as IndicatorCategory)
-            ? rawCategory
-            : null
-    ) as IndicatorCategory | null
+    // Category filter from URL (multi-select)
+    const activeCategories = parseActiveCategories(searchParams)
 
     // Measures toggle: default = "met maatregelen" (showIndex=false)
     const showIndex = searchParams.get("measures") === "off"
@@ -174,7 +167,7 @@ export default function IndicatorsFarmIndex() {
                         b_name: field.b_name,
                     }))}
                     fieldScores={fieldScores}
-                    activeCategory={activeCategory}
+                    activeCategories={activeCategories}
                     showIndex={showIndex}
                     basePath={basePath}
                 />

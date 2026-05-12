@@ -51,7 +51,7 @@ const CATEGORY_BORDER: Record<IndicatorCategory, string> = {
 type HeatmapTableProps = {
     fields: { b_id: string; b_name: string | null | undefined }[]
     fieldScores: FieldBln3Score[]
-    activeCategory: IndicatorCategory | null
+    activeCategories: IndicatorCategory[]
     showIndex: boolean
     basePath: string
     /** Called when the user clicks a column header to pin/unpin that indicator on the map. */
@@ -70,7 +70,7 @@ type HeatmapTableProps = {
 export function HeatmapTable({
     fields,
     fieldScores,
-    activeCategory,
+    activeCategories,
     showIndex,
     basePath,
     onIndicatorClick,
@@ -109,7 +109,7 @@ export function HeatmapTable({
             ),
         }
 
-        const categories = activeCategory ? [activeCategory] : INDICATOR_CATEGORIES
+        const categories = activeCategories.length > 0 ? activeCategories : INDICATOR_CATEGORIES
         const groups: ColumnDef<FieldRow>[] = categories.map((cat) => ({
             id: cat,
             header: cat,
@@ -147,7 +147,7 @@ export function HeatmapTable({
         }))
 
         return [fieldCol, ...groups]
-    }, [activeCategory, showIndex, basePath])
+    }, [activeCategories, showIndex, basePath])
 
     const table = useReactTable({
         data,
@@ -166,8 +166,8 @@ export function HeatmapTable({
     // Painpoint counts: number of fields with display score <40 per indicator
     const painpointCounts = useMemo(() => {
         const counts = new Map<string, number>()
-        const indicators = activeCategory
-            ? INDICATORS.filter((i) => i.category === activeCategory)
+        const indicators = activeCategories.length > 0
+            ? INDICATORS.filter((i) => activeCategories.includes(i.category))
             : INDICATORS
         for (const ind of indicators) {
             let count = 0
@@ -180,7 +180,7 @@ export function HeatmapTable({
             counts.set(ind.id, count)
         }
         return counts
-    }, [data, activeCategory, showIndex])
+    }, [data, activeCategories, showIndex])
 
     const hasPainpoints = [...painpointCounts.values()].some((c) => c > 0)
 
