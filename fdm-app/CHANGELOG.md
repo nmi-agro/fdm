@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.30.1
+
+### Patch Changes
+
+- [#610](https://github.com/nmi-agro/fdm/pull/610) [`4e7f079`](https://github.com/nmi-agro/fdm/commit/4e7f079a96314421ab860bbba367fa0628f268b0) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix shapefile upload failing with EACCES permission denied in production.The Docker runner stage now creates the `uploads/shapefiles` directory with correct ownership before switching to the non-root user, so `@remix-run/file-storage` can write temporary upload files.
+
 ## 0.30.0
 
 ### Minor Changes

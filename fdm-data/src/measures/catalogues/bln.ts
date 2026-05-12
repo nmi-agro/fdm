@@ -44,12 +44,12 @@ export async function getCatalogueBln(
         )
     }
     const json = await res.json()
-    if (!json || !Array.isArray(json.data)) {
+    if (!json?.data || !Array.isArray(json.data.measures)) {
         throw new Error(
-            `Unexpected response shape from BLN measures catalogue API: expected json.data to be an array, got ${JSON.stringify(json)}`,
+            `Unexpected response shape from BLN measures catalogue API: expected json.data.measures to be an array, got ${JSON.stringify(json)}`,
         )
     }
-    return json.data.map((item: BLN3ApiMeasure) => ({
+    return json.data.measures.map((item: BLN3ApiMeasure) => ({
         m_id: `bln_${item.bln_id}`,
         m_source: "bln",
         m_name: item.name,
