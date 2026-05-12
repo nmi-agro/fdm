@@ -129,16 +129,14 @@ export function SidebarApps() {
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <Collapsible
-                            defaultOpen={location.pathname.includes("/atlas")}
+                            defaultOpen={location.pathname.includes("/atlas") && !location.pathname.includes("/indicators")}
                             className="group/collapsible"
                         >
                             <SidebarMenuItem>
                                 {atlasLink ? (
                                     <CollapsibleTrigger asChild>
                                         <SidebarMenuButton
-                                            isActive={location.pathname.includes(
-                                                "/atlas",
-                                            )}
+                                            isActive={location.pathname.includes("/atlas") && !location.pathname.includes("/indicators")}
                                         >
                                             <MapIcon />
                                             <span>Atlas</span>
