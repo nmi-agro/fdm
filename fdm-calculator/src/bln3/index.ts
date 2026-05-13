@@ -2,7 +2,7 @@ import { withCalculationCache } from "@nmi-agro/fdm-core"
 import pkg from "../package"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
 
-export { collectInputForBln3Score } from "./collect"
+export { collectInputForBln3Score } from "./input"
 
 /**
  * Requests a BLN3 score from the NMI API for a single field.

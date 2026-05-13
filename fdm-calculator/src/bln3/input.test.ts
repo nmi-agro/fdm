@@ -14,7 +14,7 @@ import {
     getSoilAnalyses,
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { collectInputForBln3Score } from "./collect"
+import { collectInputForBln3Score } from "./input"
 
 vi.mock("@nmi-agro/fdm-core", async () => {
     const actual = await vi.importActual("@nmi-agro/fdm-core")
