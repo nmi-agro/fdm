@@ -5,6 +5,7 @@ import {
     buildFertilizerPlanPrompt,
     createFertilizerPlannerAgent,
     type FarmFieldSummary,
+    FertilizerPlanSchema,
     type OneShotAgentResult,
     runOneShotAgent,
 } from "@nmi-agro/fdm-agents"
@@ -753,6 +754,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             let rawResult = ""
             let usageData: OneShotAgentResult["usage"] = null
             let toolCalls: string[] | undefined
+            let structuredResponse: Record<string, unknown> | undefined
 
             try {
                 const agentResult = await runOneShotAgent(
@@ -763,6 +765,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 rawResult = agentResult.result
                 usageData = agentResult.usage
                 toolCalls = agentResult.toolCalls
+                structuredResponse = agentResult.structuredResponse
             } catch (err: unknown) {
                 if (err instanceof AgentTimeoutError) {
                     return dataWithError(
@@ -784,37 +787,48 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 )
             }
 
-            const firstBrace = rawResult.indexOf("{")
-            const lastBrace = rawResult.lastIndexOf("}")
-            if (firstBrace === -1 || lastBrace <= firstBrace)
-                return dataWithError(
-                    null,
-                    "Gerrit gaf een onleesbaar antwoord. Probeer het opnieuw.",
-                )
-
+            // Prefer structured output from responseFormat, fall back to string parsing
             let parsedPlan: ParsedPlan
-            try {
-                parsedPlan = JSON.parse(
-                    rawResult.slice(firstBrace, lastBrace + 1),
-                ) as ParsedPlan
-            } catch {
-                // Attempt to recover truncated JSON by closing open brackets
-                const truncated = rawResult.slice(firstBrace, lastBrace + 1)
-                const repaired = repairTruncatedJson(truncated)
-                if (repaired) {
-                    try {
-                        parsedPlan = JSON.parse(repaired) as ParsedPlan
-                    } catch {
+            if (structuredResponse) {
+                const validated = FertilizerPlanSchema.safeParse(structuredResponse)
+                if (validated.success) {
+                    parsedPlan = validated.data as unknown as ParsedPlan
+                } else {
+                    // Structured response didn't match schema — treat as raw
+                    parsedPlan = structuredResponse as unknown as ParsedPlan
+                }
+            } else {
+                // Fallback: extract JSON from raw text response
+                const firstBrace = rawResult.indexOf("{")
+                const lastBrace = rawResult.lastIndexOf("}")
+                if (firstBrace === -1 || lastBrace <= firstBrace)
+                    return dataWithError(
+                        null,
+                        "Gerrit gaf een onleesbaar antwoord. Probeer het opnieuw.",
+                    )
+
+                try {
+                    parsedPlan = JSON.parse(
+                        rawResult.slice(firstBrace, lastBrace + 1),
+                    ) as ParsedPlan
+                } catch {
+                    const truncated = rawResult.slice(firstBrace, lastBrace + 1)
+                    const repaired = repairTruncatedJson(truncated)
+                    if (repaired) {
+                        try {
+                            parsedPlan = JSON.parse(repaired) as ParsedPlan
+                        } catch {
+                            return dataWithError(
+                                null,
+                                "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
+                            )
+                        }
+                    } else {
                         return dataWithError(
                             null,
                             "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
                         )
                     }
-                } else {
-                    return dataWithError(
-                        null,
-                        "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
-                    )
                 }
             }
 

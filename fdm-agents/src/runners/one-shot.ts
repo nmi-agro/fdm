@@ -3,6 +3,7 @@ import type { LangChainCallbackHandler } from "@posthog/ai/langchain"
 
 export interface OneShotAgentResult {
     result: string
+    structuredResponse?: Record<string, unknown>
     usage: {
         inputTokens: number
         outputTokens: number
@@ -108,6 +109,7 @@ export async function runOneShotAgent(
 
     const streamPromise = (async (): Promise<OneShotAgentResult> => {
         let finalResponse = ""
+        let structuredResponse: Record<string, unknown> | undefined
         let inputTokens = 0
         let outputTokens = 0
         const toolCalls: string[] = []
@@ -163,6 +165,11 @@ export async function runOneShotAgent(
                         }
                     }
                 }
+
+                // Capture structured response from responseFormat node
+                if (nodeData?.structuredResponse != null) {
+                    structuredResponse = nodeData.structuredResponse as Record<string, unknown>
+                }
             }
             // "custom" mode: progress events from config.writer — consumed by callers
             // who use the raw stream; ignored here since runOneShotAgent is one-shot.
@@ -173,6 +180,7 @@ export async function runOneShotAgent(
 
         return {
             result: finalResponse,
+            structuredResponse,
             usage: totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
             toolCalls: uniqueToolCalls,
         }

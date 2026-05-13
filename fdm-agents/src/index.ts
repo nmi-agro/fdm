@@ -7,6 +7,8 @@ import { getMainCultivation } from "./tools/fertilizer-planner"
 export type { OneShotAgentResult } from "./runners/one-shot"
 export { AgentTimeoutError, AgentRecursionLimitError } from "./runners/one-shot"
 export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
+export { FertilizerPlanSchema } from "./agents/gerrit/schema"
+export type { FertilizerPlanOutput } from "./agents/gerrit/schema"
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */

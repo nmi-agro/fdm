@@ -1,9 +1,10 @@
-import { isAIMessage, SystemMessage } from "@langchain/core/messages"
+import { isAIMessage } from "@langchain/core/messages"
 import type { BaseMessageLike } from "@langchain/core/messages"
-import { createReactAgent } from "@langchain/langgraph/prebuilt"
+import { createAgent, dynamicSystemPromptMiddleware } from "langchain"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
+import { FertilizerPlanSchema } from "./schema"
 
 export const GERRIT_NAME = "Gerrit"
 export const GERRIT_DESCRIPTION =
@@ -172,25 +173,26 @@ export function countToolRoundtrips(
 export function createFertilizerPlannerAgent(
     fdm: FdmType,
     apiKey?: string,
-    model?: string,
+    modelName?: string,
     toolRoundLimit: number = DEFAULT_TOOL_ROUND_LIMIT,
-): ReturnType<typeof createReactAgent> {
+) {
     const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
     if (!resolvedKey) {
         throw new Error(
             "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
         )
     }
-    return createReactAgent({
-        llm: createDefaultModel(resolvedKey, model),
+    return createAgent({
+        model: createDefaultModel(resolvedKey, modelName),
         tools: createFertilizerPlannerTools(fdm),
-        prompt: (state): BaseMessageLike[] => {
-            const rounds = countToolRoundtrips(state.messages)
-            const systemContent =
-                rounds >= toolRoundLimit
+        middleware: [
+            dynamicSystemPromptMiddleware((state) => {
+                const rounds = countToolRoundtrips(state.messages)
+                return rounds >= toolRoundLimit
                     ? `${GERRIT_INSTRUCTION}\n\n${TOOL_LIMIT_WARNING}`
                     : GERRIT_INSTRUCTION
-            return [new SystemMessage(systemContent), ...state.messages]
-        },
+            }),
+        ],
+        responseFormat: FertilizerPlanSchema,
     })
 }
