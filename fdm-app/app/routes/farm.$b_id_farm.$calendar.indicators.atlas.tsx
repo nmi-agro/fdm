@@ -1,7 +1,7 @@
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
-import { Fragment, lazy, Suspense, useState } from "react"
+import { lazy, Suspense, useState } from "react"
 import {
     data,
     type LoaderFunctionArgs,
@@ -23,17 +23,21 @@ import {
     INDICATOR_CATEGORIES,
     CATEGORY_MAP_PROP,
 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
+import { Card, CardContent } from "~/components/ui/card"
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectSeparator,
+    SelectTrigger,
+    SelectValue,
+} from "~/components/ui/select"
 
 const IndicatorsMap = lazy(
     () => import("@/app/components/blocks/indicators/atlas"),
 )
-
-const BADGE_BASE =
-    "rounded-full border px-3 py-1 text-xs font-medium transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring whitespace-nowrap"
-const BADGE_ACTIVE = "border-foreground bg-muted text-foreground"
-const BADGE_INACTIVE =
-    "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"
 
 export const meta: MetaFunction = () => {
     return [{ title: `Kaart | Indicatoren | ${clientConfig.name}` }]
@@ -166,67 +170,45 @@ export default function IndicatorsFarmMap() {
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
     const [selectedProperty, setSelectedProperty] = useState("avgScore")
-    const [selectedLabel, setSelectedLabel] = useState("Gemiddelde score")
+
+    const selectedLabel =
+        selectedProperty === "avgScore"
+            ? "Gemiddelde score"
+            : (INDICATORS.find((i) => i.id === selectedProperty)?.name ?? selectedProperty)
 
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
-            {/* Floating badge panel — wraps on desktop, scrolls on mobile */}
-            <div className="absolute top-3 left-3 right-3 z-10 bg-background/90 backdrop-blur-sm rounded-lg shadow-md p-2">
-                <div className="flex gap-1.5 overflow-x-auto md:flex-wrap">
-                    <button
-                        type="button"
-                        className={cn(
-                            BADGE_BASE,
-                            selectedProperty === "avgScore"
-                                ? BADGE_ACTIVE
-                                : BADGE_INACTIVE,
-                        )}
-                        onClick={() => {
-                            setSelectedProperty("avgScore")
-                            setSelectedLabel("Gemiddelde score")
-                        }}
+            {/* Floating indicator selector panel */}
+            <Card className="absolute top-3 left-3 z-10 w-52 shadow-md bg-background/90 backdrop-blur-sm">
+                <CardContent className="p-2">
+                    <Select
+                        value={selectedProperty}
+                        onValueChange={setSelectedProperty}
                     >
-                        Gemiddeld
-                    </button>
-
-                    <div className="w-px self-stretch bg-border shrink-0 mx-0.5" />
-
-                    {INDICATOR_CATEGORIES.map((category, index) => {
-                        const categoryIndicators = INDICATORS.filter(
-                            (indicator) => indicator.category === category,
-                        )
-
-                        return (
-                            <Fragment key={category}>
-                                <span className="text-xs text-muted-foreground font-medium shrink-0 px-1 flex items-center">
-                                    {category}
-                                </span>
-                                {categoryIndicators.map((indicator) => (
-                                    <button
-                                        key={indicator.id}
-                                        type="button"
-                                        className={cn(
-                                            BADGE_BASE,
-                                            selectedProperty === indicator.id
-                                                ? BADGE_ACTIVE
-                                                : BADGE_INACTIVE,
-                                        )}
-                                        onClick={() => {
-                                            setSelectedProperty(indicator.id)
-                                            setSelectedLabel(indicator.name)
-                                        }}
-                                    >
-                                        {indicator.name}
-                                    </button>
-                                ))}
-                                {index < INDICATOR_CATEGORIES.length - 1 ? (
-                                    <div className="w-px self-stretch bg-border shrink-0 mx-0.5 md:hidden" />
-                                ) : null}
-                            </Fragment>
-                        )
-                    })}
-                </div>
-            </div>
+                        <SelectTrigger className="w-full text-xs h-8">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="avgScore">
+                                Gemiddelde score
+                            </SelectItem>
+                            <SelectSeparator />
+                            {INDICATOR_CATEGORIES.map((category) => (
+                                <SelectGroup key={category}>
+                                    <SelectLabel>{category}</SelectLabel>
+                                    {INDICATORS.filter(
+                                        (i) => i.category === category,
+                                    ).map((i) => (
+                                        <SelectItem key={i.id} value={i.id}>
+                                            {i.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </CardContent>
+            </Card>
 
             <Suspense
                 fallback={<div className="absolute inset-0 bg-muted animate-pulse" />}
