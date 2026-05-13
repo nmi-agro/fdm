@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink, useLocation, useParams } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import {
     BreadcrumbItem,
@@ -14,7 +14,9 @@ import {
 } from "~/components/ui/dropdown-menu"
 
 export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
-    const calendar = useCalendarStore((state) => state.calendar)
+    const calendarFromStore = useCalendarStore((state) => state.calendar)
+    const { calendar: calendarFromRoute } = useParams()
+    const calendar = calendarFromRoute ?? calendarFromStore
     const location = useLocation()
     const isKaart = location.pathname.includes("/atlas")
     const currentName = isKaart ? "Kaart" : "Tabel"
@@ -23,7 +25,9 @@ export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
         <>
             <BreadcrumbSeparator className="hidden xl:block" />
             <BreadcrumbItem className="hidden xl:block">
-                <BreadcrumbLink href={`/farm/${b_id_farm}/${calendar}/indicators`}>
+                <BreadcrumbLink
+                    href={`/farm/${b_id_farm}/${calendar}/indicators`}
+                >
                     Indicatoren
                 </BreadcrumbLink>
             </BreadcrumbItem>
@@ -36,12 +40,16 @@ export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                         <DropdownMenuItem asChild>
-                            <NavLink to={`/farm/${b_id_farm}/${calendar}/indicators`}>
+                            <NavLink
+                                to={`/farm/${b_id_farm}/${calendar}/indicators`}
+                            >
                                 Tabel
                             </NavLink>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <NavLink to={`/farm/${b_id_farm}/${calendar}/indicators/atlas`}>
+                            <NavLink
+                                to={`/farm/${b_id_farm}/${calendar}/indicators/atlas`}
+                            >
                                 Kaart
                             </NavLink>
                         </DropdownMenuItem>
