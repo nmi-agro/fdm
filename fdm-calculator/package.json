@@ -44,7 +44,7 @@
         "date-fns": "^4.1.0",
         "decimal.js": "^10.6.0",
         "geotiff": "^3.0.5",
-        "zod": "^4.3.6"
+        "zod": "^4.4.3"
     },
     "devDependencies": {
         "@dotenvx/dotenvx": "catalog:",
@@ -64,5 +64,5 @@
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
     },
-    "packageManager": "pnpm@10.33.2"
+    "packageManager": "pnpm@11.0.9"
 }

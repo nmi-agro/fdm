@@ -15,6 +15,7 @@ services:
       - POSTGRES_PASSWORD=YOUR_POSTGRES_PASSWORD # Replace with your actual PostgreSQL password
       - PUBLIC_MAP_PROVIDER=osm # Options: "maptiler" | "osm"
       - PUBLIC_MAPTILER_API_KEY=YOUR_MAPTILER_API_KEY # Replace with your actual MapTiler API key if using "maptiler"
+      - NMI_API_KEY= # Optional, but required for soil estimates, nutrient advice, soil analysis extraction, and BLN3 measures catalogue sync
       - BETTER_AUTH_SECRET=YOUR_BETTER_AUTH_SECRET # Replace with your Better Auth secret
       - BETTER_AUTH_URL=YOUR_DOMAIN # Replace with your domain
       - GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID # Replace with your Google Client ID
