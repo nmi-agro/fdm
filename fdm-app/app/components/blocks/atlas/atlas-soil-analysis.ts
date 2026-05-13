@@ -7,35 +7,6 @@ function evenlySpaced(...args: string[]) {
     return args.flatMap((item, i) => [i / (args.length - 1), item])
 }
 
-const COLORBREWER_ORANGES = evenlySpaced(
-    "#fff5eb",
-    "#fee6ce",
-    "#fdd0a2",
-    "#fdae6b",
-    "#fd8d3c",
-    "#f16913",
-    "#d94801",
-    "#a63603",
-    "#7f2704",
-)
-const COLORBREWER_BLUES = evenlySpaced(
-    "#f7fbff",
-    "#deebf7",
-    "#c6dbef",
-    "#9ecae1",
-    "#6baed6",
-    "#4292c6",
-    "#2171b5",
-    "#08519c",
-    "#08306b",
-)
-const COLORBREWER_GREYS = evenlySpaced(
-    "#f7f7f7",
-    "#cccccc",
-    "#969696",
-    "#636363",
-    "#252525",
-)
 const COLORBREWER_YLORBR = evenlySpaced(
     "#ffffe5",
     "#fff7bc",
@@ -46,28 +17,7 @@ const COLORBREWER_YLORBR = evenlySpaced(
     "#cc4c02",
     "#8c2d04",
 )
-const COLORBREWER_BUGN = evenlySpaced(
-    "#f7fcfd",
-    "#e5f5f9",
-    "#ccece6",
-    "#99d8c9",
-    "#66c2a4",
-    "#41ae76",
-    "#238b45",
-    "#006d2c",
-    "#00441b",
-)
 
-const COLORBREWER_GNBU = evenlySpaced(
-    "#f7fcf0",
-    "#e0f3db",
-    "#ccebc5",
-    "#a8ddb5",
-    "#7bccc4",
-    "#4eb3d3",
-    "#2b8cbe",
-    "#08589e",
-)
 const COLORBREWER_RDBU = evenlySpaced(
     "#b2182b",
     "#d6604d",
@@ -77,27 +27,6 @@ const COLORBREWER_RDBU = evenlySpaced(
     "#92c5de",
     "#4393c3",
     "#2166ac",
-)
-const COLORBREWER_RDPU = evenlySpaced(
-    "#fff7f3",
-    "#fde0dd",
-    "#fcc5c0",
-    "#fa9fb5",
-    "#f768a1",
-    "#dd3497",
-    "#ae017e",
-    "#7a0177",
-)
-const COLORBREWER_PUBUGN = evenlySpaced(
-    "#fff7fb",
-    "#ece2f0",
-    "#d0d1e6",
-    "#a6bddb",
-    "#67a9cf",
-    "#3690c0",
-    "#02818a",
-    "#016c59",
-    "#014636",
 )
 
 export const SHADED_SOIL_TYPES = [
@@ -161,24 +90,24 @@ export const GRADIENT_DEFINITIONS: {
         center?: number
     }
 } = {
-    aluminum: { gradient: COLORBREWER_GREYS },
-    bacterium: { gradient: COLORBREWER_GNBU },
-    calcium: { gradient: COLORBREWER_BUGN },
-    carbon: { gradient: COLORBREWER_GREYS },
-    carbon_ratio: { gradient: COLORBREWER_GREYS },
-    copper: { gradient: COLORBREWER_BLUES },
+    aluminum: { gradient: COLORBREWER_YLORBR },
+    bacterium: { gradient: COLORBREWER_YLORBR },
+    calcium: { gradient: COLORBREWER_YLORBR },
+    carbon: { gradient: COLORBREWER_YLORBR },
+    carbon_ratio: { gradient: COLORBREWER_YLORBR },
+    copper: { gradient: COLORBREWER_YLORBR },
     earth_heavy: { gradient: COLORBREWER_YLORBR },
-    earth_light: { gradient: COLORBREWER_ORANGES },
-    nitrogen: { gradient: COLORBREWER_BLUES },
-    iron: { gradient: COLORBREWER_ORANGES },
-    magnesium: { gradient: COLORBREWER_PUBUGN },
-    phosphorus: { gradient: COLORBREWER_RDPU },
-    potassium: { gradient: COLORBREWER_RDPU },
+    earth_light: { gradient: COLORBREWER_YLORBR },
+    nitrogen: { gradient: COLORBREWER_YLORBR },
+    iron: { gradient: COLORBREWER_YLORBR },
+    magnesium: { gradient: COLORBREWER_YLORBR },
+    phosphorus: { gradient: COLORBREWER_YLORBR },
+    potassium: { gradient: COLORBREWER_YLORBR },
     ph: { gradient: COLORBREWER_RDBU, center: 7 },
     sand_dark: { gradient: COLORBREWER_YLORBR },
-    sand_light: { gradient: COLORBREWER_ORANGES },
+    sand_light: { gradient: COLORBREWER_YLORBR },
     sulfur: { gradient: COLORBREWER_YLORBR },
-    zinc: { gradient: COLORBREWER_GREYS },
+    zinc: { gradient: COLORBREWER_YLORBR },
 }
 
 const ENUM_SHADED_SOIL_PARAMETERS = {
@@ -235,7 +164,7 @@ export function getSoilAnalysisLayerStyle(
                 parameter as GradientShadedSoilParameters
             ]
         const fillColor = GRADIENT_DEFINITIONS[gradientName]
-        function transparentIfUndefined(
+        function greyIfUndefined(
             expr: ExpressionSpecification,
         ): ["match", ...unknown[]] {
             return [
@@ -245,7 +174,7 @@ export function getSoilAnalysisLayerStyle(
                 expr,
                 "string",
                 expr,
-                "transparent",
+                "#777777",
             ]
         }
         if (typeof fillColor.center !== "undefined") {
@@ -259,7 +188,7 @@ export function getSoilAnalysisLayerStyle(
             return {
                 type: "fill",
                 paint: {
-                    "fill-color": transparentIfUndefined([
+                    "fill-color": greyIfUndefined([
                         "interpolate",
                         ["linear"],
                         dataGetter,
@@ -276,7 +205,7 @@ export function getSoilAnalysisLayerStyle(
         return {
             type: "fill",
             paint: {
-                "fill-color": transparentIfUndefined([
+                "fill-color": greyIfUndefined([
                     "interpolate",
                     ["linear"],
                     dataGetter,
