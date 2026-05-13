@@ -109,6 +109,18 @@ export type {
     NormFilling,
 } from "./norms/nl/types"
 export {
+    collectInputForBln3Score,
+    getBln3Score,
+    requestBln3Score,
+} from "./bln3"
+export type {
+    Bln3AggregationResult,
+    Bln3IndicatorResult,
+    Bln3Score,
+    Bln3ScoreCollectedInputs,
+    Bln3ScoreInputs,
+} from "./bln3/types"
+export {
     getNutrientAdvice,
     requestNutrientAdvice,
 } from "./nutrient-advice"
