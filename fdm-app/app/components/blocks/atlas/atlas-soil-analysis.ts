@@ -101,15 +101,15 @@ const COLORBREWER_PUBUGN = evenlySpaced(
 )
 
 export const SHADED_SOIL_TYPES = [
-    { value: "moerige_klei", label: "Moerige klei", fill: "rgb(45, 0, 168)" },
-    { value: "rivierklei", label: "Rivierklei", fill: "rgb(112, 194, 0)" },
-    { value: "dekzand", label: "Dekzand", fill: "rgb(244, 244, 70)" },
-    { value: "zeeklei", label: "Zeeklei", fill: "rgb(6, 158, 200)" },
-    { value: "dalgrond", label: "Dalgrond", fill: "rgb(195, 195, 195)" },
-    { value: "veen", label: "Veen", fill: "rgb(223, 115, 255)" },
-    { value: "loess", label: "Löss", fill: "rgb(255, 255, 255)" },
-    { value: "duinzand", label: "Duinzand", fill: "rgb(255, 100, 0)" },
-    { value: "maasklei", label: "Maasklei", fill: "rgb(152, 158, 0)" },
+    { value: "moerige_klei", label: "Moerige klei", fill: "#D37FD0" },
+    { value: "rivierklei", label: "Rivierklei", fill: "#81FE00" },
+    { value: "dekzand", label: "Dekzand", fill: "#FFF99" },
+    { value: "zeeklei", label: "Zeeklei", fill: "#32AA00" },
+    { value: "dalgrond", label: "Dalgrond", fill: "#D37FD0" },
+    { value: "veen", label: "Veen", fill: "#6A1EB5" },
+    { value: "loess", label: "Löss", fill: "#AA2049" },
+    { value: "duinzand", label: "Duinzand", fill: "#FFDD71" },
+    { value: "maasklei", label: "Maasklei", fill: "#FED31E" },
 ]
 
 /** Which gradient definition to use for gradient-shaded parameters.
