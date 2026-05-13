@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm"
 import { describe, expect } from "vitest"
-import { addAgent, getAgent } from "./agent"
+import { addAgent, getAgent, setAgentActiveStatus, updateAgent } from "./agent"
 import { createId } from "./id"
 import { test } from "./test-util"
 
@@ -50,6 +50,19 @@ describe("Agent CRUD", () => {
         expect(agent.is_active).toBe(true)
     })
 
+    test("should update existing agent if adding with the same id", async ({
+        fdm,
+    }) => {
+        await addAgent(fdm, admin_id, agent_id, "Support Agent")
+        await addAgent(fdm, admin_id, agent_id, "Updated Support Agent")
+
+        const agent = await getAgent(fdm, admin_id, agent_id)
+
+        expect(agent.agent_id).toBe(agent_id)
+        expect(agent.display_name).toBe("Updated Support Agent")
+        expect(agent.is_active).toBe(true)
+    })
+
     test("should not let regular helpdesk agents create agents", async ({
         fdm,
     }) => {
@@ -60,7 +73,96 @@ describe("Agent CRUD", () => {
             expect(true, "Should have thrown").toBe(false)
         } catch (err) {
             expect(err.message).toBeDefined()
-            expect(err.message).toContain("perform")
+            expect(err.message).toContain(
+                "Principal does not have permission to perform this action",
+            )
+
+            await expect(
+                getAgent(fdm, admin_id, third_agent_id),
+            ).rejects.toThrow(
+                "Principal does not have permission to perform this action",
+            )
+        }
+    })
+
+    test("should let admins update any agent", async ({ fdm }) => {
+        await addAgent(fdm, admin_id, agent_id, "Support Agent")
+        await updateAgent(fdm, admin_id, agent_id, "Updated Support Agent")
+
+        const agent = await getAgent(fdm, admin_id, agent_id)
+
+        expect(agent.agent_id).toBe(agent_id)
+        expect(agent.display_name).toBe("Updated Support Agent")
+        expect(agent.is_active).toBe(true)
+    })
+
+    test("should not let regular helpdesk agents update each other's information", async ({
+        fdm,
+    }) => {
+        const third_agent_id = await addAgent(
+            fdm,
+            admin_id,
+            "notimportant",
+            "Third Support Agent",
+        )
+
+        try {
+            await updateAgent(
+                fdm,
+                agent_id,
+                third_agent_id,
+                "Support Agent with Low Performance",
+            )
+            expect(true, "Should have thrown").toBe(false)
+        } catch (err) {
+            expect(err.message).toBeDefined()
+            expect(err.message).toContain(
+                "Principal does not have permission to perform this action",
+            )
+
+            const agent = await getAgent(fdm, admin_id, third_agent_id)
+
+            expect(agent.agent_id).toBe(third_agent_id)
+            expect(agent.display_name).toBe("Third Support Agent")
+            expect(agent.is_active).toBe(true)
+        }
+    })
+
+    test("should let admins update agent status", async ({ fdm }) => {
+        await addAgent(fdm, admin_id, agent_id, "Support Agent")
+        await setAgentActiveStatus(fdm, admin_id, agent_id, false)
+
+        const agent = await getAgent(fdm, admin_id, agent_id)
+
+        expect(agent.agent_id).toBe(agent_id)
+        expect(agent.display_name).toBe("Support Agent")
+        expect(agent.is_active).toBe(false)
+    })
+
+    test("should not let regular helpdesk agents update each other's information", async ({
+        fdm,
+    }) => {
+        const third_agent_id = await addAgent(
+            fdm,
+            admin_id,
+            "notimportant",
+            "Third Support Agent",
+        )
+
+        try {
+            await setAgentActiveStatus(fdm, agent_id, third_agent_id, false)
+            expect(true, "Should have thrown").toBe(false)
+        } catch (err) {
+            expect(err.message).toBeDefined()
+            expect(err.message).toContain(
+                "Principal does not have permission to perform this action",
+            )
+
+            const agent = await getAgent(fdm, admin_id, third_agent_id)
+
+            expect(agent.agent_id).toBe(third_agent_id)
+            expect(agent.display_name).toBe("Third Support Agent")
+            expect(agent.is_active).toBe(true)
         }
     })
 })

@@ -170,11 +170,12 @@ export const tags = fdmHelpdeskSchema.table(
     {
         tag_id: text().primaryKey(),
         name: text().notNull(),
+        name_lower: text().notNull(),
         color: text().default("#6b7280"), // Hex color for UI
         description: text(),
         created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     },
-    (table) => [uniqueIndex("tag_name_idx").on(table.name)],
+    (table) => [uniqueIndex("tag_name_lower_idx").on(table.name_lower)],
 )
 export type TagTypeSelect = typeof tags.$inferSelect
 export type TagTypeInsert = typeof tags.$inferInsert

@@ -31,6 +31,24 @@ export async function getTag(fdm: FdmType, tag_id: string) {
     }
 }
 
+async function tryGetTagByName(fdm: FdmType, tag_name: string) {
+    try {
+        const found = await fdm
+            .select()
+            .from(schema.tags)
+            .where(eq(schema.tags.name_lower, tag_name.toLowerCase()))
+            .limit(1)
+
+        if (found.length === 0) {
+            return null
+        }
+
+        return found[0]
+    } catch (err) {
+        throw handleError(err, "Exception for getTag", { tag_name })
+    }
+}
+
 export async function getTags(fdm: FdmType) {
     try {
         return await fdm.select().from(schema.tags)
@@ -95,32 +113,97 @@ export async function getTagsForTickets(
     }
 }
 
+function validateName(name: string) {
+    if (name.length === 0) {
+        throw new Error("Tag name cannot be empty")
+    }
+}
+
 export async function createTag(
     fdm: FdmType,
     principal_id: PrincipalId,
     name: schema.TagTypeInsert["name"],
-    color: schema.TagTypeInsert["color"],
-    description: schema.TagTypeInsert["description"],
+    color?: schema.TagTypeInsert["color"],
+    description?: schema.TagTypeInsert["description"],
 ): Promise<schema.TagTypeSelect["tag_id"]> {
-    await checkHelpdeskPermission(
-        fdm,
-        "helpdesk",
-        "write",
-        "",
-        principal_id,
-        "createTag",
-    )
     try {
-        const tag_id = createId()
-        await fdm.insert(schema.tags).values([
-            {
-                tag_id: tag_id,
-                name: name,
-                description: description,
-                color: color,
-            },
-        ])
-        return tag_id
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "createTag",
+        )
+        validateName(name)
+        return await fdm.transaction(async (tx) => {
+            const matching = await tryGetTagByName(tx, name)
+            if (matching) {
+                throw new Error("Another tag with name already exists")
+            }
+            const tag_id = createId()
+            await tx.insert(schema.tags).values([
+                {
+                    tag_id: tag_id,
+                    name: name,
+                    name_lower: name.toLowerCase(),
+                    description: description,
+                    color: color,
+                },
+            ])
+            return tag_id
+        })
+    } catch (err) {
+        throw handleError(err, "Exception in createTag", {
+            name,
+            color,
+            description,
+        })
+    }
+}
+
+export async function updateTag(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    tag_id: string,
+    name?: schema.TagTypeInsert["name"],
+    color?: schema.TagTypeInsert["color"],
+    description?: schema.TagTypeInsert["description"],
+) {
+    try {
+        const isNameProvided = typeof name !== "undefined" && name !== null
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "updateTag",
+        )
+        if (isNameProvided) validateName(name)
+        return await fdm.transaction(async (tx) => {
+            // Check if tag exists
+            await getTag(tx, tag_id)
+
+            // Check if there will be a name collision
+            if (isNameProvided) {
+                const matching = await tryGetTagByName(tx, name)
+                if (matching && matching.tag_id !== tag_id) {
+                    throw new Error("Another tag with name already exists")
+                }
+            }
+
+            // Update
+            await tx
+                .update(schema.tags)
+                .set({
+                    name: name,
+                    name_lower: isNameProvided ? name.toLowerCase() : undefined,
+                    description: description,
+                    color: color,
+                })
+                .where(eq(schema.tags.tag_id, tag_id))
+        })
     } catch (err) {
         throw handleError(err, "Exception in createTag", {
             name,
@@ -136,16 +219,16 @@ export async function addTagToTicket(
     ticket_id: schema.TicketTypeSelect["ticket_id"],
     tag_id: schema.TagTypeSelect["tag_id"],
 ): Promise<void> {
-    await checkHelpdeskPermission(
-        fdm,
-        "ticket-agent-side",
-        "write",
-        ticket_id,
-        principal_id,
-        "addTagToTicket",
-    )
-
     try {
+        await checkHelpdeskPermission(
+            fdm,
+            "ticket-agent-side",
+            "write",
+            ticket_id,
+            principal_id,
+            "addTagToTicket",
+        )
+
         await fdm
             .insert(schema.ticketTagsMap)
             .values([
@@ -156,7 +239,11 @@ export async function addTagToTicket(
             ])
             .onConflictDoNothing()
     } catch (err) {
-        throw handleError(err, "Error in addTagToTicket")
+        throw handleError(err, "Error in addTagToTicket", {
+            principal_id,
+            ticket_id,
+            tag_id,
+        })
     }
 }
 
@@ -166,16 +253,16 @@ export async function removeTagFromTicket(
     ticket_id: schema.TicketTypeSelect["ticket_id"],
     tag_id: schema.TagTypeSelect["tag_id"],
 ): Promise<void> {
-    await checkHelpdeskPermission(
-        fdm,
-        "ticket-agent-side",
-        "write",
-        ticket_id,
-        principal_id,
-        "addTagToTicket",
-    )
-
     try {
+        await checkHelpdeskPermission(
+            fdm,
+            "ticket-agent-side",
+            "write",
+            ticket_id,
+            principal_id,
+            "removeTagFromTicket",
+        )
+
         await fdm
             .delete(schema.ticketTagsMap)
             .where(
@@ -185,6 +272,10 @@ export async function removeTagFromTicket(
                 ),
             )
     } catch (err) {
-        throw handleError(err, "Error in addTagToTicket")
+        throw handleError(err, "Error in removeTagFromTicket", {
+            principal_id,
+            ticket_id,
+            tag_id,
+        })
     }
 }

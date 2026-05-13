@@ -41,6 +41,7 @@ CREATE TABLE "fdm-helpdesk"."saved_replies" (
 CREATE TABLE "fdm-helpdesk"."tags" (
 	"tag_id" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
+	"name_lower" text NOT NULL,
 	"color" text DEFAULT '#6b7280',
 	"description" text,
 	"created" timestamp with time zone DEFAULT now() NOT NULL
@@ -112,7 +113,7 @@ CREATE INDEX "message_ticket_idx" ON "fdm-helpdesk"."messages" USING btree ("tic
 CREATE INDEX "message_sender_idx" ON "fdm-helpdesk"."messages" USING btree ("sender_id");--> statement-breakpoint
 CREATE INDEX "message_created_idx" ON "fdm-helpdesk"."messages" USING btree ("ticket_id","created");--> statement-breakpoint
 CREATE INDEX "saved_reply_category_idx" ON "fdm-helpdesk"."saved_replies" USING btree ("category");--> statement-breakpoint
-CREATE UNIQUE INDEX "tag_name_idx" ON "fdm-helpdesk"."tags" USING btree ("name");--> statement-breakpoint
+CREATE UNIQUE INDEX "tag_name_lower_idx" ON "fdm-helpdesk"."tags" USING btree ("name_lower");--> statement-breakpoint
 CREATE INDEX "activity_ticket_idx" ON "fdm-helpdesk"."ticket_activity" USING btree ("ticket_id");--> statement-breakpoint
 CREATE INDEX "activity_created_idx" ON "fdm-helpdesk"."ticket_activity" USING btree ("ticket_id","created");--> statement-breakpoint
 CREATE INDEX "assignment_ticket_idx" ON "fdm-helpdesk"."ticket_assignments" USING btree ("ticket_id");--> statement-breakpoint

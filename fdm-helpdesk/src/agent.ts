@@ -64,7 +64,6 @@ export async function addAgent(
     principal_id: PrincipalId,
     agent_id: schema.AgentTypeInsert["agent_id"],
     display_name: schema.AgentTypeInsert["display_name"],
-    is_active: schema.AgentTypeInsert["is_active"] = true,
 ): Promise<schema.AgentTypeSelect["agent_id"]> {
     try {
         await checkHelpdeskPermission(
@@ -76,14 +75,22 @@ export async function addAgent(
             "addAgent",
         )
 
-        await fdm.insert(schema.agents).values([
-            {
-                agent_id: agent_id,
-                principal_id: agent_id,
-                display_name: display_name,
-                is_active: is_active,
-            },
-        ])
+        await fdm
+            .insert(schema.agents)
+            .values([
+                {
+                    agent_id: agent_id,
+                    principal_id: agent_id,
+                    display_name: display_name,
+                },
+            ])
+            .onConflictDoUpdate({
+                target: schema.agents.agent_id,
+                set: {
+                    display_name: display_name,
+                    updated: sql`now()`,
+                },
+            })
 
         return agent_id
     } catch (err) {
@@ -96,7 +103,6 @@ export async function updateAgent(
     principal_id: PrincipalId,
     agent_id: schema.AgentTypeInsert["agent_id"],
     display_name: schema.AgentTypeInsert["display_name"] | undefined,
-    is_active: schema.AgentTypeInsert["is_active"] | undefined,
 ) {
     try {
         await checkHelpdeskPermission(
@@ -111,10 +117,38 @@ export async function updateAgent(
             .update(schema.agents)
             .set({
                 display_name: display_name,
-                is_active: is_active,
                 updated: sql`now()`,
             })
             .where(eq(schema.agents.agent_id, agent_id))
+    } catch (err) {
+        throw handleError(err, "Error in updateAgent")
+    }
+}
+
+export async function setAgentActiveStatus(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    agent_id: schema.AgentTypeInsert["agent_id"],
+    is_active: schema.AgentTypeInsert["is_active"],
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "addAgent",
+        )
+
+        await fdm
+            .update(schema.agents)
+            .set({
+                is_active: is_active,
+            })
+            .where(eq(schema.agents.agent_id, agent_id))
+
+        return agent_id
     } catch (err) {
         throw handleError(err, "Error in addAgent")
     }

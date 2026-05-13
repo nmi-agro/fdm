@@ -1,5 +1,5 @@
 {
-  "id": "f93ee165-0698-481a-bd58-5dd03a6fc854",
+  "id": "01bdf555-f7b0-41c3-83fa-d1b72e0dce41",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -389,6 +389,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "name_lower": {
+          "name": "name_lower",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "color": {
           "name": "color",
           "type": "text",
@@ -411,11 +417,11 @@
         }
       },
       "indexes": {
-        "tag_name_idx": {
-          "name": "tag_name_idx",
+        "tag_name_lower_idx": {
+          "name": "tag_name_lower_idx",
           "columns": [
             {
-              "expression": "name",
+              "expression": "name_lower",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

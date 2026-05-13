@@ -112,6 +112,7 @@ export async function getHelpdeskPermission(
     const principal_ids = Array.isArray(principal_id)
         ? principal_id
         : [principal_id]
+
     const users = await Promise.all(
         principal_ids.map((user_id) => getUserProfile(fdm, user_id)),
     )
@@ -124,7 +125,7 @@ export async function getHelpdeskPermission(
           ? "helpdeskAgent"
           : "user"
 
-    // Agent management
+    // Helpdesk management
     if (resource === "helpdesk") {
         const value: Awaited<ReturnType<typeof getHelpdeskPermission>> =
             action !== "read" && role === "helpdeskAdmin"
@@ -147,7 +148,7 @@ export async function getHelpdeskPermission(
             ).length > 0
         ) {
             return helpdeskRoles.includes(role) &&
-                (action === "read" || resource_id === principal_id)
+                (action === "read" || principal_ids.includes(resource_id))
                 ? {
                       granting_resource: "agent",
                       granting_resource_id: resource_id,
@@ -160,6 +161,10 @@ export async function getHelpdeskPermission(
 
     // Agent's saved replies
     if (resource === "saved_reply") {
+        if (!helpdeskRoles.includes(role)) {
+            return null
+        }
+
         return helpdeskRoles.includes(role) &&
             (
                 await fdm
@@ -187,12 +192,19 @@ export async function getHelpdeskPermission(
 
     // Ticket
     if (resource === "ticket-user-side" || resource === "ticket-agent-side") {
-        if (helpdeskRoles.includes(role)) {
-            return { granting_resource: "helpdesk" }
-        }
+        const agentStatus = await fdm
+            .select({ is_active: schema.agents.is_active })
+            .from(schema.agents)
+            .where(inArray(schema.agents.principal_id, principal_ids))
+        const isActiveAgent = agentStatus.some((stat) => stat.is_active)
+        const isAdmin = role === "helpdeskAdmin"
 
         // Users can't modify ticket assignments etc. but they can see this status on their own tickets
-        if (action !== "read" && resource === "ticket-agent-side") {
+        if (
+            action !== "read" &&
+            resource === "ticket-agent-side" &&
+            (!isActiveAgent || !helpdeskRoles.includes(role))
+        ) {
             return null
         }
 
@@ -203,8 +215,15 @@ export async function getHelpdeskPermission(
                 .where(
                     and(
                         eq(schema.tickets.ticket_id, resource_id),
-                        isNotNull(schema.tickets.requester_id),
-                        inArray(schema.tickets.requester_id, principal_ids),
+                        !isActiveAgent && !isAdmin
+                            ? and(
+                                  isNotNull(schema.tickets.requester_id),
+                                  inArray(
+                                      schema.tickets.requester_id,
+                                      principal_ids,
+                                  ),
+                              )
+                            : undefined,
                     ),
                 )
                 .limit(1)
@@ -218,9 +237,13 @@ export async function getHelpdeskPermission(
 
     // Message
     if (resource === "message") {
-        if (role === "helpdeskAdmin") {
-            return { granting_resource: "helpdesk" }
-        }
+        const agentStatus = await fdm
+            .select({ is_active: schema.agents.is_active })
+            .from(schema.agents)
+            .where(and(inArray(schema.agents.principal_id, principal_ids)))
+        const isActiveAgent = agentStatus.some((stat) => stat.is_active)
+        const isAdmin = role === "helpdeskAdmin"
+
         return (
             await fdm
                 .select()
@@ -232,17 +255,18 @@ export async function getHelpdeskPermission(
                 .where(
                     and(
                         eq(schema.messages.message_id, resource_id),
-                        action === "write"
+                        // Users and regular agents can only modify their own messages
+                        action === "write" && !isAdmin
                             ? inArray(schema.messages.sender_id, principal_ids)
                             : undefined,
-                        helpdeskRoles.includes(role)
+                        // Regular users can only view messages under their own tickets
+                        !isActiveAgent && !isAdmin
                             ? and(
                                   isNotNull(schema.tickets.requester_id),
                                   inArray(
                                       schema.tickets.requester_id,
                                       principal_ids,
                                   ),
-                                  eq(schema.messages.is_internal, false),
                               )
                             : undefined,
                     ),
