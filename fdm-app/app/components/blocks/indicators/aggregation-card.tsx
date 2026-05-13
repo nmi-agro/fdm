@@ -62,8 +62,8 @@ export function AggregationCard({
 
     return (
         <TooltipProvider>
-        <Card className="min-w-[160px]">
-            <CardHeader className="pb-1 pt-4 px-4">
+        <Card className="min-w-[140px]">
+            <CardHeader className="pb-1 pt-3 px-3">
                 <div className="flex items-center gap-1.5">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                         {label}
@@ -77,13 +77,13 @@ export function AggregationCard({
                         </TooltipContent>
                     </Tooltip>
                 </div>
-                <CardTitle className="text-3xl font-bold tabular-nums">
+                <CardTitle className="text-2xl font-bold tabular-nums">
                     {display !== null ? display : "—"}
                 </CardTitle>
             </CardHeader>
-            <CardContent className="pb-4 px-4 space-y-2">
+            <CardContent className="pb-3 px-3 space-y-1.5">
                 {/* Colour-coded progress bar */}
-                <div className="relative h-2 w-full overflow-hidden rounded-full bg-primary/20">
+                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
                     <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
@@ -99,12 +99,12 @@ export function AggregationCard({
                     )}
                     {!showIndex && delta !== null && delta > 0 && (
                         <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                            +{delta} met maatregelen
+                            +{delta}
                         </span>
                     )}
                 </div>
 
-                <p className="text-xs text-muted-foreground">{name}</p>
+                <p className="text-[11px] text-muted-foreground">{name}</p>
             </CardContent>
         </Card>
         </TooltipProvider>

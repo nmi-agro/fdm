@@ -1,3 +1,4 @@
+import { memo } from "react"
 import {
     Tooltip,
     TooltipContent,
@@ -24,7 +25,7 @@ type HeatmapCellProps = {
  * - Optional delta badge when measures have significant impact
  * - Grey when no data
  */
-export function HeatmapCell({
+export const HeatmapCell = memo(function HeatmapCell({
     indicator,
     score01,
     index01,
@@ -79,4 +80,4 @@ export function HeatmapCell({
             </TooltipContent>
         </Tooltip>
     )
-}
+})

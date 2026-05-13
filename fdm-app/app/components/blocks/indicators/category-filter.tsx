@@ -1,4 +1,3 @@
-import { useSearchParams } from "react-router"
 import { cn } from "~/lib/utils"
 import { INDICATOR_CATEGORIES, type IndicatorCategory } from "~/lib/indicators"
 
@@ -24,65 +23,31 @@ const chipInactive =
 const chipAllActive =
     "border-foreground bg-muted text-foreground"
 
-/**
- * Parses the `?categories=` URL param into a validated IndicatorCategory array.
- * Returns an empty array when no filter is active (= show all).
- */
-export function parseActiveCategories(
-    searchParams: URLSearchParams,
-): IndicatorCategory[] {
-    const raw = searchParams.get("categories") ?? ""
-    return raw
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s): s is IndicatorCategory =>
-            INDICATOR_CATEGORIES.includes(s as IndicatorCategory),
-        )
+type CategoryFilterProps = {
+    /** Currently active categories (empty = show all). */
+    activeCategories: IndicatorCategory[]
+    /** Called when a category chip is toggled. */
+    onToggle: (category: IndicatorCategory) => void
+    /** Called when "Alle" is clicked. */
+    onClearAll: () => void
 }
 
 /**
  * Pill-shaped multi-select filter chips for indicator categories.
- * Selection is stored in the `?categories=Chemisch,Fysisch` URL param so it
- * is preserved when sharing or navigating back.
- *
- * Click a chip to toggle it on/off. "Alle" clears the selection (= show all).
+ * Driven by props — parent owns the state for instant client-side filtering.
  */
-export function CategoryFilter() {
-    const [searchParams, setSearchParams] = useSearchParams()
-    const activeCategories = parseActiveCategories(searchParams)
-
-    const toggle = (cat: IndicatorCategory) => {
-        setSearchParams(
-            (prev) => {
-                const current = parseActiveCategories(prev)
-                const next = current.includes(cat)
-                    ? current.filter((c) => c !== cat)
-                    : [...current, cat]
-                if (next.length === 0) prev.delete("categories")
-                else prev.set("categories", next.join(","))
-                return prev
-            },
-            { preventScrollReset: true },
-        )
-    }
-
-    const clearAll = () => {
-        setSearchParams(
-            (prev) => {
-                prev.delete("categories")
-                return prev
-            },
-            { preventScrollReset: true },
-        )
-    }
-
+export function CategoryFilter({
+    activeCategories,
+    onToggle,
+    onClearAll,
+}: CategoryFilterProps) {
     const allActive = activeCategories.length === 0
 
     return (
         <div className="flex flex-wrap items-center gap-2">
             <button
                 type="button"
-                onClick={clearAll}
+                onClick={onClearAll}
                 className={cn(
                     chipBase,
                     allActive ? chipAllActive : chipInactive,
@@ -97,7 +62,7 @@ export function CategoryFilter() {
                     <button
                         key={cat}
                         type="button"
-                        onClick={() => toggle(cat)}
+                        onClick={() => onToggle(cat)}
                         className={cn(
                             chipBase,
                             isActive ? CHIP_ACTIVE[cat] : chipInactive,

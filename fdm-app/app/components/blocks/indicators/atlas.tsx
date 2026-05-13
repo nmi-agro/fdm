@@ -23,6 +23,7 @@ import {
     getFieldsScoreStyle,
 } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { getScoreColor, getScoreVerdict } from "~/lib/indicators"
 
 type IndicatorsMapProps = {
     fieldsGeoJSON: FeatureCollection
@@ -145,28 +146,65 @@ export default function IndicatorsMap({
             {/* Hover tooltip */}
             {hoverInfo && (
                 <div
-                    className="absolute z-20 pointer-events-none bg-background/95 backdrop-blur-sm border rounded-md px-2.5 py-1.5 shadow-md text-xs"
+                    className="absolute z-20 pointer-events-none bg-background/95 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-md text-xs min-w-[160px]"
                     style={{
                         left: hoverInfo.x + 12,
                         top: hoverInfo.y - 8,
                         transform: "translateY(-100%)",
                     }}
                 >
-                    <p className="font-medium text-foreground">
+                    <p className="font-semibold text-foreground">
                         {hoverInfo.fieldName}
                     </p>
-                    <p className="text-muted-foreground mt-0.5">
-                        {hoverScore != null ? (
-                            <>
-                                Score:{" "}
-                                <span className="font-medium text-foreground">
-                                    {hoverScore}
+                    {hoverInfo.properties.b_area != null && (
+                        <p className="text-muted-foreground mt-0.5">
+                            {Number(hoverInfo.properties.b_area).toFixed(2)} ha
+                        </p>
+                    )}
+                    {label && (
+                        <div className="mt-1.5 pt-1.5 border-t flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground truncate">
+                                {label}
+                            </span>
+                            {hoverScore != null ? (
+                                <span
+                                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                                    style={{
+                                        backgroundColor:
+                                            getScoreColor(hoverScore),
+                                    }}
+                                >
+                                    {hoverScore} –{" "}
+                                    {getScoreVerdict(hoverScore)}
                                 </span>
-                            </>
-                        ) : (
-                            "Geen data"
-                        )}
-                    </p>
+                            ) : (
+                                <span className="text-muted-foreground italic">
+                                    Geen data
+                                </span>
+                            )}
+                        </div>
+                    )}
+                    {!label && (
+                        <p className="text-muted-foreground mt-0.5">
+                            {hoverScore != null ? (
+                                <>
+                                    Score:{" "}
+                                    <span
+                                        className="font-semibold"
+                                        style={{
+                                            color: getScoreColor(hoverScore),
+                                        }}
+                                    >
+                                        {hoverScore}
+                                    </span>
+                                    {" – "}
+                                    {getScoreVerdict(hoverScore)}
+                                </>
+                            ) : (
+                                "Geen data"
+                            )}
+                        </p>
+                    )}
                 </div>
             )}
 

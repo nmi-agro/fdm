@@ -143,6 +143,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     properties: {
                         b_id: field.b_id,
                         b_name: field.b_name ?? null,
+                        b_area: field.b_area ?? null,
                         avgScore: computeFieldAvgScore(fs),
                         ...catProps,
                         ...indicatorProps,

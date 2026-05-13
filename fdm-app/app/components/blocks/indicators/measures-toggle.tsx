@@ -1,36 +1,24 @@
-import { useSearchParams } from "react-router"
 import { Label } from "~/components/ui/label"
 import { Switch } from "~/components/ui/switch"
 
+type MeasuresToggleProps = {
+    /** Whether "Met maatregelen" is active (shows score). */
+    withMeasures: boolean
+    /** Called when the user toggles the switch. */
+    onToggle: (withMeasures: boolean) => void
+}
+
 /**
  * Toggle between "Met maatregelen" (score) and "Zonder maatregelen" (index).
- * Syncs with the ?measures=off URL search param for shareability.
+ * Driven by props — parent owns the state for instant client-side switching.
  */
-export function MeasuresToggle() {
-    const [searchParams, setSearchParams] = useSearchParams()
-    const withMeasures = searchParams.get("measures") !== "off"
-
-    const handleToggle = (checked: boolean) => {
-        setSearchParams(
-            (prev) => {
-                const next = new URLSearchParams(prev)
-                if (checked) {
-                    next.delete("measures")
-                } else {
-                    next.set("measures", "off")
-                }
-                return next
-            },
-            { preventScrollReset: true },
-        )
-    }
-
+export function MeasuresToggle({ withMeasures, onToggle }: MeasuresToggleProps) {
     return (
         <div className="flex items-center gap-2">
             <Switch
                 id="measures-toggle"
                 checked={withMeasures}
-                onCheckedChange={handleToggle}
+                onCheckedChange={onToggle}
             />
             <Label
                 htmlFor="measures-toggle"
