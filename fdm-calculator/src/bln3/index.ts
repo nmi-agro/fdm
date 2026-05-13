@@ -2,7 +2,7 @@ import { withCalculationCache } from "@nmi-agro/fdm-core"
 import pkg from "../package"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
 
-export { collectInputForBln3Score } from "./collect"
+export { collectInputForBln3Score } from "./input"
 
 /**
  * Requests a BLN3 score from the NMI API for a single field.
@@ -55,6 +55,13 @@ export async function requestBln3Score(
                 `BLN3 score API returned failure (status ${result.status}): ${result.message ?? "Unknown error"}`,
             )
         }
+
+        if (!result.data || !Array.isArray(result.data.indicator)) {
+            throw new Error(
+                "BLN3 score API returned a malformed payload (missing data or indicator array)",
+            )
+        }
+
         // Map the API's "indicator" (singular) to "indicators" (plural) for ergonomics
         return {
             indicators: result.data.indicator,
