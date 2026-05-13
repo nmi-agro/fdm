@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto"
 import { isAIMessage } from "@langchain/core/messages"
 import type { LangChainCallbackHandler } from "@posthog/ai/langchain"
 
 export interface OneShotAgentResult {
     result: string
     structuredResponse?: Record<string, unknown>
+    runId: string
     usage: {
         inputTokens: number
         outputTokens: number
@@ -98,6 +100,7 @@ export async function runOneShotAgent(
 ): Promise<OneShotAgentResult> {
     const abortController = new AbortController()
     const callbacks = buildCallbacks(posthog, context)
+    const runId = randomUUID()
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -119,6 +122,7 @@ export async function runOneShotAgent(
             {
                 configurable: context,
                 recursionLimit,
+                runId,
                 streamMode: ["updates", "custom"],
                 signal: abortController.signal,
                 runName: "gerrit-one-shot",
@@ -181,6 +185,7 @@ export async function runOneShotAgent(
         return {
             result: finalResponse,
             structuredResponse,
+            runId,
             usage: totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
             toolCalls: uniqueToolCalls,
         }

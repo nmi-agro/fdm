@@ -755,6 +755,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             let usageData: OneShotAgentResult["usage"] = null
             let toolCalls: string[] | undefined
             let structuredResponse: Record<string, unknown> | undefined
+            let runId: string | undefined
 
             try {
                 const agentResult = await runOneShotAgent(
@@ -766,6 +767,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 usageData = agentResult.usage
                 toolCalls = agentResult.toolCalls
                 structuredResponse = agentResult.structuredResponse
+                runId = agentResult.runId
             } catch (err: unknown) {
                 if (err instanceof AgentTimeoutError) {
                     return dataWithError(
@@ -779,6 +781,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         "Gerrit heeft te veel stappen nodig om een plan te maken voor dit bedrijf. Probeer het opnieuw of vereenvoudig de instellingen.",
                     )
                 }
+                console.error(`[gerrit] Agent error (run: ${runId ?? "unknown"}):`, err)
                 return dataWithError(
                     null,
                     err instanceof Error
@@ -937,7 +940,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             ],
                             $ai_tools_called: toolCalls || [],
                             $ai_tool_call_count: toolCalls?.length || 0,
-                            $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
+                            $ai_trace_id: runId ?? `gerrit-${b_id_farm}-${calendar}`,
                             b_id_farm,
                             calendar,
                             field_count: fieldsData.length,
