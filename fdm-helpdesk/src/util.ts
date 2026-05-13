@@ -28,3 +28,13 @@ export type AssigneeFilter = {
     /** Agent IDs that the ticket is assigned to */
     assignees?: string[]
 }
+
+export type SenderFilter = {
+    /** Principal or agent IDs for the messages */
+    sentBy?: string[]
+}
+
+export type IncludeDeletedFilter = {
+    /** Whether to include any deleted items */
+    includeDeleted?: boolean
+}

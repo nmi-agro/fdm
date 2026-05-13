@@ -1,6 +1,6 @@
 import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
 import { getUserProfile, handleError } from "@nmi-agro/fdm-core"
-import { and, eq, inArray, isNotNull, or } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, not, or, sql } from "drizzle-orm"
 import * as schema from "./db/schema-helpdesk"
 
 export type HelpdeskRole = "helpdeskAgent" | "helpdeskAdmin"
@@ -21,7 +21,7 @@ type HelpdeskResource =
     | "ticket-agent-side"
     // User-facing ticket details, the user can change these
     | "ticket-user-side"
-    // Messages are readable as long as the ticket is readable but they may also be private
+    // Messages are readable as long as the ticket is readable. Only agents and admins can view internal messages.
     | "message"
     // Agents themselves and their stored data
     | "agent"
@@ -44,7 +44,7 @@ type HelpdeskResource =
  * @param strict - When set to false, the function will not perform an audit log, or throw an exception if the user has no permission.
  * @returns Resolves to true if the principal is permitted to perform the action.
  *
- * @throws {Error} When the principal does not have the required permission.
+ * @throws {Error} When the principal does not have the required permission or a database transaction fails.
  */
 export async function checkHelpdeskPermission(
     fdm: FdmType,
@@ -86,6 +86,34 @@ export async function checkHelpdeskPermission(
 }
 
 /**
+ * Gets the least-privileged role on the helpdesk for the given principals.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id - The principal identifier(s); supports a single ID or an array.
+ * @returns a string indicating a role that all of the principals can assume.
+ *
+ * @throws {Error} When a database transaction fails.
+ */
+export async function getHelpdeskRole(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+): Promise<ApplicationRole> {
+    const principal_ids = Array.isArray(principal_id)
+        ? principal_id
+        : [principal_id]
+
+    const users = await Promise.all(
+        principal_ids.map((user_id) => getUserProfile(fdm, user_id)),
+    )
+
+    return users.every((u) => u?.role === "helpdeskAdmin")
+        ? "helpdeskAdmin"
+        : users.every((u) => u?.role === "helpdeskAgent")
+          ? "helpdeskAgent"
+          : "user"
+}
+
+/**
  * Gets the granting resource type and ID if the principal has permission to perform the action in the given resource.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
@@ -97,7 +125,7 @@ export async function checkHelpdeskPermission(
  * @returns `granting_resource` is the resource type, `granting_resource_id` is the id of the specific granting resource.
  * `null` is returned if the principal does not have the permission.
  *
- * @throws {Error} When the principal does not have the required permission.
+ * @throws {Error} When a database transaction fails.
  */
 export async function getHelpdeskPermission(
     fdm: FdmType,
@@ -113,17 +141,7 @@ export async function getHelpdeskPermission(
         ? principal_id
         : [principal_id]
 
-    const users = await Promise.all(
-        principal_ids.map((user_id) => getUserProfile(fdm, user_id)),
-    )
-
-    const role: ApplicationRole = users.every(
-        (u) => u?.role === "helpdeskAdmin",
-    )
-        ? "helpdeskAdmin"
-        : users.every((u) => u?.role === "helpdeskAgent")
-          ? "helpdeskAgent"
-          : "user"
+    const role = await getHelpdeskRole(fdm, principal_id)
 
     // Helpdesk management
     if (resource === "helpdesk") {
@@ -174,7 +192,7 @@ export async function getHelpdeskPermission(
                         or(
                             action === "read"
                                 ? schema.savedReplies.is_shared
-                                : undefined,
+                                : sql`false`,
                             inArray(
                                 schema.savedReplies.created_by,
                                 principal_ids,
@@ -248,9 +266,9 @@ export async function getHelpdeskPermission(
             await fdm
                 .select()
                 .from(schema.messages)
-                .innerJoin(
+                .leftJoin(
                     schema.tickets,
-                    eq(schema.messages.message_id, schema.tickets.ticket_id),
+                    eq(schema.messages.ticket_id, schema.tickets.ticket_id),
                 )
                 .where(
                     and(
@@ -259,9 +277,10 @@ export async function getHelpdeskPermission(
                         action === "write" && !isAdmin
                             ? inArray(schema.messages.sender_id, principal_ids)
                             : undefined,
-                        // Regular users can only view messages under their own tickets
+                        // Regular users can only view non-internal messages under their own tickets
                         !isActiveAgent && !isAdmin
                             ? and(
+                                  // not(schema.messages.is_internal),
                                   isNotNull(schema.tickets.requester_id),
                                   inArray(
                                       schema.tickets.requester_id,
