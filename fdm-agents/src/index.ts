@@ -104,7 +104,7 @@ export function buildFertilizerPlanPrompt(
             ? `\nFARM FIELDS (${fieldsSummary.length} fields, pre-loaded for your reference):\n${fieldsSummary
                   .map(
                       (f) =>
-                          `- b_id: ${f.b_id} | Name: ${f.b_name} | Area: ${f.b_area?.toFixed(2)} ha | Crop: ${f.b_lu_name} (${f.b_lu_catalogue}) | BufferStrip: ${f.b_bufferstrip} | SoilType: ${f.b_soiltype_agr ?? "unknown"} | GWL: ${f.b_gwl_class ?? "unknown"} | SOM: ${f.a_som_loi != null ? `${f.a_som_loi}%` : "unknown"}`,
+                          `- b_id: ${f.b_id} | Name: ${f.b_name} | Area: ${f.b_area != null ? f.b_area.toFixed(2) : "unknown"} ha | Crop: ${f.b_lu_name} (${f.b_lu_catalogue}) | BufferStrip: ${f.b_bufferstrip} | SoilType: ${f.b_soiltype_agr ?? "unknown"} | GWL: ${f.b_gwl_class ?? "unknown"} | SOM: ${f.a_som_loi != null ? `${f.a_som_loi}%` : "unknown"}`,
                   )
                   .join("\n")}\n`
             : ""

@@ -181,10 +181,12 @@ export async function runOneShotAgent(
     try {
         return await Promise.race([streamPromise, timeoutPromise])
     } catch (err: unknown) {
-        // Wrap LangGraph recursion limit errors in a typed error
+        // Wrap LangGraph recursion limit errors in a typed error.
+        // Check both the error message and class name (GraphRecursionError) for robustness.
         if (
             err instanceof Error &&
-            err.message?.includes("Recursion limit")
+            (err.message?.includes("Recursion limit") ||
+                err.constructor?.name === "GraphRecursionError")
         ) {
             throw new AgentRecursionLimitError()
         }

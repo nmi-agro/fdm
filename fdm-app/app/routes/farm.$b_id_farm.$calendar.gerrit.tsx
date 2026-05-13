@@ -134,14 +134,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         session.principal_id,
         b_id_farm,
         timeframe.start ?? new Date(),
-    )
+    ).catch(() => false)
 
     const isDerogationFarm = await isDerogationGrantedForYear(
         fdm,
         session.principal_id,
         b_id_farm,
         Number.parseInt(calendar, 10),
-    )
+    ).catch(() => false)
 
     return {
         farm: {
@@ -713,6 +713,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 session.principal_id,
                 b_id_farm,
             )
+
+            if (fieldsSummary.length === 0) {
+                return dataWithError(
+                    null,
+                    "Er zijn geen percelen gevonden voor dit bedrijf. Voeg eerst percelen toe.",
+                )
+            }
+
+            if (fertilizers.length === 0) {
+                return dataWithError(
+                    null,
+                    "Er zijn geen meststoffen gevonden voor dit bedrijf. Voeg eerst meststoffen toe aan het bedrijf.",
+                )
+            }
+
             const agent = createFertilizerPlannerAgent(
                 fdm,
                 serverConfig.integrations.gemini?.api_key,
@@ -1007,6 +1022,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             )
                         }
 
+                        const appDate = new Date(app.p_app_date)
+                        if (Number.isNaN(appDate.getTime())) {
+                            throw new Error(
+                                `Ongeldige toepassingsdatum: ${app.p_app_date}`,
+                            )
+                        }
+
                         await addFertilizerApplication(
                             tx,
                             session.principal_id,
@@ -1014,7 +1036,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             fertilizer.p_id,
                             amount,
                             app.p_app_method,
-                            new Date(app.p_app_date),
+                            appDate,
                         )
                     }
                 }
@@ -1026,11 +1048,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
         } catch (e: unknown) {
             console.error("Save failed:", e)
-            return dataWithError(
-                null,
-                "Fout bij opslaan: " +
-                    (e instanceof Error ? e.message : String(e)),
-            )
+            const detail =
+                e instanceof Error
+                    ? e.message.slice(0, 200)
+                    : "Onbekende fout"
+            return dataWithError(null, `Fout bij opslaan: ${detail}`)
         }
     }
 

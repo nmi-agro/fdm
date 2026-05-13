@@ -156,32 +156,40 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             const results = await Promise.all(
                 args.b_ids.map(async (b_id) => {
-                    const field = await getField(fdm, principalId, b_id)
-                    const cultivations = await getCultivations(
-                        fdm,
-                        principalId,
-                        b_id,
-                        timeframe,
-                    )
-                    const mainLu = getMainCultivation(cultivations, calendar)
-                    const currentSoilData = await getCurrentSoilData(
-                        fdm,
-                        principalId,
-                        b_id,
-                    )
+                    try {
+                        const field = await getField(fdm, principalId, b_id)
+                        const cultivations = await getCultivations(
+                            fdm,
+                            principalId,
+                            b_id,
+                            timeframe,
+                        )
+                        const mainLu = getMainCultivation(cultivations, calendar)
+                        const currentSoilData = await getCurrentSoilData(
+                            fdm,
+                            principalId,
+                            b_id,
+                        )
 
-                    if (!mainLu) {
-                        return { b_id, advice: null }
+                        if (!mainLu) {
+                            return { b_id, advice: null }
+                        }
+
+                        const advice = await getNutrientAdvice(fdm, {
+                            b_lu_catalogue: mainLu.b_lu_catalogue,
+                            b_centroid: field.b_centroid ?? [0, 0],
+                            currentSoilData: currentSoilData,
+                            nmiApiKey: nmiApiKey || "",
+                            b_bufferstrip: field.b_bufferstrip,
+                        })
+                        return { b_id, advice }
+                    } catch (e) {
+                        return {
+                            b_id,
+                            advice: null,
+                            error: e instanceof Error ? e.message : String(e),
+                        }
                     }
-
-                    const advice = await getNutrientAdvice(fdm, {
-                        b_lu_catalogue: mainLu.b_lu_catalogue,
-                        b_centroid: field.b_centroid ?? [0, 0],
-                        currentSoilData: currentSoilData,
-                        nmiApiKey: nmiApiKey || "",
-                        b_bufferstrip: field.b_bufferstrip,
-                    })
-                    return { b_id, advice }
                 }),
             )
             // Must return an object (not array) — Gemini rejects array as top-level function_response.
@@ -212,32 +220,43 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             const normFunctions = createFunctionsForNorms("NL", calendar as any)
             const results = await Promise.all(
                 input.b_ids.map(async (b_id: string) => {
-                    const normsInput = await normFunctions.collectInputForNorms(
-                        fdm,
-                        principalId,
-                        b_id,
-                    )
-                    const [manure, phosphate, nitrogen] = await Promise.all([
-                        normFunctions.calculateNormForManure(
-                            fdm,
-                            normsInput as any,
-                        ),
-                        normFunctions.calculateNormForPhosphate(
-                            fdm,
-                            normsInput as any,
-                        ),
-                        normFunctions.calculateNormForNitrogen(
-                            fdm,
-                            normsInput as any,
-                        ),
-                    ])
-                    return {
-                        b_id,
-                        norms: {
-                            animalManureN: manure.normValue,
-                            workableN: nitrogen.normValue,
-                            phosphate: phosphate.normValue,
-                        },
+                    try {
+                        const normsInput =
+                            await normFunctions.collectInputForNorms(
+                                fdm,
+                                principalId,
+                                b_id,
+                            )
+                        const [manure, phosphate, nitrogen] = await Promise.all(
+                            [
+                                normFunctions.calculateNormForManure(
+                                    fdm,
+                                    normsInput as any,
+                                ),
+                                normFunctions.calculateNormForPhosphate(
+                                    fdm,
+                                    normsInput as any,
+                                ),
+                                normFunctions.calculateNormForNitrogen(
+                                    fdm,
+                                    normsInput as any,
+                                ),
+                            ],
+                        )
+                        return {
+                            b_id,
+                            norms: {
+                                animalManureN: manure.normValue,
+                                workableN: nitrogen.normValue,
+                                phosphate: phosphate.normValue,
+                            },
+                        }
+                    } catch (e) {
+                        return {
+                            b_id,
+                            norms: null,
+                            error: e instanceof Error ? e.message : String(e),
+                        }
                     }
                 }),
             )
@@ -384,7 +403,8 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             const fieldResults = await Promise.all(
                 args.fields.map(async (fieldData) => {
-                    const fieldInfo = await getField(
+                    try {
+                        const fieldInfo = await getField(
                         fdm,
                         principalId,
                         fieldData.b_id,
@@ -613,6 +633,15 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             nBalanceError,
                             advice,
                         },
+                    }
+                    } catch (e) {
+                        return {
+                            b_id: fieldData.b_id,
+                            b_area: null,
+                            error: e instanceof Error ? e.message : String(e),
+                            isValid: false,
+                            fieldMetrics: null,
+                        }
                     }
                 }),
             )
@@ -1032,9 +1061,15 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             const skillBase = existsSync(distPath) ? distPath : srcPath
 
             const indexPath = join(skillBase, "assets", "crop-index.json")
-            const cropIndex: Record<string, string> = JSON.parse(
-                readFileSync(indexPath, "utf-8"),
-            )
+            let cropIndex: Record<string, string>
+            try {
+                cropIndex = JSON.parse(readFileSync(indexPath, "utf-8"))
+            } catch {
+                return {
+                    guide: "No crop-specific fertilizer guidance available (index not found).",
+                    matchedCrops: [],
+                }
+            }
 
             // Deduplicate filenames so each guide file is loaded at most once.
             const filesToLoad = new Set<string>()

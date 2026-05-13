@@ -525,26 +525,26 @@ describe("tool execute functions", () => {
             expect(result.fieldResults[0].isBufferStripViolation).toBe(true)
         })
 
-        it("should throw when fertilizer is not found in inventory", async () => {
+        it("should return invalid field result when fertilizer is not found in inventory", async () => {
             ;(getFertilizers as any).mockResolvedValue([])
-            await expect(
-                getTool("simulateFarmPlan").invoke(
-                    makeSimInput(),
-                    makeConfigurable(),
-                ),
-            ).rejects.toThrow("not found in farm inventory")
+            const result = await getTool("simulateFarmPlan").invoke(
+                makeSimInput(),
+                makeConfigurable(),
+            )
+            expect(result.fieldResults[0].isValid).toBe(false)
+            expect(result.fieldResults[0].error).toContain("not found in farm inventory")
         })
 
-        it("should throw for invalid application method", async () => {
+        it("should return invalid field result for invalid application method", async () => {
             ;(getFertilizers as any).mockResolvedValue([
                 { ...mockFertilizer, p_app_method_options: ["injection"] },
             ])
-            await expect(
-                getTool("simulateFarmPlan").invoke(
-                    makeSimInput(),
-                    makeConfigurable(),
-                ),
-            ).rejects.toThrow("Invalid application method")
+            const result = await getTool("simulateFarmPlan").invoke(
+                makeSimInput(),
+                makeConfigurable(),
+            )
+            expect(result.fieldResults[0].isValid).toBe(false)
+            expect(result.fieldResults[0].error).toContain("Invalid application method")
         })
 
         it("should accept any method when p_app_method_options is empty", async () => {
