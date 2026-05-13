@@ -63,6 +63,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             principal_id: session.principal_id,
             b_id_farm,
             timeframe,
+            preloadedFields: fields,
         })
 
         for (const result of fieldScores) {

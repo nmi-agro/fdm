@@ -13,7 +13,7 @@ import {
     type Bln3Score,
     type Bln3ScoreInputs,
 } from "@nmi-agro/fdm-calculator"
-import { getFields, type PrincipalId, type Timeframe } from "@nmi-agro/fdm-core"
+import { getFields, type Field, type PrincipalId, type Timeframe } from "@nmi-agro/fdm-core"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
 
@@ -64,12 +64,15 @@ export async function getIndicatorsForFarm({
     principal_id,
     b_id_farm,
     timeframe,
+    preloadedFields,
 }: {
     principal_id: PrincipalId
     b_id_farm: string
     timeframe?: Timeframe
+    preloadedFields?: Field[]
 }): Promise<FieldBln3Score[]> {
-    const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
+    const fields =
+        preloadedFields ?? (await getFields(fdm, principal_id, b_id_farm, timeframe))
 
     const results = await Promise.allSettled(
         fields.map((field) =>
