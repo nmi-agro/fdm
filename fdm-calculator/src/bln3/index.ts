@@ -55,6 +55,13 @@ export async function requestBln3Score(
                 `BLN3 score API returned failure (status ${result.status}): ${result.message ?? "Unknown error"}`,
             )
         }
+
+        if (!result.data || !Array.isArray(result.data.indicator)) {
+            throw new Error(
+                "BLN3 score API returned a malformed payload (missing data or indicator array)",
+            )
+        }
+
         // Map the API's "indicator" (singular) to "indicators" (plural) for ergonomics
         return {
             indicators: result.data.indicator,

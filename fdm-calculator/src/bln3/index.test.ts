@@ -7,6 +7,7 @@ import {
     it,
     vi,
 } from "vitest"
+import * as fdmCore from "@nmi-agro/fdm-core"
 import { getBln3Score, requestBln3Score } from "./index"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
 
@@ -125,6 +126,37 @@ describe("requestBln3Score", () => {
         expect(fetch).toHaveBeenCalledTimes(1)
     })
 
+    it("should throw if the NMI API returns success: false", async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                success: false,
+                status: 400,
+                message: "semantic failure message",
+            }),
+        } as Response)
+
+        await expect(requestBln3Score(baseInputs)).rejects.toThrow(
+            "BLN3 score API returned failure (status 400): semantic failure message",
+        )
+        expect(fetch).toHaveBeenCalledTimes(1)
+    })
+
+    it("should throw if the NMI API returns a malformed payload", async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                success: true,
+                status: 200,
+                data: {}, // Missing indicator
+            }),
+        } as Response)
+
+        await expect(requestBln3Score(baseInputs)).rejects.toThrow(
+            "BLN3 score API returned a malformed payload",
+        )
+    })
+
     it("should rethrow network errors from fetch", async () => {
         vi.mocked(fetch).mockRejectedValueOnce(new Error("Network connection lost"))
 
@@ -141,6 +173,88 @@ describe("requestBln3Score", () => {
         await expect(requestBln3Score(baseInputs)).rejects.toThrow(
             "BLN3 score request timed out (30s). The NMI API did not respond in time.",
         )
+    })
+})
+
+describe("getBln3Score cache semantics", () => {
+    let mockRows: any[] = []
+    const mockFdm = {
+        select: vi.fn().mockReturnThis(),
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockImplementation(() => ({
+            then: (cb: any) => Promise.resolve(cb(mockRows)),
+        })),
+        insert: vi.fn().mockReturnThis(),
+        values: vi.fn().mockReturnThis(),
+        onConflictDoUpdate: vi.fn().mockReturnThis(),
+        catch: vi.fn().mockResolvedValue(undefined),
+    } as any
+
+    const mockResult: Bln3Score = {
+        indicators: mockBln3ScoreResponse.data.indicator,
+    }
+
+    beforeAll(() => {
+        vi.stubGlobal("fetch", vi.fn())
+    })
+
+    afterEach(() => {
+        mockRows = []
+        vi.clearAllMocks()
+    })
+
+    afterAll(() => {
+        vi.restoreAllMocks()
+    })
+
+    it("should call fetch and store result on cache miss", async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => mockBln3ScoreResponse,
+        } as Response)
+
+        mockRows = [] // Cache miss
+
+        const result = await getBln3Score(mockFdm, baseInputs)
+
+        expect(result).toEqual(mockResult)
+        expect(fetch).toHaveBeenCalledTimes(1)
+        expect(mockFdm.select).toHaveBeenCalled()
+        expect(mockFdm.insert).toHaveBeenCalled()
+    })
+
+    it("should return cached result on cache hit without calling fetch", async () => {
+        mockRows = [{ result: mockResult }] // Cache hit
+
+        const result = await getBln3Score(mockFdm, baseInputs)
+
+        expect(result).toEqual(mockResult)
+        expect(fetch).not.toHaveBeenCalled()
+        expect(mockFdm.select).toHaveBeenCalled()
+        expect(mockFdm.insert).not.toHaveBeenCalled()
+    })
+
+    it("should proceed with calculation and log error if cache read fails", async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => mockBln3ScoreResponse,
+        } as Response)
+
+        // Mock select chain to throw
+        mockFdm.limit.mockImplementationOnce(() => ({
+            then: () => Promise.reject(new Error("DB Error")),
+        }))
+        const spyConsole = vi.spyOn(console, "error").mockImplementation(() => {})
+
+        const result = await getBln3Score(mockFdm, baseInputs)
+
+        expect(result).toEqual(mockResult)
+        expect(fetch).toHaveBeenCalledTimes(1)
+        expect(spyConsole).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to read from calculation cache"),
+        )
+        spyConsole.mockRestore()
     })
 })
 
