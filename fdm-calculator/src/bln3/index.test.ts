@@ -124,6 +124,24 @@ describe("requestBln3Score", () => {
         )
         expect(fetch).toHaveBeenCalledTimes(1)
     })
+
+    it("should rethrow network errors from fetch", async () => {
+        vi.mocked(fetch).mockRejectedValueOnce(new Error("Network connection lost"))
+
+        await expect(requestBln3Score(baseInputs)).rejects.toThrow(
+            "Network connection lost",
+        )
+    })
+
+    it("should map AbortError to a specific timeout message", async () => {
+        const abortError = new Error("The operation was aborted")
+        abortError.name = "AbortError"
+        vi.mocked(fetch).mockRejectedValueOnce(abortError)
+
+        await expect(requestBln3Score(baseInputs)).rejects.toThrow(
+            "BLN3 score request timed out (30s). The NMI API did not respond in time.",
+        )
+    })
 })
 
 // getBln3Score is the cached wrapper around requestBln3Score via withCalculationCache.
