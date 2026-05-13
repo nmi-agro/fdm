@@ -75,6 +75,7 @@ function buildCallbacks(
  * @param context Extra context to provide via config.configurable (e.g. principalId, nmiApiKey).
  * @param posthog Optional PostHog client and distinctId for tracking.
  * @param timeoutMs Maximum milliseconds to wait for the agent to complete (default: 20 minutes). Throws AgentTimeoutError on expiry.
+ * @param recursionLimit Maximum number of graph steps before LangGraph aborts (default: 100). Each LLM↔tool round-trip is ~2 steps.
  * @returns The final response and token usage from the agent.
  */
 export async function runOneShotAgent(
@@ -83,6 +84,7 @@ export async function runOneShotAgent(
     context: Record<string, any> = {},
     posthog?: { client: any; distinctId: string },
     timeoutMs = 20 * 60 * 1000,
+    recursionLimit = 100,
 ): Promise<OneShotAgentResult> {
     const abortController = new AbortController()
     const callbacks = buildCallbacks(posthog, context)
@@ -105,6 +107,7 @@ export async function runOneShotAgent(
             { messages: [{ role: "user", content: input }] },
             {
                 configurable: context,
+                recursionLimit,
                 streamMode: ["updates", "custom"],
                 signal: abortController.signal,
                 runName: "gerrit-one-shot",
