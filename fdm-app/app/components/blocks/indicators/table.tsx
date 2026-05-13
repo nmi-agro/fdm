@@ -256,24 +256,41 @@ export function HeatmapTable({
                                         className={cn(
                                             thBase,
                                             "h-36 w-12 min-w-[48px] pb-2 align-bottom overflow-hidden",
-                                            onIndicatorClick && "cursor-pointer hover:bg-muted/40",
-                                            selectedIndicatorId === header.column.id &&
-                                                "bg-muted/60 ring-2 ring-inset ring-primary/50",
                                         )}
-                                        onClick={() =>
-                                            onIndicatorClick?.(
-                                                selectedIndicatorId === header.column.id
-                                                    ? null
-                                                    : header.column.id,
-                                            )
-                                        }
                                     >
-                                        <div className="flex justify-center items-end h-full overflow-hidden">
-                                            {flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext(),
-                                            )}
-                                        </div>
+                                        {onIndicatorClick ? (
+                                            <button
+                                                type="button"
+                                                className={cn(
+                                                    "flex justify-center items-end h-full w-full overflow-hidden cursor-pointer hover:bg-muted/40",
+                                                    selectedIndicatorId === header.column.id &&
+                                                        "bg-muted/60 ring-2 ring-inset ring-primary/50",
+                                                )}
+                                                aria-pressed={
+                                                    selectedIndicatorId === header.column.id
+                                                }
+                                                aria-label={`${selectedIndicatorId === header.column.id ? "Unpin" : "Pin"} indicator ${header.column.id}`}
+                                                onClick={() =>
+                                                    onIndicatorClick(
+                                                        selectedIndicatorId === header.column.id
+                                                            ? null
+                                                            : header.column.id,
+                                                    )
+                                                }
+                                            >
+                                                {flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext(),
+                                                )}
+                                            </button>
+                                        ) : (
+                                            <div className="flex justify-center items-end h-full overflow-hidden">
+                                                {flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext(),
+                                                )}
+                                            </div>
+                                        )}
                                     </th>
                                 )
                             })}
