@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { AgentTimeoutError, runOneShotAgent } from "./one-shot"
+import { AgentRecursionLimitError, AgentTimeoutError, runOneShotAgent } from "./one-shot"
 
 function makeAIMessage(
     content: string | Array<Record<string, unknown>>,
@@ -225,6 +225,24 @@ describe("runOneShotAgent", () => {
         vi.advanceTimersByTime(6000)
         await expect(runPromise).rejects.toThrow(AgentTimeoutError)
         vi.useRealTimers()
+    })
+
+    it("should wrap LangGraph recursion limit errors in AgentRecursionLimitError", async () => {
+        const agent = createThrowingAgent(
+            new Error(
+                "Recursion limit of 100 reached without hitting a stop condition.",
+            ),
+        )
+        await expect(runOneShotAgent(agent, "Generate plan")).rejects.toThrow(
+            AgentRecursionLimitError,
+        )
+    })
+
+    it("should not wrap non-recursion errors in AgentRecursionLimitError", async () => {
+        const agent = createThrowingAgent(new Error("Some other error"))
+        await expect(runOneShotAgent(agent, "Generate plan")).rejects.toThrow(
+            "Some other error",
+        )
     })
 })
 

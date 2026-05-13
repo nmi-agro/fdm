@@ -5,7 +5,7 @@ import { runOneShotAgent } from "./runners/one-shot"
 import { getMainCultivation } from "./tools/fertilizer-planner"
 
 export type { OneShotAgentResult } from "./runners/one-shot"
-export { AgentTimeoutError } from "./runners/one-shot"
+export { AgentTimeoutError, AgentRecursionLimitError } from "./runners/one-shot"
 export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
 
 export interface FertilizerPlanStrategies {

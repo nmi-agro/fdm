@@ -1,3 +1,5 @@
+import { isAIMessage, SystemMessage } from "@langchain/core/messages"
+import type { BaseMessageLike } from "@langchain/core/messages"
 import { createReactAgent } from "@langchain/langgraph/prebuilt"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
@@ -6,6 +8,11 @@ import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
 export const GERRIT_NAME = "Gerrit"
 export const GERRIT_DESCRIPTION =
     "Expert Dutch Agronomist for fertilizer application planning."
+
+/** Default soft limit on tool roundtrips before the agent is warned to wrap up. */
+export const DEFAULT_TOOL_ROUND_LIMIT = 40
+
+export const TOOL_LIMIT_WARNING = `IMPORTANT: You are approaching the maximum number of allowed tool calls. You MUST produce your final JSON response NOW using the best plan you have so far. Do NOT call any more tools — output your JSON immediately.`
 
 export const GERRIT_INSTRUCTION = `You are Gerrit, an expert Dutch Agronomist.
 Your goal is to create a legally compliant and agronomically sound fertilizer plan for the entire farm.
@@ -136,15 +143,37 @@ TOOL RETURN SHAPES:
 `
 
 /**
+ * Counts the number of tool roundtrips in the message history.
+ * A tool roundtrip is an AI message that requested tool calls.
+ */
+export function countToolRoundtrips(
+    messages: readonly { tool_calls?: unknown[] }[] | BaseMessageLike[],
+): number {
+    let count = 0
+    for (const msg of messages) {
+        if (
+            isAIMessage(msg as any) &&
+            (msg as any).tool_calls &&
+            (msg as any).tool_calls.length > 0
+        ) {
+            count++
+        }
+    }
+    return count
+}
+
+/**
  * Creates the Fertilizer Application Planner Agent: "Gerrit"
  * @param fdm The non-serializable FDM database instance.
  * @param apiKey Optional API key for the Gemini model.
  * @param model Optional model name override.
+ * @param toolRoundLimit Soft limit on tool roundtrips before the agent is warned to finalize (default: 40).
  */
 export function createFertilizerPlannerAgent(
     fdm: FdmType,
     apiKey?: string,
     model?: string,
+    toolRoundLimit: number = DEFAULT_TOOL_ROUND_LIMIT,
 ): ReturnType<typeof createReactAgent> {
     const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
     if (!resolvedKey) {
@@ -155,6 +184,13 @@ export function createFertilizerPlannerAgent(
     return createReactAgent({
         llm: createDefaultModel(resolvedKey, model),
         tools: createFertilizerPlannerTools(fdm),
-        stateModifier: GERRIT_INSTRUCTION,
+        prompt: (state): BaseMessageLike[] => {
+            const rounds = countToolRoundtrips(state.messages)
+            const systemContent =
+                rounds >= toolRoundLimit
+                    ? `${GERRIT_INSTRUCTION}\n\n${TOOL_LIMIT_WARNING}`
+                    : GERRIT_INSTRUCTION
+            return [new SystemMessage(systemContent), ...state.messages]
+        },
     })
 }

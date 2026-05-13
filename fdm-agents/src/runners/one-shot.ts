@@ -18,6 +18,15 @@ export class AgentTimeoutError extends Error {
     }
 }
 
+export class AgentRecursionLimitError extends Error {
+    constructor() {
+        super(
+            "Agent exceeded the maximum number of steps without producing a final response.",
+        )
+        this.name = "AgentRecursionLimitError"
+    }
+}
+
 /**
  * Extracts the text string from an AI message content value.
  * @langchain/google-genai can return content as an array of content parts
@@ -171,6 +180,15 @@ export async function runOneShotAgent(
 
     try {
         return await Promise.race([streamPromise, timeoutPromise])
+    } catch (err: unknown) {
+        // Wrap LangGraph recursion limit errors in a typed error
+        if (
+            err instanceof Error &&
+            err.message?.includes("Recursion limit")
+        ) {
+            throw new AgentRecursionLimitError()
+        }
+        throw err
     } finally {
         clearTimeout(timeoutHandle)
     }

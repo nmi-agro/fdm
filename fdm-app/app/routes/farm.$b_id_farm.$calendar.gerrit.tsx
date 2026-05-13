@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+    AgentRecursionLimitError,
     AgentTimeoutError,
     buildFertilizerPlanPrompt,
     createFertilizerPlannerAgent,
@@ -752,6 +753,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     return dataWithError(
                         null,
                         "Het duurde te lang om een plan te genereren. Probeer het opnieuw.",
+                    )
+                }
+                if (err instanceof AgentRecursionLimitError) {
+                    return dataWithError(
+                        null,
+                        "Gerrit heeft te veel stappen nodig om een plan te maken voor dit bedrijf. Probeer het opnieuw of vereenvoudig de instellingen.",
                     )
                 }
                 return dataWithError(
