@@ -13,11 +13,7 @@ import {
     type Bln3Score,
     type Bln3ScoreInputs,
 } from "@nmi-agro/fdm-calculator"
-import {
-    getFields,
-    type PrincipalId,
-    type Timeframe,
-} from "@nmi-agro/fdm-core"
+import { getFields, type PrincipalId, type Timeframe } from "@nmi-agro/fdm-core"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
 
@@ -45,8 +41,16 @@ export async function getIndicatorsForField({
 }): Promise<Bln3Score | null> {
     const nmiApiKey = getNmiApiKey()
 
-    const inputs = await collectInputForBln3Score(fdm, principal_id, b_id, timeframe)
-    const score = await getBln3Score(fdm, { ...inputs, nmiApiKey } as Bln3ScoreInputs)
+    const inputs = await collectInputForBln3Score(
+        fdm,
+        principal_id,
+        b_id,
+        timeframe,
+    )
+    const score = await getBln3Score(fdm, {
+        ...inputs,
+        nmiApiKey,
+    } as Bln3ScoreInputs)
     return score
 }
 
@@ -111,6 +115,7 @@ export function computeFarmAggregation(
         for (const indicator of score.indicators) {
             if (!indicatorIds.includes(indicator.indicator_id)) continue
             const value = mode === "score" ? indicator.score : indicator.index
+            if (value == null || Number.isNaN(value)) continue
             allValues.push(value)
         }
     }
