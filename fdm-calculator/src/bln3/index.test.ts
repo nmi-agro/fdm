@@ -7,7 +7,6 @@ import {
     it,
     vi,
 } from "vitest"
-import * as fdmCore from "@nmi-agro/fdm-core"
 import { getBln3Score, requestBln3Score } from "./index"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
 
