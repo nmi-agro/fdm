@@ -254,7 +254,7 @@ function GradientSoilAnalysisLegend(
         <ChartContainer
             config={{}}
             initialDimension={{ width: 200, height: 50 }}
-            className="-mx-3 -mbe-3 min-w-60 aspect-24/5"
+            className="-mx-3 last:-mbe-3 min-w-60 aspect-24/5"
         >
             <BarChart
                 className="overflow-visible"
@@ -282,7 +282,6 @@ function GradientSoilAnalysisLegend(
                 <XAxis
                     type="number"
                     domain={[min, max]}
-                    interval={0}
                     niceTicks="snap125"
                     tickFormatter={(n) =>
                         (

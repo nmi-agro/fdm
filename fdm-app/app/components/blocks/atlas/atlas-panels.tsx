@@ -1,12 +1,8 @@
 import type { FeatureCollection } from "geojson"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
-import type {
-    GeoJSONFeature,
-    MapGeoJSONFeature,
-    MapLibreZoomEvent,
-} from "maplibre-gl"
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
@@ -35,8 +31,6 @@ import { cn } from "~/lib/utils"
  * - `zoomLevelFields` is the zoom threshold after which no panel is shown
  * - `layer` is a layer ID or an array of IDs for which the panel is shown
  * - `layerExclude` can be a layerId or an array of IDs which block the panel from being shown
- * - `render` can be used to render a custom panel instead of the default one.
- *    It **SHOULD** be a stable reference since when it changes the event handlers on the map are reinstantiated.
  * - `clickRedirectsToDetailsPage`, if set to true, causes the default panel to tell the user that clicking will navigate to a different page
  * @returns the output of the render function, or a Card containing the information mentioned above.
  */
@@ -44,13 +38,11 @@ export function FieldsPanelHover({
     zoomLevelFields,
     layer,
     layerExclude,
-    render,
     clickRedirectsToDetailsPage = false,
 }: {
     zoomLevelFields: number
     layer: string[] | string
     layerExclude?: string[] | string
-    render?: (feature: GeoJSONFeature) => ReactNode
     clickRedirectsToDetailsPage?: boolean
 }) {
     const { current: map } = useMap()
@@ -129,9 +121,7 @@ export function FieldsPanelHover({
                                 ? feature.properties.b_name
                                 : feature.properties.b_lu_name
                             : "Naam"
-                        return active && render ? (
-                            render(feature)
-                        ) : (
+                        return (
                             <Card
                                 className={cn("w-full", !active && "invisible")}
                             >
@@ -202,7 +192,6 @@ export function FieldsPanelHover({
         zoomLevelFields,
         layerIdsKey,
         excludedLayerIdsKey,
-        render,
         clickRedirectsToDetailsPage,
     ])
 

@@ -35,6 +35,7 @@ import {
     type ShadedSoilParameters,
 } from "~/components/blocks/atlas/atlas-soil-analysis"
 import { FieldSourceClickable } from "~/components/blocks/atlas/atlas-sources"
+import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import {
@@ -176,8 +177,8 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
     } = useLoaderData<typeof loader>()
     const navigate = useNavigate()
 
-    const heatmapLayerId = "fieldsSaved"
-    const heatmapStrokeLayerId = "fieldsSavedStroke"
+    const heatmapLayerId = "fieldsSavedHeatmap"
+    const heatmapOutlineLayerId = "fieldsSavedHeatmapOutline"
     const selectedParameter = useSelectedAtlasSoilParameterStore(
         (store) => store.selectedParameter,
     )
@@ -233,6 +234,8 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
         min,
         max,
     )
+    const heatmapLayerOutlineStyle = getFieldsStyle(heatmapOutlineLayerId)
+
     // ViewState logic
     const initialViewState = getViewState(fieldsData)
     const [viewState, setViewState] = useState<ViewState>(() => {
@@ -355,12 +358,8 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                             layout={layerLayout}
                         />
                         <Layer
-                            id={heatmapStrokeLayerId}
-                            type="line"
-                            paint={{
-                                "line-color": "#ffffff",
-                                "line-width": 1.5,
-                            }}
+                            id={heatmapOutlineLayerId}
+                            {...heatmapLayerOutlineStyle}
                             layout={layerLayout}
                         />
                     </FieldSourceClickable>

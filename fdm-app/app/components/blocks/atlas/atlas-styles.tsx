@@ -60,6 +60,16 @@ function getFieldsStyleInner(layerId: string): LayerProps {
         }
     }
 
+    if (layerId === "fieldsSavedHeatmapOutline") {
+        return {
+            type: "line",
+            paint: {
+                "line-color": "#ffffff",
+                "line-width": 1.5,
+            },
+        }
+    }
+
     const baseFieldsFillColorExpr: ExpressionSpecification = [
         "match",
         ["get", "b_lu_croprotation"],
