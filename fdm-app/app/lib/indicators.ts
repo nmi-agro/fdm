@@ -103,7 +103,7 @@ export const INDICATORS: IndicatorInfo[] = [
         id: "C_P",
         name: "Fosfaatbeschikbaarheid",
         description:
-            "De beschikbaarheid van fosfor vanuit de bodem voor het gewas",
+            "De beschikbaarheid van fosfaat vanuit de bodem voor het gewas",
         category: "Chemisch",
     },
     {

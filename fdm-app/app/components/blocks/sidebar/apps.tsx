@@ -398,12 +398,9 @@ export function SidebarApps() {
                                                 <SidebarMenuSubButton
                                                     asChild
                                                     isActive={
-                                                        location.pathname.includes(
-                                                            indicatorsLink,
-                                                        ) &&
-                                                        !location.pathname.includes(
-                                                            "/atlas",
-                                                        )
+                                                        !!indicatorsLink &&
+                                                        (location.pathname === indicatorsLink ||
+                                                         location.pathname === indicatorsLink + '/')
                                                     }
                                                 >
                                                     <NavLink to={indicatorsLink}>
