@@ -129,14 +129,24 @@ export function SidebarApps() {
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <Collapsible
-                            defaultOpen={location.pathname.includes("/atlas") && !location.pathname.includes("/indicators")}
+                            defaultOpen={
+                                location.pathname.includes("/atlas") &&
+                                !location.pathname.includes("/indicators")
+                            }
                             className="group/collapsible"
                         >
                             <SidebarMenuItem>
                                 {atlasLink ? (
                                     <CollapsibleTrigger asChild>
                                         <SidebarMenuButton
-                                            isActive={location.pathname.includes("/atlas") && !location.pathname.includes("/indicators")}
+                                            isActive={
+                                                location.pathname.includes(
+                                                    "/atlas",
+                                                ) &&
+                                                !location.pathname.includes(
+                                                    "/indicators",
+                                                )
+                                            }
                                         >
                                             <MapIcon />
                                             <span>Atlas</span>
@@ -355,7 +365,9 @@ export function SidebarApps() {
                             )}
                         </SidebarMenuItem>
                         <Collapsible
-                            defaultOpen={location.pathname.includes("/indicators")}
+                            defaultOpen={location.pathname.includes(
+                                "/indicators",
+                            )}
                             className="group/collapsible"
                         >
                             <SidebarMenuItem>
@@ -398,12 +410,15 @@ export function SidebarApps() {
                                                 <SidebarMenuSubButton
                                                     asChild
                                                     isActive={
-                                                        !!indicatorsLink &&
-                                                        (location.pathname === indicatorsLink ||
-                                                         location.pathname === indicatorsLink + '/')
+                                                        location.pathname ===
+                                                            indicatorsLink ||
+                                                        location.pathname ===
+                                                            `${indicatorsLink}/`
                                                     }
                                                 >
-                                                    <NavLink to={indicatorsLink}>
+                                                    <NavLink
+                                                        to={indicatorsLink}
+                                                    >
                                                         <span>Tabel</span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
@@ -417,7 +432,9 @@ export function SidebarApps() {
                                                         indicatorsKaartLink,
                                                     )}
                                                 >
-                                                    <NavLink to={indicatorsKaartLink}>
+                                                    <NavLink
+                                                        to={indicatorsKaartLink}
+                                                    >
                                                         <span>Kaart</span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
