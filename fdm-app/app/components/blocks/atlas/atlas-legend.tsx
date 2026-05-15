@@ -22,6 +22,7 @@ import { Spinner } from "~/components/ui/spinner"
 import {
     GRADIENT_DEFINITIONS,
     GRADIENT_SHADED_SOIL_PARAMETERS,
+    getGradientStops,
     getShadedSoilParameters,
     getShadingParameterMapper,
     SHADED_SOIL_TYPES,
@@ -267,27 +268,17 @@ function GradientSoilAnalysisLegend(
 
     const parameterMapper = getShadingParameterMapper(props.selectedParameter)
 
-    let min = props.min ?? 0
-    let max = props.max ?? 1
-    if (typeof gradDef.center === "number") {
-        const radius = Math.max(max - gradDef.center, gradDef.center - min)
-        min = gradDef.center - radius
-        max = gradDef.center + radius
-    }
+    const min = props.min ?? 0
+    const max = props.max ?? 1
 
     const chartData = [{ name: "Legenda", min: min, max: max }]
-    const gradient = gradDef.gradient
+    const gradient = getGradientStops(
+        gradDef.gradient,
+        min,
+        max,
+        gradDef.center,
+    )
 
-    const gradientSvg: React.ReactNode[] = []
-    for (let i = 0; i < gradient.length; i += 2) {
-        gradientSvg.push(
-            <stop
-                key={i}
-                offset={`${100 * (gradient[i] as number)}%`}
-                stopColor={gradient[i + 1] as string}
-            />,
-        )
-    }
     return (
         <ChartContainer
             config={{}}
@@ -303,7 +294,13 @@ function GradientSoilAnalysisLegend(
             >
                 <defs>
                     <linearGradient id={gradientId} x1="0" y1="1" x2="0" y2="0">
-                        {gradientSvg}
+                        {gradient.map((stop) => (
+                            <stop
+                                key={stop.normalPosition}
+                                offset={`${stop.normalPosition * 100}%`}
+                                stopColor={stop.color}
+                            />
+                        ))}
                     </linearGradient>
                 </defs>
                 <XAxis type="category" tickLine={false} hide />

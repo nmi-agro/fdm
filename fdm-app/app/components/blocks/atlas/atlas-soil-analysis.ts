@@ -135,6 +135,59 @@ export function getShadedSoilParameters() {
     ] as { parameter: ShadedSoilParameters; shading: "gradient" | "enum" }[]
 }
 
+export function getGradientStops(
+    gradient: (string | number)[],
+    min: number,
+    max: number,
+    center: number | undefined,
+) {
+    let fromMin = min
+    let fromMax = max
+    let toMin = 0
+    let toMax = 1
+
+    if (typeof center !== "undefined") {
+        if (min <= center && max <= center) {
+            toMax = 0.5
+        }
+
+        if (min >= center && max >= center) {
+            toMin = 0.5
+        }
+
+        if (min <= center && max >= center) {
+            const radius = Math.max(max - center, center - min)
+            fromMin = center - radius
+            toMin = center + radius
+        }
+    }
+
+    if (Math.abs(fromMax - fromMin) < 0.001) {
+        fromMax = fromMin + 0.001
+    }
+
+    if (Math.abs(toMax - toMin) < 0.001) {
+        toMax = toMin + 0.001
+    }
+
+    const stops: { normalPosition: number; position: number; color: string }[] =
+        []
+
+    for (let i = 0; i < gradient.length - 1; i += 2) {
+        const originalPos = gradient[i] as number
+        const originalCol = gradient[i + 1] as string
+
+        const t = (originalPos - toMin) / (toMax - toMin)
+        stops.push({
+            normalPosition: t,
+            position: fromMin + t * (fromMax - fromMin),
+            color: originalCol,
+        })
+    }
+
+    return stops
+}
+
 export function getSoilAnalysisLayerStyle(
     parameter: ShadedSoilParameters,
     min: number,
@@ -177,30 +230,6 @@ export function getSoilAnalysisLayerStyle(
                 "#777777",
             ]
         }
-        if (typeof fillColor.center !== "undefined") {
-            // Cover as much range as needed but still keep the center (for example for pH display, where 7 is the center)
-            const radius = Math.max(
-                max - fillColor.center,
-                fillColor.center - min,
-            )
-            const newMin = fillColor.center - radius
-            const newMax = fillColor.center + radius
-            return {
-                type: "fill",
-                paint: {
-                    "fill-color": greyIfUndefined([
-                        "interpolate",
-                        ["linear"],
-                        dataGetter,
-                        ...fillColor.gradient.map((item) =>
-                            typeof item === "string"
-                                ? item
-                                : (newMax - newMin) * item + newMin,
-                        ),
-                    ]),
-                },
-            }
-        }
 
         return {
             type: "fill",
@@ -209,11 +238,12 @@ export function getSoilAnalysisLayerStyle(
                     "interpolate",
                     ["linear"],
                     dataGetter,
-                    ...fillColor.gradient.map((item) =>
-                        typeof item === "string"
-                            ? item
-                            : (max - min) * item + min,
-                    ),
+                    ...getGradientStops(
+                        fillColor.gradient,
+                        min,
+                        max,
+                        fillColor.center,
+                    ).flatMap((stop) => [stop.position, stop.color]),
                 ]),
             },
         }
