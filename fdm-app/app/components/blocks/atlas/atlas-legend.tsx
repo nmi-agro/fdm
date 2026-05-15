@@ -10,14 +10,8 @@ import {
     XAxis,
     YAxis,
 } from "recharts"
-import { Card, CardContent } from "~/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ChartContainer } from "~/components/ui/chart"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-} from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import {
     GRADIENT_DEFINITIONS,
@@ -117,19 +111,13 @@ export function ElevationLegend({
 interface SoilAnalysisLegendProps {
     fieldsData?: FeatureCollection<Geometry, GeoJsonProperties>
     selectedParameter: ShadedSoilParameters
-    setSelectedParameter: (parameter: ShadedSoilParameters) => void
     soilParametersDescriptions: SoilParameterDescription
     min?: number
     max?: number
 }
 
 export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
-    const {
-        fieldsData,
-        selectedParameter,
-        setSelectedParameter,
-        soilParametersDescriptions,
-    } = props
+    const { fieldsData, selectedParameter } = props
 
     // Parameter shading config
     const shadingConfig = Object.fromEntries(
@@ -142,69 +130,50 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
         )
     }
 
-    // Parameter description
-    const soilParameterOptions = soilParametersDescriptions.filter(
-        (item) => item.parameter in shadingConfig,
-    )
-    const parameterDescription = soilParametersDescriptions.find(
-        (opt) => opt.parameter === selectedParameter,
-    )
-
     const anyDataAvailable = fieldsData?.features.some(
         (feature) =>
             feature.properties && selectedParameter in feature.properties,
     )
 
+    const parameterDescription = props.soilParametersDescriptions.find(
+        (item) => item.parameter === props.selectedParameter,
+    )
+
+    const unitDisplay =
+        parameterDescription?.unit && parameterDescription.unit !== "-"
+            ? ` (${parameterDescription.unit})`
+            : ""
+    const title = parameterDescription
+        ? `${parameterDescription.name}${unitDisplay}`
+        : undefined
+
     return (
-        <Card className="p-4 space-y-4 flex-initial min-h-0 overflow-y-auto">
-            <Select
-                value={selectedParameter}
-                onValueChange={(val) =>
-                    setSelectedParameter(val as ShadedSoilParameters)
-                }
-            >
-                <SelectTrigger className="sticky top-0 z-10 bg-white hover:bg-gray-100!">
-                    {parameterDescription?.name}
-                </SelectTrigger>
-                {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
-                <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
-                    {soilParameterOptions.map((opt) => {
-                        return (
-                            <SelectItem
-                                key={opt.parameter}
-                                value={opt.parameter}
-                            >
-                                <div>
-                                    <div className="font-medium">
-                                        {opt.name}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {opt.description}
-                                    </div>
-                                </div>
-                            </SelectItem>
-                        )
-                    })}
-                </SelectContent>
-            </Select>
-            {!shadingConfig[selectedParameter] ? null : shadingConfig[
-                  selectedParameter
-              ].shading === "enum" ? (
-                <EnumSoilAnalysisLegend {...props} />
-            ) : (
-                <GradientSoilAnalysisLegend
-                    {...props}
-                    selectedParameter={selectedParameter}
-                />
-            )}
-            {fieldsData &&
-                fieldsData.features.length > 0 &&
-                !anyDataAvailable && (
-                    <p className="flex flex-row items-center gap-2">
-                        <TriangleAlert className="h-4 w-4 text-orange-500" />
-                        Geen data op hele bedrijf
-                    </p>
+        <Card className="p-4 space-y-2 flex-initial min-h-0 overflow-y-auto">
+            <CardHeader className="p-0">
+                <CardTitle className="text-xs text-center text-muted-foreground">
+                    {title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+                {!shadingConfig[selectedParameter] ? null : shadingConfig[
+                      selectedParameter
+                  ].shading === "enum" ? (
+                    <EnumSoilAnalysisLegend {...props} />
+                ) : (
+                    <GradientSoilAnalysisLegend
+                        {...props}
+                        selectedParameter={selectedParameter}
+                    />
                 )}
+                {fieldsData &&
+                    fieldsData.features.length > 0 &&
+                    !anyDataAvailable && (
+                        <p className="flex flex-row items-center gap-2 text-[10pt]">
+                            <TriangleAlert className="h-4 w-4 text-orange-500" />
+                            Geen data op hele bedrijf
+                        </p>
+                    )}
+            </CardContent>
         </Card>
     )
 }
@@ -233,11 +202,13 @@ function EnumSoilAnalysisLegend(props: SoilAnalysisLegendProps) {
                     <tr key={opt.value}>
                         <td className="align-middle">
                             <div
-                                className="size-3"
+                                className="size-3 rounded"
                                 style={{ backgroundColor: opt.fill }}
                             />
                         </td>
-                        <td className="align-middle">{opt.label}</td>
+                        <td className="align-middle text-sm text-muted-foreground">
+                            {opt.label}
+                        </td>
                     </tr>
                 ))}
             </tbody>
@@ -282,18 +253,23 @@ function GradientSoilAnalysisLegend(
     return (
         <ChartContainer
             config={{}}
-            initialDimension={{ width: 40, height: 60 }}
-            className="aspect-4/6"
+            initialDimension={{ width: 200, height: 50 }}
+            className="-mx-3 -mbe-3 min-w-60 aspect-24/5"
         >
             <BarChart
                 className="overflow-visible"
-                width={40}
-                barSize={50}
+                barSize={20}
                 data={chartData}
-                layout="horizontal"
+                layout="vertical"
+                margin={{
+                    left: 15,
+                    right: 15,
+                    top: 0,
+                    bottom: 0,
+                }}
             >
                 <defs>
-                    <linearGradient id={gradientId} x1="0" y1="1" x2="0" y2="0">
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
                         {gradient.map((stop) => (
                             <stop
                                 key={stop.normalPosition}
@@ -303,8 +279,7 @@ function GradientSoilAnalysisLegend(
                         ))}
                     </linearGradient>
                 </defs>
-                <XAxis type="category" tickLine={false} hide />
-                <YAxis
+                <XAxis
                     type="number"
                     domain={[min, max]}
                     interval={0}
@@ -315,6 +290,7 @@ function GradientSoilAnalysisLegend(
                         ).toString()
                     }
                 />
+                <YAxis type="category" dataKey="name" tickLine={false} hide />
                 <Bar
                     isAnimationActive={false}
                     dataKey={(

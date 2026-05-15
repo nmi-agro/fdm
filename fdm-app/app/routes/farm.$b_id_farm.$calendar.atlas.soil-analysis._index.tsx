@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
     Layer,
     Map as MapGL,
+    type MapMouseEvent,
     type MapRef,
     type ViewState,
     type ViewStateChangeEvent,
@@ -23,19 +24,25 @@ import {
     useLoaderData,
     useNavigate,
 } from "react-router"
-import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { SoilAnalysisLegend } from "~/components/blocks/atlas/atlas-legend"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import {
+    getShadedSoilParameters,
     getShadingParameterMapper,
     getSoilAnalysisLayerStyle,
     SHADED_SOIL_TYPES,
+    type ShadedSoilParameters,
 } from "~/components/blocks/atlas/atlas-soil-analysis"
 import { FieldSourceClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Card, CardContent, CardHeader } from "~/components/ui/card"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+} from "~/components/ui/select"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -159,7 +166,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * This component consumes preloaded farm field data to compute the map's view state and stylize the field boundaries.
  * It integrates geolocation and navigation controls, wraps the field layer in a non-interactive source, and includes a panel for displaying additional field details on hover.
  */
-export default function FarmAtlasFieldSoilBlock() {
+export default function FarmAtlasFieldSoilAnalysisBlock() {
     const {
         calendar,
         b_id_farm,
@@ -207,6 +214,16 @@ export default function FarmAtlasFieldSoilBlock() {
             : [defaultedMin, defaultedMax]
     }, [selectedParameter, fieldsData, soilParametersDescriptions])
 
+    // Parameter shading config
+    const shadingConfig = Object.fromEntries(
+        getShadedSoilParameters().map((item) => [item.parameter, item]),
+    )
+
+    // Parameter description
+    const soilParameterOptions = soilParametersDescriptions.filter(
+        (item) => item.parameter in shadingConfig,
+    )
+
     const parameterDescription = soilParametersDescriptions.find(
         (item) => item.parameter === selectedParameter,
     )
@@ -233,6 +250,12 @@ export default function FarmAtlasFieldSoilBlock() {
     })
 
     const [showFields, setShowFields] = useState(true)
+    type HoverInfo = {
+        x: number
+        y: number
+        feature: GeoJSONFeature
+    }
+    const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
 
     const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
         setViewState(event.viewState)
@@ -255,132 +278,222 @@ export default function FarmAtlasFieldSoilBlock() {
 
     const layerLayout = { visibility: showFields ? "visible" : "none" } as const
 
-    const renderHoverPanel = useCallback(
-        (feature: GeoJSONFeature) => {
-            const value = feature.properties[selectedParameter]
-            return (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>
-                            {feature.properties.b_name}
-                            <span className="float-end text-muted-foreground font-normal">
-                                {feature.properties.b_area} ha
-                            </span>
-                        </CardTitle>
+    const onMouseMove = useCallback((e: MapMouseEvent) => {
+        const feature = e.features?.[0]
+        if (feature) {
+            setHoverInfo({
+                x: e.point.x,
+                y: e.point.y,
+                feature: feature,
+            })
+        } else {
+            setHoverInfo(null)
+        }
+    }, [])
+
+    const onMouseLeave = useCallback(() => setHoverInfo(null), [])
+
+    return (
+        <div className="relative">
+            <MapGL
+                {...viewState}
+                ref={mapRef}
+                style={{ height: "calc(100vh - 64px)", width: "100%" }}
+                interactive={true}
+                mapStyle={mapStyle}
+                mapLib={maplibregl}
+                interactiveLayerIds={[heatmapLayerId]}
+                onMove={onViewportChange}
+                onMouseMove={onMouseMove}
+                onMouseLeave={onMouseLeave}
+            >
+                <Controls
+                    onViewportChange={({ longitude, latitude, zoom }) =>
+                        setViewState((currentViewState) => ({
+                            ...currentViewState,
+                            longitude,
+                            latitude,
+                            zoom,
+                            pitch: currentViewState.pitch, // Ensure pitch is carried over
+                            bearing: currentViewState.bearing, // Ensure bearing is carried over
+                        }))
+                    }
+                    showFields={showFields}
+                    onToggleFields={() => setShowFields(!showFields)}
+                    showFlyToFields={
+                        fieldsData && fieldsData.features.length > 0
+                            ? true
+                            : undefined
+                    }
+                    onFlyToFields={() => {
+                        setViewState({ ...initialViewState })
+                        if (initialViewState.bounds) {
+                            mapRef.current?.fitBounds(
+                                initialViewState.bounds,
+                                initialViewState.fitBoundsOptions,
+                            )
+                        }
+                    }}
+                />
+
+                <MapTilerAttribution />
+
+                {fieldsData && (
+                    <FieldSourceClickable
+                        id={heatmapLayerId}
+                        fieldsData={fieldsData}
+                        onFieldClick={(feature) => {
+                            navigate(
+                                `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,
+                            )
+                        }}
+                    >
+                        <Layer
+                            id={heatmapLayerId}
+                            {...heatmapLayerStyle}
+                            source={heatmapLayerId}
+                            layout={layerLayout}
+                        />
+                        <Layer
+                            id={heatmapStrokeLayerId}
+                            type="line"
+                            paint={{
+                                "line-color": "#ffffff",
+                                "line-width": 1.5,
+                            }}
+                            layout={layerLayout}
+                        />
+                    </FieldSourceClickable>
+                )}
+            </MapGL>
+            {/* Soil Parameter Dropdown */}
+            <Card className="absolute top-3 left-3 z-10 w-52 shadow-md bg-background/90 backdrop-blur-sm">
+                <CardContent className="p-2">
+                    <Select
+                        value={selectedParameter}
+                        onValueChange={(val) =>
+                            setSelectedParameter(val as ShadedSoilParameters)
+                        }
+                    >
+                        <SelectTrigger className="w-full text-xs h-8">
+                            {parameterDescription?.name}
+                        </SelectTrigger>
+                        {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
+                        <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
+                            {soilParameterOptions.map((opt) => {
+                                return (
+                                    <SelectItem
+                                        key={opt.parameter}
+                                        value={opt.parameter}
+                                    >
+                                        <div>
+                                            <div className="font-medium">
+                                                {opt.name}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {opt.description}
+                                            </div>
+                                        </div>
+                                    </SelectItem>
+                                )
+                            })}
+                        </SelectContent>
+                    </Select>
+                </CardContent>
+            </Card>
+            {/* Hover tooltip */}
+            {hoverInfo && (
+                <Card
+                    className="absolute z-20 pointer-events-none bg-background/95 backdrop-blur-sm px-3 py-2 shadow-md text-xs min-w-[160px]"
+                    style={{
+                        left: hoverInfo.x + 12,
+                        top: hoverInfo.y - 8,
+                        transform: "translateY(-100%)",
+                    }}
+                >
+                    <CardHeader className="p-0 mb-1.5">
+                        <p className="font-semibold text-foreground">
+                            {hoverInfo.feature.properties.b_name}
+                        </p>
+                        {hoverInfo.feature.properties.b_area != null && (
+                            <p className="text-muted-foreground mt-0.5">
+                                {Number(
+                                    hoverInfo.feature.properties.b_area,
+                                ).toFixed(2)}{" "}
+                                ha
+                            </p>
+                        )}
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="mt-1.5 p-0 pt-1.5 border-t flex items-center justify-between gap-3">
                         <p className="text-muted-foreground">
                             {parameterDescription?.name}
                         </p>
-                        {typeof value === "undefined" ? (
+                        {typeof hoverInfo.feature.properties[
+                            selectedParameter
+                        ] === "undefined" ? (
                             <p>Geen data</p>
                         ) : parameterDescription?.type === "date" ? (
                             <p>
-                                {formatDate(value, "PP", {
-                                    locale: nl,
-                                })}
+                                {formatDate(
+                                    typeof hoverInfo.feature.properties[
+                                        selectedParameter
+                                    ],
+                                    "PP",
+                                    {
+                                        locale: nl,
+                                    },
+                                )}
                             </p>
                         ) : selectedParameter === "b_soiltype_agr" ? (
                             <p>
+                                <span
+                                    className="inline-block me-0.5 size-2.5 rounded align-middle"
+                                    style={{
+                                        backgroundColor:
+                                            SHADED_SOIL_TYPES.find(
+                                                (item) =>
+                                                    item.value ===
+                                                    hoverInfo.feature
+                                                        .properties[
+                                                        selectedParameter
+                                                    ],
+                                            )?.fill ?? "#777777",
+                                    }}
+                                />
                                 {SHADED_SOIL_TYPES.find(
-                                    (item) => item.value === value,
-                                )?.label ?? value}
+                                    (item) =>
+                                        item.value ===
+                                        hoverInfo.feature.properties[
+                                            selectedParameter
+                                        ],
+                                )?.label ??
+                                    hoverInfo.feature.properties[
+                                        selectedParameter
+                                    ]}
                             </p>
                         ) : (
                             <p>
-                                {value} {parameterDescription?.unit}
+                                {
+                                    hoverInfo.feature.properties[
+                                        selectedParameter
+                                    ]
+                                }{" "}
+                                {parameterDescription?.unit}
                             </p>
                         )}
                     </CardContent>
                 </Card>
-            )
-        },
-        [selectedParameter, parameterDescription],
-    )
-
-    return (
-        <MapGL
-            {...viewState}
-            ref={mapRef}
-            style={{ height: "calc(100vh - 64px)", width: "100%" }}
-            interactive={true}
-            mapStyle={mapStyle}
-            mapLib={maplibregl}
-            interactiveLayerIds={[heatmapLayerId]}
-            onMove={onViewportChange}
-        >
-            <Controls
-                onViewportChange={({ longitude, latitude, zoom }) =>
-                    setViewState((currentViewState) => ({
-                        ...currentViewState,
-                        longitude,
-                        latitude,
-                        zoom,
-                        pitch: currentViewState.pitch, // Ensure pitch is carried over
-                        bearing: currentViewState.bearing, // Ensure bearing is carried over
-                    }))
-                }
-                showFields={showFields}
-                onToggleFields={() => setShowFields(!showFields)}
-                showFlyToFields={
-                    fieldsData && fieldsData.features.length > 0
-                        ? true
-                        : undefined
-                }
-                onFlyToFields={() => {
-                    setViewState({ ...initialViewState })
-                    if (initialViewState.bounds) {
-                        mapRef.current?.fitBounds(
-                            initialViewState.bounds,
-                            initialViewState.fitBoundsOptions,
-                        )
-                    }
-                }}
-            />
-
-            <MapTilerAttribution />
-
-            {fieldsData && (
-                <FieldSourceClickable
-                    id={heatmapLayerId}
-                    fieldsData={fieldsData}
-                    onFieldClick={(feature) => {
-                        navigate(
-                            `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,
-                        )
-                    }}
-                >
-                    <Layer
-                        id={heatmapLayerId}
-                        {...heatmapLayerStyle}
-                        source={heatmapLayerId}
-                        layout={layerLayout}
-                    />
-                    <Layer
-                        id={heatmapStrokeLayerId}
-                        type="line"
-                        paint={{ "line-color": "#ffffff", "line-width": 1.5 }}
-                        layout={layerLayout}
-                    />
-                </FieldSourceClickable>
             )}
-
-            <div className="fields-panel" style={{ maxWidth: "200px" }}>
+            {/* Soil Analysis Color Legend */}
+            <div className="absolute left-4 bottom-9 pointer-none">
                 <SoilAnalysisLegend
                     fieldsData={fieldsData}
                     selectedParameter={selectedParameter}
-                    setSelectedParameter={setSelectedParameter}
                     soilParametersDescriptions={soilParametersDescriptions}
                     min={min}
                     max={max}
                 />
-                <FieldsPanelHover
-                    zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                    layer={[heatmapLayerId]}
-                    clickRedirectsToDetailsPage={true}
-                    render={renderHoverPanel}
-                />
             </div>
-        </MapGL>
+        </div>
     )
 }

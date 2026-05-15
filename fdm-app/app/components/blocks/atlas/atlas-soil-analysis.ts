@@ -32,7 +32,7 @@ const COLORBREWER_RDBU = evenlySpaced(
 export const SHADED_SOIL_TYPES = [
     { value: "moerige_klei", label: "Moerige klei", fill: "#D37FD0" },
     { value: "rivierklei", label: "Rivierklei", fill: "#81FE00" },
-    { value: "dekzand", label: "Dekzand", fill: "#FFF99" },
+    { value: "dekzand", label: "Dekzand", fill: "#FFFF99" },
     { value: "zeeklei", label: "Zeeklei", fill: "#32AA00" },
     { value: "dalgrond", label: "Dalgrond", fill: "#D37FD0" },
     { value: "veen", label: "Veen", fill: "#6A1EB5" },
