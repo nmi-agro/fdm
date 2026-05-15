@@ -7,7 +7,6 @@ import {
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
-import { Sprout } from "lucide-react"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import {
