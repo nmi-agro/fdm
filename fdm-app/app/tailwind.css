@@ -190,7 +190,6 @@
     writing-mode: vertical-rl;
     text-orientation: mixed;
     transform: rotate(180deg);
-    white-space: nowrap;
 }
 
 /* MapLibre Geocoder Fixes */

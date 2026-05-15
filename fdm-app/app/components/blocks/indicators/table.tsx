@@ -121,7 +121,7 @@ export function HeatmapTable({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <span
-                                    className="vertical-header text-[11px] font-medium text-foreground cursor-default"
+                                    className="vertical-header text-[11px] font-medium text-foreground cursor-default self-stretch break-words"
                                 >
                                     {ind.name}
                                 </span>
