@@ -1,5 +1,5 @@
-import { isAIMessage } from "@langchain/core/messages"
-import type { BaseMessageLike } from "@langchain/core/messages"
+import { AIMessage } from "@langchain/core/messages"
+import type { BaseMessage } from "@langchain/core/messages"
 import { createAgent, dynamicSystemPromptMiddleware } from "langchain"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
@@ -13,7 +13,8 @@ export const GERRIT_DESCRIPTION =
 /** Default soft limit on tool roundtrips before the agent is warned to wrap up. */
 export const DEFAULT_TOOL_ROUND_LIMIT = 40
 
-export const TOOL_LIMIT_WARNING = `IMPORTANT: You are approaching the maximum number of allowed tool calls. You MUST produce your final JSON response NOW using the best plan you have so far. Do NOT call any more tools — output your JSON immediately.`
+export const TOOL_LIMIT_WARNING =
+    "IMPORTANT: You are approaching the maximum number of allowed tool calls. You MUST produce your final JSON response NOW using the best plan you have so far. Do NOT call any more tools — output your JSON immediately."
 
 export const GERRIT_INSTRUCTION = `You are Gerrit, an expert Dutch Agronomist.
 Your goal is to create a legally compliant and agronomically sound fertilizer plan for the entire farm.
@@ -147,20 +148,27 @@ TOOL RETURN SHAPES:
  * Counts the number of tool roundtrips in the message history.
  * A tool roundtrip is an AI message that requested tool calls.
  */
-export function countToolRoundtrips(
-    messages: readonly { tool_calls?: unknown[] }[] | BaseMessageLike[],
-): number {
+export function countToolRoundtrips(messages: readonly BaseMessage[]): number {
     let count = 0
     for (const msg of messages) {
         if (
-            isAIMessage(msg as any) &&
-            (msg as any).tool_calls &&
-            (msg as any).tool_calls.length > 0
+            AIMessage.isInstance(msg) &&
+            msg.tool_calls &&
+            msg.tool_calls.length > 0
         ) {
             count++
         }
     }
     return count
+}
+
+/**
+ * Minimal interface for an agent that can be streamed through runOneShotAgent.
+ * Using an explicit structural type prevents leaking internal fdm-calculator
+ * types (e.g. DierlijkeMestGebruiksnormResult) into the package's declaration files.
+ */
+export type AgentGraph = {
+    stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
 }
 
 /**
@@ -175,7 +183,7 @@ export function createFertilizerPlannerAgent(
     apiKey?: string,
     modelName?: string,
     toolRoundLimit: number = DEFAULT_TOOL_ROUND_LIMIT,
-) {
+): AgentGraph {
     const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
     if (!resolvedKey) {
         throw new Error(
@@ -183,6 +191,8 @@ export function createFertilizerPlannerAgent(
         )
     }
     return createAgent({
+        name: GERRIT_NAME,
+        description: GERRIT_DESCRIPTION,
         model: createDefaultModel(resolvedKey, modelName),
         tools: createFertilizerPlannerTools(fdm),
         middleware: [
@@ -194,5 +204,5 @@ export function createFertilizerPlannerAgent(
             }),
         ],
         responseFormat: FertilizerPlanSchema,
-    })
+    }) as unknown as AgentGraph
 }

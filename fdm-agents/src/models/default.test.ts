@@ -24,6 +24,7 @@ describe("Default Model", () => {
             expect.objectContaining({
                 apiKey: "fake-api-key",
                 model: "gemini-3.1-pro-preview",
+                maxOutputTokens: 65536,
             }),
         )
     })
@@ -36,6 +37,7 @@ describe("Default Model", () => {
             expect.objectContaining({
                 apiKey: "fake-api-key",
                 model: "custom-model",
+                maxOutputTokens: 65536,
             }),
         )
     })

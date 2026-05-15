@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { isAIMessage } from "@langchain/core/messages"
 import type { LangChainCallbackHandler } from "@posthog/ai/langchain"
+import type { AgentGraph } from "../agents/gerrit/agent"
 
 export interface OneShotAgentResult {
     result: string
@@ -49,11 +50,6 @@ function extractTextContent(content: unknown): string {
     return JSON.stringify(content)
 }
 
-// Structural type for any LangGraph compiled agent graph
-interface StreamableAgentGraph {
-    stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
-}
-
 function buildCallbacks(
     posthog?: { client: any; distinctId: string },
     context?: Record<string, any>,
@@ -91,7 +87,7 @@ function buildCallbacks(
  * @returns The final response and token usage from the agent.
  */
 export async function runOneShotAgent(
-    agent: StreamableAgentGraph,
+    agent: AgentGraph,
     input: string,
     context: Record<string, any> = {},
     posthog?: { client: any; distinctId: string },

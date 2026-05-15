@@ -9,6 +9,7 @@ export { AgentTimeoutError, AgentRecursionLimitError } from "./runners/one-shot"
 export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
 export { FertilizerPlanSchema } from "./agents/gerrit/schema"
 export type { FertilizerPlanOutput } from "./agents/gerrit/schema"
+export type { AgentGraph } from "./agents/gerrit/agent"
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */
@@ -39,7 +40,7 @@ export const FertilizerPlanStrategiesSchema = z.object({
 export interface FarmFieldSummary {
     b_id: string
     b_name: string
-    b_area: number
+    b_area: number | null
     b_bufferstrip: boolean
     b_lu_catalogue: string
     b_lu_name: string

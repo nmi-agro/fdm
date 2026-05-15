@@ -781,7 +781,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         "Gerrit heeft te veel stappen nodig om een plan te maken voor dit bedrijf. Probeer het opnieuw of vereenvoudig de instellingen.",
                     )
                 }
-                console.error(`[gerrit] Agent error (run: ${runId ?? "unknown"}):`, err)
+                console.error("[gerrit] Agent error (run: unknown):", err)
                 return dataWithError(
                     null,
                     err instanceof Error
@@ -792,15 +792,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
             // Prefer structured output from responseFormat, fall back to string parsing
             let parsedPlan: ParsedPlan
-            if (structuredResponse) {
-                const validated = FertilizerPlanSchema.safeParse(structuredResponse)
-                if (validated.success) {
-                    parsedPlan = validated.data as unknown as ParsedPlan
-                } else {
-                    // Structured response didn't match schema — treat as raw
-                    parsedPlan = structuredResponse as unknown as ParsedPlan
-                }
+            const useStructured = structuredResponse
+                ? FertilizerPlanSchema.safeParse(structuredResponse)
+                : null
+
+            if (useStructured?.success) {
+                parsedPlan = useStructured.data as unknown as ParsedPlan
             } else {
+                if (structuredResponse && !useStructured?.success) {
+                    console.warn(
+                        "[gerrit] structuredResponse failed schema validation, falling back to raw text",
+                        useStructured?.error?.flatten(),
+                    )
+                }
                 // Fallback: extract JSON from raw text response
                 const firstBrace = rawResult.indexOf("{")
                 const lastBrace = rawResult.lastIndexOf("}")

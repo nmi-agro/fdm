@@ -65,6 +65,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
     const getFarmFieldsTool = tool(
         async (input: any, config?: RunnableConfig) => {
             const principalId = config?.configurable?.principalId as PrincipalId
+            if (!principalId) {
+                throw new Error("Missing principalId in agent context")
+            }
             const timeframe = {
                 start: new Date(`${input.calendar}-01-01`),
                 end: new Date(`${input.calendar}-12-31`),
