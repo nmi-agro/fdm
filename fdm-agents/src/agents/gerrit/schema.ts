@@ -4,7 +4,10 @@ import { z } from "zod"
  * Zod schema for a single fertilizer application within a field plan entry.
  */
 export const FertilizerApplicationSchema = z.object({
-    p_id_catalogue: z.string().describe("Catalogue ID of the fertilizer"),
+    p_id_catalogue: z
+        .string()
+        .regex(/^[A-Za-z0-9_-]+$/, "Catalogue ID must contain only ASCII alphanumeric characters, underscores, or hyphens")
+        .describe("Catalogue ID of the fertilizer"),
     p_app_amount: z.number().describe("Application amount in kg/ha"),
     p_app_amount_display: z
         .number()

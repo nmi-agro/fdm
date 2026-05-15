@@ -317,12 +317,14 @@ async function computePlanMetrics(
 
                 const syntheticApps: FertilizerApplication[] =
                     field.applications.map((app, i) => {
+                        const sanitizedCatalogueId =
+                            app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
                         const fert = fertilizers.find(
-                            (f) => f.p_id_catalogue === app.p_id_catalogue,
+                            (f) => f.p_id_catalogue === sanitizedCatalogueId,
                         )
                         return {
-                            p_id: fert?.p_id ?? app.p_id_catalogue,
-                            p_id_catalogue: app.p_id_catalogue,
+                            p_id: fert?.p_id ?? sanitizedCatalogueId,
+                            p_id_catalogue: sanitizedCatalogueId,
                             p_name_nl: fert?.p_name_nl ?? null,
                             p_app_amount: app.p_app_amount,
                             p_app_date: new Date(app.p_app_date),
@@ -859,9 +861,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     b_bufferstrip: fd.b_bufferstrip ?? false,
                     applications: (proposedField?.applications || []).map(
                         (app) => {
+                            const sanitizedCatalogueId =
+                                app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
                             const fert = fertilizers.find(
                                 (f: Fertilizer) =>
-                                    f.p_id_catalogue === app.p_id_catalogue,
+                                    f.p_id_catalogue === sanitizedCatalogueId,
                             )
                             const methodMeta =
                                 applicationMethods?.options?.find(
@@ -889,9 +893,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                                       }
                             return {
                                 ...app,
+                                p_id_catalogue: sanitizedCatalogueId,
                                 ...unitConvertedAmount,
                                 p_name_nl:
-                                    fert?.p_name_nl || app.p_id_catalogue,
+                                    fert?.p_name_nl || sanitizedCatalogueId,
                                 p_type: fert?.p_type || "other",
                                 p_app_method_name:
                                     methodMeta?.label ?? app.p_app_method,
