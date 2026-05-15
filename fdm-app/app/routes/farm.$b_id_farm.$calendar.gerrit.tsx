@@ -697,14 +697,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 }),
             )
             const fieldsSummary: FarmFieldSummary[] = fieldsData
-                .filter((f) => !f.b_bufferstrip)
                 .map((f) => ({
                     b_id: f.b_id,
                     b_name: f.b_name,
                     b_area: f.b_area ?? 0,
-                    b_bufferstrip: false,
+                    b_bufferstrip: f.b_bufferstrip ?? false,
                     b_lu_catalogue: f.b_lu_catalogue,
                     b_lu_name: f.b_lu_name,
+                    b_lu_croprotation: f.b_lu_croprotation,
                     b_soiltype_agr: f.b_soiltype_agr,
                     b_gwl_class: f.b_gwl_class,
                     a_som_loi: f.a_som_loi,
