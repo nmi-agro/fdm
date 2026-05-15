@@ -1,76 +1,25 @@
+import { findHoofdteelt } from "../../../../shared/hoofdteelt"
 import type { NL2025NormsInputForCultivation } from "./types"
 
 /**
- * Determines the main cultivation ('hoofdteelt') for the NL 2025  and 2026 norms based on the legal definition.
- * The main cultivation is the one that is present for the longest duration within the period
- * from May 15th to July 15th.
+ * Determines the main cultivation ('hoofdteelt') for the NL 2025 and 2026 norms.
  *
- * @param cultivations An array of cultivation inputs, each containing start and end dates.
- * @returns The `b_lu_catalogue` of the main cultivation, or `null` if no cultivation is present in the period.
- * In case of a tie in duration, the cultivation with the alphabetically first `b_lu_catalogue` is chosen.
- * @example
- * const cultivations = [
- *   { cultivation: { b_lu_start: '2025-05-01', b_lu_end: '2025-06-10', b_lu_catalogue: 'cat_A' } },
- *   { cultivation: { b_lu_start: '2025-06-01', b_lu_end: '2025-07-20', b_lu_catalogue: 'cat_B' } }
- * ];
- * const hoofdteelt = await determineNLHoofdteelt(cultivations, 2025);
- * // returns 'cat_B'
+ * Delegates to `findHoofdteelt`. Cultivations without a `b_lu_start` are treated
+ * as always present (epoch), preserving the original norms behaviour where an
+ * unknown start date means the cultivation was already in the ground at the start
+ * of the reference period.
+ *
+ * @param cultivations - Array of cultivation inputs for the field.
+ * @param year - The norm year (2025 or 2026).
+ * @returns The `b_lu_catalogue` of the hoofdteelt, or `"nl_6794"` if none found.
  */
 export function determineNLHoofdteelt(
     cultivations: NL2025NormsInputForCultivation[],
     year: 2025 | 2026,
 ): string {
-    const HOOFDTEELT_START = new Date(`${year}-05-15`)
-    const HOOFDTEELT_END = new Date(`${year}-07-15`)
-
-    let maxDuration = -1
-    let hoofdteeltCatalogue: string | null = null
-
-    // In case of no cultivation return "Groene braak, spontane opkomst"
-    if (cultivations.length === 0) {
-        return "nl_6794"
-    }
-
-    for (const cultivation of cultivations) {
-        const cultivationStart = cultivation.b_lu_start
-            ? new Date(cultivation.b_lu_start)
-            : new Date(0)
-        const cultivationEnd = cultivation.b_lu_end
-            ? new Date(cultivation.b_lu_end)
-            : HOOFDTEELT_END
-
-        const effectiveStart =
-            cultivationStart > HOOFDTEELT_START
-                ? cultivationStart
-                : HOOFDTEELT_START
-        const effectiveEnd =
-            cultivationEnd < HOOFDTEELT_END ? cultivationEnd : HOOFDTEELT_END
-
-        if (effectiveEnd > effectiveStart) {
-            const currentDuration =
-                (effectiveEnd.getTime() - effectiveStart.getTime()) /
-                (1000 * 3600 * 24)
-
-            if (currentDuration > maxDuration) {
-                maxDuration = currentDuration
-                hoofdteeltCatalogue = cultivation.b_lu_catalogue
-            } else if (currentDuration === maxDuration) {
-                if (
-                    hoofdteeltCatalogue === null ||
-                    cultivation.b_lu_catalogue.localeCompare(
-                        hoofdteeltCatalogue,
-                    ) < 0
-                ) {
-                    hoofdteeltCatalogue = cultivation.b_lu_catalogue
-                }
-            }
-        }
-    }
-
-    // If no cultivation is present between May 15th and July 15th, return "Groene braak, spontane opkomst"
-    if (!hoofdteeltCatalogue) {
-        return "nl_6794"
-    }
-
-    return hoofdteeltCatalogue
+    const normalized = cultivations.map((c) => ({
+        ...c,
+        b_lu_start: c.b_lu_start ?? new Date(0),
+    }))
+    return findHoofdteelt(normalized, year)
 }

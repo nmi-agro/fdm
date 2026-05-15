@@ -258,7 +258,7 @@ describe("collectInputForBln3Score", () => {
         expect(result.cultivations).toBeUndefined()
     })
 
-    it("should skip cultivations where b_lu_start is null and no timeframe is provided", async () => {
+    it("should skip cultivations where b_lu_start is null", async () => {
         const noStart: Cultivation = { ...mockCultivation, b_lu_start: null }
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([])
@@ -274,7 +274,7 @@ describe("collectInputForBln3Score", () => {
         expect(result.cultivations).toBeUndefined()
     })
 
-    it("should use timeframe.end year as fallback when cultivation b_lu_start is null", async () => {
+    it("should skip cultivations where b_lu_start is null even when timeframe is provided", async () => {
         const noStart: Cultivation = { ...mockCultivation, b_lu_start: null }
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([])
@@ -288,9 +288,7 @@ describe("collectInputForBln3Score", () => {
             timeframe,
         )
 
-        expect(result.cultivations).toEqual([
-            { b_lu_brp: 266, b_lu_year: 2024 },
-        ])
+        expect(result.cultivations).toBeUndefined()
     })
 
     it("should omit cultivations key entirely when no valid cultivations exist", async () => {
@@ -424,7 +422,7 @@ describe("collectInputForBln3Score", () => {
         )
     })
 
-    it("should pass the timeframe to all fdm-core calls", async () => {
+    it("should pass the timeframe to soil and measures calls but NOT to cultivations", async () => {
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([])
         mockedGetCultivations.mockResolvedValue([])
@@ -438,11 +436,11 @@ describe("collectInputForBln3Score", () => {
             b_id,
             timeframe,
         )
+        // Cultivations are fetched without timeframe to get the full history
         expect(mockedGetCultivations).toHaveBeenCalledWith(
             mockFdm,
             principal_id,
             b_id,
-            timeframe,
         )
         expect(mockedGetMeasures).toHaveBeenCalledWith(
             mockFdm,
@@ -450,5 +448,35 @@ describe("collectInputForBln3Score", () => {
             b_id,
             timeframe,
         )
+    })
+
+    it("should assign years using the May 15–July 15 hoofdteelt rule, not b_lu_start year", async () => {
+        // Grass sown Oct 15, 2024 — NOT the hoofdteelt for 2024 (sown after the window),
+        // but IS the hoofdteelt for 2025 and 2026.
+        const grass: Cultivation = {
+            ...mockCultivation,
+            b_lu_catalogue: "nl_265",
+            b_lu_start: new Date("2024-10-15"),
+            b_lu_end: null,
+        }
+        mockedGetField.mockResolvedValue(mockField)
+        mockedGetSoilAnalyses.mockResolvedValue([])
+        mockedGetCultivations.mockResolvedValue([grass])
+        mockedGetMeasures.mockResolvedValue([])
+
+        const result = await collectInputForBln3Score(
+            mockFdm,
+            principal_id,
+            b_id,
+            { start: new Date("2026-01-01"), end: new Date("2026-12-31") },
+        )
+
+        // 2024 excluded (grass starts Oct 2024, after the May-July window)
+        // 2025 and 2026 included (grass covers the full May-July window)
+        expect(result.cultivations).toEqual([
+            { b_lu_brp: 265, b_lu_year: 2026 },
+            { b_lu_brp: 265, b_lu_year: 2025 },
+        ])
+        expect(result.cultivations?.find((c) => c.b_lu_year === 2024)).toBeUndefined()
     })
 })

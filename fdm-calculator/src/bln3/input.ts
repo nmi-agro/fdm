@@ -15,6 +15,7 @@ import type {
     Bln3Measure,
     Bln3ScoreCollectedInputs,
 } from "./types"
+import { findHoofdteelt, findHoofdteeltBrpCode } from "../shared/hoofdteelt"
 
 /**
  * Collects all field data needed for a BLN3 score calculation from the FDM database.
@@ -38,11 +39,12 @@ export async function collectInputForBln3Score(
     timeframe?: Timeframe,
 ): Promise<Bln3ScoreCollectedInputs> {
     try {
+        // Fetch all cultivations without timeframe to cover multi-year history
         const [field, soilAnalyses, cultivations, measures] = await Promise.all(
             [
                 getField(fdm, principal_id, b_id),
                 getSoilAnalyses(fdm, principal_id, b_id, timeframe),
-                getCultivations(fdm, principal_id, b_id, timeframe),
+                getCultivations(fdm, principal_id, b_id),
                 getMeasures(fdm, principal_id, b_id, timeframe),
             ],
         )
@@ -61,19 +63,23 @@ export async function collectInputForBln3Score(
             }
         }
 
-        // Map cultivations: "nl_266" → { b_lu_brp: 266, b_lu_year: 2025 }
-        const fallbackYear = timeframe?.end?.getFullYear()
-        const bln3Cultivations: Bln3Cultivation[] = cultivations
-            .map((c) => {
-                const match = /^nl_(\d+)$/.exec(c.b_lu_catalogue)
-                if (!match) return null
-                const year = c.b_lu_start?.getFullYear() ?? fallbackYear
-                if (year === undefined) return null
-                return { b_lu_brp: Number(match[1]), b_lu_year: year }
-            })
-            .filter((c): c is Bln3Cultivation => c !== null)
+        // Build cultivation history using the Dutch "hoofdteelt" rule (May 15–July 15).
+        // Fetching without timeframe gives the full history needed for multi-year expansion.
+        const maxYear =
+            timeframe?.end?.getFullYear() ?? new Date().getFullYear()
+        const HISTORY_YEARS = 10
+        const bln3Cultivations: Bln3Cultivation[] = []
+
+        for (let year = maxYear; year >= maxYear - HISTORY_YEARS; year--) {
+            const hoofdteelt = findHoofdteelt(cultivations, year)
+            const match = /^nl_(\d+)$/.exec(hoofdteelt)
+            const b_lu_brp = match ? Number(match[1]) : null
+            if (b_lu_brp === null) continue
+            bln3Cultivations.push({ b_lu_brp: b_lu_brp, b_lu_year: year })
+        }
 
         // Map measures: "bln_BM3" → { measure_id: "BM3", year: 2025 }
+        const fallbackYear = timeframe?.end?.getFullYear()
         const bln3Measures: Bln3Measure[] = measures
             .filter((m) => m.m_id.startsWith("bln_"))
             .map((m) => {
@@ -89,10 +95,10 @@ export async function collectInputForBln3Score(
         return {
             a_lat,
             a_lon,
-            b_soiltype_agr:
-                (latestAnalysis?.b_soiltype_agr ?? undefined) as Bln3ScoreCollectedInputs["b_soiltype_agr"],
-            b_gwl_class:
-                (latestAnalysis?.b_gwl_class ?? undefined) as Bln3ScoreCollectedInputs["b_gwl_class"],
+            b_soiltype_agr: (latestAnalysis?.b_soiltype_agr ??
+                undefined) as Bln3ScoreCollectedInputs["b_soiltype_agr"],
+            b_gwl_class: (latestAnalysis?.b_gwl_class ??
+                undefined) as Bln3ScoreCollectedInputs["b_gwl_class"],
             ...(bln3Cultivations.length > 0 && {
                 cultivations: bln3Cultivations,
             }),
