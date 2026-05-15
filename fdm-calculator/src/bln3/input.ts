@@ -89,8 +89,8 @@ export async function collectInputForBln3Score(
         return {
             a_lat,
             a_lon,
-            b_soiltype_agr: latestAnalysis?.b_soiltype_agr ?? undefined,
-            b_gwl_class: latestAnalysis?.b_gwl_class ?? undefined,
+            b_soiltype_agr: latestAnalysis?.b_soiltype_agr as Bln3ScoreCollectedInputs["b_soiltype_agr"],
+            b_gwl_class: latestAnalysis?.b_gwl_class as Bln3ScoreCollectedInputs["b_gwl_class"],
             ...(bln3Cultivations.length > 0 && {
                 cultivations: bln3Cultivations,
             }),

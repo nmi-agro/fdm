@@ -11,7 +11,6 @@ import {
     collectInputForBln3Score,
     getBln3Score,
     type Bln3Score,
-    type Bln3ScoreInputs,
 } from "@nmi-agro/fdm-calculator"
 import { getFields, type Field, type PrincipalId, type Timeframe } from "@nmi-agro/fdm-core"
 import { getNmiApiKey } from "~/integrations/nmi.server"
@@ -50,7 +49,7 @@ export async function getIndicatorsForField({
     const score = await getBln3Score(fdm, {
         ...inputs,
         nmiApiKey,
-    } as Bln3ScoreInputs)
+    })
     return score
 }
 

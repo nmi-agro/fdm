@@ -21,16 +21,11 @@ export type Bln3Measure = {
 }
 
 /**
- * Input parameters for the BLN3 score calculation.
- * Maps to the request body of `POST /maatwerk/bln3/score/field`.
- *
- * Only `a_lat` and `a_lon` are required by the NMI API.
- * All other fields are optional and improve calculation quality when provided.
+ * Input parameters for the BLN3 score calculation, assembled from the FDM
+ * database. Only `a_lat` and `a_lon` are required by the NMI API; all other
+ * fields are optional and improve calculation quality when provided.
  */
-export type Bln3ScoreInputs = {
-    /** NMI API key for authentication — redacted from cache hash */
-    nmiApiKey: string | undefined
-
+export type Bln3ScoreCollectedInputs = {
     // ── Location (required) ──────────────────────────────────────────────────
     /** Latitude of the field centroid (WGS84; EPSG:4326) */
     a_lat: number
@@ -100,6 +95,15 @@ export type Bln3ScoreInputs = {
 }
 
 /**
+ * Full inputs for `getBln3Score`: collected field data plus the NMI API key.
+ * Maps to the request body of `POST /maatwerk/bln3/score/field`.
+ */
+export type Bln3ScoreInputs = Bln3ScoreCollectedInputs & {
+    /** NMI API key for authentication — redacted from cache hash */
+    nmiApiKey: string | undefined
+}
+
+/**
  * A single indicator result from the BLN3 score calculation.
  */
 export type Bln3IndicatorResult = {
@@ -127,12 +131,6 @@ export type Bln3AggregationResult = {
     /** Aggregated score */
     score: number
 }
-
-/**
- * Field data for a BLN3 score request, assembled from the FDM database.
- * Passed to `getBln3Score` together with `nmiApiKey`.
- */
-export type Bln3ScoreCollectedInputs = Omit<Bln3ScoreInputs, "nmiApiKey">
 
 /**
  * The BLN3 score result returned by `requestBln3Score` / `getBln3Score`.
