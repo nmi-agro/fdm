@@ -1,5 +1,5 @@
 import { getFields } from "@nmi-agro/fdm-core"
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import {
     data,
     type LoaderFunctionArgs,
@@ -106,6 +106,14 @@ export default function IndicatorsFarmIndex() {
     const [fieldSearch, setFieldSearch] = useState("")
     const [isPending, startTransition] = useTransition()
 
+    // Debounce the pending indicator to avoid flickering on fast transitions
+    const [showPending, setShowPending] = useState(false)
+    useEffect(() => {
+        if (!isPending) { setShowPending(false); return }
+        const id = setTimeout(() => setShowPending(true), 150)
+        return () => clearTimeout(id)
+    }, [isPending])
+
     const showIndex = !withMeasures
 
     const handleToggleCategory = (cat: IndicatorCategory) => {
@@ -205,7 +213,7 @@ export default function IndicatorsFarmIndex() {
                 <Separator />
 
                 {/* Indicator table section */}
-                <section className={cn("space-y-3 transition-opacity duration-150", isPending && "opacity-50 pointer-events-none")}>
+                <section className={cn("space-y-3 transition-opacity duration-150", showPending && "opacity-50 pointer-events-none")}>
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                         <CategoryFilter
                             activeCategories={activeCategories}
