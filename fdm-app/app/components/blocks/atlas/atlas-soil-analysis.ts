@@ -158,7 +158,7 @@ export function getGradientStops(
         if (min <= center && max >= center) {
             const radius = Math.max(max - center, center - min)
             fromMin = center - radius
-            toMin = center + radius
+            fromMax = center + radius
         }
     }
 
