@@ -140,21 +140,23 @@ export async function runOneShotAgent(
                 const node = Object.keys(data ?? {})[0]
                 const nodeData = node ? data[node] : data
 
-                if (node === "agent" && Array.isArray(nodeData?.messages)) {
-                    const lastMsg = nodeData.messages.at(-1)
-                    if (isAIMessage(lastMsg)) {
-                        if (lastMsg.usage_metadata) {
-                            inputTokens += lastMsg.usage_metadata.input_tokens ?? 0
-                            outputTokens += lastMsg.usage_metadata.output_tokens ?? 0
+                if (node === "model_request" && Array.isArray(nodeData?.messages)) {
+                    for (const msg of nodeData.messages) {
+                        if (!isAIMessage(msg)) continue
+                        if (msg.usage_metadata) {
+                            inputTokens += msg.usage_metadata.input_tokens ?? 0
+                            outputTokens += msg.usage_metadata.output_tokens ?? 0
                         }
-                        if (lastMsg.tool_calls?.length) {
-                            for (const tc of lastMsg.tool_calls) {
+                        if (msg.tool_calls?.length) {
+                            for (const tc of msg.tool_calls) {
                                 if (tc.name) toolCalls.push(tc.name)
                             }
-                        } else {
-                            // No pending tool calls — this is the final response
-                            finalResponse = extractTextContent(lastMsg.content)
                         }
+                    }
+                    const lastMsg = nodeData.messages.at(-1)
+                    if (isAIMessage(lastMsg) && !lastMsg.tool_calls?.length) {
+                        // No pending tool calls — this is the final response
+                        finalResponse = extractTextContent(lastMsg.content)
                     }
                 }
 

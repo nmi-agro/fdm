@@ -1,6 +1,6 @@
 import { AIMessage } from "@langchain/core/messages"
 import type { BaseMessage } from "@langchain/core/messages"
-import { createAgent, dynamicSystemPromptMiddleware } from "langchain"
+import { createAgent, dynamicSystemPromptMiddleware, toolStrategy } from "langchain"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
@@ -14,7 +14,7 @@ export const GERRIT_DESCRIPTION =
 export const DEFAULT_TOOL_ROUND_LIMIT = 40
 
 export const TOOL_LIMIT_WARNING =
-    "IMPORTANT: You are approaching the maximum number of allowed tool calls. You MUST produce your final JSON response NOW using the best plan you have so far. Do NOT call any more tools — output your JSON immediately."
+    "IMPORTANT: You are approaching the maximum number of allowed tool calls. STOP calling planning, simulation, and search tools. You MUST produce your final fertilizer plan NOW using the required structured JSON format."
 
 export const GERRIT_INSTRUCTION = `You are Gerrit, an expert Dutch Agronomist.
 Your goal is to create a legally compliant and agronomically sound fertilizer plan for the entire farm.
@@ -190,19 +190,19 @@ export function createFertilizerPlannerAgent(
             "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
         )
     }
+    const toolLimitMiddleware = dynamicSystemPromptMiddleware((state) => {
+        const rounds = countToolRoundtrips(state.messages)
+        return rounds >= toolRoundLimit
+            ? `${GERRIT_INSTRUCTION}\n\n${TOOL_LIMIT_WARNING}`
+            : GERRIT_INSTRUCTION
+    })
+
     return createAgent({
         name: GERRIT_NAME,
         description: GERRIT_DESCRIPTION,
         model: createDefaultModel(resolvedKey, modelName),
         tools: createFertilizerPlannerTools(fdm),
-        middleware: [
-            dynamicSystemPromptMiddleware((state) => {
-                const rounds = countToolRoundtrips(state.messages)
-                return rounds >= toolRoundLimit
-                    ? `${GERRIT_INSTRUCTION}\n\n${TOOL_LIMIT_WARNING}`
-                    : GERRIT_INSTRUCTION
-            }),
-        ],
-        responseFormat: FertilizerPlanSchema,
+        responseFormat: toolStrategy(FertilizerPlanSchema),
+        middleware: [toolLimitMiddleware],
     }) as unknown as AgentGraph
 }

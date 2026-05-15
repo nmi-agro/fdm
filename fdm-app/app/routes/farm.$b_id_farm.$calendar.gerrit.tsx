@@ -785,7 +785,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 return dataWithError(
                     null,
                     err instanceof Error
-                        ? err.message
+                        ? err.message.slice(0, 200)
                         : "Gerrit kon geen plan genereren.",
                 )
             }

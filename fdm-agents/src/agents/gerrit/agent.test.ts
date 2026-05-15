@@ -46,7 +46,7 @@ describe("Gerrit Agent", () => {
     })
 
     it("should export a tool limit warning message", () => {
-        expect(TOOL_LIMIT_WARNING).toContain("final JSON response NOW")
+        expect(TOOL_LIMIT_WARNING).toContain("final fertilizer plan NOW")
     })
 })
 

@@ -14,7 +14,6 @@ export const FertilizerApplicationSchema = z.object({
         .describe("Display unit for the application amount"),
     p_app_date: z
         .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
         .describe("Application date in YYYY-MM-DD format"),
     p_app_method: z.string().describe("Application method identifier"),
 })
