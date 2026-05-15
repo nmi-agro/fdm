@@ -3,8 +3,28 @@ import type { LayerProps } from "react-map-gl"
 
 /* ================ SHADING DEFINITIONS ================ */
 
+/**
+ * A gradient stop with position and color
+ */
+type GradientStop = {
+    /** Stop position such that 0 becomes the start of the gradient and 1 becomes the end */
+    normalPosition: number
+    /** normalPosition linearly-interpolated between the data min and max values. ColorBrewer gradients have this value as if the data min is 0 and the max is 1 */
+    position: number
+    /** Color at this gradient stop */
+    color: string
+}
+
+/**
+ * Collection of stops defining a gradient's colors
+ */
+type Gradient = GradientStop[]
+
 function evenlySpaced(...args: string[]) {
-    return args.flatMap((item, i) => [i / (args.length - 1), item])
+    return args.map((item, i) => {
+        const t = i / (args.length - 1)
+        return { position: t, normalPosition: t, color: item }
+    })
 }
 
 const COLORBREWER_YLORBR = evenlySpaced(
@@ -29,6 +49,9 @@ const COLORBREWER_RDBU = evenlySpaced(
     "#2166ac",
 )
 
+/**
+ * Value, label, and display fill color for each agricultural soiltype that is supported by fdm-core
+ */
 export const SHADED_SOIL_TYPES = [
     { value: "moerige_klei", label: "Moerige klei", fill: "#D37FD0" },
     { value: "rivierklei", label: "Rivierklei", fill: "#81FE00" },
@@ -86,7 +109,7 @@ type GradientShadedSoilParameters = keyof typeof GRADIENT_SHADED_SOIL_PARAMETERS
 /** Actual gradient definitions */
 export const GRADIENT_DEFINITIONS: {
     [k in (typeof GRADIENT_SHADED_SOIL_PARAMETERS)[GradientShadedSoilParameters]]: {
-        gradient: (string | number)[]
+        gradient: Gradient
         center?: number
     }
 } = {
@@ -110,6 +133,7 @@ export const GRADIENT_DEFINITIONS: {
     zinc: { gradient: COLORBREWER_YLORBR },
 }
 
+/** MapLibreGL match arm definitions for each soil type that should be shaded according to enum values */
 const ENUM_SHADED_SOIL_PARAMETERS = {
     b_soiltype_agr: SHADED_SOIL_TYPES.flatMap(({ value, fill }) => [
         value,
@@ -118,10 +142,16 @@ const ENUM_SHADED_SOIL_PARAMETERS = {
 } as const
 type EnumShadedSoilParameters = keyof typeof ENUM_SHADED_SOIL_PARAMETERS
 
+/** Soil parameters supported by the soil analysis atlas */
 export type ShadedSoilParameters =
     | GradientShadedSoilParameters
     | EnumShadedSoilParameters
 
+/**
+ * Gets the list of soil parameters supported by the soil analysis atlas
+ *
+ * @returns array of strings
+ */
 export function getShadedSoilParameters() {
     return [
         ...Object.keys(GRADIENT_SHADED_SOIL_PARAMETERS).map((parameter) => ({
@@ -135,12 +165,35 @@ export function getShadedSoilParameters() {
     ] as { parameter: ShadedSoilParameters; shading: "gradient" | "enum" }[]
 }
 
-export function getGradientStops(
-    gradient: (string | number)[],
+/**
+ * Transforms the gradient stops such that the stops are positioned either
+ *
+ * - between the min and max value, where original 0 is mapped to min and 1 to max
+ * - 0 to min and 0.5 to max if center is specified and all values are less than the center value
+ * - 0.5 to min and 1 to max if center is specified and all values are greater than the center value
+ * - 0 to the greatest possible and 1 to the least possible value such that 0.5 is mapped to the center,
+ *   if the previous two cases don't hold.
+ *
+ * This strategy ensures that there is always a big contrast between the min and max colors, but it is
+ * still possible to specify a meaningful center value.
+ *
+ * For example in the case of pH, if all data points indicate acidic soil, no blue values will be used,
+ * the most pale value in the middle of the gradient will be for the minimum acidity, and the most intense
+ * red will be for the maximum acidity.
+ *
+ * @param gradient gradient to use. It may be "clipped" and some colors might not be used, according to the strategy above.
+ * @param min minimum data value
+ * @param max maximum data value
+ * @param center optional value to always align the center of the original gradient at
+ * @returns a new list of gradient stops. normalPosition might be different than the original gradient, but has the same units.
+ * position will have the units of the data. Both of them might go out of the 0-1 or min-max range if gradient clipping occurred.
+ */
+export function transformGradientStops(
+    gradient: Gradient,
     min: number,
     max: number,
     center: number | undefined,
-) {
+): Gradient {
     let fromMin = min
     let fromMax = max
     let toMin = 0
@@ -170,12 +223,11 @@ export function getGradientStops(
         toMax = toMin + 0.001
     }
 
-    const stops: { normalPosition: number; position: number; color: string }[] =
-        []
+    const stops: Gradient = []
 
-    for (let i = 0; i < gradient.length - 1; i += 2) {
-        const originalPos = gradient[i] as number
-        const originalCol = gradient[i + 1] as string
+    for (let i = 0; i < gradient.length; i++) {
+        const originalPos = gradient[i].position
+        const originalCol = gradient[i].color
 
         const t = (originalPos - toMin) / (toMax - toMin)
         stops.push({
@@ -188,6 +240,17 @@ export function getGradientStops(
     return stops
 }
 
+/**
+ * Builds the layer style to be applied to the field layer on the soil analysis atlas. This needs to be
+ * paired with a correctly-working legend, which can make use of the `transformGradientStops` function.
+ *
+ * Missing values will be displayed in a gray color.
+ *
+ * @param parameter which soil parameter to get the styles for
+ * @param min minimum data value
+ * @param max maximum data value
+ * @returns Layer component `type` and `paint` props
+ */
 export function getSoilAnalysisLayerStyle(
     parameter: ShadedSoilParameters,
     min: number,
@@ -238,7 +301,7 @@ export function getSoilAnalysisLayerStyle(
                     "interpolate",
                     ["linear"],
                     dataGetter,
-                    ...getGradientStops(
+                    ...transformGradientStops(
                         fillColor.gradient,
                         min,
                         max,

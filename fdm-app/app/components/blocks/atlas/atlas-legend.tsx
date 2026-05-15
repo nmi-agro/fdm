@@ -16,11 +16,11 @@ import { Spinner } from "~/components/ui/spinner"
 import {
     GRADIENT_DEFINITIONS,
     GRADIENT_SHADED_SOIL_PARAMETERS,
-    getGradientStops,
     getShadedSoilParameters,
     getShadingParameterMapper,
     SHADED_SOIL_TYPES,
     type ShadedSoilParameters,
+    transformGradientStops,
 } from "./atlas-soil-analysis"
 
 interface ElevationLegendProps {
@@ -243,7 +243,7 @@ function GradientSoilAnalysisLegend(
     const max = props.max ?? 1
 
     const chartData = [{ name: "Legenda", min: min, max: max }]
-    const gradient = getGradientStops(
+    const gradient = transformGradientStops(
         gradDef.gradient,
         min,
         max,
