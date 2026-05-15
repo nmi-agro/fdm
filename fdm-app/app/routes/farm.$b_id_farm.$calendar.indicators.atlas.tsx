@@ -196,7 +196,7 @@ export default function IndicatorsFarmMap() {
                             <SelectSeparator />
                             {INDICATOR_CATEGORIES.map((category) => (
                                 <SelectGroup key={category}>
-                                    <SelectLabel>{category}</SelectLabel>
+                                    <SelectLabel className="text-xs text-muted-foreground">{category}</SelectLabel>
                                     {INDICATORS.filter(
                                         (i) => i.category === category,
                                     ).map((i) => (
