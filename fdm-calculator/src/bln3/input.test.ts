@@ -471,12 +471,18 @@ describe("collectInputForBln3Score", () => {
             { start: new Date("2026-01-01"), end: new Date("2026-12-31") },
         )
 
-        // 2024 excluded (grass starts Oct 2024, after the May-July window)
-        // 2025 and 2026 included (grass covers the full May-July window)
+        // Range is 2024–2026 (earliest b_lu_start is Oct 2024 → minYear = 2024)
+        // 2026 and 2025: grass covers the full May-July window → b_lu_brp 265
+        // 2024: grass starts Oct 2024, after the window → groene braak → b_lu_brp 6794
         expect(result.cultivations).toEqual([
             { b_lu_brp: 265, b_lu_year: 2026 },
             { b_lu_brp: 265, b_lu_year: 2025 },
+            { b_lu_brp: 6794, b_lu_year: 2024 },
         ])
-        expect(result.cultivations?.find((c) => c.b_lu_year === 2024)).toBeUndefined()
+        expect(
+            result.cultivations?.find(
+                (c) => c.b_lu_year === 2024 && c.b_lu_brp === 265,
+            ),
+        ).toBeUndefined()
     })
 })

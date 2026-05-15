@@ -15,7 +15,7 @@ import type {
     Bln3Measure,
     Bln3ScoreCollectedInputs,
 } from "./types"
-import { findHoofdteelt, findHoofdteeltBrpCode } from "../shared/hoofdteelt"
+import { findHoofdteelt } from "../shared/hoofdteelt"
 
 /**
  * Collects all field data needed for a BLN3 score calculation from the FDM database.
@@ -64,18 +64,44 @@ export async function collectInputForBln3Score(
         }
 
         // Build cultivation history using the Dutch "hoofdteelt" rule (May 15–July 15).
-        // Fetching without timeframe gives the full history needed for multi-year expansion.
-        const maxYear =
-            timeframe?.end?.getFullYear() ?? new Date().getFullYear()
-        const HISTORY_YEARS = 10
+        // Only process years within the span of known cultivation data. Years in that
+        // span without a cultivation in the window receive groene braak (nl_6794).
+        // Cultivations without b_lu_start are excluded from the range calculation.
+        const cultivationsWithStart = cultivations.filter(
+            (c) => c.b_lu_start != null,
+        )
         const bln3Cultivations: Bln3Cultivation[] = []
 
-        for (let year = maxYear; year >= maxYear - HISTORY_YEARS; year--) {
-            const hoofdteelt = findHoofdteelt(cultivations, year)
-            const match = /^nl_(\d+)$/.exec(hoofdteelt)
-            const b_lu_brp = match ? Number(match[1]) : null
-            if (b_lu_brp === null) continue
-            bln3Cultivations.push({ b_lu_brp: b_lu_brp, b_lu_year: year })
+        if (cultivationsWithStart.length > 0) {
+            // maxYear: timeframe end year takes precedence; otherwise the latest
+            // year covered by any cultivation (end date or start date).
+            const cultivationMaxYear = cultivationsWithStart.reduce(
+                (max, c) => {
+                    const y =
+                        c.b_lu_end?.getFullYear() ??
+                        c.b_lu_start!.getFullYear()
+                    return y > max ? y : max
+                },
+                0,
+            )
+            const maxYear = Math.max(
+                timeframe?.end?.getFullYear() ?? 0,
+                cultivationMaxYear,
+            )
+            const minYear = cultivationsWithStart.reduce((min, c) => {
+                const y = c.b_lu_start!.getFullYear()
+                return y < min ? y : min
+            }, maxYear)
+
+            for (let year = maxYear; year >= minYear; year--) {
+                const catalogue = findHoofdteelt(cultivations, year)
+                const match = /^nl_(\d+)$/.exec(catalogue)
+                if (!match) continue
+                bln3Cultivations.push({
+                    b_lu_brp: Number(match[1]),
+                    b_lu_year: year,
+                })
+            }
         }
 
         // Map measures: "bln_BM3" → { measure_id: "BM3", year: 2025 }

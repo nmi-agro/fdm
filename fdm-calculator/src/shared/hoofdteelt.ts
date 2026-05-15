@@ -27,8 +27,8 @@ export const GROENE_BRAAK = "nl_6794"
  *
  * @param cultivations - List of cultivations to evaluate.
  * @param year - The calendar year to evaluate.
- * @returns The `b_lu_catalogue` of the hoofdteelt, or `null` if no cultivation
- *          overlaps with the May 15–July 15 window.
+ * @returns The `b_lu_catalogue` of the hoofdteelt, or `GROENE_BRAAK` (`"nl_6794"`)
+ *          if no cultivation overlaps with the May 15–July 15 window.
  */
 export function findHoofdteelt(
     cultivations: CultivationForHoofdteelt[],
