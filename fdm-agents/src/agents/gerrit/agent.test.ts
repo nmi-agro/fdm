@@ -30,6 +30,8 @@ describe("Gerrit Agent", () => {
         expect(GERRIT_INSTRUCTION).toContain("BUFFER STRIPS")
         expect(GERRIT_INSTRUCTION).toContain("ROTATION LEVEL")
         expect(GERRIT_INSTRUCTION).toContain("SECURITY & CONTEXT BOUNDARIES")
+        expect(GERRIT_INSTRUCTION).toContain("guide-compliance pass")
+        expect(GERRIT_INSTRUCTION).toContain("getCropFertilizerGuide")
     })
 
     it("should throw when no API key is provided and GEMINI_API_KEY env is not set", () => {

@@ -1,5 +1,9 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { createFertilizerPlannerTools, getMainCultivation } from "./index"
+import {
+    createFertilizerPlannerTools,
+    getMainCultivation,
+    isValidDutchCropCatalogue,
+} from "./index"
 
 // ---------------------------------------------------------------------------
 // Mock fdm-core
@@ -235,6 +239,14 @@ function setupDefaultMocks() {
 // Existing tests
 // ---------------------------------------------------------------------------
 describe("fertilizer-planner tools", () => {
+    describe("isValidDutchCropCatalogue", () => {
+        it("accepts Dutch BRP crop catalogue values only", () => {
+            expect(isValidDutchCropCatalogue("nl_2708")).toBe(true)
+            expect(isValidDutchCropCatalogue("Onbekend")).toBe(false)
+            expect(isValidDutchCropCatalogue(null)).toBe(false)
+        })
+    })
+
     describe("getMainCultivation", () => {
         const cultivations = [
             {
@@ -394,6 +406,30 @@ describe("tool execute functions", () => {
                 makeConfigurable({ nmiApiKey: "test-key" }),
             )
             expect(result.advicePerField[0].advice).toBeNull()
+            expect(getNutrientAdvice).not.toHaveBeenCalled()
+        })
+
+        it("should skip NMI advice for invalid crop catalogues", async () => {
+            ;(getCultivations as any).mockResolvedValue([
+                {
+                    b_lu_catalogue: "Onbekend",
+                    b_lu_name: "Onbekend gewas",
+                    b_lu_start: "2025-01-01",
+                    b_lu_end: null,
+                },
+            ])
+
+            const result = await getTool("getFarmNutrientAdvice").invoke(
+                { b_ids: ["field-1"] },
+                makeConfigurable({ nmiApiKey: "test-key" }),
+            )
+
+            expect(result.advicePerField[0]).toMatchObject({
+                b_id: "field-1",
+                advice: null,
+                skipped:
+                    "Invalid crop catalogue for NMI nutrient advice: Onbekend",
+            })
             expect(getNutrientAdvice).not.toHaveBeenCalled()
         })
     })
@@ -556,6 +592,36 @@ describe("tool execute functions", () => {
                 makeConfigurable(),
             )
             expect(result.isValid).toBe(true)
+        })
+
+        it("should skip NMI advice for invalid crop catalogues during simulation", async () => {
+            const result = await getTool("simulateFarmPlan").invoke(
+                makeSimInput({
+                    fields: [
+                        {
+                            b_id: "field-1",
+                            b_lu_catalogue: "Onbekend",
+                            b_lu_name: "Onbekend gewas",
+                            b_lu_start: "2025-04-01",
+                            applications: [
+                                {
+                                    p_id_catalogue: "fert-1",
+                                    p_app_amount: 1000,
+                                    p_app_date: "2025-04-01",
+                                    p_app_method: "broadcasting",
+                                },
+                            ],
+                        },
+                    ],
+                }),
+                makeConfigurable({ nmiApiKey: "test-key" }),
+            )
+
+            expect(getNutrientAdvice).not.toHaveBeenCalled()
+            expect(result.fieldResults[0].fieldMetrics.advice).toBeNull()
+            expect(result.fieldResults[0].fieldMetrics.adviceSkipped).toBe(
+                "Invalid crop catalogue for NMI nutrient advice: Onbekend",
+            )
         })
 
         it("should report manure N norm violation", async () => {

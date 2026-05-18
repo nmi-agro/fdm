@@ -35,6 +35,12 @@ interface AdviceArgs {
     b_ids: string[]
 }
 
+export function isValidDutchCropCatalogue(
+    b_lu_catalogue: string | null | undefined,
+) {
+    return /^nl_\d+$/.test(b_lu_catalogue ?? "")
+}
+
 /**
  * Determines the main cultivation based on the "May 15th" rule.
  * It searches for a cultivation that is active on May 15th of the given calendar year.
@@ -176,6 +182,14 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
                         if (!mainLu) {
                             return { b_id, advice: null }
+                        }
+
+                        if (!isValidDutchCropCatalogue(mainLu.b_lu_catalogue)) {
+                            return {
+                                b_id,
+                                advice: null,
+                                skipped: `Invalid crop catalogue for NMI nutrient advice: ${mainLu.b_lu_catalogue}`,
+                            }
                         }
 
                         const advice = await getNutrientAdvice(fdm, {
@@ -570,7 +584,11 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     // Fetch nutrient advice so the agent can compare dose vs advice
                     // inside a single simulation step without a separate tool call.
                     let advice = null
-                    if (nmiApiKey) {
+                    let adviceSkipped: string | null = null
+                    if (
+                        nmiApiKey &&
+                        isValidDutchCropCatalogue(fieldData.b_lu_catalogue)
+                    ) {
                         try {
                             const currentSoilData = await getCurrentSoilData(
                                 fdm,
@@ -587,6 +605,11 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         } catch {
                             // advice remains null if the fetch fails
                         }
+                    } else if (
+                        nmiApiKey &&
+                        !isValidDutchCropCatalogue(fieldData.b_lu_catalogue)
+                    ) {
+                        adviceSkipped = `Invalid crop catalogue for NMI nutrient advice: ${fieldData.b_lu_catalogue}`
                     }
 
                     return {
@@ -635,6 +658,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             nBalance: nBalance || null,
                             nBalanceError,
                             advice,
+                            adviceSkipped,
                         },
                     }
                     } catch (e) {
@@ -942,9 +966,22 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     const remaining = Math.round(
                         farmNormsKg.manure - farmFillingsKg.manure,
                     )
-                    agronomicWarnings.push(
-                        `Strategy warning (Fill Manure Space): The farm has unused manure space (${remaining} kg N available). Consider adding more manure to maximize usage.`,
-                    )
+                    const nitrogenHeadroom =
+                        farmNormsKg.nitrogen - farmFillingsKg.nitrogen
+                    const phosphateHeadroom =
+                        farmNormsKg.phosphate - farmFillingsKg.phosphate
+                    if (
+                        nitrogenHeadroom <= farmNormsKg.nitrogen * 0.05 ||
+                        phosphateHeadroom <= farmNormsKg.phosphate * 0.05
+                    ) {
+                        agronomicWarnings.push(
+                            `Strategy warning (Fill Manure Space): The farm has unused manure space (${remaining} kg N), but workable N and/or phosphate space is limiting. First check whether high-workability mineral N can be partly replaced by an agronomically suitable manure with a lower p_n_wc, so animal-manure space is filled without exceeding workable N or phosphate. If substitution is not feasible because of crop-specific guidance, product availability, or phosphate, explain that constraint instead of simply adding manure.`,
+                        )
+                    } else {
+                        agronomicWarnings.push(
+                            `Strategy warning (Fill Manure Space): The farm has unused manure space (${remaining} kg N available). Consider adding more manure to maximize usage.`,
+                        )
+                    }
                 }
             }
 

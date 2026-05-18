@@ -96,6 +96,10 @@ import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 import { getDefaultCultivation } from "../lib/cultivation-helpers"
 
+function isValidDutchCropCatalogue(b_lu_catalogue: string | undefined) {
+    return /^nl_\d+$/.test(b_lu_catalogue ?? "")
+}
+
 export const handle = { hideNavigationProgress: true }
 
 export const meta: MetaFunction = () => {
@@ -386,7 +390,10 @@ async function computePlanMetrics(
 
                 // Fetch NMI nutrient advice per field
                 let advice: NutrientAdvice | null = null
-                if (nmiApiKey && field.b_lu_catalogue) {
+                if (
+                    nmiApiKey &&
+                    isValidDutchCropCatalogue(field.b_lu_catalogue)
+                ) {
                     try {
                         const [fieldData, currentSoilData] = await Promise.all([
                             getField(fdm, principalId, field.b_id),
