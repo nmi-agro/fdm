@@ -1,5 +1,8 @@
+import type { FdmType } from "@nmi-agro/fdm-core"
+import { eq } from "drizzle-orm"
 import { describe, expect } from "vitest"
 import { addAdminAgent } from "./agent"
+import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
 import {
     addMessage,
@@ -323,28 +326,47 @@ describe("Message Pagination", () => {
             `Seed message ${createId(8)}`,
         )
 
-        const messages: string[] = []
-        for (let i = 1; i <= 50; i++) {
+        const messages: Promise<string>[] = []
+        async function addOrderedMessage(
+            fdm: FdmType,
+            ticket_id: string,
+            admin_id: string,
+            sender_type: string,
+            order: number,
+        ) {
+            const message_id = await addMessage(
+                fdm,
+                ticket_id,
+                admin_id,
+                "agent",
+                `${sender_type} Message ${order}`,
+            )
+
+            const date = new Date(2023, 0, 1)
+            date.setHours(order)
+
+            await fdm
+                .update(schema.messages)
+                .set({ created: date })
+                .where(eq(schema.messages.message_id, message_id))
+
+            return message_id
+        }
+        for (let i = 1; i <= 99; i += 2) {
             messages.push(
-                await addMessage(
-                    fdm,
-                    ticket_id,
-                    admin_id,
-                    "agent",
-                    `Agent Message ${i}`,
-                ),
+                addOrderedMessage(fdm, ticket_id, admin_id, "agent", i),
             )
             messages.push(
-                await addMessage(
+                addOrderedMessage(
                     fdm,
                     ticket_id,
                     requester_id,
                     "customer",
-                    `Requester Message ${i}`,
+                    i + 1,
                 ),
             )
         }
-        message_ids = messages
+        message_ids = await Promise.all(messages)
     })
 
     test("should paginate with no custom pagination specified", async ({
