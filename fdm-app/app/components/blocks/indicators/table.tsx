@@ -85,8 +85,9 @@ export function HeatmapTable({
                       activeCategories.includes(i.category),
                   )
                 : INDICATORS
+        const scoreByBid = new Map(fieldScores.map((s) => [s.b_id, s]))
         return fields.map((field) => {
-            const fs = fieldScores.find((s) => s.b_id === field.b_id)
+            const fs = scoreByBid.get(field.b_id)
             const scores: FieldRow["scores"] = {}
             if (fs?.score) {
                 for (const ind of fs.score.indicators) {
