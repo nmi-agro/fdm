@@ -59,8 +59,11 @@ describe("Agent CRUD", () => {
             throw failError
         } catch (err) {
             if (err === failError) throw err
-            expect(err.cause).toBeDefined()
-            expect(err.cause.message).toBe("Agent with same ID already exists")
+            const error = err as Error
+            expect(error.cause).toBeDefined()
+            expect((error.cause as Error).message).toBe(
+                "Agent with same ID already exists",
+            )
         }
     })
 
@@ -92,12 +95,15 @@ describe("Agent CRUD", () => {
     }) => {
         const third_agent_id = createId()
 
+        const failError = new Error("Should have thrown")
         try {
             await addAgent(fdm, agent_id, third_agent_id, "Support Agent")
-            expect(true, "Should have thrown").toBe(false)
+            throw failError
         } catch (err) {
-            expect(err.message).toBeDefined()
-            expect(err.message).toContain(
+            if (err === failError) throw err
+            const error = err as Error
+            expect(error.message).toBeDefined()
+            expect(error.message).toContain(
                 "Principal does not have permission to perform this action",
             )
 
@@ -141,8 +147,9 @@ describe("Agent CRUD", () => {
             throw failError
         } catch (err) {
             if (err === failError) throw err
-            expect(err.message).toBeDefined()
-            expect(err.message).toContain(
+            const error = err as Error
+            expect(error.message).toBeDefined()
+            expect(error.message).toContain(
                 "Principal does not have permission to perform this action",
             )
 
@@ -181,8 +188,9 @@ describe("Agent CRUD", () => {
             throw failError
         } catch (err) {
             if (err === failError) throw err
-            expect(err.message).toBeDefined()
-            expect(err.message).toContain(
+            const error = err as Error
+            expect(error.message).toBeDefined()
+            expect(error.message).toContain(
                 "Principal does not have permission to perform this action",
             )
 

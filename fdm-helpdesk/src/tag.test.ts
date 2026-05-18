@@ -1,6 +1,5 @@
-import { sql } from "drizzle-orm"
 import { describe, expect } from "vitest"
-import { addAdminAgent, addAgent } from "./agent"
+import { addAdminAgent } from "./agent"
 import { createId } from "./id"
 import {
     addTagToTicket,
@@ -51,6 +50,7 @@ describe("Tag CRUD", () => {
     })
 
     test("should not let tags with empty name", async ({ fdm }) => {
+        const failError = new Error("Should have thrown")
         try {
             await createTag(
                 fdm,
@@ -59,10 +59,14 @@ describe("Tag CRUD", () => {
                 "#ff2222",
                 "This is a very mysterious tag.",
             )
-            expect(true, "Should have thrown").toBe(false)
+            throw failError
         } catch (err) {
-            expect(err.cause).toBeDefined()
-            expect(err.cause.message).toBe("Tag name cannot be empty")
+            if (err === failError) throw err
+            const error = err as Error
+            expect(error.cause).toBeDefined()
+            expect((error.cause as Error).message).toBe(
+                "Tag name cannot be empty",
+            )
         }
     })
 
@@ -78,6 +82,7 @@ describe("Tag CRUD", () => {
             "This is a red tag.",
         )
 
+        const failError = new Error("Should have thrown")
         try {
             await createTag(
                 fdm,
@@ -86,10 +91,12 @@ describe("Tag CRUD", () => {
                 "#ff2222",
                 "This is a red tag but less intense.",
             )
-            expect(true, "Should have thrown").toBe(false)
+            throw failError
         } catch (err) {
-            expect(err.cause).toBeDefined()
-            expect(err.cause.message).toBe(
+            if (err === failError) throw err
+            const error = err as Error
+            expect(error.cause).toBeDefined()
+            expect((error.cause as Error).message).toBe(
                 "Another tag with name already exists",
             )
         }
@@ -204,8 +211,9 @@ describe("Ticket Tags", () => {
             throw failError
         } catch (err) {
             if (err === failError) throw err
-            expect(err.cause).toBeDefined()
-            expect(err.cause.message).toBe(
+            const error = err as Error
+            expect(error.cause).toBeDefined()
+            expect((error.cause as Error).message).toBe(
                 "Principal does not have permission to perform this action",
             )
         }
@@ -260,8 +268,9 @@ describe("Ticket Tags", () => {
             throw failError
         } catch (err) {
             if (err === failError) throw err
-            expect(err.cause).toBeDefined()
-            expect(err.cause.message).toBe(
+            const error = err as Error
+            expect(error.cause).toBeDefined()
+            expect((error.cause as Error).message).toBe(
                 "Principal does not have permission to perform this action",
             )
 

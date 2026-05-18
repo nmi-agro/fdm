@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { expect } from "vitest"
 import { addAdminAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
