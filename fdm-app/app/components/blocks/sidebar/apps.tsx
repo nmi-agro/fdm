@@ -1,6 +1,7 @@
 import {
     ArrowRightLeft,
     BookOpenText,
+    Gauge,
     Landmark,
     MapIcon,
     Minus,
@@ -120,6 +121,24 @@ export function SidebarApps() {
         omBalanceLink = undefined
     }
 
+    let indicatorsLink: string | undefined
+    if (isCreateFarmWizard) {
+        indicatorsLink = undefined
+    } else if (farmId && farmId !== "undefined") {
+        indicatorsLink = `/farm/${farmId}/${selectedCalendar}/indicators`
+    } else {
+        indicatorsLink = undefined
+    }
+
+    let indicatorsKaartLink: string | undefined
+    if (isCreateFarmWizard) {
+        indicatorsKaartLink = undefined
+    } else if (farmId && farmId !== "undefined") {
+        indicatorsKaartLink = `/farm/${farmId}/${selectedCalendar}/indicators/atlas`
+    } else {
+        indicatorsKaartLink = undefined
+    }
+
     return (
         <TooltipProvider>
             <SidebarGroup>
@@ -127,16 +146,14 @@ export function SidebarApps() {
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <Collapsible
-                            defaultOpen={location.pathname.includes("/atlas")}
+                            defaultOpen={location.pathname.includes("/atlas") && !location.pathname.includes("/indicators")}
                             className="group/collapsible"
                         >
                             <SidebarMenuItem>
                                 {atlasLink ? (
                                     <CollapsibleTrigger asChild>
                                         <SidebarMenuButton
-                                            isActive={location.pathname.includes(
-                                                "/atlas",
-                                            )}
+                                            isActive={location.pathname.includes("/atlas") && !location.pathname.includes("/indicators")}
                                         >
                                             <MapIcon />
                                             <span>Atlas</span>
@@ -378,6 +395,82 @@ export function SidebarApps() {
                                 </Tooltip>
                             )}
                         </SidebarMenuItem>
+                        <Collapsible
+                            defaultOpen={location.pathname.includes("/indicators")}
+                            className="group/collapsible"
+                        >
+                            <SidebarMenuItem>
+                                {indicatorsLink ? (
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuButton
+                                            isActive={location.pathname.includes(
+                                                "/indicators",
+                                            )}
+                                        >
+                                            <Gauge />
+                                            <span>Indicatoren</span>
+                                            <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
+                                            <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
+                                        </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                ) : (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <SidebarMenuButton
+                                                isActive={false}
+                                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                            >
+                                                <Gauge className="text-muted-foreground" />
+                                                <span className="text-muted-foreground">
+                                                    Indicatoren
+                                                </span>
+                                            </SidebarMenuButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                            Selecteer een bedrijf om de
+                                            indicatoren te bekijken
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        <SidebarMenuSubItem>
+                                            {indicatorsLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={
+                                                        location.pathname.includes(
+                                                            indicatorsLink,
+                                                        ) &&
+                                                        !location.pathname.includes(
+                                                            "/atlas",
+                                                        )
+                                                    }
+                                                >
+                                                    <NavLink to={indicatorsLink}>
+                                                        <span>Tabel</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                        <SidebarMenuSubItem>
+                                            {indicatorsKaartLink ? (
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={location.pathname.includes(
+                                                        indicatorsKaartLink,
+                                                    )}
+                                                >
+                                                    <NavLink to={indicatorsKaartLink}>
+                                                        <span>Kaart</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            ) : null}
+                                        </SidebarMenuSubItem>
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
