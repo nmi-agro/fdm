@@ -148,7 +148,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
      */
     const getFarmNutrientAdviceTool = tool(
         async (input: any, config?: RunnableConfig) => {
-            const principalId = config?.configurable?.principalId as PrincipalId
+            const principalId = config?.configurable?.principalId as
+                | PrincipalId
+                | undefined
+            if (!principalId) {
+                throw new Error("Missing principalId in agent context")
+            }
             const calendar =
                 (config?.configurable?.calendar as string) ||
                 new Date().getFullYear().toString()
@@ -161,6 +166,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             const nmiApiKey = config?.configurable?.nmiApiKey as
                 | string
                 | undefined
+            if (!nmiApiKey) {
+                throw new Error("Missing nmiApiKey in agent context")
+            }
             const args = input as AdviceArgs
 
             const results = await Promise.all(
@@ -196,7 +204,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             b_lu_catalogue: mainLu.b_lu_catalogue,
                             b_centroid: field.b_centroid ?? [0, 0],
                             currentSoilData: currentSoilData,
-                            nmiApiKey: nmiApiKey || "",
+                            nmiApiKey,
                             b_bufferstrip: field.b_bufferstrip,
                         })
                         return { b_id, advice }

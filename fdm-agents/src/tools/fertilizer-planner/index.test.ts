@@ -391,6 +391,34 @@ describe("tool execute functions", () => {
                 d_n_req: 100,
                 d_p_req: 20,
             })
+            expect(getNutrientAdvice).toHaveBeenCalledWith(
+                mockFdm,
+                expect.objectContaining({ nmiApiKey: "test-key" }),
+            )
+        })
+
+        it("should throw before fetching fields when principalId is missing", async () => {
+            await expect(
+                getTool("getFarmNutrientAdvice").invoke(
+                    { b_ids: ["field-1"] },
+                    { configurable: { nmiApiKey: "test-key" } },
+                ),
+            ).rejects.toThrow("Missing principalId in agent context")
+            expect(getField).not.toHaveBeenCalled()
+            expect(getCultivations).not.toHaveBeenCalled()
+            expect(getNutrientAdvice).not.toHaveBeenCalled()
+        })
+
+        it("should throw before fetching fields when nmiApiKey is missing", async () => {
+            await expect(
+                getTool("getFarmNutrientAdvice").invoke(
+                    { b_ids: ["field-1"] },
+                    makeConfigurable(),
+                ),
+            ).rejects.toThrow("Missing nmiApiKey in agent context")
+            expect(getField).not.toHaveBeenCalled()
+            expect(getCultivations).not.toHaveBeenCalled()
+            expect(getNutrientAdvice).not.toHaveBeenCalled()
         })
 
         it("should return null advice when no mainLu active on May 15th", async () => {
