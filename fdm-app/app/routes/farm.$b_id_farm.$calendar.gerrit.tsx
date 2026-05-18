@@ -717,7 +717,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 b_id_farm,
             )
 
-            if (fieldsSummary.length === 0) {
+            const productiveFields = fieldsSummary.filter(
+                (f) => !f.b_bufferstrip && f.b_area,
+            )
+            if (productiveFields.length === 0) {
                 return dataWithError(
                     null,
                     "Er zijn geen percelen gevonden voor dit bedrijf. Voeg eerst percelen toe.",
