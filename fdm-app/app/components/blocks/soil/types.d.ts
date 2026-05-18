@@ -7,7 +7,7 @@ export interface SoilAnalysis {
     /** Source of the soil analysis data */
     a_source: string | undefined | null
     /** Date when soil samples were collected */
-    b_sampling_date: Date
+    b_sampling_date: Date | null
     /** Organic carbon content ( g C / kg) */
     a_c_of: number | undefined | null
     /** Carbon to nitrogen ratio */

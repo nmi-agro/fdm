@@ -202,8 +202,80 @@ describe("Measure Data Model", () => {
             ).rejects.toThrow("m_end cannot be earlier than m_start")
         })
 
+        it("should allow the same m_id twice on the same field when windows do NOT overlap", async () => {
+            // First half of the year
+            await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-01-01"),
+                new Date("2023-06-30"),
+            )
+            // Second half — adjacent but not overlapping
+            await expect(
+                addMeasure(
+                    fdm,
+                    principal_id,
+                    b_id,
+                    "bln_BM1",
+                    new Date("2023-07-01"),
+                    new Date("2023-12-31"),
+                ),
+            ).resolves.toBeTruthy()
+        })
+
+        it("should throw when the same m_id is added with an overlapping window", async () => {
+            await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-01-01"),
+                new Date("2023-09-30"),
+            )
+            await expect(
+                addMeasure(
+                    fdm,
+                    principal_id,
+                    b_id,
+                    "bln_BM1",
+                    new Date("2023-06-01"),
+                    new Date("2023-12-31"),
+                ),
+            ).rejects.toMatchObject({
+                cause: {
+                    message: expect.stringContaining("overlapping time window"),
+                },
+            })
+        })
+
+        it("should throw when an existing doorlopend measure of the same m_id is present", async () => {
+            // doorlopend (no end date) — overlaps everything after its start
+            await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-01-01"),
+            )
+            await expect(
+                addMeasure(
+                    fdm,
+                    principal_id,
+                    b_id,
+                    "bln_BM1",
+                    new Date("2023-06-01"),
+                    new Date("2023-12-31"),
+                ),
+            ).rejects.toMatchObject({
+                cause: {
+                    message: expect.stringContaining("overlapping time window"),
+                },
+            })
+        })
+
         it("should throw when the catalogue is not enabled for the farm", async () => {
-            // Create a separate farm without enabling the 'bln' catalogue
             const other_farm = await addFarm(
                 fdm,
                 principal_id,
@@ -482,6 +554,61 @@ describe("Measure Data Model", () => {
             ).rejects.toMatchObject({
                 cause: { message: "m_end cannot be earlier than m_start" },
             })
+        })
+
+        it("should throw when update would create an overlap with a sibling measure", async () => {
+            // Add first instance: Jan–Jun
+            await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-01-01"),
+                new Date("2023-06-30"),
+            )
+            // Add second instance: Aug–Dec (non-overlapping so far)
+            const b_id_measure2 = await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-08-01"),
+                new Date("2023-12-31"),
+            )
+            // Now try to extend the second instance back into the first window
+            await expect(
+                updateMeasure(
+                    fdm,
+                    principal_id,
+                    b_id_measure2,
+                    new Date("2023-04-01"),
+                ),
+            ).rejects.toMatchObject({
+                cause: {
+                    message: expect.stringContaining("overlapping time window"),
+                },
+            })
+        })
+
+        it("should allow updating own window without a sibling", async () => {
+            const b_id_measure = await addMeasure(
+                fdm,
+                principal_id,
+                b_id,
+                "bln_BM1",
+                new Date("2023-01-01"),
+                new Date("2023-06-30"),
+            )
+            // Shift the window — no sibling, must succeed
+            await expect(
+                updateMeasure(
+                    fdm,
+                    principal_id,
+                    b_id_measure,
+                    new Date("2023-02-01"),
+                    new Date("2023-09-30"),
+                ),
+            ).resolves.toBeUndefined()
         })
     })
 
