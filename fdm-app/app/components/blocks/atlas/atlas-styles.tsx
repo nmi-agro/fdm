@@ -12,16 +12,6 @@ export function getFieldsStyle(layerId: string): LayerProps {
 }
 
 function getFieldsStyleInner(layerId: string): LayerProps {
-    const baseFieldsFillColorExpr: ExpressionSpecification = [
-        "match",
-        ["get", "b_lu_croprotation"],
-        ...getCultivationTypesHavingColors().flatMap((k) => [
-            k,
-            getCultivationColor(k),
-        ]),
-        getCultivationColor("other"),
-    ] as any
-
     const baseFillStyles = {}
 
     const baseLineStyles = {
@@ -69,6 +59,26 @@ function getFieldsStyleInner(layerId: string): LayerProps {
             },
         }
     }
+
+    if (layerId === "fieldsSavedHeatmapOutline") {
+        return {
+            type: "line",
+            paint: {
+                "line-color": "#ffffff",
+                "line-width": 1.5,
+            },
+        }
+    }
+
+    const baseFieldsFillColorExpr: ExpressionSpecification = [
+        "match",
+        ["get", "b_lu_croprotation"],
+        ...getCultivationTypesHavingColors().flatMap((k) => [
+            k,
+            getCultivationColor(k),
+        ]),
+        getCultivationColor("other"),
+    ] as any
 
     // default styles
     return {
