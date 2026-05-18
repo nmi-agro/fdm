@@ -145,7 +145,7 @@ describe("collectInputForBln3Score", () => {
         expect(result.b_gwl_class).toBe("IIb")
     })
 
-    it("should include numeric a_* fields from the most recent soil analysis", async () => {
+    it("should include only BLN3-relevant soil analysis fields (a_p_cc, a_p_al, a_p_wa)", async () => {
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
         mockedGetCultivations.mockResolvedValue([])
@@ -157,13 +157,17 @@ describe("collectInputForBln3Score", () => {
             b_id,
         )
 
-        expect(result.a_som_loi).toBe(4.5)
-        expect(result.a_clay_mi).toBe(10)
         expect(result.a_p_cc).toBe(1.2)
-        expect(result.a_n_rt).toBe(2500)
+        expect(result.a_p_al).toBe(42)
+        // a_p_wa is not in mockSoilAnalysis so should be absent
+        expect(result).not.toHaveProperty("a_p_wa")
+        // Extra soil params that are NOT part of the BLN3 API should be excluded
+        expect(result).not.toHaveProperty("a_som_loi")
+        expect(result).not.toHaveProperty("a_clay_mi")
+        expect(result).not.toHaveProperty("a_n_rt")
     })
 
-    it("should exclude non-numeric fields from soil analysis (metadata and integers used for depth)", async () => {
+    it("should exclude non-numeric and metadata fields from soil analysis", async () => {
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
         mockedGetCultivations.mockResolvedValue([])
@@ -185,7 +189,7 @@ describe("collectInputForBln3Score", () => {
             ...mockSoilAnalysis,
             a_id: "sa-old",
             b_soiltype_agr: "veen",
-            a_som_loi: 99,
+            a_p_cc: 99,
         }
         mockedGetField.mockResolvedValue(mockField)
         // getSoilAnalyses returns most-recent first (DESC by sampling date)
@@ -203,7 +207,7 @@ describe("collectInputForBln3Score", () => {
         )
 
         expect(result.b_soiltype_agr).toBe("dekzand") // from first (mockSoilAnalysis)
-        expect(result.a_som_loi).toBe(4.5)
+        expect(result.a_p_cc).toBe(1.2) // from first (mockSoilAnalysis)
     })
 
     it("should omit b_soiltype_agr and b_gwl_class when no soil analyses exist", async () => {
@@ -402,7 +406,9 @@ describe("collectInputForBln3Score", () => {
         expect(result.a_lon).toBe(5.2)
         expect(result.b_soiltype_agr).toBe("dekzand")
         expect(result.b_gwl_class).toBe("IIb")
-        expect(result.a_som_loi).toBe(4.5)
+        expect(result.a_p_cc).toBe(1.2)
+        expect(result.a_p_al).toBe(42)
+        expect(result).not.toHaveProperty("a_som_loi")
         expect(result.cultivations).toEqual([
             { b_lu_brp: 266, b_lu_year: 2024 },
         ])

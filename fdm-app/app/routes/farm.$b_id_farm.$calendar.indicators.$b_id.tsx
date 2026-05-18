@@ -4,6 +4,7 @@ import {
     getFields,
     getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
+import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
@@ -182,9 +183,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const session = await getSession(request)
         const timeframe = getTimeframe(params)
 
-        // Load in parallel: current field, all fields, BLN3 score + inputs, active measures, cultivations
+        // Load in parallel: current field, all fields, BLN3 score + inputs, active measures, cultivations, BRP catalogue
         // Cultivations are fetched without timeframe to cover multi-year history (for display)
-        const [field, fields, bln3Result, fieldMeasures, cultivations] =
+        const [field, fields, bln3Result, fieldMeasures, cultivations, brpCatalogue] =
             await Promise.all([
                 getField(fdm, session.principal_id, b_id),
                 getFields(fdm, session.principal_id, b_id_farm, timeframe),
@@ -199,6 +200,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     timeframe,
                 }),
                 getCultivations(fdm, session.principal_id, b_id),
+                getCultivationCatalogue("brp"),
             ])
         const fieldScore = bln3Result.score
         const bln3Inputs = bln3Result.inputs
@@ -304,6 +306,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             const y = c.b_lu_start?.getFullYear()
             return y !== undefined && y < min ? y : min
         }, maxCalendarYear)
+
+        // Build a lookup map from the BRP catalogue for fallback name resolution
+        // (e.g. nl_6794 = "groene braak, spontane opkomst" when no field record exists).
+        const brpNameByCode = new Map(
+            brpCatalogue.map((item) => [item.b_lu_catalogue, item.b_lu_name]),
+        )
+
         const cultivationSummaries: Array<{
             name: string
             year: number
@@ -319,7 +328,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 (c) => c.b_lu_catalogue === catalogue,
             )
             cultivationSummaries.push({
-                name: match?.b_lu_name ?? catalogue,
+                name: match?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
                 year,
                 croprotation: match?.b_lu_croprotation ?? null,
             })
@@ -619,7 +628,7 @@ export default function IndicatorsFieldDetail() {
                                 </p>
                                 <p className="text-xs text-muted-foreground mb-3">
                                     Stippellijn = perceel, doorgetrokken = met
-                                    maatregelen. Labels gekleurd per categorie.
+                                    maatregelen.
                                 </p>
                                 <IndicatorRadarChart
                                     indicators={fieldScore.indicators}

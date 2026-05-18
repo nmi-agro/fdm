@@ -54,15 +54,19 @@ export async function collectInputForBln3Score(
         // b_centroid = [lon, lat] (ST_X = longitude, ST_Y = latitude)
         const [a_lon, a_lat] = field.b_centroid
 
-        // Pick non-null numeric a_* fields from the most recent soil analysis
+        // Pick the BLN3-relevant soil analysis parameters from the most recent analysis.
         const latestAnalysis = soilAnalyses[0]
-        const soilData: Record<string, number> = {}
+        const soilData: Pick<
+            Bln3ScoreCollectedInputs,
+            "a_p_cc" | "a_p_al" | "a_p_wa"
+        > = {}
         if (latestAnalysis) {
-            for (const [key, value] of Object.entries(latestAnalysis)) {
-                if (key.startsWith("a_") && typeof value === "number") {
-                    soilData[key] = value
-                }
-            }
+            if (typeof latestAnalysis.a_p_cc === "number")
+                soilData.a_p_cc = latestAnalysis.a_p_cc
+            if (typeof latestAnalysis.a_p_al === "number")
+                soilData.a_p_al = latestAnalysis.a_p_al
+            if (typeof latestAnalysis.a_p_wa === "number")
+                soilData.a_p_wa = latestAnalysis.a_p_wa
         }
 
         // Build cultivation history using the Dutch "hoofdteelt" rule (May 15–July 15).
