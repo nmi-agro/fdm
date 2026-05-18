@@ -1,4 +1,3 @@
-import { TriangleAlert } from "lucide-react"
 import {
     flexRender,
     getCoreRowModel,
@@ -28,23 +27,25 @@ type FieldRow = {
     b_id: string
     b_name: string | null | undefined
     scores: Record<string, { score01: number; index01: number } | undefined>
+    /** Number of indicators with display score <40 for this field */
+    knelpuntCount: number
 }
 
 const CATEGORY_TEXT: Record<IndicatorCategory, string> = {
-    Biologisch:       "text-amber-600 dark:text-amber-400",
-    Chemisch:         "text-blue-600 dark:text-blue-400",
-    Fysisch:          "text-stone-600 dark:text-stone-400",
-    Grondwater:       "text-cyan-600 dark:text-cyan-400",
-    "Nutriënten":     "text-green-600 dark:text-green-400",
+    Biologisch: "text-amber-600 dark:text-amber-400",
+    Chemisch: "text-blue-600 dark:text-blue-400",
+    Fysisch: "text-stone-600 dark:text-stone-400",
+    Grondwater: "text-cyan-600 dark:text-cyan-400",
+    Nutriënten: "text-green-600 dark:text-green-400",
     Oppervlaktewater: "text-sky-600 dark:text-sky-400",
 }
 
 const CATEGORY_BORDER: Record<IndicatorCategory, string> = {
-    Biologisch:       "border-b-amber-400",
-    Chemisch:         "border-b-blue-400",
-    Fysisch:          "border-b-stone-400",
-    Grondwater:       "border-b-cyan-400",
-    "Nutriënten":     "border-b-green-400",
+    Biologisch: "border-b-amber-400",
+    Chemisch: "border-b-blue-400",
+    Fysisch: "border-b-stone-400",
+    Grondwater: "border-b-cyan-400",
+    Nutriënten: "border-b-green-400",
     Oppervlaktewater: "border-b-sky-400",
 }
 
@@ -78,6 +79,12 @@ export function HeatmapTable({
 }: HeatmapTableProps) {
     // Build per-field score rows
     const data = useMemo<FieldRow[]>(() => {
+        const activeInds =
+            activeCategories.length > 0
+                ? INDICATORS.filter((i) =>
+                      activeCategories.includes(i.category),
+                  )
+                : INDICATORS
         return fields.map((field) => {
             const fs = fieldScores.find((s) => s.b_id === field.b_id)
             const scores: FieldRow["scores"] = {}
@@ -89,11 +96,23 @@ export function HeatmapTable({
                     }
                 }
             }
-            return { b_id: field.b_id, b_name: field.b_name, scores }
+            let knelpuntCount = 0
+            for (const ind of activeInds) {
+                const vals = scores[ind.id]
+                if (!vals) continue
+                const active01 = showIndex ? vals.index01 : vals.score01
+                if (scoreToDisplay(active01) < 40) knelpuntCount++
+            }
+            return {
+                b_id: field.b_id,
+                b_name: field.b_name,
+                scores,
+                knelpuntCount,
+            }
         })
-    }, [fields, fieldScores])
+    }, [fields, fieldScores, activeCategories, showIndex])
 
-    // Column definitions: field column + one group per category
+    // Column definitions: field column + knelpunten summary column + one group per category
     const columns = useMemo<ColumnDef<FieldRow>[]>(() => {
         const fieldCol: ColumnDef<FieldRow> = {
             id: "field",
@@ -109,7 +128,50 @@ export function HeatmapTable({
             ),
         }
 
-        const categories = activeCategories.length > 0 ? activeCategories : INDICATOR_CATEGORIES
+        const knelpuntCol: ColumnDef<FieldRow> = {
+            id: "knelpunten",
+            header: () => (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="vertical-header text-[11px] font-medium cursor-default self-stretch text-red-700 dark:text-red-400">
+                            Knelpunten
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent
+                        side="right"
+                        className="max-w-[220px] text-xs"
+                    >
+                        Aantal knelpunten voor dit perceel
+                    </TooltipContent>
+                </Tooltip>
+                // <Tooltip>
+                //     <TooltipTrigger asChild>
+                //         <span className="vertical-header text-[11px] font-medium text-foreground cursor-default items-center text-red-600 dark:text-red-400">
+
+                //         </span>
+                //     </TooltipTrigger>
+                //     <TooltipContent
+                //         side="right"
+                //         className="max-w-[180px] text-xs"
+                //     >
+                //         Aantal knelpunten voor dit perceel
+                //     </TooltipContent>
+                // </Tooltip>
+            ),
+            cell: ({ row }) => {
+                const count = row.original.knelpuntCount
+                return count > 0 ? (
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs font-bold">
+                        {count}
+                    </span>
+                ) : null
+            },
+        }
+
+        const categories =
+            activeCategories.length > 0
+                ? activeCategories
+                : INDICATOR_CATEGORIES
         const groups: ColumnDef<FieldRow>[] = categories.map((cat) => ({
             id: cat,
             header: cat,
@@ -120,13 +182,14 @@ export function HeatmapTable({
                     header: () => (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <span
-                                    className="vertical-header text-[11px] font-medium text-foreground cursor-default self-stretch break-words"
-                                >
+                                <span className="vertical-header text-[11px] font-medium text-foreground cursor-default self-stretch">
                                     {ind.name}
                                 </span>
                             </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-[220px] text-xs">
+                            <TooltipContent
+                                side="right"
+                                className="max-w-[220px] text-xs"
+                            >
                                 {ind.name}
                             </TooltipContent>
                         </Tooltip>
@@ -146,7 +209,7 @@ export function HeatmapTable({
             ),
         }))
 
-        return [fieldCol, ...groups]
+        return [fieldCol, knelpuntCol, ...groups]
     }, [activeCategories, showIndex, basePath])
 
     const table = useReactTable({
@@ -158,17 +221,20 @@ export function HeatmapTable({
     // Always 2 header groups: [category group row, indicator name row]
     const [categoryGroupRow, indicatorNameRow] = table.getHeaderGroups()
 
-    // Indicator leaf columns (excluding the field column) for the painpoint row
+    // Indicator leaf columns (excluding field and knelpunten columns) for the painpoint row
     const indicatorLeafHeaders = indicatorNameRow.headers.filter(
-        (h) => h.column.id !== "field",
+        (h) => h.column.id !== "field" && h.column.id !== "knelpunten",
     )
 
     // Painpoint counts: number of fields with display score <40 per indicator
     const painpointCounts = useMemo(() => {
         const counts = new Map<string, number>()
-        const indicators = activeCategories.length > 0
-            ? INDICATORS.filter((i) => activeCategories.includes(i.category))
-            : INDICATORS
+        const indicators =
+            activeCategories.length > 0
+                ? INDICATORS.filter((i) =>
+                      activeCategories.includes(i.category),
+                  )
+                : INDICATORS
         for (const ind of indicators) {
             let count = 0
             for (const row of data) {
@@ -182,13 +248,21 @@ export function HeatmapTable({
         return counts
     }, [data, activeCategories, showIndex])
 
-    const hasPainpoints = [...painpointCounts.values()].some((c) => c > 0)
+    // Total knelpunten across all fields (for the crossing cell)
+    const totalKnelpunten = useMemo(
+        () => data.reduce((sum, r) => sum + r.knelpuntCount, 0),
+        [data],
+    )
 
     // Shared cell class strings
-    const thBase = "bg-background px-1 text-xs font-medium text-muted-foreground border-b border-border"
+    const thBase =
+        "bg-background px-1 text-xs font-medium text-muted-foreground border-b border-border"
     const tdBase = "text-center px-1 py-2 border-b border-border"
     const stickyCol = "sticky left-0 z-10 bg-background"
     const stickyCorner = "sticky left-0 z-30 bg-background"
+    // Second sticky column — knelpunten summary (left offset = field column width 160px)
+    const stickyKnelpunt = "sticky left-[160px] z-10 bg-background"
+    const stickyKnelpuntCorner = "sticky left-[160px] z-30 bg-background"
 
     return (
         <TooltipProvider>
@@ -203,17 +277,31 @@ export function HeatmapTable({
                         <tr>
                             {categoryGroupRow.headers.map((header) => {
                                 if (header.isPlaceholder) {
+                                    // field placeholder
+                                    if (header.column.id === "field") {
+                                        return (
+                                            <th
+                                                key={header.id}
+                                                className={cn(
+                                                    stickyCorner,
+                                                    "w-[160px] min-w-[160px] px-3 py-1.5 border-b border-r border-border",
+                                                )}
+                                            />
+                                        )
+                                    }
+                                    // knelpunten placeholder
                                     return (
                                         <th
                                             key={header.id}
                                             className={cn(
-                                                stickyCorner,
-                                                "w-[160px] min-w-[160px] px-3 py-1.5 border-b border-r border-border",
+                                                stickyKnelpuntCorner,
+                                                "w-12 min-w-[48px] px-1 py-1.5 border-b border-r border-border",
                                             )}
                                         />
                                     )
                                 }
-                                const cat = header.column.id as IndicatorCategory
+                                const cat = header.column
+                                    .id as IndicatorCategory
                                 return (
                                     <th
                                         key={header.id}
@@ -250,6 +338,22 @@ export function HeatmapTable({
                                         </th>
                                     )
                                 }
+                                if (header.column.id === "knelpunten") {
+                                    return (
+                                        <th
+                                            key={header.id}
+                                            className={cn(
+                                                stickyKnelpuntCorner,
+                                                "w-12 min-w-[48px] px-1 pb-2 text-center border-b border-r border-border align-middle",
+                                            )}
+                                        >
+                                            {flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext(),
+                                            )}
+                                        </th>
+                                    )
+                                }
                                 return (
                                     <th
                                         key={header.id}
@@ -263,30 +367,35 @@ export function HeatmapTable({
                                                 type="button"
                                                 className={cn(
                                                     "flex justify-center items-end h-full w-full overflow-hidden cursor-pointer hover:bg-muted/40",
-                                                    selectedIndicatorId === header.column.id &&
+                                                    selectedIndicatorId ===
+                                                        header.column.id &&
                                                         "bg-muted/60 ring-2 ring-inset ring-primary/50",
                                                 )}
                                                 aria-pressed={
-                                                    selectedIndicatorId === header.column.id
+                                                    selectedIndicatorId ===
+                                                    header.column.id
                                                 }
                                                 aria-label={`${selectedIndicatorId === header.column.id ? "Unpin" : "Pin"} indicator ${header.column.id}`}
                                                 onClick={() =>
                                                     onIndicatorClick(
-                                                        selectedIndicatorId === header.column.id
+                                                        selectedIndicatorId ===
+                                                            header.column.id
                                                             ? null
                                                             : header.column.id,
                                                     )
                                                 }
                                             >
                                                 {flexRender(
-                                                    header.column.columnDef.header,
+                                                    header.column.columnDef
+                                                        .header,
                                                     header.getContext(),
                                                 )}
                                             </button>
                                         ) : (
                                             <div className="flex justify-center items-end h-full overflow-hidden">
                                                 {flexRender(
-                                                    header.column.columnDef.header,
+                                                    header.column.columnDef
+                                                        .header,
                                                     header.getContext(),
                                                 )}
                                             </div>
@@ -298,38 +407,56 @@ export function HeatmapTable({
                     </thead>
 
                     <tbody>
-                        {/* Painpoint row — always first */}
-                        {hasPainpoints && (
-                            <tr>
-                                <td
+                        {/* Painpoint row — always visible; crossing cell shows total */}
+                        <tr>
+                            <td
+                                className={cn(
+                                    stickyCol,
+                                    "px-3 py-2 text-xs font-semibold border-b-2 border-r border-border",
+                                    totalKnelpunten > 0
+                                        ? "text-red-700 dark:text-red-400"
+                                        : "text-green-700 dark:text-green-400",
+                                )}
+                            >
+                                <span className="flex items-center gap-1.5">
+                                    Knelpunten
+                                </span>
+                            </td>
+                            {/* Crossing cell: total knelpunten across all fields */}
+                            <td
+                                className={cn(
+                                    stickyKnelpunt,
+                                    "text-center px-1 py-2 border-b-2 border-r border-border",
+                                )}
+                            >
+                                <span
                                     className={cn(
-                                        stickyCol,
-                                        "px-3 py-2 text-xs font-semibold text-red-700 dark:text-red-400 border-b-2 border-r border-border",
+                                        "inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold",
+                                        totalKnelpunten > 0
+                                            ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
+                                            : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400",
                                     )}
                                 >
-                                    <span className="flex items-center gap-1.5">
-                                        <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
-                                        Knelpunten
-                                    </span>
-                                </td>
-                                {indicatorLeafHeaders.map((header) => {
-                                    const count =
-                                        painpointCounts.get(header.column.id) ?? 0
-                                    return (
-                                        <td
-                                            key={header.id}
-                                            className={cn(tdBase, "border-b-2")}
-                                        >
-                                            {count > 0 ? (
-                                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs font-bold">
-                                                    {count}
-                                                </span>
-                                            ) : null}
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        )}
+                                    {totalKnelpunten}
+                                </span>
+                            </td>
+                            {indicatorLeafHeaders.map((header) => {
+                                const count =
+                                    painpointCounts.get(header.column.id) ?? 0
+                                return (
+                                    <td
+                                        key={header.id}
+                                        className={cn(tdBase, "border-b-2")}
+                                    >
+                                        {count > 0 ? (
+                                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs font-bold">
+                                                {count}
+                                            </span>
+                                        ) : null}
+                                    </td>
+                                )
+                            })}
+                        </tr>
 
                         {/* Data rows */}
                         {table.getRowModel().rows.map((row) => (
@@ -354,11 +481,24 @@ export function HeatmapTable({
                                             </td>
                                         )
                                     }
+                                    if (cell.column.id === "knelpunten") {
+                                        return (
+                                            <td
+                                                key={cell.id}
+                                                className={cn(
+                                                    stickyKnelpunt,
+                                                    "text-center px-1 py-2 border-b border-r border-border",
+                                                )}
+                                            >
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext(),
+                                                )}
+                                            </td>
+                                        )
+                                    }
                                     return (
-                                        <td
-                                            key={cell.id}
-                                            className={tdBase}
-                                        >
+                                        <td key={cell.id} className={tdBase}>
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext(),
