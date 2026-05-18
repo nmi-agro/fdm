@@ -486,3 +486,56 @@ describe("collectInputForBln3Score", () => {
         ).toBeUndefined()
     })
 })
+
+import { findHoofdteelt } from "../shared/hoofdteelt"
+
+describe("findHoofdteelt boundary and tie-break cases", () => {
+    it("counts a cultivation that spans exactly May 15–July 15 as in-window", () => {
+        const result = findHoofdteelt(
+            [
+                {
+                    b_lu_catalogue: "nl_265",
+                    b_lu_start: new Date("2024-05-15"),
+                    b_lu_end: new Date("2024-07-15"),
+                },
+            ],
+            2024,
+        )
+        expect(result).toBe("nl_265")
+    })
+
+    it("excludes a cultivation that starts exactly on July 15 (zero-length overlap)", () => {
+        // effectiveStart === effectiveEnd → condition effectiveEnd > effectiveStart is false
+        const result = findHoofdteelt(
+            [
+                {
+                    b_lu_catalogue: "nl_265",
+                    b_lu_start: new Date("2024-07-15"),
+                    b_lu_end: null,
+                },
+            ],
+            2024,
+        )
+        expect(result).toBe("nl_6794") // groene braak
+    })
+
+    it("resolves a tie by choosing the alphabetically-first b_lu_catalogue", () => {
+        // Both cultivations cover the exact same May 15–July 15 window
+        const result = findHoofdteelt(
+            [
+                {
+                    b_lu_catalogue: "nl_999",
+                    b_lu_start: new Date("2024-05-15"),
+                    b_lu_end: new Date("2024-07-15"),
+                },
+                {
+                    b_lu_catalogue: "nl_100",
+                    b_lu_start: new Date("2024-05-15"),
+                    b_lu_end: new Date("2024-07-15"),
+                },
+            ],
+            2024,
+        )
+        expect(result).toBe("nl_100")
+    })
+})

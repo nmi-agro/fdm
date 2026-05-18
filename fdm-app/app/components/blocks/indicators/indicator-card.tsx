@@ -51,8 +51,8 @@ function StackedScoreBar({
     impactValue: number
     indexColor: string
 }) {
-    const indexWidth = Math.min(indexValue, 100)
-    const impactWidth = Math.min(impactValue, 100 - indexWidth)
+    const indexWidth = Math.max(0, Math.min(indexValue, 100))
+    const impactWidth = Math.max(0, Math.min(impactValue, 100 - indexWidth))
     return (
         <div className="relative h-2 w-full overflow-hidden rounded-full bg-primary/10">
             <div

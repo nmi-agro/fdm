@@ -28,7 +28,9 @@ import { findHoofdteelt } from "../shared/hoofdteelt"
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The principal making the request.
  * @param b_id - The field ID for which to collect inputs.
- * @param timeframe - Optional timeframe to filter cultivations and measures.
+ * @param timeframe - Optional timeframe applied to soil analyses and measures only.
+ *   Cultivations are always fetched without a timeframe to cover the full multi-year
+ *   history needed for the BLN3 calculation.
  * @returns A promise resolving to the collected BLN3 score inputs (without `nmiApiKey`).
  * @throws {Error} If data collection fails.
  */

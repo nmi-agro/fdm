@@ -171,6 +171,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 statusText: "invalid: b_id",
             })
         }
+        const calendarYear = Number(calendar)
+        if (!Number.isFinite(calendarYear)) {
+            throw data("invalid: calendar", {
+                status: 400,
+                statusText: "invalid: calendar",
+            })
+        }
 
         const session = await getSession(request)
         const timeframe = getTimeframe(params)
@@ -286,7 +293,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Build cultivation display list using findHoofdteelt (May 15–July 15 duration
         // window) — exactly consistent with what is submitted to the BLN3 API.
         // Only show years within the range of known cultivation data; gaps get groene braak.
-        const maxCalendarYear = parseInt(calendar)
+        const maxCalendarYear = calendarYear
         const cultivationsForHoofdteelt: CultivationForHoofdteelt[] =
             cultivations.map((c) => ({
                 b_lu_catalogue: c.b_lu_catalogue,

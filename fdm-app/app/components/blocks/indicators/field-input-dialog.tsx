@@ -110,8 +110,8 @@ export function FieldInputDialog({
                             </p>
                         ) : (
                             <ul className="flex flex-wrap gap-1.5">
-                                {cultivations.map((c, i) => (
-                                    <li key={i}>
+                                {cultivations.map((c) => (
+                                    <li key={`${c.name}-${c.year}`}>
                                         <Badge
                                             style={{
                                                 backgroundColor:
