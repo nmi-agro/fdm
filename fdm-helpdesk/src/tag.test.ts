@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm"
 import { describe, expect } from "vitest"
+import { addAdminAgent, addAgent } from "./agent"
 import { createId } from "./id"
 import {
     addTagToTicket,
@@ -10,7 +11,6 @@ import {
 } from "./tag"
 import { test } from "./test-util"
 import { createTicket, getTicket } from "./ticket"
-import { addAgent } from "./agent"
 
 describe("Tag CRUD", () => {
     let admin_id: string
@@ -29,9 +29,7 @@ describe("Tag CRUD", () => {
         })
         admin_id = admin.user.id
 
-        await fdm.execute(
-            sql`update "fdm-authn"."user" set role='helpdeskAdmin' where id=${admin_id}`,
-        )
+        await addAdminAgent(fdm, admin_id, "Support Agent")
     })
 
     test("should create tags", async ({ fdm }) => {
@@ -167,11 +165,7 @@ describe("Ticket Tags", () => {
         })
         admin_id = admin.user.id
 
-        await fdm.execute(
-            sql`update "fdm-authn"."user" set role='helpdeskAdmin' where id=${admin_id}`,
-        )
-
-        await addAgent(fdm, admin_id, admin_id, "Support Agent")
+        await addAdminAgent(fdm, admin_id, "Support Agent")
 
         // Create agent_id
         const requester_username = `testtickettagreq${createId(8)}`

@@ -60,8 +60,7 @@ export type TicketTypeInsert = typeof tickets.$inferInsert
 export const agents = fdmHelpdeskSchema.table(
     "agents",
     {
-        agent_id: text().primaryKey(), // createId()
-        principal_id: text().notNull(), // References fdm-authn user.id
+        agent_id: text().primaryKey(), // createId(), references fdm-authn user.id
         display_name: text().notNull(),
         role: text().notNull().default("agent"), // 'admin', 'agent'
         is_active: boolean().notNull().default(true),
@@ -73,7 +72,6 @@ export const agents = fdmHelpdeskSchema.table(
         updated: timestamp({ withTimezone: true }),
     },
     (table) => [
-        uniqueIndex("agent_principal_idx").on(table.principal_id),
         index("agent_active_idx").on(table.is_active),
         index("agent_availability_idx").on(table.availability_status),
         index("agent_tier_idx").on(table.assignment_tier),

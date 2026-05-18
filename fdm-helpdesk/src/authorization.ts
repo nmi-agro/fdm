@@ -1,15 +1,12 @@
 import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
-import { getUserProfile, handleError } from "@nmi-agro/fdm-core"
+import { handleError } from "@nmi-agro/fdm-core"
 import { and, eq, inArray, isNotNull, not, or, sql } from "drizzle-orm"
 import * as schema from "./db/schema-helpdesk"
 
-export type HelpdeskRole = "helpdeskAgent" | "helpdeskAdmin"
+export type HelpdeskRole = "agent" | "admin"
 export type ApplicationRole = HelpdeskRole | "user"
 
-export const helpdeskRoles: ApplicationRole[] = [
-    "helpdeskAgent",
-    "helpdeskAdmin",
-]
+export const helpdeskRoles: ApplicationRole[] = ["agent", "admin"]
 
 export const helpdeskActions = ["read", "write", "share"] as const
 export type HelpdeskAction = (typeof helpdeskActions)[number]
@@ -98,18 +95,21 @@ export async function getHelpdeskRole(
     fdm: FdmType,
     principal_id: PrincipalId,
 ): Promise<ApplicationRole> {
-    const principal_ids = Array.isArray(principal_id)
-        ? principal_id
-        : [principal_id]
+    const principal_ids = [
+        ...new Set(Array.isArray(principal_id) ? principal_id : [principal_id]),
+    ]
 
-    const users = await Promise.all(
-        principal_ids.map((user_id) => getUserProfile(fdm, user_id)),
-    )
+    const agents = await fdm
+        .select({ role: schema.agents.role })
+        .from(schema.agents)
+        .where(inArray(schema.agents.agent_id, principal_ids))
 
-    return users.every((u) => u?.role === "helpdeskAdmin")
-        ? "helpdeskAdmin"
-        : users.every((u) => u?.role === "helpdeskAgent")
-          ? "helpdeskAgent"
+    if (agents.length < principal_ids.length) return "user"
+
+    return agents.every((a) => a.role === "admin")
+        ? "admin"
+        : agents.every((a) => a.role === "agent")
+          ? "agent"
           : "user"
 }
 
@@ -146,7 +146,7 @@ export async function getHelpdeskPermission(
     // Helpdesk management
     if (resource === "helpdesk") {
         const value: Awaited<ReturnType<typeof getHelpdeskPermission>> =
-            action !== "read" && role === "helpdeskAdmin"
+            action !== "read" && role === "admin"
                 ? { granting_resource: "helpdesk" }
                 : action === "read" && helpdeskRoles.includes(role)
                   ? { granting_resource: "helpdesk" }
@@ -166,7 +166,12 @@ export async function getHelpdeskPermission(
             ).length > 0
         ) {
             return helpdeskRoles.includes(role) &&
-                (action === "read" || principal_ids.includes(resource_id))
+                (action === "read" ||
+                    role === "admin" ||
+                    (principal_ids.length > 0 &&
+                        principal_ids.every(
+                            (principal_id) => principal_id === resource_id,
+                        )))
                 ? {
                       granting_resource: "agent",
                       granting_resource_id: resource_id,
@@ -213,9 +218,9 @@ export async function getHelpdeskPermission(
         const agentStatus = await fdm
             .select({ is_active: schema.agents.is_active })
             .from(schema.agents)
-            .where(inArray(schema.agents.principal_id, principal_ids))
-        const isActiveAgent = agentStatus.some((stat) => stat.is_active)
-        const isAdmin = role === "helpdeskAdmin"
+            .where(inArray(schema.agents.agent_id, principal_ids))
+        const isActiveAgent = agentStatus.every((stat) => stat.is_active)
+        const isAdmin = role === "admin"
 
         // Users can't modify ticket assignments etc. but they can see this status on their own tickets
         if (
@@ -258,9 +263,9 @@ export async function getHelpdeskPermission(
         const agentStatus = await fdm
             .select({ is_active: schema.agents.is_active })
             .from(schema.agents)
-            .where(and(inArray(schema.agents.principal_id, principal_ids)))
-        const isActiveAgent = agentStatus.some((stat) => stat.is_active)
-        const isAdmin = role === "helpdeskAdmin"
+            .where(and(inArray(schema.agents.agent_id, principal_ids)))
+        const isActiveAgent = agentStatus.every((stat) => stat.is_active)
+        const isAdmin = role === "admin"
 
         return (
             await fdm
@@ -280,7 +285,7 @@ export async function getHelpdeskPermission(
                         // Regular users can only view non-internal messages under their own tickets
                         !isActiveAgent && !isAdmin
                             ? and(
-                                  // not(schema.messages.is_internal),
+                                  not(schema.messages.is_internal),
                                   isNotNull(schema.tickets.requester_id),
                                   inArray(
                                       schema.tickets.requester_id,

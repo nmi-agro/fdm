@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm"
 import { expect } from "vitest"
-import { addAgent } from "./agent"
+import { addAdminAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
 import { addTagToTicket, createTag } from "./tag"
@@ -35,11 +35,7 @@ test.describe("Inbox", () => {
         })
         agent_id = agent.user.id
 
-        await fdm.execute(
-            sql`update "fdm-authn"."user" set role='helpdeskAdmin' where id=${agent_id}`,
-        )
-
-        await addAgent(fdm, agent_id, agent_id, "Support Agent", true)
+        await addAdminAgent(fdm, agent_id, "Support Agent")
 
         // Create requester_id
         const requester_username = `testinboxrequester${createId(8)}`
@@ -139,11 +135,7 @@ test.describe("getTickets", () => {
         })
         agent_id = agent.user.id
 
-        await fdm.execute(
-            sql`update "fdm-authn"."user" set role='helpdeskAdmin' where id=${agent_id}`,
-        )
-
-        await addAgent(fdm, agent_id, agent_id, "Support Agent", true)
+        await addAdminAgent(fdm, agent_id, "Support Agent")
 
         // Create requester_id
         const requester_username = `testinboxrequester${createId(8)}`

@@ -1,6 +1,6 @@
 import { type FdmType, handleError, type PrincipalId } from "@nmi-agro/fdm-core"
 import { and, eq, gte, inArray, isNull, lte, not, sql } from "drizzle-orm"
-import { checkHelpdeskPermission, getHelpdeskRole } from "./authorization"
+import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
 import type {
@@ -33,8 +33,13 @@ async function getCanReadInternalMessages(
     fdm: FdmType,
     principal_id: PrincipalId,
 ) {
-    const helpdeskRole = await getHelpdeskRole(fdm, principal_id)
-    return helpdeskRole === "helpdeskAdmin" || helpdeskRole === "helpdeskAgent"
+    return await getHelpdeskPermission(
+        fdm,
+        "helpdesk",
+        "read",
+        "",
+        principal_id,
+    )
 }
 const PERMISSION_ERROR_MESSAGE =
     "Principal does not have permission to perform this action"
@@ -82,8 +87,14 @@ export async function getMessagesForTicket(
         IncludeDeletedFilter &
         PaginationFilter,
 ): Promise<Message[]> {
-    const pageOffset = filters?.pageOffset ? Math.max(0, filters.pageOffset) : 0
-    const pageLimit = filters?.pageLimit ? Math.max(1, filters.pageLimit) : 20
+    const pageOffset =
+        typeof filters?.pageOffset === "number"
+            ? Math.max(0, filters.pageOffset)
+            : 0
+    const pageLimit =
+        typeof filters?.pageLimit === "number"
+            ? Math.max(1, filters.pageLimit)
+            : 20
 
     try {
         await checkHelpdeskPermission(
@@ -161,7 +172,7 @@ export async function addMessage(
         )
 
         if (
-            typeof is_internal !== "undefined" &&
+            is_internal &&
             !(await getCanReadInternalMessages(fdm, sender_id))
         ) {
             throw new Error(PERMISSION_ERROR_MESSAGE)
@@ -206,7 +217,7 @@ export async function updateMessage(
         )
 
         if (
-            typeof is_internal !== "undefined" &&
+            is_internal &&
             !(await getCanReadInternalMessages(fdm, principal_id))
         ) {
             throw new Error(PERMISSION_ERROR_MESSAGE)

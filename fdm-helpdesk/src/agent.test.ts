@@ -1,6 +1,11 @@
-import { sql } from "drizzle-orm"
 import { describe, expect } from "vitest"
-import { addAgent, getAgent, setAgentActiveStatus, updateAgent } from "./agent"
+import {
+    addAdminAgent,
+    addAgent,
+    getAgent,
+    setAgentActiveStatus,
+    updateAgent,
+} from "./agent"
 import { createId } from "./id"
 import { test } from "./test-util"
 
@@ -22,9 +27,7 @@ describe("Agent CRUD", () => {
         })
         admin_id = admin.user.id
 
-        await fdm.execute(
-            sql`update "fdm-authn"."user" set role='helpdeskAdmin' where id=${admin_id}`,
-        )
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
 
         // Create agent_id
         const agent_username = `testagentagent${createId(8)}`
@@ -38,6 +41,27 @@ describe("Agent CRUD", () => {
             },
         })
         agent_id = agent.user.id
+
+        await addAgent(fdm, admin_id, agent_id, "Support Agent")
+    })
+
+    test("should create an admin agent without permission checks", async ({
+        fdm,
+    }) => {
+        const agent_id = createId()
+        await addAdminAgent(fdm, agent_id, "Helpdesk Admin")
+    })
+
+    test("should not overwrite existing agent as admin", async ({ fdm }) => {
+        const failError = new Error("Should have thrown")
+        try {
+            await addAdminAgent(fdm, admin_id, "Helpdesk Admin")
+            throw failError
+        } catch (err) {
+            if (err === failError) throw err
+            expect(err.cause).toBeDefined()
+            expect(err.cause.message).toBe("Agent with same ID already exists")
+        }
     })
 
     test("should let admins add agents", async ({ fdm }) => {
@@ -102,10 +126,11 @@ describe("Agent CRUD", () => {
         const third_agent_id = await addAgent(
             fdm,
             admin_id,
-            "notimportant",
+            `thirdagent${createId(8)}`,
             "Third Support Agent",
         )
 
+        const failError = new Error("Should have thrown")
         try {
             await updateAgent(
                 fdm,
@@ -113,8 +138,9 @@ describe("Agent CRUD", () => {
                 third_agent_id,
                 "Support Agent with Low Performance",
             )
-            expect(true, "Should have thrown").toBe(false)
+            throw failError
         } catch (err) {
+            if (err === failError) throw err
             expect(err.message).toBeDefined()
             expect(err.message).toContain(
                 "Principal does not have permission to perform this action",
@@ -145,14 +171,16 @@ describe("Agent CRUD", () => {
         const third_agent_id = await addAgent(
             fdm,
             admin_id,
-            "notimportant",
+            `thirdagent${createId(8)}`,
             "Third Support Agent",
         )
 
+        const failError = new Error("Should have thrown")
         try {
             await setAgentActiveStatus(fdm, agent_id, third_agent_id, false)
-            expect(true, "Should have thrown").toBe(false)
+            throw failError
         } catch (err) {
+            if (err === failError) throw err
             expect(err.message).toBeDefined()
             expect(err.message).toContain(
                 "Principal does not have permission to perform this action",

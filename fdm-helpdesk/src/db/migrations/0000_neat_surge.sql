@@ -2,7 +2,6 @@ CREATE SCHEMA "fdm-helpdesk";
 --> statement-breakpoint
 CREATE TABLE "fdm-helpdesk"."agents" (
 	"agent_id" text PRIMARY KEY NOT NULL,
-	"principal_id" text NOT NULL,
 	"display_name" text NOT NULL,
 	"role" text DEFAULT 'agent' NOT NULL,
 	"is_active" boolean DEFAULT true NOT NULL,
@@ -105,7 +104,6 @@ ALTER TABLE "fdm-helpdesk"."ticket_assignments" ADD CONSTRAINT "ticket_assignmen
 ALTER TABLE "fdm-helpdesk"."ticket_tags_map" ADD CONSTRAINT "ticket_tags_map_ticket_id_tickets_ticket_id_fk" FOREIGN KEY ("ticket_id") REFERENCES "fdm-helpdesk"."tickets"("ticket_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm-helpdesk"."ticket_tags_map" ADD CONSTRAINT "ticket_tags_map_tag_id_tags_tag_id_fk" FOREIGN KEY ("tag_id") REFERENCES "fdm-helpdesk"."tags"("tag_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm-helpdesk"."ticket_views" ADD CONSTRAINT "ticket_views_ticket_id_tickets_ticket_id_fk" FOREIGN KEY ("ticket_id") REFERENCES "fdm-helpdesk"."tickets"("ticket_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "agent_principal_idx" ON "fdm-helpdesk"."agents" USING btree ("principal_id");--> statement-breakpoint
 CREATE INDEX "agent_active_idx" ON "fdm-helpdesk"."agents" USING btree ("is_active");--> statement-breakpoint
 CREATE INDEX "agent_availability_idx" ON "fdm-helpdesk"."agents" USING btree ("availability_status");--> statement-breakpoint
 CREATE INDEX "agent_tier_idx" ON "fdm-helpdesk"."agents" USING btree ("assignment_tier");--> statement-breakpoint

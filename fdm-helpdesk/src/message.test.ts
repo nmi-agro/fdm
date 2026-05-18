@@ -1,6 +1,5 @@
-import { sql } from "drizzle-orm"
 import { describe, expect } from "vitest"
-import { addAgent } from "./agent"
+import { addAdminAgent } from "./agent"
 import { createId } from "./id"
 import {
     addMessage,
@@ -32,11 +31,7 @@ describe("Message CRUD", () => {
         })
         admin_id = admin.user.id
 
-        await fdm.execute(
-            sql`update "fdm-authn"."user" set role='helpdeskAdmin' where id=${admin_id}`,
-        )
-
-        await addAgent(fdm, admin_id, admin_id, "Support Agent")
+        await addAdminAgent(fdm, admin_id, "Helpdesk Agent")
 
         // Create requester user
         const requester_username = `testmessagerequester${createId(8)}`
@@ -307,11 +302,7 @@ describe("Message Pagination", () => {
         })
         admin_id = admin.user.id
 
-        await fdm.execute(
-            sql`update "fdm-authn"."user" set role='helpdeskAdmin' where id=${admin_id}`,
-        )
-
-        await addAgent(fdm, admin_id, admin_id, "Support Agent")
+        await addAdminAgent(fdm, admin_id, "Support Agent")
 
         // Create requester user
         const requester_username = `testmessagerequester${createId(8)}`
@@ -356,7 +347,7 @@ describe("Message Pagination", () => {
         message_ids = messages
     })
 
-    test.only("should paginate with no custom pagination specified", async ({
+    test("should paginate with no custom pagination specified", async ({
         fdm,
     }) => {
         const messages = await getMessagesForTicket(

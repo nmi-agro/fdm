@@ -1,5 +1,5 @@
 {
-  "id": "01bdf555-f7b0-41c3-83fa-d1b72e0dce41",
+  "id": "2a7a3ebc-7bbe-4808-8e83-ba6540cc37c9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -12,12 +12,6 @@
           "name": "agent_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
-        },
-        "principal_id": {
-          "name": "principal_id",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "display_name": {
@@ -83,21 +77,6 @@
         }
       },
       "indexes": {
-        "agent_principal_idx": {
-          "name": "agent_principal_idx",
-          "columns": [
-            {
-              "expression": "principal_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "agent_active_idx": {
           "name": "agent_active_idx",
           "columns": [

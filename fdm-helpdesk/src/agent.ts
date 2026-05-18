@@ -5,7 +5,6 @@ import * as schema from "./db/schema-helpdesk"
 
 export type AgentSummary = {
     agent_id: schema.AgentTypeSelect["agent_id"]
-    principal_id: schema.AgentTypeSelect["principal_id"]
     display_name: schema.AgentTypeSelect["display_name"]
 }
 
@@ -59,6 +58,37 @@ export async function getAgents(fdm: FdmType, principal_id: PrincipalId) {
     }
 }
 
+export async function addAdminAgent(
+    fdm: FdmType,
+    agent_id: schema.AgentTypeInsert["agent_id"],
+    display_name: schema.AgentTypeInsert["display_name"],
+) {
+    try {
+        await fdm.transaction(async (tx) => {
+            const found = await tx
+                .select({ agent_id: schema.agents.agent_id })
+                .from(schema.agents)
+                .where(eq(schema.agents.agent_id, agent_id))
+
+            if (found.length > 0) {
+                throw new Error("Agent with same ID already exists")
+            }
+
+            await tx.insert(schema.agents).values([
+                {
+                    agent_id: agent_id,
+                    display_name: display_name,
+                    role: "admin",
+                },
+            ])
+        })
+
+        return agent_id
+    } catch (err) {
+        throw handleError(err, "Error in addAgent")
+    }
+}
+
 export async function addAgent(
     fdm: FdmType,
     principal_id: PrincipalId,
@@ -80,8 +110,9 @@ export async function addAgent(
             .values([
                 {
                     agent_id: agent_id,
-                    principal_id: agent_id,
                     display_name: display_name,
+                    role: "agent",
+                    is_active: true,
                 },
             ])
             .onConflictDoUpdate({
@@ -107,9 +138,9 @@ export async function updateAgent(
     try {
         await checkHelpdeskPermission(
             fdm,
-            "helpdesk",
+            "agent",
             "write",
-            "",
+            agent_id,
             principal_id,
             "addAgent",
         )
