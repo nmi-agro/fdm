@@ -1,14 +1,16 @@
-import { type FdmType, handleError, type PrincipalId } from "@nmi-agro/fdm-core"
 import { and, eq, gte, inArray, isNull, lte, not, sql } from "drizzle-orm"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
+import type { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
-import { createId } from "./id"
+import { handleError } from "./error"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import type {
     IncludeDeletedFilter,
     PaginationFilter,
     SenderFilter,
     TimeframeFilter,
-} from "./util"
+} from "./filter"
+import { createId } from "./id"
 
 export type Message = schema.MessageTypeSelect & {
     sender_name: schema.AgentTypeSelect["display_name"] | null
@@ -30,8 +32,8 @@ const messageColumns = {
 }
 
 async function getCanReadInternalMessages(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
 ) {
     return await getHelpdeskPermission(
         fdm,
@@ -45,8 +47,8 @@ const PERMISSION_ERROR_MESSAGE =
     "Principal does not have permission to perform this action"
 
 export async function getMessage(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     message_id: schema.MessageTypeSelect["message_id"],
 ) {
     try {
@@ -79,8 +81,8 @@ export async function getMessage(
 }
 
 export async function getMessagesForTicket(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     ticket_id: schema.TicketTypeSelect["ticket_id"],
     filters?: TimeframeFilter &
         SenderFilter &
@@ -154,7 +156,7 @@ export async function getMessagesForTicket(
 }
 
 export async function addMessage(
-    fdm: FdmType,
+    fdm: FdmHelpdeskType,
     ticket_id: schema.MessageTypeInsert["ticket_id"],
     sender_id: schema.MessageTypeInsert["sender_id"],
     sender_type: "customer" | "agent",
@@ -200,8 +202,8 @@ export async function addMessage(
 }
 
 export async function updateMessage(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     message_id: schema.MessageTypeInsert["message_id"],
     body?: schema.MessageTypeInsert["body"],
     is_internal?: schema.MessageTypeInsert["is_internal"],
@@ -241,8 +243,8 @@ export async function updateMessage(
 }
 
 export async function deleteMessage(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     message_id: schema.MessageTypeInsert["message_id"],
 ) {
     try {

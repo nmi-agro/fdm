@@ -1,26 +1,35 @@
 import {
-    type FdmType,
-    getUserProfile,
-    handleError,
-    type PrincipalId,
-} from "@nmi-agro/fdm-core"
-import { and, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm"
+    and,
+    desc,
+    eq,
+    gte,
+    inArray,
+    isNotNull,
+    lte,
+    type SQL,
+    sql,
+} from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
+import type { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
+import { handleError } from "./error"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
+import type {
+    AssigneeFilter,
+    PaginationFilter,
+    PriorityFilter,
+    RequesterFilter,
+    TagsFilter,
+    TicketContextFilter,
+    TimeframeFilter,
+} from "./filter"
 import { createId } from "./id"
 import { getTagsForTickets, type TagSummary } from "./tag"
 import {
     getAssigneesForTickets,
     type TicketAssignmentSummary,
 } from "./ticket-assignment"
-import type {
-    AssigneeFilter,
-    PaginationFilter,
-    RequesterFilter,
-    TagsFilter,
-    TimeframeFilter,
-} from "./util"
 
 export type Ticket = schema.TicketTypeSelect & {
     tags: TagSummary[]
@@ -30,7 +39,7 @@ export type Ticket = schema.TicketTypeSelect & {
 const TICKET_ALPHABET = "23456789ABCDFGHJKLMNPQRSTVWXYZ" // Uppercase, no lookalikes
 const generateTicketRef = customAlphabet(TICKET_ALPHABET, 6) // ~530 million combinations
 async function createTicketRefWithRetry(
-    fdm: FdmType,
+    fdm: FdmHelpdeskType,
     maxRetries = 3,
 ): Promise<string> {
     for (let i = 0; i < maxRetries; i++) {
@@ -53,7 +62,6 @@ const ticketColumns = {
     priority: schema.tickets.priority,
     channel: schema.tickets.channel,
     requester_id: schema.tickets.requester_id,
-    requester_email: schema.tickets.requester_email,
     context_farm_id: schema.tickets.context_farm_id,
     resolved_at: schema.tickets.resolved_at,
     closed_at: schema.tickets.closed_at,
@@ -62,8 +70,8 @@ const ticketColumns = {
 }
 
 export async function getTicket(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     ticket_id: schema.TicketTypeSelect["ticket_id"],
 ): Promise<Ticket> {
     try {
@@ -96,15 +104,17 @@ export async function getTicket(
     }
 }
 
-type Filters = PaginationFilter &
-    TimeframeFilter &
-    TagsFilter &
+type Filters = AssigneeFilter &
+    TicketContextFilter &
+    PaginationFilter &
+    PriorityFilter &
     RequesterFilter &
-    AssigneeFilter
+    TagsFilter &
+    TimeframeFilter
 
 export async function getInbox(
-    fdm: FdmType,
-    agent_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    agent_id: HelpdeskPrincipalId,
     filters: Filters = {},
 ) {
     const agent_ids = Array.isArray(agent_id) ? agent_id : [agent_id]
@@ -115,8 +125,8 @@ export async function getInbox(
 }
 
 export async function getTickets(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     filters: Filters = {},
 ): Promise<Ticket[]> {
     try {
@@ -144,6 +154,29 @@ export async function getTickets(
         const pageLimit = filters?.pageLimit
             ? Math.max(1, filters.pageLimit)
             : 20
+
+        // Build the priority filter if the user has specified either min priority or max priority out of the known priority options
+        let priorityFilter: SQL | undefined
+        if (filters.minPriority || filters.maxPriority) {
+            const priorities = ["low", "normal", "high", "urgent"] as const
+            const minPriorityIndex = filters.minPriority
+                ? priorities.indexOf(filters.minPriority)
+                : -1
+            const maxPriorityIndex = filters.maxPriority
+                ? priorities.indexOf(filters.maxPriority)
+                : -1
+            if (minPriorityIndex !== -1 || maxPriorityIndex !== -1) {
+                priorityFilter = inArray(
+                    schema.tickets.priority,
+                    priorities.slice(
+                        minPriorityIndex !== -1 ? minPriorityIndex : 0,
+                        maxPriorityIndex !== -1
+                            ? maxPriorityIndex + 1
+                            : priorities.length,
+                    ),
+                )
+            }
+        }
 
         const tickets = await fdm
             .selectDistinct(ticketColumns)
@@ -182,13 +215,15 @@ export async function getTickets(
                               ),
                           )
                         : undefined,
-                    // Requester Emails
-                    Array.isArray(filters?.requesterEmails)
-                        ? inArray(
-                              schema.tickets.requester_email,
-                              filters.requesterEmails,
+                    // Farm ID
+                    typeof filters.context?.b_id_farm === "string"
+                        ? eq(
+                              schema.tickets.context_farm_id,
+                              filters.context.b_id_farm,
                           )
                         : undefined,
+                    // Priority
+                    priorityFilter,
                     // Assignees
                     Array.isArray(filters?.assignees)
                         ? and(
@@ -252,93 +287,45 @@ type CreateTicketOptions = {
 }
 
 export async function createTicket(
-    fdm: FdmType,
+    fdm: FdmHelpdeskType,
     requester_id: schema.MessageTypeInsert["sender_id"],
     body: schema.MessageTypeInsert["body"],
     options?: CreateTicketOptions,
 ): Promise<schema.TicketTypeSelect["ticket_id"]> {
     try {
-        const user = await getUserProfile(fdm, requester_id)
-        if (!user) {
-            throw new Error("User not found")
-        }
-        if (!user.email) {
-            throw new Error("User has no email address")
-        }
-        return await createTicketInternal(
-            fdm,
-            requester_id,
-            user.email,
-            "web",
-            body,
-            options,
-        )
+        const ticket_id = createId()
+        const message_id = createId()
+
+        return await fdm.transaction(async (tx) => {
+            const ticket_ref = await createTicketRefWithRetry(tx)
+
+            await tx.insert(schema.tickets).values([
+                {
+                    ticket_id: ticket_id,
+                    ticket_ref: ticket_ref,
+                    requester_id: requester_id,
+                    channel: "web",
+                    priority: options?.priority,
+                    context_farm_id: options?.context?.b_id_farm,
+                },
+            ])
+
+            await tx.insert(schema.messages).values({
+                ticket_id: ticket_id,
+                sender_id: requester_id,
+                message_id: message_id,
+                sender_type: "user",
+                body: body,
+            })
+
+            return ticket_id
+        })
     } catch (e) {
         throw handleError(e, "Exception for createTicket", {
             ...options,
             requester_id,
         })
     }
-}
-
-export async function createEmailTicket(
-    fdm: FdmType,
-    requester_email: schema.TicketTypeInsert["requester_email"],
-    body: schema.MessageTypeInsert["body"],
-    options?: CreateTicketOptions,
-): Promise<schema.TicketTypeSelect["ticket_id"]> {
-    try {
-        return await createTicketInternal(
-            fdm,
-            requester_email,
-            requester_email,
-            "email",
-            body,
-            options,
-        )
-    } catch (e) {
-        throw handleError(e, "Exception for createEmailTicket", {
-            ...options,
-        })
-    }
-}
-
-async function createTicketInternal(
-    fdm: FdmType,
-    requester_id: schema.MessageTypeInsert["sender_id"],
-    requester_email: schema.TicketTypeInsert["requester_email"],
-    channel: schema.TicketTypeInsert["channel"],
-    body: schema.MessageTypeInsert["body"],
-    options?: CreateTicketOptions,
-): Promise<schema.TicketTypeSelect["ticket_id"]> {
-    const ticket_id = createId()
-    const message_id = createId()
-
-    return await fdm.transaction(async (tx) => {
-        const ticket_ref = await createTicketRefWithRetry(tx)
-
-        await tx.insert(schema.tickets).values([
-            {
-                ticket_id: ticket_id,
-                ticket_ref: ticket_ref,
-                requester_id: requester_id,
-                requester_email: requester_email,
-                channel: channel,
-                priority: options?.priority,
-                context_farm_id: options?.context?.b_id_farm,
-            },
-        ])
-
-        await tx.insert(schema.messages).values({
-            ticket_id: ticket_id,
-            sender_id: requester_id,
-            message_id: message_id,
-            sender_type: "user",
-            body: body,
-        })
-
-        return ticket_id
-    })
 }
 
 const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -355,15 +342,17 @@ const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
     resolved: ["closed", "open"], // "open" = reopen
     closed: ["open"], // "open" = reopen
 }
+
 export function validateTicketStatusTransition(
     from: string,
     to: string,
 ): boolean {
     return ALLOWED_TICKET_STATUS_TRANSITIONS[from]?.includes(to) ?? false
 }
+
 export async function updateTicketStatus(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     ticket_id: schema.TicketTypeSelect["ticket_id"],
     status: schema.TicketTypeSelect["status"],
 ) {

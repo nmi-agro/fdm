@@ -14,19 +14,9 @@ import { createTicket, getTicket } from "./ticket"
 describe("Tag CRUD", () => {
     let admin_id: string
 
-    test.beforeEach(async ({ fdm, fdmAuth }) => {
+    test.beforeEach(async ({ fdm }) => {
         // Create agent_id
-        const admin_username = `testtagadmin${createId(8)}`
-        const admin = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${admin_username}@example.agency`,
-                name: "Test Tag Admin",
-                username: admin_username,
-                password: "password",
-            },
-        })
-        admin_id = admin.user.id
+        admin_id = createId()
 
         await addAdminAgent(fdm, admin_id, "Support Agent")
     })
@@ -158,34 +148,14 @@ describe("Ticket Tags", () => {
     let ticket_id: string
     let blue_tag_id: string
 
-    test.beforeEach(async ({ fdm, fdmAuth }) => {
+    test.beforeEach(async ({ fdm }) => {
         // Create agent_id
-        const admin_username = `testtickettagadmin${createId(8)}`
-        const admin = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${admin_username}@example.agency`,
-                name: "Test Ticket-Tag Admin",
-                username: admin_username,
-                password: "password",
-            },
-        })
-        admin_id = admin.user.id
+        admin_id = createId()
 
         await addAdminAgent(fdm, admin_id, "Support Agent")
 
         // Create agent_id
-        const requester_username = `testtickettagreq${createId(8)}`
-        const requester = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${requester_username}@example.client`,
-                name: "Test Ticket-Tag Requester",
-                username: requester_username,
-                password: "password",
-            },
-        })
-        requester_id = requester.user.id
+        requester_id = createId()
 
         ticket_id = await createTicket(
             fdm,

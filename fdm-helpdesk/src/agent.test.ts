@@ -13,34 +13,14 @@ describe("Agent CRUD", () => {
     let admin_id: string
     let agent_id: string
 
-    test.beforeEach(async ({ fdm, fdmAuth }) => {
+    test.beforeEach(async ({ fdm }) => {
         // Create admin_id
-        const admin_username = `testagentadmin${createId(8)}`
-        const admin = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${admin_username}@example.agency`,
-                name: "Test Agent Admin",
-                username: admin_username,
-                password: "password",
-            },
-        })
-        admin_id = admin.user.id
+        admin_id = createId()
 
         await addAdminAgent(fdm, admin_id, "Admin Agent")
 
         // Create agent_id
-        const agent_username = `testagentagent${createId(8)}`
-        const agent = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${agent_username}@example.agency`,
-                name: "Test Agent Agent",
-                username: agent_username,
-                password: "password",
-            },
-        })
-        agent_id = agent.user.id
+        agent_id = createId()
 
         await addAgent(fdm, admin_id, agent_id, "Support Agent")
     })

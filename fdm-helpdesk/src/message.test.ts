@@ -1,8 +1,8 @@
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { eq } from "drizzle-orm"
 import { describe, expect } from "vitest"
 import { addAdminAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import {
     addMessage,
@@ -20,47 +20,17 @@ describe("Message CRUD", () => {
     let other_user_id: string
     let ticket_id: string
 
-    test.beforeEach(async ({ fdm, fdmAuth }) => {
+    test.beforeEach(async ({ fdm }) => {
         // Create admin user
-        const admin_username = `testmessageadmin${createId(8)}`
-        const admin = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${admin_username}@example.agency`,
-                name: "Test Message Admin",
-                username: admin_username,
-                password: "password",
-            },
-        })
-        admin_id = admin.user.id
+        admin_id = createId()
 
         await addAdminAgent(fdm, admin_id, "Helpdesk Agent")
 
         // Create requester user
-        const requester_username = `testmessagerequester${createId(8)}`
-        const requester = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${requester_username}@example.client`,
-                name: "Test Message Requester",
-                username: requester_username,
-                password: "password",
-            },
-        })
-        requester_id = requester.user.id
+        requester_id = createId()
 
         // Create another regular user
-        const other_username = `testmessageother${createId(8)}`
-        const other_user = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${other_username}@example.client`,
-                name: "Test Message Other",
-                username: other_username,
-                password: "password",
-            },
-        })
-        other_user_id = other_user.user.id
+        other_user_id = createId()
 
         ticket_id = await createTicket(
             fdm,
@@ -291,34 +261,14 @@ describe("Message Pagination", () => {
     let ticket_id: string
     let message_ids: string[]
 
-    test.beforeAll(async ({ fdm, fdmAuth }) => {
+    test.beforeAll(async ({ fdm }) => {
         // Create admin user
-        const admin_username = `testmessageadmin${createId(8)}`
-        const admin = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${admin_username}@example.agency`,
-                name: "Test Message Admin",
-                username: admin_username,
-                password: "password",
-            },
-        })
-        admin_id = admin.user.id
+        admin_id = createId()
 
         await addAdminAgent(fdm, admin_id, "Support Agent")
 
         // Create requester user
-        const requester_username = `testmessagerequester${createId(8)}`
-        const requester = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${requester_username}@example.client`,
-                name: "Test Message Requester",
-                username: requester_username,
-                password: "password",
-            },
-        })
-        requester_id = requester.user.id
+        requester_id = createId()
 
         ticket_id = await createTicket(
             fdm,
@@ -328,7 +278,7 @@ describe("Message Pagination", () => {
 
         const messages: Promise<string>[] = []
         async function addOrderedMessage(
-            fdm: FdmType,
+            fdm: FdmHelpdeskType,
             ticket_id: string,
             admin_id: string,
             sender_type: string,

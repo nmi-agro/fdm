@@ -1,29 +1,16 @@
-import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
-import { handleError } from "@nmi-agro/fdm-core"
 import { and, eq, inArray, isNotNull, not, or, sql } from "drizzle-orm"
+import type {
+    ApplicationRole,
+    HelpdeskAction,
+    HelpdeskPrincipalId,
+    HelpdeskResource,
+} from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
-
-export type HelpdeskRole = "agent" | "admin"
-export type ApplicationRole = HelpdeskRole | "user"
+import { handleError } from "./error"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 
 export const helpdeskRoles: ApplicationRole[] = ["agent", "admin"]
-
 export const helpdeskActions = ["read", "write", "share"] as const
-export type HelpdeskAction = (typeof helpdeskActions)[number]
-
-type HelpdeskResource =
-    // Administration of the helpdesk
-    | "helpdesk"
-    // Agent-facing ticket details such as assignment status
-    | "ticket-agent-side"
-    // User-facing ticket details, the user can change these
-    | "ticket-user-side"
-    // Messages are readable as long as the ticket is readable. Only agents and admins can view internal messages.
-    | "message"
-    // Agents themselves and their stored data
-    | "agent"
-    // Saved replies that may be private to the agent
-    | "saved_reply"
 
 /**
  * Checks whether the principal is authorized to perform an action on a resource.
@@ -44,11 +31,11 @@ type HelpdeskResource =
  * @throws {Error} When the principal does not have the required permission or a database transaction fails.
  */
 export async function checkHelpdeskPermission(
-    fdm: FdmType,
+    fdm: FdmHelpdeskType,
     resource: HelpdeskResource,
     action: HelpdeskAction,
     resource_id: string,
-    principal_id: PrincipalId,
+    principal_id: HelpdeskPrincipalId,
     _origin: string,
     strict = true,
 ) {
@@ -92,8 +79,8 @@ export async function checkHelpdeskPermission(
  * @throws {Error} When a database transaction fails.
  */
 export async function getHelpdeskRole(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
 ): Promise<ApplicationRole> {
     const principal_ids = [
         ...new Set(Array.isArray(principal_id) ? principal_id : [principal_id]),
@@ -128,11 +115,11 @@ export async function getHelpdeskRole(
  * @throws {Error} When a database transaction fails.
  */
 export async function getHelpdeskPermission(
-    fdm: FdmType,
+    fdm: FdmHelpdeskType,
     resource: HelpdeskResource,
     action: HelpdeskAction,
     resource_id: string,
-    principal_id: PrincipalId,
+    principal_id: HelpdeskPrincipalId,
 ): Promise<{
     granting_resource: HelpdeskResource
     granting_resource_id?: string

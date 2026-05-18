@@ -1,5 +1,5 @@
 {
-  "id": "2a7a3ebc-7bbe-4808-8e83-ba6540cc37c9",
+  "id": "0bb02946-19a5-4e7c-99e0-e000ad12e3dc",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -878,12 +878,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "requester_email": {
-          "name": "requester_email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "context_farm_id": {
           "name": "context_farm_id",
           "type": "text",
@@ -952,21 +946,6 @@
           "columns": [
             {
               "expression": "requester_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "ticket_requester_email_idx": {
-          "name": "ticket_requester_email_idx",
-          "columns": [
-            {
-              "expression": "requester_email",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

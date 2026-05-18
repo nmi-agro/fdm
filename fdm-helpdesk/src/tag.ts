@@ -1,7 +1,9 @@
-import { type FdmType, handleError, type PrincipalId } from "@nmi-agro/fdm-core"
 import { and, asc, eq, inArray } from "drizzle-orm"
 import { checkHelpdeskPermission } from "./authorization"
+import type { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
+import { handleError } from "./error"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 
 export type Tag = schema.TagTypeSelect
@@ -13,7 +15,7 @@ const tagSummaryColumns = {
     color: schema.tags.color,
 }
 
-export async function getTag(fdm: FdmType, tag_id: string) {
+export async function getTag(fdm: FdmHelpdeskType, tag_id: string) {
     try {
         const found = await fdm
             .select()
@@ -31,7 +33,7 @@ export async function getTag(fdm: FdmType, tag_id: string) {
     }
 }
 
-async function tryGetTagByName(fdm: FdmType, tag_name: string) {
+async function tryGetTagByName(fdm: FdmHelpdeskType, tag_name: string) {
     try {
         const found = await fdm
             .select()
@@ -49,7 +51,7 @@ async function tryGetTagByName(fdm: FdmType, tag_name: string) {
     }
 }
 
-export async function getTags(fdm: FdmType) {
+export async function getTags(fdm: FdmHelpdeskType) {
     try {
         return await fdm.select().from(schema.tags)
     } catch (err) {
@@ -58,8 +60,8 @@ export async function getTags(fdm: FdmType) {
 }
 
 export async function getTagsForTickets(
-    fdm: FdmType,
-    agent_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    agent_id: HelpdeskPrincipalId,
     ticket_ids: string[],
 ): Promise<Map<schema.TicketTypeSelect["ticket_id"], TagSummary[]>> {
     try {
@@ -120,8 +122,8 @@ function validateName(name: string) {
 }
 
 export async function createTag(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     name: schema.TagTypeInsert["name"],
     color?: schema.TagTypeInsert["color"],
     description?: schema.TagTypeInsert["description"],
@@ -163,8 +165,8 @@ export async function createTag(
 }
 
 export async function updateTag(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     tag_id: string,
     name?: schema.TagTypeInsert["name"],
     color?: schema.TagTypeInsert["color"],
@@ -214,8 +216,8 @@ export async function updateTag(
 }
 
 export async function addTagToTicket(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     ticket_id: schema.TicketTypeSelect["ticket_id"],
     tag_id: schema.TagTypeSelect["tag_id"],
 ): Promise<void> {
@@ -248,8 +250,8 @@ export async function addTagToTicket(
 }
 
 export async function removeTagFromTicket(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     ticket_id: schema.TicketTypeSelect["ticket_id"],
     tag_id: schema.TagTypeSelect["tag_id"],
 ): Promise<void> {

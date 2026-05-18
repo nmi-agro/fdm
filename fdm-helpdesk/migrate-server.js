@@ -1,8 +1,3 @@
-import {
-    runMigration,
-    fdmSchema as schema,
-    syncCatalogues,
-} from "@nmi-agro/fdm-core"
 import { runHelpdeskMigration } from "@nmi-agro/fdm-helpdesk"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
@@ -44,9 +39,6 @@ const client = postgres({
 })
 
 // Run the schema migrations
-await runMigration(client).catch((error) =>
-    console.error("Error in migration process 🚨:", error),
-)
 await runHelpdeskMigration(client, "dist/db/migrations").catch((error) =>
     console.error("Error in migration process 🚨:", error),
 )

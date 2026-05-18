@@ -1,7 +1,8 @@
-import { type FdmType, handleError, type PrincipalId } from "@nmi-agro/fdm-core"
 import { eq, sql } from "drizzle-orm"
 import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
+import { handleError } from "./error"
+import type { FdmHelpdeskType, HelpdeskPrincipalId } from "./fdm-helpdesk.types"
 
 export type AgentSummary = {
     agent_id: schema.AgentTypeSelect["agent_id"]
@@ -11,8 +12,8 @@ export type AgentSummary = {
 export type Agent = schema.AgentTypeSelect
 
 export async function getAgent(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     agent_id: schema.AgentTypeSelect["agent_id"],
 ) {
     try {
@@ -39,7 +40,10 @@ export async function getAgent(
     }
 }
 
-export async function getAgents(fdm: FdmType, principal_id: PrincipalId) {
+export async function getAgents(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+) {
     try {
         await checkHelpdeskPermission(
             fdm,
@@ -59,7 +63,7 @@ export async function getAgents(fdm: FdmType, principal_id: PrincipalId) {
 }
 
 export async function addAdminAgent(
-    fdm: FdmType,
+    fdm: FdmHelpdeskType,
     agent_id: schema.AgentTypeInsert["agent_id"],
     display_name: schema.AgentTypeInsert["display_name"],
 ) {
@@ -90,8 +94,8 @@ export async function addAdminAgent(
 }
 
 export async function addAgent(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     agent_id: schema.AgentTypeInsert["agent_id"],
     display_name: schema.AgentTypeInsert["display_name"],
 ): Promise<schema.AgentTypeSelect["agent_id"]> {
@@ -130,8 +134,8 @@ export async function addAgent(
 }
 
 export async function updateAgent(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     agent_id: schema.AgentTypeInsert["agent_id"],
     display_name: schema.AgentTypeInsert["display_name"] | undefined,
 ) {
@@ -157,8 +161,8 @@ export async function updateAgent(
 }
 
 export async function setAgentActiveStatus(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     agent_id: schema.AgentTypeInsert["agent_id"],
     is_active: schema.AgentTypeInsert["is_active"],
 ) {

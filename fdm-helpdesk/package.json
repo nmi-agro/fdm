@@ -39,8 +39,6 @@
         "watch": "dotenvx run -- vitest"
     },
     "dependencies": {
-        "@nmi-agro/fdm-core": "workspace:*",
-        "better-auth": "catalog:",
         "drizzle-orm": "catalog:",
         "nanoid": "^5.1.9",
         "postgres": "^3.4.9",

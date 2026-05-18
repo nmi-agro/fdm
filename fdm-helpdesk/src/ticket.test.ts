@@ -21,34 +21,14 @@ test.describe("Inbox", () => {
     let orange_tag_id: string
     let orange_tag_name: string
 
-    test.beforeEach(async ({ fdm, fdmAuth }) => {
+    test.beforeEach(async ({ fdm }) => {
         // Create agent_id
-        const agent_username = `testinboxagent${createId(8)}`
-        const agent = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${agent_username}@example.agency`,
-                name: "Test Inbox Agent",
-                username: agent_username,
-                password: "password",
-            },
-        })
-        agent_id = agent.user.id
+        agent_id = createId()
 
         await addAdminAgent(fdm, agent_id, "Support Agent")
 
         // Create requester_id
-        const requester_username = `testinboxrequester${createId(8)}`
-        const requester = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${requester_username}@example.client`,
-                name: "Test Inbox Requester",
-                username: requester_username,
-                password: "password",
-            },
-        })
-        requester_id = requester.user.id
+        requester_id = createId()
 
         ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1", {
             context: { b_id_farm: b_id_farm },
@@ -121,34 +101,14 @@ test.describe("getTickets", () => {
     let orange_tag_id: string
     let orange_tag_name: string
 
-    test.beforeEach(async ({ fdm, fdmAuth }) => {
+    test.beforeEach(async ({ fdm }) => {
         // Create agent_id
-        const agent_username = `testinboxagent${createId(8)}`
-        const agent = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${agent_username}@example.agency`,
-                name: "Test Inbox Agent",
-                username: agent_username,
-                password: "password",
-            },
-        })
-        agent_id = agent.user.id
+        agent_id = createId()
 
         await addAdminAgent(fdm, agent_id, "Support Agent")
 
         // Create requester_id
-        const requester_username = `testinboxrequester${createId(8)}`
-        const requester = await fdmAuth.api.signUpEmail({
-            headers: undefined,
-            body: {
-                email: `${requester_username}@example.client`,
-                name: "Test Inbox Requester",
-                username: requester_username,
-                password: "password",
-            },
-        })
-        requester_id = requester.user.id
+        requester_id = createId()
 
         ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1", {
             context: { b_id_farm: b_id_farm },

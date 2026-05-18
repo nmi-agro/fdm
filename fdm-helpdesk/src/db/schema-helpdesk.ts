@@ -32,7 +32,6 @@ export const tickets = fdmHelpdeskSchema.table(
         priority: text().notNull().default("normal"), // 'low', 'normal', 'high', 'urgent'
         channel: text().notNull().default("web"), // 'web', 'email'
         requester_id: text(), // References fdm-authn user.id (null for unmatched email senders)
-        requester_email: text().notNull(), // Always set — from auth user or inbound email From address
         context_farm_id: text(), // Optional: link to fdm.farms.b_id_farm
         resolved_at: timestamp({ withTimezone: true }),
         closed_at: timestamp({ withTimezone: true }),
@@ -43,7 +42,6 @@ export const tickets = fdmHelpdeskSchema.table(
         uniqueIndex("ticket_ref_idx").on(table.ticket_ref),
         index("ticket_status_idx").on(table.status),
         index("ticket_requester_idx").on(table.requester_id),
-        index("ticket_requester_email_idx").on(table.requester_email),
         index("ticket_priority_idx").on(table.priority),
         index("ticket_created_idx").on(table.created),
         index("ticket_farm_idx").on(table.context_farm_id),

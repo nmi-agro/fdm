@@ -1,4 +1,3 @@
-import { createFdmAuth } from "@nmi-agro/fdm-core"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { test as baseTest, inject } from "vitest"
@@ -11,8 +10,11 @@ import { test as baseTest, inject } from "vitest"
  *
  * @returns a FDM instance
  */
-export const test = baseTest
-    .extend("fdm", { scope: "worker" }, async ({}, { onCleanup }) => {
+export const test = baseTest.extend(
+    "fdm",
+    { scope: "worker" },
+    // biome-ignore lint/correctness/noEmptyPattern: vitest fixtures require using object destructuring for arguments due to reflection
+    async ({}, { onCleanup }) => {
         const client = postgres({
             host: inject("host"),
             port: inject("port"),
@@ -25,16 +27,5 @@ export const test = baseTest
         const fdm = drizzle(client)
         onCleanup(() => client.end())
         return fdm
-    })
-    .extend("fdmAuth", { scope: "worker" }, ({ fdm }) => {
-        const googleAuth = {
-            clientId: "mock_google_client_id",
-            clientSecret: "mock_google_client_secret",
-        }
-        const microsoftAuth = {
-            clientId: "mock_ms_client_id",
-            clientSecret: "mock_ms_client_secret",
-        }
-
-        return createFdmAuth(fdm, googleAuth, microsoftAuth, undefined, true)
-    })
+    },
+)

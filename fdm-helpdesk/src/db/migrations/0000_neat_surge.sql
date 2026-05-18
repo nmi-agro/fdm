@@ -89,7 +89,6 @@ CREATE TABLE "fdm-helpdesk"."tickets" (
 	"priority" text DEFAULT 'normal' NOT NULL,
 	"channel" text DEFAULT 'web' NOT NULL,
 	"requester_id" text,
-	"requester_email" text NOT NULL,
 	"context_farm_id" text,
 	"resolved_at" timestamp with time zone,
 	"closed_at" timestamp with time zone,
@@ -122,7 +121,6 @@ CREATE INDEX "ticket_tag_tag_idx" ON "fdm-helpdesk"."ticket_tags_map" USING btre
 CREATE UNIQUE INDEX "ticket_ref_idx" ON "fdm-helpdesk"."tickets" USING btree ("ticket_ref");--> statement-breakpoint
 CREATE INDEX "ticket_status_idx" ON "fdm-helpdesk"."tickets" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "ticket_requester_idx" ON "fdm-helpdesk"."tickets" USING btree ("requester_id");--> statement-breakpoint
-CREATE INDEX "ticket_requester_email_idx" ON "fdm-helpdesk"."tickets" USING btree ("requester_email");--> statement-breakpoint
 CREATE INDEX "ticket_priority_idx" ON "fdm-helpdesk"."tickets" USING btree ("priority");--> statement-breakpoint
 CREATE INDEX "ticket_created_idx" ON "fdm-helpdesk"."tickets" USING btree ("created");--> statement-breakpoint
 CREATE INDEX "ticket_farm_idx" ON "fdm-helpdesk"."tickets" USING btree ("context_farm_id");
