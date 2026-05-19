@@ -1,5 +1,11 @@
 import type { NitrogenBalanceFieldResultNumeric } from "@nmi-agro/fdm-calculator"
-import { getFarm, getFields } from "@nmi-agro/fdm-core"
+import type { Cultivation, Harvest } from "@nmi-agro/fdm-core"
+import {
+    getCultivationsForFarm,
+    getFarm,
+    getFields,
+    getHarvestsForFarm,
+} from "@nmi-agro/fdm-core"
 import {
     ArrowDown,
     ArrowRight,
@@ -33,9 +39,10 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
+import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { getNitrogenBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -82,6 +89,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Get details of fields
         const fields = await getFields(fdm, session.principal_id, b_id_farm)
 
+        // Fetch cultivations and harvests for all fields in one batch each
+        const [cultivationsMap, harvestsMap] = await Promise.all([
+            getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+            getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        ])
+
         const asyncData = (async () => {
             const nitrogenBalanceResult = await getNitrogenBalanceForFarm({
                 fdm,
@@ -113,6 +126,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         return {
             farm: farm,
             fields: fields,
+            calendar: getCalendar(params),
+            cultivationsEntries: [...cultivationsMap.entries()] as [string, Cultivation[]][],
+            harvestsEntries: [...harvestsMap.entries()] as [string, Harvest[]][],
             asyncData: asyncData,
         }
     } catch (error) {
@@ -147,9 +163,15 @@ export default function FarmBalanceNitrogenOverviewBlock() {
 function FarmBalanceNitrogenOverview({
     farm,
     fields,
+    calendar,
+    cultivationsEntries,
+    harvestsEntries,
     asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
     const { nitrogenBalanceResult } = use(asyncData)
+
+    const cultivationsMap = new Map(cultivationsEntries)
+    const harvestsMap = new Map(harvestsEntries)
 
     const resolvedNitrogenBalanceResult = nitrogenBalanceResult
 
@@ -363,16 +385,30 @@ function FarmBalanceNitrogenOverview({
                                             )}
 
                                             <div className="ml-4 space-y-1">
-                                                <NavLink
-                                                    to={`./${fieldResult.b_id}`}
-                                                >
-                                                    <p className="text-sm font-medium leading-none hover:underline">
-                                                        {fieldData?.b_name}
+                                                <div className="flex items-baseline gap-2">
+                                                    <NavLink
+                                                        to={`./${fieldResult.b_id}`}
+                                                    >
+                                                        <p className="text-sm font-medium leading-none hover:underline">
+                                                            {fieldData?.b_name}
+                                                        </p>
+                                                    </NavLink>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {fieldData?.b_area} ha
                                                     </p>
-                                                </NavLink>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {fieldData?.b_area} ha
-                                                </p>
+                                                </div>
+                                                <FieldCultivationsBadge
+                                                    cultivations={
+                                                        cultivationsMap.get(
+                                                            fieldResult.b_id,
+                                                        ) ?? []
+                                                    }
+                                                    calendarYear={calendar}
+                                                    harvestsMap={harvestsMap}
+                                                    fieldName={
+                                                        fieldData?.b_name ?? ""
+                                                    }
+                                                />
                                             </div>
                                             <div className="ml-auto font-medium">
                                                 {fieldResult.balance ? (
