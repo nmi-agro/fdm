@@ -219,37 +219,37 @@ const mockNormsServices = {
     getField: vi.fn().mockResolvedValue({ b_id: "field-1", b_id_farm: "farm-1" }),
 }
 
-const mockNutrientAdviceServices = {
-    getNutrientAdvice: vi.fn().mockResolvedValue({
-        d_n_req: 150,
-        d_n_norm: 170,
-        d_n_norm_man: 170,
-        d_p_norm: 75,
-        d_p_req: 50,
-        d_k_req: 200,
-        d_c_req: 0,
-        d_ca_req: 0,
-        d_s_req: 0,
-        d_mg_req: 0,
-        d_cu_req: 0,
-        d_zn_req: 0,
-        d_co_req: 0,
-        d_mn_req: 0,
-        d_mo_req: 0,
-        d_na_req: 0,
-        d_b_req: 0,
-    }),
-    getField: vi.fn().mockResolvedValue({
-        b_id: "field-1",
-        b_id_farm: "farm-1",
-        b_centroid: [5.585, 53.288],
-        b_bufferstrip: false,
-    }),
-    getCultivations: vi.fn().mockResolvedValue([{ b_lu_catalogue: "nl_2014" }]),
-    getCurrentSoilData: vi
-        .fn()
-        .mockResolvedValue([{ parameter: "a_som_loi", value: 3.5, a_depth_lower: 0.3 }]),
-}
+// const mockNutrientAdviceServices = {
+//     getNutrientAdvice: vi.fn().mockResolvedValue({
+//         d_n_req: 150,
+//         d_n_norm: 170,
+//         d_n_norm_man: 170,
+//         d_p_norm: 75,
+//         d_p_req: 50,
+//         d_k_req: 200,
+//         d_c_req: 0,
+//         d_ca_req: 0,
+//         d_s_req: 0,
+//         d_mg_req: 0,
+//         d_cu_req: 0,
+//         d_zn_req: 0,
+//         d_co_req: 0,
+//         d_mn_req: 0,
+//         d_mo_req: 0,
+//         d_na_req: 0,
+//         d_b_req: 0,
+//     }),
+//     getField: vi.fn().mockResolvedValue({
+//         b_id: "field-1",
+//         b_id_farm: "farm-1",
+//         b_centroid: [5.585, 53.288],
+//         b_bufferstrip: false,
+//     }),
+//     getCultivations: vi.fn().mockResolvedValue([{ b_lu_catalogue: "nl_2014" }]),
+//     getCurrentSoilData: vi
+//         .fn()
+//         .mockResolvedValue([{ parameter: "a_som_loi", value: 3.5, a_depth_lower: 0.3 }]),
+// }
 
 // [MINERALIZATION: disabled — behind feature flag in fdm-app]
 // const mockNSupplyServices = {
