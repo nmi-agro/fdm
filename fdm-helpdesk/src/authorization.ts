@@ -98,7 +98,7 @@ export async function getHelpdeskRole(
 
     return agents.every((a) => a.role === "admin")
         ? "admin"
-        : agents.every((a) => a.role === "agent")
+        : agents.some((a) => a.role === "agent")
           ? "agent"
           : "user"
 }

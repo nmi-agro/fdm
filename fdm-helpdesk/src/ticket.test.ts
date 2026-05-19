@@ -247,13 +247,13 @@ test.describe("getTickets", () => {
 })
 
 describe("validateTicketStatusTransition", () => {
-    test("allows valid transitions from open", () => {
+    test("should allow valid transitions from open", () => {
         expect(validateTicketStatusTransition("open", "in_progress")).toBe(true)
         expect(validateTicketStatusTransition("open", "resolved")).toBe(true)
         expect(validateTicketStatusTransition("open", "closed")).toBe(true)
     })
 
-    test("disallows unknown transitions", () => {
+    test("should disallow unknown transitions", () => {
         expect(validateTicketStatusTransition("open", "open")).toBe(false)
         expect(validateTicketStatusTransition("closed", "in_progress")).toBe(
             false,
@@ -261,7 +261,7 @@ describe("validateTicketStatusTransition", () => {
         expect(validateTicketStatusTransition("unknown", "open")).toBe(false)
     })
 
-    test("allows reopening from resolved and closed", () => {
+    test("should allow reopening from resolved and closed", () => {
         expect(validateTicketStatusTransition("resolved", "open")).toBe(true)
         expect(validateTicketStatusTransition("closed", "open")).toBe(true)
     })
@@ -284,7 +284,7 @@ describe("updateTicketStatus", () => {
         ticket_id = await createTicket(fdm, requester_id, "Test ticket")
     })
 
-    test("agent can update ticket status with a valid transition", async ({
+    test("should let agent update ticket status with a valid transition", async ({
         fdm,
     }) => {
         await updateTicketStatus(fdm, agent_id, ticket_id, "in_progress")
@@ -297,7 +297,9 @@ describe("updateTicketStatus", () => {
         expect(ticket.status).toBe("in_progress")
     })
 
-    test("sets resolved_at when transitioning to resolved", async ({ fdm }) => {
+    test("should set resolved_at when transitioning to resolved", async ({
+        fdm,
+    }) => {
         await updateTicketStatus(fdm, agent_id, ticket_id, "resolved")
 
         const [ticket] = await fdm
@@ -308,7 +310,9 @@ describe("updateTicketStatus", () => {
         expect(ticket.resolved_at).toBeTruthy()
     })
 
-    test("regular user cannot update ticket status", async ({ fdm }) => {
+    test("should not let regular user update ticket status", async ({
+        fdm,
+    }) => {
         await expect(
             updateTicketStatus(fdm, requester_id, ticket_id, "in_progress"),
         ).rejects.toThrow(
@@ -316,7 +320,7 @@ describe("updateTicketStatus", () => {
         )
     })
 
-    test("throws on an invalid status transition", async ({ fdm }) => {
+    test("should throw on an invalid status transition", async ({ fdm }) => {
         // First transition to "resolved" (valid: open → resolved)
         await updateTicketStatus(fdm, agent_id, ticket_id, "resolved")
 
@@ -356,7 +360,7 @@ describe("assignTicket", () => {
         ticket_id = await createTicket(fdm, requester_id, "Test ticket")
     })
 
-    test("is_primary=true clears other primary assignments", async ({
+    test("should mark other assignments as non-primary if is_primary=true", async ({
         fdm,
     }) => {
         await assignTicket(fdm, ticket_id, agent_id, admin_id, true)
@@ -379,7 +383,7 @@ describe("assignTicket", () => {
         expect(secondAgent?.is_primary).toBe(true)
     })
 
-    test("regular user (non-agent) cannot assign a ticket", async ({ fdm }) => {
+    test("should not let regular user assign a ticket", async ({ fdm }) => {
         await expect(
             assignTicket(fdm, ticket_id, agent_id, requester_id),
         ).rejects.toThrow(

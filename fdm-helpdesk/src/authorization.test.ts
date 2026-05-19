@@ -1,12 +1,10 @@
-import { eq } from "drizzle-orm"
 import { describe, expect } from "vitest"
-import { addAdminAgent, addAgent } from "./agent"
+import { addAdminAgent, addAgent, setAgentActiveStatus } from "./agent"
 import {
     checkHelpdeskPermission,
     getHelpdeskPermission,
     getHelpdeskRole,
 } from "./authorization"
-import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
 import { addMessage } from "./message"
 import { test } from "./test-util"
@@ -24,47 +22,67 @@ describe("getHelpdeskRole", () => {
         await addAgent(fdm, admin_id, agent_id, "Regular Agent")
     })
 
-    test("returns 'user' for an unknown principal", async ({ fdm }) => {
+    test("should return 'user' for an unknown principal", async ({ fdm }) => {
         const role = await getHelpdeskRole(fdm, createId())
         expect(role).toBe("user")
     })
 
-    test("returns 'agent' for a regular agent", async ({ fdm }) => {
+    test("should return 'agent' for a regular agent", async ({ fdm }) => {
         const role = await getHelpdeskRole(fdm, agent_id)
         expect(role).toBe("agent")
     })
 
-    test("returns 'admin' for an admin", async ({ fdm }) => {
+    test("should return 'admin' for an admin", async ({ fdm }) => {
         const role = await getHelpdeskRole(fdm, admin_id)
         expect(role).toBe("admin")
     })
 
-    test("returns 'user' for an array containing an unknown ID", async ({
+    test("should return 'user' for an array containing an unknown ID", async ({
         fdm,
     }) => {
         const role = await getHelpdeskRole(fdm, [agent_id, createId()])
         expect(role).toBe("user")
     })
 
-    test("returns 'agent' for an array of all agents", async ({ fdm }) => {
+    test("should return 'agent' for an array of all agents", async ({
+        fdm,
+    }) => {
         const second_agent_id = createId()
         await addAgent(fdm, admin_id, second_agent_id, "Second Agent")
         const role = await getHelpdeskRole(fdm, [agent_id, second_agent_id])
         expect(role).toBe("agent")
     })
 
-    test("returns 'admin' for an array of all admins", async ({ fdm }) => {
+    test("should return 'admin' for an array of all admins", async ({
+        fdm,
+    }) => {
         const second_admin_id = createId()
         await addAdminAgent(fdm, second_admin_id, "Second Admin")
         const role = await getHelpdeskRole(fdm, [admin_id, second_admin_id])
         expect(role).toBe("admin")
     })
 
-    test("returns 'user' for an array mixing agent and admin", async ({
+    test("should return 'agent' for an array mixing agent and admin", async ({
         fdm,
     }) => {
-        // Neither all-admin nor all-agent → falls through to 'user'
+        // Not all users are considered admins, but all users are agents
         const role = await getHelpdeskRole(fdm, [agent_id, admin_id])
+        expect(role).toBe("agent")
+    })
+
+    test("should return 'user' for an array mixing agent and unknown users", async ({
+        fdm,
+    }) => {
+        // Not all users are considered admins, but all users are agents
+        const role = await getHelpdeskRole(fdm, [agent_id, createId()])
+        expect(role).toBe("user")
+    })
+
+    test("should return 'user' for an array mixing admin and unknown users", async ({
+        fdm,
+    }) => {
+        // Not all users are considered admins, but all users are agents
+        const role = await getHelpdeskRole(fdm, [admin_id, createId()])
         expect(role).toBe("user")
     })
 })
@@ -79,7 +97,9 @@ describe("checkHelpdeskPermission", () => {
         user_id = createId()
     })
 
-    test("returns true when the principal has permission", async ({ fdm }) => {
+    test("should return true when the principal has permission", async ({
+        fdm,
+    }) => {
         const result = await checkHelpdeskPermission(
             fdm,
             "helpdesk",
@@ -91,7 +111,7 @@ describe("checkHelpdeskPermission", () => {
         expect(result).toBe(true)
     })
 
-    test("throws when strict=true and permission is denied", async ({
+    test("should throw when strict=true and permission is denied", async ({
         fdm,
     }) => {
         await expect(
@@ -109,7 +129,7 @@ describe("checkHelpdeskPermission", () => {
         )
     })
 
-    test("returns false (no throw) when strict=false and permission is denied", async ({
+    test("should return false (no throw) when strict=false and permission is denied", async ({
         fdm,
     }) => {
         const result = await checkHelpdeskPermission(
@@ -140,7 +160,7 @@ describe("getHelpdeskPermission — helpdesk resource", () => {
         user_id = createId()
     })
 
-    test("admin can write helpdesk", async ({ fdm }) => {
+    test("should let admins manage the helpdesk", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "helpdesk",
@@ -152,7 +172,9 @@ describe("getHelpdeskPermission — helpdesk resource", () => {
         expect(result?.granting_resource).toBe("helpdesk")
     })
 
-    test("agent can read helpdesk", async ({ fdm }) => {
+    test("should let regular agents access info about the helpdesk", async ({
+        fdm,
+    }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "helpdesk",
@@ -164,7 +186,9 @@ describe("getHelpdeskPermission — helpdesk resource", () => {
         expect(result?.granting_resource).toBe("helpdesk")
     })
 
-    test("agent cannot write helpdesk", async ({ fdm }) => {
+    test("should not let regular agents manage the helpdesk", async ({
+        fdm,
+    }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "helpdesk",
@@ -175,7 +199,7 @@ describe("getHelpdeskPermission — helpdesk resource", () => {
         expect(result).toBeNull()
     })
 
-    test("regular user cannot read helpdesk", async ({ fdm }) => {
+    test("should not let a regular user view the helpdesk", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "helpdesk",
@@ -186,7 +210,9 @@ describe("getHelpdeskPermission — helpdesk resource", () => {
         expect(result).toBeNull()
     })
 
-    test("regular user cannot write helpdesk", async ({ fdm }) => {
+    test("should not let a regular user modify the helpdesk", async ({
+        fdm,
+    }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "helpdesk",
@@ -214,7 +240,7 @@ describe("getHelpdeskPermission — agent resource", () => {
         await addAgent(fdm, admin_id, other_agent_id, "Other Agent")
     })
 
-    test("admin can read any agent", async ({ fdm }) => {
+    test("should let admin read any agent", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "agent",
@@ -226,7 +252,7 @@ describe("getHelpdeskPermission — agent resource", () => {
         expect(result?.granting_resource).toBe("agent")
     })
 
-    test("admin can write any agent", async ({ fdm }) => {
+    test("should let admin write any agent", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "agent",
@@ -238,7 +264,7 @@ describe("getHelpdeskPermission — agent resource", () => {
         expect(result?.granting_resource).toBe("agent")
     })
 
-    test("agent can read themselves", async ({ fdm }) => {
+    test("should not let regular agents view themselves", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "agent",
@@ -250,7 +276,7 @@ describe("getHelpdeskPermission — agent resource", () => {
         expect(result?.granting_resource).toBe("agent")
     })
 
-    test("agent can write themselves", async ({ fdm }) => {
+    test("should not let regular agents modify themselves", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "agent",
@@ -262,7 +288,7 @@ describe("getHelpdeskPermission — agent resource", () => {
         expect(result?.granting_resource).toBe("agent")
     })
 
-    test("agent cannot write another agent", async ({ fdm }) => {
+    test("should not let regular agents modify each other", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "agent",
@@ -273,7 +299,7 @@ describe("getHelpdeskPermission — agent resource", () => {
         expect(result).toBeNull()
     })
 
-    test("returns null for a nonexistent agent resource_id", async ({
+    test("should not grant access for a nonexistent agent resource_id", async ({
         fdm,
     }) => {
         const result = await getHelpdeskPermission(
@@ -303,7 +329,7 @@ describe("getHelpdeskPermission — ticket-user-side resource", () => {
         ticket_id = await createTicket(fdm, requester_id, "Test ticket")
     })
 
-    test("requester can read their own ticket", async ({ fdm }) => {
+    test("should let requester read their own ticket", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "ticket-user-side",
@@ -315,7 +341,7 @@ describe("getHelpdeskPermission — ticket-user-side resource", () => {
         expect(result?.granting_resource).toBe("ticket-user-side")
     })
 
-    test("unrelated user cannot read someone else's ticket", async ({
+    test("should not let unrelated user read someone else's ticket", async ({
         fdm,
     }) => {
         const result = await getHelpdeskPermission(
@@ -328,7 +354,7 @@ describe("getHelpdeskPermission — ticket-user-side resource", () => {
         expect(result).toBeNull()
     })
 
-    test("active agent can read any ticket", async ({ fdm }) => {
+    test("should let active agent read any ticket", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "ticket-user-side",
@@ -356,16 +382,13 @@ describe("getHelpdeskPermission — ticket-agent-side resource", () => {
 
         inactive_agent_id = createId()
         await addAgent(fdm, admin_id, inactive_agent_id, "Inactive Agent")
-        await fdm
-            .update(schema.agents)
-            .set({ is_active: false })
-            .where(eq(schema.agents.agent_id, inactive_agent_id))
+        await setAgentActiveStatus(fdm, admin_id, inactive_agent_id, false)
 
         requester_id = createId()
         ticket_id = await createTicket(fdm, requester_id, "Test ticket")
     })
 
-    test("active agent can read ticket-agent-side", async ({ fdm }) => {
+    test("should let active agent read ticket-agent-side", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "ticket-agent-side",
@@ -377,7 +400,7 @@ describe("getHelpdeskPermission — ticket-agent-side resource", () => {
         expect(result?.granting_resource).toBe("ticket-agent-side")
     })
 
-    test("active agent can write ticket-agent-side", async ({ fdm }) => {
+    test("should let active agent write ticket-agent-side", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "ticket-agent-side",
@@ -389,7 +412,9 @@ describe("getHelpdeskPermission — ticket-agent-side resource", () => {
         expect(result?.granting_resource).toBe("ticket-agent-side")
     })
 
-    test("inactive agent cannot write ticket-agent-side", async ({ fdm }) => {
+    test("should not let inactive agent write ticket-agent-side", async ({
+        fdm,
+    }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "ticket-agent-side",
@@ -400,7 +425,9 @@ describe("getHelpdeskPermission — ticket-agent-side resource", () => {
         expect(result).toBeNull()
     })
 
-    test("regular user cannot write ticket-agent-side", async ({ fdm }) => {
+    test("should not let requester write ticket-agent-side", async ({
+        fdm,
+    }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "ticket-agent-side",
@@ -411,7 +438,9 @@ describe("getHelpdeskPermission — ticket-agent-side resource", () => {
         expect(result).toBeNull()
     })
 
-    test("requester can read their own ticket-agent-side", async ({ fdm }) => {
+    test("should let requester read their own ticket-agent-side", async ({
+        fdm,
+    }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "ticket-agent-side",
@@ -459,7 +488,7 @@ describe("getHelpdeskPermission — message resource", () => {
         )
     })
 
-    test("requester can read a non-internal message on their ticket", async ({
+    test("should let requester read a non-internal message on their ticket", async ({
         fdm,
     }) => {
         const result = await getHelpdeskPermission(
@@ -473,7 +502,7 @@ describe("getHelpdeskPermission — message resource", () => {
         expect(result?.granting_resource).toBe("message")
     })
 
-    test("requester cannot read an internal message on their ticket", async ({
+    test("should let the requester read an internal message on their ticket", async ({
         fdm,
     }) => {
         const result = await getHelpdeskPermission(
@@ -486,7 +515,9 @@ describe("getHelpdeskPermission — message resource", () => {
         expect(result).toBeNull()
     })
 
-    test("admin can read any message including internal", async ({ fdm }) => {
+    test("should let an admin read any message including internal", async ({
+        fdm,
+    }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "message",
@@ -497,7 +528,9 @@ describe("getHelpdeskPermission — message resource", () => {
         expect(result).not.toBeNull()
     })
 
-    test("requester can write their own message", async ({ fdm }) => {
+    test("should let the requester write their own message", async ({
+        fdm,
+    }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "message",
@@ -508,7 +541,7 @@ describe("getHelpdeskPermission — message resource", () => {
         expect(result).not.toBeNull()
     })
 
-    test("admin can write any message", async ({ fdm }) => {
+    test("should let admin write any message", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "message",
@@ -519,7 +552,7 @@ describe("getHelpdeskPermission — message resource", () => {
         expect(result).not.toBeNull()
     })
 
-    test("unrelated user cannot write a message they did not send", async ({
+    test("should not let an unrelated user write a message they did not send", async ({
         fdm,
     }) => {
         const result = await getHelpdeskPermission(
