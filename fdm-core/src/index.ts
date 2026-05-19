@@ -20,7 +20,6 @@ export type { FdmAuth } from "./authentication"
 export {
     createDisplayUsername,
     createFdmAuth,
-    getUserProfile,
     updateUserProfile,
 } from "./authentication"
 export { checkPermission } from "./authorization"
@@ -82,7 +81,6 @@ export {
     listDerogations,
     removeDerogation,
 } from "./derogation"
-export { handleError } from "./error"
 export {
     addMeasure,
     getMeasure,
