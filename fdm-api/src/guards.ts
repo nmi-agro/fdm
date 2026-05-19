@@ -1,11 +1,23 @@
 import type { MiddlewareHandler } from "hono"
+import { bodyLimit } from "hono/body-limit"
 import { ApiError } from "./error"
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH"])
 
+const bodyLimitMiddleware = bodyLimit({
+    maxSize: MAX_BODY_BYTES,
+    onError: () => {
+        throw new ApiError(413, "payload-too-large", "Request body exceeds the 5 MB limit.")
+    },
+})
+
 /**
  * Validates request bodies for API write operations before they reach route handlers.
+ *
+ * Uses Hono's built-in `bodyLimit` middleware to enforce the 5 MB size limit for write
+ * requests. This correctly handles both `Content-Length`-declared and chunked (`Transfer-Encoding:
+ * chunked`) bodies by streaming and counting bytes incrementally.
  *
  * @param c - Hono request context used to inspect headers and continue the middleware chain.
  * @param next - Callback that advances processing once the request passes validation.
@@ -20,16 +32,14 @@ export const requestGuard: MiddlewareHandler = async (c, next) => {
     const method = c.req.method
 
     if (WRITE_METHODS.has(method)) {
-        const contentLength = c.req.header("content-length")
-        if (contentLength && Number(contentLength) > MAX_BODY_BYTES) {
-            throw new ApiError(413, "payload-too-large", "Request body exceeds the 5 MB limit.")
-        }
-
         const rawContentType = c.req.header("content-type") ?? ""
         const mediaType = rawContentType.split(";")[0]?.trim().toLowerCase()
         if (mediaType !== "application/json") {
             throw new ApiError(415, "unsupported-media-type", "Content-Type must be application/json.")
         }
+
+        await bodyLimitMiddleware(c, next)
+        return
     }
 
     return next()
