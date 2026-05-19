@@ -1,8 +1,9 @@
 import { eq, sql } from "drizzle-orm"
 import { checkHelpdeskPermission } from "./authorization"
+import type { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
-import type { FdmHelpdeskType, HelpdeskPrincipalId } from "./fdm-helpdesk.types"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 
 export type AgentSummary = {
     agent_id: schema.AgentTypeSelect["agent_id"]
