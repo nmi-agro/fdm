@@ -2,4 +2,8 @@
 "@nmi-agro/fdm-app": minor
 ---
 
-At the farm balance pages show in the field list for each field the main cultivation with a badge. When clicked on the badge the cultivation details are shown besides non-main cultivations on the field
+---
+"`@nmi-agro/fdm-app`": minor
+---
+
+Farm balance pages now display the main cultivation for each field as a badge in the field list. Clicking the badge opens a dialog showing cultivation details alongside any additional cultivations for that field.
