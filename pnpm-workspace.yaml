@@ -9,11 +9,11 @@ packages:
   - fdm-api
 
 catalog:
-  '@better-auth/api-key': ^1.6.9
+  '@better-auth/api-key': ^1.6.11
   '@dotenvx/dotenvx': ^1.65.0
   '@types/node': ^25.6.2
   '@vitest/coverage-v8': 4.1.5
-  better-auth: ^1.6.10
+  better-auth: ^1.6.11
   drizzle-kit: ^0.31.10
   drizzle-orm: ^0.45.2
   tsdown: ^0.22.0
