@@ -11,6 +11,7 @@ interface FarmNormsProps {
     farmFillings: AggregatedNormFillingsToFarmLevel | undefined
     hasFieldNormErrors: boolean
     fieldErrorMessages: string[]
+    fieldWarningMessages: string[]
 }
 
 export function FarmNorms({
@@ -18,6 +19,7 @@ export function FarmNorms({
     farmFillings,
     hasFieldNormErrors,
     fieldErrorMessages,
+    fieldWarningMessages,
 }: FarmNormsProps) {
     return (
         <div>
@@ -33,6 +35,29 @@ export function FarmNorms({
                         </p>
                         <ul className="list-disc pl-5 mt-2 text-xs">
                             {fieldErrorMessages.map((msg) => (
+                                <li key={msg}>{msg}</li>
+                            ))}
+                        </ul>
+                    </AlertDescription>
+                </Alert>
+            )}
+            {fieldWarningMessages.length > 0 && (
+                <Alert
+                    variant="default"
+                    className="mb-6 border-amber-200 bg-amber-50 text-amber-800"
+                >
+                    <AlertTriangle className="h-4 w-4 !text-amber-800" />
+                    <AlertTitle>Gebruiksnorm niet gevonden</AlertTitle>
+                    <AlertDescription>
+                        <p>
+                            Voor één of meerdere percelen kon geen gebruiksnorm
+                            worden gevonden. De totalen op bedrijfsniveau zijn
+                            wel berekend, maar kunnen afwijken van de
+                            werkelijkheid omdat er geen gebruiksnorm is
+                            toegepast op deze percelen.
+                        </p>
+                        <ul className="list-disc pl-5 mt-2 text-xs">
+                            {fieldWarningMessages.map((msg) => (
                                 <li key={msg}>{msg}</li>
                             ))}
                         </ul>

@@ -1,5 +1,6 @@
 import pkg from "./package"
 export const fdmCalculator = pkg
+export { NormNotApplicableError } from "./error"
 export {
     calculateNitrogenBalance,
     calculateNitrogenBalanceField,

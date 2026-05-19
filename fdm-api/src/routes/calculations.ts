@@ -8,6 +8,7 @@ import {
     // buildDynaRequest,
     // buildNSupplyRequest,
     createFunctionsForNorms,
+    NormNotApplicableError,
     // getDyna,
     // getNSupply,
     // getNutrientAdvice,
@@ -691,9 +692,18 @@ async function calculateNormResults(
     input: unknown,
 ) {
     const [nitrogen, manure, phosphate] = await Promise.all([
-        normFunctions.calculateNormForNitrogen(fdm, input).catch(() => null),
-        normFunctions.calculateNormForManure(fdm, input).catch(() => null),
-        normFunctions.calculateNormForPhosphate(fdm, input).catch(() => null),
+        normFunctions.calculateNormForNitrogen(fdm, input).catch((err) => {
+            if (err instanceof NormNotApplicableError) return null
+            throw err
+        }),
+        normFunctions.calculateNormForManure(fdm, input).catch((err) => {
+            if (err instanceof NormNotApplicableError) return null
+            throw err
+        }),
+        normFunctions.calculateNormForPhosphate(fdm, input).catch((err) => {
+            if (err instanceof NormNotApplicableError) return null
+            throw err
+        }),
     ])
 
     return { nitrogen, manure, phosphate }
