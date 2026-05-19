@@ -1,6 +1,6 @@
 import { KeyIcon, PlusIcon, TrashIcon, BookOpenIcon } from "lucide-react"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { clientConfig } from "~/lib/config"
 import {
@@ -90,23 +90,27 @@ export default function UserSettingsApiKeys() {
     const [editName, setEditName] = useState("")
     const [isSaving, setIsSaving] = useState(false)
 
-    async function loadKeys() {
+    const loadKeys = useCallback(async () => {
         setIsLoading(true)
         try {
             const result = await authClient.apiKey.list({
                 query: { sortBy: "createdAt", sortDirection: "desc" },
             })
+            if (result.error) {
+                toast.error("Kon API-sleutels niet laden.")
+                return
+            }
             setKeys((result.data?.apiKeys as ApiKey[]) ?? [])
         } catch {
             toast.error("Kon API-sleutels niet laden.")
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [])
 
     useEffect(() => {
         loadKeys()
-    }, [])
+    }, [loadKeys])
 
     async function handleCreate() {
         if (!newKeyName.trim()) return
@@ -115,6 +119,10 @@ export default function UserSettingsApiKeys() {
             const result = await authClient.apiKey.create({
                 name: newKeyName.trim(),
             })
+            if (result.error) {
+                toast.error("Aanmaken van API-sleutel mislukt.")
+                return
+            }
             const key = result.data?.key
             if (key) {
                 setRawKey(key)
@@ -132,7 +140,11 @@ export default function UserSettingsApiKeys() {
 
     async function handleRevoke(id: string) {
         try {
-            await authClient.apiKey.delete({ keyId: id })
+            const result = await authClient.apiKey.delete({ keyId: id })
+            if (result.error) {
+                toast.error("Intrekken van API-sleutel mislukt.")
+                return
+            }
             toast.success("API-sleutel ingetrokken.")
             await loadKeys()
         } catch {
@@ -144,10 +156,14 @@ export default function UserSettingsApiKeys() {
         if (!editName.trim()) return
         setIsSaving(true)
         try {
-            await authClient.apiKey.update({
+            const result = await authClient.apiKey.update({
                 keyId: id,
                 name: editName.trim(),
             })
+            if (result.error) {
+                toast.error("Bijwerken mislukt.")
+                return
+            }
             toast.success("Naam bijgewerkt.")
             setEditId(null)
             await loadKeys()

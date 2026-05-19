@@ -210,7 +210,7 @@ All date fields use **YYYY-MM-DD** (e.g. `2024-03-15`). Time-of-day and timezone
 
 List endpoints accept `limit` and `offset` query parameters and return a consistent envelope:
 
-```
+```http
 GET /farms?limit=20&offset=0
 ```
 
@@ -309,7 +309,7 @@ pnpm dev
 
 `fdm-api` is a **standalone Node.js HTTP service** that connects to the same PostgreSQL database used by `fdm-app`. It shares the same `fdm-core` library for all data access and the same Better Auth instance for API key validation.
 
-```
+```text
 fdm-app  (e.g. app.yourdomain.com)   <- React Router, user-facing UI
 fdm-api  (e.g. api.yourdomain.com)   <- Hono REST API, machine-to-machine
           |                   |

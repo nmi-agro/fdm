@@ -434,6 +434,11 @@ export function registerSoilAnalysisRoutes(
             parseTimeframeQuery(query),
         )
         const analyses = Array.from(analysesByField.values()).flat()
+        analyses.sort((a, b) => {
+            const dateA = a.a_date ? String(a.a_date) : ""
+            const dateB = b.a_date ? String(b.a_date) : ""
+            return dateA < dateB ? -1 : dateA > dateB ? 1 : String(a.a_id ?? "").localeCompare(String(b.a_id ?? ""))
+        })
         return c.json(
             paginatedResponse(
                 analyses.map(serialiseSoilAnalysis),

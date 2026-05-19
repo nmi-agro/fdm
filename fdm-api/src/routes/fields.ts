@@ -108,6 +108,7 @@ const UpdateFieldBodySchema = z
             .optional()
             .describe("Method by which the field was acquired."),
         b_end: DateStringSchema
+            .nullable()
             .optional()
             .describe("Date in YYYY-MM-DD format."),
         b_bufferstrip: z
@@ -391,7 +392,7 @@ export function registerFieldRoutes(
                 ? body.b_acquiring_method
                 : existing.b_acquiring_method,
             body.b_end !== undefined
-                ? new Date(body.b_end)
+                ? (body.b_end !== null ? new Date(body.b_end) : null)
                 : (existing.b_end ?? undefined),
             body.b_bufferstrip !== undefined
                 ? body.b_bufferstrip

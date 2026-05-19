@@ -42,7 +42,7 @@ services:
   fdm-api:
     build:
       context: .
-      dockerfile: ./fdm-api/Dockerfile
+      dockerfile: ./fdm-api/dockerfile
     ports:
       - "8080:8080"
     environment:
@@ -63,7 +63,7 @@ services:
       postgres:
         condition: service_healthy
       fdm-app:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
       interval: 10s

@@ -20,7 +20,7 @@ All delete operations require at least the `advisor` role on the resource being 
 
 ## Idempotency
 
-Delete endpoints are **not idempotent** in the strict HTTP sense. Deleting a resource that does not exist returns `404 not-found`, not `200`. Design automation scripts to check for `404` on delete and treat it as a success if the goal is to ensure the resource is gone.
+Delete endpoints are **idempotent in effect** — deleting a resource that is already gone leaves the system in the same state. However, repeated calls may return different HTTP status codes: the first delete returns `200`, subsequent calls return `404 not-found`. Design automation scripts to treat `404` as a success when the goal is to ensure the resource is gone.
 
 ## Cascade behavior
 

@@ -193,7 +193,7 @@ export async function getFarms(
     try {
         const start = performance.now()
         const resolvedPrincipalId = Array.isArray(principal_id)
-            ? principal_id.join(",") || "unknown"
+            ? principal_id[0] || "unknown"
             : principal_id || "unknown"
         return await fdm.transaction(async (tx) => {
             const resources = await listResources(

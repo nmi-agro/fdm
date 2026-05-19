@@ -71,13 +71,13 @@ export function problemResponse(
 ) {
     return c.json(
         {
+            ...extras,
             type: `${appUrl}/problems/${slug}`,
             title: TITLES[slug] ?? slug,
             status,
             detail,
             instance: c.req.path,
             error_id: nanoid(),
-            ...extras,
         },
         status as ContentfulStatusCode,
         { "content-type": "application/problem+json" },

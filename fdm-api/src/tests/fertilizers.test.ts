@@ -181,6 +181,12 @@ describe("GET /fertilizers/:p_id", () => {
         const res = await app.request("/fertilizers/missing", { headers: { "x-api-key": "valid" } })
         expect(res.status).toBe(404)
     })
+
+    it("returns 403 when the caller lacks permission", async () => {
+        const app = makeApp({ getFertilizer: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const res = await app.request("/fertilizers/fert-1", { headers: { "x-api-key": "valid" } })
+        expect(res.status).toBe(403)
+    })
 })
 
 describe("DELETE /fertilizers/:p_id", () => {
@@ -193,5 +199,14 @@ describe("DELETE /fertilizers/:p_id", () => {
             headers: { "x-api-key": "valid" },
         })
         expect(res.status).toBe(204)
+    })
+
+    it("returns 403 when the caller lacks permission", async () => {
+        const app = makeApp({ removeFertilizer: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const res = await app.request("/fertilizers/fert-1", {
+            method: "DELETE",
+            headers: { "x-api-key": "valid" },
+        })
+        expect(res.status).toBe(403)
     })
 })

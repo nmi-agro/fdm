@@ -250,7 +250,7 @@ export async function writeAuditEntry(
 ): Promise<void> {
     const { channel, credential_id } = getAuditContext()
     const resolvedPrincipalId = Array.isArray(principal_id)
-        ? principal_id.join(",") || "unknown"
+        ? principal_id[0] || "unknown"
         : principal_id || "unknown"
     await fdm.insert(authZSchema.audit).values({
         audit_id: createId(),
@@ -259,7 +259,7 @@ export async function writeAuditEntry(
         credential_id: credential_id ?? null,
         principal_id: resolvedPrincipalId,
         target_resource: resource,
-        target_resource_id: resolvedPrincipalId,
+        target_resource_id: granting_resource_id,
         granting_resource: granting_resource,
         granting_resource_id: granting_resource_id,
         action: action,

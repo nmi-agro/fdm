@@ -32,9 +32,17 @@ const allowedOrigins = process.env.FDM_API_ALLOWED_ORIGINS
           .filter(Boolean)
     : []
 
+const appUrl = process.env.PUBLIC_FDM_URL
+if (!appUrl) {
+    console.error(
+        "[fdm-api] PUBLIC_FDM_URL is not set. This is required for error response URLs and OpenAPI docs. Set it to the public URL of this service (e.g. https://api.yourdomain.com).",
+    )
+    process.exit(1)
+}
+
 const app = createFdmApi(fdm, auth, {
     appName: String(process.env.PUBLIC_FDM_NAME ?? "FDM"),
-    appUrl: String(process.env.PUBLIC_FDM_URL),
+    appUrl,
     allowedOrigins,
 })
 

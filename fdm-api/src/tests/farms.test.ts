@@ -79,6 +79,18 @@ describe("API authentication", () => {
         const body = await res.json()
         expect(body.type).toContain("ambiguous-api-key")
     })
+
+    it("returns 200 when authenticated via Bearer token", async () => {
+        validKey()
+        const app = makeApp({ getFarms: vi.fn().mockResolvedValue([]) })
+        const res = await app.request("/farms", {
+            headers: { authorization: "Bearer valid-key" },
+        })
+        expect(res.status).toBe(200)
+        expect(res.headers.get("content-type")).toContain("application/json")
+        const body = await res.json()
+        expect(Array.isArray(body.data)).toBe(true)
+    })
 })
 
 // ---------------------------------------------------------------------------

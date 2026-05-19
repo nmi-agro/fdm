@@ -1,7 +1,6 @@
 import {
     BreadcrumbItem,
     BreadcrumbLink,
-    BreadcrumbPage,
     BreadcrumbSeparator,
 } from "~/components/ui/breadcrumb"
 
@@ -23,7 +22,7 @@ export function HeaderUser({
                 <>
                     <BreadcrumbSeparator className="hidden xl:block" />
                     <BreadcrumbItem>
-                        <BreadcrumbPage>{page.label}</BreadcrumbPage>
+                        <BreadcrumbLink href={page.href}>{page.label}</BreadcrumbLink>
                     </BreadcrumbItem>
                 </>
             ) : (

@@ -30,9 +30,15 @@ import { withAuditContext } from "@nmi-agro/fdm-core"
 
 export const middleware: Route.MiddlewareFunction[] = [
     async function auditMiddleware({ request }, next) {
-        const session = await auth.api.getSession({ headers: request.headers })
+        let credential_id: string | undefined
+        try {
+            const session = await auth.api.getSession({ headers: request.headers })
+            credential_id = session?.session?.id
+        } catch {
+            // Session lookup failure is non-fatal; proceed without credential context
+        }
         return withAuditContext(
-            { channel: "app", credential_id: session?.session?.id },
+            { channel: "app", credential_id },
             () => next(),
         )
     },

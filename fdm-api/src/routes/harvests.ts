@@ -93,7 +93,6 @@ const CreateHarvestBodySchema = z
 const UpdateHarvestBodySchema = z
     .object({
         b_lu_harvest_date: DateStringSchema
-            .optional()
             .describe("Date in YYYY-MM-DD format."),
         ...HarvestPropertyShape,
     })
@@ -393,13 +392,6 @@ export function registerHarvestRoutes(
                 400,
                 "validation-failed",
                 "At least one field must be provided.",
-            )
-        }
-        if (body.b_lu_harvest_date === undefined) {
-            throw new ApiError(
-                400,
-                "validation-failed",
-                "b_lu_harvest_date is required.",
             )
         }
         await services.updateHarvest(

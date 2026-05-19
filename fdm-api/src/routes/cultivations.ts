@@ -92,6 +92,13 @@ const CreateCultivationBodySchema = z
             .optional()
             .describe("Cultivation variety identifier."),
     })
+    .refine(
+        (data) => {
+            if (data.b_lu_end == null) return true
+            return data.b_lu_end >= data.b_lu_start
+        },
+        { message: "b_lu_end must not be before b_lu_start.", path: ["b_lu_end"] },
+    )
     .openapi("CreateCultivation")
 
 const UpdateCultivationBodySchema = z
@@ -120,6 +127,13 @@ const UpdateCultivationBodySchema = z
             .optional()
             .describe("Cultivation variety identifier."),
     })
+    .refine(
+        (data) => {
+            if (data.b_lu_start === undefined || data.b_lu_end == null) return true
+            return data.b_lu_end >= data.b_lu_start
+        },
+        { message: "b_lu_end must not be before b_lu_start.", path: ["b_lu_end"] },
+    )
     .openapi("UpdateCultivation")
 
 const listCultivationsRoute = createRoute({
