@@ -755,7 +755,7 @@ export async function removeFertilizer(
             }
 
             await checkPermission(
-                fdm,
+                tx,
                 "farm",
                 "write",
                 b_id_farm,

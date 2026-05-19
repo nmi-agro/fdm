@@ -563,10 +563,9 @@ const fieldDoseRoute = createRoute({
 
 const YearQuerySchema = z.object({
     year: z
-        .string()
-        .regex(/^\d{4}$/, "Must be a 4-digit year")
-        .default(new Date().getFullYear().toString())
-        .describe("Calendar year, e.g. 2025. Only 2025 and 2026 are supported for norms."),
+        .enum(["2025", "2026"])
+        .default("2026")
+        .describe("Calendar year. Only 2025 and 2026 are currently supported for norms."),
 })
 
 const farmNormsRoute = createRoute({
@@ -964,10 +963,6 @@ export function registerCalculationRoutes(
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { year } = c.req.valid("query") as { year: string }
 
-        if (!["2025", "2026"].includes(year)) {
-            throw new ApiError(400, "validation-failed", "Only years 2025 and 2026 are currently supported.")
-        }
-
         const fields: z.infer<typeof FarmNormsFieldSchema>[] = []
 
         if (year === "2025") {
@@ -1008,10 +1003,6 @@ export function registerCalculationRoutes(
         const { b_id } = c.req.valid("param") as { b_id: string }
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { year } = c.req.valid("query") as { year: string }
-
-        if (!["2025", "2026"].includes(year)) {
-            throw new ApiError(400, "validation-failed", "Only years 2025 and 2026 are currently supported.")
-        }
 
         const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
         if (!field) {

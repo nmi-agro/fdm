@@ -360,7 +360,9 @@ export function registerFertilizerRoutes(
                 "Fertilizer created but could not be retrieved.",
             )
         }
-        c.header("Location", `${new URL(c.req.url).origin}/fertilizers/${p_id}`)
+        const createdUrl = new URL(c.req.url)
+        const basePath = createdUrl.pathname.replace(/\/+fertilizers.*$/, "")
+        c.header("Location", `${createdUrl.origin}${basePath}/fertilizers/${p_id}`)
         return c.json(serialiseFertilizer(fertilizer), 201)
     }
 

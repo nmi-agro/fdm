@@ -20,11 +20,11 @@ All delete operations require at least the `advisor` role on the resource being 
 
 ## Idempotency
 
-Delete endpoints are **idempotent in effect** — deleting a resource that is already gone leaves the system in the same state. However, repeated calls may return different HTTP status codes: the first delete returns `200`, subsequent calls return `404 not-found`. Design automation scripts to treat `404` as a success when the goal is to ensure the resource is gone.
+Delete endpoints are **idempotent in effect** — deleting a resource that is already gone leaves the system in the same state. However, repeated calls may return different HTTP status codes: the first delete returns `204`, subsequent calls return `404 not-found`. Design automation scripts to treat `404` as a success when the goal is to ensure the resource is gone.
 
 ## Cascade behavior
 
-### `DELETE /api/farms/{farmId}` — `removeFarm`
+### `DELETE /api/farms/{b_id_farm}` — `removeFarm`
 
 Deletes the farm and all resources owned by it, in order:
 
@@ -39,7 +39,7 @@ Deletes the farm and all resources owned by it, in order:
 
 ---
 
-### `DELETE /api/fields/{fieldId}` — `removeField`
+### `DELETE /api/fields/{b_id}` — `removeField`
 
 Deletes the field and all resources owned by it, in order:
 
@@ -54,7 +54,7 @@ Deletes the field and all resources owned by it, in order:
 
 ---
 
-### `DELETE /api/cultivations/{cultivationId}` — `removeCultivation`
+### `DELETE /api/cultivations/{b_lu}` — `removeCultivation`
 
 Deletes the cultivation and directly associated records. Returns `404` if the cultivation does not exist.
 
@@ -71,7 +71,7 @@ Deletes the cultivation and directly associated records. Returns `404` if the cu
 
 ---
 
-### `DELETE /api/soil-analyses/{analysisId}` — `removeSoilAnalysis`
+### `DELETE /api/soil-analyses/{a_id}` — `removeSoilAnalysis`
 
 Deletes the soil analysis and its sampling records:
 
@@ -88,7 +88,7 @@ Returns `404` if the analysis does not exist.
 
 | Endpoint | Hard delete | Cascades to | Idempotent | Auth required |
 |---|---|---|---|---|
-| `DELETE /api/farms/{farmId}` | ✅ | Fields → cultivations → harvests → soil analyses → fertilizers → derogations | ❌ | `advisor` or `owner` on farm |
-| `DELETE /api/fields/{fieldId}` | ✅ | Cultivations → harvests, soil analyses | ❌ | `advisor` or `owner` on field |
-| `DELETE /api/cultivations/{cultivationId}` | ✅ | Harvests and harvest analyses | ❌ | `advisor` or `owner` on cultivation |
-| `DELETE /api/soil-analyses/{analysisId}` | ✅ | Soil sampling record | ❌ | `advisor` or `owner` on soil_analysis |
+| `DELETE /api/farms/{b_id_farm}` | ✅ | Fields → cultivations → harvests → soil analyses → fertilizers → derogations | ✅ | `advisor` or `owner` on farm |
+| `DELETE /api/fields/{b_id}` | ✅ | Cultivations → harvests, soil analyses | ✅ | `advisor` or `owner` on field |
+| `DELETE /api/cultivations/{b_lu}` | ✅ | Harvests and harvest analyses | ✅ | `advisor` or `owner` on cultivation |
+| `DELETE /api/soil-analyses/{a_id}` | ✅ | Soil sampling record | ✅ | `advisor` or `owner` on soil_analysis |

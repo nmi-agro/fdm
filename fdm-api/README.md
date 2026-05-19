@@ -217,11 +217,9 @@ GET /farms?limit=20&offset=0
 ```jsonc
 {
   "data": [ /* array of items */ ],
-  "pagination": {
-    "limit": 20,
-    "offset": 0,
-    "total": 42
-  }
+  "limit": 20,
+  "offset": 0,
+  "total": 42
 }
 ```
 

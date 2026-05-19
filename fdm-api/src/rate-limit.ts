@@ -57,8 +57,16 @@ export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): Middlewar
         if (record.count > limit) {
             const retryAfter = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
             c.header("Retry-After", String(Math.max(retryAfter, 1)))
+            c.header("RateLimit-Limit", String(limit))
+            c.header("RateLimit-Remaining", "0")
+            c.header("RateLimit-Reset", String(Math.max(retryAfter, 1)))
             throw new ApiError(429, "rate-limit-exceeded", `Rate limit exceeded. Try again in ${Math.max(retryAfter, 1)}s.`)
         }
+
+        const resetIn = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
+        c.header("RateLimit-Limit", String(limit))
+        c.header("RateLimit-Remaining", String(Math.max(limit - record.count, 0)))
+        c.header("RateLimit-Reset", String(Math.max(resetIn, 0)))
 
         return next()
     }

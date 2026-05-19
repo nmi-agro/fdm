@@ -68,7 +68,17 @@ export function assertGeoJsonCoordinates(geometry: unknown): void {
         for (const c of coords) walk(c)
     }
 
-    walk((geometry as { coordinates?: unknown })?.coordinates)
+    function walkGeometry(geom: unknown) {
+        if (geom == null || typeof geom !== "object") return
+        const g = geom as { type?: string; coordinates?: unknown; geometries?: unknown[] }
+        if (g.type === "GeometryCollection" && Array.isArray(g.geometries)) {
+            for (const member of g.geometries) walkGeometry(member)
+        } else {
+            walk(g.coordinates)
+        }
+    }
+
+    walkGeometry(geometry)
 
     if (count > 10_000) {
         throw new ApiError(422, "unprocessable-entity", "GeoJSON geometry exceeds the 10,000 coordinate limit.")

@@ -46,7 +46,7 @@ export function FarmNorms({
                     variant="default"
                     className="mb-6 border-amber-200 bg-amber-50 text-amber-800"
                 >
-                    <AlertTriangle className="h-4 w-4 !text-amber-800" />
+                    <AlertTriangle className="h-4 w-4 text-amber-800!" />
                     <AlertTitle>Gebruiksnorm niet gevonden</AlertTitle>
                     <AlertDescription>
                         <p>

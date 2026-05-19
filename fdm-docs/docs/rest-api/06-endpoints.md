@@ -14,9 +14,9 @@ All endpoints are served under `/api`. Responses use FDM-native field names that
 |---|---|---|---|
 | `GET` | `/api/farms` | List all farms accessible to the API key owner | `getFarms` |
 | `POST` | `/api/farms` | Create a new farm | `addFarm` |
-| `GET` | `/api/farms/{farmId}` | Get a single farm | `getFarm` |
-| `PATCH` | `/api/farms/{farmId}` | Update a farm | `updateFarm` |
-| `DELETE` | `/api/farms/{farmId}` | Delete a farm (hard delete) | `removeFarm` |
+| `GET` | `/api/farms/{b_id_farm}` | Get a single farm | `getFarm` |
+| `PATCH` | `/api/farms/{b_id_farm}` | Update a farm | `updateFarm` |
+| `DELETE` | `/api/farms/{b_id_farm}` | Delete a farm (hard delete) | `removeFarm` |
 
 ### Get farms — example
 
@@ -73,10 +73,10 @@ X-API-Key: fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 | Method | Path | Description | `fdm-core` mapping |
 |---|---|---|---|
-| `GET` | `/api/farms/{farmId}/fields` | List all fields for a farm | `getFields` |
-| `POST` | `/api/farms/{farmId}/fields` | Add a field to a farm | `addField` |
-| `GET` | `/api/fields/{fieldId}` | Get a single field | `getField` |
-| `DELETE` | `/api/fields/{fieldId}` | Delete a field (hard delete) | `removeField` |
+| `GET` | `/api/farms/{b_id_farm}/fields` | List all fields for a farm | `getFields` |
+| `POST` | `/api/farms/{b_id_farm}/fields` | Add a field to a farm | `addField` |
+| `GET` | `/api/fields/{b_id}` | Get a single field | `getField` |
+| `DELETE` | `/api/fields/{b_id}` | Delete a field (hard delete) | `removeField` |
 
 ### Get fields — example
 
@@ -111,10 +111,10 @@ Authorization: Bearer fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 | Method | Path | Description | `fdm-core` mapping |
 |---|---|---|---|
-| `GET` | `/api/fields/{fieldId}/cultivations` | List cultivations for a field | `getCultivations` |
-| `POST` | `/api/fields/{fieldId}/cultivations` | Add a cultivation to a field | `addCultivation` |
-| `GET` | `/api/cultivations/{cultivationId}` | Get a single cultivation | `getCultivation` |
-| `DELETE` | `/api/cultivations/{cultivationId}` | Delete a cultivation (hard delete) | `removeCultivation` |
+| `GET` | `/api/fields/{b_id}/cultivations` | List cultivations for a field | `getCultivations` |
+| `POST` | `/api/fields/{b_id}/cultivations` | Add a cultivation to a field | `addCultivation` |
+| `GET` | `/api/cultivations/{b_lu}` | Get a single cultivation | `getCultivation` |
+| `DELETE` | `/api/cultivations/{b_lu}` | Delete a cultivation (hard delete) | `removeCultivation` |
 
 ---
 
@@ -122,11 +122,11 @@ Authorization: Bearer fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 | Method | Path | Description | `fdm-core` mapping |
 |---|---|---|---|
-| `GET` | `/api/fields/{fieldId}/soil-analyses` | List soil analyses for a field | `getSoilAnalyses` |
-| `POST` | `/api/fields/{fieldId}/soil-analyses` | Add a soil analysis to a field | `addSoilAnalysis` |
-| `GET` | `/api/soil-analyses/{analysisId}` | Get a single soil analysis | `getSoilAnalysis` |
-| `PATCH` | `/api/soil-analyses/{analysisId}` | Update a soil analysis | `updateSoilAnalysis` |
-| `DELETE` | `/api/soil-analyses/{analysisId}` | Delete a soil analysis (hard delete) | `removeSoilAnalysis` |
+| `GET` | `/api/fields/{b_id}/soil-analyses` | List soil analyses for a field | `getSoilAnalyses` |
+| `POST` | `/api/fields/{b_id}/soil-analyses` | Add a soil analysis to a field | `addSoilAnalysis` |
+| `GET` | `/api/soil-analyses/{a_id}` | Get a single soil analysis | `getSoilAnalysis` |
+| `PATCH` | `/api/soil-analyses/{a_id}` | Update a soil analysis | `updateSoilAnalysis` |
+| `DELETE` | `/api/soil-analyses/{a_id}` | Delete a soil analysis (hard delete) | `removeSoilAnalysis` |
 
 ---
 
@@ -138,9 +138,9 @@ Calculation endpoints use `POST` because calculations may be expensive and may r
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/farms/{farmId}/calculations/nitrogen-balance` | Nitrogen balance for a farm |
-| `POST` | `/api/fields/{fieldId}/calculations/nitrogen-balance` | Nitrogen balance for a field |
-| `POST` | `/api/fields/{fieldId}/calculations/dose` | Fertilizer dose recommendation for a field |
+| `POST` | `/api/farms/{b_id_farm}/calculations/nitrogen-balance` | Nitrogen balance for a farm |
+| `POST` | `/api/fields/{b_id}/calculations/nitrogen-balance` | Nitrogen balance for a field |
+| `POST` | `/api/fields/{b_id}/calculations/dose` | Fertilizer dose recommendation for a field |
 
 :::info
 

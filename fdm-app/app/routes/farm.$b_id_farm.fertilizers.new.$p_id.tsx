@@ -80,6 +80,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Get selected fertilizer
         const fertilizer = await getFertilizer(fdm, p_id, session.principal_id)
+        if (!fertilizer) {
+            throw data("fertilizer not found", {
+                status: 404,
+                statusText: "not found: p_id",
+            })
+        }
         const fertilizerParameters = getFertilizerParametersDescription()
 
         // Get the available fertilizers

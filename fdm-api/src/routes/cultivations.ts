@@ -361,6 +361,10 @@ export function registerCultivationRoutes(
             b_id_farm,
         )
         const cultivations = Array.from(cultivationsByField.values()).flat()
+        cultivations.sort((a, b) => {
+            const dateDiff = (a.b_lu_start?.getTime() ?? 0) - (b.b_lu_start?.getTime() ?? 0)
+            return dateDiff !== 0 ? dateDiff : a.b_lu.localeCompare(b.b_lu)
+        })
         return c.json(
             paginatedResponse(
                 cultivations.map(serialiseCultivation),
@@ -447,6 +451,23 @@ export function registerCultivationRoutes(
                 "validation-failed",
                 "At least one field must be provided.",
             )
+        }
+
+        // Validate that b_lu_end is not before b_lu_start.
+        // If both are in the body, compare inline; if only b_lu_end is provided,
+        // fetch the persisted start date and compare against it.
+        if (body.b_lu_end != null) {
+            const newEnd = new Date(body.b_lu_end)
+            let startDate: Date | null | undefined
+            if (body.b_lu_start) {
+                startDate = new Date(body.b_lu_start)
+            } else {
+                const existing = await services.getCultivation(fdm, principal.effectivePrincipalId, b_lu)
+                startDate = existing?.b_lu_start ?? null
+            }
+            if (startDate && newEnd < startDate) {
+                throw new ApiError(400, "validation-failed", "b_lu_end must not be before b_lu_start.")
+            }
         }
         await services.updateCultivation(
             fdm,

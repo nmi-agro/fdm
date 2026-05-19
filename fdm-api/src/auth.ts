@@ -35,7 +35,7 @@ export function createApiKeyAuth(
             ? authHeader.slice(7)
             : undefined
 
-        if (xApiKey && bearerKey) {
+        if (xApiKey !== undefined && bearerKey !== undefined) {
             throw new ApiError(400, "ambiguous-api-key", "Provide either X-API-Key or Authorization: Bearer, not both.")
         }
 
