@@ -24,6 +24,7 @@ CREATE TABLE "fdm-authn"."apikey" (
 );
 --> statement-breakpoint
 ALTER TABLE "fdm-authz"."audit" ADD COLUMN "audit_channel" text DEFAULT 'app' NOT NULL;--> statement-breakpoint
+ALTER TABLE "fdm-authz"."audit" ADD COLUMN "credential_id" text;--> statement-breakpoint
 CREATE INDEX "apikey_configId_idx" ON "fdm-authn"."apikey" USING btree ("config_id");--> statement-breakpoint
 CREATE INDEX "apikey_referenceId_idx" ON "fdm-authn"."apikey" USING btree ("reference_id");--> statement-breakpoint
 CREATE INDEX "apikey_key_idx" ON "fdm-authn"."apikey" USING btree ("key");
