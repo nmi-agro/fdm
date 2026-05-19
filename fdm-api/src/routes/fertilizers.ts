@@ -352,7 +352,7 @@ export function registerFertilizerRoutes(
             body.p_acquiring_amount ?? undefined,
             body.p_acquiring_date ? new Date(body.p_acquiring_date) : undefined,
         )
-        const fertilizer = await services.getFertilizer(fdm, p_id)
+        const fertilizer = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
         if (!(fertilizer as Partial<Fertilizer>)?.p_id) {
             throw new ApiError(
                 500,
@@ -392,9 +392,10 @@ export function registerFertilizerRoutes(
     const getFertilizerHandler: RouteHandler<
         typeof getFertilizerRoute
     > = async (c) => {
+        const principal = c.get("principal") as unknown as ApiPrincipalContext
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { p_id } = c.req.valid("param") as { p_id: string }
-        const fertilizer = await services.getFertilizer(fdm, p_id)
+        const fertilizer = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
         if (!(fertilizer as Partial<Fertilizer>)?.p_id) {
             throw new ApiError(
                 404,
@@ -408,9 +409,10 @@ export function registerFertilizerRoutes(
     const deleteFertilizerHandler: RouteHandler<
         typeof deleteFertilizerRoute
     > = async (c) => {
+        const principal = c.get("principal") as unknown as ApiPrincipalContext
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { p_id } = c.req.valid("param") as { p_id: string }
-        await services.removeFertilizer(fdm, p_id)
+        await services.removeFertilizer(fdm, p_id, principal.effectivePrincipalId)
         return c.newResponse(null, 204)
     }
 

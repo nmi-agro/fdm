@@ -92,7 +92,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         })
 
         // Get selected fertilizer
-        const fertilizer = await getFertilizer(fdm, p_id)
+        const fertilizer = await getFertilizer(fdm, p_id, session.principal_id)
         const fertilizerParameters = getFertilizerParametersDescription()
 
         // Get the available fertilizers
@@ -230,10 +230,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             FormSchema,
         )
 
-        const fertilizer = await getFertilizer(fdm, p_id)
-        if (fertilizer.p_source !== b_id_farm) {
-            throw new Error("Forbidden")
-        }
+        const fertilizer = await getFertilizer(fdm, p_id, session.principal_id)
         const p_id_catalogue = fertilizer.p_id_catalogue
 
         await updateFertilizerFromCatalogue(

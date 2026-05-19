@@ -250,7 +250,7 @@ describe("Fertilizer Data Model", () => {
             )
             expect(p_id).toBeDefined()
 
-            const fertilizer = await getFertilizer(fdm, p_id)
+            const fertilizer = await getFertilizer(fdm, p_id, principal_id)
             expect(fertilizer.p_id).toBeDefined()
         })
 
@@ -615,9 +615,9 @@ describe("Fertilizer Data Model", () => {
             )
             expect(p_id).toBeDefined()
 
-            await removeFertilizer(fdm, p_id)
+            await removeFertilizer(fdm, p_id, principal_id)
 
-            await expect(getFertilizer(fdm, p_id)).rejects.toThrow(
+            await expect(getFertilizer(fdm, p_id, principal_id)).rejects.toThrow(
                 "Exception for getFertilizer",
             )
         })
@@ -1005,7 +1005,7 @@ describe("Fertilizer Data Model", () => {
             )
 
             // 2. Get the fertilizer and assert that p_type is "mineral".
-            let fertilizer = await getFertilizer(fdm, p_id)
+            let fertilizer = await getFertilizer(fdm, p_id, principal_id)
             expect(fertilizer.p_type).toBe("mineral")
 
             // 3. Update the fertilizer with a p_type_rvo that maps to "compost".
@@ -1020,7 +1020,7 @@ describe("Fertilizer Data Model", () => {
             )
 
             // 4. Get the fertilizer and assert that p_type is "compost".
-            fertilizer = await getFertilizer(fdm, p_id)
+            fertilizer = await getFertilizer(fdm, p_id, principal_id)
             expect(fertilizer.p_type).toBe("compost")
         })
     })
