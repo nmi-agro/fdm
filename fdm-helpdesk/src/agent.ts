@@ -140,10 +140,17 @@ async function selectAgents(
     selectCount: boolean,
     filters: ActivityFilter & PaginationFilter = {},
 ) {
-    let query = (selectCount ? fdm.select({ count: count() }) : fdm.select())
+    let query = (
+        selectCount
+            ? fdm.select({ count: count(schema.agents.agent_id) })
+            : fdm.select()
+    )
         .from(schema.agents)
         .where(getAgentWhereClause(filters))
-        .orderBy(desc(schema.agents.created))
+
+    if (!selectCount) {
+        query = query.orderBy(desc(schema.agents.created)) as typeof query
+    }
 
     if (filters.pageOffset) {
         query = query.offset(filters.pageOffset) as typeof query

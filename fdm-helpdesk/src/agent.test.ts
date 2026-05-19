@@ -3,6 +3,7 @@ import {
     addAdminAgent,
     addAgent,
     getAgent,
+    getAgentCount,
     getAgents,
     setAgentActiveStatus,
     updateAgent,
@@ -199,7 +200,7 @@ describe("getAgents", () => {
         user_id = createId()
     })
 
-    test.only("admin can list all agents", async ({ fdm }) => {
+    test("admin can list all agents", async ({ fdm }) => {
         const agents = await getAgents(fdm, admin_id)
         expect(agents.some((a) => a.agent_id === admin_id)).toBe(true)
         expect(agents.some((a) => a.agent_id === agent_id)).toBe(true)
@@ -212,6 +213,37 @@ describe("getAgents", () => {
 
     test("regular user cannot list agents", async ({ fdm }) => {
         await expect(getAgents(fdm, user_id)).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
+    })
+})
+
+describe("getAgentCount", () => {
+    let admin_id: string
+    let user_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        for (let i = 0; i < 3; i++) {
+            await addAgent(fdm, admin_id, createId(), `Agent ${i}`)
+        }
+
+        user_id = createId()
+    })
+
+    test("should return the total number of agents", async ({ fdm }) => {
+        const agentCount = await getAgentCount(fdm, admin_id, {})
+
+        // 1 admin + 3 agents added in beforeEach
+        expect(agentCount).toBeGreaterThanOrEqual(4)
+    })
+
+    test("should throw when a regular user tries to get agent count", async ({
+        fdm,
+    }) => {
+        await expect(getAgentCount(fdm, user_id, {})).rejects.toThrow(
             "Principal does not have permission to perform this action",
         )
     })

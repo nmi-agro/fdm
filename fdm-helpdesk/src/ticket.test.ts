@@ -8,11 +8,17 @@ import { test } from "./test-util"
 import {
     createTicket,
     getInbox,
+    getTicket,
+    getTicketCount,
     getTickets,
     updateTicketStatus,
     validateTicketStatusTransition,
 } from "./ticket"
-import { assignTicket } from "./ticket-assignment"
+import {
+    assignTicket,
+    getAssigneesForTickets,
+    getTicketCountsForAssignees,
+} from "./ticket-assignment"
 
 test.describe("Inbox", () => {
     const b_id_farm = "test-farm-id"
@@ -379,5 +385,278 @@ describe("assignTicket", () => {
         ).rejects.toThrow(
             "Principal does not have permission to perform this action",
         )
+    })
+})
+
+describe("createTicket", () => {
+    let requester_id: string
+
+    test.beforeEach(async () => {
+        requester_id = createId()
+    })
+
+    test("should create a ticket and return its id", async ({ fdm }) => {
+        const ticket_id = await createTicket(
+            fdm,
+            requester_id,
+            "My ticket body",
+        )
+
+        expect(ticket_id).toBeDefined()
+
+        const [ticket] = await fdm
+            .select()
+            .from(schema.tickets)
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+
+        expect(ticket.requester_id).toBe(requester_id)
+        expect(ticket.channel).toBe("web")
+        expect(ticket.status).toBe("open")
+    })
+
+    test("should set the priority from options", async ({ fdm }) => {
+        const ticket_id = await createTicket(
+            fdm,
+            requester_id,
+            "Urgent ticket",
+            { priority: "urgent" },
+        )
+
+        const [ticket] = await fdm
+            .select()
+            .from(schema.tickets)
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+
+        expect(ticket.priority).toBe("urgent")
+    })
+
+    test("should set the context farm id from options", async ({ fdm }) => {
+        const ticket_id = await createTicket(fdm, requester_id, "Farm ticket", {
+            context: { b_id_farm: "my-farm-id" },
+        })
+
+        const [ticket] = await fdm
+            .select()
+            .from(schema.tickets)
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+
+        expect(ticket.context_farm_id).toBe("my-farm-id")
+    })
+})
+
+describe("getTicket", () => {
+    let admin_id: string
+    let requester_id: string
+    let ticket_id: string
+    let tag_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        requester_id = createId()
+        ticket_id = await createTicket(fdm, requester_id, "Test ticket")
+
+        tag_id = await createTag(fdm, admin_id, `Tag${createId(8)}`, "#ff0000")
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id)
+        await assignTicket(fdm, ticket_id, admin_id, admin_id)
+    })
+
+    test("should return a ticket with its tags and assignees", async ({
+        fdm,
+    }) => {
+        const ticket = await getTicket(fdm, admin_id, ticket_id)
+
+        expect(ticket.ticket_id).toBe(ticket_id)
+        expect(ticket.tags.some((t) => t.tag_id === tag_id)).toBe(true)
+        expect(ticket.assignees.some((a) => a.agent_id === admin_id)).toBe(true)
+    })
+
+    test("should throw when an unrelated user tries to view the ticket", async ({
+        fdm,
+    }) => {
+        const other_user_id = createId()
+
+        await expect(getTicket(fdm, other_user_id, ticket_id)).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
+    })
+})
+
+describe("getTicketCount", () => {
+    let admin_id: string
+    let requester_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        requester_id = createId()
+        await createTicket(fdm, requester_id, "Ticket 1")
+        await createTicket(fdm, requester_id, "Ticket 2")
+        await createTicket(fdm, requester_id, "Ticket 3")
+    })
+
+    test("should return the total number of tickets", async ({ fdm }) => {
+        const ticketCount = await getTicketCount(fdm, admin_id)
+
+        expect(ticketCount).toBeGreaterThanOrEqual(3)
+    })
+
+    test("should apply filters when counting tickets", async ({ fdm }) => {
+        const ticketCount = await getTicketCount(fdm, admin_id, {
+            requesterIds: [requester_id],
+        })
+
+        expect(ticketCount).toBe(3)
+    })
+})
+
+describe("getAssigneesForTickets", () => {
+    let admin_id: string
+    let agent_id: string
+    let requester_id: string
+    let ticket_id_1: string
+    let ticket_id_2: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+
+        requester_id = createId()
+        ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1")
+        ticket_id_2 = await createTicket(fdm, requester_id, "Ticket 2")
+
+        await assignTicket(fdm, ticket_id_1, admin_id, admin_id)
+        await assignTicket(fdm, ticket_id_1, agent_id, admin_id)
+        // ticket_id_2 intentionally left unassigned
+    })
+
+    test("should return assignees grouped by ticket id", async ({ fdm }) => {
+        const assigneesMap = await getAssigneesForTickets(fdm, admin_id, [
+            ticket_id_1,
+            ticket_id_2,
+        ])
+
+        const ticket1Assignees = assigneesMap.get(ticket_id_1)
+        expect(ticket1Assignees).toHaveLength(2)
+        expect(ticket1Assignees?.some((a) => a.agent_id === admin_id)).toBe(
+            true,
+        )
+        expect(ticket1Assignees?.some((a) => a.agent_id === agent_id)).toBe(
+            true,
+        )
+    })
+
+    test("should not include entries for unassigned tickets", async ({
+        fdm,
+    }) => {
+        const assigneesMap = await getAssigneesForTickets(fdm, admin_id, [
+            ticket_id_1,
+            ticket_id_2,
+        ])
+
+        expect(assigneesMap.has(ticket_id_2)).toBe(false)
+    })
+
+    test("should allow the requester to view assignees on their own ticket", async ({
+        fdm,
+    }) => {
+        const assigneesMap = await getAssigneesForTickets(fdm, requester_id, [
+            ticket_id_1,
+        ])
+
+        expect(assigneesMap.get(ticket_id_1)).toHaveLength(2)
+    })
+
+    test("should throw when an unrelated user tries to view assignees", async ({
+        fdm,
+    }) => {
+        const other_user_id = createId()
+
+        await expect(
+            getAssigneesForTickets(fdm, other_user_id, [ticket_id_1]),
+        ).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
+    })
+})
+
+describe("getTicketCountsForAssignees", () => {
+    let admin_id: string
+    let agent_id: string
+    let requester_id: string
+    let ticket_id_1: string
+    let ticket_id_2: string
+    let ticket_id_3: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+
+        requester_id = createId()
+        ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1")
+        ticket_id_2 = await createTicket(fdm, requester_id, "Ticket 2")
+        ticket_id_3 = await createTicket(fdm, requester_id, "Ticket 3")
+
+        await assignTicket(fdm, ticket_id_1, admin_id, admin_id)
+        await assignTicket(fdm, ticket_id_2, admin_id, admin_id)
+        await assignTicket(fdm, ticket_id_3, agent_id, admin_id)
+    })
+
+    test("should return the correct ticket count per assignee", async ({
+        fdm,
+    }) => {
+        const counts = await getTicketCountsForAssignees(
+            fdm,
+            admin_id,
+            [admin_id, agent_id],
+            {},
+        )
+
+        expect(counts.get(admin_id)).toBe(2)
+        expect(counts.get(agent_id)).toBe(1)
+    })
+
+    test("should not include agents with no assigned tickets", async ({
+        fdm,
+    }) => {
+        const third_agent_id = createId()
+        await addAgent(fdm, admin_id, third_agent_id, "Third Agent")
+
+        const counts = await getTicketCountsForAssignees(
+            fdm,
+            admin_id,
+            [third_agent_id],
+            {},
+        )
+
+        expect(counts.has(third_agent_id)).toBe(false)
+    })
+
+    test("should apply ticket filters when counting", async ({ fdm }) => {
+        const tag_id = await createTag(
+            fdm,
+            admin_id,
+            `CountTag${createId(8)}`,
+            "#123456",
+        )
+        await addTagToTicket(fdm, admin_id, ticket_id_1, tag_id)
+
+        const counts = await getTicketCountsForAssignees(
+            fdm,
+            admin_id,
+            [admin_id, agent_id],
+            { tags: [tag_id] },
+        )
+
+        expect(counts.get(admin_id)).toBe(1)
+        expect(counts.has(agent_id)).toBe(false)
     })
 })

@@ -20,7 +20,7 @@ const ticketAssignmentSummaryColumns = {
 
 export async function getAssigneesForTickets(
     fdm: FdmType,
-    agent_id: PrincipalId,
+    principal_id: PrincipalId,
     ticket_ids: string[],
 ): Promise<
     Map<schema.TicketTypeSelect["ticket_id"], TicketAssignmentSummary[]>
@@ -29,10 +29,10 @@ export async function getAssigneesForTickets(
         ticket_ids.map((ticket_id) =>
             checkHelpdeskPermission(
                 fdm,
-                "ticket-agent-side",
+                "ticket-user-side",
                 "read",
                 ticket_id,
-                agent_id,
+                principal_id,
                 "getAssigneesForTickets",
             ),
         ),
@@ -139,26 +139,19 @@ export async function getTicketCountsForAssignees(
         const entries = await fdm
             .select({
                 agent_id: aliasedTicketAssignments.agent_id,
-                count: count(schema.ticketAssignments.ticket_id),
+                count: count(aliasedTicketAssignments.ticket_id),
             })
             .from(aliasedTicketAssignments)
             .innerJoin(
                 schema.tickets,
                 eq(
-                    schema.ticketAssignments.ticket_id,
+                    aliasedTicketAssignments.ticket_id,
                     schema.tickets.ticket_id,
                 ),
             )
             .leftJoin(
                 schema.ticketTagsMap,
                 eq(schema.tickets.ticket_id, schema.ticketTagsMap.ticket_id),
-            )
-            .leftJoin(
-                schema.ticketAssignments,
-                eq(
-                    schema.tickets.ticket_id,
-                    schema.ticketAssignments.ticket_id,
-                ),
             )
             .where(
                 and(

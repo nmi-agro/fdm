@@ -1,4 +1,4 @@
-import { count, desc, eq, inArray, sql } from "drizzle-orm"
+import { desc, eq, inArray, sql } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
@@ -180,8 +180,34 @@ async function selectTickets(
         ? principal_ids
         : filters.requesterIds
 
+    const whereClause = getTicketWhereClause({ ...filters, requesterIds })
+
+    if (selectCount) {
+        return await fdm
+            .select({
+                count: sql<number>`cast(count(distinct ${schema.tickets.ticket_id}) as integer)`,
+            })
+            .from(schema.tickets)
+            .leftJoin(
+                schema.ticketAssignments,
+                eq(
+                    schema.ticketAssignments.ticket_id,
+                    schema.tickets.ticket_id,
+                ),
+            )
+            .leftJoin(
+                schema.ticketTagsMap,
+                eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
+            )
+            .leftJoin(
+                schema.ticketViews,
+                inArray(schema.ticketViews.actor_id, principal_ids),
+            )
+            .where(whereClause)
+    }
+
     let query = fdm
-        .selectDistinct(selectCount ? { count: count() } : ticketColumns)
+        .selectDistinct(ticketColumns)
         .from(schema.tickets)
         .leftJoin(
             schema.ticketAssignments,
@@ -196,7 +222,7 @@ async function selectTickets(
             schema.ticketViews,
             inArray(schema.ticketViews.actor_id, principal_ids),
         )
-        .where(getTicketWhereClause({ ...filters, requesterIds }))
+        .where(whereClause)
         .groupBy(schema.tickets.ticket_id)
         .orderBy(desc(schema.tickets.priority), desc(schema.tickets.created))
 

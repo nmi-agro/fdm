@@ -373,7 +373,11 @@ describe("Message Filters", () => {
         await addAdminAgent(fdm, admin_id, "Support Agent")
 
         requester_id = createId()
-        ticket_id = await createTicket(fdm, requester_id, `Ticket ${createId(8)}`)
+        ticket_id = await createTicket(
+            fdm,
+            requester_id,
+            `Ticket ${createId(8)}`,
+        )
     })
 
     test("should filter messages by fromDate", async ({ fdm }) => {
@@ -398,12 +402,10 @@ describe("Message Filters", () => {
             .set({ created: new Date(2023, 0, 1) })
             .where(eq(schema.messages.message_id, early_id))
 
-        const messages = await getMessagesForTicket(
-            fdm,
-            admin_id,
-            ticket_id,
-            { fromDate: new Date(2023, 0, 2), pageLimit: 100 },
-        )
+        const messages = await getMessagesForTicket(fdm, admin_id, ticket_id, {
+            fromDate: new Date(2023, 0, 2),
+            pageLimit: 100,
+        })
 
         expect(messages.some((m) => m.message_id === early_id)).toBe(false)
         expect(messages.some((m) => m.message_id === late_id)).toBe(true)
@@ -431,12 +433,10 @@ describe("Message Filters", () => {
             .set({ created: new Date(2023, 0, 1) })
             .where(eq(schema.messages.message_id, early_id))
 
-        const messages = await getMessagesForTicket(
-            fdm,
-            admin_id,
-            ticket_id,
-            { toDate: new Date(2023, 0, 2), pageLimit: 100 },
-        )
+        const messages = await getMessagesForTicket(fdm, admin_id, ticket_id, {
+            toDate: new Date(2023, 0, 2),
+            pageLimit: 100,
+        })
 
         expect(messages.some((m) => m.message_id === early_id)).toBe(true)
         expect(messages.some((m) => m.message_id === late_id)).toBe(false)
@@ -458,12 +458,10 @@ describe("Message Filters", () => {
             "Agent message",
         )
 
-        const messages = await getMessagesForTicket(
-            fdm,
-            admin_id,
-            ticket_id,
-            { sentBy: [admin_id], pageLimit: 100 },
-        )
+        const messages = await getMessagesForTicket(fdm, admin_id, ticket_id, {
+            sentBy: [admin_id],
+            pageLimit: 100,
+        })
 
         expect(messages.some((m) => m.message_id === agent_msg_id)).toBe(true)
         expect(messages.some((m) => m.message_id === requester_msg_id)).toBe(
