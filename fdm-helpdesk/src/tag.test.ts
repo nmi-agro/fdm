@@ -5,6 +5,7 @@ import {
     addTagToTicket,
     createTag,
     getTag,
+    getTags,
     removeTagFromTicket,
     updateTag,
 } from "./tag"
@@ -250,5 +251,60 @@ describe("Ticket Tags", () => {
                 false,
             )
         }
+    })
+})
+
+describe("getTags", () => {
+    let admin_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Support Agent")
+    })
+
+    test("should return all tags", async ({ fdm }) => {
+        const nameSuffix = createId(8)
+        const tag_id_1 = await createTag(
+            fdm,
+            admin_id,
+            `Alpha${nameSuffix}`,
+            "#aaaaaa",
+        )
+        const tag_id_2 = await createTag(
+            fdm,
+            admin_id,
+            `Beta${nameSuffix}`,
+            "#bbbbbb",
+        )
+
+        const tags = await getTags(fdm)
+
+        expect(tags.some((t) => t.tag_id === tag_id_1)).toBe(true)
+        expect(tags.some((t) => t.tag_id === tag_id_2)).toBe(true)
+    })
+})
+
+describe("Tag authorization and edge cases", () => {
+    let admin_id: string
+    let user_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Support Agent")
+        user_id = createId()
+    })
+
+    test("regular user cannot create a tag", async ({ fdm }) => {
+        await expect(
+            createTag(fdm, user_id, `UserTag${createId(8)}`, "#123456"),
+        ).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
+    })
+
+    test("updateTag throws when tag does not exist", async ({ fdm }) => {
+        await expect(
+            updateTag(fdm, admin_id, "nonexistent-tag-id", "New Name"),
+        ).rejects.toThrow()
     })
 })

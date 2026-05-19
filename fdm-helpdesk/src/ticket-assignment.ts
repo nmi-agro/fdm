@@ -1,7 +1,11 @@
 import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
-import { and, asc, eq, inArray, isNull } from "drizzle-orm"
+import { and, asc, count, eq, inArray, isNull } from "drizzle-orm"
+import { alias } from "drizzle-orm/pg-core"
 import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
+import { handleError } from "./error"
+import { getTicketWhereClause } from "./filter"
+import type { TicketFilters } from "./filter.types"
 
 export type TicketAssignmentSummary = {
     agent_id: schema.TicketAssignmentTypeSelect["agent_id"]
@@ -119,4 +123,56 @@ export async function assignTicket(
                 },
             })
     })
+}
+
+export async function getTicketCountsForAssignees(
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    agent_ids: schema.TicketAssignmentTypeSelect["agent_id"][],
+    ticketFilters: TicketFilters,
+): Promise<Map<schema.TicketAssignmentTypeSelect["agent_id"], number>> {
+    try {
+        const aliasedTicketAssignments = alias(
+            schema.ticketAssignments,
+            "GROUP_COLUMN",
+        )
+        const entries = await fdm
+            .select({
+                agent_id: aliasedTicketAssignments.agent_id,
+                count: count(schema.ticketAssignments.ticket_id),
+            })
+            .from(aliasedTicketAssignments)
+            .innerJoin(
+                schema.tickets,
+                eq(
+                    schema.ticketAssignments.ticket_id,
+                    schema.tickets.ticket_id,
+                ),
+            )
+            .leftJoin(
+                schema.ticketTagsMap,
+                eq(schema.tickets.ticket_id, schema.ticketTagsMap.ticket_id),
+            )
+            .leftJoin(
+                schema.ticketAssignments,
+                eq(
+                    schema.tickets.ticket_id,
+                    schema.ticketAssignments.ticket_id,
+                ),
+            )
+            .where(
+                and(
+                    inArray(aliasedTicketAssignments.agent_id, agent_ids),
+                    getTicketWhereClause(ticketFilters),
+                ),
+            )
+            .groupBy(aliasedTicketAssignments.agent_id)
+        return new Map(entries.map((ent) => [ent.agent_id, ent.count]))
+    } catch (err) {
+        throw handleError(err, "Exception for getTicketCountsForAssignees", {
+            principal_id,
+            agent_ids,
+            ticketFilters,
+        })
+    }
 }

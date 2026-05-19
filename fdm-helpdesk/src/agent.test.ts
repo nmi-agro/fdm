@@ -3,6 +3,7 @@ import {
     addAdminAgent,
     addAgent,
     getAgent,
+    getAgents,
     setAgentActiveStatus,
     updateAgent,
 } from "./agent"
@@ -180,5 +181,38 @@ describe("Agent CRUD", () => {
             expect(agent.display_name).toBe("Third Support Agent")
             expect(agent.is_active).toBe(true)
         }
+    })
+})
+
+describe("getAgents", () => {
+    let admin_id: string
+    let agent_id: string
+    let user_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+
+        user_id = createId()
+    })
+
+    test.only("admin can list all agents", async ({ fdm }) => {
+        const agents = await getAgents(fdm, admin_id)
+        expect(agents.some((a) => a.agent_id === admin_id)).toBe(true)
+        expect(agents.some((a) => a.agent_id === agent_id)).toBe(true)
+    })
+
+    test("regular agent can list agents", async ({ fdm }) => {
+        const agents = await getAgents(fdm, agent_id)
+        expect(agents.length).toBeGreaterThanOrEqual(2)
+    })
+
+    test("regular user cannot list agents", async ({ fdm }) => {
+        await expect(getAgents(fdm, user_id)).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
     })
 })

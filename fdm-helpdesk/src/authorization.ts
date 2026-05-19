@@ -19,13 +19,15 @@ export const helpdeskActions = ["read", "write", "share"] as const
  * is granted permission to perform the specified action on the resource.
  * `strict` may be specified as false in order to disable the exception.
  *
- * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
  * @param resource - The type of resource being accessed.
  * @param action - The action the principal intends to perform.
  * @param resource_id - The unique identifier of the specific resource.
  * @param principal_id - The principal identifier(s); supports a single ID or an array.
  * @param origin - The source origin used for audit logging the permission check.
- * @param strict - When set to false, the function will not perform an audit log, or throw an exception if the user has no permission.
+ * @param strict - When set to false, the function will not perform an audit log, or throw an exception if the
+ * user has no permission.
  * @returns Resolves to true if the principal is permitted to perform the action.
  *
  * @throws {Error} When the principal does not have the required permission or a database transaction fails.
@@ -72,7 +74,8 @@ export async function checkHelpdeskPermission(
 /**
  * Gets the least-privileged role on the helpdesk for the given principals.
  *
- * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
  * @param principal_id - The principal identifier(s); supports a single ID or an array.
  * @returns a string indicating a role that all of the principals can assume.
  *
@@ -101,15 +104,18 @@ export async function getHelpdeskRole(
 }
 
 /**
- * Gets the granting resource type and ID if the principal has permission to perform the action in the given resource.
+ * Gets the granting resource type and ID if the principal has permission to perform the action in the given
+ * resource.
  *
- * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer}.
  * @param resource - The type of resource being accessed.
  * @param action - The action the principal intends to perform.
  * @param resource_id - The unique identifier of the specific resource.
  * @param principal_id - The principal identifier(s); supports a single ID or an array.
  * @param origin - The source origin used for audit logging the permission check.
- * @returns `granting_resource` is the resource type, `granting_resource_id` is the id of the specific granting resource.
+ * @returns `granting_resource` is the resource type, `granting_resource_id` is the id of the specific
+ * granting resource.
  * `null` is returned if the principal does not have the permission.
  *
  * @throws {Error} When a database transaction fails.
@@ -206,7 +212,9 @@ export async function getHelpdeskPermission(
             .select({ is_active: schema.agents.is_active })
             .from(schema.agents)
             .where(inArray(schema.agents.agent_id, principal_ids))
-        const isActiveAgent = agentStatus.every((stat) => stat.is_active)
+        const isActiveAgent =
+            agentStatus.length === principal_ids.length &&
+            agentStatus.every((stat) => stat.is_active)
         const isAdmin = role === "admin"
 
         // Users can't modify ticket assignments etc. but they can see this status on their own tickets
@@ -251,7 +259,9 @@ export async function getHelpdeskPermission(
             .select({ is_active: schema.agents.is_active })
             .from(schema.agents)
             .where(and(inArray(schema.agents.agent_id, principal_ids)))
-        const isActiveAgent = agentStatus.every((stat) => stat.is_active)
+        const isActiveAgent =
+            agentStatus.length === principal_ids.length &&
+            agentStatus.every((stat) => stat.is_active)
         const isAdmin = role === "admin"
 
         return (

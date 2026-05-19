@@ -1,11 +1,17 @@
 import { eq } from "drizzle-orm"
-import { expect } from "vitest"
-import { addAdminAgent } from "./agent"
+import { describe, expect } from "vitest"
+import { addAdminAgent, addAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
 import { addTagToTicket, createTag } from "./tag"
 import { test } from "./test-util"
-import { createTicket, getInbox, getTickets } from "./ticket"
+import {
+    createTicket,
+    getInbox,
+    getTickets,
+    updateTicketStatus,
+    validateTicketStatusTransition,
+} from "./ticket"
 import { assignTicket } from "./ticket-assignment"
 
 test.describe("Inbox", () => {
@@ -141,7 +147,7 @@ test.describe("getTickets", () => {
 
     test("should filter by tag", async ({ fdm }) => {
         const inbox = await getTickets(fdm, agent_id, {
-            tags: [orange_tag_name],
+            tags: [orange_tag_id],
         })
 
         expect(inbox).toHaveLength(1)
@@ -231,5 +237,147 @@ test.describe("getTickets", () => {
             inbox.some((ticket) => ticket.ticket_id === new_ticket_id),
             "New ticket created by other user found in inbox but shouldn't be",
         ).toBe(false)
+    })
+})
+
+describe("validateTicketStatusTransition", () => {
+    test("allows valid transitions from open", () => {
+        expect(validateTicketStatusTransition("open", "in_progress")).toBe(true)
+        expect(validateTicketStatusTransition("open", "resolved")).toBe(true)
+        expect(validateTicketStatusTransition("open", "closed")).toBe(true)
+    })
+
+    test("disallows unknown transitions", () => {
+        expect(validateTicketStatusTransition("open", "open")).toBe(false)
+        expect(validateTicketStatusTransition("closed", "in_progress")).toBe(
+            false,
+        )
+        expect(validateTicketStatusTransition("unknown", "open")).toBe(false)
+    })
+
+    test("allows reopening from resolved and closed", () => {
+        expect(validateTicketStatusTransition("resolved", "open")).toBe(true)
+        expect(validateTicketStatusTransition("closed", "open")).toBe(true)
+    })
+})
+
+describe("updateTicketStatus", () => {
+    let admin_id: string
+    let agent_id: string
+    let requester_id: string
+    let ticket_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+
+        requester_id = createId()
+        ticket_id = await createTicket(fdm, requester_id, "Test ticket")
+    })
+
+    test("agent can update ticket status with a valid transition", async ({
+        fdm,
+    }) => {
+        await updateTicketStatus(fdm, agent_id, ticket_id, "in_progress")
+
+        const [ticket] = await fdm
+            .select({ status: schema.tickets.status })
+            .from(schema.tickets)
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+
+        expect(ticket.status).toBe("in_progress")
+    })
+
+    test("sets resolved_at when transitioning to resolved", async ({ fdm }) => {
+        await updateTicketStatus(fdm, agent_id, ticket_id, "resolved")
+
+        const [ticket] = await fdm
+            .select({ resolved_at: schema.tickets.resolved_at })
+            .from(schema.tickets)
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+
+        expect(ticket.resolved_at).toBeTruthy()
+    })
+
+    test("regular user cannot update ticket status", async ({ fdm }) => {
+        await expect(
+            updateTicketStatus(fdm, requester_id, ticket_id, "in_progress"),
+        ).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
+    })
+
+    test("throws on an invalid status transition", async ({ fdm }) => {
+        // First transition to "resolved" (valid: open → resolved)
+        await updateTicketStatus(fdm, agent_id, ticket_id, "resolved")
+
+        // Now attempt an invalid transition (resolved → in_progress is not allowed)
+        await expect(
+            updateTicketStatus(fdm, agent_id, ticket_id, "in_progress"),
+        ).rejects.toThrow()
+
+        // Sanity check: status must remain unchanged after a failed transition
+        const [ticket] = await fdm
+            .select({ status: schema.tickets.status })
+            .from(schema.tickets)
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+
+        expect(ticket.status).toBe("resolved")
+    })
+})
+
+describe("assignTicket", () => {
+    let admin_id: string
+    let agent_id: string
+    let second_agent_id: string
+    let requester_id: string
+    let ticket_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Agent One")
+
+        second_agent_id = createId()
+        await addAgent(fdm, admin_id, second_agent_id, "Agent Two")
+
+        requester_id = createId()
+        ticket_id = await createTicket(fdm, requester_id, "Test ticket")
+    })
+
+    test("is_primary=true clears other primary assignments", async ({
+        fdm,
+    }) => {
+        await assignTicket(fdm, ticket_id, agent_id, admin_id, true)
+        await assignTicket(fdm, ticket_id, second_agent_id, admin_id, true)
+
+        const assignments = await fdm
+            .select({
+                agent_id: schema.ticketAssignments.agent_id,
+                is_primary: schema.ticketAssignments.is_primary,
+            })
+            .from(schema.ticketAssignments)
+            .where(eq(schema.ticketAssignments.ticket_id, ticket_id))
+
+        const firstAgent = assignments.find((a) => a.agent_id === agent_id)
+        const secondAgent = assignments.find(
+            (a) => a.agent_id === second_agent_id,
+        )
+
+        expect(firstAgent?.is_primary).toBe(false)
+        expect(secondAgent?.is_primary).toBe(true)
+    })
+
+    test("regular user (non-agent) cannot assign a ticket", async ({ fdm }) => {
+        await expect(
+            assignTicket(fdm, ticket_id, agent_id, requester_id),
+        ).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
     })
 })

@@ -1,29 +1,12 @@
-import {
-    and,
-    desc,
-    eq,
-    gte,
-    inArray,
-    isNotNull,
-    lte,
-    type SQL,
-    sql,
-} from "drizzle-orm"
+import { count, desc, eq, inArray, sql } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
-import type {
-    AssigneeFilter,
-    PaginationFilter,
-    PriorityFilter,
-    RequesterFilter,
-    TagsFilter,
-    TicketContextFilter,
-    TimeframeFilter,
-} from "./filter"
+import { getTicketWhereClause } from "./filter"
+import type { TicketFilters } from "./filter.types"
 import { createId } from "./id"
 import { getTagsForTickets, type TagSummary } from "./tag"
 import {
@@ -104,18 +87,10 @@ export async function getTicket(
     }
 }
 
-type Filters = AssigneeFilter &
-    TicketContextFilter &
-    PaginationFilter &
-    PriorityFilter &
-    RequesterFilter &
-    TagsFilter &
-    TimeframeFilter
-
 export async function getInbox(
     fdm: FdmHelpdeskType,
     agent_id: HelpdeskPrincipalId,
-    filters: Filters = {},
+    filters: TicketFilters = {},
 ) {
     const agent_ids = Array.isArray(agent_id) ? agent_id : [agent_id]
     return await getTickets(fdm, agent_id, {
@@ -127,133 +102,15 @@ export async function getInbox(
 export async function getTickets(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
-    filters: Filters = {},
+    filters: TicketFilters = {},
 ): Promise<Ticket[]> {
     try {
-        const principal_ids = Array.isArray(principal_id)
-            ? principal_id
-            : [principal_id]
-
-        const helpdeskReadPermission = await getHelpdeskPermission(
+        const tickets = (await selectTickets(
             fdm,
-            "helpdesk",
-            "read",
-            "",
             principal_id,
-        )
-
-        // Override user filter if they should only be able to see their own tickets
-        const requesterIds = !helpdeskReadPermission
-            ? principal_ids
-            : filters.requesterIds
-
-        // Make sure we limit the number of records that can be returned
-        const pageOffset = filters?.pageOffset
-            ? Math.max(0, filters.pageOffset)
-            : 0
-        const pageLimit = filters?.pageLimit
-            ? Math.max(1, filters.pageLimit)
-            : 20
-
-        // Build the priority filter if the user has specified either min priority or max priority out of the known priority options
-        let priorityFilter: SQL | undefined
-        if (filters.minPriority || filters.maxPriority) {
-            const priorities = ["low", "normal", "high", "urgent"] as const
-            const minPriorityIndex = filters.minPriority
-                ? priorities.indexOf(filters.minPriority)
-                : -1
-            const maxPriorityIndex = filters.maxPriority
-                ? priorities.indexOf(filters.maxPriority)
-                : -1
-            if (minPriorityIndex !== -1 || maxPriorityIndex !== -1) {
-                priorityFilter = inArray(
-                    schema.tickets.priority,
-                    priorities.slice(
-                        minPriorityIndex !== -1 ? minPriorityIndex : 0,
-                        maxPriorityIndex !== -1
-                            ? maxPriorityIndex + 1
-                            : priorities.length,
-                    ),
-                )
-            }
-        }
-
-        const tickets = await fdm
-            .selectDistinct(ticketColumns)
-            .from(schema.tickets)
-            .leftJoin(
-                schema.ticketAssignments,
-                eq(
-                    schema.ticketAssignments.ticket_id,
-                    schema.tickets.ticket_id,
-                ),
-            )
-            .leftJoin(
-                schema.ticketTagsMap,
-                eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
-            )
-            .leftJoin(
-                schema.tags,
-                eq(schema.ticketTagsMap.tag_id, schema.tags.tag_id),
-            )
-            // TODO: check if each agent has viewed, not only one of them
-            .leftJoin(
-                schema.ticketViews,
-                inArray(schema.ticketViews.actor_id, principal_ids),
-            )
-            .where(
-                and(
-                    // To not have an empty case
-                    sql`TRUE`,
-                    // Requester IDs
-                    Array.isArray(requesterIds)
-                        ? and(
-                              isNotNull(schema.tickets.requester_id),
-                              inArray(
-                                  schema.tickets.requester_id,
-                                  requesterIds,
-                              ),
-                          )
-                        : undefined,
-                    // Farm ID
-                    typeof filters.context?.b_id_farm === "string"
-                        ? eq(
-                              schema.tickets.context_farm_id,
-                              filters.context.b_id_farm,
-                          )
-                        : undefined,
-                    // Priority
-                    priorityFilter,
-                    // Assignees
-                    Array.isArray(filters?.assignees)
-                        ? and(
-                              isNotNull(schema.ticketAssignments.agent_id),
-                              inArray(
-                                  schema.ticketAssignments.agent_id,
-                                  filters.assignees,
-                              ),
-                          )
-                        : undefined,
-                    // Tags filter
-                    Array.isArray(filters?.tags)
-                        ? inArray(schema.tags.name, filters.tags)
-                        : undefined,
-                    // Timeframe filter
-                    filters?.fromDate
-                        ? gte(schema.tickets.created, filters.fromDate)
-                        : undefined,
-                    filters?.toDate
-                        ? lte(schema.tickets.created, filters.toDate)
-                        : undefined,
-                ),
-            )
-            .groupBy(schema.tickets.ticket_id)
-            .orderBy(
-                desc(schema.tickets.priority),
-                desc(schema.tickets.created),
-            )
-            .offset(pageOffset)
-            .limit(pageLimit)
+            false,
+            filters,
+        )) as Omit<Ticket, "assignees" | "tags">[]
 
         const ticket_ids = tickets.map((ticket) => ticket.ticket_id)
 
@@ -279,6 +136,79 @@ export async function getTickets(
             filters,
         })
     }
+}
+
+export async function getTicketCount(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+    filters: TicketFilters = {},
+): Promise<number> {
+    try {
+        return (
+            (await selectTickets(fdm, principal_id, true, filters))[0] as {
+                count: number
+            }
+        ).count
+    } catch (err) {
+        throw handleError(err, "Exception for getTicketCount", {
+            principal_id,
+            filters,
+        })
+    }
+}
+
+async function selectTickets(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+    selectCount: boolean,
+    filters: TicketFilters = {},
+) {
+    const principal_ids = Array.isArray(principal_id)
+        ? principal_id
+        : [principal_id]
+
+    const helpdeskReadPermission = await getHelpdeskPermission(
+        fdm,
+        "helpdesk",
+        "read",
+        "",
+        principal_id,
+    )
+
+    // Override user filter if they should only be able to see their own tickets
+    const requesterIds = !helpdeskReadPermission
+        ? principal_ids
+        : filters.requesterIds
+
+    let query = fdm
+        .selectDistinct(selectCount ? { count: count() } : ticketColumns)
+        .from(schema.tickets)
+        .leftJoin(
+            schema.ticketAssignments,
+            eq(schema.ticketAssignments.ticket_id, schema.tickets.ticket_id),
+        )
+        .leftJoin(
+            schema.ticketTagsMap,
+            eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
+        )
+        // TODO: check if each agent has viewed, not only one of them
+        .leftJoin(
+            schema.ticketViews,
+            inArray(schema.ticketViews.actor_id, principal_ids),
+        )
+        .where(getTicketWhereClause({ ...filters, requesterIds }))
+        .groupBy(schema.tickets.ticket_id)
+        .orderBy(desc(schema.tickets.priority), desc(schema.tickets.created))
+
+    if (filters.pageOffset) {
+        query = query.offset(filters.pageOffset) as typeof query
+    }
+
+    if (filters.pageLimit) {
+        query = query.limit(filters.pageLimit) as typeof query
+    }
+
+    return await query
 }
 
 type CreateTicketOptions = {

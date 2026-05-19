@@ -1,15 +1,11 @@
-import { and, eq, gte, inArray, isNull, lte, not, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
-import type {
-    IncludeDeletedFilter,
-    PaginationFilter,
-    SenderFilter,
-    TimeframeFilter,
-} from "./filter"
+import { getMessageWhereClause } from "./filter"
+import type { MessageFilters } from "./filter.types"
 import { createId } from "./id"
 
 export type Message = schema.MessageTypeSelect & {
@@ -84,10 +80,7 @@ export async function getMessagesForTicket(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
     ticket_id: schema.TicketTypeSelect["ticket_id"],
-    filters?: TimeframeFilter &
-        SenderFilter &
-        IncludeDeletedFilter &
-        PaginationFilter,
+    filters?: MessageFilters,
 ): Promise<Message[]> {
     const pageOffset =
         typeof filters?.pageOffset === "number"
@@ -113,7 +106,11 @@ export async function getMessagesForTicket(
             principal_id,
         )
 
-        if (filters?.includeDeleted && !canReadInternalMessages) {
+        const isInternal = canReadInternalMessages ? filters?.isInternal : false
+        if (
+            !canReadInternalMessages &&
+            (filters?.includeDeleted || (filters?.isInternal && !isInternal))
+        ) {
             throw new Error(PERMISSION_ERROR_MESSAGE)
         }
 
@@ -127,21 +124,7 @@ export async function getMessagesForTicket(
             .where(
                 and(
                     eq(schema.messages.ticket_id, ticket_id),
-                    !canReadInternalMessages
-                        ? not(schema.messages.is_internal)
-                        : undefined,
-                    !filters?.includeDeleted
-                        ? isNull(schema.messages.deleted_at)
-                        : undefined,
-                    filters?.fromDate
-                        ? gte(schema.messages.created, filters.fromDate)
-                        : undefined,
-                    filters?.toDate
-                        ? lte(schema.messages.created, filters.toDate)
-                        : undefined,
-                    Array.isArray(filters?.sentBy)
-                        ? inArray(schema.messages.sender_id, filters.sentBy)
-                        : undefined,
+                    getMessageWhereClause({ ...filters, isInternal }),
                 ),
             )
             .orderBy(schema.messages.created)
