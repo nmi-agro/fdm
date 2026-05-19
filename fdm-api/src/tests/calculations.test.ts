@@ -337,11 +337,12 @@ describe("Calculations — unauthenticated", () => {
         expect(res.status).toBe(401)
     })
 
-    it("returns 401 for GET /fields/:id/calculations/nutrient-advice without key", async () => {
-        const app = makeApp()
-        const res = await app.request("/fields/field-1/calculations/nutrient-advice")
-        expect(res.status).toBe(401)
-    })
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // it("returns 401 for GET /fields/:id/calculations/nutrient-advice without key", async () => {
+    //     const app = makeApp()
+    //     const res = await app.request("/fields/field-1/calculations/nutrient-advice")
+    //     expect(res.status).toBe(401)
+    // })
 
     // [MINERALIZATION: disabled — behind feature flag in fdm-app]
     // it("returns 401 for GET /fields/:id/calculations/nsupply without key", async () => {
@@ -682,26 +683,27 @@ describe("GET /fields/:b_id/calculations/norms", () => {
 // ---------------------------------------------------------------------------
 // Nutrient advice
 // ---------------------------------------------------------------------------
-describe("GET /fields/:b_id/calculations/nutrient-advice", () => {
-    beforeEach(() => {
-        vi.clearAllMocks()
-        validKey()
-    })
-
-    it("returns 200 with nutrient advice", async () => {
-        vi.stubEnv("NMI_API_KEY", "test-nmi-key")
-
-        const app = makeApp(mockNutrientAdviceServices)
-        const res = await app.request("/fields/field-1/calculations/nutrient-advice", {
-            headers: { "x-api-key": "valid-key" },
-        })
-
-        expect(res.status).toBe(200)
-        const body = await res.json()
-        expect(body.b_id).toBe("field-1")
-        expect(body.d_n_req).toBe(150)
-    })
-})
+// [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+// describe("GET /fields/:b_id/calculations/nutrient-advice", () => {
+//     beforeEach(() => {
+//         vi.clearAllMocks()
+//         validKey()
+//     })
+//
+//     it("returns 200 with nutrient advice", async () => {
+//         vi.stubEnv("NMI_API_KEY", "test-nmi-key")
+//
+//         const app = makeApp(mockNutrientAdviceServices)
+//         const res = await app.request("/fields/field-1/calculations/nutrient-advice", {
+//             headers: { "x-api-key": "valid-key" },
+//         })
+//
+//         expect(res.status).toBe(200)
+//         const body = await res.json()
+//         expect(body.b_id).toBe("field-1")
+//         expect(body.d_n_req).toBe(150)
+//     })
+// })
 
 // [MINERALIZATION: disabled — behind feature flag in fdm-app]
 // describe("GET /fields/:b_id/calculations/nsupply", () => {

@@ -1,7 +1,8 @@
 import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import {
-    NmiApiError,
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // NmiApiError,
     // [MINERALIZATION: disabled — behind feature flag in fdm-app]
     // assessDataCompleteness,
     // buildDynaRequest,
@@ -9,7 +10,7 @@ import {
     createFunctionsForNorms,
     // getDyna,
     // getNSupply,
-    getNutrientAdvice,
+    // getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
 import type {
     calculateNitrogenBalance,
@@ -59,7 +60,8 @@ export interface CalculationServices {
     getDoseForField: typeof getDoseForField
     // Norms & calculation functions
     createFunctionsForNorms: typeof createFunctionsForNorms
-    getNutrientAdvice: typeof getNutrientAdvice
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // getNutrientAdvice: typeof getNutrientAdvice
     // [MINERALIZATION: disabled — behind feature flag in fdm-app]
     // buildNSupplyRequest: typeof buildNSupplyRequest
     // assessDataCompleteness: typeof assessDataCompleteness
@@ -341,28 +343,29 @@ const FarmNormsSchema = z
 // Nutrient advice schema
 // ---------------------------------------------------------------------------
 
-const NutrientAdviceSchema = z
-    .object({
-        b_id: z.string(),
-        d_n_req: z.number().describe("Nitrogen requirement (kg N/ha)"),
-        d_n_norm: z.number().describe("Nitrogen norm (kg N/ha)"),
-        d_n_norm_man: z.number().describe("Nitrogen norm from animal manure (kg N/ha)"),
-        d_p_norm: z.number().describe("Phosphate norm (kg P2O5/ha)"),
-        d_p_req: z.number().describe("Phosphate requirement (kg P2O5/ha)"),
-        d_k_req: z.number().describe("Potassium requirement (kg K2O/ha)"),
-        d_c_req: z.number().describe("Carbon requirement (kg C/ha)"),
-        d_ca_req: z.number().describe("Calcium requirement (kg Ca/ha)"),
-        d_s_req: z.number().describe("Sulfur requirement (kg S/ha)"),
-        d_mg_req: z.number().describe("Magnesium requirement (kg Mg/ha)"),
-        d_cu_req: z.number().describe("Copper requirement (kg Cu/ha)"),
-        d_zn_req: z.number().describe("Zinc requirement (kg Zn/ha)"),
-        d_co_req: z.number().describe("Cobalt requirement (kg Co/ha)"),
-        d_mn_req: z.number().describe("Manganese requirement (kg Mn/ha)"),
-        d_mo_req: z.number().describe("Molybdenum requirement (kg Mo/ha)"),
-        d_na_req: z.number().describe("Sodium requirement (kg Na/ha)"),
-        d_b_req: z.number().describe("Boron requirement (kg B/ha)"),
-    })
-    .openapi("NutrientAdvice")
+// [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+// const NutrientAdviceSchema = z
+//     .object({
+//         b_id: z.string(),
+//         d_n_req: z.number().describe("Nitrogen requirement (kg N/ha)"),
+//         d_n_norm: z.number().describe("Nitrogen norm (kg N/ha)"),
+//         d_n_norm_man: z.number().describe("Nitrogen norm from animal manure (kg N/ha)"),
+//         d_p_norm: z.number().describe("Phosphate norm (kg P2O5/ha)"),
+//         d_p_req: z.number().describe("Phosphate requirement (kg P2O5/ha)"),
+//         d_k_req: z.number().describe("Potassium requirement (kg K2O/ha)"),
+//         d_c_req: z.number().describe("Carbon requirement (kg C/ha)"),
+//         d_ca_req: z.number().describe("Calcium requirement (kg Ca/ha)"),
+//         d_s_req: z.number().describe("Sulfur requirement (kg S/ha)"),
+//         d_mg_req: z.number().describe("Magnesium requirement (kg Mg/ha)"),
+//         d_cu_req: z.number().describe("Copper requirement (kg Cu/ha)"),
+//         d_zn_req: z.number().describe("Zinc requirement (kg Zn/ha)"),
+//         d_co_req: z.number().describe("Cobalt requirement (kg Co/ha)"),
+//         d_mn_req: z.number().describe("Manganese requirement (kg Mn/ha)"),
+//         d_mo_req: z.number().describe("Molybdenum requirement (kg Mo/ha)"),
+//         d_na_req: z.number().describe("Sodium requirement (kg Na/ha)"),
+//         d_b_req: z.number().describe("Boron requirement (kg B/ha)"),
+//     })
+//     .openapi("NutrientAdvice")
 
 // [MINERALIZATION: disabled — behind feature flag in fdm-app]
 // const NSupplyDataPointSchema = z.object({
@@ -607,25 +610,26 @@ const fieldNormsRoute = createRoute({
     },
 })
 
-const fieldNutrientAdviceRoute = createRoute({
-    method: "get",
-    path: "/fields/{b_id}/calculations/nutrient-advice",
-    summary: "Get nutrient advice for a field",
-    description:
-        "Returns AI-powered NPK and micro-nutrient recommendations for the field based on current soil data and cultivation. Requires NMI API key to be configured on the server.",
-    tags: ["Calculations"],
-    security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-    request: {
-        params: z.object({ b_id: z.string() }),
-    },
-    responses: {
-        200: {
-            description: "Nutrient advice",
-            content: { "application/json": { schema: NutrientAdviceSchema } },
-        },
-        ...commonErrorResponses,
-    },
-})
+// [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+// const fieldNutrientAdviceRoute = createRoute({
+//     method: "get",
+//     path: "/fields/{b_id}/calculations/nutrient-advice",
+//     summary: "Get nutrient advice for a field",
+//     description:
+//         "Returns AI-powered NPK and micro-nutrient recommendations for the field based on current soil data and cultivation. Requires NMI API key to be configured on the server.",
+//     tags: ["Calculations"],
+//     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+//     request: {
+//         params: z.object({ b_id: z.string() }),
+//     },
+//     responses: {
+//         200: {
+//             description: "Nutrient advice",
+//             content: { "application/json": { schema: NutrientAdviceSchema } },
+//         },
+//         ...commonErrorResponses,
+//     },
+// })
 
 // [MINERALIZATION: disabled — behind feature flag in fdm-app]
 // const NSupplyQuerySchema = YearQuerySchema.extend({
@@ -695,22 +699,23 @@ async function calculateNormResults(
     return { nitrogen, manure, phosphate }
 }
 
-/** Converts an NmiApiError into an ApiError with appropriate HTTP status. */
-function toApiError(err: unknown): never {
-    if (err instanceof NmiApiError) {
-        if (err.status === 422) {
-            throw new ApiError(422, "unprocessable-entity", err.message)
-        }
-        if (err.status === 408) {
-            throw new ApiError(504, "gateway-timeout", err.message)
-        }
-        if (err.status === 503) {
-            throw new ApiError(503, "service-unavailable", err.message)
-        }
-        throw new ApiError(502, "bad-gateway", err.message)
-    }
-    throw err
-}
+// [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+// /** Converts an NmiApiError into an ApiError with appropriate HTTP status. */
+// function toApiError(err: unknown): never {
+//     if (err instanceof NmiApiError) {
+//         if (err.status === 422) {
+//             throw new ApiError(422, "unprocessable-entity", err.message)
+//         }
+//         if (err.status === 408) {
+//             throw new ApiError(504, "gateway-timeout", err.message)
+//         }
+//         if (err.status === 503) {
+//             throw new ApiError(503, "service-unavailable", err.message)
+//         }
+//         throw new ApiError(502, "bad-gateway", err.message)
+//     }
+//     throw err
+// }
 
 // ---------------------------------------------------------------------------
 // registerCalculationRoutes
@@ -1047,45 +1052,46 @@ export function registerCalculationRoutes(
         )
     }
 
-    const fieldNutrientAdviceHandler: RouteHandler<typeof fieldNutrientAdviceRoute> = async (c) => {
-        const principal = c.get("principal") as unknown as ApiPrincipalContext
-        // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-        const { b_id } = c.req.valid("param") as { b_id: string }
-
-        const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
-        if (!field) {
-            throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
-        }
-
-        if (!field.b_centroid && !field.b_bufferstrip) {
-            throw new ApiError(422, "unprocessable-entity", `Field '${b_id}' has no centroid coordinates.`)
-        }
-
-        const nmiApiKey = process.env.NMI_API_KEY
-        if (!nmiApiKey && !field.b_bufferstrip) {
-            throw new ApiError(503, "service-unavailable", "NMI API key is not configured on this server.")
-        }
-
-        const [cultivations, soilData] = await Promise.all([
-            services.getCultivations(fdm, principal.effectivePrincipalId, b_id),
-            services.getCurrentSoilData(fdm, principal.effectivePrincipalId, b_id),
-        ])
-
-        const b_lu_catalogue = cultivations[0]?.b_lu_catalogue ?? ""
-
-        try {
-            const advice = await services.getNutrientAdvice(fdm, {
-                b_lu_catalogue,
-                b_centroid: field.b_centroid as [number, number],
-                currentSoilData: soilData as Parameters<typeof services.getNutrientAdvice>[1]["currentSoilData"],
-                nmiApiKey: nmiApiKey ?? "",
-                b_bufferstrip: field.b_bufferstrip ?? false,
-            })
-            return c.json({ b_id, ...advice } as z.infer<typeof NutrientAdviceSchema>, 200)
-        } catch (err) {
-            toApiError(err)
-        }
-    }
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // const fieldNutrientAdviceHandler: RouteHandler<typeof fieldNutrientAdviceRoute> = async (c) => {
+    //     const principal = c.get("principal") as unknown as ApiPrincipalContext
+    //     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    //     const { b_id } = c.req.valid("param") as { b_id: string }
+    //
+    //     const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
+    //     if (!field) {
+    //         throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
+    //     }
+    //
+    //     if (!field.b_centroid && !field.b_bufferstrip) {
+    //         throw new ApiError(422, "unprocessable-entity", `Field '${b_id}' has no centroid coordinates.`)
+    //     }
+    //
+    //     const nmiApiKey = process.env.NMI_API_KEY
+    //     if (!nmiApiKey && !field.b_bufferstrip) {
+    //         throw new ApiError(503, "service-unavailable", "NMI API key is not configured on this server.")
+    //     }
+    //
+    //     const [cultivations, soilData] = await Promise.all([
+    //         services.getCultivations(fdm, principal.effectivePrincipalId, b_id),
+    //         services.getCurrentSoilData(fdm, principal.effectivePrincipalId, b_id),
+    //     ])
+    //
+    //     const b_lu_catalogue = cultivations[0]?.b_lu_catalogue ?? ""
+    //
+    //     try {
+    //         const advice = await services.getNutrientAdvice(fdm, {
+    //             b_lu_catalogue,
+    //             b_centroid: field.b_centroid as [number, number],
+    //             currentSoilData: soilData as Parameters<typeof services.getNutrientAdvice>[1]["currentSoilData"],
+    //             nmiApiKey: nmiApiKey ?? "",
+    //             b_bufferstrip: field.b_bufferstrip ?? false,
+    //         })
+    //         return c.json({ b_id, ...advice } as z.infer<typeof NutrientAdviceSchema>, 200)
+    //     } catch (err) {
+    //         toApiError(err)
+    //     }
+    // }
 
     // [MINERALIZATION: disabled — behind feature flag in fdm-app]
     // const fieldNSupplyHandler: RouteHandler<typeof fieldNSupplyRoute> = async (c) => {
@@ -1206,7 +1212,8 @@ export function registerCalculationRoutes(
     app.openapi(fieldDoseRoute, fieldDoseHandler)
     app.openapi(farmNormsRoute, farmNormsHandler)
     app.openapi(fieldNormsRoute, fieldNormsHandler)
-    app.openapi(fieldNutrientAdviceRoute, fieldNutrientAdviceHandler)
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // app.openapi(fieldNutrientAdviceRoute, fieldNutrientAdviceHandler)
     // [MINERALIZATION: disabled — behind feature flag in fdm-app]
     // app.openapi(fieldNSupplyRoute, fieldNSupplyHandler)
     // app.openapi(fieldDynaRoute, fieldDynaHandler)

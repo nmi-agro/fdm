@@ -74,7 +74,8 @@ import {
     // getDyna,
     // getNSupply,
     getNitrogenBalanceField,
-    getNutrientAdvice,
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // getNutrientAdvice,
     getOrganicMatterBalanceField,
 } from "@nmi-agro/fdm-calculator"
 import { buildApp } from "./app"
@@ -183,8 +184,8 @@ export interface FdmApiServices {
     // getGrazingIntention: typeof getGrazingIntention
     // Norms
     createFunctionsForNorms: typeof createFunctionsForNorms
-    // Nutrient advice
-    getNutrientAdvice: typeof getNutrientAdvice
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // getNutrientAdvice: typeof getNutrientAdvice
     // Mineralization (N-Supply + DYNA)
     // [MINERALIZATION: disabled — behind feature flag in fdm-app]
     // buildNSupplyRequest: typeof buildNSupplyRequest
@@ -260,7 +261,8 @@ const defaultServices: FdmApiServices = {
     // getHarvestsForFarm,
     // getGrazingIntention,
     createFunctionsForNorms,
-    getNutrientAdvice,
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // getNutrientAdvice,
     // buildNSupplyRequest,
     // assessDataCompleteness,
     // getNSupply,
