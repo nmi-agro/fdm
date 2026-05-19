@@ -129,7 +129,48 @@ export function buildApp(
         info: {
             title: `${appName} REST API`,
             version: "0",
-            description: `The ${appName} REST API provides programmatic access to farm data. Authentication requires a user-owned API key.`,
+            description: `The **${appName} REST API** gives developers programmatic access to every object in the Farm Data Model — farms, fields, cultivations, harvests, fertilizers, soil analyses, and more — plus agronomic calculations such as nitrogen and organic-matter balances and fertilization norms.
+
+## What you can do
+
+| Domain | Operations |
+|--------|-----------|
+| **Farms** | Create, read, update, delete |
+| **Fields** | Create with GeoJSON geometry, read, update, delete |
+| **Cultivations** | Manage crop plans per field |
+| **Harvests** | Track yield per cultivation |
+| **Fertilizers** | Custom fertilizers and catalogue look-ups |
+| **Fertilizer applications** | Record, update, and delete applications per field |
+| **Soil analyses** | Upload and query lab results |
+| **Measures** | Record agronomic measures (e.g. tillage, cover crops) |
+| **Organic certifications** | Register and verify certification periods |
+| **Derogations** | Manage regulatory derogations |
+| **Grazing intentions** | Set and query yearly grazing plans |
+| **Calculations** | Nitrogen balance, organic-matter balance, fertilization norms, NPK dose |
+
+## Authentication
+
+All endpoints require a user-owned API key. Obtain one in **${appName} → Settings → API Keys**.
+
+Send the key with every request:
+
+\`\`\`http
+X-API-Key: fdm_your_api_key
+\`\`\`
+
+Or as a Bearer token:
+
+\`\`\`http
+Authorization: Bearer fdm_your_api_key
+\`\`\`
+
+## Date format
+
+All date fields use **YYYY-MM-DD** (e.g. \`2024-03-15\`). Time-of-day and timezone are not required.
+
+## Errors
+
+All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) with \`Content-Type: application/problem+json\`.`,
         },
         security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
         tags: [
