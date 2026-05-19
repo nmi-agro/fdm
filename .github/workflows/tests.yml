@@ -478,7 +478,7 @@ jobs:
 
       - name: Build fdm-core
         run: pnpm build
-        working-directory: ./fdm-coverage
+        working-directory: ./fdm-core
 
       - name: Run tests with coverage
         run: pnpm test-coverage

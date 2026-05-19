@@ -1,9 +1,10 @@
-import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 import { checkHelpdeskPermission } from "./authorization"
+import type { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getTicketWhereClause } from "./filter"
 import type { TicketFilters } from "./filter.types"
 
@@ -19,8 +20,8 @@ const ticketAssignmentSummaryColumns = {
 }
 
 export async function getAssigneesForTickets(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     ticket_ids: string[],
 ): Promise<
     Map<schema.TicketTypeSelect["ticket_id"], TicketAssignmentSummary[]>
@@ -78,7 +79,7 @@ export async function getAssigneesForTickets(
 }
 
 export async function assignTicket(
-    fdm: FdmType,
+    fdm: FdmHelpdeskType,
     ticket_id: schema.TicketAssignmentTypeInsert["ticket_id"],
     agent_id: schema.TicketAssignmentTypeInsert["agent_id"],
     assigned_by: schema.TicketAssignmentTypeInsert["assigned_by"],
@@ -126,8 +127,8 @@ export async function assignTicket(
 }
 
 export async function getTicketCountsForAssignees(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
     agent_ids: schema.TicketAssignmentTypeSelect["agent_id"][],
     ticketFilters: TicketFilters,
 ): Promise<Map<schema.TicketAssignmentTypeSelect["agent_id"], number>> {
