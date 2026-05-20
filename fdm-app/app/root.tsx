@@ -25,6 +25,24 @@ import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
 import styles from "~/tailwind.css?url"
 import type { Route } from "./+types/root"
+import { auth } from "~/lib/auth.server"
+import { withAuditContext } from "@nmi-agro/fdm-core"
+
+export const middleware: Route.MiddlewareFunction[] = [
+    async function auditMiddleware({ request }, next) {
+        let credential_id: string | undefined
+        try {
+            const session = await auth.api.getSession({ headers: request.headers })
+            credential_id = session?.session?.id
+        } catch {
+            // Session lookup failure is non-fatal; proceed without credential context
+        }
+        return withAuditContext(
+            { channel: "app", credential_id },
+            () => next(),
+        )
+    },
+]
 
 export const links: LinksFunction = () => [
     { rel: "stylesheet", href: styles },
@@ -50,6 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             PUBLIC_FDM_URL: process.env.PUBLIC_FDM_URL,
             PUBLIC_FDM_NAME: process.env.PUBLIC_FDM_NAME,
             PUBLIC_FDM_DATASETS_URL: process.env.PUBLIC_FDM_DATASETS_URL,
+            PUBLIC_FDM_API_URL: process.env.PUBLIC_FDM_API_URL,
             PUBLIC_MAP_PROVIDER: process.env.PUBLIC_MAP_PROVIDER,
             PUBLIC_MAPTILER_API_KEY: process.env.PUBLIC_MAPTILER_API_KEY,
             PUBLIC_SENTRY_DSN: process.env.PUBLIC_SENTRY_DSN,

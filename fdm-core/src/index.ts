@@ -22,8 +22,8 @@ export {
     createFdmAuth,
     updateUserProfile,
 } from "./authentication"
-export { checkPermission } from "./authorization"
-export type { PrincipalId } from "./authorization.types"
+export { checkPermission, writeAuditEntry, withAuditContext } from "./authorization"
+export type { PrincipalId, AuditContext } from "./authorization.types"
 export {
     getCachedCalculation,
     setCachedCalculation,
@@ -75,6 +75,7 @@ export type {
     invitationTypeInsert,
     invitationTypeSelect,
 } from "./db/schema-authz"
+export { rateLimit } from "./db/schema-authn"
 export {
     addDerogation,
     isDerogationGrantedForYear,

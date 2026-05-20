@@ -1,4 +1,4 @@
-import { ArrowLeft, Cookie, Languages, Sparkles, User } from "lucide-react"
+import { ArrowLeft, Cookie, KeyRound, Languages, Sparkles, User } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { clientConfig } from "@/app/lib/config"
 import { Button } from "~/components/ui/button"
@@ -41,11 +41,22 @@ export function SidebarPlatform() {
                         <SidebarMenuItem>
                             <SidebarMenuButton
                                 asChild
-                                isActive={location.pathname.includes("/user")}
+                                isActive={location.pathname === "/user/settings/profile"}
                             >
-                                <NavLink to={"/user"}>
+                                <NavLink to="/user/settings/profile">
                                     <User />
                                     <span>Profiel</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={location.pathname === "/user/settings/api-keys"}
+                            >
+                                <NavLink to="/user/settings/api-keys">
+                                    <KeyRound />
+                                    <span>API-sleutels</span>
                                 </NavLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

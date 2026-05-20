@@ -61,6 +61,7 @@
     },
     "dependencies": {
         "@nmi-agro/fdm-data": "workspace:*",
+        "@better-auth/api-key": "catalog:",
         "@types/geojson": "^7946.0.16",
         "better-auth": "catalog:",
         "decimal.js": "^10.6.0",

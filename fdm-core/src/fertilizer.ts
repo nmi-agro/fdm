@@ -333,19 +333,22 @@ export async function addFertilizer(
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param p_id The ID of the fertilizer.
+ * @param principal_id The ID of the principal making the request.
  * @returns A Promise that resolves with the fertilizer details.
- * @throws If retrieving the fertilizer details fails or the fertilizer is not found.
+ * @throws If retrieving the fertilizer details fails, the fertilizer is not found, or the principal lacks access.
  * @alpha
  */
 export async function getFertilizer(
     fdm: FdmType,
     p_id: schema.fertilizersTypeSelect["p_id"],
+    principal_id: PrincipalId,
 ): Promise<Fertilizer> {
     try {
         // Get properties of the requested fertilizer
         const fertilizer = await fdm
             .select({
                 p_id: schema.fertilizers.p_id,
+                b_id_farm: schema.fertilizerAcquiring.b_id_farm,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_source: schema.fertilizersCatalogue.p_source,
                 p_name_nl: schema.fertilizersCatalogue.p_name_nl,
@@ -431,10 +434,22 @@ export async function getFertilizer(
             throw new Error("Fertilizer not found")
         }
 
+        if (result.b_id_farm) {
+            await checkPermission(
+                fdm,
+                "farm",
+                "read",
+                result.b_id_farm,
+                principal_id,
+                "getFertilizer",
+            )
+        }
+
+        const { b_id_farm: _b_id_farm, ...rest } = result
         return {
-            ...result,
+            ...rest,
             p_type: deriveFertilizerType(
-                result as Partial<schema.fertilizersCatalogueTypeSelect>,
+                rest as Partial<schema.fertilizersCatalogueTypeSelect>,
             ),
         } as unknown as Fertilizer
     } catch (err) {
@@ -716,16 +731,38 @@ export async function getFertilizers(
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param p_id The ID of the fertilizer to remove.
+ * @param principal_id The ID of the principal making the request.
  * @returns A Promise that resolves when the fertilizer has been removed.
- * @throws If removing the fertilizer fails.
+ * @throws If removing the fertilizer fails or the principal lacks access.
  * @alpha
  */
 export async function removeFertilizer(
     fdm: FdmType,
     p_id: schema.fertilizerAcquiringTypeInsert["p_id"],
+    principal_id: PrincipalId,
 ): Promise<void> {
     try {
         return await fdm.transaction(async (tx) => {
+            const acquiring = await tx
+                .select({ b_id_farm: schema.fertilizerAcquiring.b_id_farm })
+                .from(schema.fertilizerAcquiring)
+                .where(eq(schema.fertilizerAcquiring.p_id, p_id))
+                .limit(1)
+
+            const b_id_farm = acquiring[0]?.b_id_farm
+            if (!b_id_farm) {
+                throw new Error("Fertilizer not found")
+            }
+
+            await checkPermission(
+                tx,
+                "farm",
+                "write",
+                b_id_farm,
+                principal_id,
+                "removeFertilizer",
+            )
+
             await tx
                 .delete(schema.fertilizerAcquiring)
                 .where(eq(schema.fertilizerAcquiring.p_id, p_id))
@@ -790,7 +827,7 @@ export async function addFertilizerApplication(
         }
 
         // Validate that the fertilizer exists and get it
-        const fertilizer = await getFertilizer(fdm, p_id)
+        const fertilizer = await getFertilizer(fdm, p_id, principal_id)
 
         const p_app_id = createId()
 
@@ -852,7 +889,7 @@ export async function updateFertilizerApplication(
             principal_id,
             "updateFertilizerApplication",
         )
-        const fertilizer = await getFertilizer(fdm, p_id)
+        const fertilizer = await getFertilizer(fdm, p_id, principal_id)
         const p_app_amount =
             p_app_amount_display !== null && p_app_amount_display !== undefined
                 ? toKgPerHa(

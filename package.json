@@ -13,7 +13,8 @@
         "fdm-app",
         "fdm-calculator",
         "fdm-rvo",
-        "fdm-agents"
+        "fdm-agents",
+        "fdm-api"
     ],
     "scripts": {
         "test": "turbo run test-coverage --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents",

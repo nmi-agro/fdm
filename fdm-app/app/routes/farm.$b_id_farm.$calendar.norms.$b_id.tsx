@@ -2,6 +2,7 @@ import type { GebruiksnormResult, NormFilling } from "@nmi-agro/fdm-calculator"
 import {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
+    NormNotApplicableError,
 } from "@nmi-agro/fdm-calculator"
 import {
     getFarm,
@@ -73,6 +74,7 @@ interface FieldNormData {
         ReturnType<typeof getFertilizerApplications>
     >
     errorMessage?: string
+    isWarning?: boolean
 }
 
 type FertilizerApplication = Awaited<
@@ -245,8 +247,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     fertilizerApplications: fertilizerApplications,
                 }
             } catch (error) {
-                errorMessage = String(error).replace("Error: ", "")
-                fieldNormData = { ...fieldNormData, errorMessage }
+                const isNotApplicable = error instanceof NormNotApplicableError
+                const msg = String(error)
+                    .replace("NormNotApplicableError: ", "")
+                    .replace("Error: ", "")
+                errorMessage = msg
+                fieldNormData = {
+                    ...fieldNormData,
+                    errorMessage: msg,
+                    isWarning: isNotApplicable,
+                }
             }
 
             return { fieldNormData, errorMessage }
@@ -394,6 +404,21 @@ const FertilizerApplicationCard = ({
 
 function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
     const { fieldNormData, errorMessage } = use(loaderData.asyncData)
+
+    if (errorMessage && fieldNormData?.isWarning) {
+        return (
+            <div className="px-4 py-6 sm:px-6 lg:px-8">
+                <Alert
+                    variant="default"
+                    className="border-amber-200 bg-amber-50 text-amber-800"
+                >
+                    <AlertTriangle className="h-4 w-4 !text-amber-800" />
+                    <AlertTitle>Geen gebruiksnorm gevonden</AlertTitle>
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+            </div>
+        )
+    }
 
     if (errorMessage) {
         return (

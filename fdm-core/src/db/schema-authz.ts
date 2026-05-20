@@ -44,6 +44,8 @@ export const audit = fdmAuthZSchema.table("audit", {
     audit_id: text().primaryKey(),
     audit_timestamp: timestamp({ withTimezone: true }).notNull().defaultNow(),
     audit_origin: text().notNull(),
+    audit_channel: text().$type<"app" | "api">().notNull().default("app"),
+    credential_id: text(), // session ID (app) or API key ID (api)
     principal_id: text().notNull(),
     target_resource: text().notNull(),
     target_resource_id: text().notNull(),

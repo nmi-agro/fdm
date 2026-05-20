@@ -27,8 +27,7 @@ import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
 
 vi.mock("@nmi-agro/fdm-data", async (importOriginal) => {
-    const original =
-        await importOriginal<typeof import("@nmi-agro/fdm-data")>()
+    const original = await importOriginal<typeof import("@nmi-agro/fdm-data")>()
     return {
         ...original,
         getMeasuresCatalogue: vi.fn().mockResolvedValue([]),
@@ -617,10 +616,11 @@ describe("Catalogues syncing", () => {
         const brpCatalogue = await fdm
             .select()
             .from(schema.cultivationsCatalogue)
+            .where(eq(schema.cultivationsCatalogue.b_lu_source, "brp"))
         expect(brpCatalogue.length).toBeGreaterThan(0)
 
         const brpCatalogueOriginal = await getCultivationCatalogue("brp")
-        expect(brpCatalogue.length).toBeGreaterThan(brpCatalogueOriginal.length)
+        expect(brpCatalogue.length).toBe(brpCatalogueOriginal.length)
     })
 
     it("should update fertilizer catalogue", async () => {
@@ -901,9 +901,7 @@ describe("Measures Catalogue Sync", () => {
         const rows = await fdm
             .select()
             .from(schema.measuresCatalogue)
-            .where(
-                eq(schema.measuresCatalogue.m_source, "bln"),
-            )
+            .where(eq(schema.measuresCatalogue.m_source, "bln"))
 
         const ids = rows.map((r) => r.m_id)
         expect(ids).toContain("bln_BM10")
@@ -1004,7 +1002,12 @@ describe("Measure Catalogues", () => {
     it("should enable and check measure catalogue", async () => {
         await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
         expect(
-            await isMeasureCatalogueEnabled(fdm, principal_id, b_id_farm, "bln"),
+            await isMeasureCatalogueEnabled(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "bln",
+            ),
         ).toBe(true)
     })
 
@@ -1012,7 +1015,12 @@ describe("Measure Catalogues", () => {
         await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
         await disableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
         expect(
-            await isMeasureCatalogueEnabled(fdm, principal_id, b_id_farm, "bln"),
+            await isMeasureCatalogueEnabled(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "bln",
+            ),
         ).toBe(false)
     })
 
@@ -1039,7 +1047,12 @@ describe("Measure Catalogues", () => {
         await enableMeasureCatalogue(fdm, principal_id, b_id_farm, "bln")
         await disableMeasureCatalogue(fdm, principal_id, b_id_farm, "other")
         expect(
-            await isMeasureCatalogueEnabled(fdm, principal_id, b_id_farm, "bln"),
+            await isMeasureCatalogueEnabled(
+                fdm,
+                principal_id,
+                b_id_farm,
+                "bln",
+            ),
         ).toBe(true)
     })
 
@@ -1067,4 +1080,3 @@ describe("Measure Catalogues", () => {
         ).rejects.toThrow()
     })
 })
-
