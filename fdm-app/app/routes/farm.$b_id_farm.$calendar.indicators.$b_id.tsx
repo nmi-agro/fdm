@@ -1,0 +1,740 @@
+import {
+    getCultivations,
+    getField,
+    getFields,
+    getSoilParametersDescription,
+} from "@nmi-agro/fdm-core"
+import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
+import { simplify } from "@turf/simplify"
+import type { FeatureCollection, Geometry } from "geojson"
+import { lazy, Suspense, useEffect, useMemo, useState } from "react"
+import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { Badge } from "~/components/ui/badge"
+import {
+    data,
+    type LoaderFunctionArgs,
+    type MetaFunction,
+    useLoaderData,
+    useParams,
+} from "react-router"
+import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
+import { IndicatorCard } from "~/components/blocks/indicators/indicator-card"
+import { IndicatorRadarChart } from "~/components/blocks/indicators/radar-chart"
+import { FieldInputDialog } from "~/components/blocks/indicators/field-input-dialog"
+import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
+import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { Separator } from "~/components/ui/separator"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "~/components/ui/select"
+import {
+    getIndicatorsForField,
+    getFieldMeasuresForIndicators,
+} from "~/integrations/bln3.server"
+import {
+    getIndicatorsForFarm,
+    type FieldBln3Score,
+} from "~/integrations/bln3.server"
+import {
+    findHoofdteelt,
+    type CultivationForHoofdteelt,
+} from "@nmi-agro/fdm-calculator"
+import { getMapStyle } from "~/integrations/map"
+import { getSession } from "~/lib/auth.server"
+import { getTimeframe } from "~/lib/calendar"
+import { clientConfig } from "~/lib/config"
+import { handleLoaderError, reportError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
+import {
+    INDICATORS,
+    INDICATOR_CATEGORIES,
+    type IndicatorCategory,
+    OBI_INDICATOR_IDS,
+    BBWP_INDICATOR_IDS,
+    scoreToDisplay,
+} from "~/lib/indicators"
+
+const FieldMap = lazy(() => import("~/components/blocks/indicators/field-map"))
+
+// ── Map score selector options ─────────────────────────────────────────────
+
+type ScoreOption = { value: string; label: string }
+type ScoreOptionGroup = { group: string; options: ScoreOption[] }
+
+const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
+    {
+        group: "Samenvatting",
+        options: [
+            { value: "avg", label: "Gemiddelde (alle indicatoren)" },
+            { value: "obi", label: "OBI – Open Bodem Index" },
+            { value: "bbwp", label: "BBWP – BedrijfsBodemWaterPlan" },
+        ],
+    },
+    ...INDICATOR_CATEGORIES.map((cat) => ({
+        group: cat,
+        options: INDICATORS.filter((i) => i.category === cat).map((i) => ({
+            value: i.id,
+            label: i.name,
+        })),
+    })),
+]
+
+function findScoreLabel(value: string): string {
+    for (const group of MAP_SCORE_OPTION_GROUPS) {
+        const opt = group.options.find((o) => o.value === value)
+        if (opt) return opt.label
+    }
+    return value
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+    const fieldName = data?.field?.b_name ?? "Perceel"
+    return [
+        {
+            title: `${fieldName} | Indicatoren | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: `BLN3 bodemkwaliteitsindicatoren voor ${fieldName}.`,
+        },
+    ]
+}
+
+function computeFieldScores(
+    fs: FieldBln3Score | undefined,
+): Record<string, number> {
+    const result: Record<string, number> = { avg: -1, obi: -1, bbwp: -1 }
+    if (!fs?.score) return result
+
+    const indicators = fs.score.indicators
+
+    for (const ind of indicators) {
+        result[ind.indicator_id] = scoreToDisplay(ind.score)
+    }
+
+    const allVals = indicators
+        .map((i) => i.score)
+        .filter((s) => s != null && !Number.isNaN(s))
+    result.avg =
+        allVals.length > 0
+            ? Math.round(
+                  (allVals.reduce((a, b) => a + b, 0) / allVals.length) * 100,
+              )
+            : -1
+
+    const obiVals = OBI_INDICATOR_IDS.flatMap((id) => {
+        const r = indicators.find((i) => i.indicator_id === id)
+        return r ? [r.score] : []
+    })
+    result.obi =
+        obiVals.length > 0
+            ? Math.round(
+                  (obiVals.reduce((a, b) => a + b, 0) / obiVals.length) * 100,
+              )
+            : -1
+
+    const bbwpVals = BBWP_INDICATOR_IDS.flatMap((id) => {
+        const r = indicators.find((i) => i.indicator_id === id)
+        return r ? [r.score] : []
+    })
+    result.bbwp =
+        bbwpVals.length > 0
+            ? Math.round(
+                  (bbwpVals.reduce((a, b) => a + b, 0) / bbwpVals.length) * 100,
+              )
+            : -1
+
+    return result
+}
+
+export async function loader({ request, params }: LoaderFunctionArgs) {
+    try {
+        const b_id_farm = params.b_id_farm
+        const b_id = params.b_id
+        const calendar = params.calendar
+        if (!b_id_farm) {
+            throw data("invalid: b_id_farm", {
+                status: 400,
+                statusText: "invalid: b_id_farm",
+            })
+        }
+        if (!b_id) {
+            throw data("invalid: b_id", {
+                status: 400,
+                statusText: "invalid: b_id",
+            })
+        }
+        const calendarYear = Number(calendar)
+        if (!Number.isFinite(calendarYear)) {
+            throw data("invalid: calendar", {
+                status: 400,
+                statusText: "invalid: calendar",
+            })
+        }
+
+        const session = await getSession(request)
+        const timeframe = getTimeframe(params)
+
+        // Load in parallel: current field, all fields, BLN3 score + inputs, active measures, cultivations, BRP catalogue
+        // Cultivations are fetched without timeframe to cover multi-year history (for display)
+        const [field, fields, bln3Result, fieldMeasures, cultivations, brpCatalogue] =
+            await Promise.all([
+                getField(fdm, session.principal_id, b_id),
+                getFields(fdm, session.principal_id, b_id_farm, timeframe),
+                getIndicatorsForField({
+                    principal_id: session.principal_id,
+                    b_id,
+                    timeframe,
+                }),
+                getFieldMeasuresForIndicators({
+                    principal_id: session.principal_id,
+                    b_id,
+                    timeframe,
+                }),
+                getCultivations(fdm, session.principal_id, b_id),
+                getCultivationCatalogue("brp"),
+            ])
+        const fieldScore = bln3Result.score
+        const bln3Inputs = bln3Result.inputs
+
+        if (!field) {
+            throw data("not found: b_id", {
+                status: 404,
+                statusText: "not found: b_id",
+            })
+        }
+
+        // Also fetch all farm scores (for map colouring)
+        const farmScores = await getIndicatorsForFarm({
+            principal_id: session.principal_id,
+            b_id_farm,
+            timeframe,
+            preloadedFields: fields,
+        })
+
+        for (const result of farmScores) {
+            if (result.error) {
+                reportError(
+                    new Error(
+                        `BLN3 score failed for field ${result.b_id}: ${result.error}`,
+                    ),
+                )
+            }
+        }
+
+        // Build GeoJSON for mini map (all farm fields, coloured by avg score by default)
+        const fieldsGeoJSON: FeatureCollection = {
+            type: "FeatureCollection",
+            features: fields.map((f) => {
+                const fs = farmScores.find((s) => s.b_id === f.b_id)
+                const scores = computeFieldScores(fs)
+                return {
+                    type: "Feature" as const,
+                    properties: {
+                        b_id: f.b_id,
+                        b_name: f.b_name ?? null,
+                        b_area: f.b_area ?? null,
+                        avgScore: scores.avg, // kept for backward compat
+                        ...scores,
+                    },
+                    geometry: simplify(f.b_geometry as Geometry, {
+                        tolerance: 0.00001,
+                        highQuality: true,
+                    }),
+                }
+            }),
+        }
+
+        // GeoJSON for the highlighted (selected) field
+        const selectedFeature = fieldsGeoJSON.features.find(
+            (f) => f.properties?.b_id === b_id,
+        )
+        const selectedFieldGeoJSON: FeatureCollection = {
+            type: "FeatureCollection",
+            features: selectedFeature ? [selectedFeature] : [],
+        }
+
+        // Extract soil inputs already collected by collectInputForBln3Score.
+        // Use getSoilParametersDescription for proper Dutch names and units.
+        const soilParamLabel = new Map(
+            getSoilParametersDescription().map((p) => [
+                p.parameter as string,
+                { name: p.name, unit: p.unit ?? null },
+            ]),
+        )
+        const soilMeasurements = Object.entries(bln3Inputs)
+            .filter(
+                ([key, value]) =>
+                    key.startsWith("a_") &&
+                    key !== "a_lat" &&
+                    key !== "a_lon" &&
+                    typeof value === "number",
+            )
+            .map(([key, value]) => {
+                const meta = soilParamLabel.get(key)
+                return {
+                    key,
+                    label:
+                        meta?.name ?? key.replace(/^a_/, "").replace(/_/g, " "),
+                    unit: meta?.unit ?? null,
+                    value: value as number,
+                }
+            })
+
+        // Derive the current cultivation (FarmTitle badge) using the May 15th point check.
+        const currentCultivation = getDefaultCultivation(cultivations, calendar)
+
+        // Build cultivation display list using findHoofdteelt (May 15–July 15 duration
+        // window) — exactly consistent with what is submitted to the BLN3 API.
+        // Only show years within the range of known cultivation data; gaps get groene braak.
+        const maxCalendarYear = calendarYear
+        const cultivationsForHoofdteelt: CultivationForHoofdteelt[] =
+            cultivations.map((c) => ({
+                b_lu_catalogue: c.b_lu_catalogue,
+                b_lu_start: c.b_lu_start ?? null,
+                b_lu_end: c.b_lu_end ?? null,
+            }))
+        const minCalendarYear = cultivations.reduce((min, c) => {
+            const y = c.b_lu_start?.getFullYear()
+            return y !== undefined && y < min ? y : min
+        }, maxCalendarYear)
+
+        // Build a lookup map from the BRP catalogue for fallback name resolution
+        // (e.g. nl_6794 = "groene braak, spontane opkomst" when no field record exists).
+        const brpNameByCode = new Map(
+            brpCatalogue.map((item) => [item.b_lu_catalogue, item.b_lu_name]),
+        )
+
+        const cultivationSummaries: Array<{
+            name: string
+            year: number
+            croprotation: string | null
+        }> = []
+        for (
+            let year = maxCalendarYear;
+            year >= minCalendarYear;
+            year--
+        ) {
+            const catalogue = findHoofdteelt(cultivationsForHoofdteelt, year)
+            const match = cultivations.find(
+                (c) => c.b_lu_catalogue === catalogue,
+            )
+            cultivationSummaries.push({
+                name: match?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
+                year,
+                croprotation: match?.b_lu_croprotation ?? null,
+            })
+        }
+
+        return {
+            field,
+            fieldScore,
+            fieldMeasures,
+            fieldsGeoJSON,
+            selectedFieldGeoJSON,
+            mapStyle: getMapStyle("satellite"),
+            currentCultivationName:
+                currentCultivation?.b_lu_name ?? null,
+            currentCultivationCropRotation:
+                currentCultivation?.b_lu_croprotation ?? null,
+            cultivationSummaries,
+            soilData: {
+                soilType: bln3Inputs.b_soiltype_agr ?? null,
+                gwlClass: bln3Inputs.b_gwl_class ?? null,
+                measurements: soilMeasurements,
+            },
+            fieldList: fields.map((f) => ({
+                b_id: f.b_id,
+                b_name: f.b_name ?? null,
+            })),
+        }
+    } catch (error) {
+        const normalized = handleLoaderError(error)
+        throw normalized ?? error
+    }
+}
+
+const SESSION_KEY_CATEGORY = "bln3_field_categories"
+const SESSION_KEY_MEASURES = "bln3_field_measures_toggle"
+const SESSION_KEY_MAP_SCORE = "bln3_map_score"
+
+function readSessionCategories(): IndicatorCategory[] {
+    if (typeof window === "undefined") return []
+    try {
+        const stored = sessionStorage.getItem(SESSION_KEY_CATEGORY)
+        return stored ? (JSON.parse(stored) as IndicatorCategory[]) : []
+    } catch {
+        return []
+    }
+}
+
+function readSessionMeasures(): boolean {
+    if (typeof window === "undefined") return true
+    try {
+        const stored = sessionStorage.getItem(SESSION_KEY_MEASURES)
+        return stored === null ? true : stored === "true"
+    } catch {
+        return true
+    }
+}
+
+function readSessionMapScore(): string {
+    if (typeof window === "undefined") return "avg"
+    try {
+        return sessionStorage.getItem(SESSION_KEY_MAP_SCORE) ?? "avg"
+    } catch {
+        return "avg"
+    }
+}
+
+export default function IndicatorsFieldDetail() {
+    const {
+        field,
+        fieldScore,
+        fieldMeasures,
+        fieldsGeoJSON,
+        selectedFieldGeoJSON,
+        mapStyle,
+        currentCultivationName,
+        currentCultivationCropRotation,
+        cultivationSummaries,
+        soilData,
+    } = useLoaderData<typeof loader>()
+    const { b_id_farm, calendar, b_id } = useParams()
+
+    // Restore filter state from sessionStorage
+    const [activeCategories, setActiveCategories] = useState<
+        IndicatorCategory[]
+    >(() => readSessionCategories())
+    const [withMeasures, setWithMeasures] = useState<boolean>(() =>
+        readSessionMeasures(),
+    )
+    const [mapScoreKey, setMapScoreKey] = useState<string>(() =>
+        readSessionMapScore(),
+    )
+
+    // Persist to sessionStorage on change
+    useEffect(() => {
+        try {
+            sessionStorage.setItem(
+                SESSION_KEY_CATEGORY,
+                JSON.stringify(activeCategories),
+            )
+        } catch {}
+    }, [activeCategories])
+
+    useEffect(() => {
+        try {
+            sessionStorage.setItem(SESSION_KEY_MEASURES, String(withMeasures))
+        } catch {}
+    }, [withMeasures])
+
+    useEffect(() => {
+        try {
+            sessionStorage.setItem(SESSION_KEY_MAP_SCORE, mapScoreKey)
+        } catch {}
+    }, [mapScoreKey])
+
+    const handleCategoryToggle = (category: IndicatorCategory) => {
+        setActiveCategories((prev) =>
+            prev.includes(category)
+                ? prev.filter((c) => c !== category)
+                : [...prev, category],
+        )
+    }
+
+    const handleCategoryAll = () => setActiveCategories([])
+    const handleMeasuresToggle = (value: boolean) => setWithMeasures(value)
+
+    // Filter indicators by active category
+    const visibleIndicatorInfos = useMemo(
+        () =>
+            activeCategories.length === 0
+                ? INDICATORS
+                : INDICATORS.filter((i) =>
+                      activeCategories.includes(i.category),
+                  ),
+        [activeCategories],
+    )
+
+    // Sort indicator results: red (< 40) → yellow (40–69) → green (≥ 70), then alphabetical
+    const sortedIndicatorResults = useMemo(() => {
+        if (!fieldScore) return []
+
+        const results = visibleIndicatorInfos.flatMap((info) => {
+            const result = fieldScore.indicators.find(
+                (r) => r.indicator_id === info.id,
+            )
+            if (!result) return []
+            return [{ info, result }]
+        })
+
+        return results.sort((a, b) => {
+            const scoreA = scoreToDisplay(
+                withMeasures ? a.result.score : a.result.index,
+            )
+            const scoreB = scoreToDisplay(
+                withMeasures ? b.result.score : b.result.index,
+            )
+            const tierOrder = (s: number) => (s < 40 ? 0 : s < 70 ? 1 : 2)
+            const tierDiff = tierOrder(scoreA) - tierOrder(scoreB)
+            if (tierDiff !== 0) return tierDiff
+            return a.info.id.localeCompare(b.info.id)
+        })
+    }, [fieldScore, visibleIndicatorInfos, withMeasures])
+
+    // Farm aggregation scores for OBI / BBWP
+    const obiScore = useMemo(() => {
+        if (!fieldScore) return null
+        const scores = OBI_INDICATOR_IDS.flatMap((id) => {
+            const r = fieldScore.indicators.find((i) => i.indicator_id === id)
+            return r ? [r.score] : []
+        })
+        return scores.length > 0
+            ? scores.reduce((a, b) => a + b, 0) / scores.length
+            : null
+    }, [fieldScore])
+
+    const obiIndex = useMemo(() => {
+        if (!fieldScore) return null
+        const scores = OBI_INDICATOR_IDS.flatMap((id) => {
+            const r = fieldScore.indicators.find((i) => i.indicator_id === id)
+            return r ? [r.index] : []
+        })
+        return scores.length > 0
+            ? scores.reduce((a, b) => a + b, 0) / scores.length
+            : null
+    }, [fieldScore])
+
+    const bbwpScore = useMemo(() => {
+        if (!fieldScore) return null
+        const scores = BBWP_INDICATOR_IDS.flatMap((id) => {
+            const r = fieldScore.indicators.find((i) => i.indicator_id === id)
+            return r ? [r.score] : []
+        })
+        return scores.length > 0
+            ? scores.reduce((a, b) => a + b, 0) / scores.length
+            : null
+    }, [fieldScore])
+
+    const bbwpIndex = useMemo(() => {
+        if (!fieldScore) return null
+        const scores = BBWP_INDICATOR_IDS.flatMap((id) => {
+            const r = fieldScore.indicators.find((i) => i.indicator_id === id)
+            return r ? [r.index] : []
+        })
+        return scores.length > 0
+            ? scores.reduce((a, b) => a + b, 0) / scores.length
+            : null
+    }, [fieldScore])
+
+    const measuresHref = `/farm/${b_id_farm}/${calendar}/measures/${b_id}`
+    const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
+
+    return (
+        <>
+            <FarmTitle
+                title={field.b_name ?? `Perceel ${b_id}`}
+                description={
+                    currentCultivationName ?? "Geen teelt geregistreerd"
+                }
+                descriptionNode={
+                    currentCultivationName ? (
+                        <span className="flex items-center gap-1.5 mt-0.5">
+                            <Badge
+                                style={{
+                                    backgroundColor: getCultivationColor(
+                                        currentCultivationCropRotation ??
+                                            undefined,
+                                    ),
+                                }}
+                                className="text-white gap-1"
+                                variant="default"
+                            >
+                                {currentCultivationName}
+                            </Badge>
+                        </span>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            Geen teelt geregistreerd
+                        </p>
+                    )
+                }
+            />
+
+            <div className="px-4 sm:px-6 lg:px-8 pb-16">
+                <div className="flex flex-col lg:flex-row gap-6">
+                    {/* ── Main content column ──────────────────────────── */}
+                    <div className="flex-1 min-w-0 space-y-4">
+                        {/* Aggregation cards + input dialog */}
+                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                            {(obiScore !== null || bbwpScore !== null) && (
+                                <div className="flex flex-wrap gap-3">
+                                    {obiScore !== null && (
+                                        <AggregationCard
+                                            label="OBI"
+                                            name="Open Bodem Index"
+                                            score01={obiScore}
+                                            index01={obiIndex}
+                                            showIndex={!withMeasures}
+                                        />
+                                    )}
+                                    {bbwpScore !== null && (
+                                        <AggregationCard
+                                            label="BBWP"
+                                            name="BedrijfsBodemWaterPlan"
+                                            score01={bbwpScore}
+                                            index01={bbwpIndex}
+                                            showIndex={!withMeasures}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                            <FieldInputDialog
+                                cultivations={cultivationSummaries}
+                                fieldMeasures={fieldMeasures as any}
+                                soilData={soilData}
+                            />
+                        </div>
+
+                        <Separator />
+
+                        {/* Filters */}
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <CategoryFilter
+                                activeCategories={activeCategories}
+                                onToggle={handleCategoryToggle}
+                                onClearAll={handleCategoryAll}
+                            />
+                            <MeasuresToggle
+                                withMeasures={withMeasures}
+                                onToggle={handleMeasuresToggle}
+                            />
+                        </div>
+
+                        {/* Radar chart — always shows all indicators */}
+                        {fieldScore && fieldScore.indicators.length > 0 && (
+                            <div className="rounded-lg border bg-card p-4">
+                                <p className="text-sm font-medium mb-1">
+                                    Indicatorenweb
+                                </p>
+                                <p className="text-xs text-muted-foreground mb-3">
+                                    Stippellijn = perceel, doorgetrokken = met
+                                    maatregelen.
+                                </p>
+                                <IndicatorRadarChart
+                                    indicators={fieldScore.indicators}
+                                    indicatorInfos={INDICATORS}
+                                />
+                            </div>
+                        )}
+
+                        {/* No score state */}
+                        {!fieldScore && (
+                            <div className="rounded-lg border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+                                <p className="font-medium">
+                                    Geen indicatoren beschikbaar
+                                </p>
+                                <p className="mt-1">
+                                    Er is geen bodemanalyse beschikbaar voor dit
+                                    perceel, of de berekening is mislukt.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Indicator cards */}
+                        {sortedIndicatorResults.length > 0 && (
+                            <div className="space-y-2">
+                                {sortedIndicatorResults.map(
+                                    ({ info, result }) => (
+                                        <IndicatorCard
+                                            key={info.id}
+                                            info={info}
+                                            result={result}
+                                            fieldMeasures={fieldMeasures as any}
+                                            measuresHref={measuresHref}
+                                            showIndex={!withMeasures}
+                                        />
+                                    ),
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ── Map — right on desktop, below on mobile ──────── */}
+                    <aside className="w-full lg:w-72 xl:w-80 shrink-0">
+                        <div className="relative h-64 sm:h-80 lg:h-[560px] lg:sticky lg:top-4 rounded-lg overflow-hidden border">
+                            {/* Score selector overlaid on top of the map */}
+                            <div className="absolute top-2 right-2 z-10">
+                                <Select
+                                    value={mapScoreKey}
+                                    onValueChange={setMapScoreKey}
+                                >
+                                    <SelectTrigger className="w-48 text-xs h-7 bg-background/90 backdrop-blur-sm shadow-sm">
+                                        <SelectValue placeholder="Kies score" />
+                                    </SelectTrigger>
+                                    <SelectContent align="end">
+                                        {MAP_SCORE_OPTION_GROUPS.map(
+                                            (group) => (
+                                                <SelectGroup key={group.group}>
+                                                    <SelectLabel className="text-xs">
+                                                        {group.group}
+                                                    </SelectLabel>
+                                                    {group.options.map(
+                                                        (opt) => (
+                                                            <SelectItem
+                                                                key={opt.value}
+                                                                value={
+                                                                    opt.value
+                                                                }
+                                                                className="text-xs"
+                                                            >
+                                                                {opt.label}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectGroup>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <Suspense
+                                fallback={
+                                    <div className="h-full bg-muted animate-pulse" />
+                                }
+                            >
+                                <FieldMap
+                                    fieldsGeoJSON={
+                                        fieldsGeoJSON as FeatureCollection
+                                    }
+                                    selectedFieldGeoJSON={
+                                        selectedFieldGeoJSON as FeatureCollection
+                                    }
+                                    mapStyle={mapStyle}
+                                    basePath={basePath}
+                                    scoreKey={mapScoreKey}
+                                    scoreLabel={findScoreLabel(mapScoreKey)}
+                                    height="100%"
+                                />
+                            </Suspense>
+                        </div>
+                        <p className="mt-2 px-1 text-[11px] text-muted-foreground">
+                            Percelen gekleurd op gekozen score. Klik om te
+                            wisselen van perceel.
+                        </p>
+                    </aside>
+                </div>
+            </div>
+        </>
+    )
+}

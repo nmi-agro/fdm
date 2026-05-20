@@ -145,7 +145,7 @@ describe("collectInputForBln3Score", () => {
         expect(result.b_gwl_class).toBe("IIb")
     })
 
-    it("should include numeric a_* fields from the most recent soil analysis", async () => {
+    it("should include only BLN3-relevant soil analysis fields (a_p_cc, a_p_al, a_p_wa)", async () => {
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
         mockedGetCultivations.mockResolvedValue([])
@@ -157,13 +157,17 @@ describe("collectInputForBln3Score", () => {
             b_id,
         )
 
-        expect(result.a_som_loi).toBe(4.5)
-        expect(result.a_clay_mi).toBe(10)
         expect(result.a_p_cc).toBe(1.2)
-        expect(result.a_n_rt).toBe(2500)
+        expect(result.a_p_al).toBe(42)
+        // a_p_wa is not in mockSoilAnalysis so should be absent
+        expect(result).not.toHaveProperty("a_p_wa")
+        // Extra soil params that are NOT part of the BLN3 API should be excluded
+        expect(result).not.toHaveProperty("a_som_loi")
+        expect(result).not.toHaveProperty("a_clay_mi")
+        expect(result).not.toHaveProperty("a_n_rt")
     })
 
-    it("should exclude non-numeric fields from soil analysis (metadata and integers used for depth)", async () => {
+    it("should exclude non-numeric and metadata fields from soil analysis", async () => {
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
         mockedGetCultivations.mockResolvedValue([])
@@ -185,7 +189,7 @@ describe("collectInputForBln3Score", () => {
             ...mockSoilAnalysis,
             a_id: "sa-old",
             b_soiltype_agr: "veen",
-            a_som_loi: 99,
+            a_p_cc: 99,
         }
         mockedGetField.mockResolvedValue(mockField)
         // getSoilAnalyses returns most-recent first (DESC by sampling date)
@@ -203,7 +207,7 @@ describe("collectInputForBln3Score", () => {
         )
 
         expect(result.b_soiltype_agr).toBe("dekzand") // from first (mockSoilAnalysis)
-        expect(result.a_som_loi).toBe(4.5)
+        expect(result.a_p_cc).toBe(1.2) // from first (mockSoilAnalysis)
     })
 
     it("should omit b_soiltype_agr and b_gwl_class when no soil analyses exist", async () => {
@@ -258,7 +262,7 @@ describe("collectInputForBln3Score", () => {
         expect(result.cultivations).toBeUndefined()
     })
 
-    it("should skip cultivations where b_lu_start is null and no timeframe is provided", async () => {
+    it("should skip cultivations where b_lu_start is null", async () => {
         const noStart: Cultivation = { ...mockCultivation, b_lu_start: null }
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([])
@@ -274,7 +278,7 @@ describe("collectInputForBln3Score", () => {
         expect(result.cultivations).toBeUndefined()
     })
 
-    it("should use timeframe.end year as fallback when cultivation b_lu_start is null", async () => {
+    it("should skip cultivations where b_lu_start is null even when timeframe is provided", async () => {
         const noStart: Cultivation = { ...mockCultivation, b_lu_start: null }
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([])
@@ -288,9 +292,7 @@ describe("collectInputForBln3Score", () => {
             timeframe,
         )
 
-        expect(result.cultivations).toEqual([
-            { b_lu_brp: 266, b_lu_year: 2024 },
-        ])
+        expect(result.cultivations).toBeUndefined()
     })
 
     it("should omit cultivations key entirely when no valid cultivations exist", async () => {
@@ -404,7 +406,9 @@ describe("collectInputForBln3Score", () => {
         expect(result.a_lon).toBe(5.2)
         expect(result.b_soiltype_agr).toBe("dekzand")
         expect(result.b_gwl_class).toBe("IIb")
-        expect(result.a_som_loi).toBe(4.5)
+        expect(result.a_p_cc).toBe(1.2)
+        expect(result.a_p_al).toBe(42)
+        expect(result).not.toHaveProperty("a_som_loi")
         expect(result.cultivations).toEqual([
             { b_lu_brp: 266, b_lu_year: 2024 },
         ])
@@ -424,7 +428,7 @@ describe("collectInputForBln3Score", () => {
         )
     })
 
-    it("should pass the timeframe to all fdm-core calls", async () => {
+    it("should pass the timeframe to soil and measures calls but NOT to cultivations", async () => {
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([])
         mockedGetCultivations.mockResolvedValue([])
@@ -438,11 +442,11 @@ describe("collectInputForBln3Score", () => {
             b_id,
             timeframe,
         )
+        // Cultivations are fetched without timeframe to get the full history
         expect(mockedGetCultivations).toHaveBeenCalledWith(
             mockFdm,
             principal_id,
             b_id,
-            timeframe,
         )
         expect(mockedGetMeasures).toHaveBeenCalledWith(
             mockFdm,
@@ -450,5 +454,94 @@ describe("collectInputForBln3Score", () => {
             b_id,
             timeframe,
         )
+    })
+
+    it("should assign years using the May 15–July 15 hoofdteelt rule, not b_lu_start year", async () => {
+        // Grass sown Oct 15, 2024 — NOT the hoofdteelt for 2024 (sown after the window),
+        // but IS the hoofdteelt for 2025 and 2026.
+        const grass: Cultivation = {
+            ...mockCultivation,
+            b_lu_catalogue: "nl_265",
+            b_lu_start: new Date("2024-10-15"),
+            b_lu_end: null,
+        }
+        mockedGetField.mockResolvedValue(mockField)
+        mockedGetSoilAnalyses.mockResolvedValue([])
+        mockedGetCultivations.mockResolvedValue([grass])
+        mockedGetMeasures.mockResolvedValue([])
+
+        const result = await collectInputForBln3Score(
+            mockFdm,
+            principal_id,
+            b_id,
+            { start: new Date("2026-01-01"), end: new Date("2026-12-31") },
+        )
+
+        // Range is 2024–2026 (earliest b_lu_start is Oct 2024 → minYear = 2024)
+        // 2026 and 2025: grass covers the full May-July window → b_lu_brp 265
+        // 2024: grass starts Oct 2024, after the window → groene braak → b_lu_brp 6794
+        expect(result.cultivations).toEqual([
+            { b_lu_brp: 265, b_lu_year: 2026 },
+            { b_lu_brp: 265, b_lu_year: 2025 },
+            { b_lu_brp: 6794, b_lu_year: 2024 },
+        ])
+        expect(
+            result.cultivations?.find(
+                (c) => c.b_lu_year === 2024 && c.b_lu_brp === 265,
+            ),
+        ).toBeUndefined()
+    })
+})
+
+import { findHoofdteelt } from "../shared/hoofdteelt"
+
+describe("findHoofdteelt boundary and tie-break cases", () => {
+    it("counts a cultivation that spans exactly May 15–July 15 as in-window", () => {
+        const result = findHoofdteelt(
+            [
+                {
+                    b_lu_catalogue: "nl_265",
+                    b_lu_start: new Date("2024-05-15"),
+                    b_lu_end: new Date("2024-07-15"),
+                },
+            ],
+            2024,
+        )
+        expect(result).toBe("nl_265")
+    })
+
+    it("excludes a cultivation that starts exactly on July 15 (zero-length overlap)", () => {
+        // effectiveStart === effectiveEnd → condition effectiveEnd > effectiveStart is false
+        const result = findHoofdteelt(
+            [
+                {
+                    b_lu_catalogue: "nl_265",
+                    b_lu_start: new Date("2024-07-15"),
+                    b_lu_end: null,
+                },
+            ],
+            2024,
+        )
+        expect(result).toBe("nl_6794") // groene braak
+    })
+
+    it("resolves a tie by choosing the alphabetically-first b_lu_catalogue", () => {
+        // Both cultivations cover the exact same May 15–July 15 window
+        const result = findHoofdteelt(
+            [
+                {
+                    b_lu_catalogue: "nl_999",
+                    b_lu_start: new Date("2024-05-15"),
+                    b_lu_end: new Date("2024-07-15"),
+                },
+                {
+                    b_lu_catalogue: "nl_100",
+                    b_lu_start: new Date("2024-05-15"),
+                    b_lu_end: new Date("2024-07-15"),
+                },
+            ],
+            2024,
+        )
+        expect(result).toBe("nl_100")
     })
 })
