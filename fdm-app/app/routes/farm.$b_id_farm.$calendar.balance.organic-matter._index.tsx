@@ -1,5 +1,11 @@
 import type { OrganicMatterBalanceFieldResultNumeric } from "@nmi-agro/fdm-calculator"
-import { getFarm, getFields } from "@nmi-agro/fdm-core"
+import type { Cultivation, Harvest } from "@nmi-agro/fdm-core"
+import {
+    getCultivationsForFarm,
+    getFarm,
+    getFields,
+    getHarvestsForFarm,
+} from "@nmi-agro/fdm-core"
 import {
     ArrowDownToLine,
     ArrowRightLeft,
@@ -26,9 +32,10 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { getOrganicMatterBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -68,6 +75,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         const fields = await getFields(fdm, session.principal_id, b_id_farm)
 
+        const [cultivationsMap, harvestsMap] = await Promise.all([
+            getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+            getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        ])
+
         const asyncData = (async () => {
             const organicMatterBalanceResult =
                 await getOrganicMatterBalanceForFarm({
@@ -100,6 +112,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         return {
             farm: farm,
             fields: fields,
+            calendar: getCalendar(params),
+            cultivationsEntries: [...cultivationsMap.entries()] as [string, Cultivation[]][],
+            harvestsEntries: [...harvestsMap.entries()] as [string, Harvest[]][],
             asyncData: asyncData,
         }
     } catch (error) {
@@ -125,9 +140,15 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
 function FarmBalanceOrganicMatterOverview({
     farm,
     fields,
+    calendar,
+    cultivationsEntries,
+    harvestsEntries,
     asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
     const { organicMatterBalanceResult } = use(asyncData)
+
+    const cultivationsMap = new Map(cultivationsEntries)
+    const harvestsMap = new Map(harvestsEntries)
 
     if (organicMatterBalanceResult.errorMessage) {
         return (
@@ -282,16 +303,30 @@ function FarmBalanceOrganicMatterOverview({
                                             )}
 
                                             <div className="ml-4 space-y-1">
-                                                <NavLink
-                                                    to={`./${fieldResult.b_id}`}
-                                                >
-                                                    <p className="text-sm font-medium leading-none hover:underline">
-                                                        {fieldData?.b_name}
+                                                <div className="flex items-baseline gap-2">
+                                                    <NavLink
+                                                        to={`./${fieldResult.b_id}`}
+                                                    >
+                                                        <p className="text-sm font-medium leading-none hover:underline">
+                                                            {fieldData?.b_name}
+                                                        </p>
+                                                    </NavLink>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {fieldData?.b_area} ha
                                                     </p>
-                                                </NavLink>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {fieldData?.b_area} ha
-                                                </p>
+                                                </div>
+                                                <FieldCultivationsBadge
+                                                    cultivations={
+                                                        cultivationsMap.get(
+                                                            fieldResult.b_id,
+                                                        ) ?? []
+                                                    }
+                                                    calendarYear={calendar}
+                                                    harvestsMap={harvestsMap}
+                                                    fieldName={
+                                                        fieldData?.b_name ?? ""
+                                                    }
+                                                />
                                             </div>
                                             <div className="ml-auto font-medium">
                                                 {fieldResult.balance ? (
