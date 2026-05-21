@@ -232,7 +232,10 @@ function setupDefaultMocks() {
         balance: 10,
         target: 50,
     })
-    ;(getNutrientAdvice as any).mockResolvedValue({ d_n_req: 100, d_p_req: 20 })
+    ;(getNutrientAdvice as any).mockResolvedValue({
+        d_n_req: 100,
+        d_p_req: 20,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -596,7 +599,9 @@ describe("tool execute functions", () => {
                 makeConfigurable(),
             )
             expect(result.fieldResults[0].isValid).toBe(false)
-            expect(result.fieldResults[0].error).toContain("not found in farm inventory")
+            expect(result.fieldResults[0].error).toContain(
+                "not found in farm inventory",
+            )
         })
 
         it("should return invalid field result for invalid application method", async () => {
@@ -608,7 +613,9 @@ describe("tool execute functions", () => {
                 makeConfigurable(),
             )
             expect(result.fieldResults[0].isValid).toBe(false)
-            expect(result.fieldResults[0].error).toContain("Invalid application method")
+            expect(result.fieldResults[0].error).toContain(
+                "Invalid application method",
+            )
         })
 
         it("should accept any method when p_app_method_options is empty", async () => {
