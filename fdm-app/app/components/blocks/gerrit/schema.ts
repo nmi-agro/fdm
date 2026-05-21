@@ -34,12 +34,13 @@ export const STRATEGY_LABELS: Record<string, string> = {
 }
 
 export const GEMINI_MODELS = [
-    { value: "gemini-3-flash-preview", label: "Gemini 3 Flash (standaard)" },
-    { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (geavanceerd)" },
-    // { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (stabiel)" },
-    // { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (zuinig)" },
+    { value: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+    { value: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
+    { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro" },
+    // { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    // { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
     {
         value: "gemini-3.1-flash-lite-preview",
-        label: "Gemini 3.1 Flash Lite (snel)",
+        label: "Gemini 3.1 Flash Lite",
     },
 ]

@@ -51,9 +51,6 @@ const mockNutrientAdviceResponse: NutrientAdviceResponse = {
     data: {
         year: {
             d_n_req: 120,
-            d_n_norm: 120,
-            d_n_norm_man: 170,
-            d_p_norm: 80,
             d_p_req: 80,
             d_k_req: 0,
             d_c_req: 2340,
