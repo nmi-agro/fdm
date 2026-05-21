@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-app": minor
 ---
 
-Add Gemini 3.5 Flash as new model for Gerrit and set it as default
+Add Gemini 3.5 Flash as new model for Gerrit

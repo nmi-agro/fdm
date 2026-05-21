@@ -19,7 +19,7 @@ export const GerritFormSchema = z.object({
         .max(1000, "Maximaal 1000 karakters toegestaan.")
         .optional()
         .default(""),
-    geminiModel: z.string().optional().default("gemini-3.5-flash"),
+    geminiModel: z.string().optional().default("gemini-3-flash-preview"),
 })
 
 export type GerritFormValues = z.infer<typeof GerritFormSchema>
