@@ -26,9 +26,6 @@ export async function requestNutrientAdvice({
     if (b_bufferstrip) {
         return {
             d_n_req: 0,
-            d_n_norm: 0,
-            d_n_norm_man: 0,
-            d_p_norm: 0,
             d_p_req: 0,
             d_k_req: 0,
             d_c_req: 0,
@@ -104,9 +101,39 @@ export async function requestNutrientAdvice({
     }
 
     const result: NutrientAdviceResponse = await responseApi.json()
-    const response: NutrientAdvice = result.data.year
+    const {
+        d_n_req,
+        d_p_req,
+        d_k_req,
+        d_c_req,
+        d_ca_req,
+        d_s_req,
+        d_mg_req,
+        d_cu_req,
+        d_zn_req,
+        d_co_req,
+        d_mn_req,
+        d_mo_req,
+        d_na_req,
+        d_b_req,
+    } = result.data.year
 
-    return response
+    return {
+        d_n_req,
+        d_p_req,
+        d_k_req,
+        d_c_req,
+        d_ca_req,
+        d_s_req,
+        d_mg_req,
+        d_cu_req,
+        d_zn_req,
+        d_co_req,
+        d_mn_req,
+        d_mo_req,
+        d_na_req,
+        d_b_req,
+    }
 }
 
 /**

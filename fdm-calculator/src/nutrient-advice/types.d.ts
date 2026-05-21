@@ -7,12 +7,6 @@ import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 export type NutrientAdvice = {
     /** Nitrogen requirement (kg N/ha) */
     d_n_req: number
-    /** Nitrogen norm (kg N/ha) */
-    d_n_norm: number
-    /** Nitrogen norm for manure (kg N/ha) */
-    d_n_norm_man: number
-    /** Phosphate norm (kg P2O5/ha) */
-    d_p_norm: number
     /** Phosphate requirement (kg P2O5/ha) */
     d_p_req: number
     /** Potassium requirement (kg K2O/ha) */
@@ -43,6 +37,9 @@ export type NutrientAdvice = {
 
 /**
  * Represents the full response structure from the NMI Nutrient Advice API.
+ * The `year` object is typed loosely so extra fields (e.g. advisory norm fields
+ * like d_n_norm, d_n_norm_man, d_p_norm) returned by the API can be explicitly
+ * excluded before surfacing the result as NutrientAdvice.
  */
 export type NutrientAdviceResponse = {
     /** Unique identifier for the request */
@@ -55,8 +52,8 @@ export type NutrientAdviceResponse = {
     message: string | null
     /** Contains the actual nutrient advice data */
     data: {
-        /** Nutrient advice values for the entire year */
-        year: NutrientAdvice
+        /** Raw nutrient advice values from the API (may include extra fields) */
+        year: NutrientAdvice & Record<string, unknown>
         /**
          * Optional: Nutrient advice values per cut for grassland.
          * Only available if the most recent `b_lu_brp` crop code is `265`.
