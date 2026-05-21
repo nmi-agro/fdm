@@ -1,6 +1,15 @@
 import type { CatalogueMeasure } from "../d"
 
 interface BLN3ApiMeasure {
+    m_id: string
+    m_name: string
+    m_summary: string | null
+    m_description: string | null
+    m_source_url: string | null
+    m_conflicts: string[] | null
+}
+
+interface BLN3ApiMeasureOld {
     bln_id: string
     name: string
     summary: string | null
@@ -49,14 +58,18 @@ export async function getCatalogueBln(
             `Unexpected response shape from BLN measures catalogue API: expected json.data.measures to be an array, got ${JSON.stringify(json)}`,
         )
     }
-    return json.data.measures.map((item: BLN3ApiMeasure) => ({
-        m_id: `bln_${item.bln_id}`,
-        m_source: "bln",
-        m_name: item.name,
-        m_description: item.description ?? null,
-        m_summary: item.summary ?? null,
-        m_source_url: item.source_url ?? null,
-        m_conflicts:
-            item.conflicts_with_measure?.map((id) => `bln_${id}`) ?? null,
-    }))
+    return json.data.measures.map(
+        (item: BLN3ApiMeasure & BLN3ApiMeasureOld) => ({
+            m_id: `bln_${item.m_id ?? item.bln_id}`,
+            m_source: "bln",
+            m_name: item.m_name ?? item.name,
+            m_description: item.m_description ?? item.description ?? null,
+            m_summary: item.m_summary ?? item.summary ?? null,
+            m_source_url: item.m_source_url ?? item.source_url ?? null,
+            m_conflicts:
+                item.m_conflicts?.map((id) => `bln_${id}`) ??
+                item.conflicts_with_measure?.map((id) => `bln_${id}`) ??
+                null,
+        }),
+    )
 }
