@@ -1,0 +1,32 @@
+import type { TicketFilters } from "@nmi-agro/fdm-helpdesk"
+import z from "zod"
+
+const PrioritySchema = z.enum(["low", "normal", "high", "urgent"])
+const DateSchema = z.preprocess(
+    (val) => (typeof val === "string" ? new Date(val) : val),
+    z.date({
+        error: (issue) =>
+            issue.input === undefined
+                ? "Datum is verplicht"
+                : "Datum is ongeldig",
+    }),
+)
+
+export const TicketFilterSchema = z.object({
+    assigneeIds: z.array(z.string().min(1)).optional(),
+    context: z
+        .object({
+            b_id_farm: z.string().min(1).optional(),
+        })
+        .optional(),
+    pageOffset: z.number().optional(),
+    pageLimit: z.number().optional(),
+    minPriority: PrioritySchema.optional(),
+    maxPriority: PrioritySchema.optional(),
+    requesterIds: z.array(z.string().min(1)).optional(),
+    tags: z.array(z.string().min(1)).optional(),
+    fromDate: DateSchema.optional(),
+    toDate: DateSchema.optional(),
+})
+
+const _ = {} as z.infer<typeof TicketFilterSchema> satisfies TicketFilters

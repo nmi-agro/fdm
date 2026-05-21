@@ -1,4 +1,8 @@
 export * from "./agent"
+export * from "./authorization"
+export type * from "./fdm-helpdesk.types"
+export type * from "./filter.types"
+export * from "./message"
 export * from "./migrate"
 export * from "./ticket"
 export * from "./ticket-assignment"

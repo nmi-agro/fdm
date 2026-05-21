@@ -239,7 +239,7 @@ async function selectTickets(
 
 type CreateTicketOptions = {
     priority?: string
-    context?: { b_id_farm?: string }
+    context?: { b_id_farm?: string | null }
 }
 
 export async function createTicket(

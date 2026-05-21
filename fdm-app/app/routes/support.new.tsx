@@ -1,0 +1,77 @@
+import { getFarms } from "@nmi-agro/fdm-core"
+import { createTicket } from "@nmi-agro/fdm-helpdesk"
+import { useLoaderData } from "react-router"
+import { redirectWithSuccess } from "remix-toast"
+import type { FarmOptions } from "~/components/blocks/farm/farm"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { TicketComposer } from "~/components/blocks/helpdesk/ticket-composer"
+import { TicketSchema } from "~/components/blocks/helpdesk/ticket-schema"
+import { getSession } from "~/lib/auth.server"
+import { handleActionError, handleLoaderError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
+import { extractFormValuesFromRequest } from "../lib/form"
+import type { Route } from "./+types/support.new"
+
+export async function loader({ request }: Route.LoaderArgs) {
+    try {
+        let farmOptions: FarmOptions = []
+        const url = new URL(request.url)
+
+        try {
+            const session = await getSession(request)
+            const farms = await getFarms(fdm, session.principal_id)
+
+            farmOptions = farms.map((farm) => ({
+                b_id_farm: farm.b_id_farm,
+                b_name_farm: farm.b_name_farm,
+            }))
+        } catch (err) {
+            handleLoaderError(err)
+        }
+
+        return {
+            farmOptions: farmOptions,
+            initial_context_farm_id: url.searchParams.get("context_farm_id"),
+        }
+    } catch (err) {
+        throw handleLoaderError(err)
+    }
+}
+
+export async function action({ request }: Route.ActionArgs) {
+    try {
+        const session = await getSession(request)
+
+        const ticketCreateInfo = await extractFormValuesFromRequest(
+            request,
+            TicketSchema,
+        )
+
+        await createTicket(fdm, session.principal_id, ticketCreateInfo.body, {
+            context: {
+                b_id_farm: ticketCreateInfo.context_farm_id,
+            },
+        })
+
+        return redirectWithSuccess(
+            "/support",
+            "We hebben uw vraag ontvangen. Een collega neemt binnenkort contact met u op.",
+        )
+    } catch (err) {
+        throw handleActionError(err)
+    }
+}
+
+export default function NewTicket() {
+    const { farmOptions, initial_context_farm_id } =
+        useLoaderData<typeof loader>()
+    return (
+        <div className="mx-auto max-w-5xl">
+            <FarmTitle title="Wat had je een vraag over?" description={""} />
+            <TicketComposer
+                farmOptions={farmOptions}
+                initial_context_farm_id={initial_context_farm_id}
+            />
+        </div>
+    )
+}
