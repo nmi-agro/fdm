@@ -476,14 +476,22 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                 const allowedMethods =
                                     fertilizer.p_app_method_options ?? []
                                 if (
-                                    !app.p_app_method ||
-                                    (allowedMethods.length > 0 &&
-                                        !allowedMethods.includes(
-                                            app.p_app_method as any,
-                                        ))
+                                    !app.p_app_method &&
+                                    allowedMethods.length > 0
                                 ) {
                                     throw new Error(
-                                        `Invalid application method for ${fertilizer.p_name_nl ?? app.p_id_catalogue}. Allowed methods: ${allowedMethods.join(", ") || "none"}.`,
+                                        `Application method is required for ${fertilizer.p_name_nl ?? app.p_id_catalogue}. Allowed methods: ${allowedMethods.join(", ")}.`,
+                                    )
+                                }
+                                if (
+                                    app.p_app_method &&
+                                    allowedMethods.length > 0 &&
+                                    !allowedMethods.includes(
+                                        app.p_app_method as any,
+                                    )
+                                ) {
+                                    throw new Error(
+                                        `Invalid application method for ${fertilizer.p_name_nl ?? app.p_id_catalogue}. Allowed methods: ${allowedMethods.join(", ")}.`,
                                     )
                                 }
                                 return {
@@ -630,8 +638,13 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                     nmiApiKey,
                                     b_bufferstrip: fieldInfo.b_bufferstrip,
                                 })
-                            } catch {
+                            } catch (err) {
                                 // advice remains null if the fetch fails
+                                console.debug(
+                                    "Failed to fetch nutrient advice for field",
+                                    fieldData.b_id,
+                                    err,
+                                )
                             }
                         } else if (
                             nmiApiKey &&

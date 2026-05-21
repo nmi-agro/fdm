@@ -249,6 +249,10 @@ export type AgentGraph = {
     stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
 }
 
+function isAgentGraph(obj: unknown): obj is AgentGraph {
+    return obj != null && typeof (obj as AgentGraph).stream === "function"
+}
+
 /**
  * Creates the Fertilizer Application Planner Agent: "Gerrit"
  * @param fdm The non-serializable FDM database instance.
@@ -275,12 +279,18 @@ export function createFertilizerPlannerAgent(
             : GERRIT_INSTRUCTION
     })
 
-    return createAgent({
+    const result: unknown = createAgent({
         name: GERRIT_NAME,
         description: GERRIT_DESCRIPTION,
         model: createDefaultModel(resolvedKey, modelName),
         tools: createFertilizerPlannerTools(fdm),
         responseFormat: toolStrategy(FertilizerPlanSchema),
         middleware: [toolLimitMiddleware],
-    }) as unknown as AgentGraph
+    })
+    if (!isAgentGraph(result)) {
+        throw new Error(
+            "createAgent did not return an object with a callable stream method.",
+        )
+    }
+    return result
 }
