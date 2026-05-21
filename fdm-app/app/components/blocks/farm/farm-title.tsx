@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { NavLink } from "react-router"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
@@ -6,13 +7,15 @@ import { Skeleton } from "~/components/ui/skeleton"
 interface FarmTitleProps {
     title: string
     description: string
+    /** Optional override rendered instead of the plain description text. */
+    descriptionNode?: ReactNode
     action?: {
         to: string
         label: string
     }
 }
 
-export function FarmTitle({ title, description, action }: FarmTitleProps) {
+export function FarmTitle({ title, description, descriptionNode, action }: FarmTitleProps) {
     return (
         <div className="space-y-6 p-4 md:px-8 md:py-8 pb-0">
             <div className="flex flex-col xl:flex-row xl:items-center gap-4">
@@ -20,9 +23,11 @@ export function FarmTitle({ title, description, action }: FarmTitleProps) {
                     <h2 className="text-2xl font-bold tracking-tight truncate xl:whitespace-normal">
                         {title}
                     </h2>
-                    <p className="text-muted-foreground wrap-break-word">
-                        {description}
-                    </p>
+                    {descriptionNode ?? (
+                        <p className="text-muted-foreground wrap-break-word">
+                            {description}
+                        </p>
+                    )}
                 </div>
                 {action && (
                     <div className="ml-auto">
