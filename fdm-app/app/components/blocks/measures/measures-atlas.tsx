@@ -150,7 +150,7 @@ export default function MeasuresMap({
     }, [fieldsGeoJSON, hoveredFieldId])
 
     return (
-        <div className="relative" style={{ height }}>
+        <div className="relative" style={{ height, isolation: "isolate" }}>
             <MapGL
                 {...viewState}
                 style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}

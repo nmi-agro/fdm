@@ -108,12 +108,19 @@ export function IndicatorCard({
                 aria-expanded={expanded}
             >
                 <div className="flex items-start gap-3">
-                    {/* Score circle */}
-                    <div
-                        className="shrink-0 w-11 h-11 rounded-full flex flex-col items-center justify-center text-white font-bold text-sm leading-tight"
-                        style={{ backgroundColor: color }}
-                    >
-                        <span>{activeDisplay}</span>
+                    {/* Score circle + impact pill */}
+                    <div className="shrink-0 flex flex-col items-center gap-1">
+                        <div
+                            className="w-11 h-11 rounded-full flex flex-col items-center justify-center text-white font-bold text-sm leading-tight"
+                            style={{ backgroundColor: color }}
+                        >
+                            <span>{activeDisplay}</span>
+                        </div>
+                        {!showIndex && hasImpact && (
+                            <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 leading-none">
+                                +{impactDisplay}
+                            </span>
+                        )}
                     </div>
 
                     {/* Main content */}
@@ -142,6 +149,14 @@ export function IndicatorCard({
                             <span className="font-medium text-foreground">
                                 {result.target.toFixed(2)}
                             </span>
+                            {!showIndex && hasImpact && (
+                                <>
+                                    {"  "}· Impact{" "}
+                                    <span className="font-medium text-green-600 dark:text-green-400">
+                                        +{impactDisplay}
+                                    </span>
+                                </>
+                            )}
                         </p>
 
                         {/* Stacked score bar */}
@@ -202,11 +217,11 @@ export function IndicatorCard({
                         </div>
                     )}
 
-                    {/* Active measures impact */}
-                    {fieldMeasures.length > 0 && (
+                    {/* Active measures with impact on this indicator */}
+                    {hasImpact && fieldMeasures.length > 0 && (
                         <div>
                             <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1.5">
-                                Actieve maatregelen op dit perceel
+                                Maatregelen met bijdrage aan deze indicator
                             </p>
                             <ul className="space-y-1">
                                 {fieldMeasures.map((measure) => (
@@ -228,24 +243,17 @@ export function IndicatorCard({
                                     </li>
                                 ))}
                             </ul>
-                            {!hasImpact && (
-                                <p className="text-xs text-muted-foreground mt-1.5 italic">
-                                    Deze maatregelen hebben geen directe invloed op deze indicator.
-                                </p>
-                            )}
                         </div>
                     )}
 
-                    {/* Link to Maatregelen */}
-                    <div className="pt-1">
-                        <Link
-                            to={measuresHref}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                        >
-                            Ga naar Maatregelen
-                            <ExternalLink className="h-3 w-3" />
-                        </Link>
-                    </div>
+                    {/* Link to measures page */}
+                    <Link
+                        to={measuresHref}
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <ExternalLink className="h-3 w-3" />
+                        Maatregelen beheren
+                    </Link>
                 </div>
             )}
         </div>

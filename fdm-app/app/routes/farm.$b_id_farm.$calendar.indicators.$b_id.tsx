@@ -5,6 +5,8 @@ import {
     getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
@@ -185,23 +187,29 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Load in parallel: current field, all fields, BLN3 score + inputs, active measures, cultivations, BRP catalogue
         // Cultivations are fetched without timeframe to cover multi-year history (for display)
-        const [field, fields, bln3Result, fieldMeasures, cultivations, brpCatalogue] =
-            await Promise.all([
-                getField(fdm, session.principal_id, b_id),
-                getFields(fdm, session.principal_id, b_id_farm, timeframe),
-                getIndicatorsForField({
-                    principal_id: session.principal_id,
-                    b_id,
-                    timeframe,
-                }),
-                getFieldMeasuresForIndicators({
-                    principal_id: session.principal_id,
-                    b_id,
-                    timeframe,
-                }),
-                getCultivations(fdm, session.principal_id, b_id),
-                getCultivationCatalogue("brp"),
-            ])
+        const [
+            field,
+            fields,
+            bln3Result,
+            fieldMeasures,
+            cultivations,
+            brpCatalogue,
+        ] = await Promise.all([
+            getField(fdm, session.principal_id, b_id),
+            getFields(fdm, session.principal_id, b_id_farm, timeframe),
+            getIndicatorsForField({
+                principal_id: session.principal_id,
+                b_id,
+                timeframe,
+            }),
+            getFieldMeasuresForIndicators({
+                principal_id: session.principal_id,
+                b_id,
+                timeframe,
+            }),
+            getCultivations(fdm, session.principal_id, b_id),
+            getCultivationCatalogue("brp"),
+        ])
         const fieldScore = bln3Result.score
         const bln3Inputs = bln3Result.inputs
 
@@ -318,17 +326,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             year: number
             croprotation: string | null
         }> = []
-        for (
-            let year = maxCalendarYear;
-            year >= minCalendarYear;
-            year--
-        ) {
+        for (let year = maxCalendarYear; year >= minCalendarYear; year--) {
             const catalogue = findHoofdteelt(cultivationsForHoofdteelt, year)
             const match = cultivations.find(
                 (c) => c.b_lu_catalogue === catalogue,
             )
             cultivationSummaries.push({
-                name: match?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
+                name:
+                    match?.b_lu_name ??
+                    brpNameByCode.get(catalogue) ??
+                    catalogue,
                 year,
                 croprotation: match?.b_lu_croprotation ?? null,
             })
@@ -341,8 +348,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fieldsGeoJSON,
             selectedFieldGeoJSON,
             mapStyle: getMapStyle("satellite"),
-            currentCultivationName:
-                currentCultivation?.b_lu_name ?? null,
+            currentCultivationName: currentCultivation?.b_lu_name ?? null,
             currentCultivationCropRotation:
                 currentCultivation?.b_lu_croprotation ?? null,
             cultivationSummaries,
@@ -666,6 +672,46 @@ export default function IndicatorsFieldDetail() {
                                     ),
                                 )}
                             </div>
+                        )}
+
+                        {/* Adopted measures for this field */}
+                        {(fieldMeasures as any[]).length > 0 && (
+                            <>
+                                <Separator />
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-sm font-semibold">
+                                            Maatregelen
+                                        </p>
+                                        <a
+                                            href={measuresHref}
+                                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            Beheren
+                                        </a>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {(fieldMeasures as any[]).map((m) => (
+                                            <div
+                                                key={m.b_id_measure}
+                                                className="flex items-center gap-3 rounded-md border bg-card px-3 py-2"
+                                            >
+                                                <span className="shrink-0 font-mono text-xs text-muted-foreground w-16 truncate">
+                                                    {m.m_id.replace("bln_", "")}
+                                                </span>
+                                                <span className="flex-1 min-w-0 text-sm font-medium truncate">
+                                                    {m.m_name}
+                                                </span>
+                                                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                                                    {m.m_end === null
+                                                        ? "Doorlopend"
+                                                        : `t/m ${format(new Date(m.m_end), "d MMM yyyy", { locale: nl })}`}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
                         )}
                     </div>
 

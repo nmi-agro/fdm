@@ -12,6 +12,8 @@
  * - Submits a POST form with intent=add
  */
 import { zodResolver } from "@hookform/resolvers/zod"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
 import fuzzysort from "fuzzysort"
 import { AlertTriangle, ChevronLeft, Search, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -33,7 +35,6 @@ import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import { ScrollArea } from "~/components/ui/scroll-area"
 import { cn } from "~/lib/utils"
 import { MeasureDateSchema, type MeasureDateFormValues } from "./formschema"
 
@@ -102,6 +103,7 @@ export function AddMeasureDialog({
     const [selectedFieldIds, setSelectedFieldIds] = useState<Set<string>>(
         () => new Set(initialFieldIds ?? []),
     )
+    const [fieldSearch, setFieldSearch] = useState("")
 
     const form = useRemixForm<MeasureDateFormValues>({
         fetcher,
@@ -145,6 +147,7 @@ export function AddMeasureDialog({
             setDatePreset("doorlopend")
             form.reset({ m_start: calendarYearStart, m_end: null })
             setSelectedFieldIds(new Set(initialFieldIds ?? []))
+            setFieldSearch("")
             setTimeout(() => searchRef.current?.focus(), 50)
         }
     }, [open, calendarYearStart, initialFieldIds])
@@ -220,6 +223,16 @@ export function AddMeasureDialog({
         })
     }, [fields, selectedFieldIds])
 
+    const visibleFields = useMemo(() => {
+        if (!fieldSearch.trim()) return sortedFields
+        const term = fieldSearch.toLowerCase()
+        return sortedFields.filter(
+            (f) =>
+                (f.b_name ?? "").toLowerCase().includes(term) ||
+                (f.mainCultivation?.b_lu_name ?? "").toLowerCase().includes(term),
+        )
+    }, [sortedFields, fieldSearch])
+
     const handleSelectMeasure = (item: MeasureCatalogue) => {
         setSelected(item)
         setStep("configure")
@@ -232,7 +245,7 @@ export function AddMeasureDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Maatregel toevoegen</DialogTitle>
                 </DialogHeader>
@@ -262,7 +275,7 @@ export function AddMeasureDialog({
                         </div>
 
                         {/* Catalogue list */}
-                        <ScrollArea className="flex-1 min-h-0 border rounded-md overflow-y-auto">
+                        <div className="max-h-[55vh] overflow-y-auto border rounded-md">
                             {filteredCatalogue.length === 0 ? (
                                 <p className="text-sm text-muted-foreground text-center py-8">
                                     Geen maatregelen gevonden voor &ldquo;{query}&rdquo;
@@ -316,7 +329,7 @@ export function AddMeasureDialog({
                                     })}
                                 </div>
                             )}
-                        </ScrollArea>
+                        </div>
                     </>
                 )}
 
@@ -353,8 +366,7 @@ export function AddMeasureDialog({
                         </div>
 
                         {/* Form */}
-                        <ScrollArea className="flex-1 min-h-0">
-                            <form onSubmit={form.handleSubmit}>
+                        <form onSubmit={form.handleSubmit}>
                                 <FieldGroup className="py-2">
                                     {/* Field selector (multi-field mode only) */}
                                     {fields && fields.length > 0 && (
@@ -371,21 +383,48 @@ export function AddMeasureDialog({
                                                 <button
                                                     type="button"
                                                     className="text-xs text-muted-foreground hover:text-foreground"
-                                                    onClick={() =>
-                                                        setSelectedFieldIds(
-                                                            selectedFieldIds.size === fields.length
-                                                                ? new Set()
-                                                                : new Set(fields.map((f) => f.b_id)),
-                                                        )
-                                                    }
+                                                    onClick={() => {
+                                                        const visibleIds = visibleFields.map((f) => f.b_id)
+                                                        const allVisible = visibleIds.every((id) => selectedFieldIds.has(id))
+                                                        const next = new Set(selectedFieldIds)
+                                                        if (allVisible) {
+                                                            for (const id of visibleIds) next.delete(id)
+                                                        } else {
+                                                            for (const id of visibleIds) next.add(id)
+                                                        }
+                                                        setSelectedFieldIds(next)
+                                                    }}
                                                 >
-                                                    {selectedFieldIds.size === fields.length
+                                                    {visibleFields.every((f) => selectedFieldIds.has(f.b_id))
                                                         ? "Geen"
                                                         : "Alle"}
                                                 </button>
                                             </div>
+                                            <div className="relative">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                                                <Input
+                                                    placeholder="Zoek perceel…"
+                                                    value={fieldSearch}
+                                                    onChange={(e) => setFieldSearch(e.target.value)}
+                                                    className="pl-8 h-8 text-sm"
+                                                />
+                                                {fieldSearch && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFieldSearch("")}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
                                             <div className="max-h-48 overflow-y-auto border rounded-md divide-y">
-                                                {sortedFields.map((f) => {
+                                                {visibleFields.length === 0 ? (
+                                                    <p className="text-sm text-muted-foreground text-center py-4">
+                                                        Geen percelen gevonden.
+                                                    </p>
+                                                ) : (
+                                                visibleFields.map((f) => {
                                                     const checked = selectedFieldIds.has(f.b_id)
                                                     const cultColor = getCultivationColor(
                                                         f.mainCultivation?.b_lu_croprotation ?? undefined,
@@ -434,7 +473,8 @@ export function AddMeasureDialog({
                                                             </div>
                                                         </label>
                                                     )
-                                                })}
+                                                })
+                                            )}
                                             </div>
                                             {selectedFieldIds.size === 0 && (
                                                 <p className="text-xs text-destructive mt-1">
@@ -489,7 +529,7 @@ export function AddMeasureDialog({
                                                     Einde teeltseizoen
                                                     {harvestDate && (
                                                         <span className="text-muted-foreground text-xs ml-1">
-                                                            (≈ {new Date(harvestDate).toLocaleDateString("nl-NL")})
+                                                            (≈ {format(new Date(harvestDate), "d MMM yyyy", { locale: nl })})
                                                         </span>
                                                     )}
                                                     {!harvestDate && (
@@ -525,7 +565,7 @@ export function AddMeasureDialog({
                                         )}
                                     </Field>
 
-                                    <div className="flex justify-end pt-1">
+                                    <div className="flex justify-end pt-1 pb-2">
                                         <Button
                                             type="submit"
                                             disabled={!canSubmit || isSubmitting}
@@ -535,7 +575,6 @@ export function AddMeasureDialog({
                                     </div>
                                 </FieldGroup>
                             </form>
-                        </ScrollArea>
                     </>
                 )}
             </DialogContent>

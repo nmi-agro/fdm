@@ -9,7 +9,10 @@ import {
     removeMeasure,
     updateMeasure,
 } from "@nmi-agro/fdm-core"
+import { getIndicatorsForField } from "~/integrations/bln3.server"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useEffect, useState } from "react"
@@ -27,6 +30,8 @@ import {
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { useRemixForm } from "remix-hook-form"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
+import { ImpactSummary } from "~/components/blocks/measures/impact-summary"
+import { IndicatorAttention } from "~/components/blocks/measures/indicator-attention"
 import { MeasureDateSchema, type MeasureDateFormValues } from "~/components/blocks/measures/formschema"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import {
@@ -99,7 +104,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const timeframe = getTimeframe(params)
         const calendarYear = Number(calendar)
 
-        const [field, fields, measures, catalogue, farmMeasures, cultivations] =
+        const [field, fields, measures, catalogue, farmMeasures, cultivations, bln3Result] =
             await Promise.all([
                 getField(fdm, session.principal_id, b_id),
                 getFields(fdm, session.principal_id, b_id_farm, timeframe),
@@ -112,6 +117,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     timeframe,
                 ),
                 getCultivations(fdm, session.principal_id, b_id),
+                getIndicatorsForField({
+                    principal_id: session.principal_id,
+                    b_id,
+                    timeframe,
+                }).catch(() => null),
             ])
 
         if (!field) {
@@ -172,6 +182,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_id: f.b_id,
                 b_name: f.b_name ?? null,
             })),
+            fieldScore: bln3Result?.score ?? null,
         }
     } catch (error) {
         const normalized = handleLoaderError(error)
@@ -292,11 +303,7 @@ function formatDateRange(
     const fmt = (d: string | Date | null) => {
         if (!d) return null
         const date = typeof d === "string" ? new Date(d) : d
-        return date.toLocaleDateString("nl-NL", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-        })
+        return format(date, "dd-MM-yyyy", { locale: nl })
     }
     const start = fmt(m_start)
     const end = fmt(m_end)
@@ -469,6 +476,7 @@ export default function MeasuresFieldDetail() {
         mapStyle,
         harvestDate,
         calendarYearStart,
+        fieldScore,
     } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar, b_id } = useParams()
     const navigation = useNavigation()
@@ -481,10 +489,11 @@ export default function MeasuresFieldDetail() {
     )
 
     const basePath = `/farm/${b_id_farm}/${calendar}/measures`
+    const indicatorsHref = `/farm/${b_id_farm}/${calendar}/indicators/${b_id}`
 
     return (
         <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">
-            {/* Title + Add button */}
+            {/* Title + actions */}
             <div className="flex items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">
@@ -496,15 +505,33 @@ export default function MeasuresFieldDetail() {
                             : `${measures.length} actieve maatregel${measures.length === 1 ? "" : "en"}`}
                     </p>
                 </div>
-                <Button
-                    onClick={() => setDialogOpen(true)}
-                    size="sm"
-                    className="shrink-0"
-                >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Toevoegen
-                </Button>
+                <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                        onClick={() => setDialogOpen(true)}
+                        size="sm"
+                    >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Toevoegen
+                    </Button>
+                </div>
             </div>
+
+            {/* Indicator impact summary (shown when BLN3 data is available) */}
+            {fieldScore && fieldScore.indicators.length > 0 && (
+                <ImpactSummary
+                    indicators={fieldScore.indicators}
+                    indicatorsHref={indicatorsHref}
+                />
+            )}
+
+            {/* Indicators needing attention (or compliment when all green) */}
+            {fieldScore && fieldScore.indicators.length > 0 && (
+                <IndicatorAttention
+                    indicators={fieldScore.indicators}
+                    onAddMeasure={() => setDialogOpen(true)}
+                    indicatorsHref={indicatorsHref}
+                />
+            )}
 
             {/* List + map side-by-side on xl screens */}
             <div className="flex flex-col xl:flex-row gap-6 items-start">
@@ -535,7 +562,12 @@ export default function MeasuresFieldDetail() {
                                                 {m.m_name}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-2 mt-0.5">
+                                        {m.m_summary && (
+                                            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
+                                                {m.m_summary}
+                                            </p>
+                                        )}
+                                        <div className="flex items-center gap-2 mt-1">
                                             <span className="text-xs text-muted-foreground">
                                                 {formatDateRange(
                                                     m.m_start,

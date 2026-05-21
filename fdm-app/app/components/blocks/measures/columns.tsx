@@ -1,4 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
 import { Pencil, Trash2 } from "lucide-react"
 import { Form, NavLink } from "react-router"
 import {
@@ -34,11 +36,7 @@ export type MeasureTableRow = {
 
 function formatDate(d: Date | null): string {
     if (!d) return "Doorlopend"
-    return d.toLocaleDateString("nl-NL", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-    })
+    return format(d, "dd-MM-yyyy", { locale: nl })
 }
 
 export function getColumns(

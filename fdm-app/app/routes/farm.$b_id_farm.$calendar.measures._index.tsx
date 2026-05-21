@@ -12,7 +12,14 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import { ClipboardList } from "lucide-react"
-import { lazy, Suspense, useCallback, useEffect, useState } from "react"
+import {
+    lazy,
+    Suspense,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react"
 import { Controller } from "react-hook-form"
 import {
     data,
@@ -31,8 +38,13 @@ import {
     getColumns,
     type MeasureTableRow,
 } from "~/components/blocks/measures/columns"
-import { MeasureDateSchema, type MeasureDateFormValues } from "~/components/blocks/measures/formschema"
+import {
+    MeasureDateSchema,
+    type MeasureDateFormValues,
+} from "~/components/blocks/measures/formschema"
 import { MeasuresDataTable } from "~/components/blocks/measures/table"
+import { getFieldSummaryColumns } from "~/components/blocks/measures/field-summary-columns"
+import { FieldSummaryTable } from "~/components/blocks/measures/field-summary-table"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import {
@@ -41,6 +53,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "~/components/ui/dialog"
+import { Separator } from "~/components/ui/separator"
 import {
     Empty,
     EmptyContent,
@@ -168,6 +181,41 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             (a, b) => a.m_name.localeCompare(b.m_name, "nl"),
         )
 
+        // Compute summary stats from measuresMap (no extra API calls needed)
+        const totalMeasures = [...measuresMap.values()].reduce(
+            (sum, measures) => sum + measures.length,
+            0,
+        )
+        const fieldsWithMeasures = [...measuresMap.values()].filter(
+            (m) => m.length > 0,
+        ).length
+        const fieldsWithoutMeasures = fields.length - fieldsWithMeasures
+
+        // Per-field summary for the table — derived from existing data
+        const fieldSummaries = fields.map((f, i) => {
+            const fieldMeasures = measuresMap.get(f.b_id) ?? []
+            const cultivation = fieldCultivations[i]
+            const main =
+                getDefaultCultivation(cultivation, calendar) ??
+                cultivation[0] ??
+                null
+            return {
+                b_id: f.b_id,
+                b_name: f.b_name ?? null,
+                b_area: f.b_area ?? null,
+                b_bufferstrip: f.b_bufferstrip ?? false,
+                mainCultivation: main
+                    ? {
+                          b_lu_name: main.b_lu_name ?? null,
+                          b_lu_croprotation: main.b_lu_croprotation ?? null,
+                      }
+                    : null,
+                measures: fieldMeasures.map((m) => ({
+                    m_name: m.m_name,
+                })),
+            }
+        })
+
         return {
             farmName: farm?.b_name_farm ?? "Bedrijf",
             fieldList,
@@ -175,6 +223,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             measureRows,
             catalogue,
             mapStyle: getMapStyle("satellite"),
+            fieldSummaries,
+            stats: {
+                totalFields: fields.length,
+                totalMeasures,
+                fieldsWithMeasures,
+                fieldsWithoutMeasures,
+            },
         }
     } catch (error) {
         const normalized = handleLoaderError(error)
@@ -393,7 +448,10 @@ function MeasureEditDialog({
                                     render={({ field, fieldState }) => (
                                         <DatePicker
                                             label="Startdatum"
-                                            field={{ ...field, value: field.value }}
+                                            field={{
+                                                ...field,
+                                                value: field.value,
+                                            }}
                                             fieldState={fieldState}
                                             required
                                         />
@@ -408,7 +466,10 @@ function MeasureEditDialog({
                                     render={({ field, fieldState }) => (
                                         <DatePicker
                                             label="Einddatum"
-                                            field={{ ...field, value: field.value }}
+                                            field={{
+                                                ...field,
+                                                value: field.value,
+                                            }}
                                             fieldState={fieldState}
                                             required
                                         />
@@ -418,23 +479,41 @@ function MeasureEditDialog({
                                 <Field>
                                     <FieldLabel>Einddatum</FieldLabel>
                                     <RadioGroup
-                                        value={doorlopend ? "doorlopend" : "einddatum"}
+                                        value={
+                                            doorlopend
+                                                ? "doorlopend"
+                                                : "einddatum"
+                                        }
                                         onValueChange={(v) => {
-                                            const isDoorlopend = v === "doorlopend"
+                                            const isDoorlopend =
+                                                v === "doorlopend"
                                             setDoorlopend(isDoorlopend)
-                                            if (isDoorlopend) form.setValue("m_end", null)
+                                            if (isDoorlopend)
+                                                form.setValue("m_end", null)
                                         }}
                                         className="space-y-1"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <RadioGroupItem value="doorlopend" id="edit-doorlopend" />
-                                            <Label htmlFor="edit-doorlopend" className="font-normal cursor-pointer">
+                                            <RadioGroupItem
+                                                value="doorlopend"
+                                                id="edit-doorlopend"
+                                            />
+                                            <Label
+                                                htmlFor="edit-doorlopend"
+                                                className="font-normal cursor-pointer"
+                                            >
                                                 Doorlopend
                                             </Label>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <RadioGroupItem value="einddatum" id="edit-einddatum" />
-                                            <Label htmlFor="edit-einddatum" className="font-normal cursor-pointer">
+                                            <RadioGroupItem
+                                                value="einddatum"
+                                                id="edit-einddatum"
+                                            />
+                                            <Label
+                                                htmlFor="edit-einddatum"
+                                                className="font-normal cursor-pointer"
+                                            >
                                                 Vaste einddatum
                                             </Label>
                                         </div>
@@ -446,7 +525,10 @@ function MeasureEditDialog({
                                             render={({ field, fieldState }) => (
                                                 <DatePicker
                                                     label=""
-                                                    field={{ ...field, value: field.value }}
+                                                    field={{
+                                                        ...field,
+                                                        value: field.value,
+                                                    }}
                                                     fieldState={fieldState}
                                                     required
                                                 />
@@ -457,7 +539,11 @@ function MeasureEditDialog({
                             )}
 
                             <div className="flex justify-end gap-2 pt-1">
-                                <Button type="button" variant="outline" onClick={onClose}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={onClose}
+                                >
                                     Annuleren
                                 </Button>
                                 <Button type="submit">
@@ -475,8 +561,15 @@ function MeasureEditDialog({
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function MeasuresFarmIndex() {
-    const { fieldList, fieldsGeoJSON, measureRows, catalogue, mapStyle } =
-        useLoaderData<typeof loader>()
+    const {
+        fieldList,
+        fieldsGeoJSON,
+        measureRows,
+        catalogue,
+        mapStyle,
+        stats,
+        fieldSummaries,
+    } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/measures`
 
@@ -500,6 +593,17 @@ export default function MeasuresFarmIndex() {
     }, [])
 
     const columns = getColumns(basePath, setEditingRow, setClosingRow)
+    const fieldSummaryColumns = useMemo(() => getFieldSummaryColumns(), [])
+
+    // Enrich fieldSummaries with the href for each field
+    const fieldSummaryRows = useMemo(
+        () =>
+            fieldSummaries.map((f) => ({
+                ...f,
+                href: `${basePath}/${f.b_id}`,
+            })),
+        [fieldSummaries, basePath],
+    )
 
     const emptyGeoJSON: FeatureCollection = {
         type: "FeatureCollection",
@@ -542,7 +646,36 @@ export default function MeasuresFarmIndex() {
                 description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
             />
 
-            <div className="p-4 md:px-8 md:pb-8">
+            <div className="md:px-8 md:pb-8 space-y-6">
+                {/* Summary stats banner */}
+                {stats.totalFields > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="rounded-lg border bg-card px-4 py-3">
+                            <p className="text-xs text-muted-foreground">
+                                Actieve maatregelen
+                            </p>
+                            <p className="text-2xl font-bold tabular-nums mt-0.5">
+                                {stats.totalMeasures}
+                            </p>
+                        </div>
+                        <div className="rounded-lg border bg-card px-4 py-3">
+                            <p className="text-xs text-muted-foreground">
+                                Percelen met maatregel
+                            </p>
+                            <p className="text-2xl font-bold tabular-nums mt-0.5">
+                                {stats.fieldsWithMeasures}
+                            </p>
+                        </div>
+
+                        <div className="rounded-lg border px-4 py-3">
+                            <p className="text-xs text-muted-foreground">Percelen zonder maatregel</p>
+                            <p className="text-2xl font-bold tabular-nums mt-0.5">
+                                {stats.fieldsWithoutMeasures}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex flex-col xl:flex-row gap-6 items-start">
                     <div className="flex-1 min-w-0">{tableOrEmpty}</div>
 
@@ -563,6 +696,26 @@ export default function MeasuresFarmIndex() {
                         </Suspense>
                     </div>
                 </div>
+
+                {/* Per-field summary table */}
+                {fieldSummaryRows.length > 0 && (
+                    <>
+                        <Separator />
+                        <div>
+                            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                                Percelen
+                            </h3>
+                            <FieldSummaryTable
+                                columns={fieldSummaryColumns}
+                                data={fieldSummaryRows}
+                                onAddMeasure={(selectedIds) => {
+                                    setInitialFieldIds(selectedIds)
+                                    setAddDialogOpen(true)
+                                }}
+                            />
+                        </div>
+                    </>
+                )}
             </div>
 
             <AddMeasureDialog
