@@ -58,22 +58,25 @@ export function FieldSummaryTable({
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
     const { b_id_farm } = useParams()
-    const fieldFilter = useFieldFilterStore()
+    const syncFarm = useFieldFilterStore((s) => s.syncFarm)
+    const showProductiveOnly = useFieldFilterStore((s) => s.showProductiveOnly)
+    const searchTerms = useFieldFilterStore((s) => s.searchTerms)
+    const setSearchTerms = useFieldFilterStore((s) => s.setSearchTerms)
 
     useEffect(() => {
         if (b_id_farm) {
-            fieldFilter.syncFarm(b_id_farm)
+            syncFarm(b_id_farm)
         }
-    }, [b_id_farm, fieldFilter.syncFarm])
+    }, [b_id_farm, syncFarm])
 
     const filteredData = useMemo(() => {
         let rows = data
 
-        if (fieldFilter.showProductiveOnly) {
+        if (showProductiveOnly) {
             rows = rows.filter((r) => !r.b_bufferstrip)
         }
 
-        if (fieldFilter.searchTerms.trim()) {
+        if (searchTerms.trim()) {
             rows = rows.filter((r) => {
                 const target = [
                     r.b_name ?? "",
@@ -83,13 +86,13 @@ export function FieldSummaryTable({
                     .filter(Boolean)
                     .join(" ")
                 return (
-                    fuzzysort.go(fieldFilter.searchTerms, [target]).length > 0
+                    fuzzysort.go(searchTerms, [target]).length > 0
                 )
             })
         }
 
         return rows
-    }, [data, fieldFilter.searchTerms, fieldFilter.showProductiveOnly])
+    }, [data, searchTerms, showProductiveOnly])
 
     const table = useReactTable({
         data: filteredData,
@@ -113,8 +116,8 @@ export function FieldSummaryTable({
             <div className="flex items-center gap-2 flex-wrap">
                 <Input
                     placeholder="Zoek perceel of maatregel…"
-                    value={fieldFilter.searchTerms ?? ""}
-                    onChange={(e) => fieldFilter.setSearchTerms(e.target.value)}
+                    value={searchTerms ?? ""}
+                    onChange={(e) => setSearchTerms(e.target.value)}
                     className="w-full sm:w-auto sm:flex-grow max-w-sm"
                 />
                 <div className="flex items-center gap-2 ml-auto">
@@ -203,8 +206,8 @@ export function FieldSummaryTable({
                                     colSpan={columns.length}
                                     className="h-20 text-center text-muted-foreground text-sm"
                                 >
-                                    {fieldFilter.searchTerms ||
-                                    fieldFilter.showProductiveOnly
+                                    {searchTerms ||
+                                    showProductiveOnly
                                         ? "Geen percelen gevonden."
                                         : "Geen percelen beschikbaar."}
                                 </TableCell>

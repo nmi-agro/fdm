@@ -14,7 +14,6 @@ import {
 
 type ImpactSummaryProps = {
     indicators: Bln3IndicatorResult[]
-    indicatorsHref: string
 }
 
 function avg01(

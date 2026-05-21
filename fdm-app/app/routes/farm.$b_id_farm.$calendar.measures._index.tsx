@@ -146,10 +146,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     b_area: f.b_area ?? null,
                     measureCount: measuresMap.get(f.b_id)?.length ?? 0,
                 },
-                geometry: simplify(f.b_geometry as Geometry, {
-                    tolerance: 0.00001,
-                    highQuality: true,
-                }),
+                geometry: (f.b_geometry
+                    ? (() => {
+                        try {
+                            return simplify(f.b_geometry as Geometry, {
+                                tolerance: 0.00001,
+                                highQuality: true,
+                            })
+                        } catch {
+                            return null
+                        }
+                      })()
+                    : null) as Geometry,
             })),
         }
 
@@ -418,7 +426,7 @@ function MeasureEditDialog({
                 : null,
         })
         setDoorlopend(closeMode ? false : !firstField?.m_end)
-    }, [row?.m_id, closeMode, reset])
+    }, [row, closeMode, reset])
 
     return (
         <Dialog open={row !== null} onOpenChange={(v) => !v && onClose()}>

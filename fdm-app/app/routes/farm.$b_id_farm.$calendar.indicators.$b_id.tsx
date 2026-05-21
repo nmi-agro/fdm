@@ -14,6 +14,7 @@ import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import {
     data,
+    Link,
     type LoaderFunctionArgs,
     type MetaFunction,
     useLoaderData,
@@ -58,6 +59,7 @@ import { fdm } from "~/lib/fdm.server"
 import {
     INDICATORS,
     INDICATOR_CATEGORIES,
+    type FieldMeasure,
     type IndicatorCategory,
     OBI_INDICATOR_IDS,
     BBWP_INDICATOR_IDS,
@@ -298,7 +300,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             })
 
         // Derive the current cultivation (FarmTitle badge) using the May 15th point check.
-        const currentCultivation = getDefaultCultivation(cultivations, calendar)
+        const currentCultivation = getDefaultCultivation(cultivations, calendar ?? "")
 
         // Build cultivation display list using findHoofdteelt (May 15–July 15 duration
         // window) — exactly consistent with what is submitted to the BLN3 API.
@@ -606,7 +608,7 @@ export default function IndicatorsFieldDetail() {
                             )}
                             <FieldInputDialog
                                 cultivations={cultivationSummaries}
-                                fieldMeasures={fieldMeasures as any}
+                                fieldMeasures={fieldMeasures as FieldMeasure[]}
                                 soilData={soilData}
                             />
                         </div>
@@ -665,7 +667,7 @@ export default function IndicatorsFieldDetail() {
                                             key={info.id}
                                             info={info}
                                             result={result}
-                                            fieldMeasures={fieldMeasures as any}
+                                            fieldMeasures={fieldMeasures as FieldMeasure[]}
                                             measuresHref={measuresHref}
                                             showIndex={!withMeasures}
                                         />
@@ -675,7 +677,7 @@ export default function IndicatorsFieldDetail() {
                         )}
 
                         {/* Adopted measures for this field */}
-                        {(fieldMeasures as any[]).length > 0 && (
+                        {(fieldMeasures as FieldMeasure[]).length > 0 && (
                             <>
                                 <Separator />
                                 <div>
@@ -683,15 +685,15 @@ export default function IndicatorsFieldDetail() {
                                         <p className="text-sm font-semibold">
                                             Maatregelen
                                         </p>
-                                        <a
-                                            href={measuresHref}
+                                        <Link
+                                            to={measuresHref}
                                             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                                         >
                                             Beheren
-                                        </a>
+                                        </Link>
                                     </div>
                                     <div className="space-y-2">
-                                        {(fieldMeasures as any[]).map((m) => (
+                                        {(fieldMeasures as FieldMeasure[]).map((m) => (
                                             <div
                                                 key={m.b_id_measure}
                                                 className="flex items-center gap-3 rounded-md border bg-card px-3 py-2"

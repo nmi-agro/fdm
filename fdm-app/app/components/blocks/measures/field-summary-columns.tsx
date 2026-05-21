@@ -104,7 +104,7 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
         {
             accessorKey: "b_area",
             enableSorting: true,
-            sortingFn: "alphanumeric",
+            sortingFn: "basic",
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Oppervlakte" />
             ),
@@ -122,7 +122,7 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
             id: "measureCount",
             accessorFn: (row) => row.measures.length,
             enableSorting: true,
-            sortingFn: "alphanumeric",
+            sortingFn: "basic",
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Maatregelen" />
             ),

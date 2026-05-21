@@ -16,17 +16,17 @@ import {
     getScoreColor,
     getScoreTier,
     scoreToDisplay,
+    type FieldMeasure,
     type IndicatorInfo,
 } from "~/lib/indicators"
 import { ScoreBadge } from "./score-badge"
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
-import type { Measure } from "@nmi-agro/fdm-core"
 
 type IndicatorCardProps = {
     info: IndicatorInfo
     result: Bln3IndicatorResult
     /** All measures active on this field */
-    fieldMeasures: Measure[]
+    fieldMeasures: FieldMeasure[]
     /** Link to the Maatregelen page for this field */
     measuresHref: string
     /** When true, display index instead of score */

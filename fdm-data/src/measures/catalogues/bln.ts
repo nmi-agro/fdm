@@ -58,8 +58,13 @@ export async function getCatalogueBln(
             `Unexpected response shape from BLN measures catalogue API: expected json.data.measures to be an array, got ${JSON.stringify(json)}`,
         )
     }
-    return json.data.measures.map(
-        (item: BLN3ApiMeasure & BLN3ApiMeasureOld) => ({
+    return json.data.measures
+        .filter((item: BLN3ApiMeasure & BLN3ApiMeasureOld) => {
+            const id = item.m_id ?? item.bln_id
+            const name = item.m_name ?? item.name
+            return id != null && name != null
+        })
+        .map((item: BLN3ApiMeasure & BLN3ApiMeasureOld) => ({
             m_id: `bln_${item.m_id ?? item.bln_id}`,
             m_source: "bln",
             m_name: item.m_name ?? item.name,
@@ -70,6 +75,5 @@ export async function getCatalogueBln(
                 item.m_conflicts?.map((id) => `bln_${id}`) ??
                 item.conflicts_with_measure?.map((id) => `bln_${id}`) ??
                 null,
-        }),
-    )
+        }))
 }

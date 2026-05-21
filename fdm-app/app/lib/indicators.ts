@@ -22,6 +22,20 @@ export type IndicatorInfo = {
 
 export type ScoreTier = "green" | "yellow" | "red"
 
+/**
+ * A measure as returned by the React Router loader after JSON serialization.
+ * Dates are strings (ISO 8601) rather than Date objects.
+ */
+export type FieldMeasure = {
+    b_id_measure: string
+    m_id: string
+    m_name: string
+    m_summary: string | null
+    m_conflicts: string[] | null
+    m_start: string | null
+    m_end: string | null
+}
+
 // ── Aggregation groupings ──────────────────────────────────────────────────
 
 /** OBI = Biologisch + Chemisch (excl. C_SEQ) + Fysisch */

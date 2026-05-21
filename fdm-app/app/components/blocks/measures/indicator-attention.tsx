@@ -20,7 +20,14 @@ import {
     getScoreColor,
     getScoreTier,
     scoreToDisplay,
+    type IndicatorInfo,
 } from "~/lib/indicators"
+
+type AttentionItem = {
+    result: Bln3IndicatorResult
+    info: IndicatorInfo
+    display: number
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
     Biologisch:
@@ -50,7 +57,7 @@ export function IndicatorAttention({
 }: IndicatorAttentionProps) {
     const [expanded, setExpanded] = useState(false)
 
-    const needsAttention = indicators
+    const needsAttention: AttentionItem[] = indicators
         .filter((r) => getScoreTier(scoreToDisplay(r.score)) !== "green")
         .sort((a, b) => a.score - b.score)
         .map((r) => ({
@@ -58,7 +65,7 @@ export function IndicatorAttention({
             info: getIndicatorInfo(r.indicator_id),
             display: scoreToDisplay(r.score),
         }))
-        .filter((x) => x.info !== undefined)
+        .filter((x): x is AttentionItem => x.info !== undefined)
 
     // All green — show a compliment with a link to the indicators page
     if (needsAttention.length === 0) {
@@ -101,8 +108,10 @@ export function IndicatorAttention({
             >
                 <div>
                     <p className="text-sm font-medium text-orange-900 dark:text-orange-200">
-                        {needsAttention.length} indicator
-                        {needsAttention.length === 1 ? "" : "en"} vragen
+                        {needsAttention.length}{" "}
+                        {needsAttention.length === 1
+                            ? "indicator vraagt"
+                            : "indicatoren vragen"}{" "}
                         aandacht
                     </p>
                     <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
@@ -135,12 +144,12 @@ export function IndicatorAttention({
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="text-sm font-medium truncate">
-                                    {info!.name}
+                                    {info.name}
                                 </p>
                                 <span
-                                    className={`text-[10px] rounded-full px-1.5 py-0.5 font-medium ${CATEGORY_COLORS[info!.category] ?? "bg-muted text-muted-foreground"}`}
+                                    className={`text-[10px] rounded-full px-1.5 py-0.5 font-medium ${CATEGORY_COLORS[info.category] ?? "bg-muted text-muted-foreground"}`}
                                 >
-                                    {info!.category}
+                                    {info.category}
                                 </span>
                             </div>
                             <ScoreBadge score={display} className="shrink-0" />

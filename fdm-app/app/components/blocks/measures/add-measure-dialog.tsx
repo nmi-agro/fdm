@@ -128,15 +128,30 @@ export function AddMeasureDialog({
         },
     })
 
-    // Close dialog and reset on successful submission
+    // Close dialog only on successful submission (not on errors)
     const isSubmitting = fetcher.state !== "idle"
     const prevState = useRef(fetcher.state)
     useEffect(() => {
-        if (prevState.current !== "idle" && fetcher.state === "idle") {
+        if (
+            prevState.current !== "idle" &&
+            fetcher.state === "idle" &&
+            fetcher.data != null &&
+            typeof fetcher.data === "object" &&
+            "result" in fetcher.data
+        ) {
             onOpenChange(false)
         }
         prevState.current = fetcher.state
-    }, [fetcher.state, onOpenChange])
+    }, [fetcher.state, fetcher.data, onOpenChange])
+
+    // Capture initialFieldIds in a ref so the reset effect doesn't re-run
+    // whenever the parent passes a new array instance with the same content.
+    const initialFieldIdsRef = useRef(initialFieldIds)
+    initialFieldIdsRef.current = initialFieldIds
+
+    // Destructure reset so the effect can depend on a stable function reference
+    // (react-hook-form guarantees `reset` identity is stable across renders).
+    const { reset: resetForm } = form
 
     // Reset form when dialog opens
     useEffect(() => {
@@ -145,12 +160,12 @@ export function AddMeasureDialog({
             setSelected(null)
             setStep("select")
             setDatePreset("doorlopend")
-            form.reset({ m_start: calendarYearStart, m_end: null })
-            setSelectedFieldIds(new Set(initialFieldIds ?? []))
+            resetForm({ m_start: calendarYearStart, m_end: null })
+            setSelectedFieldIds(new Set(initialFieldIdsRef.current ?? []))
             setFieldSearch("")
             setTimeout(() => searchRef.current?.focus(), 50)
         }
-    }, [open, calendarYearStart, initialFieldIds])
+    }, [open, calendarYearStart, resetForm])
 
     // Derive the set of m_ids already active on the field
     const activeMeasureIds = useMemo(

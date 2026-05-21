@@ -24,7 +24,7 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
 
     // Read field name + field list from the field detail loader
     const fieldMatch = matches.find((m) =>
-        m.id.includes("measures.$b_id"),
+        m.id === "routes/farm.$b_id_farm.$calendar.measures.$b_id",
     )
     const fieldData = fieldMatch?.data as
         | {
@@ -35,7 +35,9 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
     const fieldName: string | null = fieldData?.field?.b_name ?? null
     const fieldList = fieldData?.fieldList ?? []
 
-    const basePath = `/farm/${b_id_farm}/${calendar}/measures`
+    const basePath = calendar
+        ? `/farm/${b_id_farm}/${calendar}/measures`
+        : `/farm/${b_id_farm}/measures`
 
     return (
         <>

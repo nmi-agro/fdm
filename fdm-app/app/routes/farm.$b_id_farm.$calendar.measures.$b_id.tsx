@@ -65,7 +65,7 @@ import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { Trash2, Plus, Pencil } from "lucide-react"
 
 const MeasuresMap = lazy(
-    () => import("@/app/components/blocks/measures/measures-atlas"),
+    () => import("~/components/blocks/measures/measures-atlas"),
 )
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -218,10 +218,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
 
             const m_start = new Date(m_start_str)
+            if (isNaN(m_start.getTime())) {
+                return dataWithError(
+                    "invalid: m_start",
+                    "Selecteer een geldige startdatum.",
+                )
+            }
             const m_end =
                 m_end_str && typeof m_end_str === "string" && m_end_str !== ""
                     ? new Date(m_end_str)
                     : undefined
+            if (m_end !== undefined && isNaN(m_end.getTime())) {
+                return dataWithError(
+                    "invalid: m_end",
+                    "Selecteer een geldige einddatum.",
+                )
+            }
 
             await addMeasure(
                 fdm,
@@ -255,10 +267,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 m_start_str !== ""
                     ? new Date(m_start_str)
                     : undefined
+            if (m_start !== undefined && isNaN(m_start.getTime())) {
+                return dataWithError(
+                    "invalid: m_start",
+                    "Selecteer een geldige startdatum.",
+                )
+            }
             const m_end =
                 m_end_str && typeof m_end_str === "string" && m_end_str !== ""
                     ? new Date(m_end_str)
                     : undefined
+            if (m_end !== undefined && isNaN(m_end.getTime())) {
+                return dataWithError(
+                    "invalid: m_end",
+                    "Selecteer een geldige einddatum.",
+                )
+            }
 
             await updateMeasure(
                 fdm,
@@ -365,7 +389,7 @@ function MeasureEditDialog({
             m_end: measure.m_end ? toIso(measure.m_end) : null,
         })
         setDoorlopend(closeMode ? false : !measure.m_end)
-    }, [measure?.b_id_measure, closeMode, reset])
+    }, [measure, closeMode, reset])
 
     return (
         <Dialog open={measure !== null} onOpenChange={(v) => !v && onClose()}>
@@ -520,7 +544,6 @@ export default function MeasuresFieldDetail() {
             {fieldScore && fieldScore.indicators.length > 0 && (
                 <ImpactSummary
                     indicators={fieldScore.indicators}
-                    indicatorsHref={indicatorsHref}
                 />
             )}
 
