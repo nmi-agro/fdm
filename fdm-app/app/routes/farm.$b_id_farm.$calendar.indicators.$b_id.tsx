@@ -59,7 +59,6 @@ import { fdm } from "~/lib/fdm.server"
 import {
     INDICATORS,
     INDICATOR_CATEGORIES,
-    type FieldMeasure,
     type IndicatorCategory,
     OBI_INDICATOR_IDS,
     BBWP_INDICATOR_IDS,
@@ -608,7 +607,7 @@ export default function IndicatorsFieldDetail() {
                             )}
                             <FieldInputDialog
                                 cultivations={cultivationSummaries}
-                                fieldMeasures={fieldMeasures as FieldMeasure[]}
+                                fieldMeasures={fieldMeasures}
                                 soilData={soilData}
                             />
                         </div>
@@ -667,7 +666,7 @@ export default function IndicatorsFieldDetail() {
                                             key={info.id}
                                             info={info}
                                             result={result}
-                                            fieldMeasures={fieldMeasures as FieldMeasure[]}
+                                            fieldMeasures={fieldMeasures}
                                             measuresHref={measuresHref}
                                             showIndex={!withMeasures}
                                         />
@@ -677,7 +676,7 @@ export default function IndicatorsFieldDetail() {
                         )}
 
                         {/* Adopted measures for this field */}
-                        {(fieldMeasures as FieldMeasure[]).length > 0 && (
+                        {(fieldMeasures).length > 0 && (
                             <>
                                 <Separator />
                                 <div>
@@ -693,7 +692,7 @@ export default function IndicatorsFieldDetail() {
                                         </Link>
                                     </div>
                                     <div className="space-y-2">
-                                        {(fieldMeasures as FieldMeasure[]).map((m) => (
+                                        {(fieldMeasures).map((m) => (
                                             <div
                                                 key={m.b_id_measure}
                                                 className="flex items-center gap-3 rounded-md border bg-card px-3 py-2"

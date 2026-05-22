@@ -62,7 +62,10 @@ export async function getCatalogueBln(
         .filter((item: BLN3ApiMeasure & BLN3ApiMeasureOld) => {
             const id = item.m_id ?? item.bln_id
             const name = item.m_name ?? item.name
-            return id != null && name != null
+            return (
+                typeof id === "string" && id.trim().length > 0 &&
+                typeof name === "string" && name.trim().length > 0
+            )
         })
         .map((item: BLN3ApiMeasure & BLN3ApiMeasureOld) => ({
             m_id: `bln_${item.m_id ?? item.bln_id}`,
