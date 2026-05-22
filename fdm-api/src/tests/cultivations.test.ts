@@ -341,4 +341,53 @@ describe("PATCH /cultivations/:b_lu", () => {
         })
         expect(res.status).toBe(403)
     })
+
+    it("returns 400 when b_lu_start is moved after the persisted b_lu_end", async () => {
+        // Persisted end is 2024-07-01; new start 2024-12-01 is after it.
+        const app = makeApp({
+            getCultivation: vi.fn().mockResolvedValue(baseCultivation),
+            updateCultivation: vi.fn(),
+        })
+        const res = await app.request("/cultivations/cult-1", {
+            method: "PATCH",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_lu_start: "2024-12-01" }),
+        })
+        expect(res.status).toBe(400)
+        const body = await res.json()
+        expect(body.detail).toContain("b_lu_start must not be after b_lu_end")
+    })
+
+    it("returns 200 when b_lu_start is moved but the persisted b_lu_end is null", async () => {
+        // No end date persisted — any start is valid.
+        const app = makeApp({
+            getCultivation: vi
+                .fn()
+                .mockResolvedValue({ ...baseCultivation, b_lu_end: null }),
+            updateCultivation: vi.fn().mockResolvedValue(undefined),
+        })
+        const res = await app.request("/cultivations/cult-1", {
+            method: "PATCH",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_lu_start: "2099-01-01" }),
+        })
+        expect(res.status).toBe(200)
+    })
+
+    it("does not trigger start-after-end check when b_lu_end is explicitly nulled", async () => {
+        // Both b_lu_start and b_lu_end=null provided — end is being cleared, no conflict possible.
+        const getCultivation = vi
+            .fn()
+            .mockResolvedValue({ ...baseCultivation, m_cropresidue: false })
+        const app = makeApp({
+            getCultivation,
+            updateCultivation: vi.fn().mockResolvedValue(undefined),
+        })
+        const res = await app.request("/cultivations/cult-1", {
+            method: "PATCH",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_lu_start: "2024-12-01", b_lu_end: null }),
+        })
+        expect(res.status).toBe(200)
+    })
 })

@@ -456,6 +456,8 @@ export function registerCultivationRoutes(
         // Validate that b_lu_end is not before b_lu_start.
         // If both are in the body, compare inline; if only b_lu_end is provided,
         // fetch the persisted start date and compare against it.
+        // Symmetrically, if only b_lu_start is provided (and b_lu_end is not being
+        // changed), fetch the persisted end date and ensure the new start is not after it.
         if (body.b_lu_end != null) {
             const newEnd = new Date(body.b_lu_end)
             let startDate: Date | null | undefined
@@ -467,6 +469,14 @@ export function registerCultivationRoutes(
             }
             if (startDate && newEnd < startDate) {
                 throw new ApiError(400, "validation-failed", "b_lu_end must not be before b_lu_start.")
+            }
+        } else if (body.b_lu_start && body.b_lu_end === undefined) {
+            // Only b_lu_start is changing; check the new start against the persisted end.
+            const newStart = new Date(body.b_lu_start)
+            const existing = await services.getCultivation(fdm, principal.effectivePrincipalId, b_lu)
+            const persistedEnd = existing?.b_lu_end ?? null
+            if (persistedEnd && newStart > new Date(persistedEnd)) {
+                throw new ApiError(400, "validation-failed", "b_lu_start must not be after b_lu_end.")
             }
         }
         await services.updateCultivation(
