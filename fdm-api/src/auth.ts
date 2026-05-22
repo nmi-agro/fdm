@@ -31,13 +31,14 @@ export function createApiKeyAuth(
 
         const xApiKey = c.req.header("x-api-key")
         const authHeader = c.req.header("authorization")
+
+        if (xApiKey !== undefined && authHeader !== undefined) {
+            throw new ApiError(400, "ambiguous-api-key", "Provide either X-API-Key or Authorization: Bearer, not both.")
+        }
+
         const bearerKey = authHeader?.startsWith("Bearer ")
             ? authHeader.slice(7)
             : undefined
-
-        if (xApiKey !== undefined && bearerKey !== undefined) {
-            throw new ApiError(400, "ambiguous-api-key", "Provide either X-API-Key or Authorization: Bearer, not both.")
-        }
 
         const rawKey = xApiKey ?? bearerKey
 

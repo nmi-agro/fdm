@@ -61,8 +61,35 @@ describe("createApiKeyAuth: OPTIONS bypass", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Skip-listed paths bypass
+// Ambiguous API key (both headers present)
 // ---------------------------------------------------------------------------
+describe("createApiKeyAuth: ambiguous-api-key", () => {
+    it("returns 400 when both X-API-Key and Authorization: Bearer are provided", async () => {
+        const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
+        const app = makeApp(mockAuth)
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "key-abc", authorization: "Bearer token-xyz" },
+        })
+        expect(res.status).toBe(400)
+        const body = await res.json()
+        expect(body.type).toContain("ambiguous-api-key")
+        expect(mockAuth.api.verifyApiKey).not.toHaveBeenCalled()
+    })
+
+    it("returns 400 when both X-API-Key and a non-Bearer Authorization header are provided", async () => {
+        const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
+        const app = makeApp(mockAuth)
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "key-abc", authorization: "Basic dXNlcjpwYXNz" },
+        })
+        expect(res.status).toBe(400)
+        const body = await res.json()
+        expect(body.type).toContain("ambiguous-api-key")
+        expect(mockAuth.api.verifyApiKey).not.toHaveBeenCalled()
+    })
+})
+
+
 describe("createApiKeyAuth: skip-listed paths bypass", () => {
     it("GET /openapi.json does not call verifyApiKey", async () => {
         const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
