@@ -22,5 +22,7 @@ export type ApiEnv = {
     Variables: {
         /** Authenticated principal context attached by the API key middleware. */
         principal: ApiPrincipalContext
+        /** Tracks which rate-limit buckets have already been counted for this request, preventing double-counting from overlapping middleware patterns. */
+        rateLimitBucketsSeen: Set<string>
     }
 }

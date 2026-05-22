@@ -6,7 +6,6 @@ import type {
     setGrazingIntention,
 } from "@nmi-agro/fdm-core"
 import type { FdmType } from "@nmi-agro/fdm-core"
-import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
     paginatedResponse,
@@ -15,8 +14,6 @@ import {
     writeErrorResponses,
 } from "../schemas"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
-
-const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
 /** Defines the grazing intention data access functions required by the grazing intention routes. */
 export interface GrazingIntentionServices {
@@ -139,17 +136,6 @@ export function registerGrazingIntentionRoutes(
     services: GrazingIntentionServices,
 ): void {
     // /farms/*/grazing-intentions is covered by the /farms/* middleware in farms.ts
-    const middleware = (
-        c: Parameters<ReturnType<typeof rateLimitMiddleware>>[0],
-        next: Parameters<ReturnType<typeof rateLimitMiddleware>>[1],
-    ) =>
-        rateLimitMiddleware(
-            fdm,
-            WRITE_METHODS.has(c.req.method) ? "write" : "general",
-        )(c, next)
-    app.use("/farms/*/grazing-intentions", middleware)
-    app.use("/farms/*/grazing-intentions/*", middleware)
-
     const listGrazingIntentionsHandler: RouteHandler<
         typeof listGrazingIntentionsRoute
     > = async (c) => {

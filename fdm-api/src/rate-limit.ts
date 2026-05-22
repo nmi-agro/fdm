@@ -37,6 +37,17 @@ export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): Middlewar
     const limit = RATE_LIMITS[bucket]
 
     return async (c, next) => {
+        // Guard against double-counting: if this bucket already ran for this request, skip the increment.
+        let seen = c.get("rateLimitBucketsSeen")
+        if (!seen) {
+            seen = new Set<string>()
+            c.set("rateLimitBucketsSeen", seen)
+        }
+        if (seen.has(bucket)) {
+            return next()
+        }
+        seen.add(bucket)
+
         const principal = c.get("principal") as ApiPrincipalContext
         const key = `fdm-api:${principal.apiKeyId}:${bucket}`
         const now = Date.now()

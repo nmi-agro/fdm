@@ -256,12 +256,7 @@ export function registerFieldRoutes(
     fdm: FdmType,
     services: FieldServices,
 ): void {
-    app.use("/farms/*/fields", (c, next) =>
-        rateLimitMiddleware(
-            fdm,
-            WRITE_METHODS.has(c.req.method) ? "write" : "general",
-        )(c, next),
-    )
+    // /farms/*/fields is covered by the /farms/* middleware in farms.ts
     app.use("/fields/*", (c, next) =>
         rateLimitMiddleware(
             fdm,
