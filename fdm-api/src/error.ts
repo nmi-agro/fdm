@@ -1,5 +1,6 @@
 import type { Context, ErrorHandler, NotFoundHandler } from "hono"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
+import { HTTPException } from "hono/http-exception"
 import * as Sentry from "@sentry/node"
 import { nanoid } from "nanoid"
 
@@ -105,6 +106,9 @@ function isPermissionDenied(err: unknown): boolean {
  */
 export function createErrorHandler(appUrl: string): ErrorHandler {
     return (err, c) => {
+        if (err instanceof HTTPException && err.status === 400) {
+            return problemResponse(c, 400, "validation-failed", "Request body contains invalid JSON.", appUrl)
+        }
         if (err instanceof ApiError) {
             return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras)
         }
