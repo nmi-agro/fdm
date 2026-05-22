@@ -1,4 +1,4 @@
-import { eq, ilike, or } from "drizzle-orm"
+import { eq, ilike, inArray, or } from "drizzle-orm"
 import * as authNSchema from "./db/schema-authn"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
@@ -35,10 +35,65 @@ export async function getPrincipal(
     principal_id: string,
 ): Promise<Principal | undefined> {
     try {
+        return (
+            (await getPrincipals(fdm, [principal_id])).get(principal_id) ??
+            undefined
+        )
+    } catch (err) {
+        throw handleError(err, "Exception for getPrincipal", {
+            principal_id: principal_id,
+        })
+    }
+}
+
+/**
+ * Retrieves details of multiple principals (each is either user or an organization) by ID.
+ *
+ * This function attempts to retrieve each principal's details first from the user table, and if
+ * not found, then from the organization table.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param principal_ids - The unique identifiers of the principals.
+ * @returns A promise that resolves to a map from each principal id to its details. A principal ID will be
+ * missing from the map if it is not found. Each detail object includes the name, image, type,
+ *   and verification status of the principal.
+ *
+ * @throws {Error} - Throws an error if any database operation fails.
+ *   The error includes a message and context information about the failed operation.
+ *
+ * @example
+ * ```typescript
+ * // Example usage:
+ * const principalDetails = await getPrincipals(fdm, ["user123"]);
+ * if (principalDetails.get("user123")) {
+ *   console.log("Principal Details:", principalDetails.get("user123"));
+ * } else {
+ *   console.log("Principal not found.");
+ * }
+ * ```
+ */
+export async function getPrincipals(fdm: FdmType, principal_ids: string[]) {
+    try {
         return await fdm.transaction(async (tx) => {
+            const principalIdsSet = new Set(principal_ids)
+            const result: Map<
+                string,
+                {
+                    id: string
+                    username: string
+                    email: string | null
+                    initials: string
+                    displayUserName: string | null
+                    image: string | null
+                    type: "user" | "organization"
+                    isVerified: boolean
+                }
+            > = new Map()
             // If principal is an user get the details of the user
-            const user = await tx
+            if (principalIdsSet.size === 0) return result
+            const users = await tx
                 .select({
+                    id: authNSchema.user.id,
                     username: authNSchema.user.username,
                     displayUserName: authNSchema.user.displayUsername,
                     image: authNSchema.user.image,
@@ -49,18 +104,19 @@ export async function getPrincipal(
                     name: authNSchema.user.name,
                 })
                 .from(authNSchema.user)
-                .where(eq(authNSchema.user.id, principal_id))
-                .limit(1)
+                .where(inArray(authNSchema.user.id, [...principalIdsSet]))
+                .limit(principalIdsSet.size)
 
-            if (user.length > 0) {
+            for (const user of users) {
+                principalIdsSet.delete(user.id)
                 // Determine avatar initials
-                let initials = user[0].email
-                if (user[0].firstname && user[0].surname) {
+                let initials = user.email
+                if (user.firstname && user.surname) {
                     // Select only the first capital letter of firstname and surname
-                    initials = user[0].firstname.charAt(0).toUpperCase()
+                    initials = user.firstname.charAt(0).toUpperCase()
 
                     // Find the first capital letter in the surname
-                    const surnameParts = user[0].surname.split(/\s+/) // Split by one or more spaces
+                    const surnameParts = user.surname.split(/\s+/) // Split by one or more spaces
                     let firstCapitalLetterInSurname = ""
 
                     for (const part of surnameParts) {
@@ -78,57 +134,61 @@ export async function getPrincipal(
                     }
 
                     initials += firstCapitalLetterInSurname
-                } else if (user[0].firstname) {
-                    initials = user[0].firstname[0]
-                } else if (user[0].name) {
-                    initials = user[0].name[0]
+                } else if (user.firstname) {
+                    initials = user.firstname[0]
+                } else if (user.name) {
+                    initials = user.name[0]
                 }
-
-                return {
-                    id: principal_id,
-                    username: user[0].username ?? user[0].email,
-                    email: user[0].email,
+                result.set(user.id, {
+                    id: user.id,
+                    username: user.username ?? user.email,
+                    email: user.email,
                     initials: initials.toUpperCase(),
-                    displayUserName: user[0].displayUserName,
-                    image: user[0].image,
+                    displayUserName: user.displayUserName,
+                    image: user.image,
                     type: "user",
-                    isVerified: user[0].isVerified,
-                }
+                    isVerified: user.isVerified,
+                })
             }
 
             // If principal is an organization get the details of the organization
-            const organization = await tx
+            if (principalIdsSet.size === 0) return result
+            const organizations = await tx
                 .select({
+                    id: authNSchema.organization.id,
                     name: authNSchema.organization.name,
                     slug: authNSchema.organization.slug,
                     logo: authNSchema.organization.logo,
                     metadata: authNSchema.organization.metadata,
                 })
                 .from(authNSchema.organization)
-                .where(eq(authNSchema.organization.id, principal_id))
-                .limit(1)
+                .where(
+                    inArray(authNSchema.organization.id, [...principalIdsSet]),
+                )
+                .limit(principalIdsSet.size)
 
-            if (organization.length === 0) {
-                return undefined
-            }
-            const metadata = organization[0].metadata
-                ? JSON.parse(organization[0].metadata)
-                : null
+            for (const organization of organizations) {
+                const metadata = organization.metadata
+                    ? JSON.parse(organization.metadata)
+                    : null
 
-            return {
-                id: principal_id,
-                username: organization[0].slug,
-                email: null,
-                initials: organization[0].name.charAt(0).toUpperCase(),
-                displayUserName: organization[0].name,
-                image: organization[0].logo,
-                type: "organization",
-                isVerified: metadata ? metadata.isVerified : false,
+                result.set(organization.id, {
+                    id: organization.id,
+                    username: organization.slug,
+                    email: null,
+                    initials: organization.name.charAt(0).toUpperCase(),
+                    displayUserName: organization.name,
+                    image: organization.logo,
+                    type: "organization",
+                    isVerified: metadata ? metadata.isVerified : false,
+                })
             }
+
+            return result
         })
     } catch (err) {
-        throw handleError(err, "Exception for getPrincipal", {
-            principal_id: principal_id,
+        throw handleError(err, "Exception for getPrincipals", {
+            principal_ids: principal_ids,
         })
     }
 }

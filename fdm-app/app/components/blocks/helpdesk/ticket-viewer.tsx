@@ -6,23 +6,25 @@ import { Button } from "~/components/ui/button"
 import { Empty, EmptyDescription, EmptyTitle } from "~/components/ui/empty"
 import { Input } from "~/components/ui/input"
 import { TicketCard } from "./ticket-card"
+import type { HelpdeskUser } from "./types"
 
 export const TICKET_VIEWER_PAGE_SIZE = 20
 export function TicketViewer({
     tickets,
     totalTicketCount,
     toPrefix,
+    principalLookup,
 }: {
     tickets: Ticket[]
     totalTicketCount: number
-    users: { id: string; displayName: string }[]
     toPrefix: string
+    principalLookup: Map<string, HelpdeskUser>
 }) {
     const location = useLocation()
 
     return (
         <div className="flex flex-col space-y-6 lg:flex-row lg:space-x-4 xl:space-x-8 lg:space-y-0 h-full">
-            <aside className="lg:w-40 xl:w-70 shrink-0 self-stretch">
+            <aside className="lg:w-40 xl:w-70 shrink-0 self-stretch border-r border-sidebar-border">
                 <nav className="flex flex-col space-x-2 pb-2 lg:overflow-visible lg:pb-0 lg:flex-col lg:space-x-0 lg:space-y-1 h-full box-border">
                     <div className="overflow-auto grow">
                         {tickets.length === 0 ? (
@@ -37,6 +39,13 @@ export function TicketViewer({
                                 <TicketCard
                                     key={ticket.ticket_id}
                                     ticket={ticket}
+                                    principal={
+                                        ticket.requester_id
+                                            ? principalLookup.get(
+                                                  ticket.requester_id,
+                                              )
+                                            : undefined
+                                    }
                                     href={`${toPrefix}/${ticket.ticket_id}${getPageSearch(location.search, TICKET_VIEWER_PAGE_SIZE)}`}
                                 />
                             ))

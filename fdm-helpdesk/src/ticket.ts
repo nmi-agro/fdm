@@ -20,7 +20,7 @@ export type Ticket = schema.TicketTypeSelect & {
 }
 
 const TICKET_ALPHABET = "23456789ABCDFGHJKLMNPQRSTVWXYZ" // Uppercase, no lookalikes
-const generateTicketRef = customAlphabet(TICKET_ALPHABET, 6) // ~530 million combinations
+const generateTicketRef = () => `TK-${customAlphabet(TICKET_ALPHABET, 6)}` // ~530 million combinations
 async function createTicketRefWithRetry(
     fdm: FdmHelpdeskType,
     maxRetries = 3,

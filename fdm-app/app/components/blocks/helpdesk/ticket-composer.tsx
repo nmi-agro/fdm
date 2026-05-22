@@ -13,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
-import { Textarea } from "~/components/ui/textarea"
+import { MessageFields } from "./message-composer"
 import { TicketSchema } from "./ticket-schema"
 
 export function TicketComposer({
@@ -72,16 +72,7 @@ export function TicketComposer({
                         </Field>
                     )}
                 />
-                <Controller
-                    name="body"
-                    render={({ field, fieldState }) => (
-                        <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel>Shrijf je vraag beneden</FieldLabel>
-                            <Textarea {...field} />
-                            <FieldError errors={[fieldState.error]} />
-                        </Field>
-                    )}
-                />
+                <MessageFields />
                 <Button type="submit" className="ms-auto">
                     Verzenden
                 </Button>

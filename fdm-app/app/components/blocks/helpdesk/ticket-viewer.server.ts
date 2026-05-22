@@ -1,3 +1,4 @@
+import { getPrincipals } from "@nmi-agro/fdm-core"
 import {
     getTicketCount,
     getTickets,
@@ -10,10 +11,12 @@ import { TICKET_VIEWER_PAGE_SIZE } from "~/components/blocks/helpdesk/ticket-vie
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import type { HelpdeskUser } from "./types"
 
 export type LoadPaginatedTicketsData = {
     tickets: Ticket[]
     totalTicketCount: number
+    principals: HelpdeskUser[]
 }
 
 export async function loadPaginatedTickets(request: Request) {
@@ -86,10 +89,28 @@ export async function loadPaginatedTickets(request: Request) {
             pageLimit,
         })
 
+        const principals = await getPrincipals(
+            fdm,
+            tickets
+                .map((ticket) => ticket.requester_id)
+                .filter((id) => id !== null)
+                .concat([session.principal_id]),
+        )
+
+        const principalsSummarized = [...principals.values()].map(
+            (principal) => ({
+                principal_id: principal.id,
+                displayUserName: principal.displayUserName,
+                initials: principal.initials,
+                image: principal.image,
+            }),
+        )
+
         return {
             tickets: tickets,
             totalTicketCount: totalTicketCount,
-        } as LoadPaginatedTicketsData
+            principals: principalsSummarized,
+        } satisfies LoadPaginatedTicketsData
     } catch (err) {
         throw handleLoaderError(err)
     }

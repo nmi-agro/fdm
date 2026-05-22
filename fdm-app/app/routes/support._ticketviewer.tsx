@@ -11,12 +11,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function PersonalTicketViewer() {
-    const { tickets, totalTicketCount } =
+    const { tickets, totalTicketCount, principals } =
         useLoaderData<LoadPaginatedTicketsData>()
+
+    const principalLookup = new Map(
+        principals.map((principal) => [principal.principal_id, principal]),
+    )
     return (
         <TicketViewer
             tickets={tickets}
             totalTicketCount={totalTicketCount}
+            principalLookup={principalLookup}
             toPrefix="/support/ticket"
         />
     )

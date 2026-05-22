@@ -196,7 +196,7 @@ export {
     removeOrganicCertification,
 } from "./organic"
 export type { OrganicCertification } from "./organic.types"
-export { lookupPrincipal } from "./principal"
+export { getPrincipal, getPrincipals, lookupPrincipal } from "./principal"
 export {
     addSoilAnalysis,
     getCurrentSoilData,
