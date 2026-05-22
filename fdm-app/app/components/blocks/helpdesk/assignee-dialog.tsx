@@ -1,19 +1,10 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type {
     AgentSummary,
     TicketAssignmentSummary,
 } from "@nmi-agro/fdm-helpdesk"
 import { Check, Crown } from "lucide-react"
-import { type MouseEventHandler, useId } from "react"
-import {
-    Controller,
-    type ControllerRenderProps,
-    type FieldValues,
-    useForm,
-} from "react-hook-form"
+import { type MouseEventHandler, useId, useState } from "react"
 import { Form, useNavigation } from "react-router"
-import { RemixFormProvider } from "remix-hook-form"
-import type z from "zod"
 import { cn } from "@/app/lib/utils"
 import { UserAvatar } from "~/components/blocks/farms/user-display"
 import { Button } from "~/components/ui/button"
@@ -27,7 +18,6 @@ import {
 import { Field } from "~/components/ui/field"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip"
-import { AssigneeSchema } from "./assignee-schema"
 import type { HelpdeskUser } from "./types"
 
 export function AssigneeDialogContent({
@@ -44,228 +34,149 @@ export function AssigneeDialogContent({
     principalLookup: Map<string, HelpdeskUser>
 }) {
     const navigation = useNavigation()
+    const formId = useId()
     const alreadyAssigned = new Set(
         assignees.map((assignee) => assignee.agent_id),
     )
-    const form = useForm<z.infer<typeof AssigneeSchema>>({
-        mode: "onTouched",
-        resolver: zodResolver(AssigneeSchema),
-        defaultValues: async () => ({
-            assignees: JSON.stringify(
-                assignees.map((assignee) => assignee.agent_id),
-            ),
-            primary: JSON.stringify(
-                assignees
-                    .filter((assignee) => assignee.is_primary)
-                    .map((assignee) => assignee.agent_id),
-            ),
-        }),
-    })
+    const [selectedAssignees, setSelectedAssignees] = useState<string[]>(
+        assignees.map((assignee) => assignee.agent_id),
+    )
+    const [primaryAssignees, setPrimaryAssignees] = useState<string[]>(
+        assignees
+            .filter((assignee) => assignee.is_primary)
+            .map((assignee) => assignee.agent_id),
+    )
+    const unassignedAgents = agents.filter(
+        (agent) => !alreadyAssigned.has(agent.agent_id),
+    )
 
-    const formId = useId()
+    function setSelected(agentId: string, selected: boolean) {
+        setSelectedAssignees((current) => {
+            const isSelected = current.includes(agentId)
+            if (selected === isSelected) return current
+            if (selected) return current.concat(agentId)
+            return current.filter((id) => id !== agentId)
+        })
+    }
+
+    function togglePrimary(agentId: string) {
+        setPrimaryAssignees((currentPrimary) => {
+            const isPrimary = currentPrimary.includes(agentId)
+            if (isPrimary) {
+                return currentPrimary.filter((id) => id !== agentId)
+            }
+
+            setSelected(agentId, true)
+            // Clear other primary assignees
+            return [agentId]
+        })
+    }
+
+    function toggleAssigned(agentId: string) {
+        setSelectedAssignees((currentAssignees) => {
+            const isSelected = currentAssignees.includes(agentId)
+
+            if (isSelected) {
+                setPrimaryAssignees((currentPrimary) =>
+                    currentPrimary.filter((id) => id !== agentId),
+                )
+                return currentAssignees.filter((id) => id !== agentId)
+            }
+
+            setPrimaryAssignees((currentPrimary) => {
+                if (currentPrimary.length > 0) return currentPrimary
+                return currentPrimary.concat(agentId)
+            })
+
+            return currentAssignees.concat(agentId)
+        })
+    }
 
     return (
-        <RemixFormProvider {...form}>
-            <Form id={formId} onSubmit={form.handleSubmit} method="post">
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Ticket toewijzen</DialogTitle>
-                        <DialogDescription>
-                            Hier kun je zien en beheren de medewerkers die zijn
-                            toegewezen of niet.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {typeof intent === "string" && (
-                        <input type="hidden" name="intent" value={intent} />
-                    )}
-                    <Controller
-                        name="assignees"
-                        render={({
-                            field: assigneesField,
-                            fieldState: assigneeFieldState,
-                        }) => (
-                            <Controller
-                                name="primary"
-                                render={({
-                                    field: primaryField,
-                                    fieldState: primaryFieldState,
-                                }) => {
-                                    function set<
-                                        T extends "primary" | "assignees",
-                                    >(
-                                        field: ControllerRenderProps<
-                                            FieldValues,
-                                            T
-                                        >,
-                                        agent_id: string,
-                                        value: boolean,
-                                    ) {
-                                        const currentSelection = JSON.parse(
-                                            field.value,
-                                        ).includes(agent_id)
-                                        if (currentSelection !== value) {
-                                            toggle(field, agent_id)
-                                        }
-                                    }
-                                    function toggle<
-                                        T extends "primary" | "assignees",
-                                    >(
-                                        field: ControllerRenderProps<
-                                            FieldValues,
-                                            T
-                                        >,
-                                        agent_id: string,
-                                    ) {
-                                        const currentValue = JSON.parse(
-                                            field.value,
-                                        )
-                                        const currentSelection =
-                                            currentValue.includes(agent_id)
-                                        if (currentSelection) {
-                                            form.setValue(
-                                                field.name,
-                                                JSON.stringify(
-                                                    currentValue.filter(
-                                                        (id: string) =>
-                                                            id !== agent_id,
-                                                    ),
-                                                ) as any,
-                                            )
-                                        } else {
-                                            form.setValue(
-                                                field.name,
-                                                JSON.stringify(
-                                                    currentValue.concat([
-                                                        agent_id,
-                                                    ]),
-                                                ) as any,
-                                            )
-                                        }
-                                        return !currentSelection
-                                    }
+        <DialogContent>
+            <Form id={formId} method="post" className="space-y-4">
+                <DialogHeader>
+                    <DialogTitle>Ticket toewijzen</DialogTitle>
+                    <DialogDescription>
+                        Hier kun je zien en beheren de medewerkers die zijn
+                        toegewezen of niet.
+                    </DialogDescription>
+                </DialogHeader>
 
-                                    const onIsPrimaryClick =
-                                        (agent_id: string) => () => {
-                                            if (
-                                                toggle(primaryField, agent_id)
-                                            ) {
-                                                set(
-                                                    assigneesField,
-                                                    agent_id,
-                                                    true,
-                                                )
-                                            }
-                                        }
-                                    const onClick =
-                                        (agent_id: string) => () => {
-                                            if (
-                                                toggle(assigneesField, agent_id)
-                                            ) {
-                                                if (
-                                                    primaryField.value
-                                                        .length === 0
-                                                ) {
-                                                    set(
-                                                        primaryField,
-                                                        agent_id,
-                                                        true,
-                                                    )
-                                                }
-                                            } else {
-                                                set(
-                                                    primaryField,
-                                                    agent_id,
-                                                    false,
-                                                )
-                                            }
-                                        }
-                                    return (
-                                        <Field className="overflow-auto">
-                                            {assignees.length > 0 && (
-                                                <h2
-                                                    key="already_assigned"
-                                                    className="text-sm text-muted-foreground"
-                                                >
-                                                    Al toegewezen
-                                                </h2>
-                                            )}
-                                            {assignees.map((assignee) => (
-                                                <AssigneeSelectItem
-                                                    key={assignee.agent_id}
-                                                    agent={assignee}
-                                                    isSelected={assigneesField.value.includes(
-                                                        assignee.agent_id,
-                                                    )}
-                                                    isPrimary={primaryField.value.includes(
-                                                        assignee.agent_id,
-                                                    )}
-                                                    principalLookup={
-                                                        principalLookup
-                                                    }
-                                                    canModify={canModify}
-                                                    onClick={onClick(
-                                                        assignee.agent_id,
-                                                    )}
-                                                    onIsPrimaryClick={onIsPrimaryClick(
-                                                        assignee.agent_id,
-                                                    )}
-                                                />
-                                            ))}
-                                            {agents.length >
-                                                alreadyAssigned.size && (
-                                                <h2
-                                                    key="already_assigned"
-                                                    className="text-sm text-muted-foreground"
-                                                >
-                                                    Nog niet toegewezen
-                                                </h2>
-                                            )}
-                                            {agents
-                                                .filter(
-                                                    (a) =>
-                                                        !alreadyAssigned.has(
-                                                            a.agent_id,
-                                                        ),
-                                                )
-                                                .map((agent) => (
-                                                    <AssigneeSelectItem
-                                                        key={agent.agent_id}
-                                                        agent={agent}
-                                                        isSelected={assigneesField.value.includes(
-                                                            agent.agent_id,
-                                                        )}
-                                                        isPrimary={primaryField.value.includes(
-                                                            agent.agent_id,
-                                                        )}
-                                                        principalLookup={
-                                                            principalLookup
-                                                        }
-                                                        canModify={canModify}
-                                                        onClick={onClick(
-                                                            agent.agent_id,
-                                                        )}
-                                                        onIsPrimaryClick={onIsPrimaryClick(
-                                                            agent.agent_id,
-                                                        )}
-                                                    />
-                                                ))}
-                                            {assigneeFieldState.error?.message}
-                                            {primaryFieldState.error?.message}
-                                        </Field>
-                                    )
-                                }}
-                            />
-                        )}
-                    />
-                    <DialogFooter>
-                        <Button type="submit" form={formId}>
-                            Opslaan{" "}
-                            {navigation.state !== "idle" ? <Spinner /> : null}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
+                {typeof intent === "string" && (
+                    <input type="hidden" name="intent" value={intent} />
+                )}
+                <input
+                    type="hidden"
+                    name="assignees"
+                    value={JSON.stringify(selectedAssignees)}
+                />
+                <input
+                    type="hidden"
+                    name="primary"
+                    value={JSON.stringify(primaryAssignees)}
+                />
+
+                <Field className="overflow-auto">
+                    {agents.length > 0 && assignees.length > 0 && (
+                        <h2 className="text-sm text-muted-foreground">
+                            Al toegewezen
+                        </h2>
+                    )}
+
+                    {assignees.map((assignee) => (
+                        <AssigneeSelectItem
+                            key={assignee.agent_id}
+                            agent={assignee}
+                            isSelected={selectedAssignees.includes(
+                                assignee.agent_id,
+                            )}
+                            isPrimary={primaryAssignees.includes(
+                                assignee.agent_id,
+                            )}
+                            principalLookup={principalLookup}
+                            canModify={canModify}
+                            onClick={() => toggleAssigned(assignee.agent_id)}
+                            onIsPrimaryClick={() =>
+                                togglePrimary(assignee.agent_id)
+                            }
+                        />
+                    ))}
+
+                    {unassignedAgents.length > 0 && (
+                        <h2 className="text-sm text-muted-foreground">
+                            Nog niet toegewezen
+                        </h2>
+                    )}
+
+                    {unassignedAgents.map((agent) => (
+                        <AssigneeSelectItem
+                            key={agent.agent_id}
+                            agent={agent}
+                            isSelected={selectedAssignees.includes(
+                                agent.agent_id,
+                            )}
+                            isPrimary={primaryAssignees.includes(
+                                agent.agent_id,
+                            )}
+                            principalLookup={principalLookup}
+                            canModify={canModify}
+                            onClick={() => toggleAssigned(agent.agent_id)}
+                            onIsPrimaryClick={() =>
+                                togglePrimary(agent.agent_id)
+                            }
+                        />
+                    ))}
+                </Field>
+
+                <DialogFooter>
+                    <Button type="submit" form={formId}>
+                        Opslaan{" "}
+                        {navigation.state !== "idle" ? <Spinner /> : null}
+                    </Button>
+                </DialogFooter>
             </Form>
-        </RemixFormProvider>
+        </DialogContent>
     )
 }
 
@@ -295,9 +206,11 @@ function AssigneeSelectItem({
     return (
         <p className="flex flex-row gap-2 items-center">
             <Button
+                type="button"
                 variant="ghost"
                 className="group grow flex flex-row gap-2 justify-start items-center hover:bg-transparent"
                 value={agent.agent_id}
+                disabled={!canModify}
                 onClick={onClick}
             >
                 <Check
@@ -321,7 +234,11 @@ function AssigneeSelectItem({
             <Tooltip>
                 <TooltipTrigger asChild>
                     {canModify ? (
-                        <Button variant="ghost" onClick={onIsPrimaryClick}>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={onIsPrimaryClick}
+                        >
                             <Crown
                                 className={cn(
                                     "text-muted-foreground hover:text-muted-foreground",

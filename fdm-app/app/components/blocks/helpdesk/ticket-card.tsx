@@ -3,9 +3,8 @@ import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { NavLink, useLocation } from "react-router"
 import { cn } from "@/app/lib/utils"
+import { Badge } from "~/components/ui/badge"
 import type { HelpdeskUser } from "./types"
-import { Badge } from "../../ui/badge"
-import { Circle, Dot } from "lucide-react"
 
 export function TicketCard({
     ticket,

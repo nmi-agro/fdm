@@ -126,6 +126,41 @@ export async function assignTicket(
     })
 }
 
+export async function unassignTicket(
+    fdm: FdmHelpdeskType,
+    ticket_id: schema.TicketAssignmentTypeInsert["ticket_id"],
+    agent_id: schema.TicketAssignmentTypeInsert["agent_id"],
+    unassigned_by: schema.TicketAssignmentTypeInsert["assigned_by"],
+) {
+    return await fdm.transaction(async (tx) => {
+        // Check if the agent is allowed to modify this ticket
+        await checkHelpdeskPermission(
+            tx,
+            "ticket-agent-side",
+            "write",
+            ticket_id,
+            unassigned_by,
+            "assignTicket",
+        )
+
+        // Delete the found assignment
+        const deleted = await tx
+            .delete(schema.ticketAssignments)
+            .where(
+                and(
+                    eq(schema.ticketAssignments.ticket_id, ticket_id),
+                    eq(schema.ticketAssignments.agent_id, agent_id),
+                ),
+            )
+            .returning({
+                ticket_id: schema.ticketAssignments.ticket_id,
+                agent_id: schema.ticketAssignments.agent_id,
+            })
+
+        return deleted.length > 0
+    })
+}
+
 export async function getTicketCountsForAssignees(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
