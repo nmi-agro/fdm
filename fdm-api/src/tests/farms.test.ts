@@ -223,6 +223,19 @@ describe("POST /farms", () => {
         expect(res.headers.get("location")).toContain("/farms/farm-new")
     })
 
+    it("returns 400 with invalid JSON body", async () => {
+        const app = makeApp()
+        const res = await app.request("/farms", {
+            method: "POST",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: "{ not valid json }",
+        })
+        expect(res.status).toBe(400)
+        const body = await res.json()
+        expect(body.type).toContain("validation-failed")
+        expect(body.detail).toContain("invalid JSON")
+    })
+
     it("returns 415 without Content-Type: application/json", async () => {
         const app = makeApp()
         const res = await app.request("/farms", {

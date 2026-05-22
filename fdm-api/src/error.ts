@@ -111,6 +111,9 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
         if (isPermissionDenied(err)) {
             return problemResponse(c, 403, "forbidden", "You do not have permission to access this resource.", appUrl)
         }
+        if (err instanceof SyntaxError) {
+            return problemResponse(c, 400, "validation-failed", `Request body contains invalid JSON: ${err.message}`, appUrl)
+        }
         console.error("[fdm-api] Unhandled error:", err)
         Sentry.captureException(err)
         return problemResponse(c, 500, "internal-error", "An unexpected error occurred.", appUrl)
