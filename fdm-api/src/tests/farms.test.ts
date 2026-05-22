@@ -236,6 +236,18 @@ describe("POST /farms", () => {
         expect(body.detail).toContain("invalid JSON")
     })
 
+    it("returns 400 when b_name_farm is null", async () => {
+        const app = makeApp()
+        const res = await app.request("/farms", {
+            method: "POST",
+            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            body: JSON.stringify({ b_name_farm: null }),
+        })
+        expect(res.status).toBe(400)
+        const body = await res.json()
+        expect(body.type).toContain("validation-failed")
+    })
+
     it("returns 415 without Content-Type: application/json", async () => {
         const app = makeApp()
         const res = await app.request("/farms", {

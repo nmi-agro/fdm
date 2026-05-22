@@ -51,7 +51,6 @@ const CreateFarmBodySchema = z
     .object({
         b_name_farm: z
             .string()
-            .nullable()
             .optional()
             .describe("Farm display name."),
         b_businessid_farm: z
