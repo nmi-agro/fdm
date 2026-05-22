@@ -69,7 +69,15 @@ export function problemResponse(
     detail: string,
     appUrl: string,
     extras?: Record<string, unknown>,
+    errorId?: string,
 ) {
+    const error_id = errorId ?? nanoid()
+    const logLine = `[fdm-api] error_id=${error_id} status=${status} type=${slug} path=${c.req.path} detail="${detail}"`
+    if (status >= 500) {
+        console.error(logLine)
+    } else {
+        console.warn(logLine)
+    }
     return c.json(
         {
             ...extras,
@@ -78,7 +86,7 @@ export function problemResponse(
             status,
             detail,
             instance: c.req.path,
-            error_id: nanoid(),
+            error_id,
         },
         status as ContentfulStatusCode,
         { "content-type": "application/problem+json" },
@@ -119,8 +127,12 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
             return problemResponse(c, 400, "validation-failed", `Request body contains invalid JSON: ${err.message}`, appUrl)
         }
         console.error("[fdm-api] Unhandled error:", err)
-        Sentry.captureException(err)
-        return problemResponse(c, 500, "internal-error", "An unexpected error occurred.", appUrl)
+        const error_id = nanoid()
+        Sentry.withScope((scope) => {
+            scope.setTag("error_id", error_id)
+            Sentry.captureException(err)
+        })
+        return problemResponse(c, 500, "internal-error", "An unexpected error occurred.", appUrl, undefined, error_id)
     }
 }
 
