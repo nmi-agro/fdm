@@ -20,6 +20,7 @@ export function Ticket({
     canAddAssignees,
     principal_id,
     principalLookup,
+    sender_role,
 }: {
     ticket: TicketT
     messages: MessageT[]
@@ -28,6 +29,7 @@ export function Ticket({
     canAddAssignees: boolean
     principal_id: string
     principalLookup: Map<string, HelpdeskUser>
+    sender_role: "agent" | "customer"
 }) {
     const isResolved = !!ticket.closed_at
     const assigneeNames = ticket.assignees.map(
@@ -68,6 +70,7 @@ export function Ticket({
                         <AssigneeDialogContent
                             assignees={ticket.assignees}
                             agents={agents}
+                            intent="change_assignment"
                             canModify={canAddAssignees}
                             principalLookup={principalLookup}
                         />
@@ -85,6 +88,21 @@ export function Ticket({
                 ))}
                 {canAddMessages && (
                     <Message
+                        title={
+                            <>
+                                Nieuwe Reactie
+                                {agents.some(
+                                    (agent) => agent.agent_id === principal_id,
+                                ) ? (
+                                    <span className="text-muted-foreground/50 italic">
+                                        als{" "}
+                                        {sender_role === "agent"
+                                            ? "medewerker"
+                                            : "gebruiker"}
+                                    </span>
+                                ) : null}
+                            </>
+                        }
                         principal={
                             principal_id
                                 ? (principalLookup.get(principal_id) ?? null)
@@ -92,7 +110,10 @@ export function Ticket({
                         }
                         className="mt-10"
                     >
-                        <MessageComposer intent="add_message" />
+                        <MessageComposer
+                            intent="add_message"
+                            title="Schrijf beneden"
+                        />
                     </Message>
                 )}
             </div>

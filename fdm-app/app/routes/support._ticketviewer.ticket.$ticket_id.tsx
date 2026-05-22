@@ -8,6 +8,7 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import z from "zod"
+import { AssigneeSchema } from "~/components/blocks/helpdesk/assignee-schema"
 import { MessageBodySchema } from "~/components/blocks/helpdesk/message-schema"
 import { Ticket } from "~/components/blocks/helpdesk/ticket"
 import { getSession } from "~/lib/auth.server"
@@ -15,7 +16,6 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/support._ticketviewer.ticket.$ticket_id"
-import { AssigneeSchema } from "../components/blocks/helpdesk/assignee-schema"
 
 export async function loader({ params, request }: Route.LoaderArgs) {
     try {
@@ -76,6 +76,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         )
 
         return {
+            principal_id: session.principal_id,
             ticket: ticket,
             messages: messages,
             canAddMessages: canAddMessages,
@@ -90,12 +91,13 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
 const ActionSchema = z.discriminatedUnion("intent", [
     z.object({ intent: z.literal("add_message"), body: MessageBodySchema }),
-    z.object({ intent: z.literal("change_assignment") }).extend(AssigneeSchema),
+    AssigneeSchema.extend({ intent: z.literal("change_assignment") }),
 ])
 
 export async function action({ params, request }: Route.ActionArgs) {
     try {
         const session = await getSession(request)
+        console.log([...(await request.clone().formData()).entries()])
         const formValues = await extractFormValuesFromRequest(
             request,
             ActionSchema,
@@ -117,6 +119,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
 export default function DisplayedTicket() {
     const {
+        principal_id,
         ticket,
         messages,
         agents,
@@ -127,7 +130,6 @@ export default function DisplayedTicket() {
     const principalLookup = new Map(
         principals.map((principal) => [principal.principal_id, principal]),
     )
-    console.log(agents)
     return (
         <Ticket
             ticket={ticket}
@@ -135,8 +137,9 @@ export default function DisplayedTicket() {
             agents={agents}
             canAddMessages={canAddMessages}
             canAddAssignees={canAddAssignees}
-            principal_id=""
+            principal_id={principal_id}
             principalLookup={principalLookup}
+            sender_role="customer"
         />
     )
 }

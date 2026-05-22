@@ -4,7 +4,7 @@ import type {
     TicketAssignmentSummary,
 } from "@nmi-agro/fdm-helpdesk"
 import { Check, Crown } from "lucide-react"
-import type { MouseEventHandler } from "react"
+import { type MouseEventHandler, useId } from "react"
 import {
     Controller,
     type ControllerRenderProps,
@@ -13,6 +13,7 @@ import {
 } from "react-hook-form"
 import { Form, useNavigation } from "react-router"
 import { RemixFormProvider } from "remix-hook-form"
+import type z from "zod"
 import { cn } from "@/app/lib/utils"
 import { UserAvatar } from "~/components/blocks/farms/user-display"
 import { Button } from "~/components/ui/button"
@@ -32,32 +33,40 @@ import type { HelpdeskUser } from "./types"
 export function AssigneeDialogContent({
     assignees,
     agents,
-    principalLookup,
+    intent,
     canModify,
+    principalLookup,
 }: {
     assignees: TicketAssignmentSummary[]
     agents: AgentSummary[]
-    principalLookup: Map<string, HelpdeskUser>
+    intent?: string
     canModify: boolean
+    principalLookup: Map<string, HelpdeskUser>
 }) {
     const navigation = useNavigation()
     const alreadyAssigned = new Set(
         assignees.map((assignee) => assignee.agent_id),
     )
-    const form = useForm({
+    const form = useForm<z.infer<typeof AssigneeSchema>>({
         mode: "onTouched",
         resolver: zodResolver(AssigneeSchema),
         defaultValues: async () => ({
-            assignees: assignees.map((assignee) => assignee.agent_id),
-            primary: assignees
-                .filter((assignee) => assignee.is_primary)
-                .map((assignee) => assignee.agent_id),
+            assignees: JSON.stringify(
+                assignees.map((assignee) => assignee.agent_id),
+            ),
+            primary: JSON.stringify(
+                assignees
+                    .filter((assignee) => assignee.is_primary)
+                    .map((assignee) => assignee.agent_id),
+            ),
         }),
     })
 
+    const formId = useId()
+
     return (
         <RemixFormProvider {...form}>
-            <Form action="post">
+            <Form id={formId} onSubmit={form.handleSubmit} method="post">
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Ticket toewijzen</DialogTitle>
@@ -66,7 +75,9 @@ export function AssigneeDialogContent({
                             toegewezen of niet.
                         </DialogDescription>
                     </DialogHeader>
-
+                    {typeof intent === "string" && (
+                        <input type="hidden" name="intent" value={intent} />
+                    )}
                     <Controller
                         name="assignees"
                         render={({
@@ -89,8 +100,9 @@ export function AssigneeDialogContent({
                                         agent_id: string,
                                         value: boolean,
                                     ) {
-                                        const currentSelection =
-                                            field.value.includes(agent_id)
+                                        const currentSelection = JSON.parse(
+                                            field.value,
+                                        ).includes(agent_id)
                                         if (currentSelection !== value) {
                                             toggle(field, agent_id)
                                         }
@@ -104,20 +116,29 @@ export function AssigneeDialogContent({
                                         >,
                                         agent_id: string,
                                     ) {
+                                        const currentValue = JSON.parse(
+                                            field.value,
+                                        )
                                         const currentSelection =
-                                            field.value.includes(agent_id)
+                                            currentValue.includes(agent_id)
                                         if (currentSelection) {
                                             form.setValue(
                                                 field.name,
-                                                field.value.filter(
-                                                    (id: string) =>
-                                                        id !== agent_id,
-                                                ),
+                                                JSON.stringify(
+                                                    currentValue.filter(
+                                                        (id: string) =>
+                                                            id !== agent_id,
+                                                    ),
+                                                ) as any,
                                             )
                                         } else {
                                             form.setValue(
                                                 field.name,
-                                                field.value.concat([agent_id]),
+                                                JSON.stringify(
+                                                    currentValue.concat([
+                                                        agent_id,
+                                                    ]),
+                                                ) as any,
                                             )
                                         }
                                         return !currentSelection
@@ -237,10 +258,7 @@ export function AssigneeDialogContent({
                         )}
                     />
                     <DialogFooter>
-                        <Button
-                            type="submit"
-                            disabled={navigation.state !== "idle"}
-                        >
+                        <Button type="submit" form={formId}>
                             Opslaan{" "}
                             {navigation.state !== "idle" ? <Spinner /> : null}
                         </Button>

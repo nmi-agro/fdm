@@ -4,6 +4,8 @@ import { nl } from "date-fns/locale"
 import { NavLink, useLocation } from "react-router"
 import { cn } from "@/app/lib/utils"
 import type { HelpdeskUser } from "./types"
+import { Badge } from "../../ui/badge"
+import { Circle, Dot } from "lucide-react"
 
 export function TicketCard({
     ticket,
@@ -20,6 +22,9 @@ export function TicketCard({
 
     const label = ticket.subject ?? "Ticket"
 
+    const isResolved = !!ticket.closed_at
+    const statusLabel = isResolved ? "Opgelost" : "Open"
+
     return (
         <NavLink
             key={ticket.ticket_id}
@@ -33,12 +38,28 @@ export function TicketCard({
                     : "hover:bg-transparent",
             )}
         >
-            <p>{label}</p>
-            <p className="text-sm">
-                ${ticket.ticket_ref} door{" "}
-                {principal?.displayUserName ?? "onbekend"} op{" "}
+            <div>
+                <svg
+                    aria-label={statusLabel}
+                    className={cn(
+                        "inline size-[1em]",
+                        isResolved ? "text-[#aa00aa]" : "text-[#00aa00]",
+                    )}
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                >
+                    <title>{statusLabel}</title>
+                    <circle cx="12" cy="12" r="4" />
+                </svg>
+                {label}
+            </div>
+            <div className="text-sm text-muted-foreground">
+                <Badge variant="outline" className="px-1 text-1em">
+                    {ticket.ticket_ref}
+                </Badge>{" "}
+                door {principal?.displayUserName ?? "onbekend"} op{" "}
                 {formatDate(ticket.created, "PP", { locale: nl })}
-            </p>
+            </div>
         </NavLink>
     )
 }

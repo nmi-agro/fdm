@@ -8,10 +8,12 @@ import { HelpdeskUser } from "./types"
 
 export type MessageExtended = MessageT & { principal: HelpdeskUser | null }
 export function Message({
+    title,
     principal,
     className,
     children,
 }: {
+    title?: ReactNode
     principal: HelpdeskUser | null
     className?: string
     children: ReactNode
@@ -27,7 +29,7 @@ export function Message({
                         {principal?.initials ?? <User />}
                     </AvatarFallback>
                 </Avatar>
-                {principal?.displayUserName ?? "Onbekende Verzender"}
+                {title ?? principal?.displayUserName ?? "Onbekende Verzender"}
             </p>
             {children}
         </Card>

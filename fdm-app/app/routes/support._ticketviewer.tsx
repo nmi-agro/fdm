@@ -4,7 +4,21 @@ import {
     type LoadPaginatedTicketsData,
     loadPaginatedTickets,
 } from "~/components/blocks/helpdesk/ticket-viewer.server"
+import { clientConfig } from "~/lib/config"
 import type { Route } from "./+types/support._ticketviewer"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Mijn Tickets - Ondersteuning | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk en bewerk jouw tickets.",
+        },
+    ]
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
     return await loadPaginatedTickets(request)

@@ -12,7 +12,7 @@ export function HeaderHelpdesk() {
         (match) => match.id === "routes/support.new",
     )
     const isMyTickets = matches.some(
-        (match) => match.id === "routes/support._ticketviewer._index",
+        (match) => match.id === "routes/support._ticketviewer",
     )
     const isAdminInbox = matches.some(
         (match) => match.id === "routes/admin.support._index",
@@ -27,7 +27,7 @@ export function HeaderHelpdesk() {
     return (
         <>
             <BreadcrumbItem>
-                <BreadcrumbLink href="/support">Support</BreadcrumbLink>
+                <BreadcrumbLink href="/support">Ondersteuning</BreadcrumbLink>
             </BreadcrumbItem>
             {isNewTicket && (
                 <>

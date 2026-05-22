@@ -7,10 +7,24 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { TicketComposer } from "~/components/blocks/helpdesk/ticket-composer"
 import { TicketSchema } from "~/components/blocks/helpdesk/ticket-schema"
 import { getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { extractFormValuesFromRequest } from "../lib/form"
+import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/support.new"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Nieuw Ticket - Ondersteuning | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk en bewerk jouw tickets.",
+        },
+    ]
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
     try {
