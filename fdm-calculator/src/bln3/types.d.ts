@@ -89,9 +89,6 @@ export type Bln3ScoreCollectedInputs = {
     // ── Measures ─────────────────────────────────────────────────────────────
     /** Implemented soil management measures */
     measures?: Bln3Measure[]
-
-    // ── Additional fields accepted by the API (undocumented in schema) ───────
-    [key: string]: unknown
 }
 
 /**

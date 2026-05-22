@@ -11,17 +11,30 @@ import {
     collectInputForBln3Score,
     getBln3Score,
     type Bln3Score,
+    type Bln3ScoreCollectedInputs,
 } from "@nmi-agro/fdm-calculator"
-import { getFields, type Field, type PrincipalId, type Timeframe } from "@nmi-agro/fdm-core"
+import {
+    getFields,
+    getMeasures,
+    type Field,
+    type Measure,
+    type PrincipalId,
+    type Timeframe,
+} from "@nmi-agro/fdm-core"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
 
-export type { Bln3Score }
+export type { Bln3Score, Bln3ScoreCollectedInputs }
 
 export type FieldBln3Score = {
     b_id: string
     score: Bln3Score | null
     error: string | null
+}
+
+export type FieldBln3Result = {
+    score: Bln3Score | null
+    inputs: Bln3ScoreCollectedInputs
 }
 
 /**
@@ -37,7 +50,7 @@ export async function getIndicatorsForField({
     principal_id: PrincipalId
     b_id: string
     timeframe?: Timeframe
-}): Promise<Bln3Score | null> {
+}): Promise<FieldBln3Result> {
     const nmiApiKey = getNmiApiKey()
 
     const inputs = await collectInputForBln3Score(
@@ -50,7 +63,7 @@ export async function getIndicatorsForField({
         ...inputs,
         nmiApiKey,
     })
-    return score
+    return { score, inputs }
 }
 
 /**
@@ -86,7 +99,7 @@ export async function getIndicatorsForFarm({
     return results.map((result, index) => {
         const b_id = fields[index].b_id
         if (result.status === "fulfilled") {
-            return { b_id, score: result.value, error: null }
+            return { b_id, score: result.value.score, error: null }
         }
         const errorMessage =
             result.reason instanceof Error
@@ -95,6 +108,23 @@ export async function getIndicatorsForFarm({
         console.error(`BLN3 score failed for field ${b_id}:`, errorMessage)
         return { b_id, score: null, error: errorMessage }
     })
+}
+
+/**
+ * Returns all measures applied to a single field, enriched with catalogue names.
+ * Used by the field-level indicator detail page to display active measures
+ * in the expandable indicator card panels.
+ */
+export async function getFieldMeasuresForIndicators({
+    principal_id,
+    b_id,
+    timeframe,
+}: {
+    principal_id: PrincipalId
+    b_id: string
+    timeframe?: Timeframe
+}): Promise<Measure[]> {
+    return getMeasures(fdm, principal_id, b_id, timeframe)
 }
 
 /**
