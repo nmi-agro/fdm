@@ -22,7 +22,7 @@ interface PaginatorProps {
     pageSize: number
 }
 
-export function getPageSearch(search: string, pageSize: number, n?: number) {
+export function getPageSearch(search: string, pageSize: number, n: number) {
     return modifySearchParams(search, (searchParams) => {
         if (typeof n === "number")
             searchParams.set("pageOffset", (n * pageSize).toString())
@@ -162,7 +162,7 @@ function PaginationCurrent({
                 if (e.key !== "Enter") return
                 let newValue = 0
                 try {
-                    newValue = Number.parseInt(e.currentTarget.value)
+                    newValue = Number.parseInt(e.currentTarget.value, 10)
                 } catch (_) {
                     return
                 }
