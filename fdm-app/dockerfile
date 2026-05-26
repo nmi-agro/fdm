@@ -42,11 +42,12 @@ COPY --from=pruner /app/tsconfig*.json ./
 RUN pnpm build
 
 # Create a self-contained production deployment bundle.
-# Without --legacy, pnpm deploy uses the workspace lockfile directly to resolve
-# deps — no registry metadata re-fetch needed, which avoids minimumReleaseAge
-# failures on packages whose cached metadata is missing the "time" field.
+# --legacy is required because inject-workspace-packages=true is not set; without
+# it pnpm v10+ refuses to deploy. The minimumReleaseAge / missing "time" field
+# issue on the deploy step is avoided by --config.prefer-online=true on the
+# install step above (metadata is refreshed and stored before deploy runs).
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm --filter=@nmi-agro/fdm-app deploy --prod /app/deployed
+    pnpm --filter=@nmi-agro/fdm-app deploy --prod --legacy /app/deployed
 
 # Production runner stage
 FROM node:${NODE_VERSION}-alpine AS runner
