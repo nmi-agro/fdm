@@ -6,17 +6,19 @@
  * Import with React.lazy to avoid SSR issues with maplibre-gl.
  */
 import maplibregl, { type StyleSpecification } from "maplibre-gl"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import {
     Layer,
     Map as MapGL,
     type MapMouseEvent,
+    type MapRef,
     type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
 import type { FeatureCollection } from "geojson"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
     getFieldsScoreOutlineStyle,
@@ -56,6 +58,7 @@ export default function IndicatorsMap({
     height = "380px",
 }: IndicatorsMapProps) {
     const navigate = useNavigate()
+    const mapRef = useRef<MapRef>(null)
     const initialViewState = getViewState(fieldsGeoJSON)
     const [viewState, setViewState] = useState<ViewState>(
         initialViewState as ViewState,
@@ -110,6 +113,7 @@ export default function IndicatorsMap({
     return (
         <div className="relative" style={{ height }}>
             <MapGL
+                ref={mapRef}
                 {...viewState}
                 style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
                 mapStyle={mapStyle as any}
@@ -125,6 +129,23 @@ export default function IndicatorsMap({
                     if (b_id) navigate(`${basePath}/${b_id}`)
                 }}
             >
+                <Controls
+                    onViewportChange={({ longitude, latitude, zoom }) =>
+                        setViewState((s) => ({ ...s, longitude, latitude, zoom }))
+                    }
+                    showFlyToFields={
+                        fieldsGeoJSON.features.length > 0 ? true : undefined
+                    }
+                    onFlyToFields={() => {
+                        setViewState({ ...initialViewState as ViewState })
+                        if ((initialViewState as any).bounds) {
+                            mapRef.current?.fitBounds(
+                                (initialViewState as any).bounds,
+                                (initialViewState as any).fitBoundsOptions,
+                            )
+                        }
+                    }}
+                />
                 <MapTilerAttribution />
                 <FieldsSourceNotClickable
                     id={SOURCE_ID}
