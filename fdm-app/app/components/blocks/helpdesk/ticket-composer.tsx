@@ -13,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
-import { MessageFields } from "./message-composer"
+import { Textarea } from "~/components/ui/textarea"
 import { TicketSchema } from "./ticket-schema"
 
 export function TicketComposer({
@@ -33,7 +33,7 @@ export function TicketComposer({
 
     return (
         <RemixFormProvider {...form}>
-            <Form method="POST">
+            <Form method="post">
                 <Controller
                     name="context_farm_id"
                     render={({ field, fieldState }) => (
@@ -72,7 +72,16 @@ export function TicketComposer({
                         </Field>
                     )}
                 />
-                <MessageFields />
+                <Controller
+                    name="body"
+                    render={({ field, fieldState }) => (
+                        <Field>
+                            <FieldLabel>Stel je vraag beneden.</FieldLabel>
+                            <Textarea {...field} />
+                            <FieldError errors={[fieldState.error]} />
+                        </Field>
+                    )}
+                />
                 <Button type="submit" className="ms-auto">
                     Verzenden
                 </Button>

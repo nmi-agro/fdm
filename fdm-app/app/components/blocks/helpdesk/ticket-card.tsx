@@ -5,6 +5,7 @@ import { NavLink, useLocation } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { Badge } from "~/components/ui/badge"
 import type { HelpdeskUser } from "./types"
+import { TICKET_STATUS } from "./ticket"
 
 export function TicketCard({
     ticket,
@@ -21,8 +22,9 @@ export function TicketCard({
 
     const label = ticket.subject ?? "Ticket"
 
-    const isResolved = !!ticket.closed_at
-    const statusLabel = isResolved ? "Opgelost" : "Open"
+    const { label: statusLabel, color: statusColor } = TICKET_STATUS.find(
+        (item) => item.value === ticket.status,
+    ) ?? { status: ticket.status, color: "#777777" }
 
     return (
         <NavLink
@@ -40,10 +42,8 @@ export function TicketCard({
             <div>
                 <svg
                     aria-label={statusLabel}
-                    className={cn(
-                        "inline size-[1em]",
-                        isResolved ? "text-[#aa00aa]" : "text-[#00aa00]",
-                    )}
+                    className={cn("inline size-[1em]")}
+                    style={{ color: statusColor }}
                     viewBox="0 0 24 24"
                     fill="currentColor"
                 >

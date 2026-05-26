@@ -81,7 +81,9 @@ export default function NewTicket() {
         useLoaderData<typeof loader>()
     return (
         <div className="mx-auto max-w-5xl">
-            <FarmTitle title="Wat had je een vraag over?" description={""} />
+            <h1 className="text-2xl font-bold my-6">
+                Wat had je een vraag over?
+            </h1>
             <TicketComposer
                 farmOptions={farmOptions}
                 initial_context_farm_id={initial_context_farm_id}

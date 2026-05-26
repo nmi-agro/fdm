@@ -8,6 +8,7 @@ import {
     getMessagesForTicket,
     getTicket,
     unassignTicket,
+    updateTicketStatus,
 } from "@nmi-agro/fdm-helpdesk"
 import { dataWithSuccess } from "remix-toast"
 import z from "zod"
@@ -95,31 +96,26 @@ export async function loader({ params, request }: Args) {
 }
 
 const ActionSchema = z.discriminatedUnion("intent", [
-    z.object({ intent: z.literal("add_message"), body: MessageBodySchema }),
+    z.object({ intent: z.literal("set_ticket_status"), status: z.string() }),
     AssigneeSchema.extend({ intent: z.literal("change_assignment") }),
+    z.object({ intent: z.literal("add_message"), body: MessageBodySchema }),
 ])
 
 export async function action({ params, request }: Args) {
     try {
         const session = await getSession(request)
-        console.log([...(await request.clone().formData()).entries()])
         const formValues = await extractFormValuesFromRequest(
             request,
             ActionSchema,
         )
 
-        if (formValues.intent === "add_message") {
-            await addMessage(
+        if (formValues.intent === "set_ticket_status") {
+            await updateTicketStatus(
                 fdm,
-                params.ticket_id,
                 session.principal_id,
-                "customer",
-                formValues.body,
+                params.ticket_id,
+                formValues.status,
             )
-
-            return dataWithSuccess("Reactie ontgevangen!", {
-                message: "Reactie ongevangen!",
-            })
         }
 
         if (formValues.intent === "change_assignment") {
@@ -130,8 +126,6 @@ export async function action({ params, request }: Args) {
                             params.ticket_id,
                         ])
                     ).get(params.ticket_id) ?? []
-
-                console.log(currentAssignees)
 
                 const currentAssignment = new Map(
                     currentAssignees.map((assignee) => [
@@ -183,6 +177,20 @@ export async function action({ params, request }: Args) {
                         message: "Toewijzing succesvol verandert!",
                     })
                 }
+            })
+        }
+
+        if (formValues.intent === "add_message") {
+            await addMessage(
+                fdm,
+                params.ticket_id,
+                session.principal_id,
+                "customer",
+                formValues.body,
+            )
+
+            return dataWithSuccess("Reactie ontgevangen!", {
+                message: "Reactie ongevangen!",
             })
         }
     } catch (err) {
