@@ -9,6 +9,7 @@ import type {
 import {
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
+    NormNotApplicableError,
 } from "@nmi-agro/fdm-calculator"
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import { AlertTriangle } from "lucide-react"
@@ -54,6 +55,7 @@ interface FieldNorm {
         nitrogen: NormFilling
     }
     errorMessage?: string
+    isWarning?: boolean
 }
 
 // Meta
@@ -136,6 +138,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             let errorMessage = null as string | null
             let hasFieldNormErrors = false
             const fieldErrorMessages: string[] = []
+            const fieldWarningMessages: string[] = []
             try {
                 // Calculate norms per field
                 const functionsForNorms = createFunctionsForNorms(
@@ -219,20 +222,27 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                             },
                         }
                     } catch (error) {
-                        hasFieldNormErrors = true
                         const fieldName =
                             fields.find((f) => f.b_id === field.b_id)?.b_name ||
                             `Perceel ${field.b_id}`
-                        fieldErrorMessages.push(
-                            `${fieldName}: ${String(error).replace(
-                                "Error: ",
-                                "",
-                            )}`,
-                        )
+                        const msg = String(error)
+                            .replace("NormNotApplicableError: ", "")
+                            .replace("Error: ", "")
+                        if (error instanceof NormNotApplicableError) {
+                            fieldWarningMessages.push(`${fieldName}: ${msg}`)
+                            return {
+                                b_id: field.b_id,
+                                b_area: field.b_area,
+                                errorMessage: msg,
+                                isWarning: true,
+                            }
+                        }
+                        hasFieldNormErrors = true
+                        fieldErrorMessages.push(`${fieldName}: ${msg}`)
                         return {
                             b_id: field.b_id,
                             b_area: field.b_area,
-                            errorMessage: String(error).replace("Error: ", ""),
+                            errorMessage: msg,
                         }
                     }
                 })
@@ -293,6 +303,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 farmFillings: farmFillings,
                 hasFieldNormErrors: hasFieldNormErrors,
                 fieldErrorMessages: fieldErrorMessages,
+                fieldWarningMessages: fieldWarningMessages,
             }
         })()
 
@@ -357,6 +368,7 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
         errorMessage,
         hasFieldNormErrors,
         fieldErrorMessages,
+        fieldWarningMessages,
     } = use(loaderData.asyncData)
     const { showProductiveOnly } = useFieldFilterStore()
 
@@ -434,6 +446,7 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
                     farmFillings={farmFillings}
                     hasFieldNormErrors={hasFieldNormErrors}
                     fieldErrorMessages={fieldErrorMessages}
+                    fieldWarningMessages={fieldWarningMessages ?? []}
                 />
                 <Separator className="my-8" />
                 <FieldNorms

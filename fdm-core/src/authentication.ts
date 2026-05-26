@@ -2,6 +2,7 @@ import type { GoogleOptions, MicrosoftOptions, User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
 import { magicLink, organization, username } from "better-auth/plugins"
+import { apiKey } from "@better-auth/api-key"
 import { eq } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { generateFromEmail } from "unique-username-generator"
@@ -155,6 +156,12 @@ export function createFdmAuth(
             enabled: emailAndPassword || false,
         },
         plugins: [
+            apiKey({
+                references: "user",
+                rateLimit: {
+                    enabled: false,
+                },
+            }),
             username(),
             organization({
                 organizationHooks: {

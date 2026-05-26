@@ -2,6 +2,7 @@ interface RuntimeConfig {
     PUBLIC_FDM_URL?: string
     PUBLIC_FDM_NAME?: string
     PUBLIC_FDM_DATASETS_URL?: string
+    PUBLIC_FDM_API_URL?: string
     PUBLIC_MAP_PROVIDER?: "maptiler" | "osm"
     PUBLIC_MAPTILER_API_KEY?: string
     PUBLIC_SENTRY_DSN?: string

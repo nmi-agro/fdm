@@ -22,6 +22,7 @@
         "@mapbox/geojson-extent": "^1.0.1",
         "@maplibre/maplibre-gl-geocoder": "^1.9.4",
         "@nmi-agro/fdm-agents": "workspace:*",
+        "@better-auth/api-key": "catalog:",
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/fdm-data": "workspace:*",

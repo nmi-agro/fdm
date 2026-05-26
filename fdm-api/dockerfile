@@ -1,0 +1,54 @@
+# syntax=docker/dockerfile:1
+
+# ── Stage 1: builder ─────────────────────────────────────────────────────────
+FROM node:24-alpine AS builder
+
+# Enable corepack for pnpm
+RUN corepack enable
+
+WORKDIR /workspace
+
+# Copy workspace manifests first for better layer caching
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+
+# Copy each package's package.json (only manifests, not source)
+COPY fdm-core/package.json ./fdm-core/
+COPY fdm-api/package.json  ./fdm-api/
+
+# Install all workspace dependencies (respects pnpm-lock.yaml)
+RUN pnpm install --frozen-lockfile --filter @nmi-agro/fdm-core --filter @nmi-agro/fdm-api
+
+# Copy source
+COPY fdm-core/ ./fdm-core/
+COPY fdm-api/  ./fdm-api/
+
+# Build fdm-core first, then fdm-api
+RUN pnpm --filter @nmi-agro/fdm-core build
+RUN pnpm --filter @nmi-agro/fdm-api  build
+
+# ── Stage 2: production image ─────────────────────────────────────────────────
+FROM node:24-alpine AS runner
+
+RUN corepack enable
+
+WORKDIR /app
+
+# Copy workspace plumbing and prod manifests
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY fdm-core/package.json ./fdm-core/
+COPY fdm-api/package.json  ./fdm-api/
+
+# Install production-only deps
+RUN pnpm install --frozen-lockfile --prod \
+    --filter @nmi-agro/fdm-core \
+    --filter @nmi-agro/fdm-api
+
+# Copy compiled output from builder
+COPY --from=builder /workspace/fdm-core/dist ./fdm-core/dist
+COPY --from=builder /workspace/fdm-api/dist  ./fdm-api/dist
+
+ENV NODE_ENV=production
+ENV PORT=8080
+EXPOSE 8080
+
+CMD ["node", "fdm-api/dist/server.js"]

@@ -7,6 +7,7 @@ import {
     listResources,
     revokePrincipal,
     updateRole,
+    writeAuditEntry,
 } from "./authorization"
 import type {
     PrincipalId,
@@ -190,6 +191,10 @@ export async function getFarms(
     }[]
 > {
     try {
+        const start = performance.now()
+        const resolvedPrincipalId = Array.isArray(principal_id)
+            ? principal_id[0] || "unknown"
+            : principal_id || "unknown"
         return await fdm.transaction(async (tx) => {
             const resources = await listResources(
                 tx,
@@ -199,6 +204,7 @@ export async function getFarms(
             )
 
             if (resources.length === 0) {
+                await writeAuditEntry(tx, "getFarms", "farm", "list", principal_id, "user", resolvedPrincipalId, Math.round(performance.now() - start))
                 return []
             }
 
@@ -231,6 +237,7 @@ export async function getFarms(
                 }),
             )
 
+            await writeAuditEntry(tx, "getFarms", "farm", "list", principal_id, "user", resolvedPrincipalId, Math.round(performance.now() - start))
             return farms
         })
     } catch (err) {

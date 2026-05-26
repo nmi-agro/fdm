@@ -38,6 +38,11 @@ fdm-agents:
   description: Posts related to the AI agents for FDM (@nmi-agro/fdm-agents).
   permalink: /fdm-agents
 
+fdm-api:
+  label: fdm-api
+  description: Posts related to the FDM API (@nmi-agro/fdm-api).
+  permalink: /fdm-api
+
 update:
   label: Update
   description: General updates and improvements to the FDM ecosystem.
