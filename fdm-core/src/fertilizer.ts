@@ -3,11 +3,23 @@ import {
     type CatalogueFertilizerItem,
     hashFertilizer,
 } from "@nmi-agro/fdm-data"
-import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm"
+import {
+    and,
+    asc,
+    desc,
+    eq,
+    gte,
+    inArray,
+    isNotNull,
+    isNull,
+    lte,
+    or,
+} from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.types"
 import { getEnabledFertilizerCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
+import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
@@ -81,7 +93,10 @@ export async function getFertilizersFromCatalogues(
             return []
         }
 
-        // Filter to only catalogue sources that are enabled for farms the principal can access
+        // Filter to only catalogue sources that are enabled for farms the principal can access.
+        // Access may be granted directly (role.principal_id matches the user) or through
+        // organization membership (role assigned to an org the user belongs to).
+        const principal_ids = [principal_id].flat()
         const authorizedRows = await fdm
             .selectDistinct({
                 p_source: schema.fertilizerCatalogueEnabling.p_source,
@@ -95,17 +110,29 @@ export async function getFertilizersFromCatalogues(
                         authZSchema.role.resource_id,
                         schema.fertilizerCatalogueEnabling.b_id_farm,
                     ),
-                    inArray(
-                        authZSchema.role.principal_id,
-                        [principal_id].flat(),
-                    ),
                     isNull(authZSchema.role.deleted),
                 ),
             )
+            .leftJoin(
+                authNSchema.member,
+                eq(
+                    authZSchema.role.principal_id,
+                    authNSchema.member.organizationId,
+                ),
+            )
             .where(
-                inArray(
-                    schema.fertilizerCatalogueEnabling.p_source,
-                    catalogueIds,
+                and(
+                    inArray(
+                        schema.fertilizerCatalogueEnabling.p_source,
+                        catalogueIds,
+                    ),
+                    or(
+                        inArray(authZSchema.role.principal_id, principal_ids),
+                        and(
+                            isNotNull(authNSchema.member.userId),
+                            inArray(authNSchema.member.userId, principal_ids),
+                        ),
+                    ),
                 ),
             )
         const authorizedSources = new Set(

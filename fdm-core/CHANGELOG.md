@@ -1,5 +1,11 @@
 # Changelog fdm-core
 
+## 0.32.1
+
+### Patch Changes
+
+- [#624](https://github.com/nmi-agro/fdm/pull/624) [`463e0c1`](https://github.com/nmi-agro/fdm/commit/463e0c1127bd9f5fe33fe971458719fe1459d0e3) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixes to retrieve custom fertilizers when user has access to farm via organization
+
 ## 0.32.0
 
 ### Minor Changes

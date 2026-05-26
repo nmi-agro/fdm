@@ -20,6 +20,7 @@
     "scripts": {
         "build": "tsdown",
         "check-types": "tsc --noEmit",
+        "preinstall": "npx only-allow pnpm",
         "test": "vitest run",
         "test-coverage": "vitest run --coverage"
     },
