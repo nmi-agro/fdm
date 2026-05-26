@@ -22,9 +22,14 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Install dependencies
+# Install dependencies.
+# --prefer-online forces pnpm to re-fetch package metadata from the registry on
+# every build, ensuring the "time" field is present in the store cache. This is
+# needed because minimumReleaseAge requires the "time" field, and a stale Docker
+# cache may contain metadata fetched before that field was required. Tarballs are
+# still served from the cache (content-addressable), so build speed is unaffected.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --prefer-online
 
 # Copy source code of isolated subworkspace
 COPY --from=pruner /app/out/full/ .
