@@ -144,8 +144,7 @@ export function SidebarApps() {
                     <SidebarMenu>
                         <Collapsible
                             defaultOpen={
-                                location.pathname.includes("/atlas") &&
-                                !location.pathname.includes("/indicators")
+                                location.pathname.includes("/atlas")
                             }
                             className="group/collapsible"
                         >
@@ -154,12 +153,7 @@ export function SidebarApps() {
                                     <CollapsibleTrigger asChild>
                                         <SidebarMenuButton
                                             isActive={
-                                                location.pathname.includes(
-                                                    "/atlas",
-                                                ) &&
-                                                !location.pathname.includes(
-                                                    "/indicators",
-                                                )
+                                                location.pathname.includes("/atlas")
                                             }
                                         >
                                             <MapIcon />
@@ -423,9 +417,10 @@ export function SidebarApps() {
                                 {indicatorsLink ? (
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={location.pathname.includes(
-                                            "/indicators",
-                                        )}
+                                        isActive={
+                                            location.pathname.includes("/indicators") &&
+                                            !location.pathname.includes("/atlas/indicators")
+                                        }
                                     >
                                         <NavLink to={indicatorsLink}>
                                             <Gauge />
