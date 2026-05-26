@@ -15,6 +15,7 @@
             "dependsOn": ["^build-docs"]
         },
         "check-types": {
+            "outputs": [],
             "dependsOn": ["^check-types"]
         },
         "//#format-and-lint": {},

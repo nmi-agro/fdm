@@ -22,7 +22,8 @@
         "check-types": "tsc --noEmit",
         "preinstall": "npx only-allow pnpm",
         "test": "vitest run",
-        "test-coverage": "vitest run --coverage"
+        "test-coverage": "vitest run --coverage",
+        "watch": "vitest"
     },
     "dependencies": {
         "@langchain/core": "^1.1.46",
