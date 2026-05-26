@@ -113,12 +113,7 @@ export function getColumns(
                                 size="sm"
                                 className="h-7 px-2 text-xs gap-1.5"
                             >
-                                <Badge
-                                    variant="secondary"
-                                    className="rounded-full px-1.5 text-xs"
-                                >
-                                    {fields.length}
-                                </Badge>
+                                {fields.length}{" "}
                                 {fields.length === 1 ? "perceel" : "percelen"}
                             </Button>
                         </PopoverTrigger>
