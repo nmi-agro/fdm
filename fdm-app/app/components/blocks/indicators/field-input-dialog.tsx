@@ -9,7 +9,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "~/components/ui/dialog"
-import type { Measure } from "@nmi-agro/fdm-core"
+import { type FieldMeasure } from "~/lib/indicators"
 
 type CultivationSummary = {
     name: string
@@ -32,7 +32,7 @@ type SoilData = {
 
 type FieldInputDialogProps = {
     cultivations: CultivationSummary[]
-    fieldMeasures: Measure[]
+    fieldMeasures: FieldMeasure[]
     soilData: SoilData | null
 }
 

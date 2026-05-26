@@ -5,6 +5,7 @@ import {
     Calendar,
     Check,
     ChevronRight,
+    ClipboardList,
     House,
     LayoutGrid,
     Shapes,
@@ -103,6 +104,15 @@ export function SidebarFarm({
         fertilizersLink = `/farm/${farmId}/fertilizers`
     } else {
         fertilizersLink = undefined
+    }
+
+    let measuresLink: string | undefined
+    if (isCreateFarmWizard) {
+        measuresLink = undefined
+    } else if (farmId && farmId !== "undefined") {
+        measuresLink = `/farm/${farmId}/${selectedCalendar}/measures`
+    } else {
+        measuresLink = undefined
     }
 
     return (
@@ -328,6 +338,39 @@ export function SidebarFarm({
                                     <TooltipContent side="right">
                                         Selecteer een bedrijf om het bouwplan te
                                         beheren
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            {measuresLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={location.pathname.includes(
+                                        "/measures",
+                                    )}
+                                >
+                                    <NavLink to={measuresLink}>
+                                        <ClipboardList />
+                                        <span>Maatregelen</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            asChild
+                                            className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <ClipboardList />
+                                                <span>Maatregelen</span>
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om de
+                                        maatregelen te beheren
                                     </TooltipContent>
                                 </Tooltip>
                             )}

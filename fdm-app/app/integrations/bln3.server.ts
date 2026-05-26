@@ -17,12 +17,12 @@ import {
     getFields,
     getMeasures,
     type Field,
-    type Measure,
     type PrincipalId,
     type Timeframe,
 } from "@nmi-agro/fdm-core"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
+import type { FieldMeasure } from "~/lib/indicators"
 
 export type { Bln3Score, Bln3ScoreCollectedInputs }
 
@@ -123,8 +123,17 @@ export async function getFieldMeasuresForIndicators({
     principal_id: PrincipalId
     b_id: string
     timeframe?: Timeframe
-}): Promise<Measure[]> {
-    return getMeasures(fdm, principal_id, b_id, timeframe)
+}): Promise<FieldMeasure[]> {
+    const measures = await getMeasures(fdm, principal_id, b_id, timeframe)
+    return measures.map((m) => ({
+        b_id_measure: m.b_id_measure,
+        m_id: m.m_id,
+        m_name: m.m_name,
+        m_summary: m.m_summary,
+        m_conflicts: m.m_conflicts,
+        m_start: m.m_start ? m.m_start.toISOString() : null,
+        m_end: m.m_end ? m.m_end.toISOString() : null,
+    }))
 }
 
 /**
