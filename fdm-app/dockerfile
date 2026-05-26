@@ -48,8 +48,7 @@ WORKDIR /app
 # Add non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 user && \
-    apk add --no-cache libc6-compat curl && \
-    npm install -g pnpm
+    apk add --no-cache libc6-compat curl
 
 # Copy production node_modules from the deploy bundle.
 # This avoids re-fetching and re-building git-hosted packages (like
@@ -83,4 +82,8 @@ HEALTHCHECK --interval=30s --timeout=3s \
   CMD curl -f http://localhost:8080/health || exit 1
 
 WORKDIR /app/fdm-app
-CMD ["pnpm", "start"]
+# Run node directly instead of via `pnpm start` to bypass pnpm v11's pre-script
+# dependency status check, which compares node_modules/.modules.yaml (written by
+# the builder running as root) against the runner's store path (non-root user) and
+# tries to purge + reinstall — failing because the runner has no pnpm store.
+CMD ["/bin/sh", "-c", "node ./app/lib/fdm-migrate.server.js && export NODE_OPTIONS='--import ./instrument.server.mjs' && exec ./node_modules/.bin/react-router-serve ./build/server/index.js"]
