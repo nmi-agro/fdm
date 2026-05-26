@@ -158,6 +158,9 @@ export function createFdmAuth(
         plugins: [
             apiKey({
                 references: "user",
+                rateLimit: {
+                    enabled: false,
+                },
             }),
             username(),
             organization({
