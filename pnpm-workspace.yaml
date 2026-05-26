@@ -29,6 +29,11 @@ minimumReleaseAgeExclude:
 allowBuilds:
   '@geomatico/maplibre-cog-protocol': true
   '@google/genai': true
+  '@nmi-agro/fdm-agents': true
+  '@nmi-agro/fdm-calculator': true
+  '@nmi-agro/fdm-core': true
+  '@nmi-agro/fdm-data': true
+  '@nmi-agro/fdm-rvo': true
   '@sentry-internal/node-cpu-profiler': true
   '@sentry/cli': true
   '@swc/core': true
