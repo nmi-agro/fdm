@@ -58,10 +58,10 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
     INDICATORS,
-    INDICATOR_CATEGORIES,
-    type IndicatorCategory,
-    OBI_INDICATOR_IDS,
-    BBWP_INDICATOR_IDS,
+    ECOSYSTEEMDIENSTEN,
+    ECOSYSTEEMDIENST_INDICATOR_IDS,
+    ECOSYSTEEMDIENST_FULL_NAME,
+    type Ecosysteemdienst,
     scoreToDisplay,
 } from "~/lib/indicators"
 
@@ -77,13 +77,15 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
         group: "Samenvatting",
         options: [
             { value: "avg", label: "Gemiddelde (alle indicatoren)" },
-            { value: "obi", label: "OBI – Open Bodem Index" },
-            { value: "bbwp", label: "BBWP – BedrijfsBodemWaterPlan" },
+            ...ECOSYSTEEMDIENSTEN.map((dienst) => ({
+                value: `eco_${dienst}`,
+                label: dienst,
+            })),
         ],
     },
-    ...INDICATOR_CATEGORIES.map((cat) => ({
-        group: cat,
-        options: INDICATORS.filter((i) => i.category === cat).map((i) => ({
+    ...ECOSYSTEEMDIENSTEN.map((dienst) => ({
+        group: dienst,
+        options: INDICATORS.filter((i) => i.ecosysteemdienst === dienst).map((i) => ({
             value: i.id,
             label: i.name,
         })),
@@ -114,7 +116,10 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 function computeFieldScores(
     fs: FieldBln3Score | undefined,
 ): Record<string, number> {
-    const result: Record<string, number> = { avg: -1, obi: -1, bbwp: -1 }
+    const result: Record<string, number> = { avg: -1 }
+    for (const dienst of ECOSYSTEEMDIENSTEN) {
+        result[`eco_${dienst}`] = -1
+    }
     if (!fs?.score) return result
 
     const indicators = fs.score.indicators
@@ -133,27 +138,19 @@ function computeFieldScores(
               )
             : -1
 
-    const obiVals = OBI_INDICATOR_IDS.flatMap((id) => {
-        const r = indicators.find((i) => i.indicator_id === id)
-        return r ? [r.score] : []
-    })
-    result.obi =
-        obiVals.length > 0
-            ? Math.round(
-                  (obiVals.reduce((a, b) => a + b, 0) / obiVals.length) * 100,
-              )
-            : -1
-
-    const bbwpVals = BBWP_INDICATOR_IDS.flatMap((id) => {
-        const r = indicators.find((i) => i.indicator_id === id)
-        return r ? [r.score] : []
-    })
-    result.bbwp =
-        bbwpVals.length > 0
-            ? Math.round(
-                  (bbwpVals.reduce((a, b) => a + b, 0) / bbwpVals.length) * 100,
-              )
-            : -1
+    for (const dienst of ECOSYSTEEMDIENSTEN) {
+        const ids = ECOSYSTEEMDIENST_INDICATOR_IDS[dienst]
+        const vals = ids.flatMap((id) => {
+            const r = indicators.find((i) => i.indicator_id === id)
+            return r ? [r.score] : []
+        })
+        result[`eco_${dienst}`] =
+            vals.length > 0
+                ? Math.round(
+                      (vals.reduce((a, b) => a + b, 0) / vals.length) * 100,
+                  )
+                : -1
+    }
 
     return result
 }
@@ -373,11 +370,11 @@ const SESSION_KEY_CATEGORY = "bln3_field_categories"
 const SESSION_KEY_MEASURES = "bln3_field_measures_toggle"
 const SESSION_KEY_MAP_SCORE = "bln3_map_score"
 
-function readSessionCategories(): IndicatorCategory[] {
+function readSessionCategories(): Ecosysteemdienst[] {
     if (typeof window === "undefined") return []
     try {
         const stored = sessionStorage.getItem(SESSION_KEY_CATEGORY)
-        return stored ? (JSON.parse(stored) as IndicatorCategory[]) : []
+        return stored ? (JSON.parse(stored) as Ecosysteemdienst[]) : []
     } catch {
         return []
     }
@@ -418,9 +415,9 @@ export default function IndicatorsFieldDetail() {
     const { b_id_farm, calendar, b_id } = useParams()
 
     // Restore filter state from sessionStorage
-    const [activeCategories, setActiveCategories] = useState<
-        IndicatorCategory[]
-    >(() => readSessionCategories())
+    const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>(
+        () => readSessionCategories()
+    )
     const [withMeasures, setWithMeasures] = useState<boolean>(() =>
         readSessionMeasures(),
     )
@@ -450,24 +447,24 @@ export default function IndicatorsFieldDetail() {
         } catch {}
     }, [mapScoreKey])
 
-    const handleCategoryToggle = (category: IndicatorCategory) => {
+    const handleCategoryToggle = (dienst: Ecosysteemdienst) => {
         setActiveCategories((prev) =>
-            prev.includes(category)
-                ? prev.filter((c) => c !== category)
-                : [...prev, category],
+            prev.includes(dienst)
+                ? prev.filter((c) => c !== dienst)
+                : [...prev, dienst],
         )
     }
 
     const handleCategoryAll = () => setActiveCategories([])
     const handleMeasuresToggle = (value: boolean) => setWithMeasures(value)
 
-    // Filter indicators by active category
+    // Filter indicators by active ecosystem service
     const visibleIndicatorInfos = useMemo(
         () =>
             activeCategories.length === 0
                 ? INDICATORS
                 : INDICATORS.filter((i) =>
-                      activeCategories.includes(i.category),
+                      activeCategories.includes(i.ecosysteemdienst),
                   ),
         [activeCategories],
     )
@@ -498,50 +495,40 @@ export default function IndicatorsFieldDetail() {
         })
     }, [fieldScore, visibleIndicatorInfos, withMeasures])
 
-    // Farm aggregation scores for OBI / BBWP
-    const obiScore = useMemo(() => {
-        if (!fieldScore) return null
-        const scores = OBI_INDICATOR_IDS.flatMap((id) => {
-            const r = fieldScore.indicators.find((i) => i.indicator_id === id)
-            return r ? [r.score] : []
-        })
-        return scores.length > 0
-            ? scores.reduce((a, b) => a + b, 0) / scores.length
-            : null
-    }, [fieldScore])
-
-    const obiIndex = useMemo(() => {
-        if (!fieldScore) return null
-        const scores = OBI_INDICATOR_IDS.flatMap((id) => {
-            const r = fieldScore.indicators.find((i) => i.indicator_id === id)
-            return r ? [r.index] : []
-        })
-        return scores.length > 0
-            ? scores.reduce((a, b) => a + b, 0) / scores.length
-            : null
-    }, [fieldScore])
-
-    const bbwpScore = useMemo(() => {
-        if (!fieldScore) return null
-        const scores = BBWP_INDICATOR_IDS.flatMap((id) => {
-            const r = fieldScore.indicators.find((i) => i.indicator_id === id)
-            return r ? [r.score] : []
-        })
-        return scores.length > 0
-            ? scores.reduce((a, b) => a + b, 0) / scores.length
-            : null
-    }, [fieldScore])
-
-    const bbwpIndex = useMemo(() => {
-        if (!fieldScore) return null
-        const scores = BBWP_INDICATOR_IDS.flatMap((id) => {
-            const r = fieldScore.indicators.find((i) => i.indicator_id === id)
-            return r ? [r.index] : []
-        })
-        return scores.length > 0
-            ? scores.reduce((a, b) => a + b, 0) / scores.length
-            : null
-    }, [fieldScore])
+    // Per-ecosystem-service aggregation scores for this field
+    const ecosysteemdienst_scores = useMemo(
+        () =>
+            ECOSYSTEEMDIENSTEN.map((dienst) => {
+                if (!fieldScore) return { dienst, score: null, index: null }
+                const ids = ECOSYSTEEMDIENST_INDICATOR_IDS[dienst]
+                const scoreVals = ids.flatMap((id) => {
+                    const r = fieldScore.indicators.find(
+                        (i) => i.indicator_id === id,
+                    )
+                    return r ? [r.score] : []
+                })
+                const indexVals = ids.flatMap((id) => {
+                    const r = fieldScore.indicators.find(
+                        (i) => i.indicator_id === id,
+                    )
+                    return r ? [r.index] : []
+                })
+                return {
+                    dienst,
+                    score:
+                        scoreVals.length > 0
+                            ? scoreVals.reduce((a, b) => a + b, 0) /
+                              scoreVals.length
+                            : null,
+                    index:
+                        indexVals.length > 0
+                            ? indexVals.reduce((a, b) => a + b, 0) /
+                              indexVals.length
+                            : null,
+                }
+            }),
+        [fieldScore],
+    )
 
     const measuresHref = `/farm/${b_id_farm}/${calendar}/measures/${b_id}`
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
@@ -583,26 +570,25 @@ export default function IndicatorsFieldDetail() {
                     <div className="flex-1 min-w-0 space-y-4">
                         {/* Aggregation cards + input dialog */}
                         <div className="flex items-start justify-between gap-4 flex-wrap">
-                            {(obiScore !== null || bbwpScore !== null) && (
-                                <div className="flex flex-wrap gap-3">
-                                    {obiScore !== null && (
-                                        <AggregationCard
-                                            label="OBI"
-                                            name="Open Bodem Index"
-                                            score01={obiScore}
-                                            index01={obiIndex}
-                                            showIndex={!withMeasures}
-                                        />
-                                    )}
-                                    {bbwpScore !== null && (
-                                        <AggregationCard
-                                            label="BBWP"
-                                            name="BedrijfsBodemWaterPlan"
-                                            score01={bbwpScore}
-                                            index01={bbwpIndex}
-                                            showIndex={!withMeasures}
-                                        />
-                                    )}
+                            {ecosysteemdienst_scores.some((e) => e.score !== null) && (
+                                <div className="space-y-2 flex-1">
+                                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                                        Ecosysteemdiensten
+                                    </p>
+                                    <div className="flex gap-3">
+                                        {ecosysteemdienst_scores.map(({ dienst, score, index }) =>
+                                            score !== null ? (
+                                                <AggregationCard
+                                                    key={dienst}
+                                                    label={dienst}
+                                                    name={ECOSYSTEEMDIENST_FULL_NAME[dienst]}
+                                                    score01={score}
+                                                    index01={index}
+                                                    showIndex={!withMeasures}
+                                                />
+                                            ) : null,
+                                        )}
+                                    </div>
                                 </div>
                             )}
                             <FieldInputDialog

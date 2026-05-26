@@ -5,19 +5,17 @@
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type IndicatorCategory =
-    | "Biologisch"
-    | "Chemisch"
-    | "Fysisch"
-    | "Grondwater"
-    | "Nutriënten"
-    | "Oppervlaktewater"
+export type Ecosysteemdienst =
+    | "Gewasproductie"
+    | "Koolstofvastlegging"
+    | "Waterkwaliteit"
+    | "Nutriëntenkringloop"
 
 export type IndicatorInfo = {
     id: string
     name: string
     description: string
-    category: IndicatorCategory
+    ecosysteemdienst: Ecosysteemdienst
 }
 
 export type ScoreTier = "green" | "yellow" | "red"
@@ -36,10 +34,10 @@ export type FieldMeasure = {
     m_end: string | null
 }
 
-// ── Aggregation groupings ──────────────────────────────────────────────────
+// ── Ecosystem service groupings ────────────────────────────────────────────
 
-/** OBI = Biologisch + Chemisch (excl. C_SEQ) + Fysisch */
-export const OBI_INDICATOR_IDS = [
+/** Crop production: all indicators that drive agronomic soil quality */
+export const GEWASPRODUCTIE_INDICATOR_IDS = [
     "B_DI",
     "B_SF",
     "C_K",
@@ -60,237 +58,249 @@ export const OBI_INDICATOR_IDS = [
     "P_WS",
 ]
 
-/** BBWP = Grondwater + Nutriënten + Oppervlaktewater + C_SEQ */
-export const BBWP_INDICATOR_IDS = [
-    "C_SEQ",
+/** Carbon sequestration: soil carbon storage potential */
+export const KOOLSTOFVASTLEGGING_INDICATOR_IDS = ["C_SEQ"]
+
+/** Water quality & quantity: groundwater and surface water protection */
+export const WATERKWALITEIT_INDICATOR_IDS = [
     "GW_GWR",
     "GW_NLEA",
     "GW_PEST",
-    "NUT_K",
-    "NUT_N",
-    "NUT_P",
     "SW_NLEA",
     "SW_PLEA",
 ]
 
+/** Nutrient recycling efficiency: how effectively crops utilise applied nutrients */
+export const NUTRIENTENKRINGLOOP_INDICATOR_IDS = ["NUT_K", "NUT_N", "NUT_P"]
+
 // ── Indicator taxonomy ──────────────────────────────────────────────────────
 
 export const INDICATORS: IndicatorInfo[] = [
-    // Biologisch
+    // Gewasproductie
     {
         id: "B_DI",
         name: "Ziektewerendheid",
         description:
             "Het vermogen van de bodem om bodemgebonden ziekten en plagen te voorkomen",
-        category: "Biologisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "B_SF",
         name: "Microbiele activiteit",
         description:
             "De mate van activiteit van het micro-organismen (zoals bacteriën en schimmels) in de bodem",
-        category: "Biologisch",
+        ecosysteemdienst: "Gewasproductie",
     },
-    // Chemisch
     {
         id: "C_K",
         name: "Kaliumbeschikbaarheid",
         description:
             "De beschikbaarheid van kalium vanuit de bodem voor het gewas",
-        category: "Chemisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "C_MG",
         name: "Magnesiumbeschikbaarheid",
         description:
             "De beschikbaarheid van magnesium vanuit de bodem voor het gewas",
-        category: "Chemisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "C_N",
         name: "Stikstofbeschikbaarheid",
         description:
             "De beschikbaarheid van stikstof vanuit de bodem voor het gewas",
-        category: "Chemisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "C_P",
         name: "Fosfaatbeschikbaarheid",
         description:
             "De beschikbaarheid van fosfaat vanuit de bodem voor het gewas",
-        category: "Chemisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "C_PH",
         name: "Zuurgraad",
         description:
             "De zuurgraad van de bodem, belangrijk voor de beschikbaarheid van nutriënten en een actief bodemleven",
-        category: "Chemisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "C_S",
         name: "Zwavelbeschikbaarheid",
         description: "De beschikbaarheid van zwavel vanuit de bodem voor het gewas",
-        category: "Chemisch",
+        ecosysteemdienst: "Gewasproductie",
     },
-    {
-        id: "C_SEQ",
-        name: "Koolstofvastlegging",
-        description: "De potentie van de bodem om koolstof vast te leggen",
-        category: "Chemisch",
-    },
-    // Fysisch
     {
         id: "P_AS",
         name: "Aggregaatstabiliteit",
         description:
             "De stevigheid van bodemaggregaten wat de bodem beter bestand maakt tegen verdichting en zware regenval",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_CO",
         name: "Weerstand tegen bodemverdichting",
         description: "De mate waarin de bodem bestand is tegen bodemverdichting",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_CR",
         name: "Verkruimelbaarheid",
         description:
             "De mate waarin de bodem is te verkruimelen om een goed zaaibed aan te leggen",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_DS",
         name: "Weerstand tegen droogte",
         description:
             "Het vermogen van de bodem om voldoende vocht vast te houden en te leveren tijdens droge perioden",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_DU",
         name: "Weerstand tegen verstuiving",
         description: "De weerbaarheid van de bodem tegen winderosie",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_RO",
         name: "Bewortelbaarheid",
         description:
             "De mate waarin de bodem gemakkelijk te bewortelen is voor het gewas",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_SE",
         name: "Weerstand tegen verslemping",
         description:
             "De weerbaarheid van de bodem tegen het vormen van een slempkorst",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_WRET",
         name: "Waterbergend vermogen",
         description: "Het vermogen van de bodem om water vast te houden",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_WO",
         name: "Bewerkbaarheid",
         description:
             "De mate waarin de bodem bewerkbaar is en voldoende draagkracht heeft",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
     {
         id: "P_WS",
         name: "Weerstand tegen wateroverlast",
         description:
             "Het vermogen van de bodem om overtollig water snel af te voeren, zodat zuurstoftekort bij de wortels wordt voorkomen",
-        category: "Fysisch",
+        ecosysteemdienst: "Gewasproductie",
     },
-    // Grondwater
+    // Koolstofvastlegging
+    {
+        id: "C_SEQ",
+        name: "Koolstofvastlegging",
+        description: "De potentie van de bodem om koolstof vast te leggen",
+        ecosysteemdienst: "Koolstofvastlegging",
+    },
+    // Waterkwaliteit
     {
         id: "GW_GWR",
         name: "Grondwateraanvulling",
         description:
             "De mate waarin regenwater kan infiltreren naar het diepere grondwater in plaats van oppervlakkig af te stromen naar de sloten",
-        category: "Grondwater",
+        ecosysteemdienst: "Waterkwaliteit",
     },
     {
         id: "GW_NLEA",
         name: "Weerstand tegen stikstofuitspoeling",
         description:
             "Het vermogen van de bodem om stikstof in de bodem vast te houden in plaats van dat het uitspoelt naar het grondwater",
-        category: "Grondwater",
+        ecosysteemdienst: "Waterkwaliteit",
     },
     {
         id: "GW_PEST",
         name: "Weerstand tegen middeluitspoeling",
         description:
             "Het vermogen van de bodem om gewasbeschermingsmiddelen te binden en af te breken, zodat ze niet in het grondwater terechtkomen",
-        category: "Grondwater",
+        ecosysteemdienst: "Waterkwaliteit",
     },
-    // Nutriënten
-    {
-        id: "NUT_K",
-        name: "Kaliumbenutting",
-        description:
-            "De effectiviteit waarmee het gewas de aanwezige en bemeste kalium kan opnemen en benutten",
-        category: "Nutriënten",
-    },
-    {
-        id: "NUT_N",
-        name: "Stikstofbenutting",
-        description:
-            "De effectiviteit waarmee het gewas de aanwezige en bemeste stikstof kan opnemen en benutten",
-        category: "Nutriënten",
-    },
-    {
-        id: "NUT_P",
-        name: "Fosfaatbenutting",
-        description:
-            "De effectiviteit waarmee het gewas de aanwezige en bemeste fosfaat kan opnemen en benutten",
-        category: "Nutriënten",
-    },
-    // Oppervlaktewater
     {
         id: "SW_NLEA",
         name: "Weerstand tegen stikstofafspoeling",
         description:
             "Het vermogen van de bodem om afstroming van stikstof naar het oppervlaktewater te voorkomen na hevige neerslag",
-        category: "Oppervlaktewater",
+        ecosysteemdienst: "Waterkwaliteit",
     },
     {
         id: "SW_PLEA",
         name: "Weerstand tegen fosfaatafspoeling",
         description:
             "Het vermogen van de bodem om fosfaat te binden en afstroming naar het oppervlaktewater te voorkomen na hevige neerslag",
-        category: "Oppervlaktewater",
+        ecosysteemdienst: "Waterkwaliteit",
+    },
+    // Nutriëntenkringloop
+    {
+        id: "NUT_K",
+        name: "Kaliumbenutting",
+        description:
+            "De effectiviteit waarmee het gewas de aanwezige en bemeste kalium kan opnemen en benutten",
+        ecosysteemdienst: "Nutriëntenkringloop",
+    },
+    {
+        id: "NUT_N",
+        name: "Stikstofbenutting",
+        description:
+            "De effectiviteit waarmee het gewas de aanwezige en bemeste stikstof kan opnemen en benutten",
+        ecosysteemdienst: "Nutriëntenkringloop",
+    },
+    {
+        id: "NUT_P",
+        name: "Fosfaatbenutting",
+        description:
+            "De effectiviteit waarmee het gewas de aanwezige en bemeste fosfaat kan opnemen en benutten",
+        ecosysteemdienst: "Nutriëntenkringloop",
     },
 ]
 
-export const INDICATOR_CATEGORIES: IndicatorCategory[] = [
-    "Biologisch",
-    "Chemisch",
-    "Fysisch",
-    "Grondwater",
-    "Nutriënten",
-    "Oppervlaktewater",
+export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
+    "Gewasproductie",
+    "Koolstofvastlegging",
+    "Waterkwaliteit",
+    "Nutriëntenkringloop",
 ]
 
-/**
- * Short GeoJSON property names for per-category average scores stored on map features.
- * Used to drive dynamic map colouring when a category filter is active.
- */
-export const CATEGORY_MAP_PROP: Record<IndicatorCategory, string> = {
-    Biologisch:       "avg_bio",
-    Chemisch:         "avg_che",
-    Fysisch:          "avg_fys",
-    Grondwater:       "avg_grw",
-    "Nutriënten":     "avg_nut",
-    Oppervlaktewater: "avg_opp",
+/** ID lists per ecosystem service, keyed by Ecosysteemdienst name */
+export const ECOSYSTEEMDIENST_INDICATOR_IDS: Record<Ecosysteemdienst, string[]> = {
+    Gewasproductie: GEWASPRODUCTIE_INDICATOR_IDS,
+    Koolstofvastlegging: KOOLSTOFVASTLEGGING_INDICATOR_IDS,
+    Waterkwaliteit: WATERKWALITEIT_INDICATOR_IDS,
+    "Nutriëntenkringloop": NUTRIENTENKRINGLOOP_INDICATOR_IDS,
 }
 
-// ── Score utilities ─────────────────────────────────────────────────────────
+/**
+ * Short GeoJSON property names for per-ecosystem-service average scores stored on map features.
+ * Used to drive dynamic map colouring when an ecosystem service filter is active.
+ */
+export const ECOSYSTEEMDIENST_MAP_PROP: Record<Ecosysteemdienst, string> = {
+    Gewasproductie:        "avg_gew",
+    Koolstofvastlegging:   "avg_kool",
+    Waterkwaliteit:        "avg_wat",
+    "Nutriëntenkringloop": "avg_nut",
+}
+
+/** Full descriptive name shown as subtitle in AggregationCards */
+export const ECOSYSTEEMDIENST_FULL_NAME: Record<Ecosysteemdienst, string> = {
+    Gewasproductie:        "Open Bodem Index",
+    Koolstofvastlegging:   "Open Bodem Index",
+    Waterkwaliteit:        "BedrijfsBodemWaterPlan",
+    "Nutriëntenkringloop": "Open Bodem Index",
+}
+
+
 
 /** Convert 0–1 API score to 0–100 display value. */
 export function scoreToDisplay(score01: number): number {
@@ -326,9 +336,10 @@ export function getIndicatorInfo(id: string): IndicatorInfo | undefined {
     return INDICATORS.find((i) => i.id === id)
 }
 
-/** Returns all indicators for a given category. */
-export function getIndicatorsByCategory(
-    category: IndicatorCategory,
+/** Returns all indicators for a given ecosystem service. */
+export function getIndicatorsByEcosysteemdienst(
+    ecosysteemdienst: Ecosysteemdienst,
 ): IndicatorInfo[] {
-    return INDICATORS.filter((i) => i.category === category)
+    return INDICATORS.filter((i) => i.ecosysteemdienst === ecosysteemdienst)
 }
+

@@ -17,11 +17,10 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
-    OBI_INDICATOR_IDS,
-    BBWP_INDICATOR_IDS,
     INDICATORS,
-    INDICATOR_CATEGORIES,
-    CATEGORY_MAP_PROP,
+    ECOSYSTEEMDIENSTEN,
+    ECOSYSTEEMDIENST_MAP_PROP,
+    ECOSYSTEEMDIENST_INDICATOR_IDS,
 } from "~/lib/indicators"
 import { Card, CardContent } from "~/components/ui/card"
 import {
@@ -115,16 +114,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         : -1
                 }
 
-                const catProps: Record<string, number> = {
-                    avg_obi: groupAvg(OBI_INDICATOR_IDS),
-                    avg_bbwp: groupAvg(BBWP_INDICATOR_IDS),
-                }
+                const catProps: Record<string, number> = {}
 
-                for (const category of INDICATOR_CATEGORIES) {
-                    const categoryIds = INDICATORS.filter(
-                        (indicator) => indicator.category === category,
-                    ).map((indicator) => indicator.id)
-                    catProps[CATEGORY_MAP_PROP[category]] = groupAvg(categoryIds)
+                for (const dienst of ECOSYSTEEMDIENSTEN) {
+                    const ids = ECOSYSTEEMDIENST_INDICATOR_IDS[dienst]
+                    catProps[ECOSYSTEEMDIENST_MAP_PROP[dienst]] = groupAvg(ids)
                 }
 
                 const indicatorProps: Record<string, number> = {}
@@ -175,7 +169,9 @@ export default function AtlasIndicatorsMap() {
     const selectedLabel =
         selectedProperty === "avgScore"
             ? "Gemiddelde score"
-            : (INDICATORS.find((i) => i.id === selectedProperty)?.name ?? selectedProperty)
+            : (ECOSYSTEEMDIENSTEN.find((d) => d === selectedProperty) ??
+              INDICATORS.find((i) => i.id === selectedProperty)?.name ??
+              selectedProperty)
 
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
@@ -194,11 +190,11 @@ export default function AtlasIndicatorsMap() {
                                 Gemiddelde score
                             </SelectItem>
                             <SelectSeparator />
-                            {INDICATOR_CATEGORIES.map((category) => (
-                                <SelectGroup key={category}>
-                                    <SelectLabel className="text-xs text-muted-foreground">{category}</SelectLabel>
+                             {ECOSYSTEEMDIENSTEN.map((dienst) => (
+                                <SelectGroup key={dienst}>
+                                    <SelectLabel className="text-xs text-muted-foreground">{dienst}</SelectLabel>
                                     {INDICATORS.filter(
-                                        (i) => i.category === category,
+                                        (i) => i.ecosysteemdienst === dienst,
                                     ).map((i) => (
                                         <SelectItem key={i.id} value={i.id}>
                                             {i.name}

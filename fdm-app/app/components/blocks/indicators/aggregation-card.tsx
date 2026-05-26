@@ -62,7 +62,7 @@ export function AggregationCard({
 
     return (
         <TooltipProvider>
-        <Card className="min-w-[140px]">
+        <Card className="min-w-[140px] flex-1">
             <CardHeader className="pb-1 pt-3 px-3">
                 <div className="flex items-center gap-1.5">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">

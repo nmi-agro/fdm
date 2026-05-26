@@ -34,12 +34,10 @@ type IndicatorCardProps = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-    Biologisch: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-    Chemisch: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
-    Fysisch: "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
-    Grondwater: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-400",
-    "Nutriënten": "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
-    Oppervlaktewater: "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400",
+    Gewasproductie: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
+    Koolstofvastlegging: "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
+    Waterkwaliteit: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
+    "Nutriëntenkringloop": "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
 }
 
 function StackedScoreBar({
@@ -131,11 +129,11 @@ export function IndicatorCard({
                             <span
                                 className={cn(
                                     "text-[10px] font-medium rounded-full px-2 py-0.5",
-                                    CATEGORY_COLORS[info.category] ??
+                                    CATEGORY_COLORS[info.ecosysteemdienst] ??
                                         "bg-muted text-muted-foreground",
                                 )}
                             >
-                                {info.category}
+                                {info.ecosysteemdienst}
                             </span>
                         </div>
 

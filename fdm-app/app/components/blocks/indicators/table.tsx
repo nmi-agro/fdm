@@ -13,10 +13,10 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import {
-    INDICATOR_CATEGORIES,
+    ECOSYSTEEMDIENSTEN,
     INDICATORS,
     scoreToDisplay,
-    type IndicatorCategory,
+    type Ecosysteemdienst,
     type IndicatorInfo,
 } from "~/lib/indicators"
 import type { FieldBln3Score } from "~/integrations/bln3.server"
@@ -31,28 +31,24 @@ type FieldRow = {
     knelpuntCount: number
 }
 
-const CATEGORY_TEXT: Record<IndicatorCategory, string> = {
-    Biologisch: "text-amber-600 dark:text-amber-400",
-    Chemisch: "text-blue-600 dark:text-blue-400",
-    Fysisch: "text-stone-600 dark:text-stone-400",
-    Grondwater: "text-cyan-600 dark:text-cyan-400",
-    Nutriënten: "text-green-600 dark:text-green-400",
-    Oppervlaktewater: "text-sky-600 dark:text-sky-400",
+const CATEGORY_TEXT: Record<Ecosysteemdienst, string> = {
+    Gewasproductie:        "text-amber-600 dark:text-amber-400",
+    Koolstofvastlegging:   "text-stone-600 dark:text-stone-400",
+    Waterkwaliteit:        "text-blue-600 dark:text-blue-400",
+    "Nutriëntenkringloop": "text-green-600 dark:text-green-400",
 }
 
-const CATEGORY_BORDER: Record<IndicatorCategory, string> = {
-    Biologisch: "border-b-amber-400",
-    Chemisch: "border-b-blue-400",
-    Fysisch: "border-b-stone-400",
-    Grondwater: "border-b-cyan-400",
-    Nutriënten: "border-b-green-400",
-    Oppervlaktewater: "border-b-sky-400",
+const CATEGORY_BORDER: Record<Ecosysteemdienst, string> = {
+    Gewasproductie:        "border-b-amber-400",
+    Koolstofvastlegging:   "border-b-stone-400",
+    Waterkwaliteit:        "border-b-blue-400",
+    "Nutriëntenkringloop": "border-b-green-400",
 }
 
 type HeatmapTableProps = {
     fields: { b_id: string; b_name: string | null | undefined }[]
     fieldScores: FieldBln3Score[]
-    activeCategories: IndicatorCategory[]
+    activeCategories: Ecosysteemdienst[]
     showIndex: boolean
     basePath: string
     /** Called when the user clicks a column header to pin/unpin that indicator on the map. */
@@ -82,7 +78,7 @@ export function HeatmapTable({
         const activeInds =
             activeCategories.length > 0
                 ? INDICATORS.filter((i) =>
-                      activeCategories.includes(i.category),
+                      activeCategories.includes(i.ecosysteemdienst),
                   )
                 : INDICATORS
         const scoreByBid = new Map(fieldScores.map((s) => [s.b_id, s]))
@@ -172,11 +168,11 @@ export function HeatmapTable({
         const categories =
             activeCategories.length > 0
                 ? activeCategories
-                : INDICATOR_CATEGORIES
+                : ECOSYSTEEMDIENSTEN
         const groups: ColumnDef<FieldRow>[] = categories.map((cat) => ({
             id: cat,
             header: cat,
-            columns: INDICATORS.filter((i) => i.category === cat).map(
+            columns: INDICATORS.filter((i) => i.ecosysteemdienst === cat).map(
                 (ind: IndicatorInfo) => ({
                     id: ind.id,
                     // Rotated indicator name header — full name always visible via tooltip
@@ -233,7 +229,7 @@ export function HeatmapTable({
         const indicators =
             activeCategories.length > 0
                 ? INDICATORS.filter((i) =>
-                      activeCategories.includes(i.category),
+                      activeCategories.includes(i.ecosysteemdienst),
                   )
                 : INDICATORS
         for (const ind of indicators) {
@@ -302,7 +298,7 @@ export function HeatmapTable({
                                     )
                                 }
                                 const cat = header.column
-                                    .id as IndicatorCategory
+                                    .id as Ecosysteemdienst
                                 return (
                                     <th
                                         key={header.id}

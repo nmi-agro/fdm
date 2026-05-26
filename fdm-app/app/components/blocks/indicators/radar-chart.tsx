@@ -18,24 +18,22 @@ import {
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
 import {
     INDICATORS,
-    type IndicatorCategory,
+    type Ecosysteemdienst,
     type IndicatorInfo,
     scoreToDisplay,
 } from "~/lib/indicators"
 
-// Hex colours matching category-filter chip colours
-const CATEGORY_COLORS: Record<IndicatorCategory, string> = {
-    Biologisch: "#f59e0b",       // amber-400
-    Chemisch: "#3b82f6",         // blue-500
-    Fysisch: "#78716c",          // stone-500
-    Grondwater: "#06b6d4",       // cyan-500
-    "Nutriënten": "#22c55e",     // green-500
-    Oppervlaktewater: "#0ea5e9", // sky-500
+// Hex colours matching ecosystem service chip colours
+const ECOSYSTEEMDIENST_COLORS: Record<Ecosysteemdienst, string> = {
+    Gewasproductie:        "#f59e0b", // amber-400
+    Koolstofvastlegging:   "#78716c", // stone-500
+    Waterkwaliteit:        "#3b82f6", // blue-500
+    "Nutriëntenkringloop": "#22c55e", // green-500
 }
 
-// Pre-compute indicator id → category colour for fast lookup
+// Pre-compute indicator id → ecosystem service colour for fast lookup
 const ID_TO_COLOR = new Map<string, string>(
-    INDICATORS.map((i) => [i.id, CATEGORY_COLORS[i.category]]),
+    INDICATORS.map((i) => [i.id, ECOSYSTEEMDIENST_COLORS[i.ecosysteemdienst]]),
 )
 
 type IndicatorRadarChartProps = {
