@@ -441,6 +441,7 @@ function MeasureEditDialog({
                                             const isDoorlopend = v === "doorlopend"
                                             setDoorlopend(isDoorlopend)
                                             if (isDoorlopend) form.setValue("m_end", null)
+                                            else form.setValue("m_end", "")
                                         }}
                                         className="space-y-1"
                                     >
@@ -463,10 +464,9 @@ function MeasureEditDialog({
                                             name="m_end"
                                             render={({ field, fieldState }) => (
                                                 <DatePicker
-                                                    label=""
-                                                    field={{ ...field, value: field.value }}
-                                                    fieldState={fieldState}
-                                                    required
+                                                   label=""
+                                                   field={{ ...field, value: field.value }}
+                                                   fieldState={fieldState}
                                                 />
                                             )}
                                         />
