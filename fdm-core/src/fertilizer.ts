@@ -115,9 +115,12 @@ export async function getFertilizersFromCatalogues(
             )
             .leftJoin(
                 authNSchema.member,
-                eq(
-                    authZSchema.role.principal_id,
-                    authNSchema.member.organizationId,
+                and(
+                    eq(
+                        authZSchema.role.principal_id,
+                        authNSchema.member.organizationId,
+                    ),
+                    inArray(authNSchema.member.userId, principal_ids),
                 ),
             )
             .where(
@@ -128,10 +131,7 @@ export async function getFertilizersFromCatalogues(
                     ),
                     or(
                         inArray(authZSchema.role.principal_id, principal_ids),
-                        and(
-                            isNotNull(authNSchema.member.userId),
-                            inArray(authNSchema.member.userId, principal_ids),
-                        ),
+                        isNotNull(authNSchema.member.userId),
                     ),
                 ),
             )
