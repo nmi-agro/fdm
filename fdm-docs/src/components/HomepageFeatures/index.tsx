@@ -1,3 +1,4 @@
+import { Database, GitMerge, Puzzle } from "lucide-react"
 import Heading from "@theme/Heading"
 import clsx from "clsx"
 import styles from "./styles.module.css"
@@ -11,7 +12,7 @@ type FeatureItem = {
 const FeatureList: FeatureItem[] = [
     {
         title: "Standardized Schema",
-        Svg: require("lucide-react/dist/cjs/lucide-react").Database,
+        Svg: Database,
         description: (
             <>
                 Based on the Asset-Action model, providing a consistent
@@ -21,7 +22,7 @@ const FeatureList: FeatureItem[] = [
     },
     {
         title: "Modular Packages",
-        Svg: require("lucide-react/dist/cjs/lucide-react").Puzzle,
+        Svg: Puzzle,
         description: (
             <>
                 Use <code>fdm-core</code> for core interactions,{" "}
@@ -32,7 +33,7 @@ const FeatureList: FeatureItem[] = [
     },
     {
         title: "Open & Extensible",
-        Svg: require("lucide-react/dist/cjs/lucide-react").GitMerge,
+        Svg: GitMerge,
         description: (
             <>
                 Open-source library built with TypeScript. Contribute new
