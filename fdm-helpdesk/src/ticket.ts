@@ -243,6 +243,63 @@ type CreateTicketOptions = {
     context?: { b_id_farm?: string | null }
 }
 
+/**
+ * Build subject from first few words, not exceeding MAX_SUBJECT_LENGTH characters.
+ * The return value which is added initially to the ticket will later be replaced by an AI agent with a one
+ * sentence summary of the ticket.
+ *
+ * @param body body text to "summarize"
+ * @returns the subject line
+ */
+export function getDefaultSubjectLine(body: string) {
+    const MIN_SUBJECT_LENGTH = 20
+    const MAX_SUBJECT_LENGTH = 100
+    let subject = ""
+    let bodyCurrentIndex = 0
+    const SPACES = " \n\r\t".split("")
+    while (true) {
+        const bodyNextIndex = Math.min(
+            body.length,
+            ...SPACES.map((s) => body.indexOf(s, bodyCurrentIndex)).filter(
+                (x) => x !== -1,
+            ),
+        )
+        if (bodyNextIndex === -1) {
+            const word = ` ${body.slice(bodyCurrentIndex)}`
+            if (subject.length + word.length <= MAX_SUBJECT_LENGTH + 1) {
+                subject += word
+            } else if (subject.length < MIN_SUBJECT_LENGTH) {
+                subject += word.slice(
+                    0,
+                    MIN_SUBJECT_LENGTH - subject.length + 1,
+                )
+            }
+            break
+        }
+        const word = ` ${body.slice(bodyCurrentIndex, bodyNextIndex)}`
+        if (subject.length + word.length <= MAX_SUBJECT_LENGTH + 1) {
+            subject += word
+        } else {
+            if (subject.length < MIN_SUBJECT_LENGTH) {
+                subject += word.slice(
+                    0,
+                    MIN_SUBJECT_LENGTH - subject.length + 1,
+                )
+            }
+            break
+        }
+        bodyCurrentIndex = bodyNextIndex + 1
+        while (
+            bodyCurrentIndex < body.length &&
+            SPACES.includes(body[bodyCurrentIndex])
+        ) {
+            bodyCurrentIndex++
+        }
+    }
+
+    return subject.trim()
+}
+
 export async function createTicket(
     fdm: FdmHelpdeskType,
     requester_id: schema.MessageTypeInsert["sender_id"],
@@ -261,6 +318,7 @@ export async function createTicket(
                     ticket_id: ticket_id,
                     ticket_ref: ticket_ref,
                     requester_id: requester_id,
+                    subject: getDefaultSubjectLine(body),
                     channel: "web",
                     priority: options?.priority,
                     context_farm_id: options?.context?.b_id_farm,

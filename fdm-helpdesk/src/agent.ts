@@ -1,4 +1,4 @@
-import { count, desc, eq, sql } from "drizzle-orm"
+import { and, count, desc, eq, sql } from "drizzle-orm"
 import { checkHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
@@ -83,8 +83,19 @@ export async function getAgents(
             "getAgents",
         )
 
+        const helpdeskWritePermission = await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "getAgents",
+            false,
+        )
+
         return (await selectAgents(fdm, false, {
             ...filters,
+            ...(helpdeskWritePermission ? {} : { isActive: true }),
             ...getPageOffsetAndLimit(filters),
         })) as schema.AgentTypeSelect[]
     } catch (err) {
@@ -119,10 +130,21 @@ export async function getAgentCount(
             "getAgents",
         )
 
+        const helpdeskWritePermission = await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "getAgents",
+            false,
+        )
+
         return (
             (
                 await selectAgents(fdm, true, {
                     ...filters,
+                    ...(helpdeskWritePermission ? {} : { isActive: true }),
                     ...getPageOffsetAndLimit(filters),
                 })
             )[0] as { count: number }
@@ -190,7 +212,7 @@ export async function addAdminAgent(
 
         return agent_id
     } catch (err) {
-        throw handleError(err, "Error in addAgent")
+        throw handleError(err, "Exception for addAdminAgent")
     }
 }
 
@@ -230,7 +252,7 @@ export async function addAgent(
 
         return agent_id
     } catch (err) {
-        throw handleError(err, "Error in addAgent")
+        throw handleError(err, "Exception for addAgent")
     }
 }
 
@@ -247,7 +269,7 @@ export async function updateAgent(
             "write",
             agent_id,
             principal_id,
-            "addAgent",
+            "updateAgent",
         )
         await fdm
             .update(schema.agents)
@@ -257,7 +279,62 @@ export async function updateAgent(
             })
             .where(eq(schema.agents.agent_id, agent_id))
     } catch (err) {
-        throw handleError(err, "Error in updateAgent")
+        throw handleError(err, "Exception for updateAgent")
+    }
+}
+
+export async function updateAgentRole(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+    agent_id: schema.AgentTypeInsert["agent_id"],
+    role: schema.AgentTypeInsert["role"] | undefined,
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "updateAgentRole",
+        )
+
+        await fdm.transaction(async (tx) => {
+            if (role === "agent") {
+                const currentAdmins = await tx
+                    .select()
+                    .from(schema.agents)
+                    .where(
+                        and(
+                            schema.agents.is_active,
+                            eq(schema.agents.role, "admin"),
+                        ),
+                    )
+                    // Limit should be 2 or greater because the first result could be the agent we are changing,
+                    // so we still need to check for a second agent that is different
+                    .limit(2)
+
+                if (
+                    currentAdmins.length === 0 ||
+                    (currentAdmins.length === 1 &&
+                        currentAdmins[0].agent_id === agent_id)
+                ) {
+                    throw new Error(
+                        "There must be at least one active admin left",
+                    )
+                }
+            }
+
+            await tx
+                .update(schema.agents)
+                .set({
+                    role: role,
+                    updated: sql`now()`,
+                })
+                .where(eq(schema.agents.agent_id, agent_id))
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for updateAgentRole")
     }
 }
 
@@ -274,18 +351,40 @@ export async function setAgentActiveStatus(
             "write",
             "",
             principal_id,
-            "addAgent",
+            "setAgentActiveStatus",
         )
 
-        await fdm
-            .update(schema.agents)
-            .set({
-                is_active: is_active,
-            })
-            .where(eq(schema.agents.agent_id, agent_id))
+        await fdm.transaction(async (tx) => {
+            if (!is_active) {
+                const currentAdmins = await tx
+                    .select()
+                    .from(schema.agents)
+                    .where(
+                        and(
+                            schema.agents.is_active,
+                            eq(schema.agents.role, "admin"),
+                        ),
+                    )
+                    // Limit should be 2 or greater because the first result could be the agent we are changing,
+                    // so we still need to check for a second agent that is different
+                    .limit(2)
 
-        return agent_id
+                if (
+                    currentAdmins.length === 0 ||
+                    (currentAdmins.length === 1 &&
+                        currentAdmins[0].agent_id === agent_id)
+                ) {
+                    throw new Error("There must be at least one admin left")
+                }
+            }
+
+            tx.update(schema.agents)
+                .set({
+                    is_active: is_active,
+                })
+                .where(eq(schema.agents.agent_id, agent_id))
+        })
     } catch (err) {
-        throw handleError(err, "Error in setAgentActiveStatus")
+        throw handleError(err, "Exception for setAgentActiveStatus")
     }
 }

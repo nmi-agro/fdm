@@ -7,6 +7,7 @@ import { addTagToTicket, createTag } from "./tag"
 import { test } from "./test-util"
 import {
     createTicket,
+    getDefaultSubjectLine,
     getInbox,
     getTicket,
     getTicketCount,
@@ -662,5 +663,45 @@ describe("getTicketCountsForAssignees", () => {
 
         expect(counts.get(admin_id)).toBe(1)
         expect(counts.has(agent_id)).toBe(false)
+    })
+})
+
+describe("getDefaultTicketSubject", () => {
+    const short = "Lorem ipsum"
+    const normal =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam"
+    const otherWhitespace =
+        "Lorem\r\nipsum dolor\tsit\tamet,         consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam"
+    const longWords =
+        "Loremipsumdolorsitametconsectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam"
+    const veryLongFirstWord =
+        "Loremipsumdolorsitametconsecteturadipiscingelitseddoeiusmodtemporincididuntutlaboreetdoloremagnaaliqu autenim ad minim veniam"
+    const veryLongSecondWord =
+        "Lorem ipsumdolorsitametconsecteturadipiscingelitseddoeiusmodtemporincididuntutlaboreetdoloremagnaaliqu autenim ad minim veniam"
+
+    test("should handle empty body", () => {
+        expect(getDefaultSubjectLine("")).toBe("")
+    })
+    test("should handle short body", () => {
+        expect(getDefaultSubjectLine(short)).toBe(short)
+    })
+    test("should get the first few words", () => {
+        expect(getDefaultSubjectLine(normal)).toBe(normal.slice(0, 99))
+    })
+    test("should get the first few words 2", () => {
+        expect(getDefaultSubjectLine(longWords)).toBe(longWords.slice(0, 96))
+    })
+    test("should break first word if subject is becoming too short", () => {
+        expect(getDefaultSubjectLine(veryLongFirstWord)).toBe(
+            veryLongFirstWord.slice(0, 20),
+        )
+    })
+    test("should break second word if subject is becoming too short", () => {
+        expect(getDefaultSubjectLine(veryLongSecondWord)).toBe(
+            veryLongSecondWord.slice(0, 20),
+        )
+    })
+    test("should handle other whitespace", () => {
+        expect(getDefaultSubjectLine(otherWhitespace)).toBe(normal.slice(0, 99))
     })
 })

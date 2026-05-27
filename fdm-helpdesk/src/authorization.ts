@@ -92,7 +92,12 @@ export async function getHelpdeskRole(
     const agents = await fdm
         .select({ role: schema.agents.role })
         .from(schema.agents)
-        .where(inArray(schema.agents.agent_id, principal_ids))
+        .where(
+            and(
+                schema.agents.is_active,
+                inArray(schema.agents.agent_id, principal_ids),
+            ),
+        )
 
     if (agents.length < principal_ids.length) return "user"
 
@@ -148,6 +153,7 @@ export async function getHelpdeskPermission(
     }
 
     // Agent's own data
+    // Inactive agents also have access to themselves
     if (resource === "agent") {
         if (
             (
