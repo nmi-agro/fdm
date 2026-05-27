@@ -305,15 +305,17 @@ export function HeatmapTable({
                                         colSpan={header.colSpan}
                                         className={cn(
                                             thBase,
-                                            "text-center py-1.5 h-8 border-l border-border border-b-2",
+                                            "text-center py-1.5 h-8 border-l border-border border-b-2 max-w-0",
                                             CATEGORY_TEXT[cat],
                                             CATEGORY_BORDER[cat],
                                         )}
                                     >
-                                        {flexRender(
-                                            header.column.columnDef.header,
-                                            header.getContext(),
-                                        )}
+                                        <div className="truncate px-1" title={cat}>
+                                            {flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext(),
+                                            )}
+                                        </div>
                                     </th>
                                 )
                             })}
