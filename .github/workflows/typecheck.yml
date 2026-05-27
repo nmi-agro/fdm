@@ -38,42 +38,5 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Build fdm-data
-        run: pnpm build
-        working-directory: ./fdm-data
-
-      - name: Typecheck fdm-data
-        run: pnpm check-types
-        working-directory: ./fdm-data
-
-      - name: Build fdm-core
-        run: pnpm build
-        working-directory: ./fdm-core
-
-      - name: Typecheck fdm-core
-        run: pnpm check-types
-        working-directory: ./fdm-core
-
-      - name: Build fdm-calculator
-        run: pnpm build
-        working-directory: ./fdm-calculator
-
-      - name: Typecheck fdm-calculator
-        run: pnpm check-types
-        working-directory: ./fdm-calculator
-
-      - name: Typecheck fdm-rvo
-        run: pnpm check-types
-        working-directory: ./fdm-rvo
-
-      - name: Typecheck fdm-agents
-        run: pnpm check-types
-        working-directory: ./fdm-agents
-
-      - name: Typecheck fdm-api
-        run: pnpm check-types
-        working-directory: ./fdm-api
-        
-      # - name: Typecheck fdm-app
-      #   run: pnpm typecheck
-      #   working-directory: ./fdm-app
+      - name: Type check all packages
+        run: pnpm turbo run check-types

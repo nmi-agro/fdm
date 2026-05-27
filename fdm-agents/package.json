@@ -22,18 +22,19 @@
         "check-types": "tsc --noEmit",
         "preinstall": "npx only-allow pnpm",
         "test": "vitest run",
-        "test-coverage": "vitest run --coverage"
+        "test-coverage": "vitest run --coverage",
+        "watch": "vitest"
     },
     "dependencies": {
-        "@langchain/core": "^1.1.46",
-        "@langchain/google-genai": "^2.1.30",
-        "@langchain/langgraph": "^1.3.0",
+        "@langchain/core": "^1.1.48",
+        "@langchain/google-genai": "^2.1.31",
+        "@langchain/langgraph": "^1.3.2",
         "@nmi-agro/fdm-calculator": "workspace:^",
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/fdm-data": "workspace:^",
-        "@posthog/ai": "^7.18.4",
-        "langchain": "^1.4.0",
-        "posthog-node": "^5.33.7",
+        "@posthog/ai": "^7.19.2",
+        "langchain": "^1.4.2",
+        "posthog-node": "^5.35.2",
         "zod": "^4.4.3"
     },
     "engines": {

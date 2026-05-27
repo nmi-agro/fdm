@@ -64,27 +64,13 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Build fdm-data
-        run: pnpm build
-        working-directory: ./fdm-data
-
-      - name: Build fdm-core
-        run: pnpm build
-        working-directory: ./fdm-core
-
       - name: Run tests with coverage
-        run: pnpm test-coverage
-        working-directory: ./fdm-core
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core
         env:
-          # The hostname used to communicate with the PostgreSQL service container
           POSTGRES_HOST: postgres
-          # The default PostgreSQL port
           POSTGRES_PORT: 5432
-          # the default usernam
           POSTGRES_USER: postgres
-          # the default password
           POSTGRES_PASSWORD: postgres
-          # the default database
           POSTGRES_DB: postgres
 
       - name: fdm-core - Upload results to Codecov
@@ -156,31 +142,13 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Build fdm-data
-        run: pnpm build
-        working-directory: ./fdm-data
-
-      - name: Build fdm-core
-        run: pnpm build
-        working-directory: ./fdm-core
-
-      - name: Build fdm-calculator
-        run: pnpm build
-        working-directory: ./fdm-calculator
-
       - name: Run tests with coverage
-        run: pnpm test-coverage
-        working-directory: ./fdm-calculator
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-calculator
         env:
-          # The hostname used to communicate with the PostgreSQL service container
           POSTGRES_HOST: postgres
-          # The default PostgreSQL port
           POSTGRES_PORT: 5432
-          # the default usernam
           POSTGRES_USER: postgres
-          # the default password
           POSTGRES_PASSWORD: postgres
-          # the default database
           POSTGRES_DB: postgres
 
       - name: fdm-calculator - Upload results to Codecov
@@ -235,13 +203,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Build fdm-data
-        run: pnpm build
-        working-directory: ./fdm-data
-      
       - name: Run tests with coverage
-        run: pnpm test-coverage
-        working-directory: ./fdm-data
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-data
 
       - name: fdm-data - Upload results to Codecov
         uses: codecov/codecov-action@v5
@@ -312,27 +275,13 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Build fdm-data
-        run: pnpm build
-        working-directory: ./fdm-data
-
-      - name: Build fdm-core
-        run: pnpm build
-        working-directory: ./fdm-core
-
       - name: Run tests with coverage
-        run: pnpm test-coverage
-        working-directory: ./fdm-rvo
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-rvo
         env:
-          # The hostname used to communicate with the PostgreSQL service container
           POSTGRES_HOST: postgres
-          # The default PostgreSQL port
           POSTGRES_PORT: 5432
-          # the default usernam
           POSTGRES_USER: postgres
-          # the default password
           POSTGRES_PASSWORD: postgres
-          # the default database
           POSTGRES_DB: postgres
 
       - name: fdm-rvo - Upload results to Codecov
@@ -387,21 +336,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Build fdm-data
-        run: pnpm build
-        working-directory: ./fdm-data
-
-      - name: Build fdm-core
-        run: pnpm build
-        working-directory: ./fdm-core
-
-      - name: Build fdm-calculator
-        run: pnpm build
-        working-directory: ./fdm-calculator
-
       - name: Run tests with coverage
-        run: pnpm test-coverage
-        working-directory: ./fdm-agents
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-agents
 
       - name: fdm-agents - Upload results to Codecov
         uses: codecov/codecov-action@v5
@@ -441,7 +377,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
-      - name: Setup pnpm 10
+      - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
           version: 11.0.9
@@ -455,21 +391,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Build fdm-data
-        run: pnpm build
-        working-directory: ./fdm-data
-
-      - name: Build fdm-core
-        run: pnpm build
-        working-directory: ./fdm-core
-
-      - name: Build fdm-calculator
-        run: pnpm build
-        working-directory: ./fdm-calculator
-
       - name: Run tests with coverage
-        run: pnpm test-coverage
-        working-directory: ./fdm-api
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-api
 
       - name: fdm-api - Upload results to Codecov
         uses: codecov/codecov-action@v5
