@@ -32,6 +32,7 @@ import { useRemixForm } from "remix-hook-form"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
 import { ImpactSummary } from "~/components/blocks/measures/impact-summary"
 import { IndicatorAttention } from "~/components/blocks/measures/indicator-attention"
+import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { MeasureDateSchema, type MeasureDateFormValues } from "~/components/blocks/measures/formschema"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import {
@@ -517,6 +518,8 @@ export default function MeasuresFieldDetail() {
 
     return (
         <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">
+            <Bln3BetaBanner />
+
             {/* Title + actions */}
             <div className="flex items-center justify-between gap-4">
                 <div>

@@ -8,6 +8,7 @@ import {
     useParams,
 } from "react-router"
 import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
+import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
@@ -186,6 +187,8 @@ export default function IndicatorsFarmIndex() {
             />
 
             <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
+                <Bln3BetaBanner />
+
                 {/* Aggregations section */}
                 <section className="space-y-3">
                     <div className="flex items-center justify-between">

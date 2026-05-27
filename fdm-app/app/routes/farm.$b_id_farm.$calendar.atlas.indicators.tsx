@@ -10,6 +10,7 @@ import {
     useParams,
 } from "react-router"
 import { getIndicatorsForFarm, type FieldBln3Score } from "~/integrations/bln3.server"
+import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -175,9 +176,9 @@ export default function AtlasIndicatorsMap() {
 
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
-            {/* Floating indicator selector panel */}
-            <Card className="absolute top-3 left-3 z-10 w-52 shadow-md bg-background/90 backdrop-blur-sm">
-                <CardContent className="p-2">
+            {/* Floating indicator selector + info banner */}
+            <Card className="absolute top-3 left-3 z-10 w-64 shadow-md bg-background/90 backdrop-blur-sm">
+                <CardContent className="p-2 space-y-2">
                     <Select
                         value={selectedProperty}
                         onValueChange={setSelectedProperty}
@@ -204,6 +205,7 @@ export default function AtlasIndicatorsMap() {
                             ))}
                         </SelectContent>
                     </Select>
+                    <Bln3BetaBanner />
                 </CardContent>
             </Card>
 

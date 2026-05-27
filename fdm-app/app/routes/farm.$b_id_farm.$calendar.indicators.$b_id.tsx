@@ -21,6 +21,7 @@ import {
     useParams,
 } from "react-router"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
+import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { IndicatorCard } from "~/components/blocks/indicators/indicator-card"
 import { IndicatorRadarChart } from "~/components/blocks/indicators/radar-chart"
 import { FieldInputDialog } from "~/components/blocks/indicators/field-input-dialog"
@@ -568,6 +569,8 @@ export default function IndicatorsFieldDetail() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* ── Main content column ──────────────────────────── */}
                     <div className="flex-1 min-w-0 space-y-4">
+                        <Bln3BetaBanner />
+
                         {/* Aggregation cards + input dialog */}
                         <div className="flex items-start justify-between gap-4 flex-wrap">
                             {ecosysteemdienst_scores.some((e) => e.score !== null) && (
