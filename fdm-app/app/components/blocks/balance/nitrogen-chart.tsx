@@ -5,7 +5,7 @@ import type {
 } from "@nmi-agro/fdm-calculator"
 import { format } from "date-fns/format"
 import { useId, useMemo, useState } from "react"
-import { nl } from "react-day-picker/locale"
+import { nl } from "@daypicker/react/locale"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
 import { cn } from "@/app/lib/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
