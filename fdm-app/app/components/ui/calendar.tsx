@@ -5,7 +5,7 @@ import {
 } from "lucide-react"
 import * as React from "react"
 import {
-    type DayButton,
+    type DayButtonProps,
     DayPicker,
     getDefaultClassNames,
 } from "@daypicker/react"
@@ -194,7 +194,7 @@ function CalendarDayButton({
     day,
     modifiers,
     ...props
-}: React.ComponentProps<typeof DayButton>) {
+}: DayButtonProps) {
     const defaultClassNames = getDefaultClassNames()
 
     const ref = React.useRef<HTMLButtonElement>(null)
