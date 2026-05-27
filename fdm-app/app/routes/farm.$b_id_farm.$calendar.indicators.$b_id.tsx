@@ -23,7 +23,6 @@ import {
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { IndicatorCard } from "~/components/blocks/indicators/indicator-card"
-import { IndicatorRadarChart } from "~/components/blocks/indicators/radar-chart"
 import { FieldInputDialog } from "~/components/blocks/indicators/field-input-dialog"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
@@ -616,22 +615,6 @@ export default function IndicatorsFieldDetail() {
                             />
                         </div>
 
-                        {/* Radar chart — always shows all indicators */}
-                        {fieldScore && fieldScore.indicators.length > 0 && (
-                            <div className="rounded-lg border bg-card p-4">
-                                <p className="text-sm font-medium mb-1">
-                                    Indicatorenweb
-                                </p>
-                                <p className="text-xs text-muted-foreground mb-3">
-                                    Stippellijn = perceel, doorgetrokken = met
-                                    maatregelen.
-                                </p>
-                                <IndicatorRadarChart
-                                    indicators={fieldScore.indicators}
-                                    indicatorInfos={INDICATORS}
-                                />
-                            </div>
-                        )}
 
                         {/* No score state */}
                         {!fieldScore && (
