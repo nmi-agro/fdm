@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-app": minor
 ---
 
-Users can no longer edit soil analyses by clicking the pencil icon on the parameter card's corner, if they don't have the right to edit the analysis that is the source of the value shown on the card.
+Users with only read access do not see the edit button for soil parameters, but an external link button to make it more clear that they only can view the value instead of editing it.
