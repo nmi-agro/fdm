@@ -15,6 +15,9 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY fdm-core/package.json ./fdm-core/
 COPY fdm-api/package.json  ./fdm-api/
 
+# Copy root tsconfig files (needed for package builds)
+COPY tsconfig.base.json tsconfig.packages.json ./
+
 # Install all workspace dependencies (respects pnpm-lock.yaml)
 RUN pnpm install --frozen-lockfile --filter @nmi-agro/fdm-core --filter @nmi-agro/fdm-api
 
@@ -22,8 +25,9 @@ RUN pnpm install --frozen-lockfile --filter @nmi-agro/fdm-core --filter @nmi-agr
 COPY fdm-core/ ./fdm-core/
 COPY fdm-api/  ./fdm-api/
 
-# Build fdm-core first, then fdm-api
-RUN pnpm --filter @nmi-agro/fdm-core build
+# Build fdm-core first, then fdm-api. 
+# We run tsdown directly to avoid dotenvx's missing .env file error.
+RUN pnpm --filter @nmi-agro/fdm-core exec tsdown
 RUN pnpm --filter @nmi-agro/fdm-api  build
 
 # ── Stage 2: production image ─────────────────────────────────────────────────
