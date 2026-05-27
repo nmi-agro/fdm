@@ -10,9 +10,9 @@ packages:
 
 catalog:
   '@better-auth/api-key': ^1.6.11
-  '@dotenvx/dotenvx': ^1.65.0
-  '@types/node': ^25.7.0
-  '@vitest/coverage-v8': 4.1.6
+  '@dotenvx/dotenvx': ^1.69.1
+  '@types/node': ^25.9.1
+  '@vitest/coverage-v8': 4.1.7
   better-auth: ^1.6.11
   drizzle-kit: ^0.31.10
   drizzle-orm: ^0.45.2
@@ -21,7 +21,7 @@ catalog:
   typedoc-plugin-missing-exports: ^4.1.3
   typescript: ^6.0.3
   vite-tsconfig-paths: ^5.1.4
-  vitest: ^4.1.6
+  vitest: ^4.1.7
 
 strictDepBuilds: true
 blockExoticSubdeps: true

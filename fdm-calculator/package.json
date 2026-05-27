@@ -40,7 +40,7 @@
     },
     "dependencies": {
         "@nmi-agro/fdm-core": "workspace:^",
-        "date-fns": "^4.1.0",
+        "date-fns": "^4.3.0",
         "decimal.js": "^10.6.0",
         "geotiff": "^3.0.5",
         "zod": "^4.4.3"
