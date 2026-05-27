@@ -1,58 +1,73 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
+ARG NODE_VERSION=24
+ARG PROJECT=@nmi-agro/fdm-api
 
-# ── Stage 1: builder ─────────────────────────────────────────────────────────
-FROM node:24-alpine AS builder
-
-# Enable corepack for pnpm
-RUN corepack enable
-
-WORKDIR /workspace
-
-# Copy workspace manifests first for better layer caching
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-
-# Copy each package's package.json (only manifests, not source)
-COPY fdm-core/package.json ./fdm-core/
-COPY fdm-api/package.json  ./fdm-api/
-
-# Copy root tsconfig files (needed for package builds)
-COPY tsconfig.base.json tsconfig.packages.json ./
-
-# Install all workspace dependencies (respects pnpm-lock.yaml)
-RUN pnpm install --frozen-lockfile --filter @nmi-agro/fdm-core --filter @nmi-agro/fdm-api
-
-# Copy source
-COPY fdm-core/ ./fdm-core/
-COPY fdm-api/  ./fdm-api/
-
-# Build fdm-core first, then fdm-api. 
-# We run tsdown directly to avoid dotenvx's missing .env file error.
-RUN pnpm --filter @nmi-agro/fdm-core exec tsdown
-RUN pnpm --filter @nmi-agro/fdm-api  build
-
-# ── Stage 2: production image ─────────────────────────────────────────────────
-FROM node:24-alpine AS runner
-
-RUN corepack enable
-
+# Base stage
+FROM node:${NODE_VERSION}-alpine AS base
+RUN apk update && apk add --no-cache libc6-compat git
+RUN npm install -g pnpm turbo
 WORKDIR /app
 
-# Copy workspace plumbing and prod manifests
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY fdm-core/package.json ./fdm-core/
-COPY fdm-api/package.json  ./fdm-api/
+# Pruner stage
+FROM base AS pruner
+COPY . .
+RUN turbo prune --scope=@nmi-agro/fdm-api --docker
 
-# Install production-only deps
-RUN pnpm install --frozen-lockfile --prod \
-    --filter @nmi-agro/fdm-core \
-    --filter @nmi-agro/fdm-api
+# Builder stage
+FROM base AS builder
+WORKDIR /app
 
-# Copy compiled output from builder
-COPY --from=builder /workspace/fdm-core/dist ./fdm-core/dist
-COPY --from=builder /workspace/fdm-api/dist  ./fdm-api/dist
+# Copy lockfile and package.json's of isolated subworkspace
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
+# Install dependencies.
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --config.prefer-online=true
+
+# Copy source code of isolated subworkspace
+COPY --from=pruner /app/out/full/ .
+
+# Ensure root tsconfig files are present (turbo prune might miss them if not explicitly referenced as workspace deps)
+COPY --from=pruner /app/tsconfig*.json ./
+
+# Build the project
+# This builds all packages in the isolated workspace (fdm-api and its dependencies)
+RUN pnpm build
+
+# Create a self-contained production deployment bundle.
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm --filter=@nmi-agro/fdm-api deploy --prod --legacy /app/deployed
+
+# Production runner stage
+FROM node:${NODE_VERSION}-alpine AS runner
+WORKDIR /app
+
+# Add non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 user && \
+    apk add --no-cache libc6-compat curl
+
+# Copy production node_modules from the deploy bundle.
+# Workspace dependencies will be present in node_modules/@nmi-agro/* with their built dist folders.
+COPY --from=builder --chown=user:nodejs /app/deployed/node_modules ./fdm-api/node_modules
+COPY --from=builder --chown=user:nodejs /app/deployed/package.json ./fdm-api/package.json
+
+# Copy built artifacts from the builder stage
+COPY --from=builder --chown=user:nodejs /app/fdm-api/dist ./fdm-api/dist
+COPY --from=builder --chown=user:nodejs /app/fdm-api/instrument.server.mjs ./fdm-api/instrument.server.mjs
+
+# Set production environment
 ENV NODE_ENV=production
 ENV PORT=8080
+
+# Use non-root user
+USER user
+
+# Expose port
 EXPOSE 8080
 
-CMD ["node", "fdm-api/dist/server.js"]
+WORKDIR /app/fdm-api
+# Run node directly
+CMD ["node", "dist/server.js"]
