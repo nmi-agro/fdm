@@ -47,7 +47,7 @@ RUN pnpm build
 # issue on the deploy step is avoided by --config.prefer-online=true on the
 # install step above (metadata is refreshed and stored before deploy runs).
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm --filter=@nmi-agro/fdm-app deploy --prod --legacy /app/deployed
+    pnpm --filter=@nmi-agro/fdm-app deploy --prod --legacy --config.resolution-mode=highest --config.prefer-online=true /app/deployed
 
 # Production runner stage
 FROM node:${NODE_VERSION}-alpine AS runner
