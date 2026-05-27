@@ -16,7 +16,7 @@
         },
         "check-types": {
             "outputs": [],
-            "dependsOn": ["^check-types"]
+            "dependsOn": ["^build", "^check-types"]
         },
         "//#format-and-lint": {},
         "//#format-and-lint:fix": {
