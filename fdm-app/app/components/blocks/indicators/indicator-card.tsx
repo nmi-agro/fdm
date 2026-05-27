@@ -51,20 +51,34 @@ function StackedScoreBar({
 }) {
     const indexWidth = Math.max(0, Math.min(indexValue, 100))
     const impactWidth = Math.max(0, Math.min(impactValue, 100 - indexWidth))
+    const hasImpact = impactWidth > 0
     return (
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-primary/10">
+        <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
-                className="absolute left-0 top-0 h-full rounded-l-full transition-all duration-500"
-                style={{ width: `${indexWidth}%`, backgroundColor: indexColor }}
+                className="absolute left-0 top-0 h-full transition-all duration-500"
+                style={{
+                    width: `${indexWidth}%`,
+                    backgroundColor: indexColor,
+                    borderRadius: hasImpact ? "9999px 0 0 9999px" : "9999px",
+                }}
             />
-            {impactWidth > 0 && (
-                <div
-                    className="absolute top-0 h-full bg-green-500/60 transition-all duration-500"
-                    style={{
-                        left: `${indexWidth}%`,
-                        width: `${impactWidth}%`,
-                    }}
-                />
+            {hasImpact && (
+                <>
+                    {/* 2px white gap between index and impact */}
+                    <div
+                        className="absolute top-0 h-full bg-background"
+                        style={{ left: `${indexWidth}%`, width: "2px" }}
+                    />
+                    <div
+                        className="absolute top-0 h-full transition-all duration-500"
+                        style={{
+                            left: `calc(${indexWidth}% + 2px)`,
+                            width: `${impactWidth}%`,
+                            backgroundColor: "#2dd4bf",
+                            borderRadius: "0 9999px 9999px 0",
+                        }}
+                    />
+                </>
             )}
         </div>
     )
@@ -115,7 +129,7 @@ export function IndicatorCard({
                             <span>{activeDisplay}</span>
                         </div>
                         {!showIndex && hasImpact && (
-                            <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 leading-none">
+                            <span className="inline-flex items-center rounded-full bg-teal-100 dark:bg-teal-900/30 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400 leading-none">
                                 +{impactDisplay}
                             </span>
                         )}
@@ -157,14 +171,6 @@ export function IndicatorCard({
                                     {" "}{info.unit}
                                 </span>
                             )}
-                            {!showIndex && hasImpact && (
-                                <>
-                                    {"  "}· Impact{" "}
-                                    <span className="font-medium text-green-600 dark:text-green-400">
-                                        +{impactDisplay}
-                                    </span>
-                                </>
-                            )}
                         </p>
 
                         {/* Stacked score bar */}
@@ -191,8 +197,8 @@ export function IndicatorCard({
                                         />
                                         Perceel: {indexDisplay}
                                     </span>
-                                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                        <span className="inline-block w-2 h-1.5 rounded-sm bg-green-500 opacity-60" />
+                                    <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400">
+                                        <span className="inline-block w-2 h-1.5 rounded-sm" style={{ backgroundColor: "#2dd4bf" }} />
                                         Maatregelen: +{impactDisplay}
                                     </span>
                                 </div>
