@@ -143,10 +143,20 @@ export function IndicatorCard({
                             <span className="font-medium text-foreground">
                                 {result.status.toFixed(2)}
                             </span>
+                            {info.unit && (
+                                <span className="text-muted-foreground">
+                                    {" "}{info.unit}
+                                </span>
+                            )}
                             {"  "}· Doel{" "}
                             <span className="font-medium text-foreground">
                                 {result.target.toFixed(2)}
                             </span>
+                            {info.unit && (
+                                <span className="text-muted-foreground">
+                                    {" "}{info.unit}
+                                </span>
+                            )}
                             {!showIndex && hasImpact && (
                                 <>
                                     {"  "}· Impact{" "}

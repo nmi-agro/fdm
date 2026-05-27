@@ -16,6 +16,8 @@ export type IndicatorInfo = {
     name: string
     description: string
     ecosysteemdienst: Ecosysteemdienst
+    /** Physical unit for status/target values, or null when dimensionless */
+    unit?: string | null
 }
 
 export type ScoreTier = "green" | "yellow" | "red"
@@ -83,6 +85,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "Het vermogen van de bodem om bodemgebonden ziekten en plagen te voorkomen",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "B_SF",
@@ -90,6 +93,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De mate van activiteit van het micro-organismen (zoals bacteriën en schimmels) in de bodem",
         ecosysteemdienst: "Gewasproductie",
+        unit: "mg N/kg",
     },
     {
         id: "C_K",
@@ -97,6 +101,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De beschikbaarheid van kalium vanuit de bodem voor het gewas",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "C_MG",
@@ -104,6 +109,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De beschikbaarheid van magnesium vanuit de bodem voor het gewas",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "C_N",
@@ -111,6 +117,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De beschikbaarheid van stikstof vanuit de bodem voor het gewas",
         ecosysteemdienst: "Gewasproductie",
+        unit: "kg N/ha",
     },
     {
         id: "C_P",
@@ -118,6 +125,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De beschikbaarheid van fosfaat vanuit de bodem voor het gewas",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "C_PH",
@@ -125,12 +133,14 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De zuurgraad van de bodem, belangrijk voor de beschikbaarheid van nutriënten en een actief bodemleven",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "C_S",
         name: "Zwavelbeschikbaarheid",
         description: "De beschikbaarheid van zwavel vanuit de bodem voor het gewas",
         ecosysteemdienst: "Gewasproductie",
+        unit: "kg S/ha",
     },
     {
         id: "P_AS",
@@ -138,12 +148,14 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De stevigheid van bodemaggregaten wat de bodem beter bestand maakt tegen verdichting en zware regenval",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "P_CO",
         name: "Weerstand tegen bodemverdichting",
         description: "De mate waarin de bodem bestand is tegen bodemverdichting",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "P_CR",
@@ -151,6 +163,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De mate waarin de bodem is te verkruimelen om een goed zaaibed aan te leggen",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "P_DS",
@@ -158,12 +171,14 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "Het vermogen van de bodem om voldoende vocht vast te houden en te leveren tijdens droge perioden",
         ecosysteemdienst: "Gewasproductie",
+        unit: "%",
     },
     {
         id: "P_DU",
         name: "Weerstand tegen verstuiving",
         description: "De weerbaarheid van de bodem tegen winderosie",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "P_RO",
@@ -171,6 +186,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De mate waarin de bodem gemakkelijk te bewortelen is voor het gewas",
         ecosysteemdienst: "Gewasproductie",
+        unit: "kg/m³",
     },
     {
         id: "P_SE",
@@ -178,12 +194,14 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De weerbaarheid van de bodem tegen het vormen van een slempkorst",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "P_WRET",
         name: "Waterbergend vermogen",
         description: "Het vermogen van de bodem om water vast te houden",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "P_WO",
@@ -191,6 +209,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De mate waarin de bodem bewerkbaar is en voldoende draagkracht heeft",
         ecosysteemdienst: "Gewasproductie",
+        unit: null,
     },
     {
         id: "P_WS",
@@ -198,6 +217,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "Het vermogen van de bodem om overtollig water snel af te voeren, zodat zuurstoftekort bij de wortels wordt voorkomen",
         ecosysteemdienst: "Gewasproductie",
+        unit: "%",
     },
     // Koolstofvastlegging
     {
@@ -205,6 +225,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Koolstofvastlegging",
         description: "De potentie van de bodem om koolstof vast te leggen",
         ecosysteemdienst: "Koolstofvastlegging",
+        unit: null,
     },
     // Waterkwaliteit
     {
@@ -213,6 +234,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De mate waarin regenwater kan infiltreren naar het diepere grondwater in plaats van oppervlakkig af te stromen naar de sloten",
         ecosysteemdienst: "Waterkwaliteit",
+        unit: null,
     },
     {
         id: "GW_NLEA",
@@ -220,6 +242,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "Het vermogen van de bodem om stikstof in de bodem vast te houden in plaats van dat het uitspoelt naar het grondwater",
         ecosysteemdienst: "Waterkwaliteit",
+        unit: null,
     },
     {
         id: "GW_PEST",
@@ -227,6 +250,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "Het vermogen van de bodem om gewasbeschermingsmiddelen te binden en af te breken, zodat ze niet in het grondwater terechtkomen",
         ecosysteemdienst: "Waterkwaliteit",
+        unit: null,
     },
     {
         id: "SW_NLEA",
@@ -234,6 +258,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "Het vermogen van de bodem om afstroming van stikstof naar het oppervlaktewater te voorkomen na hevige neerslag",
         ecosysteemdienst: "Waterkwaliteit",
+        unit: null,
     },
     {
         id: "SW_PLEA",
@@ -241,6 +266,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "Het vermogen van de bodem om fosfaat te binden en afstroming naar het oppervlaktewater te voorkomen na hevige neerslag",
         ecosysteemdienst: "Waterkwaliteit",
+        unit: null,
     },
     // Nutriëntenkringloop
     {
@@ -249,6 +275,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De effectiviteit waarmee het gewas de aanwezige en bemeste kalium kan opnemen en benutten",
         ecosysteemdienst: "Nutriëntenkringloop",
+        unit: null,
     },
     {
         id: "NUT_N",
@@ -256,6 +283,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De effectiviteit waarmee het gewas de aanwezige en bemeste stikstof kan opnemen en benutten",
         ecosysteemdienst: "Nutriëntenkringloop",
+        unit: null,
     },
     {
         id: "NUT_P",
@@ -263,6 +291,7 @@ export const INDICATORS: IndicatorInfo[] = [
         description:
             "De effectiviteit waarmee het gewas de aanwezige en bemeste fosfaat kan opnemen en benutten",
         ecosysteemdienst: "Nutriëntenkringloop",
+        unit: null,
     },
 ]
 
