@@ -5,10 +5,10 @@ import {
 } from "lucide-react"
 import * as React from "react"
 import {
-    type DayButton,
+    type DayButtonProps,
     DayPicker,
     getDefaultClassNames,
-} from "react-day-picker"
+} from "@daypicker/react"
 
 import { Button, buttonVariants } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
@@ -53,17 +53,17 @@ function Calendar({
                     defaultClassNames.month,
                 ),
                 nav: cn(
-                    "flex items-center gap-1 w-full absolute top-0 inset-x-0 justify-between",
+                    "flex items-center gap-1 w-full absolute top-0 inset-x-0 justify-between pointer-events-none",
                     defaultClassNames.nav,
                 ),
                 button_previous: cn(
                     buttonVariants({ variant: buttonVariant }),
-                    "size-(--cell-size) aria-disabled:opacity-50 p-0 select-none",
+                    "size-(--cell-size) aria-disabled:opacity-50 p-0 select-none pointer-events-auto",
                     defaultClassNames.button_previous,
                 ),
                 button_next: cn(
                     buttonVariants({ variant: buttonVariant }),
-                    "size-(--cell-size) aria-disabled:opacity-50 p-0 select-none",
+                    "size-(--cell-size) aria-disabled:opacity-50 p-0 select-none pointer-events-auto",
                     defaultClassNames.button_next,
                 ),
                 month_caption: cn(
@@ -89,7 +89,7 @@ function Calendar({
                         : "rounded-md pl-2 pr-1 flex items-center gap-1 text-sm h-8 [&>svg]:text-muted-foreground [&>svg]:size-3.5",
                     defaultClassNames.caption_label,
                 ),
-                table: "w-full border-collapse",
+                month_grid: "w-full border-collapse",
                 weekdays: cn("flex", defaultClassNames.weekdays),
                 weekday: cn(
                     "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none",
@@ -194,7 +194,7 @@ function CalendarDayButton({
     day,
     modifiers,
     ...props
-}: React.ComponentProps<typeof DayButton>) {
+}: DayButtonProps) {
     const defaultClassNames = getDefaultClassNames()
 
     const ref = React.useRef<HTMLButtonElement>(null)
@@ -219,7 +219,7 @@ function CalendarDayButton({
             data-range-middle={modifiers.range_middle}
             className={cn(
                 "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 dark:hover:text-accent-foreground flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md [&>span]:text-xs [&>span]:opacity-70",
-                defaultClassNames.day,
+                defaultClassNames.day_button,
                 className,
             )}
             {...props}

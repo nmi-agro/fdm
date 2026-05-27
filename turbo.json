@@ -1,5 +1,5 @@
 {
-    "$schema": "https://turbo.build/schema.json",
+    "$schema": "https://v2-9-14.turborepo.dev/schema.json",
     "tasks": {
         "build": {
             "outputs": ["dist/**", "build/**"],
@@ -15,7 +15,8 @@
             "dependsOn": ["^build-docs"]
         },
         "check-types": {
-            "dependsOn": ["^check-types"]
+            "outputs": [],
+            "dependsOn": ["^build", "^check-types"]
         },
         "//#format-and-lint": {},
         "//#format-and-lint:fix": {
@@ -28,6 +29,7 @@
             "outputs": [],
             "persistent": false,
             "cache": false,
+            "dependsOn": ["^build"],
             "env": [
                 "POSTGRES_HOST",
                 "POSTGRES_PORT",
