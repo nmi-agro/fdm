@@ -29,6 +29,7 @@
             "outputs": [],
             "persistent": false,
             "cache": false,
+            "dependsOn": ["^build"],
             "env": [
                 "POSTGRES_HOST",
                 "POSTGRES_PORT",
