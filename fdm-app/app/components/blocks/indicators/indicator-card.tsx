@@ -201,7 +201,7 @@ export function IndicatorCard({
                     </div>
 
                     {/* Right side: verdict + chevron */}
-                    <div className="shrink-0 flex flex-col items-end gap-1.5">
+                    <div className="shrink-0 w-32 flex flex-col items-end gap-1.5">
                         <ScoreBadge score={activeDisplay} />
                         {expanded ? (
                             <ChevronUp className="h-4 w-4 text-muted-foreground mt-1" />
