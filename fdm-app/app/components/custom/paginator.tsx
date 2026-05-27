@@ -37,7 +37,7 @@ export function Paginator({ totalItems, pageSize }: PaginatorProps) {
 
     const deltaPages = 2
     const currentPage = Math.floor(
-        Number.parseInt(searchParams.get("pageOffset") ?? "", 10) / pageSize,
+        Number.parseInt(searchParams.get("pageOffset") ?? "0", 10) / pageSize,
     )
     const firstPage = 0
     const lastPage = Math.ceil(totalItems / pageSize) - 1

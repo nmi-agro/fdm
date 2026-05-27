@@ -1,5 +1,6 @@
 import { getPrincipals } from "@nmi-agro/fdm-core"
 import {
+    checkHelpdeskPermission,
     getTicketCount,
     getTickets,
     type Ticket,
@@ -17,6 +18,47 @@ export type LoadPaginatedTicketsData = {
     tickets: Ticket[]
     totalTicketCount: number
     principals: HelpdeskUser[]
+}
+
+function mergeFilters(...filters: TicketFilters[]): TicketFilters {
+    return mergeFiltersInner(filters.length, filters)
+}
+
+function mergeFiltersInner(
+    end: number,
+    filters: TicketFilters[],
+): TicketFilters {
+    if (end === 0) return {}
+    if (end === 1) return filters[end - 1]
+    const base = mergeFiltersInner(end - 1, filters)
+    const current = filters[end - 1]
+    const result: TicketFilters = {}
+
+    if (base.assignees || current.assignees) {
+        result.assignees = [
+            ...(base.assignees ?? []),
+            ...(current.assignees ?? []),
+        ]
+    }
+    if (base.requesterIds || current.requesterIds) {
+        result.requesterIds = [
+            ...(base.requesterIds ?? []),
+            ...(current.requesterIds ?? []),
+        ]
+    }
+    if (base.fromDate || current.fromDate) {
+        result.fromDate = current.fromDate ?? base.fromDate
+    }
+    if (base.toDate || current.toDate) {
+        result.toDate = current.toDate ?? base.toDate
+    }
+    if (base.minPriority || current.minPriority) {
+        result.minPriority = current.minPriority ?? base.minPriority
+    }
+    if (base.maxPriority || current.maxPriority) {
+        result.maxPriority = current.maxPriority ?? base.maxPriority
+    }
+    return result
 }
 
 export async function loadPaginatedTickets(request: Request) {
@@ -45,6 +87,18 @@ export async function loadPaginatedTickets(request: Request) {
             return redirect(`?${newSearchParams.toString()}`)
         }
 
+        const session = await getSession(request)
+
+        const helpdeskReadPermission = await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "read",
+            "",
+            session.principal_id,
+            "loadPaginatedTickets",
+            false,
+        )
+
         const {
             pageOffset: _pageOffset,
             pageLimit: _pageLimit,
@@ -52,15 +106,16 @@ export async function loadPaginatedTickets(request: Request) {
         } = TicketFilterSchema.parse(
             JSON.parse(url.searchParams.get("filters") ?? "{}"),
         )
-        const session = await getSession(request)
 
-        const filters: TicketFilters = {
-            ...userFilters,
-            requesterIds: [
-                ...(userFilters.requesterIds ?? []),
-                session.principal_id,
-            ],
-        }
+        const defaultFilters: TicketFilters = !helpdeskReadPermission
+            ? { requesterIds: [session.principal_id] }
+            : url.searchParams.has("all")
+              ? {}
+              : url.searchParams.has("inbox")
+                ? { assignees: [session.principal_id] }
+                : { requesterIds: [session.principal_id] }
+
+        const filters: TicketFilters = mergeFilters(defaultFilters, userFilters)
 
         const totalTicketCount = await getTicketCount(
             fdm,

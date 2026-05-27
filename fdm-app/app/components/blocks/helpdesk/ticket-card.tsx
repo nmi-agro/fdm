@@ -4,8 +4,8 @@ import { nl } from "date-fns/locale"
 import { NavLink, useLocation } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { Badge } from "~/components/ui/badge"
-import type { HelpdeskUser } from "./types"
 import { TICKET_STATUS } from "./ticket"
+import type { HelpdeskUser } from "./types"
 
 export function TicketCard({
     ticket,

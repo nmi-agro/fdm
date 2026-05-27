@@ -2,6 +2,7 @@ import { Command as CommandPrimitive } from "cmdk"
 import { Check, User, Users } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useFetcher } from "react-router-dom"
+import { modifySearchParams } from "@/app/lib/url-utils"
 import {
     Command,
     CommandEmpty,
@@ -86,7 +87,9 @@ export function AutoComplete<T extends string>({
             debounceTimeout.current = setTimeout(() => {
                 prevInputValue.current = inputValue
                 setIsLoading(true)
-                const url = `${lookupUrl}?${searchParamName}=${encodeURIComponent(inputValue)}`
+                const url = modifySearchParams(lookupUrl, (searchParams) => {
+                    searchParams.set(searchParamName, inputValue)
+                })
                 fetcher.load(url) // Use GET request via fetcher.load
             }, 300)
         } else if (inputValue.length < 1) {

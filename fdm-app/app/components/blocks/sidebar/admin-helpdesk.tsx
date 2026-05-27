@@ -24,11 +24,11 @@ export function SidebarAdminHelpdesk() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
-                            isActive={/^\/admin\/support\/?$/.test(
-                                location.pathname,
+                            isActive={location.pathname.startsWith(
+                                "/support?inbox",
                             )}
                         >
-                            <NavLink to={"/admin/support"}>
+                            <NavLink to={"/support?inbox"}>
                                 <MessageSquareCheck />
                                 <span>Mijn Inbox</span>
                             </NavLink>
@@ -38,10 +38,10 @@ export function SidebarAdminHelpdesk() {
                         <SidebarMenuButton
                             asChild
                             isActive={location.pathname.includes(
-                                "/admin/support/tickets",
+                                "/support?all",
                             )}
                         >
-                            <NavLink to={"/admin/support/tickets"}>
+                            <NavLink to={"/support?all"}>
                                 <MessageSquareDashed />
                                 <span>Alle Tickets</span>
                             </NavLink>
@@ -51,10 +51,10 @@ export function SidebarAdminHelpdesk() {
                         <SidebarMenuButton
                             asChild
                             isActive={location.pathname.includes(
-                                "/admin/supports/settings/agents",
+                                "/support/settings/saved-replies",
                             )}
                         >
-                            <NavLink to={"/admin/support/saved_replies"}>
+                            <NavLink to={"/support/settings/saved-replies"}>
                                 <Bookmark />
                                 <span>Opgeslaande Antwoorden</span>
                             </NavLink>
@@ -64,10 +64,10 @@ export function SidebarAdminHelpdesk() {
                         <SidebarMenuButton
                             asChild
                             isActive={location.pathname.includes(
-                                "/admin/supports/settings/agents",
+                                "/support/settings/agents",
                             )}
                         >
-                            <NavLink to={"/admin"}>
+                            <NavLink to="/support/settings/agents">
                                 <User />
                                 <span>Collega</span>
                             </NavLink>

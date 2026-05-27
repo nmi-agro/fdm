@@ -1,10 +1,7 @@
 import type { Ticket } from "@nmi-agro/fdm-helpdesk"
-import { useState } from "react"
 import { Outlet, useLocation } from "react-router"
 import { getPageSearch, Paginator } from "~/components/custom/paginator"
-import { Button } from "~/components/ui/button"
 import { Empty, EmptyDescription, EmptyTitle } from "~/components/ui/empty"
-import { Input } from "~/components/ui/input"
 import { TicketCard } from "./ticket-card"
 import type { HelpdeskUser } from "./types"
 
@@ -62,39 +59,5 @@ export function TicketViewer({
                 <Outlet />
             </div>
         </div>
-    )
-}
-
-function PaginationCurrent({
-    value,
-    onValueChange,
-}: {
-    value: number
-    onValueChange: (v: number) => unknown
-}) {
-    const [active, setActive] = useState(false)
-    return active ? (
-        <Input
-            type="number"
-            onLoad={(e) => e.currentTarget.focus()}
-            onKeyDown={(e) => {
-                if (e.key !== "Enter") return
-                let newValue = 0
-                try {
-                    newValue = Number.parseInt(e.currentTarget.value)
-                } catch (_) {
-                    return
-                }
-                onValueChange(newValue)
-                setActive(false)
-            }}
-            onBlur={(e) => {
-                setActive(false)
-            }}
-        />
-    ) : (
-        <Button variant="link" onClick={() => setActive(true)}>
-            {value + 1}
-        </Button>
     )
 }

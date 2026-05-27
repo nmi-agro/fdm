@@ -7,6 +7,7 @@ import { fdm } from "~/lib/fdm.server"
 // Define the expected return type from lookupPrincipal based on previous usage
 type CorePrincipal = {
     username: string
+    id: string
     displayUserName: string
     type: "user" | "organization"
 }
@@ -31,6 +32,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         // Get identifier from URL query parameters
         const url = new URL(request.url)
         const identifier = url.searchParams.get("identifier") // Read 'identifier' param
+        const usePrincipalId = url.searchParams.has("principal_id")
 
         if (!identifier) {
             return [] // Return empty array directly
@@ -50,10 +52,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
             identifier,
         )
 
+        const valueSubscript = usePrincipalId ? "id" : "username"
+
         // Map the result to the format expected by AutoComplete
         const autocompletePrincipals: AutocompletePrincipal[] = principals.map(
             (p) => ({
-                value: p.username,
+                value: p[valueSubscript],
                 label: p.displayUserName,
                 icon: p.type, // Pass the type as the icon identifier
             }),

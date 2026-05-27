@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 import { cn } from "@/app/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Card } from "~/components/ui/card"
-import { HelpdeskUser } from "./types"
+import type { HelpdeskUser } from "./types"
 
 export type MessageExtended = MessageT & { principal: HelpdeskUser | null }
 export function Message({
