@@ -34,12 +34,10 @@ type IndicatorCardProps = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-    Biologisch: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-    Chemisch: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
-    Fysisch: "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
-    Grondwater: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-400",
-    "Nutriënten": "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
-    Oppervlaktewater: "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400",
+    Gewasproductie: "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400",
+    Koolstofvastlegging: "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
+    Waterkwaliteit: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
+    "Nutriëntenkringloop": "bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
 }
 
 function StackedScoreBar({
@@ -53,20 +51,34 @@ function StackedScoreBar({
 }) {
     const indexWidth = Math.max(0, Math.min(indexValue, 100))
     const impactWidth = Math.max(0, Math.min(impactValue, 100 - indexWidth))
+    const hasImpact = impactWidth > 0
     return (
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-primary/10">
+        <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
-                className="absolute left-0 top-0 h-full rounded-l-full transition-all duration-500"
-                style={{ width: `${indexWidth}%`, backgroundColor: indexColor }}
+                className="absolute left-0 top-0 h-full transition-all duration-500"
+                style={{
+                    width: `${indexWidth}%`,
+                    backgroundColor: indexColor,
+                    borderRadius: hasImpact ? "9999px 0 0 9999px" : "9999px",
+                }}
             />
-            {impactWidth > 0 && (
-                <div
-                    className="absolute top-0 h-full bg-green-500/60 transition-all duration-500"
-                    style={{
-                        left: `${indexWidth}%`,
-                        width: `${impactWidth}%`,
-                    }}
-                />
+            {hasImpact && (
+                <>
+                    {/* 2px white gap between index and impact */}
+                    <div
+                        className="absolute top-0 h-full bg-background"
+                        style={{ left: `${indexWidth}%`, width: "2px" }}
+                    />
+                    <div
+                        className="absolute top-0 h-full transition-all duration-500"
+                        style={{
+                            left: `calc(${indexWidth}% + 2px)`,
+                            width: `${impactWidth}%`,
+                            backgroundColor: "#2dd4bf",
+                            borderRadius: "0 9999px 9999px 0",
+                        }}
+                    />
+                </>
             )}
         </div>
     )
@@ -117,7 +129,7 @@ export function IndicatorCard({
                             <span>{activeDisplay}</span>
                         </div>
                         {!showIndex && hasImpact && (
-                            <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 leading-none">
+                            <span className="inline-flex items-center rounded-full bg-teal-100 dark:bg-teal-900/30 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400 leading-none">
                                 +{impactDisplay}
                             </span>
                         )}
@@ -131,11 +143,11 @@ export function IndicatorCard({
                             <span
                                 className={cn(
                                     "text-[10px] font-medium rounded-full px-2 py-0.5",
-                                    CATEGORY_COLORS[info.category] ??
+                                    CATEGORY_COLORS[info.ecosysteemdienst] ??
                                         "bg-muted text-muted-foreground",
                                 )}
                             >
-                                {info.category}
+                                {info.ecosysteemdienst}
                             </span>
                         </div>
 
@@ -145,17 +157,19 @@ export function IndicatorCard({
                             <span className="font-medium text-foreground">
                                 {result.status.toFixed(2)}
                             </span>
+                            {info.unit && (
+                                <span className="text-muted-foreground">
+                                    {" "}{info.unit}
+                                </span>
+                            )}
                             {"  "}· Doel{" "}
                             <span className="font-medium text-foreground">
                                 {result.target.toFixed(2)}
                             </span>
-                            {!showIndex && hasImpact && (
-                                <>
-                                    {"  "}· Impact{" "}
-                                    <span className="font-medium text-green-600 dark:text-green-400">
-                                        +{impactDisplay}
-                                    </span>
-                                </>
+                            {info.unit && (
+                                <span className="text-muted-foreground">
+                                    {" "}{info.unit}
+                                </span>
                             )}
                         </p>
 
@@ -183,8 +197,8 @@ export function IndicatorCard({
                                         />
                                         Perceel: {indexDisplay}
                                     </span>
-                                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                        <span className="inline-block w-2 h-1.5 rounded-sm bg-green-500 opacity-60" />
+                                    <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400">
+                                        <span className="inline-block w-2 h-1.5 rounded-sm" style={{ backgroundColor: "#2dd4bf" }} />
                                         Maatregelen: +{impactDisplay}
                                     </span>
                                 </div>
@@ -193,7 +207,7 @@ export function IndicatorCard({
                     </div>
 
                     {/* Right side: verdict + chevron */}
-                    <div className="shrink-0 flex flex-col items-end gap-1.5">
+                    <div className="shrink-0 w-32 flex flex-col items-end gap-1.5">
                         <ScoreBadge score={activeDisplay} />
                         {expanded ? (
                             <ChevronUp className="h-4 w-4 text-muted-foreground mt-1" />

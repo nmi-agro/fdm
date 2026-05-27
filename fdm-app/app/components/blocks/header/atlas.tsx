@@ -23,13 +23,16 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
     const isElevation = location.pathname.includes("/elevation")
     const isSoilAnalysis = location.pathname.includes("/soil-analysis")
     const isSoil = location.pathname.includes("/soil")
+    const isIndicators = location.pathname.includes("/indicators")
     const currentName = isElevation
         ? "Hoogtekaart"
         : isSoilAnalysis
           ? "Bodemanalyses"
           : isSoil
             ? "Bodemkaart"
-            : "Gewaspercelen"
+            : isIndicators
+              ? "Indicatoren"
+              : "Gewaspercelen"
     const isFarmSelected = b_id_farm && b_id_farm !== "undefined"
 
     return (
@@ -65,6 +68,13 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
                                         to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}
                                     >
                                         Bodemanalyses
+                                    </NavLink>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <NavLink
+                                        to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}
+                                    >
+                                        Indicatoren
                                     </NavLink>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
@@ -105,9 +115,4 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
             </BreadcrumbItem>
         </>
     )
-}
-
-type HeaderAtlasLayerOption = {
-    atlasLayerId: string
-    atlasLayerName: string
 }

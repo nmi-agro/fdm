@@ -48,10 +48,6 @@ export type Bln3ScoreCollectedInputs = {
         | "dekzand"
         | "loess"
         | "veen"
-    /** HELP soil map unit */
-    b_help_wenr?: string
-    /** Compaction risk (from Van den Akker, 2012) */
-    b_sc_wenr?: 1 | 2 | 3 | 4 | 5 | 10 | 11 | 401 | 901 | 902
     /** Groundwater class */
     b_gwl_class?:
         | "Ia"
@@ -75,16 +71,44 @@ export type Bln3ScoreCollectedInputs = {
         | "VIId"
         | "VIIIo"
         | "VIIId"
-    /** Whether drains are present */
-    b_drain?: boolean
 
     // ── Soil analysis ────────────────────────────────────────────────────────
+    /** Calcium occupation of the CEC (%) */
+    a_ca_co_po?: number
+    /** Cation exchange capacity (mmol+ / kg) */
+    a_cec_co?: number
+    /** Clay content (%) */
+    a_clay_mi?: number
+    /** Carbon nitrogen ratio (-) */
+    a_cn_fr?: number
+    /** Potassium plant available (mg K / kg) */
+    a_k_cc?: number
+    /** Potassium occupation of CEC (%) */
+    a_k_co_po?: number
+    /** Magnesium plant available (mg Mg / kg) */
+    a_mg_cc?: number
+    /** Magnesium occupation of CEC (%) */
+    a_mg_co_po?: number
+    /** Potentially mineralizable nitrogen / microbial activity (mg N / kg) */
+    a_n_pmn?: number
+    /** Total nitrogen content (mg N / kg) */
+    a_n_rt?: number
     /** Phosphorus plant available (PAE) (mg P / kg) */
     a_p_cc?: number
     /** Phosphate in ammonium lactate extraction (PAL) (mg P2O5 / 100g) */
     a_p_al?: number
     /** Phosphate extractable with water (Pw) (mg P2O5 / l) */
     a_p_wa?: number
+    /** Soil acidity in CaCl2 (pH) */
+    a_ph_cc?: number
+    /** Total sulfur content (mg S / kg) */
+    a_s_rt?: number
+    /** Sand content (%) */
+    a_sand_mi?: number
+    /** Silt content (%) */
+    a_silt_mi?: number
+    /** Soil organic matter content (%) */
+    a_som_loi?: number
 
     // ── Measures ─────────────────────────────────────────────────────────────
     /** Implemented soil management measures */

@@ -36,34 +36,23 @@ export function Bln3HelpDialog() {
                         <em>Bodemindicatoren voor Landbouwgronden Nederland</em>{" "}
                         (versie 3). Het is een wetenschappelijk onderbouwd
                         systeem om de bodemkwaliteit van landbouwpercelen
-                        objectief te beoordelen aan de hand van 28 indicatoren.
+                        objectief te beoordelen aan de hand van 27 indicatoren.
                     </p>
 
                     <div className="space-y-1.5">
                         <p className="font-medium text-foreground">
-                            28 indicatoren in 6 thema's
+                            4 ecosysteemdiensten
                         </p>
                         <ul className="space-y-1 list-none">
                             {[
-                                ["Biologisch", "bodemleven en biodiversiteit"],
-                                ["Chemisch", "nutriëntengehaltes en zuurgraad"],
-                                [
-                                    "Fysisch",
-                                    "bodemstructuur en waterhuishouding",
-                                ],
-                                ["Grondwater", "uitspoeling naar grondwater"],
-                                [
-                                    "Nutriënten",
-                                    "nutriëntenkringlopen en efficiëntie",
-                                ],
-                                [
-                                    "Oppervlaktewater",
-                                    "belasting van oppervlaktewater",
-                                ],
-                            ].map(([cat, desc]) => (
-                                <li key={cat} className="flex gap-2">
+                                ["Gewasproductie", "bodemvruchtbaarheid, structuur en bodemleven (18 indicatoren)"],
+                                ["Koolstofvastlegging", "potentie van de bodem om koolstof op te slaan (1 indicator)"],
+                                ["Waterkwaliteit", "bescherming van grond- en oppervlaktewater (5 indicatoren)"],
+                                ["Nutriëntenkringloop", "efficiëntie van nutriëntopname door het gewas (3 indicatoren)"],
+                            ].map(([dienst, desc]) => (
+                                <li key={dienst} className="flex gap-2">
                                     <span className="font-medium text-foreground shrink-0">
-                                        {cat}:
+                                        {dienst}:
                                     </span>
                                     <span>{desc}</span>
                                 </li>
@@ -112,36 +101,6 @@ export function Bln3HelpDialog() {
                             </strong>{" "}
                             toont de huidige situatie op basis van uw
                             bodemanalyses.
-                        </p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <p className="font-medium text-foreground">
-                            OBI &amp; BBWP
-                        </p>
-                        <p>
-                            De{" "}
-                            <strong className="text-foreground">
-                                Open Bodem Index (OBI)
-                            </strong>{" "}
-                            is een instrument dat de algehele bodemkwaliteit van
-                            een perceel weergeeft voor agrarische productie,
-                            gebaseerd op de meest relevante BLN3-indicatoren
-                            voor bodemgezondheid.
-                        </p>
-                        <p>
-                            Het{" "}
-                            <strong className="text-foreground">
-                                BedrijfsBodemWaterPlan (BBWP)
-                            </strong>{" "}
-                            is een instrument waarmee telers concrete
-                            maatregelen plannen om de bodem- en waterkwaliteit
-                            op hun bedrijf te verbeteren — voor het verminderen
-                            van nutriëntenuitspoeling en afspoeling en het
-                            verhogen van het waterbergend vermogen. De
-                            BBWP-score geeft aan in hoeverre het perceel
-                            bijdraagt aan deze doelen voor de waterkwaliteit en
-                            kwantiteit.
                         </p>
                     </div>
                 </div>

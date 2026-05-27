@@ -52,38 +52,44 @@ export function SidebarApps() {
     let atlasElevationLink: string | undefined
     let atlasSoilLink: string | undefined
     let atlasSoilAnalysisLink: string | undefined
+    let atlasIndicatorsLink: string | undefined
     if (isCreateFarmWizard) {
         atlasLink = undefined
         atlasFieldsLink = undefined
         atlasElevationLink = undefined
         atlasSoilLink = undefined
         atlasSoilAnalysisLink = undefined
+        atlasIndicatorsLink = undefined
     } else if (farmId && farmId !== "undefined") {
         atlasLink = `/farm/${farmId}/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/${farmId}/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/${farmId}/${selectedCalendar}/atlas/elevation`
         atlasSoilLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil`
         atlasSoilAnalysisLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil-analysis`
+        atlasIndicatorsLink = `/farm/${farmId}/${selectedCalendar}/atlas/indicators`
     } else {
         atlasLink = `/farm/undefined/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/undefined/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/undefined/${selectedCalendar}/atlas/elevation`
         atlasSoilLink = `/farm/undefined/${selectedCalendar}/atlas/soil`
         atlasSoilAnalysisLink = undefined
+        atlasIndicatorsLink = undefined
     }
 
     const activeAtlasTab =
-        atlasFieldsLink && location.pathname.includes(atlasFieldsLink)
-            ? "fields"
-            : atlasElevationLink &&
-                location.pathname.includes(atlasElevationLink)
-              ? "elevation"
-              : atlasSoilAnalysisLink &&
-                  location.pathname.includes(atlasSoilAnalysisLink)
-                ? "soil-analysis"
-                : atlasSoilLink && location.pathname.includes(atlasSoilLink)
-                  ? "soil"
-                  : undefined
+        atlasIndicatorsLink && location.pathname.includes(atlasIndicatorsLink)
+            ? "indicators"
+            : atlasFieldsLink && location.pathname.includes(atlasFieldsLink)
+              ? "fields"
+              : atlasElevationLink &&
+                  location.pathname.includes(atlasElevationLink)
+                ? "elevation"
+                : atlasSoilAnalysisLink &&
+                    location.pathname.includes(atlasSoilAnalysisLink)
+                  ? "soil-analysis"
+                  : atlasSoilLink && location.pathname.includes(atlasSoilLink)
+                    ? "soil"
+                    : undefined
 
     let nitrogenBalanceLink: string | undefined
     if (isCreateFarmWizard || isFarmOverview) {
@@ -130,15 +136,6 @@ export function SidebarApps() {
         indicatorsLink = undefined
     }
 
-    let indicatorsKaartLink: string | undefined
-    if (isCreateFarmWizard) {
-        indicatorsKaartLink = undefined
-    } else if (farmId && farmId !== "undefined") {
-        indicatorsKaartLink = `/farm/${farmId}/${selectedCalendar}/indicators/atlas`
-    } else {
-        indicatorsKaartLink = undefined
-    }
-
     return (
         <TooltipProvider>
             <SidebarGroup>
@@ -147,8 +144,7 @@ export function SidebarApps() {
                     <SidebarMenu>
                         <Collapsible
                             defaultOpen={
-                                location.pathname.includes("/atlas") &&
-                                !location.pathname.includes("/indicators")
+                                location.pathname.includes("/atlas")
                             }
                             className="group/collapsible"
                         >
@@ -157,12 +153,7 @@ export function SidebarApps() {
                                     <CollapsibleTrigger asChild>
                                         <SidebarMenuButton
                                             isActive={
-                                                location.pathname.includes(
-                                                    "/atlas",
-                                                ) &&
-                                                !location.pathname.includes(
-                                                    "/indicators",
-                                                )
+                                                location.pathname.includes("/atlas")
                                             }
                                         >
                                             <MapIcon />
@@ -260,6 +251,23 @@ export function SidebarApps() {
                                                 >
                                                     <NavLink to={atlasSoilLink}>
                                                         <span>Bodemkaart</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ) : null}
+                                        {atlasIndicatorsLink ? (
+                                            <SidebarMenuSubItem>
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "indicators"
+                                                    }
+                                                >
+                                                    <NavLink
+                                                        to={atlasIndicatorsLink}
+                                                    >
+                                                        <span>Indicatoren</span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
                                             </SidebarMenuSubItem>
@@ -405,26 +413,20 @@ export function SidebarApps() {
                                 </Tooltip>
                             )}
                         </SidebarMenuItem>
-                        <Collapsible
-                            defaultOpen={location.pathname.includes(
-                                "/indicators",
-                            )}
-                            className="group/collapsible"
-                        >
-                            <SidebarMenuItem>
+                        <SidebarMenuItem>
                                 {indicatorsLink ? (
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton
-                                            isActive={location.pathname.includes(
-                                                "/indicators",
-                                            )}
-                                        >
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={
+                                            location.pathname.includes("/indicators") &&
+                                            !location.pathname.includes("/atlas/indicators")
+                                        }
+                                    >
+                                        <NavLink to={indicatorsLink}>
                                             <Gauge />
                                             <span>Indicatoren</span>
-                                            <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                                            <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
+                                        </NavLink>
+                                    </SidebarMenuButton>
                                 ) : (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -444,47 +446,7 @@ export function SidebarApps() {
                                         </TooltipContent>
                                     </Tooltip>
                                 )}
-                                <CollapsibleContent>
-                                    <SidebarMenuSub>
-                                        <SidebarMenuSubItem>
-                                            {indicatorsLink ? (
-                                                <SidebarMenuSubButton
-                                                    asChild
-                                                    isActive={
-                                                        location.pathname ===
-                                                            indicatorsLink ||
-                                                        location.pathname ===
-                                                            `${indicatorsLink}/`
-                                                    }
-                                                >
-                                                    <NavLink
-                                                        to={indicatorsLink}
-                                                    >
-                                                        <span>Tabel</span>
-                                                    </NavLink>
-                                                </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            {indicatorsKaartLink ? (
-                                                <SidebarMenuSubButton
-                                                    asChild
-                                                    isActive={location.pathname.includes(
-                                                        indicatorsKaartLink,
-                                                    )}
-                                                >
-                                                    <NavLink
-                                                        to={indicatorsKaartLink}
-                                                    >
-                                                        <span>Kaart</span>
-                                                    </NavLink>
-                                                </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
-                                    </SidebarMenuSub>
-                                </CollapsibleContent>
                             </SidebarMenuItem>
-                        </Collapsible>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>

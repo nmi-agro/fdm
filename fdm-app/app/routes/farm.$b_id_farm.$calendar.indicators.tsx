@@ -5,7 +5,6 @@ import {
     type MetaFunction,
     Outlet,
     useLoaderData,
-    useLocation,
 } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -76,20 +75,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function IndicatorsLayout() {
     const loaderData = useLoaderData<typeof loader>()
-    const location = useLocation()
-    const isKaart = location.pathname.includes("/atlas")
-
-    const headerAction = {
-        label: isKaart ? "Naar tabel" : "Naar kaart",
-        to: isKaart
-            ? `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/indicators`
-            : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/indicators/atlas`,
-        disabled: false,
-    }
 
     return (
         <SidebarInset>
-            <Header action={headerAction}>
+            <Header action={undefined}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

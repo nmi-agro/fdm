@@ -30,18 +30,10 @@ type AttentionItem = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-    Biologisch:
-        "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-    Chemisch:
-        "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
-    Fysisch:
-        "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
-    Grondwater:
-        "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-400",
-    Nutriënten:
-        "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
-    Oppervlaktewater:
-        "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400",
+    Gewasproductie: "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400",
+    Koolstofvastlegging: "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
+    Waterkwaliteit: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
+    "Nutriëntenkringloop": "bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
 }
 
 type IndicatorAttentionProps = {
@@ -147,9 +139,9 @@ export function IndicatorAttention({
                                     {info.name}
                                 </p>
                                 <span
-                                    className={`text-[10px] rounded-full px-1.5 py-0.5 font-medium ${CATEGORY_COLORS[info.category] ?? "bg-muted text-muted-foreground"}`}
+                                    className={`text-[10px] rounded-full px-1.5 py-0.5 font-medium ${CATEGORY_COLORS[info.ecosysteemdienst] ?? "bg-muted text-muted-foreground"}`}
                                 >
-                                    {info.category}
+                                    {info.ecosysteemdienst}
                                 </span>
                             </div>
                             <ScoreBadge score={display} className="shrink-0" />

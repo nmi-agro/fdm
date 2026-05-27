@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react"
-import { NavLink, useLocation, useMatches, useParams } from "react-router"
+import { NavLink, useMatches, useParams } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import {
     BreadcrumbItem,
@@ -18,11 +18,9 @@ export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
     const calendarFromStore = useCalendarStore((state) => state.calendar)
     const { calendar: calendarFromRoute, b_id } = useParams()
     const calendar = calendarFromRoute ?? calendarFromStore
-    const location = useLocation()
     const matches = useMatches()
 
-    const isKaart = location.pathname.includes("/atlas")
-    const isFieldDetail = !!b_id && !isKaart
+    const isFieldDetail = !!b_id
 
     // Read field name + field list from the field detail loader
     const fieldMatch = matches.find((m) =>
@@ -38,7 +36,6 @@ export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
     const fieldList = fieldData?.fieldList ?? []
 
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
-    const overviewLabel = isKaart ? "Kaart" : "Tabel"
 
     return (
         <>
@@ -49,7 +46,7 @@ export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
                 </BreadcrumbLink>
             </BreadcrumbItem>
 
-            {isFieldDetail ? (
+            {isFieldDetail && (
                 <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
@@ -86,30 +83,6 @@ export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
                                 {fieldName ?? b_id}
                             </BreadcrumbPage>
                         )}
-                    </BreadcrumbItem>
-                </>
-            ) : (
-                <>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger className="flex items-center gap-1 max-w-30 sm:max-w-50 md:max-w-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                                <span className="truncate">{overviewLabel}</span>
-                                <ChevronDown className="h-4 w-4 shrink-0" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                                <DropdownMenuItem asChild>
-                                    <NavLink to={basePath}>
-                                        Tabel
-                                    </NavLink>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <NavLink to={`${basePath}/atlas`}>
-                                        Kaart
-                                    </NavLink>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
                     </BreadcrumbItem>
                 </>
             )}

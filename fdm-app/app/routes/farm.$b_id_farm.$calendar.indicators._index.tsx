@@ -8,6 +8,7 @@ import {
     useParams,
 } from "react-router"
 import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
+import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
@@ -22,9 +23,10 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
-    OBI_INDICATOR_IDS,
-    BBWP_INDICATOR_IDS,
-    type IndicatorCategory,
+    ECOSYSTEEMDIENSTEN,
+    ECOSYSTEEMDIENST_INDICATOR_IDS,
+    ECOSYSTEEMDIENST_FULL_NAME,
+    type Ecosysteemdienst,
 } from "~/lib/indicators"
 import { Label } from "~/components/ui/label"
 import { Switch } from "~/components/ui/switch"
@@ -100,7 +102,7 @@ export default function IndicatorsFarmIndex() {
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
 
-    const [activeCategories, setActiveCategories] = useState<IndicatorCategory[]>([])
+    const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>([])
     const [withMeasures, setWithMeasures] = useState(true)
     const [hideBufferstrips, setHideBufferstrips] = useState(true)
     const [fieldSearch, setFieldSearch] = useState("")
@@ -116,10 +118,10 @@ export default function IndicatorsFarmIndex() {
 
     const showIndex = !withMeasures
 
-    const handleToggleCategory = (cat: IndicatorCategory) => {
+    const handleToggleCategory = (dienst: Ecosysteemdienst) => {
         startTransition(() => {
             setActiveCategories((prev) =>
-                prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+                prev.includes(dienst) ? prev.filter((c) => c !== dienst) : [...prev, dienst],
             )
         })
     }
@@ -158,21 +160,22 @@ export default function IndicatorsFarmIndex() {
         [fieldScores, filteredFieldIds],
     )
 
-    // Compute aggregations client-side so they react to the bufferstrip filter
-    const obiScore = useMemo(
-        () => computeFarmAggregation(filteredScores, OBI_INDICATOR_IDS, "score"),
-        [filteredScores],
-    )
-    const obiIndex = useMemo(
-        () => computeFarmAggregation(filteredScores, OBI_INDICATOR_IDS, "index"),
-        [filteredScores],
-    )
-    const bbwpScore = useMemo(
-        () => computeFarmAggregation(filteredScores, BBWP_INDICATOR_IDS, "score"),
-        [filteredScores],
-    )
-    const bbwpIndex = useMemo(
-        () => computeFarmAggregation(filteredScores, BBWP_INDICATOR_IDS, "index"),
+    // Compute per-ecosystem-service aggregations client-side
+    const ecosysteemdienst_scores = useMemo(
+        () =>
+            ECOSYSTEEMDIENSTEN.map((dienst) => ({
+                dienst,
+                score: computeFarmAggregation(
+                    filteredScores,
+                    ECOSYSTEEMDIENST_INDICATOR_IDS[dienst],
+                    "score",
+                ),
+                index: computeFarmAggregation(
+                    filteredScores,
+                    ECOSYSTEEMDIENST_INDICATOR_IDS[dienst],
+                    "index",
+                ),
+            })),
         [filteredScores],
     )
 
@@ -184,29 +187,27 @@ export default function IndicatorsFarmIndex() {
             />
 
             <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
+                <Bln3BetaBanner />
+
                 {/* Aggregations section */}
                 <section className="space-y-3">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                            Scores
+                            Ecosysteemdiensten
                         </h3>
                         <Bln3HelpDialog />
                     </div>
-                    <div className="flex gap-4 flex-wrap">
-                        <AggregationCard
-                            label="OBI"
-                            name="Open Bodem Index"
-                            score01={obiScore}
-                            index01={obiIndex}
-                            showIndex={showIndex}
-                        />
-                        <AggregationCard
-                            label="BBWP"
-                            name="BedrijfsBodemWaterPlan"
-                            score01={bbwpScore}
-                            index01={bbwpIndex}
-                            showIndex={showIndex}
-                        />
+                    <div className="flex gap-3">
+                        {ecosysteemdienst_scores.map(({ dienst, score, index }) => (
+                            <AggregationCard
+                                key={dienst}
+                                label={dienst}
+                                name={ECOSYSTEEMDIENST_FULL_NAME[dienst]}
+                                score01={score}
+                                index01={index}
+                                showIndex={showIndex}
+                            />
+                        ))}
                     </div>
                 </section>
 

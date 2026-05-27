@@ -56,17 +56,42 @@ export async function collectInputForBln3Score(
 
         // Pick the BLN3-relevant soil analysis parameters from the most recent analysis.
         const latestAnalysis = soilAnalyses[0]
-        const soilData: Pick<
+        const soilData: Omit<
             Bln3ScoreCollectedInputs,
-            "a_p_cc" | "a_p_al" | "a_p_wa"
+            | "a_lat"
+            | "a_lon"
+            | "b_soiltype_agr"
+            | "b_gwl_class"
+            | "cultivations"
+            | "measures"
         > = {}
         if (latestAnalysis) {
-            if (typeof latestAnalysis.a_p_cc === "number")
-                soilData.a_p_cc = latestAnalysis.a_p_cc
-            if (typeof latestAnalysis.a_p_al === "number")
-                soilData.a_p_al = latestAnalysis.a_p_al
-            if (typeof latestAnalysis.a_p_wa === "number")
-                soilData.a_p_wa = latestAnalysis.a_p_wa
+            const numericFields = [
+                "a_ca_co_po",
+                "a_cec_co",
+                "a_clay_mi",
+                "a_cn_fr",
+                "a_k_cc",
+                "a_k_co_po",
+                "a_mg_cc",
+                "a_mg_co_po",
+                "a_n_pmn",
+                "a_n_rt",
+                "a_p_al",
+                "a_p_cc",
+                "a_p_wa",
+                "a_ph_cc",
+                "a_s_rt",
+                "a_sand_mi",
+                "a_silt_mi",
+                "a_som_loi",
+            ] as const
+            for (const field of numericFields) {
+                if (typeof latestAnalysis[field] === "number") {
+                    ;(soilData as Record<string, number>)[field] =
+                        latestAnalysis[field] as number
+                }
+            }
         }
 
         // Build cultivation history using the Dutch "hoofdteelt" rule (May 15–July 15).
