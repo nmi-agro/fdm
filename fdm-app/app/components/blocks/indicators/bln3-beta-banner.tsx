@@ -15,7 +15,7 @@ export function Bln3BetaBanner() {
             <AlertDescription className="ml-2 pt-1 items-center">
                 De BLN3-scores en de lijst van maatregelen zijn nog in
                 ontwikkeling en kunnen worden gewijzigd. De getoonde scores zijn
-                niet definitief en de lijst van maatregelen is mogelijk niet
+                niet definitief en de lijst van maatregelen is niet
                 volledig.
             </AlertDescription>
         </Alert>

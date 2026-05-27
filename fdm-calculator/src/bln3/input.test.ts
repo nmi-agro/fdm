@@ -145,7 +145,7 @@ describe("collectInputForBln3Score", () => {
         expect(result.b_gwl_class).toBe("IIb")
     })
 
-    it("should include only BLN3-relevant soil analysis fields (a_p_cc, a_p_al, a_p_wa)", async () => {
+    it("should include only BLN3-relevant soil analysis fields", async () => {
         mockedGetField.mockResolvedValue(mockField)
         mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
         mockedGetCultivations.mockResolvedValue([])
@@ -157,14 +157,17 @@ describe("collectInputForBln3Score", () => {
             b_id,
         )
 
+        // Fields present in mockSoilAnalysis that are BLN3-relevant
         expect(result.a_p_cc).toBe(1.2)
         expect(result.a_p_al).toBe(42)
+        expect(result.a_som_loi).toBe(4.5)
+        expect(result.a_clay_mi).toBe(10)
+        expect(result.a_n_rt).toBe(2500)
         // a_p_wa is not in mockSoilAnalysis so should be absent
         expect(result).not.toHaveProperty("a_p_wa")
-        // Extra soil params that are NOT part of the BLN3 API should be excluded
-        expect(result).not.toHaveProperty("a_som_loi")
-        expect(result).not.toHaveProperty("a_clay_mi")
-        expect(result).not.toHaveProperty("a_n_rt")
+        // Non-BLN3 depth fields must never appear
+        expect(result).not.toHaveProperty("a_depth_upper")
+        expect(result).not.toHaveProperty("a_depth_lower")
     })
 
     it("should exclude non-numeric and metadata fields from soil analysis", async () => {
@@ -408,7 +411,7 @@ describe("collectInputForBln3Score", () => {
         expect(result.b_gwl_class).toBe("IIb")
         expect(result.a_p_cc).toBe(1.2)
         expect(result.a_p_al).toBe(42)
-        expect(result).not.toHaveProperty("a_som_loi")
+        expect(result.a_som_loi).toBe(4.5)
         expect(result.cultivations).toEqual([
             { b_lu_brp: 266, b_lu_year: 2024 },
         ])

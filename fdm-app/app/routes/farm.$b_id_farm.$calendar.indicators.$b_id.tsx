@@ -142,7 +142,7 @@ function computeFieldScores(
         const ids = ECOSYSTEEMDIENST_INDICATOR_IDS[dienst]
         const vals = ids.flatMap((id) => {
             const r = indicators.find((i) => i.indicator_id === id)
-            return r ? [r.score] : []
+            return r != null && Number.isFinite(r.score) ? [r.score] : []
         })
         result[`eco_${dienst}`] =
             vals.length > 0

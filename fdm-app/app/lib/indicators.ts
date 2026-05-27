@@ -36,45 +36,6 @@ export type FieldMeasure = {
     m_end: string | null
 }
 
-// ── Ecosystem service groupings ────────────────────────────────────────────
-
-/** Crop production: all indicators that drive agronomic soil quality */
-export const GEWASPRODUCTIE_INDICATOR_IDS = [
-    "B_DI",
-    "B_SF",
-    "C_K",
-    "C_MG",
-    "C_N",
-    "C_P",
-    "C_PH",
-    "C_S",
-    "P_AS",
-    "P_CO",
-    "P_CR",
-    "P_DS",
-    "P_DU",
-    "P_RO",
-    "P_SE",
-    "P_WRET",
-    "P_WO",
-    "P_WS",
-]
-
-/** Carbon sequestration: soil carbon storage potential */
-export const KOOLSTOFVASTLEGGING_INDICATOR_IDS = ["C_SEQ"]
-
-/** Water quality & quantity: groundwater and surface water protection */
-export const WATERKWALITEIT_INDICATOR_IDS = [
-    "GW_GWR",
-    "GW_NLEA",
-    "GW_PEST",
-    "SW_NLEA",
-    "SW_PLEA",
-]
-
-/** Nutrient recycling efficiency: how effectively crops utilise applied nutrients */
-export const NUTRIENTENKRINGLOOP_INDICATOR_IDS = ["NUT_K", "NUT_N", "NUT_P"]
-
 // ── Indicator taxonomy ──────────────────────────────────────────────────────
 
 export const INDICATORS: IndicatorInfo[] = [
@@ -294,6 +255,29 @@ export const INDICATORS: IndicatorInfo[] = [
         unit: null,
     },
 ]
+
+// ── Ecosystem service groupings ────────────────────────────────────────────
+// Derived from INDICATORS to stay in sync automatically.
+
+/** Crop production: all indicators that drive agronomic soil quality */
+export const GEWASPRODUCTIE_INDICATOR_IDS = INDICATORS
+    .filter((i) => i.ecosysteemdienst === "Gewasproductie")
+    .map((i) => i.id)
+
+/** Carbon sequestration: soil carbon storage potential */
+export const KOOLSTOFVASTLEGGING_INDICATOR_IDS = INDICATORS
+    .filter((i) => i.ecosysteemdienst === "Koolstofvastlegging")
+    .map((i) => i.id)
+
+/** Water quality & quantity: groundwater and surface water protection */
+export const WATERKWALITEIT_INDICATOR_IDS = INDICATORS
+    .filter((i) => i.ecosysteemdienst === "Waterkwaliteit")
+    .map((i) => i.id)
+
+/** Nutrient recycling efficiency: how effectively crops utilise applied nutrients */
+export const NUTRIENTENKRINGLOOP_INDICATOR_IDS = INDICATORS
+    .filter((i) => i.ecosysteemdienst === "Nutriëntenkringloop")
+    .map((i) => i.id)
 
 export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
     "Gewasproductie",

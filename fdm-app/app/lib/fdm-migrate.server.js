@@ -43,25 +43,24 @@ async function main() {
         max: 1,
     })
 
-    // Run the schema migrations
-    await runMigration(client).catch((error) =>
-        console.error("Error in migration process 🚨:", error),
-    )
+    // Run the schema migrations and sync catalogues; always close the connection.
+    try {
+        await runMigration(client)
 
-    // Sync catalogues
-    const fdm = drizzle(client, {
-        mode: "postgres",
-        logger: false,
-        schema: schema,
-    })
-    const nmiApiKey = process.env.NMI_API_KEY
-    await syncCatalogues(fdm, { nmiApiKey }).catch((error) =>
-        console.error("Error in syncing catalogues 🚨:", error),
-    )
-    console.log("Sync completed ✅")
-
-    // Close the connection
-    await client.end()
+        const fdm = drizzle(client, {
+            mode: "postgres",
+            logger: false,
+            schema: schema,
+        })
+        const nmiApiKey = process.env.NMI_API_KEY
+        await syncCatalogues(fdm, { nmiApiKey })
+        console.log("Sync completed ✅")
+    } catch (error) {
+        console.error("Error during migration/sync 🚨:", error)
+        throw error
+    } finally {
+        await client.end()
+    }
 }
 
 main().catch((error) => {

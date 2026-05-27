@@ -170,7 +170,9 @@ export default function AtlasIndicatorsMap() {
     const selectedLabel =
         selectedProperty === "avgScore"
             ? "Gemiddelde score"
-            : (ECOSYSTEEMDIENSTEN.find((d) => d === selectedProperty) ??
+            : (Object.entries(ECOSYSTEEMDIENST_MAP_PROP).find(
+                  ([, v]) => v === selectedProperty,
+              )?.[0] ??
               INDICATORS.find((i) => i.id === selectedProperty)?.name ??
               selectedProperty)
 
@@ -190,6 +192,15 @@ export default function AtlasIndicatorsMap() {
                             <SelectItem value="avgScore">
                                 Gemiddelde score
                             </SelectItem>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel className="text-xs text-muted-foreground">Ecosysteemdiensten</SelectLabel>
+                                {ECOSYSTEEMDIENSTEN.map((dienst) => (
+                                    <SelectItem key={dienst} value={ECOSYSTEEMDIENST_MAP_PROP[dienst]}>
+                                        {dienst}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
                             <SelectSeparator />
                              {ECOSYSTEEMDIENSTEN.map((dienst) => (
                                 <SelectGroup key={dienst}>
