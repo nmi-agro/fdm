@@ -32,17 +32,17 @@ type FieldRow = {
 }
 
 const CATEGORY_TEXT: Record<Ecosysteemdienst, string> = {
-    Gewasproductie:        "text-amber-600 dark:text-amber-400",
+    Gewasproductie:        "text-orange-600 dark:text-orange-400",
     Koolstofvastlegging:   "text-stone-600 dark:text-stone-400",
     Waterkwaliteit:        "text-blue-600 dark:text-blue-400",
-    "Nutriëntenkringloop": "text-green-600 dark:text-green-400",
+    "Nutriëntenkringloop": "text-violet-600 dark:text-violet-400",
 }
 
 const CATEGORY_BORDER: Record<Ecosysteemdienst, string> = {
-    Gewasproductie:        "border-b-amber-400",
+    Gewasproductie:        "border-b-orange-400",
     Koolstofvastlegging:   "border-b-stone-400",
     Waterkwaliteit:        "border-b-blue-400",
-    "Nutriëntenkringloop": "border-b-green-400",
+    "Nutriëntenkringloop": "border-b-violet-400",
 }
 
 type HeatmapTableProps = {
