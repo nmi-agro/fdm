@@ -12,7 +12,10 @@ type MeasuresToggleProps = {
  * Toggle between "Met maatregelen" (score) and "Zonder maatregelen" (index).
  * Driven by props — parent owns the state for instant client-side switching.
  */
-export function MeasuresToggle({ withMeasures, onToggle }: MeasuresToggleProps) {
+export function MeasuresToggle({
+    withMeasures,
+    onToggle,
+}: MeasuresToggleProps) {
     return (
         <div className="flex items-center gap-2">
             <Switch

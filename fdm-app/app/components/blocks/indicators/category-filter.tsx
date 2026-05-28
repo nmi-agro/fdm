@@ -1,5 +1,5 @@
-import { cn } from "~/lib/utils"
 import { ECOSYSTEEMDIENSTEN, type Ecosysteemdienst } from "~/lib/indicators"
+import { cn } from "~/lib/utils"
 
 const CHIP_ACTIVE: Record<Ecosysteemdienst, string> = {
     Gewasproductie:
@@ -8,7 +8,7 @@ const CHIP_ACTIVE: Record<Ecosysteemdienst, string> = {
         "border-stone-400 bg-stone-50 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
     Waterkwaliteit:
         "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
-    "Nutriëntenkringloop":
+    Nutriëntenkringloop:
         "border-violet-400 bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
 }
 
@@ -16,8 +16,7 @@ const chipBase =
     "rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 const chipInactive =
     "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"
-const chipAllActive =
-    "border-foreground bg-muted text-foreground"
+const chipAllActive = "border-foreground bg-muted text-foreground"
 
 type CategoryFilterProps = {
     /** Currently active ecosystem services (empty = show all). */

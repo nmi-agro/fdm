@@ -39,7 +39,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
             })
         }
 
-        const originalFertilizer = await getFertilizer(fdm, params.p_id, session.principal_id)
+        const originalFertilizer = await getFertilizer(
+            fdm,
+            params.p_id,
+            session.principal_id,
+        )
         const fertilizer: FertilizerInfo = {
             p_id: originalFertilizer.p_id,
             p_name_nl: originalFertilizer.p_name_nl,

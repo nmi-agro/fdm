@@ -4,12 +4,12 @@ import { createFertilizerPlannerAgent } from "./agents/gerrit/agent"
 import { runOneShotAgent } from "./runners/one-shot"
 import { getMainCultivation } from "./tools/fertilizer-planner"
 
-export type { OneShotAgentResult } from "./runners/one-shot"
-export { AgentTimeoutError, AgentRecursionLimitError } from "./runners/one-shot"
-export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
-export { FertilizerPlanSchema } from "./agents/gerrit/schema"
-export type { FertilizerPlanOutput } from "./agents/gerrit/schema"
 export type { AgentGraph } from "./agents/gerrit/agent"
+export type { FertilizerPlanOutput } from "./agents/gerrit/schema"
+export { FertilizerPlanSchema } from "./agents/gerrit/schema"
+export type { OneShotAgentResult } from "./runners/one-shot"
+export { AgentRecursionLimitError, AgentTimeoutError } from "./runners/one-shot"
+export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */
@@ -110,7 +110,8 @@ export function buildFertilizerPlanPrompt(
             f.b_lu_croprotation !== "nature" &&
             (f.b_area == null || f.b_area >= 0.5),
     )
-    const excludedCount = (fieldsSummary?.length ?? 0) - (productiveFields?.length ?? 0)
+    const excludedCount =
+        (fieldsSummary?.length ?? 0) - (productiveFields?.length ?? 0)
 
     const fieldsBlock =
         productiveFields && productiveFields.length > 0

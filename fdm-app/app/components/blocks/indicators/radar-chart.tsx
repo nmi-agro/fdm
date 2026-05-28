@@ -6,6 +6,8 @@
  * - Index (field state without measures) — dashed, semi-transparent
  * - Score (field state + measures)       — solid fill
  */
+
+import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
 import { useMemo } from "react"
 import {
     PolarAngleAxis,
@@ -15,20 +17,19 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from "recharts"
-import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
 import {
-    INDICATORS,
     type Ecosysteemdienst,
+    INDICATORS,
     type IndicatorInfo,
     scoreToDisplay,
 } from "~/lib/indicators"
 
 // Hex colours matching ecosystem service chip colours
 const ECOSYSTEEMDIENST_COLORS: Record<Ecosysteemdienst, string> = {
-    Gewasproductie:        "#f97316", // orange-500
-    Koolstofvastlegging:   "#78716c", // stone-500
-    Waterkwaliteit:        "#3b82f6", // blue-500
-    "Nutriëntenkringloop": "#8b5cf6", // violet-500
+    Gewasproductie: "#f97316", // orange-500
+    Koolstofvastlegging: "#78716c", // stone-500
+    Waterkwaliteit: "#3b82f6", // blue-500
+    Nutriëntenkringloop: "#8b5cf6", // violet-500
 }
 
 // Pre-compute indicator id → ecosystem service colour for fast lookup
@@ -91,8 +92,7 @@ function CategoryTick(props: {
     const id = props.payload?.value ?? ""
     const fill = ID_TO_COLOR.get(id) ?? "hsl(var(--muted-foreground))"
     const dx = x - cx
-    const textAnchor =
-        Math.abs(dx) < 6 ? "middle" : dx > 0 ? "start" : "end"
+    const textAnchor = Math.abs(dx) < 6 ? "middle" : dx > 0 ? "start" : "end"
 
     return (
         <text

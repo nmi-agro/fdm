@@ -1,22 +1,22 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     addFertilizerApplication,
+    FdmType,
+    FertilizerApplication,
     getFertilizerApplication,
     getFertilizerApplications,
     removeFertilizerApplication,
     updateFertilizerApplication,
 } from "@nmi-agro/fdm-core"
-import type { FertilizerApplication } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
     DateStringSchema,
+    PaginationTimeframeQuerySchema,
     paginatedResponse,
     paginatedSchema,
-    PaginationTimeframeQuerySchema,
     parseTimeframeQuery,
     serializeDate,
     writeErrorResponses,
@@ -43,8 +43,7 @@ const FertilizerApplicationSchema = z
         p_app_amount_unit: z.string(),
         p_app_amount_display: z.number().nullable(),
         p_app_method: z.string().nullable(),
-        p_app_date: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        p_app_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
         p_app_id: z.string(),
     })
     .openapi("FertilizerApplication")
@@ -56,8 +55,7 @@ const CreateFertilizerApplicationBodySchema = z
             .number()
             .describe("Application amount in the display unit."),
         p_app_method: z.string().nullable().describe("Application method."),
-        p_app_date: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        p_app_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
     })
     .openapi("CreateFertilizerApplication")
 
@@ -74,9 +72,9 @@ const UpdateFertilizerApplicationBodySchema = z
             .nullable()
             .optional()
             .describe("Application method."),
-        p_app_date: DateStringSchema
-            .optional()
-            .describe("Date in YYYY-MM-DD format."),
+        p_app_date: DateStringSchema.optional().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
     })
     .openapi("UpdateFertilizerApplication")
 

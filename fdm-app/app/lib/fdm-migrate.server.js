@@ -26,7 +26,9 @@ async function main() {
     const password =
         process.env.POSTGRES_PASSWORD ??
         (() => {
-            throw new Error("POSTGRES_PASSWORD environment variable is required")
+            throw new Error(
+                "POSTGRES_PASSWORD environment variable is required",
+            )
         })()
     const database =
         process.env.POSTGRES_DB ??

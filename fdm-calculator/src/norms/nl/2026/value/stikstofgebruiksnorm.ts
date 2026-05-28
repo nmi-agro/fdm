@@ -1,7 +1,7 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import pkg from "../../../../package"
 import { NormNotApplicableError } from "../../../../error"
+import pkg from "../../../../package"
 import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
 import {
     getRegion,

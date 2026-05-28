@@ -24,6 +24,21 @@ export const meta: MetaFunction = () => {
 
 export const changelogEntries: ChangelogEntry[] = [
     {
+        version: "v0.31.0",
+        date: "28 mei 2026",
+        title: `BLN3 indicatoren en maatregelen, bodemanalyses in Atlas en ${clientConfig.name} API`,
+        description: `BLN3 bodemindicatoren en maatregelen zijn nu beschikbaar, bodemanalyses kunnen ruimtelijk worden verkend in Atlas en de ${clientConfig.name} API is beschikbaar voor koppelingen met externe systemen.`,
+        items: [
+            "BLN3 bodemindicatoren: Op de nieuwe indicatorenpagina ziet u de BLN3-scores voor uw bedrijf. Per perceel kunt u de individuele indicatorscores bekijken om inzicht in de bodemkwaliteit te krijgen.",
+            "BLN3 maatregelen: Bij de indicatoren kunt u maatregelen bekijken die bijdragen aan het verbeteren van de bodemkwaliteit. U kunt aangeven welke maatregelen u nu kiest.",
+            "Bodemanalyse in Atlas: De Atlas bevat nu een weergave voor bodemanalyses. Hiermee kunt u de resultaten van uw bodemanalyses ruimtelijk verkennen over uw percelen.",
+            "Hoofgewas naast perceelsnaam bij bedrijfsbalans: De perceelslijst op de balanspagina toont nu een badge met het hoofdgewas per perceel, zodat u in één oogopslag ziet welk gewas op welk perceel staat.",
+            `${clientConfig.name} API en ontwikkelaarsinstellingen: De ${clientConfig.name} API is beschikbaar voor koppelingen met externe systemen. Via de nieuwe ontwikkelaarsinstellingen kunt u API-sleutels aanmaken en beheren voor programmatische toegang tot uw gegevens.`,
+            "Bodemparameters bij alleen-lezen toegang: Gebruikers met alleen leestoegang zien bij bodemparameters nu een link naar de bodemanalyse in plaats van een bewerkknop, zodat duidelijker is dat de waarden niet bewerkt kunnen worden.",
+            "Waarschuwing bij ontbrekende normen: Wanneer voor een perceel geen gebruiksnormen bepaald kunnen worden, wordt dit nu duidelijk gemeld zodat u weet waarom bepaalde berekeningen niet beschikbaar zijn.",
+        ],
+    },
+    {
         version: "v0.30.0",
         date: "1 mei 2026",
         title: "Percelen ophalen bij RVO, bemesting in de eenheid die past bij de meststof en meer",

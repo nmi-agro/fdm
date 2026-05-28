@@ -1,22 +1,23 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     addFertilizer,
+    FdmType,
+    Fertilizer,
+    FertilizerCatalogue,
     getFertilizer,
     getFertilizers,
     getFertilizersFromCatalogue,
     removeFertilizer,
 } from "@nmi-agro/fdm-core"
-import type { Fertilizer, FertilizerCatalogue } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
     DateStringSchema,
+    PaginationQuerySchema,
     paginatedResponse,
     paginatedSchema,
-    PaginationQuerySchema,
     serializeDate,
     writeErrorResponses,
 } from "../schemas"
@@ -103,12 +104,12 @@ const FertilizerCatalogueSchema = z
 const FertilizerSchema = z
     .object({
         p_id: z.string(),
-        p_date_acquiring: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
-        p_picking_date: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
+        p_date_acquiring: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
+        p_picking_date: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         p_app_amount: z.number().nullable(),
         ...FertilizerCatalogueSchema.shape,
     })
@@ -122,8 +123,7 @@ const CreateFertilizerBodySchema = z
             .optional()
             .nullable()
             .describe("Acquired amount in kg."),
-        p_acquiring_date: DateStringSchema
-            .optional()
+        p_acquiring_date: DateStringSchema.optional()
             .nullable()
             .describe("Date in YYYY-MM-DD format."),
     })
@@ -266,7 +266,9 @@ function serialiseFertilizer(fertilizer: Fertilizer) {
     return {
         p_id: fertilizer.p_id,
         p_date_acquiring: serializeDate(
-            fertilizer.p_date_acquiring ?? withLegacyNames.p_acquiring_date ?? null,
+            fertilizer.p_date_acquiring ??
+                withLegacyNames.p_acquiring_date ??
+                null,
         ),
         p_picking_date: serializeDate(fertilizer.p_picking_date),
         p_app_amount:
@@ -352,7 +354,11 @@ export function registerFertilizerRoutes(
             body.p_acquiring_amount ?? undefined,
             body.p_acquiring_date ? new Date(body.p_acquiring_date) : undefined,
         )
-        const fertilizer = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
+        const fertilizer = await services.getFertilizer(
+            fdm,
+            p_id,
+            principal.effectivePrincipalId,
+        )
         if (!(fertilizer as Partial<Fertilizer>)?.p_id) {
             throw new ApiError(
                 500,
@@ -362,7 +368,10 @@ export function registerFertilizerRoutes(
         }
         const createdUrl = new URL(c.req.url)
         const basePath = createdUrl.pathname.replace(/\/+fertilizers.*$/, "")
-        c.header("Location", `${createdUrl.origin}${basePath}/fertilizers/${p_id}`)
+        c.header(
+            "Location",
+            `${createdUrl.origin}${basePath}/fertilizers/${p_id}`,
+        )
         return c.json(serialiseFertilizer(fertilizer), 201)
     }
 
@@ -397,7 +406,11 @@ export function registerFertilizerRoutes(
         const principal = c.get("principal") as unknown as ApiPrincipalContext
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { p_id } = c.req.valid("param") as { p_id: string }
-        const fertilizer = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
+        const fertilizer = await services.getFertilizer(
+            fdm,
+            p_id,
+            principal.effectivePrincipalId,
+        )
         if (!(fertilizer as Partial<Fertilizer>)?.p_id) {
             throw new ApiError(
                 404,
@@ -414,7 +427,11 @@ export function registerFertilizerRoutes(
         const principal = c.get("principal") as unknown as ApiPrincipalContext
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { p_id } = c.req.valid("param") as { p_id: string }
-        await services.removeFertilizer(fdm, p_id, principal.effectivePrincipalId)
+        await services.removeFertilizer(
+            fdm,
+            p_id,
+            principal.effectivePrincipalId,
+        )
         return c.newResponse(null, 204)
     }
 

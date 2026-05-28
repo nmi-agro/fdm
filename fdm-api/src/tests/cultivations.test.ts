@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { createFdmApi } from "../index"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
+import { createFdmApi } from "../index"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 
@@ -350,7 +350,10 @@ describe("PATCH /cultivations/:b_lu", () => {
         })
         const res = await app.request("/cultivations/cult-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ b_lu_start: "2024-12-01" }),
         })
         expect(res.status).toBe(400)
@@ -368,7 +371,10 @@ describe("PATCH /cultivations/:b_lu", () => {
         })
         const res = await app.request("/cultivations/cult-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ b_lu_start: "2099-01-01" }),
         })
         expect(res.status).toBe(200)
@@ -385,7 +391,10 @@ describe("PATCH /cultivations/:b_lu", () => {
         })
         const res = await app.request("/cultivations/cult-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ b_lu_start: "2024-12-01", b_lu_end: null }),
         })
         expect(res.status).toBe(200)

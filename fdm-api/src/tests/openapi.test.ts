@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest"
 import { validate } from "@scalar/openapi-parser"
+import { describe, expect, it, vi } from "vitest"
 import { createFdmApi } from "../index"
 
 const mockAuth = {

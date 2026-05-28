@@ -9,20 +9,7 @@ import {
     useLoaderData,
     useParams,
 } from "react-router"
-import { getIndicatorsForFarm, type FieldBln3Score } from "~/integrations/bln3.server"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
-import { getMapStyle } from "~/integrations/map"
-import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
-import { clientConfig } from "~/lib/config"
-import { handleLoaderError, reportError } from "~/lib/error"
-import { fdm } from "~/lib/fdm.server"
-import {
-    INDICATORS,
-    ECOSYSTEEMDIENSTEN,
-    ECOSYSTEEMDIENST_MAP_PROP,
-    ECOSYSTEEMDIENST_INDICATOR_IDS,
-} from "~/lib/indicators"
 import { Card, CardContent } from "~/components/ui/card"
 import {
     Select,
@@ -34,6 +21,22 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
+import {
+    type FieldBln3Score,
+    getIndicatorsForFarm,
+} from "~/integrations/bln3.server"
+import { getMapStyle } from "~/integrations/map"
+import { getSession } from "~/lib/auth.server"
+import { getTimeframe } from "~/lib/calendar"
+import { clientConfig } from "~/lib/config"
+import { handleLoaderError, reportError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
+import {
+    ECOSYSTEEMDIENST_INDICATOR_IDS,
+    ECOSYSTEEMDIENST_MAP_PROP,
+    ECOSYSTEEMDIENSTEN,
+    INDICATORS,
+} from "~/lib/indicators"
 
 const IndicatorsMap = lazy(
     () => import("@/app/components/blocks/indicators/atlas"),
@@ -92,14 +95,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fieldsGeoJSON: FeatureCollection = {
             type: "FeatureCollection",
             features: fields.map((field) => {
-                const fs = fieldScores.find((score) => score.b_id === field.b_id)
+                const fs = fieldScores.find(
+                    (score) => score.b_id === field.b_id,
+                )
 
                 const groupAvg = (ids: string[]): number => {
                     const scores = ids
                         .map(
                             (id) =>
                                 fs?.score?.indicators.find(
-                                    (indicator) => indicator.indicator_id === id,
+                                    (indicator) =>
+                                        indicator.indicator_id === id,
                                 )?.score,
                         )
                         .filter((score): score is number => {
@@ -194,17 +200,26 @@ export default function AtlasIndicatorsMap() {
                             </SelectItem>
                             <SelectSeparator />
                             <SelectGroup>
-                                <SelectLabel className="text-xs text-muted-foreground">Ecosysteemdiensten</SelectLabel>
+                                <SelectLabel className="text-xs text-muted-foreground">
+                                    Ecosysteemdiensten
+                                </SelectLabel>
                                 {ECOSYSTEEMDIENSTEN.map((dienst) => (
-                                    <SelectItem key={dienst} value={ECOSYSTEEMDIENST_MAP_PROP[dienst]}>
+                                    <SelectItem
+                                        key={dienst}
+                                        value={
+                                            ECOSYSTEEMDIENST_MAP_PROP[dienst]
+                                        }
+                                    >
                                         {dienst}
                                     </SelectItem>
                                 ))}
                             </SelectGroup>
                             <SelectSeparator />
-                             {ECOSYSTEEMDIENSTEN.map((dienst) => (
+                            {ECOSYSTEEMDIENSTEN.map((dienst) => (
                                 <SelectGroup key={dienst}>
-                                    <SelectLabel className="text-xs text-muted-foreground">{dienst}</SelectLabel>
+                                    <SelectLabel className="text-xs text-muted-foreground">
+                                        {dienst}
+                                    </SelectLabel>
                                     {INDICATORS.filter(
                                         (i) => i.ecosysteemdienst === dienst,
                                     ).map((i) => (
@@ -221,7 +236,9 @@ export default function AtlasIndicatorsMap() {
             </Card>
 
             <Suspense
-                fallback={<div className="absolute inset-0 bg-muted animate-pulse" />}
+                fallback={
+                    <div className="absolute inset-0 bg-muted animate-pulse" />
+                }
             >
                 <IndicatorsMap
                     fieldsGeoJSON={fieldsGeoJSON}

@@ -4,8 +4,12 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
-import { getScoreColor, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
 import type { IndicatorInfo } from "~/lib/indicators"
+import {
+    getScoreColor,
+    getScoreVerdict,
+    scoreToDisplay,
+} from "~/lib/indicators"
 
 type HeatmapCellProps = {
     indicator: IndicatorInfo
@@ -73,7 +77,9 @@ export const HeatmapCell = memo(function HeatmapCell({
             <TooltipContent side="top" className="max-w-[200px] text-center">
                 <p className="font-semibold">{indicator.name}</p>
                 {verdict ? (
-                    <p>{verdict} ({display}/100)</p>
+                    <p>
+                        {verdict} ({display}/100)
+                    </p>
                 ) : (
                     <p>Geen bodemanalyse beschikbaar</p>
                 )}

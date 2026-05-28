@@ -8,19 +8,20 @@
  * Expanded (on click): reveals the full indicator description, a list of
  * active measures on this field, and a link to the Maatregelen page.
  */
+
+import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
-import { cn } from "~/lib/utils"
 import {
+    type FieldMeasure,
     getScoreColor,
     getScoreTier,
-    scoreToDisplay,
-    type FieldMeasure,
     type IndicatorInfo,
+    scoreToDisplay,
 } from "~/lib/indicators"
+import { cn } from "~/lib/utils"
 import { ScoreBadge } from "./score-badge"
-import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
 
 type IndicatorCardProps = {
     info: IndicatorInfo
@@ -34,10 +35,14 @@ type IndicatorCardProps = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-    Gewasproductie: "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400",
-    Koolstofvastlegging: "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
-    Waterkwaliteit: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
-    "Nutriëntenkringloop": "bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
+    Gewasproductie:
+        "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400",
+    Koolstofvastlegging:
+        "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
+    Waterkwaliteit:
+        "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
+    Nutriëntenkringloop:
+        "bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
 }
 
 function StackedScoreBar({
@@ -108,7 +113,8 @@ export function IndicatorCard({
             className={cn(
                 "border rounded-lg overflow-hidden transition-shadow",
                 tier === "red" && "border-red-200 dark:border-red-900/40",
-                tier === "yellow" && "border-yellow-200 dark:border-yellow-900/40",
+                tier === "yellow" &&
+                    "border-yellow-200 dark:border-yellow-900/40",
                 tier === "green" && "border-green-200 dark:border-green-900/40",
             )}
         >
@@ -138,8 +144,12 @@ export function IndicatorCard({
                     {/* Main content */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-sm">{info.name}</span>
-                            <span className="text-xs text-muted-foreground font-mono">{info.id}</span>
+                            <span className="font-semibold text-sm">
+                                {info.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono">
+                                {info.id}
+                            </span>
                             <span
                                 className={cn(
                                     "text-[10px] font-medium rounded-full px-2 py-0.5",
@@ -159,7 +169,8 @@ export function IndicatorCard({
                             </span>
                             {info.unit && (
                                 <span className="text-muted-foreground">
-                                    {" "}{info.unit}
+                                    {" "}
+                                    {info.unit}
                                 </span>
                             )}
                             {"  "}· Doel{" "}
@@ -168,7 +179,8 @@ export function IndicatorCard({
                             </span>
                             {info.unit && (
                                 <span className="text-muted-foreground">
-                                    {" "}{info.unit}
+                                    {" "}
+                                    {info.unit}
                                 </span>
                             )}
                         </p>
@@ -179,7 +191,9 @@ export function IndicatorCard({
                                 <div className="flex-1">
                                     <StackedScoreBar
                                         indexValue={indexDisplay}
-                                        impactValue={showIndex ? 0 : impactDisplay}
+                                        impactValue={
+                                            showIndex ? 0 : impactDisplay
+                                        }
                                         indexColor={indexColor}
                                     />
                                 </div>
@@ -193,12 +207,19 @@ export function IndicatorCard({
                                     <span className="flex items-center gap-1">
                                         <span
                                             className="inline-block w-2 h-1.5 rounded-sm"
-                                            style={{ backgroundColor: indexColor }}
+                                            style={{
+                                                backgroundColor: indexColor,
+                                            }}
                                         />
                                         Perceel: {indexDisplay}
                                     </span>
                                     <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400">
-                                        <span className="inline-block w-2 h-1.5 rounded-sm" style={{ backgroundColor: "#2dd4bf" }} />
+                                        <span
+                                            className="inline-block w-2 h-1.5 rounded-sm"
+                                            style={{
+                                                backgroundColor: "#2dd4bf",
+                                            }}
+                                        />
                                         Maatregelen: +{impactDisplay}
                                     </span>
                                 </div>
@@ -227,7 +248,9 @@ export function IndicatorCard({
                             <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">
                                 Beschrijving
                             </p>
-                            <p className="text-sm text-foreground">{info.description}</p>
+                            <p className="text-sm text-foreground">
+                                {info.description}
+                            </p>
                         </div>
                     )}
 
@@ -273,4 +296,3 @@ export function IndicatorCard({
         </div>
     )
 }
-

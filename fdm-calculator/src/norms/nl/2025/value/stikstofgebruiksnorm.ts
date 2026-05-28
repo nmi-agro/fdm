@@ -1,7 +1,7 @@
 import { type Field, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import pkg from "../../../../package"
 import { NormNotApplicableError } from "../../../../error"
+import pkg from "../../../../package"
 import { getGeoTiffValue } from "../../../../shared/geotiff"
 import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"
 import { nonBouwlandCodes } from "../../constant"

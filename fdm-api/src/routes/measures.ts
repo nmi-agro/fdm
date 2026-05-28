@@ -1,22 +1,22 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     addMeasure,
+    FdmType,
     getMeasure,
     getMeasures,
+    Measure,
     removeMeasure,
     updateMeasure,
 } from "@nmi-agro/fdm-core"
-import type { Measure } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
     DateStringSchema,
+    PaginationTimeframeQuerySchema,
     paginatedResponse,
     paginatedSchema,
-    PaginationTimeframeQuerySchema,
     parseTimeframeQuery,
     serializeDate,
     writeErrorResponses,
@@ -39,12 +39,12 @@ const MeasureSchema = z
         b_id_measure: z.string(),
         m_id: z.string(),
         b_id: z.string(),
-        m_start: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
-        m_end: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
+        m_start: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
+        m_end: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         m_name: z.string(),
         m_summary: z.string().nullable(),
         m_conflicts: z.array(z.string()).nullable(),
@@ -54,10 +54,8 @@ const MeasureSchema = z
 const CreateMeasureBodySchema = z
     .object({
         m_id: z.string().describe("Measure catalogue identifier."),
-        m_start: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
-        m_end: DateStringSchema
-            .nullable()
+        m_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
+        m_end: DateStringSchema.nullable()
             .optional()
             .describe("Date in YYYY-MM-DD format."),
     })
@@ -65,11 +63,10 @@ const CreateMeasureBodySchema = z
 
 const UpdateMeasureBodySchema = z
     .object({
-        m_start: DateStringSchema
-            .optional()
-            .describe("Date in YYYY-MM-DD format."),
-        m_end: DateStringSchema
-            .nullable()
+        m_start: DateStringSchema.optional().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
+        m_end: DateStringSchema.nullable()
             .optional()
             .describe("Date in YYYY-MM-DD format."),
     })

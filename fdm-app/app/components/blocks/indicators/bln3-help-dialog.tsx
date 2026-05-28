@@ -45,10 +45,22 @@ export function Bln3HelpDialog() {
                         </p>
                         <ul className="space-y-1 list-none">
                             {[
-                                ["Gewasproductie", "bodemvruchtbaarheid, structuur en bodemleven (18 indicatoren)"],
-                                ["Koolstofvastlegging", "potentie van de bodem om koolstof op te slaan (1 indicator)"],
-                                ["Waterkwaliteit", "bescherming van grond- en oppervlaktewater (5 indicatoren)"],
-                                ["Nutriëntenkringloop", "efficiëntie van nutriëntopname door het gewas (3 indicatoren)"],
+                                [
+                                    "Gewasproductie",
+                                    "bodemvruchtbaarheid, structuur en bodemleven (18 indicatoren)",
+                                ],
+                                [
+                                    "Koolstofvastlegging",
+                                    "potentie van de bodem om koolstof op te slaan (1 indicator)",
+                                ],
+                                [
+                                    "Waterkwaliteit",
+                                    "bescherming van grond- en oppervlaktewater (5 indicatoren)",
+                                ],
+                                [
+                                    "Nutriëntenkringloop",
+                                    "efficiëntie van nutriëntopname door het gewas (3 indicatoren)",
+                                ],
                             ].map(([dienst, desc]) => (
                                 <li key={dienst} className="flex gap-2">
                                     <span className="font-medium text-foreground shrink-0">

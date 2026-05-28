@@ -1,7 +1,11 @@
-import { AIMessage } from "@langchain/core/messages"
 import type { BaseMessage } from "@langchain/core/messages"
-import { createAgent, dynamicSystemPromptMiddleware, toolStrategy } from "langchain"
+import { AIMessage } from "@langchain/core/messages"
 import type { FdmType } from "@nmi-agro/fdm-core"
+import {
+    createAgent,
+    dynamicSystemPromptMiddleware,
+    toolStrategy,
+} from "langchain"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
 import { FertilizerPlanSchema } from "./schema"

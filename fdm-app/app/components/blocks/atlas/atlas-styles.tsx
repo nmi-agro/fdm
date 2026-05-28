@@ -97,7 +97,10 @@ function getFieldsStyleInner(layerId: string): LayerProps {
  * Pass `property` to colour by a different GeoJSON feature property
  * (e.g. a per-category average or a single indicator score).
  */
-export function getFieldsScoreStyle(layerId: string, property = "avgScore"): LayerProps {
+export function getFieldsScoreStyle(
+    layerId: string,
+    property = "avgScore",
+): LayerProps {
     return {
         id: layerId,
         type: "fill",
@@ -106,10 +109,14 @@ export function getFieldsScoreStyle(layerId: string, property = "avgScore"): Lay
                 "interpolate",
                 ["linear"],
                 ["get", property],
-                -1,  "#9ca3af", // grey  — no data
-                0,   "#ef4444", // red   — score 0
-                40,  "#eab308", // yellow — score 40
-                70,  "#22c55e", // green  — score 70+
+                -1,
+                "#9ca3af", // grey  — no data
+                0,
+                "#ef4444", // red   — score 0
+                40,
+                "#eab308", // yellow — score 40
+                70,
+                "#22c55e", // green  — score 70+
             ] as any,
             "fill-opacity": 0.75,
         },
@@ -117,7 +124,10 @@ export function getFieldsScoreStyle(layerId: string, property = "avgScore"): Lay
 }
 
 /** Outline layer that matches the score colour of getFieldsScoreStyle. */
-export function getFieldsScoreOutlineStyle(layerId: string, property = "avgScore"): LayerProps {
+export function getFieldsScoreOutlineStyle(
+    layerId: string,
+    property = "avgScore",
+): LayerProps {
     return {
         id: layerId,
         type: "line",
@@ -126,10 +136,14 @@ export function getFieldsScoreOutlineStyle(layerId: string, property = "avgScore
                 "interpolate",
                 ["linear"],
                 ["get", property],
-                -1,  "#6b7280",
-                0,   "#dc2626",
-                40,  "#ca8a04",
-                70,  "#16a34a",
+                -1,
+                "#6b7280",
+                0,
+                "#dc2626",
+                40,
+                "#ca8a04",
+                70,
+                "#16a34a",
             ] as any,
             "line-width": 2,
         },

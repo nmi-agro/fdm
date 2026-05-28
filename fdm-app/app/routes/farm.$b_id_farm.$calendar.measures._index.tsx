@@ -1,14 +1,15 @@
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
+    addMeasure,
+    checkPermission,
+    getCultivations,
     getFarm,
     getFields,
-    getCultivations,
     getMeasuresForFarm,
     getMeasuresFromCatalogue,
-    addMeasure,
     removeMeasure,
     updateMeasure,
 } from "@nmi-agro/fdm-core"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import { ClipboardList } from "lucide-react"
@@ -22,29 +23,29 @@ import {
 } from "react"
 import { Controller } from "react-hook-form"
 import {
-    data,
     type ActionFunctionArgs,
+    data,
     type LoaderFunctionArgs,
     type MetaFunction,
+    useFetcher,
     useLoaderData,
     useParams,
-    useFetcher,
 } from "react-router"
-import { dataWithError, dataWithSuccess } from "remix-toast"
 import { useRemixForm } from "remix-hook-form"
+import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
 import {
     getColumns,
     type MeasureTableRow,
 } from "~/components/blocks/measures/columns"
-import {
-    MeasureDateSchema,
-    type MeasureDateFormValues,
-} from "~/components/blocks/measures/formschema"
-import { MeasuresDataTable } from "~/components/blocks/measures/table"
 import { getFieldSummaryColumns } from "~/components/blocks/measures/field-summary-columns"
 import { FieldSummaryTable } from "~/components/blocks/measures/field-summary-table"
+import {
+    type MeasureDateFormValues,
+    MeasureDateSchema,
+} from "~/components/blocks/measures/formschema"
+import { MeasuresDataTable } from "~/components/blocks/measures/table"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import {
@@ -53,7 +54,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "~/components/ui/dialog"
-import { Separator } from "~/components/ui/separator"
 import {
     Empty,
     EmptyContent,
@@ -62,14 +62,15 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from "~/components/ui/empty"
-import { Label } from "~/components/ui/label"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
+import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { Separator } from "~/components/ui/separator"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -103,12 +104,27 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const timeframe = getTimeframe(params)
         const calendar = getCalendar(params)
 
-        const [farm, fields, measuresMap, catalogue] = await Promise.all([
-            getFarm(fdm, session.principal_id, b_id_farm),
-            getFields(fdm, session.principal_id, b_id_farm, timeframe),
-            getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-            getMeasuresFromCatalogue(fdm),
-        ])
+        const [farm, fields, measuresMap, catalogue, farmWritePermission] =
+            await Promise.all([
+                getFarm(fdm, session.principal_id, b_id_farm),
+                getFields(fdm, session.principal_id, b_id_farm, timeframe),
+                getMeasuresForFarm(
+                    fdm,
+                    session.principal_id,
+                    b_id_farm,
+                    timeframe,
+                ),
+                getMeasuresFromCatalogue(fdm),
+                checkPermission(
+                    fdm,
+                    "farm",
+                    "write",
+                    b_id_farm,
+                    session.principal_id,
+                    "routes/farm.$b_id_farm.$calendar.measures._index",
+                    false,
+                ),
+            ])
 
         // Build field list for the dialog — enrich with cultivation + area
         const fieldCultivations = await Promise.all(
@@ -148,14 +164,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 },
                 geometry: (f.b_geometry
                     ? (() => {
-                        try {
-                            return simplify(f.b_geometry as Geometry, {
-                                tolerance: 0.00001,
-                                highQuality: true,
-                            })
-                        } catch {
-                            return null
-                        }
+                          try {
+                              return simplify(f.b_geometry as Geometry, {
+                                  tolerance: 0.00001,
+                                  highQuality: true,
+                              })
+                          } catch {
+                              return null
+                          }
                       })()
                     : null) as Geometry,
             })),
@@ -226,6 +242,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         return {
             farmName: farm?.b_name_farm ?? "Bedrijf",
+            farmWritePermission,
             fieldList,
             fieldsGeoJSON,
             measureRows,
@@ -577,6 +594,7 @@ export default function MeasuresFarmIndex() {
         mapStyle,
         stats,
         fieldSummaries,
+        farmWritePermission,
     } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/measures`
@@ -590,10 +608,14 @@ export default function MeasuresFarmIndex() {
         ? `${calendar}-01-01`
         : `${new Date().getFullYear()}-01-01`
 
-    const handleFieldClick = useCallback((b_id: string) => {
-        setInitialFieldIds([b_id])
-        setAddDialogOpen(true)
-    }, [])
+    const handleFieldClick = useCallback(
+        (b_id: string) => {
+            if (!farmWritePermission) return
+            setInitialFieldIds([b_id])
+            setAddDialogOpen(true)
+        },
+        [farmWritePermission],
+    )
 
     const handleAddClick = useCallback(() => {
         setInitialFieldIds([])
@@ -633,17 +655,20 @@ export default function MeasuresFarmIndex() {
                         de knop om te beginnen.
                     </EmptyDescription>
                 </EmptyHeader>
-                <EmptyContent>
-                    <Button onClick={handleAddClick}>
-                        Maatregel toevoegen
-                    </Button>
-                </EmptyContent>
+                {farmWritePermission && (
+                    <EmptyContent>
+                        <Button onClick={handleAddClick}>
+                            Maatregel toevoegen
+                        </Button>
+                    </EmptyContent>
+                )}
             </Empty>
         ) : (
             <MeasuresDataTable
                 columns={columns}
                 data={measureRows}
                 onAddClick={handleAddClick}
+                canModify={farmWritePermission}
             />
         )
 
@@ -676,7 +701,9 @@ export default function MeasuresFarmIndex() {
                         </div>
 
                         <div className="rounded-lg border px-4 py-3">
-                            <p className="text-xs text-muted-foreground">Percelen zonder maatregel</p>
+                            <p className="text-xs text-muted-foreground">
+                                Percelen zonder maatregel
+                            </p>
                             <p className="text-2xl font-bold tabular-nums mt-0.5">
                                 {stats.fieldsWithoutMeasures}
                             </p>
@@ -720,6 +747,7 @@ export default function MeasuresFarmIndex() {
                                     setInitialFieldIds(selectedIds)
                                     setAddDialogOpen(true)
                                 }}
+                                canModify={farmWritePermission}
                             />
                         </div>
                     </>

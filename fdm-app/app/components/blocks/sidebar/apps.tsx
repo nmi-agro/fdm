@@ -143,18 +143,16 @@ export function SidebarApps() {
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <Collapsible
-                            defaultOpen={
-                                location.pathname.includes("/atlas")
-                            }
+                            defaultOpen={location.pathname.includes("/atlas")}
                             className="group/collapsible"
                         >
                             <SidebarMenuItem>
                                 {atlasLink ? (
                                     <CollapsibleTrigger asChild>
                                         <SidebarMenuButton
-                                            isActive={
-                                                location.pathname.includes("/atlas")
-                                            }
+                                            isActive={location.pathname.includes(
+                                                "/atlas",
+                                            )}
                                         >
                                             <MapIcon />
                                             <span>Atlas</span>
@@ -414,39 +412,43 @@ export function SidebarApps() {
                             )}
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                                {indicatorsLink ? (
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={
-                                            location.pathname.includes("/indicators") &&
-                                            !location.pathname.includes("/atlas/indicators")
-                                        }
-                                    >
-                                        <NavLink to={indicatorsLink}>
-                                            <Gauge />
-                                            <span>Indicatoren</span>
-                                        </NavLink>
-                                    </SidebarMenuButton>
-                                ) : (
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <SidebarMenuButton
-                                                isActive={false}
-                                                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
-                                            >
-                                                <Gauge className="text-muted-foreground" />
-                                                <span className="text-muted-foreground">
-                                                    Indicatoren
-                                                </span>
-                                            </SidebarMenuButton>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="right">
-                                            Selecteer een bedrijf om de
-                                            indicatoren te bekijken
-                                        </TooltipContent>
-                                    </Tooltip>
-                                )}
-                            </SidebarMenuItem>
+                            {indicatorsLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={
+                                        location.pathname.includes(
+                                            "/indicators",
+                                        ) &&
+                                        !location.pathname.includes(
+                                            "/atlas/indicators",
+                                        )
+                                    }
+                                >
+                                    <NavLink to={indicatorsLink}>
+                                        <Gauge />
+                                        <span>Indicatoren</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            isActive={false}
+                                            className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                        >
+                                            <Gauge className="text-muted-foreground" />
+                                            <span className="text-muted-foreground">
+                                                Indicatoren
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om de indicatoren
+                                        te bekijken
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>

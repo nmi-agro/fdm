@@ -28,10 +28,12 @@ function formatDate(date: Date | string | null | undefined): string {
 
 function formatHarvestDates(harvests: Harvest[] | undefined): string {
     if (!harvests || harvests.length === 0) return "–"
-    return harvests
-        .map((h) => formatDate(h.b_lu_harvest_date))
-        .filter((d) => d !== "–")
-        .join(", ") || "–"
+    return (
+        harvests
+            .map((h) => formatDate(h.b_lu_harvest_date))
+            .filter((d) => d !== "–")
+            .join(", ") || "–"
+    )
 }
 
 export function FieldCultivationsBadge({

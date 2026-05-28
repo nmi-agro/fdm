@@ -1,17 +1,19 @@
 import {
+    type CultivationForHoofdteelt,
+    findHoofdteelt,
+} from "@nmi-agro/fdm-calculator"
+import {
     getCultivations,
     getField,
     getFields,
     getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
+import { simplify } from "@turf/simplify"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
-import { getCultivationColor } from "~/components/custom/cultivation-colors"
-import { Badge } from "~/components/ui/badge"
 import {
     data,
     Link,
@@ -20,15 +22,15 @@ import {
     useLoaderData,
     useParams,
 } from "react-router"
-import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
-import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
-import { IndicatorCard } from "~/components/blocks/indicators/indicator-card"
-import { FieldInputDialog } from "~/components/blocks/indicators/field-input-dialog"
-import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
-import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { Separator } from "~/components/ui/separator"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
+import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
+import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
+import { FieldInputDialog } from "~/components/blocks/indicators/field-input-dialog"
+import { IndicatorCard } from "~/components/blocks/indicators/indicator-card"
+import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
+import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { Badge } from "~/components/ui/badge"
 import {
     Select,
     SelectContent,
@@ -38,30 +40,26 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select"
+import { Separator } from "~/components/ui/separator"
 import {
-    getIndicatorsForField,
-    getFieldMeasuresForIndicators,
-} from "~/integrations/bln3.server"
-import {
-    getIndicatorsForFarm,
     type FieldBln3Score,
+    getFieldMeasuresForIndicators,
+    getIndicatorsForFarm,
+    getIndicatorsForField,
 } from "~/integrations/bln3.server"
-import {
-    findHoofdteelt,
-    type CultivationForHoofdteelt,
-} from "@nmi-agro/fdm-calculator"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
-    INDICATORS,
-    ECOSYSTEEMDIENSTEN,
-    ECOSYSTEEMDIENST_INDICATOR_IDS,
     ECOSYSTEEMDIENST_FULL_NAME,
+    ECOSYSTEEMDIENST_INDICATOR_IDS,
+    ECOSYSTEEMDIENSTEN,
     type Ecosysteemdienst,
+    INDICATORS,
     scoreToDisplay,
 } from "~/lib/indicators"
 
@@ -85,10 +83,12 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
     },
     ...ECOSYSTEEMDIENSTEN.map((dienst) => ({
         group: dienst,
-        options: INDICATORS.filter((i) => i.ecosysteemdienst === dienst).map((i) => ({
-            value: i.id,
-            label: i.name,
-        })),
+        options: INDICATORS.filter((i) => i.ecosysteemdienst === dienst).map(
+            (i) => ({
+                value: i.id,
+                label: i.name,
+            }),
+        ),
     })),
 ]
 
@@ -296,7 +296,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             })
 
         // Derive the current cultivation (FarmTitle badge) using the May 15th point check.
-        const currentCultivation = getDefaultCultivation(cultivations, calendar ?? "")
+        const currentCultivation = getDefaultCultivation(
+            cultivations,
+            calendar ?? "",
+        )
 
         // Build cultivation display list using findHoofdteelt (May 15–July 15 duration
         // window) — exactly consistent with what is submitted to the BLN3 API.
@@ -415,9 +418,9 @@ export default function IndicatorsFieldDetail() {
     const { b_id_farm, calendar, b_id } = useParams()
 
     // Restore filter state from sessionStorage
-    const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>(
-        () => readSessionCategories()
-    )
+    const [activeCategories, setActiveCategories] = useState<
+        Ecosysteemdienst[]
+    >(() => readSessionCategories())
     const [withMeasures, setWithMeasures] = useState<boolean>(() =>
         readSessionMeasures(),
     )
@@ -572,23 +575,32 @@ export default function IndicatorsFieldDetail() {
 
                         {/* Aggregation cards + input dialog */}
                         <div className="flex items-start justify-between gap-4 flex-wrap">
-                            {ecosysteemdienst_scores.some((e) => e.score !== null) && (
+                            {ecosysteemdienst_scores.some(
+                                (e) => e.score !== null,
+                            ) && (
                                 <div className="space-y-2 flex-1">
                                     <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                                         Ecosysteemdiensten
                                     </p>
                                     <div className="flex gap-3">
-                                        {ecosysteemdienst_scores.map(({ dienst, score, index }) =>
-                                            score !== null ? (
-                                                <AggregationCard
-                                                    key={dienst}
-                                                    label={dienst}
-                                                    name={ECOSYSTEEMDIENST_FULL_NAME[dienst]}
-                                                    score01={score}
-                                                    index01={index}
-                                                    showIndex={!withMeasures}
-                                                />
-                                            ) : null,
+                                        {ecosysteemdienst_scores.map(
+                                            ({ dienst, score, index }) =>
+                                                score !== null ? (
+                                                    <AggregationCard
+                                                        key={dienst}
+                                                        label={dienst}
+                                                        name={
+                                                            ECOSYSTEEMDIENST_FULL_NAME[
+                                                                dienst
+                                                            ]
+                                                        }
+                                                        score01={score}
+                                                        index01={index}
+                                                        showIndex={
+                                                            !withMeasures
+                                                        }
+                                                    />
+                                                ) : null,
                                         )}
                                     </div>
                                 </div>
@@ -614,7 +626,6 @@ export default function IndicatorsFieldDetail() {
                                 onToggle={handleMeasuresToggle}
                             />
                         </div>
-
 
                         {/* No score state */}
                         {!fieldScore && (
@@ -648,7 +659,7 @@ export default function IndicatorsFieldDetail() {
                         )}
 
                         {/* Adopted measures for this field */}
-                        {(fieldMeasures).length > 0 && (
+                        {fieldMeasures.length > 0 && (
                             <>
                                 <Separator />
                                 <div>
@@ -664,7 +675,7 @@ export default function IndicatorsFieldDetail() {
                                         </Link>
                                     </div>
                                     <div className="space-y-2">
-                                        {(fieldMeasures).map((m) => (
+                                        {fieldMeasures.map((m) => (
                                             <div
                                                 key={m.b_id_measure}
                                                 className="flex items-center gap-3 rounded-md border bg-card px-3 py-2"

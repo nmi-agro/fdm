@@ -99,7 +99,8 @@ export const INDICATORS: IndicatorInfo[] = [
     {
         id: "C_S",
         name: "Zwavelbeschikbaarheid",
-        description: "De beschikbaarheid van zwavel vanuit de bodem voor het gewas",
+        description:
+            "De beschikbaarheid van zwavel vanuit de bodem voor het gewas",
         ecosysteemdienst: "Gewasproductie",
         unit: "kg S/ha",
     },
@@ -114,7 +115,8 @@ export const INDICATORS: IndicatorInfo[] = [
     {
         id: "P_CO",
         name: "Weerstand tegen bodemverdichting",
-        description: "De mate waarin de bodem bestand is tegen bodemverdichting",
+        description:
+            "De mate waarin de bodem bestand is tegen bodemverdichting",
         ecosysteemdienst: "Gewasproductie",
         unit: null,
     },
@@ -260,24 +262,24 @@ export const INDICATORS: IndicatorInfo[] = [
 // Derived from INDICATORS to stay in sync automatically.
 
 /** Crop production: all indicators that drive agronomic soil quality */
-export const GEWASPRODUCTIE_INDICATOR_IDS = INDICATORS
-    .filter((i) => i.ecosysteemdienst === "Gewasproductie")
-    .map((i) => i.id)
+export const GEWASPRODUCTIE_INDICATOR_IDS = INDICATORS.filter(
+    (i) => i.ecosysteemdienst === "Gewasproductie",
+).map((i) => i.id)
 
 /** Carbon sequestration: soil carbon storage potential */
-export const KOOLSTOFVASTLEGGING_INDICATOR_IDS = INDICATORS
-    .filter((i) => i.ecosysteemdienst === "Koolstofvastlegging")
-    .map((i) => i.id)
+export const KOOLSTOFVASTLEGGING_INDICATOR_IDS = INDICATORS.filter(
+    (i) => i.ecosysteemdienst === "Koolstofvastlegging",
+).map((i) => i.id)
 
 /** Water quality & quantity: groundwater and surface water protection */
-export const WATERKWALITEIT_INDICATOR_IDS = INDICATORS
-    .filter((i) => i.ecosysteemdienst === "Waterkwaliteit")
-    .map((i) => i.id)
+export const WATERKWALITEIT_INDICATOR_IDS = INDICATORS.filter(
+    (i) => i.ecosysteemdienst === "Waterkwaliteit",
+).map((i) => i.id)
 
 /** Nutrient recycling efficiency: how effectively crops utilise applied nutrients */
-export const NUTRIENTENKRINGLOOP_INDICATOR_IDS = INDICATORS
-    .filter((i) => i.ecosysteemdienst === "Nutriëntenkringloop")
-    .map((i) => i.id)
+export const NUTRIENTENKRINGLOOP_INDICATOR_IDS = INDICATORS.filter(
+    (i) => i.ecosysteemdienst === "Nutriëntenkringloop",
+).map((i) => i.id)
 
 export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
     "Gewasproductie",
@@ -287,11 +289,14 @@ export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
 ]
 
 /** ID lists per ecosystem service, keyed by Ecosysteemdienst name */
-export const ECOSYSTEEMDIENST_INDICATOR_IDS: Record<Ecosysteemdienst, string[]> = {
+export const ECOSYSTEEMDIENST_INDICATOR_IDS: Record<
+    Ecosysteemdienst,
+    string[]
+> = {
     Gewasproductie: GEWASPRODUCTIE_INDICATOR_IDS,
     Koolstofvastlegging: KOOLSTOFVASTLEGGING_INDICATOR_IDS,
     Waterkwaliteit: WATERKWALITEIT_INDICATOR_IDS,
-    "Nutriëntenkringloop": NUTRIENTENKRINGLOOP_INDICATOR_IDS,
+    Nutriëntenkringloop: NUTRIENTENKRINGLOOP_INDICATOR_IDS,
 }
 
 /**
@@ -299,21 +304,19 @@ export const ECOSYSTEEMDIENST_INDICATOR_IDS: Record<Ecosysteemdienst, string[]> 
  * Used to drive dynamic map colouring when an ecosystem service filter is active.
  */
 export const ECOSYSTEEMDIENST_MAP_PROP: Record<Ecosysteemdienst, string> = {
-    Gewasproductie:        "avg_gew",
-    Koolstofvastlegging:   "avg_kool",
-    Waterkwaliteit:        "avg_wat",
-    "Nutriëntenkringloop": "avg_nut",
+    Gewasproductie: "avg_gew",
+    Koolstofvastlegging: "avg_kool",
+    Waterkwaliteit: "avg_wat",
+    Nutriëntenkringloop: "avg_nut",
 }
 
 /** Full descriptive name shown as subtitle in AggregationCards */
 export const ECOSYSTEEMDIENST_FULL_NAME: Record<Ecosysteemdienst, string> = {
-    Gewasproductie:        "Open Bodem Index",
-    Koolstofvastlegging:   "Open Bodem Index",
-    Waterkwaliteit:        "BedrijfsBodemWaterPlan",
-    "Nutriëntenkringloop": "Open Bodem Index",
+    Gewasproductie: "Open Bodem Index",
+    Koolstofvastlegging: "Open Bodem Index",
+    Waterkwaliteit: "BedrijfsBodemWaterPlan",
+    Nutriëntenkringloop: "Open Bodem Index",
 }
-
-
 
 /** Convert 0–1 API score to 0–100 display value. */
 export function scoreToDisplay(score01: number): number {
@@ -355,4 +358,3 @@ export function getIndicatorsByEcosysteemdienst(
 ): IndicatorInfo[] {
     return INDICATORS.filter((i) => i.ecosysteemdienst === ecosysteemdienst)
 }
-

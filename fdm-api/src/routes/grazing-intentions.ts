@@ -1,16 +1,16 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
+    FdmType,
     getGrazingIntentions,
     removeGrazingIntention,
     setGrazingIntention,
 } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import {
     commonErrorResponses,
+    PaginationQuerySchema,
     paginatedResponse,
     paginatedSchema,
-    PaginationQuerySchema,
     writeErrorResponses,
 } from "../schemas"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
@@ -113,7 +113,7 @@ const deleteGrazingIntentionRoute = createRoute({
         }),
     },
     responses: {
-        204:{ description: "Grazing intention deleted." },
+        204: { description: "Grazing intention deleted." },
         ...commonErrorResponses,
     },
 })

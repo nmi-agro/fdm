@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { createFdmApi } from "../index"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
+import { createFdmApi } from "../index"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 
@@ -8,7 +8,9 @@ const mockFdm = {
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
     onConflictDoUpdate: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
+    returning: vi
+        .fn()
+        .mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
 } as any
 
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
@@ -35,14 +37,41 @@ const baseSoilAnalysis = {
     b_sampling_date: new Date("2023-04-28"),
     a_ph_cc: 6.2,
     a_som_loi: 3.5,
-    a_al_ox: null, a_c_of: null, a_ca_co: null, a_ca_co_po: null, a_caco3_if: null,
-    a_cec_co: null, a_clay_mi: 18.0, a_cn_fr: null, a_com_fr: null, a_cu_cc: null,
-    a_density_sa: null, a_fe_ox: null, a_k_cc: null, a_k_co: null, a_k_co_po: null,
-    a_mg_cc: null, a_mg_co: null, a_mg_co_po: null, a_n_pmn: null, a_n_rt: null,
-    a_nh4_cc: null, a_nmin_cc: null, a_no3_cc: null, a_p_al: null, a_p_cc: null,
-    a_p_ox: null, a_p_rt: null, a_p_sg: null, a_p_wa: null, a_s_rt: null,
-    a_sand_mi: null, a_silt_mi: null, a_zn_cc: null,
-    b_gwl_class: null, b_soiltype_agr: "clay",
+    a_al_ox: null,
+    a_c_of: null,
+    a_ca_co: null,
+    a_ca_co_po: null,
+    a_caco3_if: null,
+    a_cec_co: null,
+    a_clay_mi: 18.0,
+    a_cn_fr: null,
+    a_com_fr: null,
+    a_cu_cc: null,
+    a_density_sa: null,
+    a_fe_ox: null,
+    a_k_cc: null,
+    a_k_co: null,
+    a_k_co_po: null,
+    a_mg_cc: null,
+    a_mg_co: null,
+    a_mg_co_po: null,
+    a_n_pmn: null,
+    a_n_rt: null,
+    a_nh4_cc: null,
+    a_nmin_cc: null,
+    a_no3_cc: null,
+    a_p_al: null,
+    a_p_cc: null,
+    a_p_ox: null,
+    a_p_rt: null,
+    a_p_sg: null,
+    a_p_wa: null,
+    a_s_rt: null,
+    a_sand_mi: null,
+    a_silt_mi: null,
+    a_zn_cc: null,
+    b_gwl_class: null,
+    b_soiltype_agr: "clay",
 }
 
 // ---------------------------------------------------------------------------
@@ -54,7 +83,9 @@ describe("GET /fields/:b_id/soil-analyses", () => {
     })
 
     it("returns 200 with paginated list", async () => {
-        const app = makeApp({ getSoilAnalyses: vi.fn().mockResolvedValue([baseSoilAnalysis]) })
+        const app = makeApp({
+            getSoilAnalyses: vi.fn().mockResolvedValue([baseSoilAnalysis]),
+        })
         const res = await app.request("/fields/field-1/soil-analyses", {
             headers: { "x-api-key": "valid" },
         })
@@ -66,7 +97,11 @@ describe("GET /fields/:b_id/soil-analyses", () => {
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getSoilAnalyses: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            getSoilAnalyses: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/fields/field-1/soil-analyses", {
             headers: { "x-api-key": "valid" },
         })
@@ -74,7 +109,9 @@ describe("GET /fields/:b_id/soil-analyses", () => {
     })
 
     it("serialises dates as YYYY-MM-DD strings", async () => {
-        const app = makeApp({ getSoilAnalyses: vi.fn().mockResolvedValue([baseSoilAnalysis]) })
+        const app = makeApp({
+            getSoilAnalyses: vi.fn().mockResolvedValue([baseSoilAnalysis]),
+        })
         const res = await app.request("/fields/field-1/soil-analyses", {
             headers: { "x-api-key": "valid" },
         })
@@ -95,11 +132,16 @@ describe("POST /fields/:b_id/soil-analyses", () => {
     it("returns 201 with the created soil analysis", async () => {
         const app = makeApp({
             addSoilAnalysis: vi.fn().mockResolvedValue("sa-new"),
-            getSoilAnalysis: vi.fn().mockResolvedValue({ ...baseSoilAnalysis, a_id: "sa-new" }),
+            getSoilAnalysis: vi
+                .fn()
+                .mockResolvedValue({ ...baseSoilAnalysis, a_id: "sa-new" }),
         })
         const res = await app.request("/fields/field-1/soil-analyses", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({
                 a_date: "2023-05-01",
                 a_source: "Lab NL",
@@ -125,11 +167,16 @@ describe("POST /fields/:b_id/soil-analyses", () => {
 
     it("returns 403 when principal lacks permission", async () => {
         const app = makeApp({
-            addSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")),
+            addSoilAnalysis: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
         })
         const res = await app.request("/fields/field-1/soil-analyses", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({
                 a_date: "2023-05-01",
                 a_source: "Lab NL",
@@ -144,7 +191,10 @@ describe("POST /fields/:b_id/soil-analyses", () => {
         const app = makeApp()
         const res = await app.request("/fields/field-1/soil-analyses", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ a_date: "2023-05-01" }), // missing a_source, a_depth_lower, b_sampling_date
         })
         expect(res.status).toBe(400)
@@ -160,7 +210,9 @@ describe("GET /soil-analyses/:a_id", () => {
     })
 
     it("returns 200 with the soil analysis", async () => {
-        const app = makeApp({ getSoilAnalysis: vi.fn().mockResolvedValue(baseSoilAnalysis) })
+        const app = makeApp({
+            getSoilAnalysis: vi.fn().mockResolvedValue(baseSoilAnalysis),
+        })
         const res = await app.request("/soil-analyses/sa-1", {
             headers: { "x-api-key": "valid" },
         })
@@ -172,7 +224,11 @@ describe("GET /soil-analyses/:a_id", () => {
     })
 
     it("returns 404 when soil analysis does not exist", async () => {
-        const app = makeApp({ getSoilAnalysis: vi.fn().mockResolvedValue({ ...baseSoilAnalysis, a_id: undefined }) })
+        const app = makeApp({
+            getSoilAnalysis: vi
+                .fn()
+                .mockResolvedValue({ ...baseSoilAnalysis, a_id: undefined }),
+        })
         const res = await app.request("/soil-analyses/missing", {
             headers: { "x-api-key": "valid" },
         })
@@ -180,7 +236,11 @@ describe("GET /soil-analyses/:a_id", () => {
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            getSoilAnalysis: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/soil-analyses/sa-1", {
             headers: { "x-api-key": "valid" },
         })
@@ -204,7 +264,10 @@ describe("PATCH /soil-analyses/:a_id", () => {
         })
         const res = await app.request("/soil-analyses/sa-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ a_ph_cc: 6.8 }),
         })
         expect(res.status).toBe(200)
@@ -213,10 +276,16 @@ describe("PATCH /soil-analyses/:a_id", () => {
     })
 
     it("returns 400 when body is empty", async () => {
-        const app = makeApp({ updateSoilAnalysis: vi.fn(), getSoilAnalysis: vi.fn() })
+        const app = makeApp({
+            updateSoilAnalysis: vi.fn(),
+            getSoilAnalysis: vi.fn(),
+        })
         const res = await app.request("/soil-analyses/sa-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({}),
         })
         expect(res.status).toBe(400)
@@ -225,10 +294,17 @@ describe("PATCH /soil-analyses/:a_id", () => {
     })
 
     it("returns 403 when principal lacks permission", async () => {
-        const app = makeApp({ updateSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            updateSoilAnalysis: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/soil-analyses/sa-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ a_ph_cc: 6.8 }),
         })
         expect(res.status).toBe(403)
@@ -244,7 +320,9 @@ describe("DELETE /soil-analyses/:a_id", () => {
     })
 
     it("returns 204 on success", async () => {
-        const app = makeApp({ removeSoilAnalysis: vi.fn().mockResolvedValue(undefined) })
+        const app = makeApp({
+            removeSoilAnalysis: vi.fn().mockResolvedValue(undefined),
+        })
         const res = await app.request("/soil-analyses/sa-1", {
             method: "DELETE",
             headers: { "x-api-key": "valid" },
@@ -253,7 +331,11 @@ describe("DELETE /soil-analyses/:a_id", () => {
     })
 
     it("returns 403 when principal lacks permission", async () => {
-        const app = makeApp({ removeSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            removeSoilAnalysis: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/soil-analyses/sa-1", {
             method: "DELETE",
             headers: { "x-api-key": "valid" },
@@ -271,8 +353,14 @@ describe("GET /farms/:b_id_farm/soil-analyses", () => {
     })
 
     it("returns 200 with paginated list", async () => {
-        const app = makeApp({ getSoilAnalysesForFarm: vi.fn().mockResolvedValue(new Map([["field-1", [baseSoilAnalysis]]])) })
-        const res = await app.request("/farms/farm-1/soil-analyses", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getSoilAnalysesForFarm: vi
+                .fn()
+                .mockResolvedValue(new Map([["field-1", [baseSoilAnalysis]]])),
+        })
+        const res = await app.request("/farms/farm-1/soil-analyses", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.total).toBe(1)
@@ -280,8 +368,14 @@ describe("GET /farms/:b_id_farm/soil-analyses", () => {
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getSoilAnalysesForFarm: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/farms/farm-1/soil-analyses", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getSoilAnalysesForFarm: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/farms/farm-1/soil-analyses", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 })
@@ -296,30 +390,44 @@ describe("GET /fields/:b_id/current-soil-data", () => {
 
     it("returns 200 with current soil data", async () => {
         const app = makeApp({
-            getCurrentSoilData: vi.fn().mockResolvedValue([{
-                parameter: "a_ph_cc",
-                value: 6.2,
-                a_id: "sa-1",
-                b_sampling_date: new Date("2023-04-28"),
-                a_depth_upper: 0,
-                a_depth_lower: 30,
-                a_source: "Lab NL",
-            }]),
+            getCurrentSoilData: vi.fn().mockResolvedValue([
+                {
+                    parameter: "a_ph_cc",
+                    value: 6.2,
+                    a_id: "sa-1",
+                    b_sampling_date: new Date("2023-04-28"),
+                    a_depth_upper: 0,
+                    a_depth_lower: 30,
+                    a_source: "Lab NL",
+                },
+            ]),
         })
-        const res = await app.request("/fields/field-1/current-soil-data", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/fields/field-1/current-soil-data", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         expect((await res.json())[0].parameter).toBe("a_ph_cc")
     })
 
     it("returns 404 when no current soil data exists", async () => {
-        const app = makeApp({ getCurrentSoilData: vi.fn().mockResolvedValue([]) })
-        const res = await app.request("/fields/field-1/current-soil-data", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getCurrentSoilData: vi.fn().mockResolvedValue([]),
+        })
+        const res = await app.request("/fields/field-1/current-soil-data", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(404)
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getCurrentSoilData: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/fields/field-1/current-soil-data", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getCurrentSoilData: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/fields/field-1/current-soil-data", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 })

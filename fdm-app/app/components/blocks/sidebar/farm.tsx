@@ -369,8 +369,8 @@ export function SidebarFarm({
                                         </SidebarMenuButton>
                                     </TooltipTrigger>
                                     <TooltipContent side="right">
-                                        Selecteer een bedrijf om de
-                                        maatregelen te beheren
+                                        Selecteer een bedrijf om de maatregelen
+                                        te beheren
                                     </TooltipContent>
                                 </Tooltip>
                             )}

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { createFdmApi } from "../index"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
+import { createFdmApi } from "../index"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 
@@ -8,7 +8,9 @@ const mockFdm = {
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
     onConflictDoUpdate: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
+    returning: vi
+        .fn()
+        .mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
 } as any
 
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
@@ -49,8 +51,12 @@ describe("GET /farms/:b_id_farm/fields", () => {
     })
 
     it("returns 200 with paginated field list", async () => {
-        const app = makeApp({ getFields: vi.fn().mockResolvedValue([baseField]) })
-        const res = await app.request("/farms/farm-1/fields", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFields: vi.fn().mockResolvedValue([baseField]),
+        })
+        const res = await app.request("/farms/farm-1/fields", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.data).toHaveLength(1)
@@ -59,23 +65,38 @@ describe("GET /farms/:b_id_farm/fields", () => {
     })
 
     it("serialises Date as YYYY-MM-DD string", async () => {
-        const app = makeApp({ getFields: vi.fn().mockResolvedValue([baseField]) })
-        const res = await app.request("/farms/farm-1/fields", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFields: vi.fn().mockResolvedValue([baseField]),
+        })
+        const res = await app.request("/farms/farm-1/fields", {
+            headers: { "x-api-key": "valid" },
+        })
         const body = await res.json()
         expect(body.data[0].b_start).toBe("2023-01-01")
         expect(body.data[0].b_end).toBeNull()
     })
 
     it("returns 403 when principal lacks farm access", async () => {
-        const app = makeApp({ getFields: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/farms/farm-1/fields", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFields: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/farms/farm-1/fields", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 
     it("applies pagination", async () => {
-        const fields = Array.from({ length: 5 }, (_, i) => ({ ...baseField, b_id: `f-${i}` }))
+        const fields = Array.from({ length: 5 }, (_, i) => ({
+            ...baseField,
+            b_id: `f-${i}`,
+        }))
         const app = makeApp({ getFields: vi.fn().mockResolvedValue(fields) })
-        const res = await app.request("/farms/farm-1/fields?limit=2&offset=1", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms/farm-1/fields?limit=2&offset=1", {
+            headers: { "x-api-key": "valid" },
+        })
         const body = await res.json()
         expect(body.data).toHaveLength(2)
         expect(body.data[0].b_id).toBe("f-1")
@@ -83,8 +104,12 @@ describe("GET /farms/:b_id_farm/fields", () => {
     })
 
     it("response has FDM-native field names", async () => {
-        const app = makeApp({ getFields: vi.fn().mockResolvedValue([baseField]) })
-        const res = await app.request("/farms/farm-1/fields", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFields: vi.fn().mockResolvedValue([baseField]),
+        })
+        const res = await app.request("/farms/farm-1/fields", {
+            headers: { "x-api-key": "valid" },
+        })
         const body = await res.json()
         const item = body.data[0]
         expect(item).toHaveProperty("b_id")
@@ -107,7 +132,9 @@ describe("GET /fields/:b_id", () => {
 
     it("returns 200 with the field", async () => {
         const app = makeApp({ getField: vi.fn().mockResolvedValue(baseField) })
-        const res = await app.request("/fields/field-1", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/fields/field-1", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         const body = await res.json()
         expect(body.b_id).toBe("field-1")
@@ -115,21 +142,37 @@ describe("GET /fields/:b_id", () => {
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getField: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/fields/field-1", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getField: vi.fn().mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/fields/field-1", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 
     it("returns 404 when field does not exist", async () => {
-        const app = makeApp({ getField: vi.fn().mockResolvedValue({ ...baseField, b_id: undefined }) })
-        const res = await app.request("/fields/missing", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getField: vi
+                .fn()
+                .mockResolvedValue({ ...baseField, b_id: undefined }),
+        })
+        const res = await app.request("/fields/missing", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(404)
     })
 
     it("serialises dates correctly", async () => {
-        const field = { ...baseField, b_start: new Date("2024-03-15T08:00:00Z"), b_end: new Date("2024-12-01T00:00:00Z") }
+        const field = {
+            ...baseField,
+            b_start: new Date("2024-03-15T08:00:00Z"),
+            b_end: new Date("2024-12-01T00:00:00Z"),
+        }
         const app = makeApp({ getField: vi.fn().mockResolvedValue(field) })
-        const res = await app.request("/fields/field-1", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/fields/field-1", {
+            headers: { "x-api-key": "valid" },
+        })
         const body = await res.json()
         expect(body.b_start).toBe("2024-03-15")
         expect(body.b_end).toBe("2024-12-01")
@@ -146,17 +189,30 @@ describe("POST /farms/:b_id_farm/fields", () => {
 
     const validGeometry = {
         type: "Polygon",
-        coordinates: [[[5.0, 52.0], [5.1, 52.0], [5.1, 52.1], [5.0, 52.1], [5.0, 52.0]]],
+        coordinates: [
+            [
+                [5.0, 52.0],
+                [5.1, 52.0],
+                [5.1, 52.1],
+                [5.0, 52.1],
+                [5.0, 52.0],
+            ],
+        ],
     }
 
     it("returns 201 with the created field", async () => {
         const app = makeApp({
             addField: vi.fn().mockResolvedValue("field-new"),
-            getField: vi.fn().mockResolvedValue({ ...baseField, b_id: "field-new" }),
+            getField: vi
+                .fn()
+                .mockResolvedValue({ ...baseField, b_id: "field-new" }),
         })
         const res = await app.request("/farms/farm-1/fields", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({
                 b_name: "Nieuw perceel",
                 b_geometry: validGeometry,
@@ -171,13 +227,19 @@ describe("POST /farms/:b_id_farm/fields", () => {
     })
 
     it("returns 422 when GeoJSON has too many coordinates", async () => {
-        const tooManyCoords = Array.from({ length: 10_001 }, (_, i) => [i * 0.0001, 52.0])
+        const tooManyCoords = Array.from({ length: 10_001 }, (_, i) => [
+            i * 0.0001,
+            52.0,
+        ])
         tooManyCoords.push(tooManyCoords[0])
         const geometry = { type: "Polygon", coordinates: [tooManyCoords] }
         const app = makeApp({ addField: vi.fn(), getField: vi.fn() })
         const res = await app.request("/farms/farm-1/fields", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({
                 b_name: "Too big",
                 b_geometry: geometry,
@@ -204,7 +266,10 @@ describe("POST /farms/:b_id_farm/fields", () => {
         })
         const res = await app.request("/farms/farm-1/fields", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({
                 b_name: "Perceel",
                 b_geometry: validGeometry,
@@ -225,7 +290,9 @@ describe("DELETE /fields/:b_id", () => {
     })
 
     it("returns 204 on success", async () => {
-        const app = makeApp({ removeField: vi.fn().mockResolvedValue(undefined) })
+        const app = makeApp({
+            removeField: vi.fn().mockResolvedValue(undefined),
+        })
         const res = await app.request("/fields/field-1", {
             method: "DELETE",
             headers: { "x-api-key": "valid" },
@@ -234,7 +301,11 @@ describe("DELETE /fields/:b_id", () => {
     })
 
     it("returns 403 when principal lacks permission", async () => {
-        const app = makeApp({ removeField: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            removeField: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/fields/field-1", {
             method: "DELETE",
             headers: { "x-api-key": "valid" },
@@ -242,7 +313,6 @@ describe("DELETE /fields/:b_id", () => {
         expect(res.status).toBe(403)
     })
 })
-
 
 // ---------------------------------------------------------------------------
 // PATCH /fields/:b_id
@@ -255,11 +325,16 @@ describe("PATCH /fields/:b_id", () => {
     it("returns 200 with the updated field", async () => {
         const app = makeApp({
             getField: vi.fn().mockResolvedValue(baseField),
-            updateField: vi.fn().mockResolvedValue({ ...baseField, b_name: "Perceel Zuid" }),
+            updateField: vi
+                .fn()
+                .mockResolvedValue({ ...baseField, b_name: "Perceel Zuid" }),
         })
         const res = await app.request("/fields/field-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ b_name: "Perceel Zuid" }),
         })
         expect(res.status).toBe(200)
@@ -270,7 +345,10 @@ describe("PATCH /fields/:b_id", () => {
         const app = makeApp()
         const res = await app.request("/fields/field-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({}),
         })
         expect(res.status).toBe(400)
@@ -279,11 +357,16 @@ describe("PATCH /fields/:b_id", () => {
     it("returns 403 when principal lacks permission", async () => {
         const app = makeApp({
             getField: vi.fn().mockResolvedValue(baseField),
-            updateField: vi.fn().mockRejectedValue(new Error("Permission denied")),
+            updateField: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
         })
         const res = await app.request("/fields/field-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ b_name: "Perceel Zuid" }),
         })
         expect(res.status).toBe(403)

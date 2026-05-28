@@ -15,7 +15,12 @@ interface FarmTitleProps {
     }
 }
 
-export function FarmTitle({ title, description, descriptionNode, action }: FarmTitleProps) {
+export function FarmTitle({
+    title,
+    description,
+    descriptionNode,
+    action,
+}: FarmTitleProps) {
     return (
         <div className="space-y-6 p-4 md:px-8 md:py-8 pb-0">
             <div className="flex flex-col xl:flex-row xl:items-center gap-4">

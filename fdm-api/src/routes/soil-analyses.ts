@@ -1,31 +1,32 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     addSoilAnalysis,
+    CurrentSoilData,
+    FdmType,
     getCurrentSoilData,
-    getSoilAnalysis,
     getSoilAnalyses,
     getSoilAnalysesForFarm,
+    getSoilAnalysis,
     removeSoilAnalysis,
+    SoilAnalysis,
     updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import type { CurrentSoilData, SoilAnalysis } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
 import {
     commonErrorResponses,
     DateStringSchema,
-    paginatedResponse,
-    paginatedSchema,
     PaginationQuerySchema,
     PaginationTimeframeQuerySchema,
+    paginatedResponse,
+    paginatedSchema,
     parseTimeframeQuery,
-    serializeDate,
     SoilAnalysisDataSchema,
+    serializeDate,
     writeErrorResponses,
 } from "../schemas"
+import type { ApiEnv, ApiPrincipalContext } from "../types"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
@@ -52,15 +53,14 @@ export interface SoilAnalysisServices {
 const SoilAnalysisSchema = z
     .object({
         a_id: z.string(),
-        a_date: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        a_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
         a_source: z.string(),
         b_id_sampling: z.string(),
         a_depth_upper: z.number(),
         a_depth_lower: z.number(),
-        b_sampling_date: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
+        b_sampling_date: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         a_al_ox: z.number().nullable(),
         a_c_of: z.number().nullable(),
         a_ca_co: z.number().nullable(),
@@ -106,9 +106,9 @@ const CurrentSoilDataItemSchema = z
         parameter: z.string(),
         value: z.union([z.number(), z.string(), z.null()]),
         a_id: z.string(),
-        b_sampling_date: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
+        b_sampling_date: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         a_depth_upper: z.number().nullable(),
         a_depth_lower: z.number().nullable(),
         a_source: z.string(),
@@ -117,15 +117,14 @@ const CurrentSoilDataItemSchema = z
 
 const CreateSoilAnalysisBodySchema = z
     .object({
-        a_date: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        a_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
         a_source: z
             .string()
             .describe("Identifying source or lab that performed the analysis."),
         a_depth_lower: z.number().describe("Lower sampling depth in cm."),
-        b_sampling_date: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
+        b_sampling_date: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         a_depth_upper: z
             .number()
             .optional()
@@ -136,9 +135,9 @@ const CreateSoilAnalysisBodySchema = z
 
 const UpdateSoilAnalysisBodySchema = z
     .object({
-        a_date: DateStringSchema
-            .optional()
-            .describe("Date in YYYY-MM-DD format."),
+        a_date: DateStringSchema.optional().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         a_source: z.string().optional().describe("Identifying source or lab."),
     })
     .merge(SoilAnalysisDataSchema)
@@ -437,7 +436,11 @@ export function registerSoilAnalysisRoutes(
         analyses.sort((a, b) => {
             const dateA = a.a_date ? String(a.a_date) : ""
             const dateB = b.a_date ? String(b.a_date) : ""
-            return dateA < dateB ? -1 : dateA > dateB ? 1 : String(a.a_id ?? "").localeCompare(String(b.a_id ?? ""))
+            return dateA < dateB
+                ? -1
+                : dateA > dateB
+                  ? 1
+                  : String(a.a_id ?? "").localeCompare(String(b.a_id ?? ""))
         })
         return c.json(
             paginatedResponse(

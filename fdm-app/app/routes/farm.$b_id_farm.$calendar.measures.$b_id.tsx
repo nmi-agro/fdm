@@ -1,5 +1,7 @@
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
     addMeasure,
+    checkPermission,
     getCultivations,
     getField,
     getFields,
@@ -9,12 +11,11 @@ import {
     removeMeasure,
     updateMeasure,
 } from "@nmi-agro/fdm-core"
-import { getIndicatorsForField } from "~/integrations/bln3.server"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { simplify } from "@turf/simplify"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 import { lazy, Suspense, useEffect, useState } from "react"
 import { Controller } from "react-hook-form"
 import {
@@ -22,18 +23,21 @@ import {
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
+    useFetcher,
     useLoaderData,
     useNavigation,
     useParams,
-    useFetcher,
 } from "react-router"
-import { dataWithError, dataWithSuccess } from "remix-toast"
 import { useRemixForm } from "remix-hook-form"
+import { dataWithError, dataWithSuccess } from "remix-toast"
+import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
+import {
+    type MeasureDateFormValues,
+    MeasureDateSchema,
+} from "~/components/blocks/measures/formschema"
 import { ImpactSummary } from "~/components/blocks/measures/impact-summary"
 import { IndicatorAttention } from "~/components/blocks/measures/indicator-attention"
-import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
-import { MeasureDateSchema, type MeasureDateFormValues } from "~/components/blocks/measures/formschema"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import {
     AlertDialog,
@@ -56,14 +60,14 @@ import {
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
+import { getIndicatorsForField } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
-import { Trash2, Plus, Pencil } from "lucide-react"
 
 const MeasuresMap = lazy(
     () => import("~/components/blocks/measures/measures-atlas"),
@@ -105,25 +109,37 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const timeframe = getTimeframe(params)
         const calendarYear = Number(calendar)
 
-        const [field, fields, measures, catalogue, farmMeasures, cultivations, bln3Result] =
-            await Promise.all([
-                getField(fdm, session.principal_id, b_id),
-                getFields(fdm, session.principal_id, b_id_farm, timeframe),
-                getMeasures(fdm, session.principal_id, b_id, timeframe),
-                getMeasuresFromCatalogue(fdm),
-                getMeasuresForFarm(
-                    fdm,
-                    session.principal_id,
-                    b_id_farm,
-                    timeframe,
-                ),
-                getCultivations(fdm, session.principal_id, b_id),
-                getIndicatorsForField({
-                    principal_id: session.principal_id,
-                    b_id,
-                    timeframe,
-                }).catch(() => null),
-            ])
+        const [
+            field,
+            fields,
+            measures,
+            catalogue,
+            farmMeasures,
+            cultivations,
+            bln3Result,
+            fieldWritePermission,
+        ] = await Promise.all([
+            getField(fdm, session.principal_id, b_id),
+            getFields(fdm, session.principal_id, b_id_farm, timeframe),
+            getMeasures(fdm, session.principal_id, b_id, timeframe),
+            getMeasuresFromCatalogue(fdm),
+            getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+            getCultivations(fdm, session.principal_id, b_id),
+            getIndicatorsForField({
+                principal_id: session.principal_id,
+                b_id,
+                timeframe,
+            }).catch(() => null),
+            checkPermission(
+                fdm,
+                "field",
+                "write",
+                b_id,
+                session.principal_id,
+                "routes/farm.$b_id_farm.$calendar.measures.$b_id",
+                false,
+            ),
+        ])
 
         if (!field) {
             throw data("not found: b_id", {
@@ -142,7 +158,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Calendar year start as default measure start date
         const calendarYearStart = Number.isFinite(calendarYear)
             ? `${calendarYear}-01-01`
-            : new Date().getFullYear() + "-01-01"
+            : `${new Date().getFullYear()}-01-01`
 
         // Build GeoJSON for mini map (all farm fields coloured by measure count)
         const fieldsGeoJSON: FeatureCollection = {
@@ -172,6 +188,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         return {
             field,
+            fieldWritePermission,
             measures,
             catalogue,
             fieldsGeoJSON,
@@ -219,7 +236,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
 
             const m_start = new Date(m_start_str)
-            if (isNaN(m_start.getTime())) {
+            if (Number.isNaN(m_start.getTime())) {
                 return dataWithError(
                     "invalid: m_start",
                     "Selecteer een geldige startdatum.",
@@ -229,7 +246,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 m_end_str && typeof m_end_str === "string" && m_end_str !== ""
                     ? new Date(m_end_str)
                     : undefined
-            if (m_end !== undefined && isNaN(m_end.getTime())) {
+            if (m_end !== undefined && Number.isNaN(m_end.getTime())) {
                 return dataWithError(
                     "invalid: m_end",
                     "Selecteer een geldige einddatum.",
@@ -268,7 +285,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 m_start_str !== ""
                     ? new Date(m_start_str)
                     : undefined
-            if (m_start !== undefined && isNaN(m_start.getTime())) {
+            if (m_start !== undefined && Number.isNaN(m_start.getTime())) {
                 return dataWithError(
                     "invalid: m_start",
                     "Selecteer een geldige startdatum.",
@@ -278,7 +295,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 m_end_str && typeof m_end_str === "string" && m_end_str !== ""
                     ? new Date(m_end_str)
                     : undefined
-            if (m_end !== undefined && isNaN(m_end.getTime())) {
+            if (m_end !== undefined && Number.isNaN(m_end.getTime())) {
                 return dataWithError(
                     "invalid: m_end",
                     "Selecteer een geldige einddatum.",
@@ -371,11 +388,14 @@ function MeasureEditDialog({
             onValid: (data) => {
                 const fd = new FormData()
                 fd.append("intent", "update")
-                fd.append("b_id_measure", measure!.b_id_measure)
+                fd.append("b_id_measure", measure?.b_id_measure)
                 fd.append("m_start", data.m_start)
                 if (data.m_end) fd.append("m_end", data.m_end)
                 else fd.append("m_end", "")
-                fetcher.submit(fd, { method: "post", action: action || undefined })
+                fetcher.submit(fd, {
+                    method: "post",
+                    action: action || undefined,
+                })
                 onClose()
             },
         },
@@ -397,13 +417,17 @@ function MeasureEditDialog({
             <DialogContent className="max-w-sm">
                 <DialogHeader>
                     <DialogTitle>
-                        {closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}
+                        {closeMode
+                            ? "Maatregel afsluiten"
+                            : "Maatregel bewerken"}
                     </DialogTitle>
                 </DialogHeader>
                 {measure && (
                     <form onSubmit={form.handleSubmit}>
                         <FieldGroup className="py-2">
-                            <p className="text-sm font-medium">{measure.m_name}</p>
+                            <p className="text-sm font-medium">
+                                {measure.m_name}
+                            </p>
 
                             {!closeMode && (
                                 <Controller
@@ -412,7 +436,10 @@ function MeasureEditDialog({
                                     render={({ field, fieldState }) => (
                                         <DatePicker
                                             label="Startdatum"
-                                            field={{ ...field, value: field.value }}
+                                            field={{
+                                                ...field,
+                                                value: field.value,
+                                            }}
                                             fieldState={fieldState}
                                             required
                                         />
@@ -427,7 +454,10 @@ function MeasureEditDialog({
                                     render={({ field, fieldState }) => (
                                         <DatePicker
                                             label="Einddatum"
-                                            field={{ ...field, value: field.value }}
+                                            field={{
+                                                ...field,
+                                                value: field.value,
+                                            }}
                                             fieldState={fieldState}
                                             required
                                         />
@@ -437,24 +467,42 @@ function MeasureEditDialog({
                                 <Field>
                                     <FieldLabel>Einddatum</FieldLabel>
                                     <RadioGroup
-                                        value={doorlopend ? "doorlopend" : "einddatum"}
+                                        value={
+                                            doorlopend
+                                                ? "doorlopend"
+                                                : "einddatum"
+                                        }
                                         onValueChange={(v) => {
-                                            const isDoorlopend = v === "doorlopend"
+                                            const isDoorlopend =
+                                                v === "doorlopend"
                                             setDoorlopend(isDoorlopend)
-                                            if (isDoorlopend) form.setValue("m_end", null)
+                                            if (isDoorlopend)
+                                                form.setValue("m_end", null)
                                             else form.setValue("m_end", "")
                                         }}
                                         className="space-y-1"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <RadioGroupItem value="doorlopend" id="field-edit-doorlopend" />
-                                            <Label htmlFor="field-edit-doorlopend" className="font-normal cursor-pointer">
+                                            <RadioGroupItem
+                                                value="doorlopend"
+                                                id="field-edit-doorlopend"
+                                            />
+                                            <Label
+                                                htmlFor="field-edit-doorlopend"
+                                                className="font-normal cursor-pointer"
+                                            >
                                                 Doorlopend
                                             </Label>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <RadioGroupItem value="einddatum" id="field-edit-einddatum" />
-                                            <Label htmlFor="field-edit-einddatum" className="font-normal cursor-pointer">
+                                            <RadioGroupItem
+                                                value="einddatum"
+                                                id="field-edit-einddatum"
+                                            />
+                                            <Label
+                                                htmlFor="field-edit-einddatum"
+                                                className="font-normal cursor-pointer"
+                                            >
                                                 Vaste einddatum
                                             </Label>
                                         </div>
@@ -465,9 +513,12 @@ function MeasureEditDialog({
                                             name="m_end"
                                             render={({ field, fieldState }) => (
                                                 <DatePicker
-                                                   label=""
-                                                   field={{ ...field, value: field.value }}
-                                                   fieldState={fieldState}
+                                                    label=""
+                                                    field={{
+                                                        ...field,
+                                                        value: field.value,
+                                                    }}
+                                                    fieldState={fieldState}
                                                 />
                                             )}
                                         />
@@ -476,7 +527,11 @@ function MeasureEditDialog({
                             )}
 
                             <div className="flex justify-end gap-2 pt-1">
-                                <Button type="button" variant="outline" onClick={onClose}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={onClose}
+                                >
                                     Annuleren
                                 </Button>
                                 <Button type="submit">
@@ -502,6 +557,7 @@ export default function MeasuresFieldDetail() {
         harvestDate,
         calendarYearStart,
         fieldScore,
+        fieldWritePermission,
     } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar, b_id } = useParams()
     const navigation = useNavigation()
@@ -532,22 +588,19 @@ export default function MeasuresFieldDetail() {
                             : `${measures.length} actieve maatregel${measures.length === 1 ? "" : "en"}`}
                     </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                        onClick={() => setDialogOpen(true)}
-                        size="sm"
-                    >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Toevoegen
-                    </Button>
-                </div>
+                {fieldWritePermission && (
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Button onClick={() => setDialogOpen(true)} size="sm">
+                            <Plus className="h-4 w-4 mr-1" />
+                            Toevoegen
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Indicator impact summary (shown when BLN3 data is available) */}
             {fieldScore && fieldScore.indicators.length > 0 && (
-                <ImpactSummary
-                    indicators={fieldScore.indicators}
-                />
+                <ImpactSummary indicators={fieldScore.indicators} />
             )}
 
             {/* Indicators needing attention (or compliment when all green) */}
@@ -556,6 +609,7 @@ export default function MeasuresFieldDetail() {
                     indicators={fieldScore.indicators}
                     onAddMeasure={() => setDialogOpen(true)}
                     indicatorsHref={indicatorsHref}
+                    canAddMeasure={fieldWritePermission}
                 />
             )}
 
@@ -600,115 +654,122 @@ export default function MeasuresFieldDetail() {
                                                     m.m_end,
                                                 )}
                                             </span>
-                                            {!m.m_end && (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-5 px-2 text-xs"
-                                                    onClick={() =>
-                                                        setClosingMeasure({
-                                                            b_id_measure:
-                                                                m.b_id_measure,
-                                                            m_name: m.m_name,
-                                                            m_start: m.m_start,
-                                                            m_end: m.m_end,
-                                                        })
-                                                    }
-                                                >
-                                                    Afsluiten
-                                                </Button>
-                                            )}
+                                            {!m.m_end &&
+                                                fieldWritePermission && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-5 px-2 text-xs"
+                                                        onClick={() =>
+                                                            setClosingMeasure({
+                                                                b_id_measure:
+                                                                    m.b_id_measure,
+                                                                m_name: m.m_name,
+                                                                m_start:
+                                                                    m.m_start,
+                                                                m_end: m.m_end,
+                                                            })
+                                                        }
+                                                    >
+                                                        Afsluiten
+                                                    </Button>
+                                                )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                            title="Bewerken / afsluiten"
-                                            onClick={() =>
-                                                setEditingMeasure({
-                                                    b_id_measure:
-                                                        m.b_id_measure,
-                                                    m_name: m.m_name,
-                                                    m_start: m.m_start,
-                                                    m_end: m.m_end,
-                                                })
-                                            }
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                    title="Verwijderen"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>
-                                                        Maatregel verwijderen?
-                                                    </AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Wil je &ldquo;{m.m_name}
-                                                        &rdquo; definitief
-                                                        verwijderen? Dit kan
-                                                        niet ongedaan worden
-                                                        gemaakt.
-                                                        <br />
-                                                        <br />
-                                                        <span className="text-foreground font-medium">
-                                                            Wil je de maatregel
-                                                            alleen beëindigen?
-                                                        </span>{" "}
-                                                        Gebruik dan de
-                                                        bewerkknop (
-                                                        <Pencil className="inline h-3.5 w-3.5 mx-0.5" />
-                                                        ) en stel een einddatum
-                                                        in.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>
-                                                        Annuleren
-                                                    </AlertDialogCancel>
-                                                    <form method="post">
-                                                        <input
-                                                            type="hidden"
-                                                            name="intent"
-                                                            value="delete"
-                                                        />
-                                                        <input
-                                                            type="hidden"
-                                                            name="b_id_measure"
-                                                            value={
-                                                                m.b_id_measure
-                                                            }
-                                                        />
-                                                        <AlertDialogAction
-                                                            type="submit"
-                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full"
-                                                            disabled={
-                                                                navigation.state !==
-                                                                "idle"
-                                                            }
-                                                        >
-                                                            Definitief
-                                                            verwijderen
-                                                        </AlertDialogAction>
-                                                    </form>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
+                                    {fieldWritePermission && (
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                title="Bewerken / afsluiten"
+                                                onClick={() =>
+                                                    setEditingMeasure({
+                                                        b_id_measure:
+                                                            m.b_id_measure,
+                                                        m_name: m.m_name,
+                                                        m_start: m.m_start,
+                                                        m_end: m.m_end,
+                                                    })
+                                                }
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                        title="Verwijderen"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>
+                                                            Maatregel
+                                                            verwijderen?
+                                                        </AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Wil je &ldquo;
+                                                            {m.m_name}
+                                                            &rdquo; definitief
+                                                            verwijderen? Dit kan
+                                                            niet ongedaan worden
+                                                            gemaakt.
+                                                            <br />
+                                                            <br />
+                                                            <span className="text-foreground font-medium">
+                                                                Wil je de
+                                                                maatregel alleen
+                                                                beëindigen?
+                                                            </span>{" "}
+                                                            Gebruik dan de
+                                                            bewerkknop (
+                                                            <Pencil className="inline h-3.5 w-3.5 mx-0.5" />
+                                                            ) en stel een
+                                                            einddatum in.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>
+                                                            Annuleren
+                                                        </AlertDialogCancel>
+                                                        <form method="post">
+                                                            <input
+                                                                type="hidden"
+                                                                name="intent"
+                                                                value="delete"
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name="b_id_measure"
+                                                                value={
+                                                                    m.b_id_measure
+                                                                }
+                                                            />
+                                                            <AlertDialogAction
+                                                                type="submit"
+                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full"
+                                                                disabled={
+                                                                    navigation.state !==
+                                                                    "idle"
+                                                                }
+                                                            >
+                                                                Definitief
+                                                                verwijderen
+                                                            </AlertDialogAction>
+                                                        </form>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

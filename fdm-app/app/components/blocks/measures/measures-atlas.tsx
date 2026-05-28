@@ -5,8 +5,12 @@
  * Field detail: all farm fields visible, current field highlighted in yellow.
  * Clicking a field navigates to its measures detail page.
  */
+
+import type { FeatureCollection } from "geojson"
+import type { StyleSpecification } from "maplibre-gl"
 import maplibregl from "maplibre-gl"
 import { useCallback, useMemo, useState } from "react"
+import type { LayerProps } from "react-map-gl/maplibre"
 import {
     Layer,
     Map as MapGL,
@@ -15,12 +19,9 @@ import {
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
-import type { FeatureCollection } from "geojson"
-import type { StyleSpecification } from "maplibre-gl"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import type { LayerProps } from "react-map-gl/maplibre"
 
 const FIELDS_LAYER = "measuresMapFields"
 const FIELDS_OUTLINE_LAYER = "measuresMapFieldsOutline"
@@ -39,9 +40,12 @@ function getMeasureCountFillStyle(layerId: string): LayerProps {
                 "interpolate",
                 ["linear"],
                 ["get", "measureCount"],
-                0, "#d1d5db", // grey  — no measures
-                1, "#86efac", // light green — 1 measure
-                5, "#16a34a", // dark green  — 5+ measures
+                0,
+                "#d1d5db", // grey  — no measures
+                1,
+                "#86efac", // light green — 1 measure
+                5,
+                "#16a34a", // dark green  — 5+ measures
             ] as any,
             "fill-opacity": 0.75,
         },
@@ -57,9 +61,12 @@ function getMeasureCountOutlineStyle(layerId: string): LayerProps {
                 "interpolate",
                 ["linear"],
                 ["get", "measureCount"],
-                0, "#9ca3af",
-                1, "#4ade80",
-                5, "#15803d",
+                0,
+                "#9ca3af",
+                1,
+                "#4ade80",
+                5,
+                "#15803d",
             ] as any,
             "line-width": 2,
         },
@@ -115,7 +122,7 @@ export default function MeasuresMap({
     const onMouseMove = useCallback((e: MapMouseEvent) => {
         const feature = e.features?.[0]
         setHoveredFieldId(
-            feature ? (feature.properties?.b_id as string) ?? null : null,
+            feature ? ((feature.properties?.b_id as string) ?? null) : null,
         )
     }, [])
 
@@ -153,7 +160,11 @@ export default function MeasuresMap({
         <div className="relative" style={{ height, isolation: "isolate" }}>
             <MapGL
                 {...viewState}
-                style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+                style={{
+                    height: "100%",
+                    width: "100%",
+                    borderRadius: "0.5rem",
+                }}
                 mapStyle={mapStyle as any}
                 mapLib={maplibregl}
                 interactiveLayerIds={[FIELDS_LAYER]}
@@ -191,7 +202,10 @@ export default function MeasuresMap({
                         id={SELECTED_LAYER}
                         source={SELECTED_SOURCE}
                         type="fill"
-                        paint={{ "fill-color": "#ffcf0d", "fill-opacity": 0.25 }}
+                        paint={{
+                            "fill-color": "#ffcf0d",
+                            "fill-opacity": 0.25,
+                        }}
                     />
                     <Layer
                         id={SELECTED_OUTLINE_LAYER}
@@ -206,10 +220,12 @@ export default function MeasuresMap({
             {hoveredFeature && (
                 <div className="absolute bottom-3 left-3 z-10 bg-background/95 backdrop-blur-sm border rounded-lg px-2.5 py-1.5 shadow-md text-xs pointer-events-none">
                     <p className="font-semibold">
-                        {hoveredFeature.properties?.b_name ?? "Onbekend perceel"}
+                        {hoveredFeature.properties?.b_name ??
+                            "Onbekend perceel"}
                     </p>
                     <p className="text-muted-foreground text-[10px]">
-                        {(hoveredFeature.properties?.measureCount as number) === 0
+                        {(hoveredFeature.properties?.measureCount as number) ===
+                        0
                             ? "Geen maatregelen"
                             : `${hoveredFeature.properties?.measureCount as number} maatregel${(hoveredFeature.properties?.measureCount as number) === 1 ? "" : "en"}`}
                     </p>

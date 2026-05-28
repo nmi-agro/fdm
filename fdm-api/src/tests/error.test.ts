@@ -4,9 +4,10 @@
  * - createErrorHandler (integration via minimal Hono app)
  * - createNotFoundHandler (integration)
  */
-import { describe, expect, it, vi, beforeEach } from "vitest"
+
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ApiError, createErrorHandler, createNotFoundHandler } from "../error"
 
 const APP_URL = "https://test.example.com"
@@ -20,7 +21,9 @@ function makeTestApp() {
         throw new ApiError(422, "unprocessable-entity", "Bad input.")
     })
     app.get("/api-error-with-extras", () => {
-        throw new ApiError(409, "conflict", "Conflict!", { conflicting_id: "abc-123" })
+        throw new ApiError(409, "conflict", "Conflict!", {
+            conflicting_id: "abc-123",
+        })
     })
     app.get("/permission-denied", () => {
         throw new Error("Permission denied")
@@ -30,10 +33,14 @@ function makeTestApp() {
         throw new Error("Outer error", { cause })
     })
     app.get("/permission-denied-message-variant", () => {
-        throw new Error("Principal does not have permission to perform this action")
+        throw new Error(
+            "Principal does not have permission to perform this action",
+        )
     })
     app.get("/http-exception-400", () => {
-        throw new HTTPException(400, { message: "Malformed JSON in request body" })
+        throw new HTTPException(400, {
+            message: "Malformed JSON in request body",
+        })
     })
     app.get("/unknown-error", () => {
         throw new Error("Something totally unexpected")
@@ -81,7 +88,9 @@ describe("createErrorHandler", () => {
     let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
     beforeEach(() => {
-        consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+        consoleErrorSpy = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {})
     })
 
     it("maps ApiError to the correct HTTP status and problem+json body", async () => {
@@ -97,7 +106,9 @@ describe("createErrorHandler", () => {
     it("response Content-Type is application/problem+json for ApiError", async () => {
         const app = makeTestApp()
         const res = await app.request("/api-error")
-        expect(res.headers.get("content-type")).toContain("application/problem+json")
+        expect(res.headers.get("content-type")).toContain(
+            "application/problem+json",
+        )
     })
 
     it("includes instance equal to the request path in the body", async () => {
@@ -193,7 +204,9 @@ describe("createNotFoundHandler", () => {
     it("response Content-Type is application/problem+json", async () => {
         const app = makeTestApp()
         const res = await app.request("/does-not-exist")
-        expect(res.headers.get("content-type")).toContain("application/problem+json")
+        expect(res.headers.get("content-type")).toContain(
+            "application/problem+json",
+        )
     })
 })
 
@@ -207,14 +220,20 @@ describe("createErrorHandler: malformed JSON via full API", () => {
             insert: vi.fn().mockReturnThis(),
             values: vi.fn().mockReturnThis(),
             onConflictDoUpdate: vi.fn().mockReturnThis(),
-            returning: vi.fn().mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
+            returning: vi
+                .fn()
+                .mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
         } as any
         const mockAuth = {
             api: {
                 verifyApiKey: vi.fn().mockResolvedValue({
                     valid: true,
                     error: null,
-                    key: { id: "key-1", referenceId: "user-1", name: "Test key" },
+                    key: {
+                        id: "key-1",
+                        referenceId: "user-1",
+                        name: "Test key",
+                    },
                 }),
             },
         } as any
@@ -222,10 +241,15 @@ describe("createErrorHandler: malformed JSON via full API", () => {
             appName: "Test App",
             appUrl: "https://test.example.com",
         })
-        const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+        const consoleErrorSpy = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {})
         const res = await app.request("/farms", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: "{ not valid json }",
         })
         expect(res.status).toBe(400)

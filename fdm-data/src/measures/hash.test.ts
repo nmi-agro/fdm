@@ -28,7 +28,10 @@ describe("hashMeasure", () => {
 
     it("should generate different hashes for different items", async () => {
         const hash1 = await hashMeasure({ ...baseMeasure })
-        const hash2 = await hashMeasure({ ...baseMeasure, m_name: "Updated name" })
+        const hash2 = await hashMeasure({
+            ...baseMeasure,
+            m_name: "Updated name",
+        })
         expect(hash1).not.toBe(hash2)
     })
 
@@ -47,8 +50,14 @@ describe("hashMeasure", () => {
     })
 
     it("should detect changes in m_conflicts array", async () => {
-        const hash1 = await hashMeasure({ ...baseMeasure, m_conflicts: ["bln_BM2"] })
-        const hash2 = await hashMeasure({ ...baseMeasure, m_conflicts: ["bln_BM3"] })
+        const hash1 = await hashMeasure({
+            ...baseMeasure,
+            m_conflicts: ["bln_BM2"],
+        })
+        const hash2 = await hashMeasure({
+            ...baseMeasure,
+            m_conflicts: ["bln_BM3"],
+        })
         expect(hash1).not.toBe(hash2)
     })
 })

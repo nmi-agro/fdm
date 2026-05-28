@@ -1,21 +1,21 @@
-import {
-    getCultivations,
-    getField,
-    getMeasures,
-    getSoilAnalyses,
-} from "@nmi-agro/fdm-core"
 import type {
     FdmType,
     fdmSchema,
     PrincipalId,
     Timeframe,
 } from "@nmi-agro/fdm-core"
+import {
+    getCultivations,
+    getField,
+    getMeasures,
+    getSoilAnalyses,
+} from "@nmi-agro/fdm-core"
+import { findHoofdteelt } from "../shared/hoofdteelt"
 import type {
     Bln3Cultivation,
     Bln3Measure,
     Bln3ScoreCollectedInputs,
 } from "./types"
-import { findHoofdteelt } from "../shared/hoofdteelt"
 
 /**
  * Collects all field data needed for a BLN3 score calculation from the FDM database.
@@ -109,9 +109,8 @@ export async function collectInputForBln3Score(
             const cultivationMaxYear = cultivationsWithStart.reduce(
                 (max, c) => {
                     const y =
-                        c.b_lu_end?.getFullYear() ??
-                        c.b_lu_start!.getFullYear()
-                    return y > max ? y : max
+                        c.b_lu_end?.getFullYear() ?? c.b_lu_start?.getFullYear()
+                    return y !== undefined && y > max ? y : max
                 },
                 0,
             )
@@ -120,8 +119,8 @@ export async function collectInputForBln3Score(
                 cultivationMaxYear,
             )
             const minYear = cultivationsWithStart.reduce((min, c) => {
-                const y = c.b_lu_start!.getFullYear()
-                return y < min ? y : min
+                const y = c.b_lu_start?.getFullYear()
+                return y !== undefined && y < min ? y : min
             }, maxYear)
 
             for (let year = maxYear; year >= minYear; year--) {

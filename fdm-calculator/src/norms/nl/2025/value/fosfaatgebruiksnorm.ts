@@ -1,7 +1,7 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import pkg from "../../../../package"
 import { NormNotApplicableError } from "../../../../error"
+import pkg from "../../../../package"
 import type { FosfaatGebruiksnormResult } from "../../types"
 import { fosfaatNormsData } from "./fosfaatgebruiksnorm-data"
 import { determineNLHoofdteelt } from "./hoofdteelt"

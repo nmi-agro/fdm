@@ -1,5 +1,5 @@
-import { cn } from "~/lib/utils"
 import { getScoreTier, getScoreVerdict } from "~/lib/indicators"
+import { cn } from "~/lib/utils"
 
 /**
  * Displays a colour-coded Dutch verdict badge for a 0–100 indicator score.

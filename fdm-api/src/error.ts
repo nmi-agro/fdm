@@ -1,7 +1,7 @@
-import type { Context, ErrorHandler, NotFoundHandler } from "hono"
-import type { ContentfulStatusCode } from "hono/utils/http-status"
-import { HTTPException } from "hono/http-exception"
 import * as Sentry from "@sentry/node"
+import type { Context, ErrorHandler, NotFoundHandler } from "hono"
+import { HTTPException } from "hono/http-exception"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { nanoid } from "nanoid"
 
 const TITLES: Record<string, string> = {
@@ -115,16 +115,41 @@ function isPermissionDenied(err: unknown): boolean {
 export function createErrorHandler(appUrl: string): ErrorHandler {
     return (err, c) => {
         if (err instanceof HTTPException && err.status === 400) {
-            return problemResponse(c, 400, "validation-failed", "Request body contains invalid JSON.", appUrl)
+            return problemResponse(
+                c,
+                400,
+                "validation-failed",
+                "Request body contains invalid JSON.",
+                appUrl,
+            )
         }
         if (err instanceof ApiError) {
-            return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras)
+            return problemResponse(
+                c,
+                err.status,
+                err.slug,
+                err.message,
+                appUrl,
+                err.extras,
+            )
         }
         if (isPermissionDenied(err)) {
-            return problemResponse(c, 403, "forbidden", "You do not have permission to access this resource.", appUrl)
+            return problemResponse(
+                c,
+                403,
+                "forbidden",
+                "You do not have permission to access this resource.",
+                appUrl,
+            )
         }
         if (err instanceof SyntaxError) {
-            return problemResponse(c, 400, "validation-failed", `Request body contains invalid JSON: ${err.message}`, appUrl)
+            return problemResponse(
+                c,
+                400,
+                "validation-failed",
+                `Request body contains invalid JSON: ${err.message}`,
+                appUrl,
+            )
         }
         console.error("[fdm-api] Unhandled error:", err)
         const error_id = nanoid()
@@ -132,7 +157,15 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
             scope.setTag("error_id", error_id)
             Sentry.captureException(err)
         })
-        return problemResponse(c, 500, "internal-error", "An unexpected error occurred.", appUrl, undefined, error_id)
+        return problemResponse(
+            c,
+            500,
+            "internal-error",
+            "An unexpected error occurred.",
+            appUrl,
+            undefined,
+            error_id,
+        )
     }
 }
 
@@ -147,5 +180,12 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
  * ```
  */
 export function createNotFoundHandler(appUrl: string): NotFoundHandler {
-    return (c) => problemResponse(c, 404, "not-found", `${c.req.path} does not exist.`, appUrl)
+    return (c) =>
+        problemResponse(
+            c,
+            404,
+            "not-found",
+            `${c.req.path} does not exist.`,
+            appUrl,
+        )
 }

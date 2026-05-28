@@ -22,7 +22,9 @@ export function HeaderUser({
                 <>
                     <BreadcrumbSeparator className="hidden xl:block" />
                     <BreadcrumbItem>
-                        <BreadcrumbLink href={page.href}>{page.label}</BreadcrumbLink>
+                        <BreadcrumbLink href={page.href}>
+                            {page.label}
+                        </BreadcrumbLink>
                     </BreadcrumbItem>
                 </>
             ) : (

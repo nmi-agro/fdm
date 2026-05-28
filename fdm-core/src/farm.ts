@@ -204,7 +204,16 @@ export async function getFarms(
             )
 
             if (resources.length === 0) {
-                await writeAuditEntry(tx, "getFarms", "farm", "list", principal_id, "user", resolvedPrincipalId, Math.round(performance.now() - start))
+                await writeAuditEntry(
+                    tx,
+                    "getFarms",
+                    "farm",
+                    "list",
+                    principal_id,
+                    "user",
+                    resolvedPrincipalId,
+                    Math.round(performance.now() - start),
+                )
                 return []
             }
 
@@ -237,7 +246,16 @@ export async function getFarms(
                 }),
             )
 
-            await writeAuditEntry(tx, "getFarms", "farm", "list", principal_id, "user", resolvedPrincipalId, Math.round(performance.now() - start))
+            await writeAuditEntry(
+                tx,
+                "getFarms",
+                "farm",
+                "list",
+                principal_id,
+                "user",
+                resolvedPrincipalId,
+                Math.round(performance.now() - start),
+            )
             return farms
         })
     } catch (err) {

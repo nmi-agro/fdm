@@ -1,13 +1,13 @@
 import { relations } from "drizzle-orm"
 import {
-    text,
     bigint,
-    timestamp,
     boolean,
-    integer,
     index,
-    uniqueIndex,
+    integer,
     pgSchema,
+    text,
+    timestamp,
+    uniqueIndex,
 } from "drizzle-orm/pg-core"
 
 export const fdmAuthNSchema = pgSchema("fdm-authn")

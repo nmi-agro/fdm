@@ -1,10 +1,5 @@
 import { Info } from "lucide-react"
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
     Tooltip,
     TooltipContent,
@@ -62,51 +57,56 @@ export function AggregationCard({
 
     return (
         <TooltipProvider>
-        <Card className="min-w-[140px] flex-1">
-            <CardHeader className="pb-1 pt-3 px-3">
-                <div className="flex items-center gap-1.5">
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                        {label}
-                    </p>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 text-muted-foreground/60 cursor-help shrink-0" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[220px] text-center text-xs">
-                            Berekend als gemiddelde van de afzonderlijke relevante indicatoren. De aggregatiescore is nog niet beschikbaar.
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
-                <CardTitle className="text-2xl font-bold tabular-nums">
-                    {display !== null ? display : "—"}
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3 px-3 space-y-1.5">
-                {/* Colour-coded progress bar */}
-                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
-                    <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                            width: `${display ?? 0}%`,
-                            backgroundColor: color,
-                        }}
-                    />
-                </div>
+            <Card className="min-w-[140px] flex-1">
+                <CardHeader className="pb-1 pt-3 px-3">
+                    <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                            {label}
+                        </p>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 text-muted-foreground/60 cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="top"
+                                className="max-w-[220px] text-center text-xs"
+                            >
+                                Berekend als gemiddelde van de afzonderlijke
+                                relevante indicatoren. De aggregatiescore is nog
+                                niet beschikbaar.
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                    <CardTitle className="text-2xl font-bold tabular-nums">
+                        {display !== null ? display : "—"}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-3 px-3 space-y-1.5">
+                    {/* Colour-coded progress bar */}
+                    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
+                        <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                                width: `${display ?? 0}%`,
+                                backgroundColor: color,
+                            }}
+                        />
+                    </div>
 
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                    {tier !== null && display !== null && (
-                        <ScoreBadge score={display} />
-                    )}
-                    {!showIndex && delta !== null && delta > 0 && (
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                            +{delta}
-                        </span>
-                    )}
-                </div>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        {tier !== null && display !== null && (
+                            <ScoreBadge score={display} />
+                        )}
+                        {!showIndex && delta !== null && delta > 0 && (
+                            <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                +{delta}
+                            </span>
+                        )}
+                    </div>
 
-                <p className="text-[11px] text-muted-foreground">{name}</p>
-            </CardContent>
-        </Card>
+                    <p className="text-[11px] text-muted-foreground">{name}</p>
+                </CardContent>
+            </Card>
         </TooltipProvider>
     )
 }

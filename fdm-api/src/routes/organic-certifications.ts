@@ -1,21 +1,21 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     addOrganicCertification,
+    FdmType,
     getOrganicCertification,
     listOrganicCertifications,
+    OrganicCertification,
     removeOrganicCertification,
 } from "@nmi-agro/fdm-core"
-import type { OrganicCertification } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
     DateStringSchema,
+    PaginationQuerySchema,
     paginatedResponse,
     paginatedSchema,
-    PaginationQuerySchema,
     serializeDate,
     writeErrorResponses,
 } from "../schemas"
@@ -36,12 +36,12 @@ const OrganicCertificationSchema = z
         b_id_organic: z.string(),
         b_organic_traces: z.string().nullable(),
         b_organic_skal: z.string().nullable(),
-        b_organic_issued: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
-        b_organic_expires: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
+        b_organic_issued: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
+        b_organic_expires: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
     })
     .openapi("OrganicCertification")
 
@@ -57,10 +57,12 @@ const CreateOrganicCertificationBodySchema = z
             .nullable()
             .optional()
             .describe("Organic SKAL number."),
-        b_organic_issued: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
-        b_organic_expires: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        b_organic_issued: DateStringSchema.describe(
+            "Date in YYYY-MM-DD format.",
+        ),
+        b_organic_expires: DateStringSchema.describe(
+            "Date in YYYY-MM-DD format.",
+        ),
     })
     .openapi("CreateOrganicCertification")
 

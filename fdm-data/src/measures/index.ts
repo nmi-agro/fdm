@@ -28,4 +28,3 @@ export async function getMeasuresCatalogue(
     }
     throw new Error(`catalogue ${catalogueName} is not recognized`)
 }
-
