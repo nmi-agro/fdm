@@ -4,8 +4,11 @@ import { createFertilizerPlannerAgent } from "./agents/gerrit/agent"
 import { runOneShotAgent } from "./runners/one-shot"
 import { getMainCultivation } from "./tools/fertilizer-planner"
 
+export type { AgentGraph } from "./agents/gerrit/agent"
+export type { FertilizerPlanOutput } from "./agents/gerrit/schema"
+export { FertilizerPlanSchema } from "./agents/gerrit/schema"
 export type { OneShotAgentResult } from "./runners/one-shot"
-export { AgentTimeoutError } from "./runners/one-shot"
+export { AgentRecursionLimitError, AgentTimeoutError } from "./runners/one-shot"
 export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
 
 export interface FertilizerPlanStrategies {
@@ -37,10 +40,11 @@ export const FertilizerPlanStrategiesSchema = z.object({
 export interface FarmFieldSummary {
     b_id: string
     b_name: string
-    b_area: number
+    b_area: number | null
     b_bufferstrip: boolean
     b_lu_catalogue: string
     b_lu_name: string
+    b_lu_croprotation: string | null
     b_soiltype_agr: string | null
     b_gwl_class: string | null
     a_som_loi: number | null
@@ -99,12 +103,22 @@ export function buildFertilizerPlanPrompt(
         ? sanitizeAdditionalContext(additionalContext)
         : "None"
 
+    // Filter out non-productive fields: buffer strips, nature/landscape elements, and small fragments
+    const productiveFields = fieldsSummary?.filter(
+        (f) =>
+            !f.b_bufferstrip &&
+            f.b_lu_croprotation !== "nature" &&
+            (f.b_area == null || f.b_area >= 0.5),
+    )
+    const excludedCount =
+        (fieldsSummary?.length ?? 0) - (productiveFields?.length ?? 0)
+
     const fieldsBlock =
-        fieldsSummary && fieldsSummary.length > 0
-            ? `\nFARM FIELDS (${fieldsSummary.length} fields, pre-loaded for your reference):\n${fieldsSummary
+        productiveFields && productiveFields.length > 0
+            ? `\nFARM FIELDS (${productiveFields.length} productive fields, pre-loaded for your reference${excludedCount > 0 ? `; ${excludedCount} nature/landscape elements excluded` : ""}):\n${productiveFields
                   .map(
                       (f) =>
-                          `- b_id: ${f.b_id} | Name: ${f.b_name} | Area: ${f.b_area?.toFixed(2)} ha | Crop: ${f.b_lu_name} (${f.b_lu_catalogue}) | BufferStrip: ${f.b_bufferstrip} | SoilType: ${f.b_soiltype_agr ?? "unknown"} | GWL: ${f.b_gwl_class ?? "unknown"} | SOM: ${f.a_som_loi != null ? `${f.a_som_loi}%` : "unknown"}`,
+                          `- b_id: ${f.b_id} | Name: ${f.b_name} | Area: ${f.b_area != null ? f.b_area.toFixed(2) : "unknown"} ha | Crop: ${f.b_lu_name} (${f.b_lu_catalogue}) | BufferStrip: ${f.b_bufferstrip} | SoilType: ${f.b_soiltype_agr ?? "unknown"} | GWL: ${f.b_gwl_class ?? "unknown"} | SOM: ${f.a_som_loi != null ? `${f.a_som_loi}%` : "unknown"}`,
                   )
                   .join("\n")}\n`
             : ""

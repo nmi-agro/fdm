@@ -4,7 +4,14 @@ import type {
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns/format"
 import { nl } from "date-fns/locale/nl"
-import { Calendar, Microscope, Pencil, Sparkles, User } from "lucide-react"
+import {
+    Calendar,
+    ExternalLink,
+    Microscope,
+    Pencil,
+    Sparkles,
+    User,
+} from "lucide-react"
 import { NavLink } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
@@ -82,18 +89,21 @@ function SoilDataCard({
     date,
     source,
     sourceLabel,
+    canModify,
 }: {
     title: string
     description: string
-    value: number | string
+    value: number | string | null
     label: string | undefined
     unit: string
     type: "numeric" | "enum"
     link: string
-    date: Date
-    source: string
+    date: Date | null
+    source: string | null
     sourceLabel: string
+    canModify: boolean
 }) {
+    const EditIcon = canModify ? Pencil : ExternalLink
     return (
         <Card className="flex flex-col h-full transition-colors hover:bg-accent/5">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 space-x-2">
@@ -116,17 +126,21 @@ function SoilDataCard({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <NavLink to={link} className="h-4 w-4 shrink-0">
-                                    <Pencil className="text-xs text-muted-foreground h-full w-full opacity-50 hover:opacity-100 transition-opacity" />
+                                    <EditIcon className="text-xs text-muted-foreground h-full w-full opacity-50 hover:opacity-100 transition-opacity" />
                                 </NavLink>
                             </TooltipTrigger>
-                            <TooltipContent>Bewerken</TooltipContent>
+                            <TooltipContent>
+                                {canModify ? "Bewerken" : "Bekijken"}
+                            </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
                 ) : null}
             </CardHeader>
             <CardContent className="mt-auto pt-0 space-y-3">
                 <div className="flex items-baseline space-x-1.5">
-                    {type === "enum" ? (
+                    {value === null ? (
+                        "Onbekend"
+                    ) : type === "enum" ? (
                         <div className="text-xl font-bold leading-tight">
                             {label && type === "enum" ? label : value}
                         </div>
@@ -191,9 +205,13 @@ function SoilDataCard({
 export function SoilDataCards({
     currentSoilData,
     soilParameterDescription,
+    canModifyAllSoilAnalyses = false,
+    canModifySoilAnalysis = {},
 }: {
     currentSoilData: CurrentSoilData
     soilParameterDescription: SoilParameterDescription
+    canModifyAllSoilAnalyses?: boolean
+    canModifySoilAnalysis?: Record<string, boolean>
 }) {
     const cards = constructSoilDataCards(
         currentSoilData,
@@ -248,6 +266,10 @@ export function SoilDataCards({
                                         date={card.date}
                                         source={card.source}
                                         sourceLabel={sourceLabel}
+                                        canModify={
+                                            canModifyAllSoilAnalyses ||
+                                            canModifySoilAnalysis[card.a_id]
+                                        }
                                     />
                                 )
                             })}
@@ -264,47 +286,44 @@ function constructSoilDataCards(
     soilParameterDescription: SoilParameterDescription,
 ) {
     // Construct the soil data cards
-    const cardValues = currentSoilData.map(
-        (item: {
-            parameter: string
-            value: string | number | undefined
-            a_id: string
-            b_sampling_date: Date
-            a_source: string
-        }) => {
-            const description = soilParameterDescription.find(
-                (x: { parameter: string }) => {
-                    return x.parameter === item.parameter
-                },
+    const cardValues = currentSoilData.map((item) => {
+        const description = soilParameterDescription.find(
+            (x: { parameter: string }) => {
+                return x.parameter === item.parameter
+            },
+        )
+
+        if (!description) {
+            console.warn(
+                `No description found for parameter: ${item.parameter}`,
             )
+            return null
+        }
 
-            if (!description) {
-                console.warn(
-                    `No description found for parameter: ${item.parameter}`,
-                )
-                return null
-            }
+        if (description.type !== "numeric" && description.type !== "enum") {
+            return null
+        }
 
-            let label
-            if (description.type === "enum") {
-                label = description.options?.find(
-                    (option: { value: string }) => option.value === item.value,
-                )?.label
-            }
+        let label: string | undefined
+        if (description.type === "enum") {
+            label = description.options?.find(
+                (option: { value: string }) => option.value === item.value,
+            )?.label
+        }
 
-            return {
-                parameter: item.parameter,
-                title: description.name,
-                description: description.description,
-                value: item.value,
-                label: label,
-                unit: description.unit,
-                type: description.type,
-                link: `./analysis/${item.a_id}`,
-                date: item.b_sampling_date,
-                source: item.a_source,
-            }
-        },
-    )
-    return cardValues.filter(Boolean) as any[]
+        return {
+            parameter: item.parameter,
+            title: description.name,
+            description: description.description,
+            value: item.value,
+            label: label,
+            unit: description.unit,
+            type: description.type,
+            a_id: item.a_id,
+            link: `./analysis/${item.a_id}`,
+            date: item.b_sampling_date,
+            source: item.a_source,
+        }
+    })
+    return cardValues.filter((x) => x !== null)
 }

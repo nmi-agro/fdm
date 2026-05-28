@@ -1,3 +1,4 @@
+import { nl } from "@daypicker/react/locale"
 import type {
     FieldInput as FdmFieldInput,
     NitrogenBalanceFieldNumeric,
@@ -5,7 +6,6 @@ import type {
 } from "@nmi-agro/fdm-calculator"
 import { format } from "date-fns/format"
 import { useId, useMemo, useState } from "react"
-import { nl } from "react-day-picker/locale"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
 import { cn } from "@/app/lib/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"

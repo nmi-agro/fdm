@@ -26,6 +26,7 @@ const initializeRuntimeEnvMap = (): RuntimeConfig => {
         "PUBLIC_FDM_NAME",
         "PUBLIC_FDM_DATASETS_URL",
         "PUBLIC_FDM_DATASETS_URL",
+        "PUBLIC_FDM_API_URL",
         "PUBLIC_MAP_PROVIDER",
         "PUBLIC_MAPTILER_API_KEY",
         "PUBLIC_SENTRY_DSN",
@@ -114,6 +115,9 @@ export const clientConfig: ClientConfig = {
     logo: "/fdm-high-resolution-logo-transparent.png", // Assuming static
     logomark: "/fdm-high-resolution-logo-transparent-no-text.png", // Assuming static
     url: String(getConfigValue("PUBLIC_FDM_URL")),
+    apiUrl: getConfigValue("PUBLIC_FDM_API_URL")
+        ? String(getConfigValue("PUBLIC_FDM_API_URL"))
+        : undefined,
     datasets_url: String(getConfigValue("PUBLIC_FDM_DATASETS_URL")),
 
     analytics: {

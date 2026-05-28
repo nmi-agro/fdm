@@ -1,6 +1,7 @@
 import {
     ArrowRightLeft,
     BookOpenText,
+    Gauge,
     Landmark,
     MapIcon,
     Minus,
@@ -50,22 +51,45 @@ export function SidebarApps() {
     let atlasFieldsLink: string | undefined
     let atlasElevationLink: string | undefined
     let atlasSoilLink: string | undefined
+    let atlasSoilAnalysisLink: string | undefined
+    let atlasIndicatorsLink: string | undefined
     if (isCreateFarmWizard) {
         atlasLink = undefined
         atlasFieldsLink = undefined
         atlasElevationLink = undefined
         atlasSoilLink = undefined
-    } else if (farmId) {
+        atlasSoilAnalysisLink = undefined
+        atlasIndicatorsLink = undefined
+    } else if (farmId && farmId !== "undefined") {
         atlasLink = `/farm/${farmId}/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/${farmId}/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/${farmId}/${selectedCalendar}/atlas/elevation`
         atlasSoilLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil`
+        atlasSoilAnalysisLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil-analysis`
+        atlasIndicatorsLink = `/farm/${farmId}/${selectedCalendar}/atlas/indicators`
     } else {
         atlasLink = `/farm/undefined/${selectedCalendar}/atlas`
         atlasFieldsLink = `/farm/undefined/${selectedCalendar}/atlas/fields`
         atlasElevationLink = `/farm/undefined/${selectedCalendar}/atlas/elevation`
         atlasSoilLink = `/farm/undefined/${selectedCalendar}/atlas/soil`
+        atlasSoilAnalysisLink = undefined
+        atlasIndicatorsLink = undefined
     }
+
+    const activeAtlasTab =
+        atlasIndicatorsLink && location.pathname.includes(atlasIndicatorsLink)
+            ? "indicators"
+            : atlasFieldsLink && location.pathname.includes(atlasFieldsLink)
+              ? "fields"
+              : atlasElevationLink &&
+                  location.pathname.includes(atlasElevationLink)
+                ? "elevation"
+                : atlasSoilAnalysisLink &&
+                    location.pathname.includes(atlasSoilAnalysisLink)
+                  ? "soil-analysis"
+                  : atlasSoilLink && location.pathname.includes(atlasSoilLink)
+                    ? "soil"
+                    : undefined
 
     let nitrogenBalanceLink: string | undefined
     if (isCreateFarmWizard || isFarmOverview) {
@@ -101,6 +125,15 @@ export function SidebarApps() {
         omBalanceLink = `/farm/${farmId}/${selectedCalendar}/balance/organic-matter`
     } else {
         omBalanceLink = undefined
+    }
+
+    let indicatorsLink: string | undefined
+    if (isCreateFarmWizard) {
+        indicatorsLink = undefined
+    } else if (farmId && farmId !== "undefined") {
+        indicatorsLink = `/farm/${farmId}/${selectedCalendar}/indicators`
+    } else {
+        indicatorsLink = undefined
     }
 
     return (
@@ -148,13 +181,14 @@ export function SidebarApps() {
                                 )}
                                 <CollapsibleContent>
                                     <SidebarMenuSub>
-                                        <SidebarMenuSubItem>
-                                            {atlasFieldsLink ? (
+                                        {atlasFieldsLink ? (
+                                            <SidebarMenuSubItem>
                                                 <SidebarMenuSubButton
                                                     asChild
-                                                    isActive={location.pathname.includes(
-                                                        atlasFieldsLink,
-                                                    )}
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "fields"
+                                                    }
                                                 >
                                                     <NavLink
                                                         to={atlasFieldsLink}
@@ -164,15 +198,37 @@ export function SidebarApps() {
                                                         </span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            {atlasElevationLink ? (
+                                            </SidebarMenuSubItem>
+                                        ) : null}
+                                        {atlasSoilAnalysisLink ? (
+                                            <SidebarMenuSubItem>
                                                 <SidebarMenuSubButton
                                                     asChild
-                                                    isActive={location.pathname.includes(
-                                                        atlasElevationLink,
-                                                    )}
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "soil-analysis"
+                                                    }
+                                                >
+                                                    <NavLink
+                                                        to={
+                                                            atlasSoilAnalysisLink
+                                                        }
+                                                    >
+                                                        <span>
+                                                            Bodemanalyses
+                                                        </span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ) : null}
+                                        {atlasElevationLink ? (
+                                            <SidebarMenuSubItem>
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "elevation"
+                                                    }
                                                 >
                                                     <NavLink
                                                         to={atlasElevationLink}
@@ -180,22 +236,40 @@ export function SidebarApps() {
                                                         <span>Hoogtekaart</span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
-                                        <SidebarMenuSubItem>
-                                            {atlasSoilLink ? (
+                                            </SidebarMenuSubItem>
+                                        ) : null}
+                                        {atlasSoilLink ? (
+                                            <SidebarMenuSubItem>
                                                 <SidebarMenuSubButton
                                                     asChild
-                                                    isActive={location.pathname.includes(
-                                                        atlasSoilLink,
-                                                    )}
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "soil"
+                                                    }
                                                 >
                                                     <NavLink to={atlasSoilLink}>
                                                         <span>Bodemkaart</span>
                                                     </NavLink>
                                                 </SidebarMenuSubButton>
-                                            ) : null}
-                                        </SidebarMenuSubItem>
+                                            </SidebarMenuSubItem>
+                                        ) : null}
+                                        {atlasIndicatorsLink ? (
+                                            <SidebarMenuSubItem>
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={
+                                                        activeAtlasTab ===
+                                                        "indicators"
+                                                    }
+                                                >
+                                                    <NavLink
+                                                        to={atlasIndicatorsLink}
+                                                    >
+                                                        <span>Indicatoren</span>
+                                                    </NavLink>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ) : null}
                                     </SidebarMenuSub>
                                 </CollapsibleContent>
                             </SidebarMenuItem>
@@ -333,6 +407,44 @@ export function SidebarApps() {
                                     <TooltipContent side="right">
                                         Selecteer een bedrijf om de
                                         gebruiksruimte te berekenen
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            {indicatorsLink ? (
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={
+                                        location.pathname.includes(
+                                            "/indicators",
+                                        ) &&
+                                        !location.pathname.includes(
+                                            "/atlas/indicators",
+                                        )
+                                    }
+                                >
+                                    <NavLink to={indicatorsLink}>
+                                        <Gauge />
+                                        <span>Indicatoren</span>
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SidebarMenuButton
+                                            isActive={false}
+                                            className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                                        >
+                                            <Gauge className="text-muted-foreground" />
+                                            <span className="text-muted-foreground">
+                                                Indicatoren
+                                            </span>
+                                        </SidebarMenuButton>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        Selecteer een bedrijf om de indicatoren
+                                        te bekijken
                                     </TooltipContent>
                                 </Tooltip>
                             )}

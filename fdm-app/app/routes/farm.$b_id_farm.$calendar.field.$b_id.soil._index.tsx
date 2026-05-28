@@ -215,6 +215,9 @@ export default function FarmFieldSoilOverviewBlock() {
                             soilParameterDescription={
                                 loaderData.soilParameterDescription
                             }
+                            canModifySoilAnalysis={
+                                loaderData.soilAnalysisWritePermissions
+                            }
                         />
                     )}
                 </TabsContent>

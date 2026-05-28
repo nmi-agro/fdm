@@ -52,9 +52,22 @@ export type {
     OrganicMatterSupplyNumeric,
     OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
+export {
+    collectInputForBln3Score,
+    getBln3Score,
+    requestBln3Score,
+} from "./bln3"
+export type {
+    Bln3AggregationResult,
+    Bln3IndicatorResult,
+    Bln3Score,
+    Bln3ScoreCollectedInputs,
+    Bln3ScoreInputs,
+} from "./bln3/types"
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"
 export { getDoseForField } from "./doses/get-dose-field"
+export { NormNotApplicableError } from "./error"
 export type {
     DataCompleteness,
     DynaComputeInput,
@@ -121,3 +134,8 @@ export type { NlvSupplyBySomParams } from "./other/nlv-supply-by-som"
 export { calculateNlvSupplyBySom } from "./other/nlv-supply-by-som"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
+export type { CultivationForHoofdteelt } from "./shared/hoofdteelt"
+export {
+    findHoofdteelt,
+    GROENE_BRAAK,
+} from "./shared/hoofdteelt"

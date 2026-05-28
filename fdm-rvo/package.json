@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-rvo",
     "private": false,
-    "version": "0.2.2",
+    "version": "0.2.3",
     "description": "RVO Synchronization Logic for FDM",
     "homepage": "https://svenvw.github.io/fdm/",
     "repository": {
@@ -53,21 +53,23 @@
         "document": "typedoc",
         "build": "tsdown",
         "check-types": "tsc --noEmit",
+        "preinstall": "npx only-allow pnpm",
         "test": "vitest run",
-        "test-coverage": "vitest run --coverage"
+        "test-coverage": "vitest run --coverage",
+        "watch": "vitest"
     },
     "dependencies": {
         "@nmi-agro/fdm-core": "workspace:^",
         "@nmi-agro/rvo-connector": "^2.2.3",
-        "@types/geojson": "^7946.0.16",
         "@turf/area": "^7.3.5",
         "@turf/bbox": "^7.3.5",
         "@turf/helpers": "^7.3.5",
         "@turf/intersect": "^7.3.5",
         "@turf/union": "^7.3.5",
-        "proj4": "^2.20.4",
+        "@types/geojson": "^7946.0.16",
+        "proj4": "^2.20.8",
         "shpjs": "^6.2.0",
-        "zod": "^4.3.6"
+        "zod": "^4.4.3"
     },
     "devDependencies": {
         "@nmi-agro/fdm-core": "workspace:*",
@@ -81,7 +83,7 @@
     "engines": {
         "node": ">=24.0.0"
     },
-    "packageManager": "pnpm@10.33.2",
+    "packageManager": "pnpm@11.0.9",
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
     }

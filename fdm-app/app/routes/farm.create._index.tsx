@@ -6,6 +6,7 @@ import {
     addOrganicCertification,
     enableCultivationCatalogue,
     enableFertilizerCatalogue,
+    enableMeasureCatalogue,
     getFertilizersFromCatalogue,
     setGrazingIntention,
 } from "@nmi-agro/fdm-core"
@@ -886,6 +887,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 b_id_farm,
                 "brp",
             ),
+            enableMeasureCatalogue(fdm, session.principal_id, b_id_farm, "bln"),
         )
 
         await Promise.all(setupPromises)

@@ -119,6 +119,7 @@ describe("fdm-agents index", () => {
                     b_bufferstrip: false,
                     b_lu_catalogue: "nl_123",
                     b_lu_name: "Gras",
+                    b_lu_croprotation: "grass",
                     b_soiltype_agr: null,
                     b_gwl_class: null,
                     a_som_loi: null,
@@ -133,10 +134,114 @@ describe("fdm-agents index", () => {
                 fieldsSummary,
             )
 
-            expect(prompt).toContain("FARM FIELDS (1 fields")
+            expect(prompt).toContain("FARM FIELDS (1 productive fields")
             expect(prompt).toContain(
                 "- b_id: field-1 | Name: Kavel 1 | Area: 10.50 ha",
             )
+        })
+
+        it("should filter out non-productive landscape fields", () => {
+            const farmData = { b_id_farm: "farm-123" }
+            const strategies = {
+                isOrganic: false,
+                fillManureSpace: false,
+                reduceAmmoniaEmissions: false,
+                keepNitrogenBalanceBelowTarget: false,
+                workOnRotationLevel: false,
+                isDerogation: false,
+            }
+            const fieldsSummary = [
+                {
+                    b_id: "grass-1",
+                    b_name: "Weiland",
+                    b_area: 10.0,
+                    b_bufferstrip: false,
+                    b_lu_catalogue: "nl_265",
+                    b_lu_name: "grasland, blijvend",
+                    b_lu_croprotation: "grass",
+                    b_soiltype_agr: null,
+                    b_gwl_class: null,
+                    a_som_loi: null,
+                },
+                {
+                    b_id: "ditch-1",
+                    b_name: "Sloot",
+                    b_area: 0.02,
+                    b_bufferstrip: false,
+                    b_lu_catalogue: "nl_343",
+                    b_lu_name: "sloot",
+                    b_lu_croprotation: "nature",
+                    b_soiltype_agr: null,
+                    b_gwl_class: null,
+                    a_som_loi: null,
+                },
+                {
+                    b_id: "forest-1",
+                    b_name: "Bosje",
+                    b_area: 1.5,
+                    b_bufferstrip: false,
+                    b_lu_catalogue: "nl_2642",
+                    b_lu_name: "bosje",
+                    b_lu_croprotation: "nature",
+                    b_soiltype_agr: null,
+                    b_gwl_class: null,
+                    a_som_loi: null,
+                },
+                {
+                    b_id: "hedge-1",
+                    b_name: "Houtwal",
+                    b_area: 0.3,
+                    b_bufferstrip: false,
+                    b_lu_catalogue: "nl_2621",
+                    b_lu_name: "houtwal en houtsingel",
+                    b_lu_croprotation: "nature",
+                    b_soiltype_agr: null,
+                    b_gwl_class: null,
+                    a_som_loi: null,
+                },
+                {
+                    b_id: "zero-1",
+                    b_name: "Fragment",
+                    b_area: 0,
+                    b_bufferstrip: false,
+                    b_lu_catalogue: "nl_265",
+                    b_lu_name: "grasland, blijvend",
+                    b_lu_croprotation: "grass",
+                    b_soiltype_agr: null,
+                    b_gwl_class: null,
+                    a_som_loi: null,
+                },
+                {
+                    b_id: "buffer-1",
+                    b_name: "Bufferstrook",
+                    b_area: 0.5,
+                    b_bufferstrip: true,
+                    b_lu_catalogue: "nl_265",
+                    b_lu_name: "grasland, blijvend",
+                    b_lu_croprotation: "grass",
+                    b_soiltype_agr: null,
+                    b_gwl_class: null,
+                    a_som_loi: null,
+                },
+            ]
+
+            const prompt = buildFertilizerPlanPrompt(
+                farmData,
+                strategies,
+                "2025",
+                undefined,
+                fieldsSummary,
+            )
+
+            // Only the productive grass field should be included
+            expect(prompt).toContain("FARM FIELDS (1 productive fields")
+            expect(prompt).toContain("5 nature/landscape elements excluded")
+            expect(prompt).toContain("grass-1")
+            expect(prompt).not.toContain("ditch-1")
+            expect(prompt).not.toContain("forest-1")
+            expect(prompt).not.toContain("hedge-1")
+            expect(prompt).not.toContain("zero-1")
+            expect(prompt).not.toContain("buffer-1")
         })
     })
 })

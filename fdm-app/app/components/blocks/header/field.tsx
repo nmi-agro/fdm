@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
+import { cn } from "@/app/lib/utils"
 import { useCalendarStore } from "@/app/store/calendar"
 import {
     BreadcrumbItem,
@@ -17,10 +18,12 @@ export function HeaderField({
     b_id_farm,
     b_id,
     fieldOptions,
+    compact,
 }: {
     b_id_farm: string
     b_id: string | undefined
     fieldOptions: HeaderFieldOption[]
+    compact?: boolean
 }) {
     const location = useLocation()
     const currentPath = String(location.pathname)
@@ -29,14 +32,16 @@ export function HeaderField({
     return (
         <>
             <BreadcrumbSeparator className="hidden xl:block" />
-            <BreadcrumbItem className="hidden xl:block">
+            <BreadcrumbItem className={cn("hidden", !compact && "xl:block")}>
                 <BreadcrumbLink href={`/farm/${b_id_farm}/${calendar}/field`}>
                     Perceel
                 </BreadcrumbLink>
             </BreadcrumbItem>
             {fieldOptions.length > 0 ? (
                 <>
-                    <BreadcrumbSeparator className="hidden xl:block" />
+                    <BreadcrumbSeparator
+                        className={cn("hidden", !compact && "xl:block")}
+                    />
                     <BreadcrumbItem>
                         <DropdownMenu>
                             <DropdownMenuTrigger className="flex items-center gap-1 max-w-[120px] sm:max-w-[200px] md:max-w-none outline-none">

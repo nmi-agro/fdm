@@ -105,7 +105,7 @@ export function SidebarUser({
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
                                 <DropdownMenuItem asChild>
-                                    <NavLink to="/user">
+                                    <NavLink to="/user/settings">
                                         <BadgeCheck className="mr-2 h-4 w-4" />
                                         Account
                                     </NavLink>

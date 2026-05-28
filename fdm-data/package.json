@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-data",
     "private": false,
-    "version": "0.20.0",
+    "version": "0.21.0",
     "description": "Extend Farm Data Model with catalogue data",
     "license": "MIT",
     "homepage": "https://github.com/nmi-agro/fdm",
@@ -31,7 +31,6 @@
         "dist"
     ],
     "scripts": {
-        "dev": "vite",
         "db:generate": "npx drizzle-kit generate",
         "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
         "build": "tsdown",
@@ -52,7 +51,7 @@
         "typescript": "catalog:",
         "vitest": "catalog:"
     },
-    "packageManager": "pnpm@10.33.2",
+    "packageManager": "pnpm@11.0.9",
     "engines": {
         "node": ">=24.0.0"
     },

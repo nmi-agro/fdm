@@ -1,5 +1,6 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
+import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
 import { isCultivationGrasland } from "../../2025/value/fosfaatgebruiksnorm"
 import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
@@ -142,7 +143,7 @@ export async function calculateNL2026FosfaatGebruiksNorm(
         a_p_cc === null ||
         a_p_cc === undefined
     ) {
-        throw new Error(
+        throw new NormNotApplicableError(
             "Missing soil analysis data for NL 2026 Fosfaatgebruiksnorm",
         )
     }

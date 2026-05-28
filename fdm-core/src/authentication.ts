@@ -1,3 +1,4 @@
+import { apiKey } from "@better-auth/api-key"
 import type { GoogleOptions, MicrosoftOptions, User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
@@ -155,6 +156,12 @@ export function createFdmAuth(
             enabled: emailAndPassword || false,
         },
         plugins: [
+            apiKey({
+                references: "user",
+                rateLimit: {
+                    enabled: false,
+                },
+            }),
             username(),
             organization({
                 organizationHooks: {
