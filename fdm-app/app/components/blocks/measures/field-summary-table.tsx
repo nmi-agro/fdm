@@ -126,8 +126,8 @@ export function FieldSummaryTable({
                 />
                 <div className="flex items-center gap-2 ml-auto">
                     <FieldFilterToggle />
-                    <TooltipProvider>
-                        {canModify && (
+                    {canModify && (
+                        <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <span
@@ -153,8 +153,8 @@ export function FieldSummaryTable({
                                         : "Selecteer één of meerdere percelen om een maatregel toe te voegen"}
                                 </TooltipContent>
                             </Tooltip>
-                        )}
-                    </TooltipProvider>
+                        </TooltipProvider>
+                    )}
                 </div>
             </div>
 
