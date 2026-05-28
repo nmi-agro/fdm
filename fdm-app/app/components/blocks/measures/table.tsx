@@ -4,6 +4,7 @@ import {
     getCoreRowModel,
     getFilteredRowModel,
     getSortedRowModel,
+    type RowData,
     type SortingState,
     useReactTable,
 } from "@tanstack/react-table"
@@ -22,7 +23,7 @@ import {
 import type { MeasureTableRow } from "./columns"
 
 declare module "@tanstack/react-table" {
-    interface TableMeta<TData extends MeasureTableRow> {
+    interface TableMeta<TData extends RowData> {
         canModify: boolean
     }
 }

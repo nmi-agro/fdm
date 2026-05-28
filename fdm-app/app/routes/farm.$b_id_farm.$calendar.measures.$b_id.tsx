@@ -570,6 +570,7 @@ export default function MeasuresFieldDetail() {
                     indicators={fieldScore.indicators}
                     onAddMeasure={() => setDialogOpen(true)}
                     indicatorsHref={indicatorsHref}
+                    canAddMeasure={fieldWritePermission}
                 />
             )}
 

@@ -98,7 +98,11 @@ export function FieldSummaryTable({
         data: filteredData,
         columns,
         getRowId: (row) => row.b_id,
-        state: { sorting, rowSelection },
+        state: {
+            sorting,
+            rowSelection,
+            columnVisibility: { select: canModify },
+        },
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         enableRowSelection: true,

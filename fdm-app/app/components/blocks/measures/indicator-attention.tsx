@@ -3,24 +3,25 @@
  * score) on a field. When all indicators are green, shows a compliment.
  * Always includes a link to the full indicators page.
  */
-import { useState } from "react"
+import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
 import {
+    BarChart2,
+    CheckCircle2,
     ChevronDown,
     ChevronUp,
     Plus,
-    BarChart2,
-    CheckCircle2,
 } from "lucide-react"
+import { useState } from "react"
 import { Link } from "react-router"
-import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
-import { Button } from "~/components/ui/button"
+import { cn } from "@/app/lib/utils"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
+import { Button } from "~/components/ui/button"
 import {
     getIndicatorInfo,
     getScoreColor,
     getScoreTier,
-    scoreToDisplay,
     type IndicatorInfo,
+    scoreToDisplay,
 } from "~/lib/indicators"
 
 type AttentionItem = {
@@ -40,12 +41,14 @@ type IndicatorAttentionProps = {
     indicators: Bln3IndicatorResult[]
     onAddMeasure: () => void
     indicatorsHref: string
+    canAddMeasure?: boolean
 }
 
 export function IndicatorAttention({
     indicators,
     onAddMeasure,
     indicatorsHref,
+    canAddMeasure = true,
 }: IndicatorAttentionProps) {
     const [expanded, setExpanded] = useState(false)
 
@@ -153,6 +156,8 @@ export function IndicatorAttention({
                             size="sm"
                             variant="outline"
                             onClick={onAddMeasure}
+                            className={cn(!canAddMeasure && "invisible")}
+                            disabled={!canAddMeasure}
                         >
                             <Plus className="h-3.5 w-3.5 mr-1.5" />
                             Maatregel toevoegen
