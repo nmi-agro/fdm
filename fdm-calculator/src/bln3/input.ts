@@ -110,7 +110,7 @@ export async function collectInputForBln3Score(
                 (max, c) => {
                     const y =
                         c.b_lu_end?.getFullYear() ?? c.b_lu_start?.getFullYear()
-                    return y > max ? y : max
+                    return y !== undefined && y > max ? y : max
                 },
                 0,
             )
@@ -120,7 +120,7 @@ export async function collectInputForBln3Score(
             )
             const minYear = cultivationsWithStart.reduce((min, c) => {
                 const y = c.b_lu_start?.getFullYear()
-                return y < min ? y : min
+                return y !== undefined && y < min ? y : min
             }, maxYear)
 
             for (let year = maxYear; year >= minYear; year--) {
