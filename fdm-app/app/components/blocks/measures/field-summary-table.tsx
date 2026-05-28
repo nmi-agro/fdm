@@ -8,11 +8,11 @@
  */
 import {
     type ColumnDef,
-    type RowSelectionState,
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
     getSortedRowModel,
+    type RowSelectionState,
     type SortingState,
     useReactTable,
 } from "@tanstack/react-table"
@@ -37,20 +37,22 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
-import { useFieldFilterStore } from "~/store/field-filter"
 import { cn } from "~/lib/utils"
+import { useFieldFilterStore } from "~/store/field-filter"
 import type { FieldSummaryRow } from "./field-summary-columns"
 
 interface FieldSummaryTableProps {
     columns: ColumnDef<FieldSummaryRow>[]
     data: FieldSummaryRow[]
     onAddMeasure: (selectedFieldIds: string[]) => void
+    canModify?: boolean
 }
 
 export function FieldSummaryTable({
     columns,
     data,
     onAddMeasure,
+    canModify = true,
 }: FieldSummaryTableProps) {
     const [sorting, setSorting] = useState<SortingState>([
         { id: "b_area", desc: true },
@@ -85,9 +87,7 @@ export function FieldSummaryTable({
                 ]
                     .filter(Boolean)
                     .join(" ")
-                return (
-                    fuzzysort.go(searchTerms, [target]).length > 0
-                )
+                return fuzzysort.go(searchTerms, [target]).length > 0
             })
         }
 
@@ -98,10 +98,14 @@ export function FieldSummaryTable({
         data: filteredData,
         columns,
         getRowId: (row) => row.b_id,
-        state: { sorting, rowSelection },
+        state: {
+            sorting,
+            rowSelection,
+            columnVisibility: { select: canModify },
+        },
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
-        enableRowSelection: true,
+        enableRowSelection: canModify,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
@@ -122,30 +126,35 @@ export function FieldSummaryTable({
                 />
                 <div className="flex items-center gap-2 ml-auto">
                     <FieldFilterToggle />
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <span
-                                    className={cn(
-                                        !hasSelection && "cursor-not-allowed",
-                                    )}
-                                >
-                                    <Button
-                                        disabled={!hasSelection}
-                                        onClick={() => onAddMeasure(selectedIds)}
+                    {canModify && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span
+                                        className={cn(
+                                            !hasSelection &&
+                                                "cursor-not-allowed",
+                                        )}
                                     >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Toevoegen
-                                    </Button>
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {hasSelection
-                                    ? `Maatregel toevoegen aan ${selectedIds.length} perceel${selectedIds.length === 1 ? "" : "en"}`
-                                    : "Selecteer één of meerdere percelen om een maatregel toe te voegen"}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                                        <Button
+                                            disabled={!hasSelection}
+                                            onClick={() =>
+                                                onAddMeasure(selectedIds)
+                                            }
+                                        >
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Toevoegen
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {hasSelection
+                                        ? `Maatregel toevoegen aan ${selectedIds.length} perceel${selectedIds.length === 1 ? "" : "en"}`
+                                        : "Selecteer één of meerdere percelen om een maatregel toe te voegen"}
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
                 </div>
             </div>
 
@@ -206,8 +215,7 @@ export function FieldSummaryTable({
                                     colSpan={columns.length}
                                     className="h-20 text-center text-muted-foreground text-sm"
                                 >
-                                    {searchTerms ||
-                                    showProductiveOnly
+                                    {searchTerms || showProductiveOnly
                                         ? "Geen percelen gevonden."
                                         : "Geen percelen beschikbaar."}
                                 </TableCell>

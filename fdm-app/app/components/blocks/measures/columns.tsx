@@ -75,7 +75,7 @@ export function getColumns(
         {
             id: "m_end",
             header: "Einddatum",
-            cell: ({ row }) => {
+            cell: ({ row, table }) => {
                 const first = row.original.fields[0]
                 const allSame = row.original.fields.every(
                     (f) => (f.m_end?.getTime() ?? null) === (first?.m_end?.getTime() ?? null),
@@ -84,7 +84,7 @@ export function getColumns(
                     return <span className="text-sm text-muted-foreground">{formatDate(first.m_end)}</span>
                 }
                 if (!first?.m_end) {
-                    return (
+                    return (table.options.meta?.canModify ?? true) ? (
                         <Button
                             variant="outline"
                             size="sm"
@@ -93,7 +93,7 @@ export function getColumns(
                         >
                             Afsluiten
                         </Button>
-                    )
+                    ) : <span className="text-sm text-muted-foreground">Geen</span>
                 }
                 return <span className="text-sm text-muted-foreground">Variabel</span>
             },
