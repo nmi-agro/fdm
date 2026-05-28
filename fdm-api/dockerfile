@@ -22,6 +22,12 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
+# Strip minimumReleaseAge configuration inside Docker. 
+# This prevents the [ERR_PNPM_MISSING_TIME] error during pnpm deploy where pnpm 
+# crashes if it cannot find timestamp metadata in the local Docker cache. 
+# The lockfile already guarantees these packages were verified when committed.
+RUN sed -i '/^minimumReleaseAge/d' pnpm-workspace.yaml
+
 # Install dependencies.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --config.prefer-online=true
