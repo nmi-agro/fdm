@@ -1,5 +1,16 @@
 # @nmi-agro/fdm-agents
 
+## 0.3.1
+
+### Patch Changes
+
+- [#618](https://github.com/nmi-agro/fdm/pull/618) [`1454660`](https://github.com/nmi-agro/fdm/commit/145466048fb0e5e52ec2e0d4e19708722cb2c0be) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate from @google/adk to LangChain
+
+- Updated dependencies [[`8e454a3`](https://github.com/nmi-agro/fdm/commit/8e454a3d9af12a66b7f13ae0dd7d5e72c2d0a857), [`df22bcb`](https://github.com/nmi-agro/fdm/commit/df22bcb2516cfb04cfe97ab6f490e9a003a67ff5), [`c09b5bf`](https://github.com/nmi-agro/fdm/commit/c09b5bf87af13c2b9cb6f1200c7e293492a12a8c), [`be2f3ae`](https://github.com/nmi-agro/fdm/commit/be2f3aebd1816b832d9915bf1b7f961b16f18585), [`c30057e`](https://github.com/nmi-agro/fdm/commit/c30057ea07f4646bd588d93a1eba894733076dae), [`3319d6a`](https://github.com/nmi-agro/fdm/commit/3319d6a3b4c51dabe8e1813570350e9a851f0dd6), [`f243894`](https://github.com/nmi-agro/fdm/commit/f243894ee8f0fe9e64d313d64a0008a7703c1f49), [`e12afe4`](https://github.com/nmi-agro/fdm/commit/e12afe49ad898412dfe12f487b6a4ca46c57c66f)]:
+  - @nmi-agro/fdm-core@0.33.0
+  - @nmi-agro/fdm-calculator@0.15.0
+  - @nmi-agro/fdm-data@0.21.0
+
 ## 0.3.0
 
 ### Minor Changes

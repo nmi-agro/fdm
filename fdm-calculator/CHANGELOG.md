@@ -1,5 +1,20 @@
 # fdm-calculator
 
+## 0.15.0
+
+### Minor Changes
+
+- [#608](https://github.com/nmi-agro/fdm/pull/608) [`c09b5bf`](https://github.com/nmi-agro/fdm/commit/c09b5bf87af13c2b9cb6f1200c7e293492a12a8c) Thanks [@SvenVw](https://github.com/SvenVw)! - Add BLN3 score calculation module. Exports `requestBln3Score` (raw NMI API call to `POST /maatwerk/bln3/score/field`), `getBln3Score` (cached wrapper via `withCalculationCache`), and `collectInputForBln3Score` (assembles field inputs from fdm-core: lat/lon from field centroid, soil analysis parameters, cultivations mapped from BRP catalogue codes, and adopted BLN measures). Types exported: `Bln3Score`, `Bln3ScoreInputs`, `Bln3ScoreCollectedInputs`, `Bln3IndicatorResult`, `Bln3AggregationResult`.
+
+### Patch Changes
+
+- [#618](https://github.com/nmi-agro/fdm/pull/618) [`be2f3ae`](https://github.com/nmi-agro/fdm/commit/be2f3aebd1816b832d9915bf1b7f961b16f18585) Thanks [@SvenVw](https://github.com/SvenVw)! - Remove norm values received from NMI API for nutrient advice as those are not used and can confuse the thinking process of Gerrit
+
+- [#611](https://github.com/nmi-agro/fdm/pull/611) [`f243894`](https://github.com/nmi-agro/fdm/commit/f243894ee8f0fe9e64d313d64a0008a7703c1f49) Thanks [@SvenVw](https://github.com/SvenVw)! - When the norms can not be determined (not a calculation error) return a distinct error message and show it as warning instead of an error to the user
+
+- Updated dependencies [[`8e454a3`](https://github.com/nmi-agro/fdm/commit/8e454a3d9af12a66b7f13ae0dd7d5e72c2d0a857), [`df22bcb`](https://github.com/nmi-agro/fdm/commit/df22bcb2516cfb04cfe97ab6f490e9a003a67ff5), [`c30057e`](https://github.com/nmi-agro/fdm/commit/c30057ea07f4646bd588d93a1eba894733076dae), [`e12afe4`](https://github.com/nmi-agro/fdm/commit/e12afe49ad898412dfe12f487b6a4ca46c57c66f)]:
+  - @nmi-agro/fdm-core@0.33.0
+
 ## 0.14.0
 
 ### Minor Changes

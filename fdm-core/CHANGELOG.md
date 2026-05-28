@@ -1,5 +1,24 @@
 # Changelog fdm-core
 
+## 0.33.0
+
+### Minor Changes
+
+- [#606](https://github.com/nmi-agro/fdm/pull/606) [`df22bcb`](https://github.com/nmi-agro/fdm/commit/df22bcb2516cfb04cfe97ab6f490e9a003a67ff5) Thanks [@SvenVw](https://github.com/SvenVw)! - Add BLN3 measures tables and CRUD layer. New schema tables `measures_catalogue`, `measures`, and `measure_adopting` follow the action-asset model. Exports `addMeasure`, `getMeasure`, `getMeasures`, `getMeasuresForFarm`, `getMeasuresFromCatalogue`, `updateMeasure`, `removeMeasure`, `syncMeasuresCatalogueArray`, `enableMeasureCatalogue`, `disableMeasureCatalogue`, `isMeasureCatalogueEnabled`, `getEnabledMeasureCatalogues`, and the `Measure` / `MeasureCatalogue` types. `syncCatalogues` now accepts an optional `nmiApiKey` to populate the measures catalogue. All existing farms have the `bln` catalogue enabled by default via migration.
+
+- [#611](https://github.com/nmi-agro/fdm/pull/611) [`e12afe4`](https://github.com/nmi-agro/fdm/commit/e12afe49ad898412dfe12f487b6a4ca46c57c66f) Thanks [@SvenVw](https://github.com/SvenVw)! - Add API key support and audit channel tracking
+
+  Users can now authenticate with personal API keys in addition to browser sessions. The database schema includes a new table for storing API keys securely (hashed), and every permission check now records whether it was triggered from the web app or the API.
+
+### Patch Changes
+
+- [#611](https://github.com/nmi-agro/fdm/pull/611) [`8e454a3`](https://github.com/nmi-agro/fdm/commit/8e454a3d9af12a66b7f13ae0dd7d5e72c2d0a857) Thanks [@SvenVw](https://github.com/SvenVw)! - Add permission check to getFertilizer and deleteFertilizer
+
+- [#611](https://github.com/nmi-agro/fdm/pull/611) [`c30057e`](https://github.com/nmi-agro/fdm/commit/c30057ea07f4646bd588d93a1eba894733076dae) Thanks [@SvenVw](https://github.com/SvenVw)! - Store the credential_id in the audit table, thus session_id (when using the application) or key_id (when using the api).
+
+- Updated dependencies [[`3319d6a`](https://github.com/nmi-agro/fdm/commit/3319d6a3b4c51dabe8e1813570350e9a851f0dd6)]:
+  - @nmi-agro/fdm-data@0.21.0
+
 ## 0.32.1
 
 ### Patch Changes
