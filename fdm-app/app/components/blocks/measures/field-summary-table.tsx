@@ -105,7 +105,7 @@ export function FieldSummaryTable({
         },
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
-        enableRowSelection: true,
+        enableRowSelection: canModify,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
