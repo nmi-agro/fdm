@@ -21,16 +21,23 @@ import {
 } from "~/components/ui/table"
 import type { MeasureTableRow } from "./columns"
 
+declare module "@tanstack/react-table" {
+    interface TableMeta<TData extends MeasureTableRow> {
+        canModify: boolean
+    }
+}
 interface MeasuresDataTableProps {
     columns: ColumnDef<MeasureTableRow>[]
     data: MeasureTableRow[]
     onAddClick: () => void
+    canModify?: boolean
 }
 
 export function MeasuresDataTable({
     columns,
     data,
     onAddClick,
+    canModify = true,
 }: MeasuresDataTableProps) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [globalFilter, setGlobalFilter] = useState("")
@@ -38,7 +45,14 @@ export function MeasuresDataTable({
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, globalFilter },
+        state: {
+            sorting,
+            globalFilter,
+            columnVisibility: { actions: canModify },
+        },
+        meta: {
+            canModify: canModify,
+        },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
@@ -59,14 +73,12 @@ export function MeasuresDataTable({
                         className="pl-9 h-9"
                     />
                 </div>
-                <Button
-                    size="sm"
-                    onClick={onAddClick}
-                    className="shrink-0"
-                >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Toevoegen
-                </Button>
+                {canModify && (
+                    <Button size="sm" onClick={onAddClick} className="shrink-0">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Toevoegen
+                    </Button>
+                )}
             </div>
 
             {/* Table */}

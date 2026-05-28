@@ -7,6 +7,7 @@ import {
     addMeasure,
     removeMeasure,
     updateMeasure,
+    checkPermission,
 } from "@nmi-agro/fdm-core"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { simplify } from "@turf/simplify"
@@ -103,11 +104,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const timeframe = getTimeframe(params)
         const calendar = getCalendar(params)
 
-        const [farm, fields, measuresMap, catalogue] = await Promise.all([
+        const [farm, fields, measuresMap, catalogue, farmWritePermission] = await Promise.all([
             getFarm(fdm, session.principal_id, b_id_farm),
             getFields(fdm, session.principal_id, b_id_farm, timeframe),
             getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
             getMeasuresFromCatalogue(fdm),
+            checkPermission(
+                fdm,
+                "farm",
+                "write",
+                b_id_farm,
+                session.principal_id,
+                "routes/farm.$b_id_farm.$calendar.measures._index",
+                false,
+            ),
         ])
 
         // Build field list for the dialog — enrich with cultivation + area
@@ -148,14 +158,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 },
                 geometry: (f.b_geometry
                     ? (() => {
-                        try {
-                            return simplify(f.b_geometry as Geometry, {
-                                tolerance: 0.00001,
-                                highQuality: true,
-                            })
-                        } catch {
-                            return null
-                        }
+                          try {
+                              return simplify(f.b_geometry as Geometry, {
+                                  tolerance: 0.00001,
+                                  highQuality: true,
+                              })
+                          } catch {
+                              return null
+                          }
                       })()
                     : null) as Geometry,
             })),
@@ -226,6 +236,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         return {
             farmName: farm?.b_name_farm ?? "Bedrijf",
+            farmWritePermission,
             fieldList,
             fieldsGeoJSON,
             measureRows,
@@ -577,6 +588,7 @@ export default function MeasuresFarmIndex() {
         mapStyle,
         stats,
         fieldSummaries,
+        farmWritePermission,
     } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/measures`
@@ -591,9 +603,10 @@ export default function MeasuresFarmIndex() {
         : `${new Date().getFullYear()}-01-01`
 
     const handleFieldClick = useCallback((b_id: string) => {
+        if (!farmWritePermission) return
         setInitialFieldIds([b_id])
         setAddDialogOpen(true)
-    }, [])
+    }, [farmWritePermission])
 
     const handleAddClick = useCallback(() => {
         setInitialFieldIds([])
@@ -633,17 +646,20 @@ export default function MeasuresFarmIndex() {
                         de knop om te beginnen.
                     </EmptyDescription>
                 </EmptyHeader>
-                <EmptyContent>
-                    <Button onClick={handleAddClick}>
-                        Maatregel toevoegen
-                    </Button>
-                </EmptyContent>
+                {farmWritePermission && (
+                    <EmptyContent>
+                        <Button onClick={handleAddClick}>
+                            Maatregel toevoegen
+                        </Button>
+                    </EmptyContent>
+                )}
             </Empty>
         ) : (
             <MeasuresDataTable
                 columns={columns}
                 data={measureRows}
                 onAddClick={handleAddClick}
+                canModify={farmWritePermission}
             />
         )
 
@@ -676,7 +692,9 @@ export default function MeasuresFarmIndex() {
                         </div>
 
                         <div className="rounded-lg border px-4 py-3">
-                            <p className="text-xs text-muted-foreground">Percelen zonder maatregel</p>
+                            <p className="text-xs text-muted-foreground">
+                                Percelen zonder maatregel
+                            </p>
                             <p className="text-2xl font-bold tabular-nums mt-0.5">
                                 {stats.fieldsWithoutMeasures}
                             </p>
@@ -720,6 +738,7 @@ export default function MeasuresFarmIndex() {
                                     setInitialFieldIds(selectedIds)
                                     setAddDialogOpen(true)
                                 }}
+                                canModify={farmWritePermission}
                             />
                         </div>
                     </>

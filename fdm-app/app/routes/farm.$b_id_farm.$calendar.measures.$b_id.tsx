@@ -1,5 +1,6 @@
 import {
     addMeasure,
+    checkPermission,
     getCultivations,
     getField,
     getFields,
@@ -105,7 +106,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const timeframe = getTimeframe(params)
         const calendarYear = Number(calendar)
 
-        const [field, fields, measures, catalogue, farmMeasures, cultivations, bln3Result] =
+        const [field, fields, measures, catalogue, farmMeasures, cultivations, bln3Result, fieldWritePermission] =
             await Promise.all([
                 getField(fdm, session.principal_id, b_id),
                 getFields(fdm, session.principal_id, b_id_farm, timeframe),
@@ -123,6 +124,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     b_id,
                     timeframe,
                 }).catch(() => null),
+                checkPermission(
+                    fdm,
+                    "field",
+                    "write",
+                    b_id,
+                    session.principal_id,
+                    "routes/farm.$b_id_farm.$calendar.measures.$b_id",
+                    false
+                )
             ])
 
         if (!field) {
@@ -172,6 +182,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         return {
             field,
+            fieldWritePermission,
             measures,
             catalogue,
             fieldsGeoJSON,
@@ -502,6 +513,7 @@ export default function MeasuresFieldDetail() {
         harvestDate,
         calendarYearStart,
         fieldScore,
+        fieldWritePermission,
     } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar, b_id } = useParams()
     const navigation = useNavigation()
@@ -532,15 +544,17 @@ export default function MeasuresFieldDetail() {
                             : `${measures.length} actieve maatregel${measures.length === 1 ? "" : "en"}`}
                     </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                        onClick={() => setDialogOpen(true)}
-                        size="sm"
-                    >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Toevoegen
-                    </Button>
-                </div>
+                {fieldWritePermission && (
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                            onClick={() => setDialogOpen(true)}
+                            size="sm"
+                        >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Toevoegen
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Indicator impact summary (shown when BLN3 data is available) */}
@@ -600,7 +614,7 @@ export default function MeasuresFieldDetail() {
                                                     m.m_end,
                                                 )}
                                             </span>
-                                            {!m.m_end && (
+                                            {!m.m_end && fieldWritePermission && (
                                                 <Button
                                                     type="button"
                                                     variant="outline"
@@ -621,7 +635,7 @@ export default function MeasuresFieldDetail() {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-1 shrink-0">
+                                    { fieldWritePermission && <div className="flex items-center gap-1 shrink-0">
                                         <Button
                                             type="button"
                                             variant="ghost"
@@ -708,7 +722,7 @@ export default function MeasuresFieldDetail() {
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
-                                    </div>
+                                    </div>}
                                 </div>
                             ))}
                         </div>
