@@ -1,0 +1,322 @@
+import { zodResolver } from "@hookform/resolvers/zod"
+import { assessmentTypeOptions } from "@nmi-agro/fdm-core"
+import type { VisualSoilAssessment } from "@nmi-agro/fdm-core"
+import { useEffect, useState } from "react"
+import { Form } from "react-router"
+import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import { BCS_INDICATORS, calculateBcs } from "~/lib/bcs-calculation"
+import { Button } from "~/components/ui/button"
+import { DatePicker } from "~/components/custom/date-picker"
+import {
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "~/components/ui/form"
+import { Input } from "~/components/ui/input"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "~/components/ui/select"
+import { Textarea } from "~/components/ui/textarea"
+import { Separator } from "~/components/ui/separator"
+import { Spinner } from "~/components/ui/spinner"
+import { BcsScoreCard } from "./bcs-score-card"
+import {
+    visualSoilAssessmentSchema,
+    type VisualSoilAssessmentFormValues,
+} from "./formschema"
+import { cn } from "~/lib/utils"
+
+interface VisualAssessmentFormProps {
+    assessment?: VisualSoilAssessment
+    b_id: string
+    action: string
+    editable?: boolean
+}
+
+/** Score button for BCS indicator (0, 1, 2) */
+function ScoreButton({
+    value,
+    selected,
+    onClick,
+    disabled,
+}: {
+    value: number
+    selected: boolean
+    onClick: () => void
+    disabled?: boolean
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className={cn(
+                "h-10 w-10 rounded-md border text-sm font-medium transition-colors",
+                selected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                disabled && "opacity-50 cursor-not-allowed",
+            )}
+        >
+            {value}
+        </button>
+    )
+}
+
+/**
+ * Form for creating or editing a BCS visual soil assessment.
+ * Includes metadata fields, 9 BCS indicator score inputs, and a live score preview.
+ */
+export function VisualAssessmentForm({
+    assessment,
+    b_id,
+    action,
+    editable = true,
+}: VisualAssessmentFormProps) {
+    const form = useRemixForm<VisualSoilAssessmentFormValues>({
+        resolver: zodResolver(visualSoilAssessmentSchema),
+        defaultValues: {
+            b_id,
+            date: assessment?.date ?? undefined,
+            assessor_name: assessment?.assessor_name ?? "",
+            assessment_type: assessment?.assessment_type ?? undefined,
+            weather_conditions: assessment?.weather_conditions ?? "",
+            notes: assessment?.notes ?? "",
+            a_ss_bcs: assessment?.a_ss_bcs ?? null,
+            a_sc_bcs: assessment?.a_sc_bcs ?? null,
+            a_rd_bcs: assessment?.a_rd_bcs ?? null,
+            a_ew_bcs: assessment?.a_ew_bcs ?? null,
+            a_cc_bcs: assessment?.a_cc_bcs ?? null,
+            a_gs_bcs: assessment?.a_gs_bcs ?? null,
+            a_p_bcs: assessment?.a_p_bcs ?? null,
+            a_c_bcs: assessment?.a_c_bcs ?? null,
+            a_rt_bcs: assessment?.a_rt_bcs ?? null,
+        },
+    })
+
+    const watchedScores = form.watch([
+        "a_ss_bcs", "a_sc_bcs", "a_rd_bcs", "a_ew_bcs", "a_cc_bcs",
+        "a_gs_bcs", "a_p_bcs", "a_c_bcs", "a_rt_bcs",
+    ])
+
+    const liveScores = {
+        a_ss_bcs: watchedScores[0],
+        a_sc_bcs: watchedScores[1],
+        a_rd_bcs: watchedScores[2],
+        a_ew_bcs: watchedScores[3],
+        a_cc_bcs: watchedScores[4],
+        a_gs_bcs: watchedScores[5],
+        a_p_bcs: watchedScores[6],
+        a_c_bcs: watchedScores[7],
+        a_rt_bcs: watchedScores[8],
+    }
+
+    return (
+        <RemixFormProvider {...form}>
+            <Form method="post" action={action} onSubmit={form.handleSubmit}>
+                <input type="hidden" name="b_id" value={b_id} />
+
+                <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+                    {/* Left: form fields */}
+                    <div className="space-y-6">
+                        {/* Metadata section */}
+                        <div className="space-y-4">
+                            <h4 className="font-medium">Beoordeling details</h4>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                    name="date"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Datum</FormLabel>
+                                            <FormControl>
+                                                <DatePicker
+                                                    value={field.value as Date | undefined}
+                                                    onChange={field.onChange}
+                                                    disabled={!editable}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="assessor_name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Beoordelaar</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    value={field.value ?? ""}
+                                                    placeholder="Naam"
+                                                    disabled={!editable}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="assessment_type"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Type meting</FormLabel>
+                                            <Select
+                                                value={field.value ?? ""}
+                                                onValueChange={field.onChange}
+                                                disabled={!editable}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Kies type..." />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {assessmentTypeOptions.map((opt) => (
+                                                        <SelectItem key={opt.value} value={opt.value}>
+                                                            {opt.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="weather_conditions"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Weersomstandigheden</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    value={field.value ?? ""}
+                                                    placeholder="Bijv. droog, bewolkt"
+                                                    disabled={!editable}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* BCS Indicators section */}
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-medium">BCS Indicatoren</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Score elke indicator: 0 = slecht, 1 = matig, 2 = goed
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                {BCS_INDICATORS.map((indicator) => (
+                                    <FormField
+                                        key={indicator.key}
+                                        control={form.control}
+                                        name={indicator.key}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <FormLabel className="text-sm font-medium">
+                                                            {indicator.name}
+                                                            {indicator.direction === "negative" && (
+                                                                <span className="ml-1 text-xs text-muted-foreground">(negatief)</span>
+                                                            )}
+                                                        </FormLabel>
+                                                        <p className="text-xs text-muted-foreground truncate">
+                                                            {indicator.description}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex gap-1 shrink-0">
+                                                        {[0, 1, 2].map((score) => (
+                                                            <ScoreButton
+                                                                key={score}
+                                                                value={score}
+                                                                selected={field.value === score}
+                                                                onClick={() =>
+                                                                    field.onChange(
+                                                                        field.value === score ? null : score,
+                                                                    )
+                                                                }
+                                                                disabled={!editable}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Notes */}
+                        <FormField
+                            control={form.control}
+                            name="notes"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Notities</FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            {...field}
+                                            value={field.value ?? ""}
+                                            placeholder="Aanvullende observaties..."
+                                            rows={4}
+                                            disabled={!editable}
+                                            className="resize-none"
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {editable && (
+                            <div className="flex gap-3">
+                                <Button
+                                    type="submit"
+                                    disabled={form.formState.isSubmitting}
+                                >
+                                    {form.formState.isSubmitting && (
+                                        <Spinner className="mr-2" />
+                                    )}
+                                    Opslaan
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right: live score preview */}
+                    <div className="lg:sticky lg:top-4 lg:self-start">
+                        <BcsScoreCard scores={liveScores} />
+                    </div>
+                </div>
+            </Form>
+        </RemixFormProvider>
+    )
+}

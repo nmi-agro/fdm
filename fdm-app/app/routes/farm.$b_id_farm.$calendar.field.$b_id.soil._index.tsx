@@ -168,6 +168,9 @@ export default function FarmFieldSoilOverviewBlock() {
                     <TabsList>
                         <TabsTrigger value="parameters">Parameters</TabsTrigger>
                         <TabsTrigger value="analyses">Analyses</TabsTrigger>
+                        <TabsTrigger value="visueel" asChild>
+                            <NavLink to="./visual">Visueel</NavLink>
+                        </TabsTrigger>
                     </TabsList>
                     <Button
                         asChild

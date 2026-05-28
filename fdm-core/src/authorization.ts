@@ -27,6 +27,7 @@ export const resources: Resource[] = [
     "cultivation",
     "fertilizer_application",
     "soil_analysis",
+    "soil_analysis_visual",
     "harvesting",
 ] as const
 export const roles: Role[] = ["owner", "advisor", "researcher"] as const
@@ -105,6 +106,21 @@ export const permissions: Permission[] = [
     },
     {
         resource: "soil_analysis",
+        role: "researcher",
+        action: ["read"],
+    },
+    {
+        resource: "soil_analysis_visual",
+        role: "owner",
+        action: ["read", "write", "list", "share"],
+    },
+    {
+        resource: "soil_analysis_visual",
+        role: "advisor",
+        action: ["read", "list"],
+    },
+    {
+        resource: "soil_analysis_visual",
         role: "researcher",
         action: ["read"],
     },
@@ -946,6 +962,7 @@ async function getResourceChain(
             "harvesting",
             "fertilizer_application",
             "soil_analysis",
+            "soil_analysis_visual",
         ]
         const chain: ResourceBead[] = []
         if (resource === "farm") {
@@ -1089,6 +1106,35 @@ async function getResourceChain(
                 .limit(1)
             if (result.length === 0) {
                 // Resource not found, return empty chain
+                return []
+            }
+            chain.push(...buildBeadsFromRow(result[0]))
+        } else if (resource === "soil_analysis_visual") {
+            const result = await fdm
+                .select({
+                    farm: schema.fieldAcquiring.b_id_farm,
+                    field: schema.soilSamplingVisual.b_id,
+                    soil_analysis_visual: schema.soilAnalysisVisual.a_id_visual,
+                })
+                .from(schema.soilAnalysisVisual)
+                .leftJoin(
+                    schema.soilSamplingVisual,
+                    eq(
+                        schema.soilAnalysisVisual.b_id_sampling,
+                        schema.soilSamplingVisual.b_id_sampling,
+                    ),
+                )
+                .leftJoin(
+                    schema.fields,
+                    eq(schema.soilSamplingVisual.b_id, schema.fields.b_id),
+                )
+                .leftJoin(
+                    schema.fieldAcquiring,
+                    eq(schema.fields.b_id, schema.fieldAcquiring.b_id),
+                )
+                .where(eq(schema.soilAnalysisVisual.a_id_visual, resource_id))
+                .limit(1)
+            if (result.length === 0) {
                 return []
             }
             chain.push(...buildBeadsFromRow(result[0]))

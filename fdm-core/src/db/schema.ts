@@ -1007,3 +1007,157 @@ export type measureCatalogueEnablingTypeSelect =
     typeof measureCatalogueEnabling.$inferSelect
 export type measureCatalogueEnablingTypeInsert =
     typeof measureCatalogueEnabling.$inferInsert
+
+// ─── Visual Soil Analysis (BCS) ───────────────────────────────────────────────
+
+export const assessmentTypeOptions = [
+    { value: "kuilmeting", label: "Kuilmeting" },
+    { value: "bedrijfsmeting", label: "Bedrijfsmeting" },
+] as const
+export const assessmentTypeEnum = fdmSchema.enum(
+    "assessment_type",
+    assessmentTypeOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const visualImageTypeOptions = [
+    { value: "profile", label: "Bodemprofiel" },
+    { value: "surface", label: "Bodemoppervlak" },
+    { value: "roots", label: "Beworteling" },
+    { value: "earthworms", label: "Regenwormen" },
+    { value: "structure", label: "Bodemstructuur" },
+    { value: "other", label: "Overig" },
+] as const
+export const visualImageTypeEnum = fdmSchema.enum(
+    "visual_image_type",
+    visualImageTypeOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const annotationTypeOptions = [
+    { value: "pin", label: "Pin" },
+    { value: "circle", label: "Cirkel" },
+    { value: "arrow", label: "Pijl" },
+    { value: "freehand", label: "Vrijhand" },
+] as const
+export const annotationTypeEnum = fdmSchema.enum(
+    "annotation_type",
+    annotationTypeOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const bcsIndicatorOptions = [
+    { value: "A_SS_BCS", label: "Bodemstructuur" },
+    { value: "A_SC_BCS", label: "Verdichting ondergrond" },
+    { value: "A_RD_BCS", label: "Beworteling" },
+    { value: "A_EW_BCS", label: "Regenwormen" },
+    { value: "A_CC_BCS", label: "Gewasbedekking" },
+    { value: "A_GS_BCS", label: "Gekleurde vlekken" },
+    { value: "A_P_BCS", label: "Plasvorming" },
+    { value: "A_C_BCS", label: "Scheuren" },
+    { value: "A_RT_BCS", label: "Spoorvorming/vertrapping" },
+] as const
+export const bcsIndicatorEnum = fdmSchema.enum(
+    "bcs_indicator",
+    bcsIndicatorOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+// Define soil_sampling_visual table — dedicated sampling for visual assessments.
+// a_id is nullable so a visual assessment can exist without a companion lab analysis.
+export const soilSamplingVisual = fdmSchema.table("soil_sampling_visual", {
+    b_id_sampling: text().primaryKey(),
+    b_id: text()
+        .notNull()
+        .references(() => fields.b_id),
+    a_id: text().references(() => soilAnalysis.a_id),
+    a_depth_upper: numericCasted().notNull().default(0),
+    a_depth_lower: numericCasted(),
+    b_sampling_date: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+})
+
+export type soilSamplingVisualTypeSelect = typeof soilSamplingVisual.$inferSelect
+export type soilSamplingVisualTypeInsert = typeof soilSamplingVisual.$inferInsert
+
+// Define soil_analysis_visual table — stores BCS assessment scores and metadata.
+export const soilAnalysisVisual = fdmSchema.table("soil_analysis_visual", {
+    a_id_visual: text().primaryKey(),
+    b_id_sampling: text()
+        .notNull()
+        .references(() => soilSamplingVisual.b_id_sampling, {
+            onDelete: "cascade",
+        }),
+    date: timestamp({ withTimezone: true }),
+    assessor_name: text(),
+    assessment_type: assessmentTypeEnum(),
+    a_ss_bcs: numericCasted(),
+    a_sc_bcs: numericCasted(),
+    a_rd_bcs: numericCasted(),
+    a_ew_bcs: numericCasted(),
+    a_cc_bcs: numericCasted(),
+    a_gs_bcs: numericCasted(),
+    a_p_bcs: numericCasted(),
+    a_c_bcs: numericCasted(),
+    a_rt_bcs: numericCasted(),
+    d_bcs: numericCasted(),
+    i_bcs: numericCasted(),
+    notes: text(),
+    weather_conditions: text(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+})
+
+export type soilAnalysisVisualTypeSelect =
+    typeof soilAnalysisVisual.$inferSelect
+export type soilAnalysisVisualTypeInsert =
+    typeof soilAnalysisVisual.$inferInsert
+
+// Define soil_analysis_visual_image table — stores GCS references for uploaded photos.
+export const soilAnalysisVisualImage = fdmSchema.table(
+    "soil_analysis_visual_image",
+    {
+        a_id_image: text().primaryKey(),
+        a_id_visual: text()
+            .notNull()
+            .references(() => soilAnalysisVisual.a_id_visual, {
+                onDelete: "cascade",
+            }),
+        gcs_object_key: text().notNull(),
+        image_type: visualImageTypeEnum(),
+        sort_order: integer().notNull().default(0),
+        caption: text(),
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        updated: timestamp({ withTimezone: true }),
+    },
+    (table) => [index("a_id_visual_image_idx").on(table.a_id_visual)],
+)
+
+export type soilAnalysisVisualImageTypeSelect =
+    typeof soilAnalysisVisualImage.$inferSelect
+export type soilAnalysisVisualImageTypeInsert =
+    typeof soilAnalysisVisualImage.$inferInsert
+
+// Define soil_analysis_visual_annotation table — stores canvas annotations per image.
+// data_json holds percentage-based coordinates for device-responsive rendering.
+export const soilAnalysisVisualAnnotation = fdmSchema.table(
+    "soil_analysis_visual_annotation",
+    {
+        a_id_annotation: text().primaryKey(),
+        a_id_image: text()
+            .notNull()
+            .references(() => soilAnalysisVisualImage.a_id_image, {
+                onDelete: "cascade",
+            }),
+        type: annotationTypeEnum().notNull(),
+        data_json: text().notNull(),
+        text: text(),
+        indicator: bcsIndicatorEnum(),
+        sort_order: integer().notNull().default(0),
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        updated: timestamp({ withTimezone: true }),
+    },
+    (table) => [index("a_id_image_annotation_idx").on(table.a_id_image)],
+)
+
+export type soilAnalysisVisualAnnotationTypeSelect =
+    typeof soilAnalysisVisualAnnotation.$inferSelect
+export type soilAnalysisVisualAnnotationTypeInsert =
+    typeof soilAnalysisVisualAnnotation.$inferInsert
