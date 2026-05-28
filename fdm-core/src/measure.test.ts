@@ -1,8 +1,8 @@
 import { eq, inArray } from "drizzle-orm"
 import { afterAll, beforeEach, describe, expect, inject, it } from "vitest"
 import {
-    syncMeasuresCatalogueArray,
     enableMeasureCatalogue,
+    syncMeasuresCatalogueArray,
 } from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm, removeFarm } from "./farm"

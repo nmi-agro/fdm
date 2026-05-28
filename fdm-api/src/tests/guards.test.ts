@@ -3,11 +3,12 @@
  * - requestGuard: content-type enforcement and body size limit
  * - assertGeoJsonCoordinates: coordinate count validation (unit)
  */
-import { describe, expect, it, vi } from "vitest"
+
 import { Hono } from "hono"
-import { createFdmApi } from "../index"
-import { requestGuard, assertGeoJsonCoordinates } from "../guards"
+import { describe, expect, it, vi } from "vitest"
 import { createErrorHandler } from "../error"
+import { assertGeoJsonCoordinates, requestGuard } from "../guards"
+import { createFdmApi } from "../index"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -116,7 +117,11 @@ describe("requestGuard: body size limit", () => {
                 verifyApiKey: vi.fn().mockResolvedValue({
                     valid: true,
                     error: null,
-                    key: { id: "key-1", referenceId: "user-1", name: "Test key" },
+                    key: {
+                        id: "key-1",
+                        referenceId: "user-1",
+                        name: "Test key",
+                    },
                 }),
             },
         } as any
@@ -124,16 +129,23 @@ describe("requestGuard: body size limit", () => {
             insert: vi.fn().mockReturnThis(),
             values: vi.fn().mockReturnThis(),
             onConflictDoUpdate: vi.fn().mockReturnThis(),
-            returning: vi.fn().mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
+            returning: vi
+                .fn()
+                .mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
         } as any
         const app = createFdmApi(mockFdm, mockAuth, {
             appName: "Test App",
             appUrl: "https://test.example.com",
         })
-        const largeBody = JSON.stringify({ data: "x".repeat(5 * 1024 * 1024 + 1) })
+        const largeBody = JSON.stringify({
+            data: "x".repeat(5 * 1024 * 1024 + 1),
+        })
         const res = await app.request("/farms", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: largeBody,
         })
         expect(res.status).toBe(413)
@@ -147,7 +159,10 @@ describe("requestGuard: body size limit", () => {
 // ---------------------------------------------------------------------------
 describe("assertGeoJsonCoordinates", () => {
     function makePolygon(coordCount: number): object {
-        const coords = Array.from({ length: coordCount }, (_, i) => [i * 0.001, 0])
+        const coords = Array.from({ length: coordCount }, (_, i) => [
+            i * 0.001,
+            0,
+        ])
         return {
             type: "Polygon",
             coordinates: [coords],
@@ -159,7 +174,9 @@ describe("assertGeoJsonCoordinates", () => {
     })
 
     it("does not throw for a polygon with exactly 10,000 coordinates", () => {
-        expect(() => assertGeoJsonCoordinates(makePolygon(10_000))).not.toThrow()
+        expect(() =>
+            assertGeoJsonCoordinates(makePolygon(10_000)),
+        ).not.toThrow()
     })
 
     it("throws ApiError 422 for a polygon with 10,001 coordinates", () => {

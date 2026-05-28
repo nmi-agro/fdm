@@ -9,7 +9,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "~/components/ui/dialog"
-import { type FieldMeasure } from "~/lib/indicators"
+import type { FieldMeasure } from "~/lib/indicators"
 
 type CultivationSummary = {
     name: string
@@ -162,8 +162,8 @@ export function FieldInputDialog({
                     </Section>
 
                     <p className="text-xs text-muted-foreground pt-2 border-t">
-                        Dit zijn de gegevens die worden gebruikt als invoer
-                        voor de NMI BLN3-berekening.
+                        Dit zijn de gegevens die worden gebruikt als invoer voor
+                        de NMI BLN3-berekening.
                     </p>
                 </div>
             </DialogContent>

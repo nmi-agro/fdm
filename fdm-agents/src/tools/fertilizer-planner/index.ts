@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { tool } from "@langchain/core/tools"
 import type { RunnableConfig } from "@langchain/core/runnables"
+import { tool } from "@langchain/core/tools"
 import {
     aggregateNormFillingsToFarmLevel,
     aggregateNormsToFarmLevel,

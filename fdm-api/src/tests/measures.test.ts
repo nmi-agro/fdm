@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createFdmApi } from "../index"
 import type { FdmApiServices } from "../index"
+import { createFdmApi } from "../index"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 const mockFdm = {
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
     onConflictDoUpdate: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
+    returning: vi
+        .fn()
+        .mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
 } as any
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
 
@@ -38,15 +40,25 @@ describe("GET /fields/:b_id/measures", () => {
     beforeEach(validKey)
 
     it("returns 200 with paginated measures", async () => {
-        const app = makeApp({ getMeasures: vi.fn().mockResolvedValue([baseMeasure]) })
-        const res = await app.request("/fields/field-1/measures", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getMeasures: vi.fn().mockResolvedValue([baseMeasure]),
+        })
+        const res = await app.request("/fields/field-1/measures", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         expect((await res.json()).data[0].b_id_measure).toBe("measure-1")
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getMeasures: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/fields/field-1/measures", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getMeasures: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/fields/field-1/measures", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 })
@@ -57,11 +69,17 @@ describe("POST /fields/:b_id/measures", () => {
     it("returns 201 with the created measure", async () => {
         const app = makeApp({
             addMeasure: vi.fn().mockResolvedValue("measure-new"),
-            getMeasure: vi.fn().mockResolvedValue({ ...baseMeasure, b_id_measure: "measure-new" }),
+            getMeasure: vi.fn().mockResolvedValue({
+                ...baseMeasure,
+                b_id_measure: "measure-new",
+            }),
         })
         const res = await app.request("/fields/field-1/measures", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ m_id: "bm-1", m_start: "2024-01-01" }),
         })
         expect(res.status).toBe(201)
@@ -79,10 +97,17 @@ describe("POST /fields/:b_id/measures", () => {
     })
 
     it("returns 403 when principal lacks permission", async () => {
-        const app = makeApp({ addMeasure: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            addMeasure: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/fields/field-1/measures", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ m_id: "bm-1", m_start: "2024-01-01" }),
         })
         expect(res.status).toBe(403)
@@ -93,21 +118,37 @@ describe("GET /measures/:b_id_measure", () => {
     beforeEach(validKey)
 
     it("returns 200 with the measure", async () => {
-        const app = makeApp({ getMeasure: vi.fn().mockResolvedValue(baseMeasure) })
-        const res = await app.request("/measures/measure-1", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getMeasure: vi.fn().mockResolvedValue(baseMeasure),
+        })
+        const res = await app.request("/measures/measure-1", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         expect((await res.json()).m_start).toBe("2024-01-01")
     })
 
     it("returns 404 when the measure does not exist", async () => {
-        const app = makeApp({ getMeasure: vi.fn().mockResolvedValue({ ...baseMeasure, b_id_measure: undefined }) })
-        const res = await app.request("/measures/missing", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getMeasure: vi
+                .fn()
+                .mockResolvedValue({ ...baseMeasure, b_id_measure: undefined }),
+        })
+        const res = await app.request("/measures/missing", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(404)
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getMeasure: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/measures/measure-1", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getMeasure: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/measures/measure-1", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 })
@@ -118,11 +159,16 @@ describe("PATCH /measures/:b_id_measure", () => {
     it("returns 200 with the updated measure", async () => {
         const app = makeApp({
             updateMeasure: vi.fn().mockResolvedValue(undefined),
-            getMeasure: vi.fn().mockResolvedValue({ ...baseMeasure, m_end: null }),
+            getMeasure: vi
+                .fn()
+                .mockResolvedValue({ ...baseMeasure, m_end: null }),
         })
         const res = await app.request("/measures/measure-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ m_end: null }),
         })
         expect(res.status).toBe(200)
@@ -133,17 +179,27 @@ describe("PATCH /measures/:b_id_measure", () => {
         const app = makeApp()
         const res = await app.request("/measures/measure-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({}),
         })
         expect(res.status).toBe(400)
     })
 
     it("returns 403 when principal lacks permission", async () => {
-        const app = makeApp({ updateMeasure: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            updateMeasure: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/measures/measure-1", {
             method: "PATCH",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ m_end: null }),
         })
         expect(res.status).toBe(403)
@@ -154,7 +210,9 @@ describe("DELETE /measures/:b_id_measure", () => {
     beforeEach(validKey)
 
     it("returns 204 on success", async () => {
-        const app = makeApp({ removeMeasure: vi.fn().mockResolvedValue(undefined) })
+        const app = makeApp({
+            removeMeasure: vi.fn().mockResolvedValue(undefined),
+        })
         const res = await app.request("/measures/measure-1", {
             method: "DELETE",
             headers: { "x-api-key": "valid" },
@@ -163,7 +221,11 @@ describe("DELETE /measures/:b_id_measure", () => {
     })
 
     it("returns 403 when principal lacks permission", async () => {
-        const app = makeApp({ removeMeasure: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            removeMeasure: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/measures/measure-1", {
             method: "DELETE",
             headers: { "x-api-key": "valid" },

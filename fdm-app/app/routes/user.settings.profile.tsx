@@ -1,4 +1,8 @@
-import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import {
+    type LoaderFunctionArgs,
+    type MetaFunction,
+    useLoaderData,
+} from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
@@ -52,51 +56,48 @@ export default function UserSettingsProfile() {
 
     return (
         <>
-            <FarmTitle
-                title="Profiel"
-                description="Jouw accountgegevens."
-            />
+            <FarmTitle title="Profiel" description="Jouw accountgegevens." />
             <div className="space-y-6 px-4 md:px-8 pb-8">
                 <Card>
-                <CardHeader>
-                    <CardTitle>Jouw gegevens</CardTitle>
-                    <CardDescription>
-                        Hieronder vind je jouw accountgegevens.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                        <Avatar className="h-12 w-12">
-                            <AvatarImage
-                                src={user.image ?? undefined}
-                                alt={user.name}
-                            />
-                            <AvatarFallback>{initials}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                                {user.email}
+                    <CardHeader>
+                        <CardTitle>Jouw gegevens</CardTitle>
+                        <CardDescription>
+                            Hieronder vind je jouw accountgegevens.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center space-x-4">
+                            <Avatar className="h-12 w-12">
+                                <AvatarImage
+                                    src={user.image ?? undefined}
+                                    alt={user.name}
+                                />
+                                <AvatarFallback>{initials}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-medium">{user.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {user.email}
+                                </p>
+                            </div>
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium">
+                                Voornaam:{" "}
+                                <span className="font-normal text-muted-foreground">
+                                    {user.firstname}
+                                </span>
+                            </p>
+                            <p className="text-sm font-medium">
+                                Achternaam:{" "}
+                                <span className="font-normal text-muted-foreground">
+                                    {user.surname}
+                                </span>
                             </p>
                         </div>
-                    </div>
-                    <Separator />
-                    <div className="space-y-2">
-                        <p className="text-sm font-medium">
-                            Voornaam:{" "}
-                            <span className="font-normal text-muted-foreground">
-                                {user.firstname}
-                            </span>
-                        </p>
-                        <p className="text-sm font-medium">
-                            Achternaam:{" "}
-                            <span className="font-normal text-muted-foreground">
-                                {user.surname}
-                            </span>
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
             </div>
         </>
     )

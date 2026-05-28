@@ -1,27 +1,27 @@
 import {
+    type ColumnDef,
     flexRender,
     getCoreRowModel,
     useReactTable,
-    type ColumnDef,
 } from "@tanstack/react-table"
-import { NavLink } from "react-router"
 import { useMemo } from "react"
+import { NavLink } from "react-router"
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
+import type { FieldBln3Score } from "~/integrations/bln3.server"
 import {
     ECOSYSTEEMDIENSTEN,
-    INDICATORS,
-    scoreToDisplay,
     type Ecosysteemdienst,
+    INDICATORS,
     type IndicatorInfo,
+    scoreToDisplay,
 } from "~/lib/indicators"
-import type { FieldBln3Score } from "~/integrations/bln3.server"
-import { HeatmapCell } from "./table-cell"
 import { cn } from "~/lib/utils"
+import { HeatmapCell } from "./table-cell"
 
 type FieldRow = {
     b_id: string
@@ -32,17 +32,17 @@ type FieldRow = {
 }
 
 const CATEGORY_TEXT: Record<Ecosysteemdienst, string> = {
-    Gewasproductie:        "text-orange-600 dark:text-orange-400",
-    Koolstofvastlegging:   "text-stone-600 dark:text-stone-400",
-    Waterkwaliteit:        "text-blue-600 dark:text-blue-400",
-    "Nutriëntenkringloop": "text-violet-600 dark:text-violet-400",
+    Gewasproductie: "text-orange-600 dark:text-orange-400",
+    Koolstofvastlegging: "text-stone-600 dark:text-stone-400",
+    Waterkwaliteit: "text-blue-600 dark:text-blue-400",
+    Nutriëntenkringloop: "text-violet-600 dark:text-violet-400",
 }
 
 const CATEGORY_BORDER: Record<Ecosysteemdienst, string> = {
-    Gewasproductie:        "border-b-orange-400",
-    Koolstofvastlegging:   "border-b-stone-400",
-    Waterkwaliteit:        "border-b-blue-400",
-    "Nutriëntenkringloop": "border-b-violet-400",
+    Gewasproductie: "border-b-orange-400",
+    Koolstofvastlegging: "border-b-stone-400",
+    Waterkwaliteit: "border-b-blue-400",
+    Nutriëntenkringloop: "border-b-violet-400",
 }
 
 type HeatmapTableProps = {
@@ -166,9 +166,7 @@ export function HeatmapTable({
         }
 
         const categories =
-            activeCategories.length > 0
-                ? activeCategories
-                : ECOSYSTEEMDIENSTEN
+            activeCategories.length > 0 ? activeCategories : ECOSYSTEEMDIENSTEN
         const groups: ColumnDef<FieldRow>[] = categories.map((cat) => ({
             id: cat,
             header: cat,
@@ -297,8 +295,7 @@ export function HeatmapTable({
                                         />
                                     )
                                 }
-                                const cat = header.column
-                                    .id as Ecosysteemdienst
+                                const cat = header.column.id as Ecosysteemdienst
                                 return (
                                     <th
                                         key={header.id}
@@ -310,7 +307,10 @@ export function HeatmapTable({
                                             CATEGORY_BORDER[cat],
                                         )}
                                     >
-                                        <div className="truncate px-1" title={cat}>
+                                        <div
+                                            className="truncate px-1"
+                                            title={cat}
+                                        >
                                             {flexRender(
                                                 header.column.columnDef.header,
                                                 header.getContext(),

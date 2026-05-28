@@ -157,7 +157,9 @@ describe("requestBln3Score", () => {
     })
 
     it("should rethrow network errors from fetch", async () => {
-        vi.mocked(fetch).mockRejectedValueOnce(new Error("Network connection lost"))
+        vi.mocked(fetch).mockRejectedValueOnce(
+            new Error("Network connection lost"),
+        )
 
         await expect(requestBln3Score(baseInputs)).rejects.toThrow(
             "Network connection lost",
@@ -244,7 +246,9 @@ describe("getBln3Score cache semantics", () => {
         mockFdm.limit.mockImplementationOnce(() => ({
             then: () => Promise.reject(new Error("DB Error")),
         }))
-        const spyConsole = vi.spyOn(console, "error").mockImplementation(() => {})
+        const spyConsole = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {})
 
         const result = await getBln3Score(mockFdm, baseInputs)
 

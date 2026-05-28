@@ -1,18 +1,5 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import {
-    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-    // NmiApiError,
-    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-    // assessDataCompleteness,
-    // buildDynaRequest,
-    // buildNSupplyRequest,
-    createFunctionsForNorms,
-    NormNotApplicableError,
-    // getDyna,
-    // getNSupply,
-    // getNutrientAdvice,
-} from "@nmi-agro/fdm-calculator"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     calculateNitrogenBalance,
     calculateOrganicMatterBalance,
@@ -22,18 +9,30 @@ import type {
     getNitrogenBalanceField,
     getOrganicMatterBalanceField,
 } from "@nmi-agro/fdm-calculator"
-import type { getField } from "@nmi-agro/fdm-core"
+import {
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // NmiApiError,
+    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
+    // assessDataCompleteness,
+    // buildDynaRequest,
+    // buildNSupplyRequest,
+    type createFunctionsForNorms,
+    NormNotApplicableError,
+    // getDyna,
+    // getNSupply,
+    // getNutrientAdvice,
+} from "@nmi-agro/fdm-calculator"
 // [MINERALIZATION: disabled — behind feature flag in fdm-app]
 // import {
 //     getCultivationsFromCatalogue,
 //     getGrazingIntention,
 //     getHarvestsForFarm,
 // } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
+import type { FdmType, getField } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { commonErrorResponses, DateStringSchema } from "../schemas"
+import type { ApiEnv, ApiPrincipalContext } from "../types"
 
 // ---------------------------------------------------------------------------
 // Services
@@ -86,10 +85,12 @@ export interface CalculationServices {
 
 const TimeframeQuerySchema = z
     .object({
-        start: DateStringSchema
-            .describe("Inclusive start date in YYYY-MM-DD format."),
-        end: DateStringSchema
-            .describe("Inclusive end date in YYYY-MM-DD format."),
+        start: DateStringSchema.describe(
+            "Inclusive start date in YYYY-MM-DD format.",
+        ),
+        end: DateStringSchema.describe(
+            "Inclusive end date in YYYY-MM-DD format.",
+        ),
     })
     .refine((d) => new Date(d.start) <= new Date(d.end), {
         message: "start must be before or equal to end",
@@ -108,9 +109,7 @@ const ApplicationValueSchema = z.object({
 const DoseSchema = z
     .object({
         p_dose_n: z.number().describe("Nitrogen (N) dose in kg/ha"),
-        p_dose_nw: z
-            .number()
-            .describe("Workable nitrogen (Nw) dose in kg/ha"),
+        p_dose_nw: z.number().describe("Workable nitrogen (Nw) dose in kg/ha"),
         p_dose_p: z.number().describe("Phosphate (P2O5) dose in kg/ha"),
         p_dose_k: z.number().describe("Potassium (K2O) dose in kg/ha"),
         p_dose_eoc: z
@@ -198,7 +197,9 @@ const NitrogenBalanceFieldResultSchema = z
                 supply: NitrogenSupplyFieldSchema,
                 removal: NitrogenRemovalFieldSchema,
                 emission: NitrogenEmissionFieldSchema,
-                target: z.number().describe("Target nitrogen balance in kg N/ha"),
+                target: z
+                    .number()
+                    .describe("Target nitrogen balance in kg N/ha"),
             })
             .optional(),
         errorMessage: z.string().optional(),
@@ -207,7 +208,11 @@ const NitrogenBalanceFieldResultSchema = z
 
 const NitrogenBalanceSchema = z
     .object({
-        balance: z.number().describe("Weighted average nitrogen balance across all fields in kg N/ha"),
+        balance: z
+            .number()
+            .describe(
+                "Weighted average nitrogen balance across all fields in kg N/ha",
+            ),
         supply: z.object({
             total: z.number(),
             deposition: z.number(),
@@ -235,7 +240,9 @@ const NitrogenBalanceSchema = z
             }),
             nitrate: z.number(),
         }),
-        target: z.number().describe("Weighted average target nitrogen balance in kg N/ha"),
+        target: z
+            .number()
+            .describe("Weighted average target nitrogen balance in kg N/ha"),
         fields: z.array(NitrogenBalanceFieldResultSchema),
         hasErrors: z.boolean(),
         fieldErrorMessages: z.array(z.string()),
@@ -266,24 +273,34 @@ const OrganicMatterBalanceFieldResultSchema = z
                         total: z.number(),
                         manure: z.object({
                             total: z.number(),
-                            applications: z.array(OrganicMatterApplicationValueSchema),
+                            applications: z.array(
+                                OrganicMatterApplicationValueSchema,
+                            ),
                         }),
                         compost: z.object({
                             total: z.number(),
-                            applications: z.array(OrganicMatterApplicationValueSchema),
+                            applications: z.array(
+                                OrganicMatterApplicationValueSchema,
+                            ),
                         }),
                         other: z.object({
                             total: z.number(),
-                            applications: z.array(OrganicMatterApplicationValueSchema),
+                            applications: z.array(
+                                OrganicMatterApplicationValueSchema,
+                            ),
                         }),
                     }),
                     cultivations: z.object({
                         total: z.number(),
-                        cultivations: z.array(OrganicMatterApplicationValueSchema),
+                        cultivations: z.array(
+                            OrganicMatterApplicationValueSchema,
+                        ),
                     }),
                     residues: z.object({
                         total: z.number(),
-                        cultivations: z.array(OrganicMatterApplicationValueSchema),
+                        cultivations: z.array(
+                            OrganicMatterApplicationValueSchema,
+                        ),
                     }),
                 }),
                 degradation: z.object({ total: z.number() }),
@@ -297,9 +314,15 @@ const OrganicMatterBalanceSchema = z
     .object({
         balance: z
             .number()
-            .describe("Weighted average organic matter balance across all fields in kg EOM/ha/year"),
-        supply: z.number().describe("Weighted average EOM supply in kg EOM/ha/year"),
-        degradation: z.number().describe("Weighted average SOM degradation in kg EOM/ha/year"),
+            .describe(
+                "Weighted average organic matter balance across all fields in kg EOM/ha/year",
+            ),
+        supply: z
+            .number()
+            .describe("Weighted average EOM supply in kg EOM/ha/year"),
+        degradation: z
+            .number()
+            .describe("Weighted average SOM degradation in kg EOM/ha/year"),
         fields: z.array(OrganicMatterBalanceFieldResultSchema),
         hasErrors: z.boolean(),
         fieldErrorMessages: z.array(z.string()),
@@ -312,16 +335,24 @@ const OrganicMatterBalanceSchema = z
 
 const NormResultSchema = z.object({
     normValue: z.number().describe("Norm value in kg/ha"),
-    normSource: z.string().describe("Source or category used to determine the norm"),
+    normSource: z
+        .string()
+        .describe("Source or category used to determine the norm"),
 })
 
 const FieldNormsSchema = z
     .object({
         b_id: z.string(),
         year: z.number().int(),
-        nitrogen: NormResultSchema.nullable().describe("Nitrogen usage norm (kg N/ha)"),
-        manure: NormResultSchema.nullable().describe("Manure usage norm (kg N/ha from animal manure)"),
-        phosphate: NormResultSchema.nullable().describe("Phosphate usage norm (kg P2O5/ha)"),
+        nitrogen: NormResultSchema.nullable().describe(
+            "Nitrogen usage norm (kg N/ha)",
+        ),
+        manure: NormResultSchema.nullable().describe(
+            "Manure usage norm (kg N/ha from animal manure)",
+        ),
+        phosphate: NormResultSchema.nullable().describe(
+            "Phosphate usage norm (kg P2O5/ha)",
+        ),
     })
     .openapi("FieldNorms")
 
@@ -565,7 +596,9 @@ const YearQuerySchema = z.object({
     year: z
         .enum(["2025", "2026"])
         .default("2026")
-        .describe("Calendar year. Only 2025 and 2026 are currently supported for norms."),
+        .describe(
+            "Calendar year. Only 2025 and 2026 are currently supported for norms.",
+        ),
 })
 
 const farmNormsRoute = createRoute({
@@ -684,9 +717,18 @@ const fieldNormsRoute = createRoute({
 async function calculateNormResults(
     fdm: FdmType,
     normFunctions: {
-        calculateNormForNitrogen: (fdm: FdmType, input: unknown) => Promise<z.infer<typeof NormResultSchema>>
-        calculateNormForManure: (fdm: FdmType, input: unknown) => Promise<z.infer<typeof NormResultSchema>>
-        calculateNormForPhosphate: (fdm: FdmType, input: unknown) => Promise<z.infer<typeof NormResultSchema>>
+        calculateNormForNitrogen: (
+            fdm: FdmType,
+            input: unknown,
+        ) => Promise<z.infer<typeof NormResultSchema>>
+        calculateNormForManure: (
+            fdm: FdmType,
+            input: unknown,
+        ) => Promise<z.infer<typeof NormResultSchema>>
+        calculateNormForPhosphate: (
+            fdm: FdmType,
+            input: unknown,
+        ) => Promise<z.infer<typeof NormResultSchema>>
     },
     input: unknown,
 ) {
@@ -802,12 +844,12 @@ export function registerCalculationRoutes(
         )
         const result = await services.calculateOrganicMatterBalance(fdm, {
             ...input,
-            timeFrame: { start: input.timeFrame.start as Date, end: input.timeFrame.end as Date },
+            timeFrame: {
+                start: input.timeFrame.start as Date,
+                end: input.timeFrame.end as Date,
+            },
         })
-        return c.json(
-            result as z.infer<typeof OrganicMatterBalanceSchema>,
-            200,
-        )
+        return c.json(result as z.infer<typeof OrganicMatterBalanceSchema>, 200)
     }
 
     // --- Field-level nitrogen balance ---
@@ -974,7 +1016,11 @@ export function registerCalculationRoutes(
             )
 
             for (const [b_id, input] of inputMap) {
-                const result = await calculateNormResults(fdm, normFunctions as never, input)
+                const result = await calculateNormResults(
+                    fdm,
+                    normFunctions as never,
+                    input,
+                )
                 fields.push({ b_id, ...result })
             }
         } else {
@@ -986,25 +1032,37 @@ export function registerCalculationRoutes(
             )
 
             for (const [b_id, input] of inputMap) {
-                const result = await calculateNormResults(fdm, normFunctions as never, input)
+                const result = await calculateNormResults(
+                    fdm,
+                    normFunctions as never,
+                    input,
+                )
                 fields.push({ b_id, ...result })
             }
         }
 
         return c.json(
-            { b_id_farm, year: Number.parseInt(year), fields } as z.infer<typeof FarmNormsSchema>,
+            { b_id_farm, year: Number.parseInt(year, 10), fields } as z.infer<
+                typeof FarmNormsSchema
+            >,
             200,
         )
     }
 
-    const fieldNormsHandler: RouteHandler<typeof fieldNormsRoute> = async (c) => {
+    const fieldNormsHandler: RouteHandler<typeof fieldNormsRoute> = async (
+        c,
+    ) => {
         const principal = c.get("principal") as unknown as ApiPrincipalContext
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { b_id } = c.req.valid("param") as { b_id: string }
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const { year } = c.req.valid("query") as { year: string }
 
-        const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
+        const field = await services.getField(
+            fdm,
+            principal.effectivePrincipalId,
+            b_id,
+        )
         if (!field) {
             throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
         }
@@ -1044,7 +1102,7 @@ export function registerCalculationRoutes(
         return c.json(
             {
                 b_id,
-                year: Number.parseInt(year),
+                year: Number.parseInt(year, 10),
                 nitrogen,
                 manure,
                 phosphate,
@@ -1209,7 +1267,10 @@ export function registerCalculationRoutes(
     app.openapi(farmNitrogenBalanceRoute, farmNitrogenBalanceHandler)
     app.openapi(farmOrganicMatterBalanceRoute, farmOrganicMatterBalanceHandler)
     app.openapi(fieldNitrogenBalanceRoute, fieldNitrogenBalanceHandler)
-    app.openapi(fieldOrganicMatterBalanceRoute, fieldOrganicMatterBalanceHandler)
+    app.openapi(
+        fieldOrganicMatterBalanceRoute,
+        fieldOrganicMatterBalanceHandler,
+    )
     app.openapi(fieldDoseRoute, fieldDoseHandler)
     app.openapi(farmNormsRoute, farmNormsHandler)
     app.openapi(fieldNormsRoute, fieldNormsHandler)

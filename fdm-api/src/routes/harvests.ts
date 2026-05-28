@@ -1,22 +1,22 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     addHarvest,
+    FdmType,
     getHarvest,
     getHarvests,
+    Harvest,
     removeHarvest,
     updateHarvest,
 } from "@nmi-agro/fdm-core"
-import type { Harvest } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
     commonErrorResponses,
     DateStringSchema,
+    PaginationTimeframeQuerySchema,
     paginatedResponse,
     paginatedSchema,
-    PaginationTimeframeQuerySchema,
     parseTimeframeQuery,
     serializeDate,
     writeErrorResponses,
@@ -72,8 +72,9 @@ const HarvestableAnalysisSchema = z.object({
 const HarvestSchema = z
     .object({
         b_id_harvesting: z.string(),
-        b_lu_harvest_date: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        b_lu_harvest_date: DateStringSchema.describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         b_lu: z.string(),
         harvestable: z.object({
             b_id_harvestable: z.string(),
@@ -84,16 +85,18 @@ const HarvestSchema = z
 
 const CreateHarvestBodySchema = z
     .object({
-        b_lu_harvest_date: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        b_lu_harvest_date: DateStringSchema.describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         ...HarvestPropertyShape,
     })
     .openapi("CreateHarvest")
 
 const UpdateHarvestBodySchema = z
     .object({
-        b_lu_harvest_date: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        b_lu_harvest_date: DateStringSchema.describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         ...HarvestPropertyShape,
     })
     .openapi("UpdateHarvest")

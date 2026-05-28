@@ -7,14 +7,17 @@ import {
     useLoaderData,
     useParams,
 } from "react-router"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { HeatmapTable } from "~/components/blocks/indicators/table"
-import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
+import { Switch } from "~/components/ui/switch"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { getSession } from "~/lib/auth.server"
 import { computeFarmAggregation } from "~/lib/bln3"
@@ -23,14 +26,11 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
-    ECOSYSTEEMDIENSTEN,
-    ECOSYSTEEMDIENST_INDICATOR_IDS,
     ECOSYSTEEMDIENST_FULL_NAME,
+    ECOSYSTEEMDIENST_INDICATOR_IDS,
+    ECOSYSTEEMDIENSTEN,
     type Ecosysteemdienst,
 } from "~/lib/indicators"
-import { Label } from "~/components/ui/label"
-import { Switch } from "~/components/ui/switch"
-import { Input } from "~/components/ui/input"
 import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
@@ -102,7 +102,9 @@ export default function IndicatorsFarmIndex() {
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
 
-    const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>([])
+    const [activeCategories, setActiveCategories] = useState<
+        Ecosysteemdienst[]
+    >([])
     const [withMeasures, setWithMeasures] = useState(true)
     const [hideBufferstrips, setHideBufferstrips] = useState(true)
     const [fieldSearch, setFieldSearch] = useState("")
@@ -111,7 +113,10 @@ export default function IndicatorsFarmIndex() {
     // Debounce the pending indicator to avoid flickering on fast transitions
     const [showPending, setShowPending] = useState(false)
     useEffect(() => {
-        if (!isPending) { setShowPending(false); return }
+        if (!isPending) {
+            setShowPending(false)
+            return
+        }
         const id = setTimeout(() => setShowPending(true), 150)
         return () => clearTimeout(id)
     }, [isPending])
@@ -121,7 +126,9 @@ export default function IndicatorsFarmIndex() {
     const handleToggleCategory = (dienst: Ecosysteemdienst) => {
         startTransition(() => {
             setActiveCategories((prev) =>
-                prev.includes(dienst) ? prev.filter((c) => c !== dienst) : [...prev, dienst],
+                prev.includes(dienst)
+                    ? prev.filter((c) => c !== dienst)
+                    : [...prev, dienst],
             )
         })
     }
@@ -198,23 +205,30 @@ export default function IndicatorsFarmIndex() {
                         <Bln3HelpDialog />
                     </div>
                     <div className="flex gap-3">
-                        {ecosysteemdienst_scores.map(({ dienst, score, index }) => (
-                            <AggregationCard
-                                key={dienst}
-                                label={dienst}
-                                name={ECOSYSTEEMDIENST_FULL_NAME[dienst]}
-                                score01={score}
-                                index01={index}
-                                showIndex={showIndex}
-                            />
-                        ))}
+                        {ecosysteemdienst_scores.map(
+                            ({ dienst, score, index }) => (
+                                <AggregationCard
+                                    key={dienst}
+                                    label={dienst}
+                                    name={ECOSYSTEEMDIENST_FULL_NAME[dienst]}
+                                    score01={score}
+                                    index01={index}
+                                    showIndex={showIndex}
+                                />
+                            ),
+                        )}
                     </div>
                 </section>
 
                 <Separator />
 
                 {/* Indicator table section */}
-                <section className={cn("space-y-3 transition-opacity duration-150", showPending && "opacity-50 pointer-events-none")}>
+                <section
+                    className={cn(
+                        "space-y-3 transition-opacity duration-150",
+                        showPending && "opacity-50 pointer-events-none",
+                    )}
+                >
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                         <CategoryFilter
                             activeCategories={activeCategories}

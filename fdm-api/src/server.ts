@@ -49,5 +49,7 @@ const app = createFdmApi(fdm, auth, {
 const port = Number(process.env.PORT ?? 6173)
 
 serve({ fetch: app.fetch, port }, () => {
-    console.log(`fdm-api listening on \x1b]8;;http://localhost:${port}/docs\x07http://localhost:${port}/docs\x1b]8;;\x07`)
+    console.log(
+        `fdm-api listening on \x1b]8;;http://localhost:${port}/docs\x07http://localhost:${port}/docs\x1b]8;;\x07`,
+    )
 })

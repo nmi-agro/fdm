@@ -7,6 +7,9 @@
  *
  * Import with React.lazy to avoid SSR issues with maplibre-gl.
  */
+
+import type { FeatureCollection } from "geojson"
+import type { StyleSpecification } from "maplibre-gl"
 import maplibregl from "maplibre-gl"
 import { useCallback, useMemo, useState } from "react"
 import {
@@ -17,16 +20,14 @@ import {
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
-import type { FeatureCollection } from "geojson"
-import type { StyleSpecification } from "maplibre-gl"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
-    getFieldsScoreStyle,
     getFieldsScoreOutlineStyle,
+    getFieldsScoreStyle,
 } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { getScoreVerdict, getScoreColor } from "~/lib/indicators"
+import { getScoreColor, getScoreVerdict } from "~/lib/indicators"
 
 type FieldMapProps = {
     /** GeoJSON with all farm fields. Each feature needs b_id, b_name and score properties. */
@@ -78,7 +79,7 @@ export default function FieldMap({
     const onMouseMove = useCallback((e: MapMouseEvent) => {
         const feature = e.features?.[0]
         setHoveredFieldId(
-            feature ? (feature.properties?.b_id as string) ?? null : null,
+            feature ? ((feature.properties?.b_id as string) ?? null) : null,
         )
     }, [])
 
@@ -121,7 +122,11 @@ export default function FieldMap({
         <div className="relative" style={{ height }}>
             <MapGL
                 {...viewState}
-                style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+                style={{
+                    height: "100%",
+                    width: "100%",
+                    borderRadius: "0.5rem",
+                }}
                 mapStyle={mapStyle as any}
                 mapLib={maplibregl}
                 interactiveLayerIds={[FIELDS_LAYER]}
@@ -159,7 +164,10 @@ export default function FieldMap({
                         id={SELECTED_LAYER}
                         source={SELECTED_SOURCE}
                         type="fill"
-                        paint={{ "fill-color": "#ffcf0d", "fill-opacity": 0.25 }}
+                        paint={{
+                            "fill-color": "#ffcf0d",
+                            "fill-opacity": 0.25,
+                        }}
                     />
                     <Layer
                         id={SELECTED_OUTLINE_LAYER}
@@ -174,15 +182,20 @@ export default function FieldMap({
             {hoveredFeature && (
                 <div className="absolute bottom-3 left-3 z-10 bg-background/95 backdrop-blur-sm border rounded-lg px-2.5 py-1.5 shadow-md text-xs pointer-events-none">
                     <p className="font-semibold">
-                        {hoveredFeature.properties?.b_name ?? "Onbekend perceel"}
+                        {hoveredFeature.properties?.b_name ??
+                            "Onbekend perceel"}
                     </p>
                     {scoreLabel && (
-                        <p className="text-muted-foreground text-[10px]">{scoreLabel}</p>
+                        <p className="text-muted-foreground text-[10px]">
+                            {scoreLabel}
+                        </p>
                     )}
                     {hoveredScore !== null && (
                         <span
                             className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white mt-0.5"
-                            style={{ backgroundColor: getScoreColor(hoveredScore) }}
+                            style={{
+                                backgroundColor: getScoreColor(hoveredScore),
+                            }}
                         >
                             {hoveredScore} – {getScoreVerdict(hoveredScore)}
                         </span>

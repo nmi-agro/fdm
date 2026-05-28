@@ -1,8 +1,8 @@
-import type { MiddlewareHandler } from "hono"
-import { createMiddleware } from "hono/factory"
-import * as Sentry from "@sentry/node"
 import type { FdmAuth } from "@nmi-agro/fdm-core"
 import { withAuditContext } from "@nmi-agro/fdm-core"
+import * as Sentry from "@sentry/node"
+import type { MiddlewareHandler } from "hono"
+import { createMiddleware } from "hono/factory"
 import { ApiError } from "./error"
 import type { ApiEnv, ApiPrincipalContext } from "./types"
 
@@ -33,7 +33,11 @@ export function createApiKeyAuth(
         const authHeader = c.req.header("authorization")
 
         if (xApiKey !== undefined && authHeader !== undefined) {
-            throw new ApiError(400, "ambiguous-api-key", "Provide either X-API-Key or Authorization: Bearer, not both.")
+            throw new ApiError(
+                400,
+                "ambiguous-api-key",
+                "Provide either X-API-Key or Authorization: Bearer, not both.",
+            )
         }
 
         const bearerKey = authHeader?.startsWith("Bearer ")
@@ -43,15 +47,20 @@ export function createApiKeyAuth(
         const rawKey = xApiKey ?? bearerKey
 
         if (!rawKey) {
-            throw new ApiError(401, "unauthorized", "An API key is required. Use X-API-Key or Authorization: Bearer.")
+            throw new ApiError(
+                401,
+                "unauthorized",
+                "An API key is required. Use X-API-Key or Authorization: Bearer.",
+            )
         }
 
         const result = await auth.api.verifyApiKey({ body: { key: rawKey } })
 
         if (!result.valid || !result.key) {
-            const msg = typeof result.error?.message === "string"
-                ? result.error.message
-                : "Invalid, expired, or revoked API key."
+            const msg =
+                typeof result.error?.message === "string"
+                    ? result.error.message
+                    : "Invalid, expired, or revoked API key."
             throw new ApiError(401, "unauthorized", msg)
         }
 

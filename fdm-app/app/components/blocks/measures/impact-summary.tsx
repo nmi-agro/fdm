@@ -8,9 +8,9 @@
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
 import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
 import {
-    ECOSYSTEEMDIENSTEN,
-    ECOSYSTEEMDIENST_INDICATOR_IDS,
     ECOSYSTEEMDIENST_FULL_NAME,
+    ECOSYSTEEMDIENST_INDICATOR_IDS,
+    ECOSYSTEEMDIENSTEN,
 } from "~/lib/indicators"
 
 type ImpactSummaryProps = {
@@ -34,8 +34,16 @@ function avg01(
 export function ImpactSummary({ indicators }: ImpactSummaryProps) {
     const dienstScores = ECOSYSTEEMDIENSTEN.map((dienst) => ({
         dienst,
-        score: avg01(indicators, ECOSYSTEEMDIENST_INDICATOR_IDS[dienst], "score"),
-        index: avg01(indicators, ECOSYSTEEMDIENST_INDICATOR_IDS[dienst], "index"),
+        score: avg01(
+            indicators,
+            ECOSYSTEEMDIENST_INDICATOR_IDS[dienst],
+            "score",
+        ),
+        index: avg01(
+            indicators,
+            ECOSYSTEEMDIENST_INDICATOR_IDS[dienst],
+            "index",
+        ),
     }))
 
     if (dienstScores.every((d) => d.score === null)) return null
@@ -54,7 +62,7 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
                         />
                     ) : null,
                 )}
-            </div>            
+            </div>
         </div>
     )
 }

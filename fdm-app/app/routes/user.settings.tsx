@@ -1,4 +1,9 @@
-import { type LoaderFunctionArgs, Outlet, useLoaderData, useLocation } from "react-router"
+import {
+    type LoaderFunctionArgs,
+    Outlet,
+    useLoaderData,
+    useLocation,
+} from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderUser } from "~/components/blocks/header/user"
 import { SidebarInset } from "~/components/ui/sidebar"

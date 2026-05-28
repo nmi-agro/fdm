@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createFdmApi } from "../index"
 import type { FdmApiServices } from "../index"
+import { createFdmApi } from "../index"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 const mockFdm = {

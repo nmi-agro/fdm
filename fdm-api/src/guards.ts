@@ -8,7 +8,11 @@ const WRITE_METHODS = new Set(["POST", "PUT", "PATCH"])
 const bodyLimitMiddleware = bodyLimit({
     maxSize: MAX_BODY_BYTES,
     onError: () => {
-        throw new ApiError(413, "payload-too-large", "Request body exceeds the 5 MB limit.")
+        throw new ApiError(
+            413,
+            "payload-too-large",
+            "Request body exceeds the 5 MB limit.",
+        )
     },
 })
 
@@ -35,7 +39,11 @@ export const requestGuard: MiddlewareHandler = async (c, next) => {
         const rawContentType = c.req.header("content-type") ?? ""
         const mediaType = rawContentType.split(";")[0]?.trim().toLowerCase()
         if (mediaType !== "application/json") {
-            throw new ApiError(415, "unsupported-media-type", "Content-Type must be application/json.")
+            throw new ApiError(
+                415,
+                "unsupported-media-type",
+                "Content-Type must be application/json.",
+            )
         }
 
         await bodyLimitMiddleware(c, next)
@@ -70,7 +78,11 @@ export function assertGeoJsonCoordinates(geometry: unknown): void {
 
     function walkGeometry(geom: unknown) {
         if (geom == null || typeof geom !== "object") return
-        const g = geom as { type?: string; coordinates?: unknown; geometries?: unknown[] }
+        const g = geom as {
+            type?: string
+            coordinates?: unknown
+            geometries?: unknown[]
+        }
         if (g.type === "GeometryCollection" && Array.isArray(g.geometries)) {
             for (const member of g.geometries) walkGeometry(member)
         } else {
@@ -81,6 +93,10 @@ export function assertGeoJsonCoordinates(geometry: unknown): void {
     walkGeometry(geometry)
 
     if (count > 10_000) {
-        throw new ApiError(422, "unprocessable-entity", "GeoJSON geometry exceeds the 10,000 coordinate limit.")
+        throw new ApiError(
+            422,
+            "unprocessable-entity",
+            "GeoJSON geometry exceeds the 10,000 coordinate limit.",
+        )
     }
 }

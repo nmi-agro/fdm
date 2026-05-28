@@ -6,7 +6,10 @@ import { z } from "zod"
 export const FertilizerApplicationSchema = z.object({
     p_id_catalogue: z
         .string()
-        .regex(/^[A-Za-z0-9_-]+$/, "Catalogue ID must contain only ASCII alphanumeric characters, underscores, or hyphens")
+        .regex(
+            /^[A-Za-z0-9_-]+$/,
+            "Catalogue ID must contain only ASCII alphanumeric characters, underscores, or hyphens",
+        )
         .describe("Catalogue ID of the fertilizer"),
     p_app_amount: z.number().describe("Application amount in kg/ha"),
     p_app_amount_display: z
@@ -15,9 +18,7 @@ export const FertilizerApplicationSchema = z.object({
     p_app_amount_unit: z
         .enum(["kg/ha", "l/ha", "t/ha", "m3/ha"])
         .describe("Display unit for the application amount"),
-    p_app_date: z
-        .string()
-        .describe("Application date in YYYY-MM-DD format"),
+    p_app_date: z.string().describe("Application date in YYYY-MM-DD format"),
     p_app_method: z.string().describe("Application method identifier"),
 })
 
@@ -79,9 +80,7 @@ const FarmTotalsSchema = z.object({
  * structured output from the LLM.
  */
 export const FertilizerPlanSchema = z.object({
-    summary: z
-        .string()
-        .describe("Dutch explanation of the plan (< 250 words)"),
+    summary: z.string().describe("Dutch explanation of the plan (< 250 words)"),
     metrics: z.object({
         farmTotals: FarmTotalsSchema,
     }),

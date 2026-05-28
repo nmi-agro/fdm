@@ -62,9 +62,14 @@ export function getColumns(
             cell: ({ row }) => {
                 const first = row.original.fields[0]
                 const allSame = row.original.fields.every(
-                    (f) => (f.m_start?.getTime() ?? null) === (first?.m_start?.getTime() ?? null),
+                    (f) =>
+                        (f.m_start?.getTime() ?? null) ===
+                        (first?.m_start?.getTime() ?? null),
                 )
-                if (!first?.m_start) return <span className="text-sm text-muted-foreground">—</span>
+                if (!first?.m_start)
+                    return (
+                        <span className="text-sm text-muted-foreground">—</span>
+                    )
                 return (
                     <span className="text-sm text-muted-foreground">
                         {allSame ? formatDate(first.m_start) : "Variabel"}
@@ -78,10 +83,16 @@ export function getColumns(
             cell: ({ row, table }) => {
                 const first = row.original.fields[0]
                 const allSame = row.original.fields.every(
-                    (f) => (f.m_end?.getTime() ?? null) === (first?.m_end?.getTime() ?? null),
+                    (f) =>
+                        (f.m_end?.getTime() ?? null) ===
+                        (first?.m_end?.getTime() ?? null),
                 )
                 if (first?.m_end && allSame) {
-                    return <span className="text-sm text-muted-foreground">{formatDate(first.m_end)}</span>
+                    return (
+                        <span className="text-sm text-muted-foreground">
+                            {formatDate(first.m_end)}
+                        </span>
+                    )
                 }
                 if (!first?.m_end) {
                     return (table.options.meta?.canModify ?? true) ? (
@@ -93,9 +104,17 @@ export function getColumns(
                         >
                             Afsluiten
                         </Button>
-                    ) : <span className="text-sm text-muted-foreground">Geen</span>
+                    ) : (
+                        <span className="text-sm text-muted-foreground">
+                            Geen
+                        </span>
+                    )
                 }
-                return <span className="text-sm text-muted-foreground">Variabel</span>
+                return (
+                    <span className="text-sm text-muted-foreground">
+                        Variabel
+                    </span>
+                )
             },
         },
         {
@@ -162,17 +181,35 @@ export function getColumns(
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                    Maatregel verwijderen?
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Wil je de maatregel &ldquo;{row.original.m_name}&rdquo; definitief verwijderen? Dit kan niet ongedaan worden gemaakt.
-                                    <br /><br />
-                                    <span className="text-foreground font-medium">Wil je de maatregel alleen beëindigen?</span> Gebruik dan de bewerkknop (<Pencil className="inline h-3.5 w-3.5 mx-0.5" />) en stel een einddatum in.
+                                    Wil je de maatregel &ldquo;
+                                    {row.original.m_name}&rdquo; definitief
+                                    verwijderen? Dit kan niet ongedaan worden
+                                    gemaakt.
+                                    <br />
+                                    <br />
+                                    <span className="text-foreground font-medium">
+                                        Wil je de maatregel alleen beëindigen?
+                                    </span>{" "}
+                                    Gebruik dan de bewerkknop (
+                                    <Pencil className="inline h-3.5 w-3.5 mx-0.5" />
+                                    ) en stel een einddatum in.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                                <Form method="post" action={`${basePath}?index`}>
-                                    <input type="hidden" name="intent" value="delete" />
+                                <Form
+                                    method="post"
+                                    action={`${basePath}?index`}
+                                >
+                                    <input
+                                        type="hidden"
+                                        name="intent"
+                                        value="delete"
+                                    />
                                     {row.original.fields.map((f) => (
                                         <input
                                             key={f.b_id_measure}

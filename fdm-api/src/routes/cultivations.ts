@@ -1,27 +1,27 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     addCultivation,
+    Cultivation,
+    FdmType,
     getCultivation,
     getCultivations,
     getCultivationsForFarm,
     removeCultivation,
     updateCultivation,
 } from "@nmi-agro/fdm-core"
-import type { Cultivation } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
 import {
     commonErrorResponses,
     DateStringSchema,
+    PaginationQuerySchema,
     paginatedResponse,
     paginatedSchema,
-    PaginationQuerySchema,
     serializeDate,
     writeErrorResponses,
 } from "../schemas"
+import type { ApiEnv, ApiPrincipalContext } from "../types"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
@@ -58,11 +58,10 @@ const CultivationSchema = z
         b_lu_harvestcat: z.string().nullable(),
         b_lu_harvestable: z.boolean(),
         b_lu_variety: z.string().nullable(),
-        b_lu_start: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
-        b_lu_end: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
+        b_lu_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
+        b_lu_end: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         m_cropresidue: z.boolean().nullable(),
         b_id: z.string(),
     })
@@ -73,10 +72,8 @@ const CreateCultivationBodySchema = z
         b_lu_catalogue: z
             .string()
             .describe("Cultivation catalogue identifier."),
-        b_lu_start: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
-        b_lu_end: DateStringSchema
-            .nullable()
+        b_lu_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
+        b_lu_end: DateStringSchema.nullable()
             .optional()
             .describe("Date in YYYY-MM-DD format."),
         m_cropresidue: z
@@ -97,7 +94,10 @@ const CreateCultivationBodySchema = z
             if (data.b_lu_end == null) return true
             return data.b_lu_end >= data.b_lu_start
         },
-        { message: "b_lu_end must not be before b_lu_start.", path: ["b_lu_end"] },
+        {
+            message: "b_lu_end must not be before b_lu_start.",
+            path: ["b_lu_end"],
+        },
     )
     .openapi("CreateCultivation")
 
@@ -107,11 +107,10 @@ const UpdateCultivationBodySchema = z
             .string()
             .optional()
             .describe("Cultivation catalogue identifier."),
-        b_lu_start: DateStringSchema
-            .optional()
-            .describe("Date in YYYY-MM-DD format."),
-        b_lu_end: DateStringSchema
-            .nullable()
+        b_lu_start: DateStringSchema.optional().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
+        b_lu_end: DateStringSchema.nullable()
             .optional()
             .describe("Date in YYYY-MM-DD format."),
         m_cropresidue: z
@@ -129,10 +128,14 @@ const UpdateCultivationBodySchema = z
     })
     .refine(
         (data) => {
-            if (data.b_lu_start === undefined || data.b_lu_end == null) return true
+            if (data.b_lu_start === undefined || data.b_lu_end == null)
+                return true
             return data.b_lu_end >= data.b_lu_start
         },
-        { message: "b_lu_end must not be before b_lu_start.", path: ["b_lu_end"] },
+        {
+            message: "b_lu_end must not be before b_lu_start.",
+            path: ["b_lu_end"],
+        },
     )
     .openapi("UpdateCultivation")
 
@@ -362,7 +365,8 @@ export function registerCultivationRoutes(
         )
         const cultivations = Array.from(cultivationsByField.values()).flat()
         cultivations.sort((a, b) => {
-            const dateDiff = (a.b_lu_start?.getTime() ?? 0) - (b.b_lu_start?.getTime() ?? 0)
+            const dateDiff =
+                (a.b_lu_start?.getTime() ?? 0) - (b.b_lu_start?.getTime() ?? 0)
             return dateDiff !== 0 ? dateDiff : a.b_lu.localeCompare(b.b_lu)
         })
         return c.json(
@@ -464,19 +468,35 @@ export function registerCultivationRoutes(
             if (body.b_lu_start) {
                 startDate = new Date(body.b_lu_start)
             } else {
-                const existing = await services.getCultivation(fdm, principal.effectivePrincipalId, b_lu)
+                const existing = await services.getCultivation(
+                    fdm,
+                    principal.effectivePrincipalId,
+                    b_lu,
+                )
                 startDate = existing?.b_lu_start ?? null
             }
             if (startDate && newEnd < startDate) {
-                throw new ApiError(400, "validation-failed", "b_lu_end must not be before b_lu_start.")
+                throw new ApiError(
+                    400,
+                    "validation-failed",
+                    "b_lu_end must not be before b_lu_start.",
+                )
             }
         } else if (body.b_lu_start && body.b_lu_end === undefined) {
             // Only b_lu_start is changing; check the new start against the persisted end.
             const newStart = new Date(body.b_lu_start)
-            const existing = await services.getCultivation(fdm, principal.effectivePrincipalId, b_lu)
+            const existing = await services.getCultivation(
+                fdm,
+                principal.effectivePrincipalId,
+                b_lu,
+            )
             const persistedEnd = existing?.b_lu_end ?? null
             if (persistedEnd && newStart > new Date(persistedEnd)) {
-                throw new ApiError(400, "validation-failed", "b_lu_start must not be after b_lu_end.")
+                throw new ApiError(
+                    400,
+                    "validation-failed",
+                    "b_lu_start must not be after b_lu_end.",
+                )
             }
         }
         await services.updateCultivation(

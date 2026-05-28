@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { createFdmApi } from "../index"
 import type { FdmApiServices } from "../index"
+import { createFdmApi } from "../index"
 
 // ---------------------------------------------------------------------------
 // Shared test setup
@@ -13,7 +13,9 @@ const mockFdm = {
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
     onConflictDoUpdate: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
+    returning: vi
+        .fn()
+        .mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
 } as any
 
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
@@ -66,7 +68,13 @@ const mockNitrogenBalance = {
         deposition: 10,
         fixation: 5,
         mineralisation: 30,
-        fertilizers: { total: 75, mineral: 50, manure: 15, compost: 5, other: 5 },
+        fertilizers: {
+            total: 75,
+            mineral: 50,
+            manure: 15,
+            compost: 5,
+            other: 5,
+        },
     },
     removal: { total: 90, harvests: 80, residues: 10 },
     emission: {
@@ -210,13 +218,21 @@ const mockFarmNorms = {
 
 const mockNormsServices = {
     createFunctionsForNorms: vi.fn(() => ({
-        collectInputForNormsForFarm: vi.fn().mockResolvedValue(new Map([["field-1", {}]])),
+        collectInputForNormsForFarm: vi
+            .fn()
+            .mockResolvedValue(new Map([["field-1", {}]])),
         collectInputForNorms: vi.fn().mockResolvedValue({}),
-        calculateNormForNitrogen: vi.fn().mockResolvedValue(mockFarmNorms.nitrogen),
+        calculateNormForNitrogen: vi
+            .fn()
+            .mockResolvedValue(mockFarmNorms.nitrogen),
         calculateNormForManure: vi.fn().mockResolvedValue(mockFarmNorms.manure),
-        calculateNormForPhosphate: vi.fn().mockResolvedValue(mockFarmNorms.phosphate),
+        calculateNormForPhosphate: vi
+            .fn()
+            .mockResolvedValue(mockFarmNorms.phosphate),
     })),
-    getField: vi.fn().mockResolvedValue({ b_id: "field-1", b_id_farm: "farm-1" }),
+    getField: vi
+        .fn()
+        .mockResolvedValue({ b_id: "field-1", b_id_farm: "farm-1" }),
 }
 
 // const mockNutrientAdviceServices = {
@@ -327,13 +343,17 @@ describe("Calculations — unauthenticated", () => {
 
     it("returns 401 for GET /farms/:id/calculations/norms without key", async () => {
         const app = makeApp()
-        const res = await app.request("/farms/farm-1/calculations/norms?year=2025")
+        const res = await app.request(
+            "/farms/farm-1/calculations/norms?year=2025",
+        )
         expect(res.status).toBe(401)
     })
 
     it("returns 401 for GET /fields/:id/calculations/norms without key", async () => {
         const app = makeApp()
-        const res = await app.request("/fields/field-1/calculations/norms?year=2025")
+        const res = await app.request(
+            "/fields/field-1/calculations/norms?year=2025",
+        )
         expect(res.status).toBe(401)
     })
 
@@ -383,12 +403,10 @@ describe("GET /farms/:b_id_farm/calculations/nitrogen-balance", () => {
         const body = await res.json()
         expect(body.balance).toBe(15.5)
         expect(body.hasErrors).toBe(false)
-        expect(collectInput).toHaveBeenCalledWith(
-            mockFdm,
-            "user-1",
-            "farm-1",
-            { start: new Date(START), end: new Date(END) },
-        )
+        expect(collectInput).toHaveBeenCalledWith(mockFdm, "user-1", "farm-1", {
+            start: new Date(START),
+            end: new Date(END),
+        })
     })
 
     it("returns 400 when start date is missing", async () => {
@@ -602,9 +620,12 @@ describe("GET /fields/:b_id/calculations/dose", () => {
         const getFieldFn = vi.fn().mockResolvedValue(null)
 
         const app = makeApp({ getField: getFieldFn })
-        const res = await app.request("/fields/no-such-field/calculations/dose", {
-            headers: { "x-api-key": "valid-key" },
-        })
+        const res = await app.request(
+            "/fields/no-such-field/calculations/dose",
+            {
+                headers: { "x-api-key": "valid-key" },
+            },
+        )
         expect(res.status).toBe(404)
     })
 
@@ -635,9 +656,12 @@ describe("GET /farms/:b_id_farm/calculations/norms", () => {
 
     it("returns 200 with farm norms result", async () => {
         const app = makeApp(mockNormsServices)
-        const res = await app.request("/farms/farm-1/calculations/norms?year=2025", {
-            headers: { "x-api-key": "valid-key" },
-        })
+        const res = await app.request(
+            "/farms/farm-1/calculations/norms?year=2025",
+            {
+                headers: { "x-api-key": "valid-key" },
+            },
+        )
 
         expect(res.status).toBe(200)
         const body = await res.json()
@@ -650,9 +674,12 @@ describe("GET /farms/:b_id_farm/calculations/norms", () => {
 
     it("returns 400 for unsupported year", async () => {
         const app = makeApp(mockNormsServices)
-        const res = await app.request("/farms/farm-1/calculations/norms?year=2030", {
-            headers: { "x-api-key": "valid-key" },
-        })
+        const res = await app.request(
+            "/farms/farm-1/calculations/norms?year=2030",
+            {
+                headers: { "x-api-key": "valid-key" },
+            },
+        )
 
         expect(res.status).toBe(400)
     })
@@ -666,9 +693,12 @@ describe("GET /fields/:b_id/calculations/norms", () => {
 
     it("returns 200 with field norms result", async () => {
         const app = makeApp(mockNormsServices)
-        const res = await app.request("/fields/field-1/calculations/norms?year=2025", {
-            headers: { "x-api-key": "valid-key" },
-        })
+        const res = await app.request(
+            "/fields/field-1/calculations/norms?year=2025",
+            {
+                headers: { "x-api-key": "valid-key" },
+            },
+        )
 
         expect(res.status).toBe(200)
         const body = await res.json()

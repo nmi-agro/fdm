@@ -1,10 +1,10 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpRightFromSquare } from "lucide-react"
 import { Link } from "react-router"
+import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Checkbox } from "~/components/ui/checkbox"
-import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
 
 export type FieldSummaryRow = {
     b_id: string
@@ -82,9 +82,7 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
                 const cult = row.original.mainCultivation
                 if (!cult?.b_lu_name) {
                     return (
-                        <span className="text-xs text-muted-foreground">
-                            —
-                        </span>
+                        <span className="text-xs text-muted-foreground">—</span>
                     )
                 }
                 return (
@@ -110,7 +108,8 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
             ),
             cell: ({ row }) => {
                 const area = row.original.b_area
-                if (area == null) return <span className="text-muted-foreground">—</span>
+                if (area == null)
+                    return <span className="text-muted-foreground">—</span>
                 return (
                     <span className="text-muted-foreground tabular-nums">
                         {area < 0.1 ? "< 0,1 ha" : `${area.toFixed(1)} ha`}
@@ -138,10 +137,14 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
                 return (
                     <div className="flex flex-col gap-0.5">
                         <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400 w-fit">
-                            {measures.length} maatregel{measures.length === 1 ? "" : "en"}
+                            {measures.length} maatregel
+                            {measures.length === 1 ? "" : "en"}
                         </span>
                         {measures.slice(0, 2).map((m, i) => (
-                            <span key={i} className="text-xs text-muted-foreground">
+                            <span
+                                key={i}
+                                className="text-xs text-muted-foreground"
+                            >
                                 · {m.m_name}
                             </span>
                         ))}

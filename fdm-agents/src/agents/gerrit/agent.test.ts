@@ -1,13 +1,13 @@
 import { AIMessage } from "@langchain/core/messages"
 import { describe, expect, it, vi } from "vitest"
 import {
+    countToolRoundtrips,
+    createFertilizerPlannerAgent,
     DEFAULT_TOOL_ROUND_LIMIT,
     GERRIT_DESCRIPTION,
     GERRIT_INSTRUCTION,
     GERRIT_NAME,
     TOOL_LIMIT_WARNING,
-    countToolRoundtrips,
-    createFertilizerPlannerAgent,
 } from "./agent"
 
 // Mock models and tools to avoid external calls
@@ -62,7 +62,12 @@ describe("countToolRoundtrips", () => {
             new AIMessage({
                 content: "",
                 tool_calls: [
-                    { name: "getFarmFields", args: {}, id: "1", type: "tool_call" },
+                    {
+                        name: "getFarmFields",
+                        args: {},
+                        id: "1",
+                        type: "tool_call",
+                    },
                 ],
             }),
             new AIMessage({

@@ -1,8 +1,12 @@
-import { KeyIcon, PlusIcon, TrashIcon, BookOpenIcon } from "lucide-react"
-import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { BookOpenIcon, KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
+import {
+    type LoaderFunctionArgs,
+    type MetaFunction,
+    useLoaderData,
+} from "react-router"
 import { toast } from "sonner"
-import { clientConfig } from "~/lib/config"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -34,9 +38,9 @@ import {
 } from "~/components/ui/dialog"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
-import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { authClient } from "~/lib/auth-client"
 import { getSession } from "~/lib/auth.server"
+import { authClient } from "~/lib/auth-client"
+import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -181,288 +185,298 @@ export default function UserSettingsApiKeys() {
                 description={`Gebruik API-sleutels voor programmatische toegang tot ${clientConfig.name}. Behandel sleutels als wachtwoorden — deel ze nooit en sla ze veilig op.`}
             />
             <div className="space-y-6 px-4 md:px-8 pb-8">
-            <div className="flex justify-end gap-2">
-                {clientConfig.apiUrl && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                    >
-                        <a
-                            href={`${clientConfig.apiUrl}/docs`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            <BookOpenIcon className="mr-2 h-4 w-4" />
-                            API-documentatie
-                        </a>
-                    </Button>
-                )}
-                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogTrigger asChild>
-                        <Button size="sm">
-                            <PlusIcon className="mr-2 h-4 w-4" />
-                            Nieuwe sleutel
+                <div className="flex justify-end gap-2">
+                    {clientConfig.apiUrl && (
+                        <Button variant="outline" size="sm" asChild>
+                            <a
+                                href={`${clientConfig.apiUrl}/docs`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <BookOpenIcon className="mr-2 h-4 w-4" />
+                                API-documentatie
+                            </a>
                         </Button>
-                    </DialogTrigger>
+                    )}
+                    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                        <DialogTrigger asChild>
+                            <Button size="sm">
+                                <PlusIcon className="mr-2 h-4 w-4" />
+                                Nieuwe sleutel
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>API-sleutel aanmaken</DialogTitle>
+                                <DialogDescription>
+                                    Geef de sleutel een beschrijvende naam zodat
+                                    je hem later herkent.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-2">
+                                <Label htmlFor="key-name">Naam</Label>
+                                <Input
+                                    id="key-name"
+                                    placeholder={`Dashboard van ${firstname}`}
+                                    value={newKeyName}
+                                    onChange={(e) =>
+                                        setNewKeyName(e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleCreate()
+                                    }}
+                                />
+                            </div>
+                            <DialogFooter>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCreateOpen(false)}
+                                >
+                                    Annuleren
+                                </Button>
+                                <Button
+                                    onClick={handleCreate}
+                                    disabled={isCreating || !newKeyName.trim()}
+                                >
+                                    {isCreating ? "Aanmaken…" : "Aanmaken"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+
+                {/* Raw key reveal dialog — shown only once */}
+                <Dialog open={rawKeyOpen} onOpenChange={setRawKeyOpen}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>API-sleutel aanmaken</DialogTitle>
+                            <DialogTitle>Kopieer je API-sleutel</DialogTitle>
                             <DialogDescription>
-                                Geef de sleutel een beschrijvende naam zodat je
-                                hem later herkent.
+                                Deze sleutel wordt{" "}
+                                <strong>slechts één keer</strong> getoond. Sla
+                                hem op een veilige plek op. Na het sluiten van
+                                dit venster is de sleutel niet meer op te
+                                vragen.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-2">
-                            <Label htmlFor="key-name">Naam</Label>
-                            <Input
-                                id="key-name"
-                                placeholder={`Dashboard van ${firstname}`}
-                                value={newKeyName}
-                                onChange={(e) => setNewKeyName(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleCreate()
-                                }}
-                            />
+                        <div className="rounded-md bg-muted px-3 py-2 font-mono text-sm break-all select-all">
+                            {rawKey}
                         </div>
                         <DialogFooter>
                             <Button
                                 variant="outline"
-                                onClick={() => setCreateOpen(false)}
+                                onClick={() => {
+                                    if (rawKey) {
+                                        navigator.clipboard.writeText(rawKey)
+                                        toast.success(
+                                            "Gekopieerd naar klembord.",
+                                        )
+                                    }
+                                }}
                             >
-                                Annuleren
+                                Kopiëren
                             </Button>
-                            <Button
-                                onClick={handleCreate}
-                                disabled={isCreating || !newKeyName.trim()}
-                            >
-                                {isCreating ? "Aanmaken…" : "Aanmaken"}
+                            <Button onClick={() => setRawKeyOpen(false)}>
+                                Sluiten
                             </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </div>
 
-            {/* Raw key reveal dialog — shown only once */}
-            <Dialog open={rawKeyOpen} onOpenChange={setRawKeyOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            Kopieer je API-sleutel
-                        </DialogTitle>
-                        <DialogDescription>
-                            Deze sleutel wordt{" "}
-                            <strong>slechts één keer</strong> getoond. Sla hem
-                            op een veilige plek op. Na het sluiten van dit
-                            venster is de sleutel niet meer op te vragen.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="rounded-md bg-muted px-3 py-2 font-mono text-sm break-all select-all">
-                        {rawKey}
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                if (rawKey) {
-                                    navigator.clipboard.writeText(rawKey)
-                                    toast.success("Gekopieerd naar klembord.")
-                                }
-                            }}
-                        >
-                            Kopiëren
-                        </Button>
-                        <Button onClick={() => setRawKeyOpen(false)}>
-                            Sluiten
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Jouw sleutels</CardTitle>
-                    <CardDescription>
-                        Overzicht van al je actieve API-sleutels.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <p className="text-sm text-muted-foreground">
-                            Laden…
-                        </p>
-                    ) : keys.length === 0 ? (
-                        <div className="flex flex-col items-center gap-2 py-8 text-center">
-                            <KeyIcon className="h-8 w-8 text-muted-foreground" />
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Jouw sleutels</CardTitle>
+                        <CardDescription>
+                            Overzicht van al je actieve API-sleutels.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading ? (
                             <p className="text-sm text-muted-foreground">
-                                Geen API-sleutels gevonden. Maak er een aan om
-                                te beginnen.
+                                Laden…
                             </p>
-                        </div>
-                    ) : (
-                        <ul className="divide-y">
-                            {keys.map((k) => (
-                                <li
-                                    key={k.id}
-                                    className="flex items-center gap-3 py-3"
-                                >
-                                    <div className="flex-1 min-w-0 space-y-0.5">
-                                        {editId === k.id ? (
-                                            <div className="flex items-center gap-2">
-                                                <Input
-                                                    value={editName}
-                                                    onChange={(e) =>
-                                                        setEditName(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    className="h-7 text-sm"
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter")
+                        ) : keys.length === 0 ? (
+                            <div className="flex flex-col items-center gap-2 py-8 text-center">
+                                <KeyIcon className="h-8 w-8 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">
+                                    Geen API-sleutels gevonden. Maak er een aan
+                                    om te beginnen.
+                                </p>
+                            </div>
+                        ) : (
+                            <ul className="divide-y">
+                                {keys.map((k) => (
+                                    <li
+                                        key={k.id}
+                                        className="flex items-center gap-3 py-3"
+                                    >
+                                        <div className="flex-1 min-w-0 space-y-0.5">
+                                            {editId === k.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        value={editName}
+                                                        onChange={(e) =>
+                                                            setEditName(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="h-7 text-sm"
+                                                        onKeyDown={(e) => {
+                                                            if (
+                                                                e.key ===
+                                                                "Enter"
+                                                            )
+                                                                handleSaveName(
+                                                                    k.id,
+                                                                )
+                                                            if (
+                                                                e.key ===
+                                                                "Escape"
+                                                            ) {
+                                                                setEditId(null)
+                                                            }
+                                                        }}
+                                                        autoFocus
+                                                    />
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
                                                             handleSaveName(k.id)
-                                                        if (
-                                                            e.key === "Escape"
-                                                        ) {
+                                                        }
+                                                        disabled={isSaving}
+                                                    >
+                                                        {isSaving
+                                                            ? "Opslaan…"
+                                                            : "Opslaan"}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() =>
                                                             setEditId(null)
                                                         }
+                                                    >
+                                                        Annuleren
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="text-sm font-medium hover:underline text-left truncate max-w-xs"
+                                                    onClick={() => {
+                                                        setEditId(k.id)
+                                                        setEditName(
+                                                            k.name ?? "",
+                                                        )
                                                     }}
-                                                    autoFocus
-                                                />
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                        handleSaveName(k.id)
-                                                    }
-                                                    disabled={isSaving}
+                                                    title="Klik om naam te bewerken"
                                                 >
-                                                    {isSaving
-                                                        ? "Opslaan…"
-                                                        : "Opslaan"}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() =>
-                                                        setEditId(null)
+                                                    {k.name ?? "(naamloos)"}
+                                                </button>
+                                            )}
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {k.start && (
+                                                    <span className="font-mono text-xs text-muted-foreground">
+                                                        {k.prefix
+                                                            ? `${k.prefix}_`
+                                                            : ""}
+                                                        {k.start}…
+                                                    </span>
+                                                )}
+                                                <Badge
+                                                    variant={
+                                                        k.enabled
+                                                            ? "default"
+                                                            : "secondary"
                                                     }
+                                                    className="text-xs"
                                                 >
-                                                    Annuleren
-                                                </Button>
+                                                    {k.enabled
+                                                        ? "Actief"
+                                                        : "Inactief"}
+                                                </Badge>
+                                                {k.expiresAt && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Verloopt:{" "}
+                                                        {new Date(
+                                                            k.expiresAt,
+                                                        ).toLocaleDateString(
+                                                            "nl-NL",
+                                                        )}
+                                                    </span>
+                                                )}
+                                                <span className="text-xs text-muted-foreground">
+                                                    Aangemaakt:{" "}
+                                                    {new Date(
+                                                        k.createdAt,
+                                                    ).toLocaleDateString(
+                                                        "nl-NL",
+                                                    )}
+                                                </span>
+                                                {k.lastRequest && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Laatste gebruik:{" "}
+                                                        {new Date(
+                                                            k.lastRequest,
+                                                        ).toLocaleDateString(
+                                                            "nl-NL",
+                                                        )}
+                                                    </span>
+                                                )}
                                             </div>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                className="text-sm font-medium hover:underline text-left truncate max-w-xs"
-                                                onClick={() => {
-                                                    setEditId(k.id)
-                                                    setEditName(k.name ?? "")
-                                                }}
-                                                title="Klik om naam te bewerken"
-                                            >
-                                                {k.name ?? "(naamloos)"}
-                                            </button>
-                                        )}
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            {k.start && (
-                                                <span className="font-mono text-xs text-muted-foreground">
-                                                    {k.prefix
-                                                        ? `${k.prefix}_`
-                                                        : ""}
-                                                    {k.start}…
-                                                </span>
-                                            )}
-                                            <Badge
-                                                variant={
-                                                    k.enabled
-                                                        ? "default"
-                                                        : "secondary"
-                                                }
-                                                className="text-xs"
-                                            >
-                                                {k.enabled
-                                                    ? "Actief"
-                                                    : "Inactief"}
-                                            </Badge>
-                                            {k.expiresAt && (
-                                                <span className="text-xs text-muted-foreground">
-                                                    Verloopt:{" "}
-                                                    {new Date(
-                                                        k.expiresAt,
-                                                    ).toLocaleDateString(
-                                                        "nl-NL",
-                                                    )}
-                                                </span>
-                                            )}
-                                            <span className="text-xs text-muted-foreground">
-                                                Aangemaakt:{" "}
-                                                {new Date(
-                                                    k.createdAt,
-                                                ).toLocaleDateString("nl-NL")}
-                                            </span>
-                                            {k.lastRequest && (
-                                                <span className="text-xs text-muted-foreground">
-                                                    Laatste gebruik:{" "}
-                                                    {new Date(
-                                                        k.lastRequest,
-                                                    ).toLocaleDateString(
-                                                        "nl-NL",
-                                                    )}
-                                                </span>
-                                            )}
                                         </div>
-                                    </div>
 
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="shrink-0 text-destructive hover:text-destructive"
-                                                title="Sleutel intrekken"
-                                            >
-                                                <TrashIcon className="h-4 w-4" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>
-                                                    Sleutel intrekken?
-                                                </AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    De sleutel{" "}
-                                                    <strong>
-                                                        {k.name ?? k.id}
-                                                    </strong>{" "}
-                                                    wordt permanent verwijderd.
-                                                    Alle automatisering die
-                                                    deze sleutel gebruikt, zal
-                                                    stoppen met werken. Dit
-                                                    kan niet ongedaan worden
-                                                    gemaakt.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>
-                                                    Annuleren
-                                                </AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={() =>
-                                                        handleRevoke(k.id)
-                                                    }
-                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="shrink-0 text-destructive hover:text-destructive"
+                                                    title="Sleutel intrekken"
                                                 >
-                                                    Intrekken
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </CardContent>
-            </Card>
+                                                    <TrashIcon className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>
+                                                        Sleutel intrekken?
+                                                    </AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        De sleutel{" "}
+                                                        <strong>
+                                                            {k.name ?? k.id}
+                                                        </strong>{" "}
+                                                        wordt permanent
+                                                        verwijderd. Alle
+                                                        automatisering die deze
+                                                        sleutel gebruikt, zal
+                                                        stoppen met werken. Dit
+                                                        kan niet ongedaan worden
+                                                        gemaakt.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>
+                                                        Annuleren
+                                                    </AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() =>
+                                                            handleRevoke(k.id)
+                                                        }
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                        Intrekken
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
         </>
     )

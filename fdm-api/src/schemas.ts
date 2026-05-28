@@ -16,9 +16,18 @@ export const ProblemDetailsSchema = z.object({
  * Defines the standard `limit` and `offset` query parameters used by list endpoints.
  */
 export const PaginationQuerySchema = z.object({
-    limit: z.coerce.number().int().min(1).max(200).default(50)
+    limit: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .default(50)
         .describe("Maximum number of items to return (1–200, default 50)."),
-    offset: z.coerce.number().int().min(0).default(0)
+    offset: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .default(0)
         .describe("Number of items to skip before returning results."),
 })
 
@@ -34,7 +43,9 @@ export const DateStringSchema = z
  * Serializes a date value to a YYYY-MM-DD string for API responses.
  * Returns null for null/undefined inputs.
  */
-export function serializeDate(date: Date | string | null | undefined): string | null {
+export function serializeDate(
+    date: Date | string | null | undefined,
+): string | null {
     if (date instanceof Date) return date.toISOString().slice(0, 10)
     if (typeof date === "string" && date.length >= 10) return date.slice(0, 10)
     return null
@@ -44,10 +55,12 @@ export function serializeDate(date: Date | string | null | undefined): string | 
  * Defines optional `from` and `to` query parameters for timeframe-aware list endpoints.
  */
 export const TimeframeQuerySchema = z.object({
-    from: DateStringSchema.optional()
-        .describe("Inclusive timeframe start (YYYY-MM-DD)."),
-    to: DateStringSchema.optional()
-        .describe("Inclusive timeframe end (YYYY-MM-DD)."),
+    from: DateStringSchema.optional().describe(
+        "Inclusive timeframe start (YYYY-MM-DD).",
+    ),
+    to: DateStringSchema.optional().describe(
+        "Inclusive timeframe end (YYYY-MM-DD).",
+    ),
 })
 
 /**
@@ -61,12 +74,14 @@ export const PaginationTimeframeQuerySchema = PaginationQuerySchema.extend({
 /**
  * Converts optional `from`/`to` query parameters into an fdm-core timeframe object.
  */
-export function parseTimeframeQuery(query: z.infer<typeof TimeframeQuerySchema>) {
+export function parseTimeframeQuery(
+    query: z.infer<typeof TimeframeQuerySchema>,
+) {
     return query.from || query.to
         ? {
-            start: query.from ? new Date(query.from) : undefined,
-            end: query.to ? new Date(query.to) : undefined,
-        }
+              start: query.from ? new Date(query.from) : undefined,
+              end: query.to ? new Date(query.to) : undefined,
+          }
         : undefined
 }
 
@@ -116,23 +131,34 @@ export function paginatedSchema<T extends z.ZodTypeAny>(itemSchema: T) {
 export const commonErrorResponses = {
     401: {
         description: "Unauthorized — missing or invalid API key.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
     403: {
-        description: "Forbidden — API key does not have access to this resource.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        description:
+            "Forbidden — API key does not have access to this resource.",
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
     404: {
         description: "Not found.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
     429: {
         description: "Rate limit exceeded.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
     500: {
         description: "Internal server error.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
 }
 
@@ -143,19 +169,29 @@ export const writeErrorResponses = {
     ...commonErrorResponses,
     400: {
         description: "Bad request — request body failed validation.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
     413: {
         description: "Payload too large — request body exceeds the 5 MB limit.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
     415: {
-        description: "Unsupported media type — Content-Type must be application/json.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        description:
+            "Unsupported media type — Content-Type must be application/json.",
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
     422: {
-        description: "Unprocessable entity — request data failed semantic validation.",
-        content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+        description:
+            "Unprocessable entity — request data failed semantic validation.",
+        content: {
+            "application/problem+json": { schema: ProblemDetailsSchema },
+        },
     },
 }
 
@@ -217,4 +253,7 @@ const GeoJsonMultiPolygonSchema = z.object({
 /**
  * Validates the GeoJSON geometry shapes accepted by field endpoints.
  */
-export const GeoJsonGeometrySchema = z.union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema])
+export const GeoJsonGeometrySchema = z.union([
+    GeoJsonPolygonSchema,
+    GeoJsonMultiPolygonSchema,
+])

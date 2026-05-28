@@ -1,6 +1,6 @@
-import { Database, GitMerge, Puzzle } from "lucide-react"
 import Heading from "@theme/Heading"
 import clsx from "clsx"
+import { Database, GitMerge, Puzzle } from "lucide-react"
 import styles from "./styles.module.css"
 
 type FeatureItem = {

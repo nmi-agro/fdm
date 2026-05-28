@@ -60,7 +60,9 @@ function buildCallbacks(
         const { LangChainCallbackHandler } =
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             require("@posthog/ai/langchain") as {
-                LangChainCallbackHandler: new (opts: any) => LangChainCallbackHandler
+                LangChainCallbackHandler: new (
+                    opts: any,
+                ) => LangChainCallbackHandler
             }
         return [
             new LangChainCallbackHandler({
@@ -130,7 +132,9 @@ export async function runOneShotAgent(
         )) as AsyncIterable<unknown>
 
         for await (const rawChunk of stream) {
-            const chunk = rawChunk as [string, Record<string, any>] | Record<string, any>
+            const chunk = rawChunk as
+                | [string, Record<string, any>]
+                | Record<string, any>
             // streamMode array yields [mode, data] tuples
             const [mode, data] = Array.isArray(chunk)
                 ? (chunk as [string, Record<string, any>])
@@ -140,12 +144,16 @@ export async function runOneShotAgent(
                 const node = Object.keys(data ?? {})[0]
                 const nodeData = node ? data[node] : data
 
-                if (node === "model_request" && Array.isArray(nodeData?.messages)) {
+                if (
+                    node === "model_request" &&
+                    Array.isArray(nodeData?.messages)
+                ) {
                     for (const msg of nodeData.messages) {
                         if (!isAIMessage(msg)) continue
                         if (msg.usage_metadata) {
                             inputTokens += msg.usage_metadata.input_tokens ?? 0
-                            outputTokens += msg.usage_metadata.output_tokens ?? 0
+                            outputTokens +=
+                                msg.usage_metadata.output_tokens ?? 0
                         }
                         if (msg.tool_calls?.length) {
                             for (const tc of msg.tool_calls) {
@@ -170,7 +178,10 @@ export async function runOneShotAgent(
 
                 // Capture structured response from responseFormat node
                 if (nodeData?.structuredResponse != null) {
-                    structuredResponse = nodeData.structuredResponse as Record<string, unknown>
+                    structuredResponse = nodeData.structuredResponse as Record<
+                        string,
+                        unknown
+                    >
                 }
             }
             // "custom" mode: progress events from config.writer — consumed by callers
@@ -184,7 +195,10 @@ export async function runOneShotAgent(
             result: finalResponse,
             structuredResponse,
             runId,
-            usage: totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
+            usage:
+                totalTokens > 0
+                    ? { inputTokens, outputTokens, totalTokens }
+                    : null,
             toolCalls: uniqueToolCalls,
         }
     })()

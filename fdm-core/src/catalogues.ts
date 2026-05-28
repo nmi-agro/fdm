@@ -1,6 +1,7 @@
 import type {
     CatalogueFertilizer,
     CatalogueFertilizerItem,
+    CatalogueMeasure,
 } from "@nmi-agro/fdm-data"
 import {
     getCultivationCatalogue,
@@ -10,7 +11,6 @@ import {
     hashFertilizer,
     hashMeasure,
 } from "@nmi-agro/fdm-data"
-import type { CatalogueMeasure } from "@nmi-agro/fdm-data"
 import { and, eq, inArray } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.types"
@@ -816,9 +816,7 @@ export async function syncMeasuresCatalogueArray(
                 const existing = await tx
                     .select({ hash: schema.measuresCatalogue.hash })
                     .from(schema.measuresCatalogue)
-                    .where(
-                        eq(schema.measuresCatalogue.m_id, item.m_id),
-                    )
+                    .where(eq(schema.measuresCatalogue.m_id, item.m_id))
                     .limit(1)
                 if (existing.length === 0) {
                     await tx.insert(schema.measuresCatalogue).values(item)
@@ -831,12 +829,7 @@ export async function syncMeasuresCatalogueArray(
                         await tx
                             .update(schema.measuresCatalogue)
                             .set({ ...item, updated: new Date() })
-                            .where(
-                                eq(
-                                    schema.measuresCatalogue.m_id,
-                                    item.m_id,
-                                ),
-                            )
+                            .where(eq(schema.measuresCatalogue.m_id, item.m_id))
                     }
                 }
             }

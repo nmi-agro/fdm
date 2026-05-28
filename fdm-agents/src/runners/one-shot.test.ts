@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { AgentRecursionLimitError, AgentTimeoutError, runOneShotAgent } from "./one-shot"
+import {
+    AgentRecursionLimitError,
+    AgentTimeoutError,
+    runOneShotAgent,
+} from "./one-shot"
 
 function makeAIMessage(
     content: string | Array<Record<string, unknown>>,
@@ -59,8 +63,14 @@ describe("runOneShotAgent", () => {
                     model_request: {
                         messages: [
                             makeAIMessage([
-                                { type: "thinking", thinking: "Let me plan..." },
-                                { type: "text", text: '{"summary":"s","plan":[]}' },
+                                {
+                                    type: "thinking",
+                                    thinking: "Let me plan...",
+                                },
+                                {
+                                    type: "text",
+                                    text: '{"summary":"s","plan":[]}',
+                                },
                             ]),
                         ],
                     },
@@ -75,7 +85,11 @@ describe("runOneShotAgent", () => {
         const agent = createMockAgent([
             [
                 "updates",
-                { model_request: { messages: [makeAIMessage("The plan is ready.")] } },
+                {
+                    model_request: {
+                        messages: [makeAIMessage("The plan is ready.")],
+                    },
+                },
             ],
         ])
         const result = await runOneShotAgent(agent, "Generate plan")
@@ -93,10 +107,18 @@ describe("runOneShotAgent", () => {
 
     it("should pass context to agent.stream when posthog is provided", async () => {
         const agent = createMockAgent([
-            ["updates", { model_request: { messages: [makeAIMessage("Done.")] } }],
+            [
+                "updates",
+                { model_request: { messages: [makeAIMessage("Done.")] } },
+            ],
         ])
         const context = { principalId: "p-1", b_id_farm: "f-1" }
-        const result = await runOneShotAgent(agent, "Generate plan", context, mockPosthog)
+        const result = await runOneShotAgent(
+            agent,
+            "Generate plan",
+            context,
+            mockPosthog,
+        )
         // Verify the run succeeded and context was passed through
         expect(result.result).toBe("Done.")
         expect(agent.stream).toHaveBeenCalledWith(
@@ -149,7 +171,10 @@ describe("runOneShotAgent", () => {
 
     it("should return null usage when no usage metadata is present", async () => {
         const agent = createMockAgent([
-            ["updates", { model_request: { messages: [makeAIMessage("Done.")] } }],
+            [
+                "updates",
+                { model_request: { messages: [makeAIMessage("Done.")] } },
+            ],
         ])
         const result = await runOneShotAgent(agent, "Generate plan")
         expect(result.usage).toBeNull()
@@ -161,7 +186,10 @@ describe("runOneShotAgent", () => {
                 "updates",
                 { tools: { messages: [makeToolMessage("getFarmFields")] } },
             ],
-            ["updates", { model_request: { messages: [makeAIMessage("Done.")] } }],
+            [
+                "updates",
+                { model_request: { messages: [makeAIMessage("Done.")] } },
+            ],
         ])
         const result = await runOneShotAgent(agent, "Generate plan")
         expect(result.toolCalls).toContain("getFarmFields")
@@ -181,7 +209,10 @@ describe("runOneShotAgent", () => {
                     },
                 },
             ],
-            ["updates", { model_request: { messages: [makeAIMessage("Done.")] } }],
+            [
+                "updates",
+                { model_request: { messages: [makeAIMessage("Done.")] } },
+            ],
         ])
         const result = await runOneShotAgent(agent, "Generate plan")
         expect(result.toolCalls).toContain("simulateFarmPlan")
@@ -197,7 +228,10 @@ describe("runOneShotAgent", () => {
                 "updates",
                 { tools: { messages: [makeToolMessage("searchFertilizers")] } },
             ],
-            ["updates", { model_request: { messages: [makeAIMessage("Done.")] } }],
+            [
+                "updates",
+                { model_request: { messages: [makeAIMessage("Done.")] } },
+            ],
         ])
         const result = await runOneShotAgent(agent, "Generate plan")
         expect(
@@ -245,4 +279,3 @@ describe("runOneShotAgent", () => {
         )
     })
 })
-

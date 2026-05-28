@@ -321,8 +321,10 @@ async function computePlanMetrics(
 
                 const syntheticApps: FertilizerApplication[] =
                     field.applications.map((app, i) => {
-                        const sanitizedCatalogueId =
-                            app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
+                        const sanitizedCatalogueId = app.p_id_catalogue.replace(
+                            /[^\x00-\x7F]/g,
+                            "",
+                        )
                         const fert = fertilizers.find(
                             (f) => f.p_id_catalogue === sanitizedCatalogueId,
                         )
@@ -705,19 +707,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     }
                 }),
             )
-            const fieldsSummary: FarmFieldSummary[] = fieldsData
-                .map((f) => ({
-                    b_id: f.b_id,
-                    b_name: f.b_name,
-                    b_area: f.b_area ?? 0,
-                    b_bufferstrip: f.b_bufferstrip ?? false,
-                    b_lu_catalogue: f.b_lu_catalogue,
-                    b_lu_name: f.b_lu_name,
-                    b_lu_croprotation: f.b_lu_croprotation,
-                    b_soiltype_agr: f.b_soiltype_agr,
-                    b_gwl_class: f.b_gwl_class,
-                    a_som_loi: f.a_som_loi,
-                }))
+            const fieldsSummary: FarmFieldSummary[] = fieldsData.map((f) => ({
+                b_id: f.b_id,
+                b_name: f.b_name,
+                b_area: f.b_area ?? 0,
+                b_bufferstrip: f.b_bufferstrip ?? false,
+                b_lu_catalogue: f.b_lu_catalogue,
+                b_lu_name: f.b_lu_name,
+                b_lu_croprotation: f.b_lu_croprotation,
+                b_soiltype_agr: f.b_soiltype_agr,
+                b_gwl_class: f.b_gwl_class,
+                a_som_loi: f.a_som_loi,
+            }))
             const fertilizers = await getFertilizers(
                 fdm,
                 session.principal_id,
@@ -959,7 +960,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             ],
                             $ai_tools_called: toolCalls || [],
                             $ai_tool_call_count: toolCalls?.length || 0,
-                            $ai_trace_id: runId ?? `gerrit-${b_id_farm}-${calendar}`,
+                            $ai_trace_id:
+                                runId ?? `gerrit-${b_id_farm}-${calendar}`,
                             b_id_farm,
                             calendar,
                             field_count: fieldsData.length,
@@ -1085,9 +1087,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         } catch (e: unknown) {
             console.error("Save failed:", e)
             const detail =
-                e instanceof Error
-                    ? e.message.slice(0, 200)
-                    : "Onbekende fout"
+                e instanceof Error ? e.message.slice(0, 200) : "Onbekende fout"
             return dataWithError(null, `Fout bij opslaan: ${detail}`)
         }
     }

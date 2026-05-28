@@ -25,6 +25,7 @@ import {
     useLoaderData,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
+import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import {
@@ -39,7 +40,6 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
-import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { getNitrogenBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -91,7 +91,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Fetch cultivations and harvests for all fields in one batch each
         const [cultivationsMap, harvestsMap] = await Promise.all([
-            getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+            getCultivationsForFarm(
+                fdm,
+                session.principal_id,
+                b_id_farm,
+                timeframe,
+            ),
             getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
         ])
 
@@ -127,8 +132,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             farm: farm,
             fields: fields,
             calendar: getCalendar(params),
-            cultivationsEntries: [...cultivationsMap.entries()] as [string, Cultivation[]][],
-            harvestsEntries: [...harvestsMap.entries()] as [string, Harvest[]][],
+            cultivationsEntries: [...cultivationsMap.entries()] as [
+                string,
+                Cultivation[],
+            ][],
+            harvestsEntries: [...harvestsMap.entries()] as [
+                string,
+                Harvest[],
+            ][],
             asyncData: asyncData,
         }
     } catch (error) {

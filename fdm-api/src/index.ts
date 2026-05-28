@@ -1,5 +1,23 @@
 /** @module */
 
+import {
+    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
+    // assessDataCompleteness,
+    // buildDynaRequest,
+    // buildNSupplyRequest,
+    calculateNitrogenBalance,
+    calculateOrganicMatterBalance,
+    collectInputForNitrogenBalance,
+    collectInputForOrganicMatterBalance,
+    createFunctionsForNorms,
+    getDoseForField,
+    // getDyna,
+    // getNSupply,
+    getNitrogenBalanceField,
+    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
+    // getNutrientAdvice,
+    getOrganicMatterBalanceField,
+} from "@nmi-agro/fdm-calculator"
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import {
     addCultivation,
@@ -35,9 +53,9 @@ import {
     getMeasure,
     getMeasures,
     getOrganicCertification,
-    getSoilAnalysis,
     getSoilAnalyses,
     getSoilAnalysesForFarm,
+    getSoilAnalysis,
     listDerogations,
     listOrganicCertifications,
     removeCultivation,
@@ -60,24 +78,6 @@ import {
     updateMeasure,
     updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import {
-    // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-    // assessDataCompleteness,
-    // buildDynaRequest,
-    // buildNSupplyRequest,
-    calculateNitrogenBalance,
-    calculateOrganicMatterBalance,
-    collectInputForNitrogenBalance,
-    collectInputForOrganicMatterBalance,
-    createFunctionsForNorms,
-    getDoseForField,
-    // getDyna,
-    // getNSupply,
-    getNitrogenBalanceField,
-    // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-    // getNutrientAdvice,
-    getOrganicMatterBalanceField,
-} from "@nmi-agro/fdm-calculator"
 import { buildApp } from "./app"
 
 /**
@@ -296,4 +296,4 @@ export function createFdmApi(
     return buildApp(fdm, auth, config, { ...defaultServices, ...services })
 }
 
-export type { ApiPrincipalContext, ApiEnv } from "./types"
+export type { ApiEnv, ApiPrincipalContext } from "./types"

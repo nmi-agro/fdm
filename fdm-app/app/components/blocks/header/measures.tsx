@@ -23,8 +23,8 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
     const isFieldDetail = !!b_id
 
     // Read field name + field list from the field detail loader
-    const fieldMatch = matches.find((m) =>
-        m.id === "routes/farm.$b_id_farm.$calendar.measures.$b_id",
+    const fieldMatch = matches.find(
+        (m) => m.id === "routes/farm.$b_id_farm.$calendar.measures.$b_id",
     )
     const fieldData = fieldMatch?.data as
         | {
@@ -43,9 +43,7 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
         <>
             <BreadcrumbSeparator className="hidden xl:block" />
             <BreadcrumbItem className="hidden xl:block">
-                <BreadcrumbLink href={basePath}>
-                    Maatregelen
-                </BreadcrumbLink>
+                <BreadcrumbLink href={basePath}>Maatregelen</BreadcrumbLink>
             </BreadcrumbItem>
 
             {isFieldDetail ? (
@@ -60,7 +58,10 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
                                     </span>
                                     <ChevronDown className="h-4 w-4 shrink-0" />
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+                                <DropdownMenuContent
+                                    align="start"
+                                    className="max-h-72 overflow-y-auto"
+                                >
                                     {fieldList.map((f) => (
                                         <DropdownMenuItem
                                             key={f.b_id}

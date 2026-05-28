@@ -7,14 +7,15 @@ import {
     inject,
     it,
 } from "vitest"
+import { grantRole } from "./authorization"
 import {
     disableFertilizerCatalogue,
     enableFertilizerCatalogue,
     getEnabledFertilizerCataloguesForFarms,
 } from "./catalogues"
-import * as authNSchema from "./db/schema-authn"
 import * as schema from "./db/schema"
 import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
+import * as authNSchema from "./db/schema-authn"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.types"
@@ -36,7 +37,6 @@ import {
     updateFertilizerFromCatalogue,
 } from "./fertilizer"
 import { addField } from "./field"
-import { grantRole } from "./authorization"
 import { createId } from "./id"
 import { mockFdmThatThrowsOnSelectFrom } from "./test-util"
 
@@ -619,9 +619,9 @@ describe("Fertilizer Data Model", () => {
 
             await removeFertilizer(fdm, p_id, principal_id)
 
-            await expect(getFertilizer(fdm, p_id, principal_id)).rejects.toThrow(
-                "Exception for getFertilizer",
-            )
+            await expect(
+                getFertilizer(fdm, p_id, principal_id),
+            ).rejects.toThrow("Exception for getFertilizer")
         })
 
         it("should return empty array when no catalogues are enabled", async () => {

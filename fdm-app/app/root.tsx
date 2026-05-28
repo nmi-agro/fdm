@@ -1,3 +1,4 @@
+import { withAuditContext } from "@nmi-agro/fdm-core"
 import * as Sentry from "@sentry/react-router"
 import mapLibreStyle from "maplibre-gl/dist/maplibre-gl.css?url"
 import posthog from "posthog-js"
@@ -21,26 +22,24 @@ import { Banner } from "~/components/custom/banner"
 import { ErrorBlock } from "~/components/custom/error"
 import { NavigationProgress } from "~/components/custom/navigation-progress"
 import { Toaster } from "~/components/ui/sonner"
+import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
 import styles from "~/tailwind.css?url"
 import type { Route } from "./+types/root"
-import { auth } from "~/lib/auth.server"
-import { withAuditContext } from "@nmi-agro/fdm-core"
 
 export const middleware: Route.MiddlewareFunction[] = [
     async function auditMiddleware({ request }, next) {
         let credential_id: string | undefined
         try {
-            const session = await auth.api.getSession({ headers: request.headers })
+            const session = await auth.api.getSession({
+                headers: request.headers,
+            })
             credential_id = session?.session?.id
         } catch {
             // Session lookup failure is non-fatal; proceed without credential context
         }
-        return withAuditContext(
-            { channel: "app", credential_id },
-            () => next(),
-        )
+        return withAuditContext({ channel: "app", credential_id }, () => next())
     },
 ]
 

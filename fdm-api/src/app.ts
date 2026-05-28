@@ -1,10 +1,11 @@
 import { OpenAPIHono } from "@hono/zod-openapi"
+import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import { apiReference } from "@scalar/hono-api-reference"
 import { cors } from "hono/cors"
-import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
+import { createApiKeyAuth } from "./auth"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { requestGuard } from "./guards"
-import { createApiKeyAuth } from "./auth"
+import type { FdmApiConfig, FdmApiServices } from "./index"
 import { registerCalculationRoutes } from "./routes/calculations"
 import { registerCultivationRoutes } from "./routes/cultivations"
 import { registerDerogationRoutes } from "./routes/derogations"
@@ -17,7 +18,6 @@ import { registerHarvestRoutes } from "./routes/harvests"
 import { registerMeasureRoutes } from "./routes/measures"
 import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
 import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
-import type { FdmApiConfig, FdmApiServices } from "./index"
 import type { ApiEnv } from "./types"
 
 /**
@@ -71,14 +71,7 @@ export function buildApp(
                 allowedOrigins && allowedOrigins.length > 0
                     ? allowedOrigins
                     : "*",
-            allowMethods: [
-                "GET",
-                "POST",
-                "PUT",
-                "PATCH",
-                "DELETE",
-                "OPTIONS",
-            ],
+            allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
             allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
             exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
             maxAge: 86400,

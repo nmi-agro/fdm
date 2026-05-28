@@ -6,8 +6,8 @@
  * - Path coverage for all distinct middleware registrations
  */
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createFdmApi } from "../index"
 import type { FdmApiServices } from "../index"
+import { createFdmApi } from "../index"
 import { RATE_LIMITS } from "../rate-limit"
 
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
@@ -110,14 +110,25 @@ describe("rate-limit: no double-counting on overlapping middleware patterns", ()
         })
         await app.request("/farms/farm-1/fields", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({
                 b_name: "Test Field",
                 b_acquiring_method: "unknown",
                 b_start: "2024-01-01",
                 b_geometry: {
                     type: "Polygon",
-                    coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
+                    coordinates: [
+                        [
+                            [0, 0],
+                            [1, 0],
+                            [1, 1],
+                            [0, 1],
+                            [0, 0],
+                        ],
+                    ],
                 },
             }),
         })
@@ -134,8 +145,12 @@ describe("rate-limit: core middleware behavior", () => {
         const app = makeApp(mockFdm, mockAuth, {
             getFarms: vi.fn().mockResolvedValue([]),
         })
-        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
-        expect(res.headers.get("RateLimit-Limit")).toBe(String(RATE_LIMITS.general))
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "valid" },
+        })
+        expect(res.headers.get("RateLimit-Limit")).toBe(
+            String(RATE_LIMITS.general),
+        )
     })
 
     it("sets RateLimit-Remaining to limit minus current count", async () => {
@@ -143,7 +158,9 @@ describe("rate-limit: core middleware behavior", () => {
         const app = makeApp(mockFdm, mockAuth, {
             getFarms: vi.fn().mockResolvedValue([]),
         })
-        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.headers.get("RateLimit-Remaining")).toBe(
             String(RATE_LIMITS.general - 5),
         )
@@ -154,7 +171,9 @@ describe("rate-limit: core middleware behavior", () => {
         const app = makeApp(mockFdm, mockAuth, {
             getFarms: vi.fn().mockResolvedValue([]),
         })
-        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "valid" },
+        })
         const reset = Number(res.headers.get("RateLimit-Reset"))
         expect(reset).toBeGreaterThanOrEqual(0)
     })
@@ -162,21 +181,27 @@ describe("rate-limit: core middleware behavior", () => {
     it("returns 429 when the request count exceeds the limit", async () => {
         const { mockFdm, mockAuth } = makeMocks(RATE_LIMITS.general + 1)
         const app = makeApp(mockFdm, mockAuth)
-        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(429)
     })
 
     it("sets RateLimit-Remaining: 0 on 429 response", async () => {
         const { mockFdm, mockAuth } = makeMocks(RATE_LIMITS.general + 1)
         const app = makeApp(mockFdm, mockAuth)
-        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.headers.get("RateLimit-Remaining")).toBe("0")
     })
 
     it("sets Retry-After header on 429 response", async () => {
         const { mockFdm, mockAuth } = makeMocks(RATE_LIMITS.general + 1)
         const app = makeApp(mockFdm, mockAuth)
-        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "valid" },
+        })
         const retryAfter = Number(res.headers.get("Retry-After"))
         expect(retryAfter).toBeGreaterThan(0)
     })
@@ -184,7 +209,9 @@ describe("rate-limit: core middleware behavior", () => {
     it("429 body has type containing rate-limit-exceeded", async () => {
         const { mockFdm, mockAuth } = makeMocks(RATE_LIMITS.general + 1)
         const app = makeApp(mockFdm, mockAuth)
-        const res = await app.request("/farms", { headers: { "x-api-key": "valid" } })
+        const res = await app.request("/farms", {
+            headers: { "x-api-key": "valid" },
+        })
         const body = await res.json()
         expect(body.type).toContain("rate-limit-exceeded")
     })
@@ -194,11 +221,16 @@ describe("rate-limit: core middleware behavior", () => {
         const app = makeApp(mockFdm, mockAuth)
         const res = await app.request("/farms", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ b_name_farm: "Test" }),
         })
         expect(res.status).toBe(429)
-        expect(res.headers.get("RateLimit-Limit")).toBe(String(RATE_LIMITS.write))
+        expect(res.headers.get("RateLimit-Limit")).toBe(
+            String(RATE_LIMITS.write),
+        )
     })
 })
 
@@ -222,7 +254,10 @@ describe("rate-limit: bucket selection by HTTP method", () => {
         const app = makeApp(mockFdm, mockAuth)
         await app.request("/farms", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({ b_name_farm: "Test" }),
         })
         expect(mockFdm.values).toHaveBeenCalledWith(
@@ -287,7 +322,6 @@ describe("rate-limit: all rate-limited paths call the DB exactly once", () => {
         ["GET /organic-certifications", "/organic-certifications"],
         ["GET /derogations", "/derogations"],
         ["GET /soil-analyses", "/soil-analyses"],
-
     ]
 
     for (const [name, path] of paths) {
@@ -299,4 +333,3 @@ describe("rate-limit: all rate-limited paths call the DB exactly once", () => {
         })
     }
 })
-

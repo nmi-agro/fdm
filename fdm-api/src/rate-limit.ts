@@ -1,9 +1,9 @@
+import { type FdmType, rateLimit } from "@nmi-agro/fdm-core"
 import { sql } from "drizzle-orm"
 import type { MiddlewareHandler } from "hono"
 import { nanoid } from "nanoid"
-import { rateLimit, type FdmType } from "@nmi-agro/fdm-core"
-import type { ApiEnv, ApiPrincipalContext } from "./types"
 import { ApiError } from "./error"
+import type { ApiEnv, ApiPrincipalContext } from "./types"
 
 const WINDOW_MS = 60_000
 
@@ -33,7 +33,10 @@ export type RateBucket = keyof typeof RATE_LIMITS
  * app.use("/farms", rateLimitMiddleware(fdm, "general"))
  * ```
  */
-export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): MiddlewareHandler<ApiEnv> {
+export function rateLimitMiddleware(
+    fdm: FdmType,
+    bucket: RateBucket,
+): MiddlewareHandler<ApiEnv> {
     const limit = RATE_LIMITS[bucket]
 
     return async (c, next) => {
@@ -63,20 +66,32 @@ export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): Middlewar
                     lastRequest: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN ${now} ELSE ${rateLimit.lastRequest} END`,
                 },
             })
-            .returning({ count: rateLimit.count, lastRequest: rateLimit.lastRequest })
+            .returning({
+                count: rateLimit.count,
+                lastRequest: rateLimit.lastRequest,
+            })
 
         if (record.count > limit) {
-            const retryAfter = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
+            const retryAfter = Math.ceil(
+                (record.lastRequest + WINDOW_MS - now) / 1000,
+            )
             c.header("Retry-After", String(Math.max(retryAfter, 1)))
             c.header("RateLimit-Limit", String(limit))
             c.header("RateLimit-Remaining", "0")
             c.header("RateLimit-Reset", String(Math.max(retryAfter, 1)))
-            throw new ApiError(429, "rate-limit-exceeded", `Rate limit exceeded. Try again in ${Math.max(retryAfter, 1)}s.`)
+            throw new ApiError(
+                429,
+                "rate-limit-exceeded",
+                `Rate limit exceeded. Try again in ${Math.max(retryAfter, 1)}s.`,
+            )
         }
 
         const resetIn = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
         c.header("RateLimit-Limit", String(limit))
-        c.header("RateLimit-Remaining", String(Math.max(limit - record.count, 0)))
+        c.header(
+            "RateLimit-Remaining",
+            String(Math.max(limit - record.count, 0)),
+        )
         c.header("RateLimit-Reset", String(Math.max(resetIn, 0)))
 
         return next()

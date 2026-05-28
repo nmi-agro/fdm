@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createFdmApi } from "../index"
 import type { FdmApiServices } from "../index"
+import { createFdmApi } from "../index"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 const mockFdm = {
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
     onConflictDoUpdate: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
+    returning: vi
+        .fn()
+        .mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
 } as any
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
 
@@ -90,15 +92,25 @@ describe("GET /farms/:b_id_farm/fertilizers", () => {
     beforeEach(validKey)
 
     it("returns 200 with paginated fertilizers", async () => {
-        const app = makeApp({ getFertilizers: vi.fn().mockResolvedValue([baseFertilizer]) })
-        const res = await app.request("/farms/farm-1/fertilizers", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFertilizers: vi.fn().mockResolvedValue([baseFertilizer]),
+        })
+        const res = await app.request("/farms/farm-1/fertilizers", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         expect((await res.json()).data[0].p_id).toBe("fert-1")
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getFertilizers: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/farms/farm-1/fertilizers", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFertilizers: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/farms/farm-1/fertilizers", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 })
@@ -107,15 +119,27 @@ describe("GET /farms/:b_id_farm/fertilizer-catalogue", () => {
     beforeEach(validKey)
 
     it("returns 200 with paginated catalogue items", async () => {
-        const app = makeApp({ getFertilizersFromCatalogue: vi.fn().mockResolvedValue([baseCatalogue]) })
-        const res = await app.request("/farms/farm-1/fertilizer-catalogue", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFertilizersFromCatalogue: vi
+                .fn()
+                .mockResolvedValue([baseCatalogue]),
+        })
+        const res = await app.request("/farms/farm-1/fertilizer-catalogue", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         expect((await res.json()).data[0].p_id_catalogue).toBe("cat-1")
     })
 
     it("returns 403 when principal lacks access", async () => {
-        const app = makeApp({ getFertilizersFromCatalogue: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/farms/farm-1/fertilizer-catalogue", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFertilizersFromCatalogue: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/farms/farm-1/fertilizer-catalogue", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 })
@@ -126,11 +150,16 @@ describe("POST /farms/:b_id_farm/fertilizers", () => {
     it("returns 201 with the created fertilizer", async () => {
         const app = makeApp({
             addFertilizer: vi.fn().mockResolvedValue("fert-new"),
-            getFertilizer: vi.fn().mockResolvedValue({ ...baseFertilizer, p_id: "fert-new" }),
+            getFertilizer: vi
+                .fn()
+                .mockResolvedValue({ ...baseFertilizer, p_id: "fert-new" }),
         })
         const res = await app.request("/farms/farm-1/fertilizers", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({
                 p_id_catalogue: "cat-1",
                 p_acquiring_amount: 100,
@@ -152,10 +181,17 @@ describe("POST /farms/:b_id_farm/fertilizers", () => {
     })
 
     it("returns 403 when principal lacks permission", async () => {
-        const app = makeApp({ addFertilizer: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            addFertilizer: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/farms/farm-1/fertilizers", {
             method: "POST",
-            headers: { "x-api-key": "valid", "content-type": "application/json" },
+            headers: {
+                "x-api-key": "valid",
+                "content-type": "application/json",
+            },
             body: JSON.stringify({
                 p_id_catalogue: "cat-1",
                 p_acquiring_amount: 100,
@@ -170,21 +206,37 @@ describe("GET /fertilizers/:p_id", () => {
     beforeEach(validKey)
 
     it("returns 200 with the fertilizer", async () => {
-        const app = makeApp({ getFertilizer: vi.fn().mockResolvedValue(baseFertilizer) })
-        const res = await app.request("/fertilizers/fert-1", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFertilizer: vi.fn().mockResolvedValue(baseFertilizer),
+        })
+        const res = await app.request("/fertilizers/fert-1", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(200)
         expect((await res.json()).p_date_acquiring).toBe("2024-02-01")
     })
 
     it("returns 404 when the fertilizer does not exist", async () => {
-        const app = makeApp({ getFertilizer: vi.fn().mockResolvedValue({ ...baseFertilizer, p_id: undefined }) })
-        const res = await app.request("/fertilizers/missing", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFertilizer: vi
+                .fn()
+                .mockResolvedValue({ ...baseFertilizer, p_id: undefined }),
+        })
+        const res = await app.request("/fertilizers/missing", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(404)
     })
 
     it("returns 403 when the caller lacks permission", async () => {
-        const app = makeApp({ getFertilizer: vi.fn().mockRejectedValue(new Error("Permission denied")) })
-        const res = await app.request("/fertilizers/fert-1", { headers: { "x-api-key": "valid" } })
+        const app = makeApp({
+            getFertilizer: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
+        const res = await app.request("/fertilizers/fert-1", {
+            headers: { "x-api-key": "valid" },
+        })
         expect(res.status).toBe(403)
     })
 })
@@ -193,7 +245,9 @@ describe("DELETE /fertilizers/:p_id", () => {
     beforeEach(validKey)
 
     it("returns 204 on success", async () => {
-        const app = makeApp({ removeFertilizer: vi.fn().mockResolvedValue(undefined) })
+        const app = makeApp({
+            removeFertilizer: vi.fn().mockResolvedValue(undefined),
+        })
         const res = await app.request("/fertilizers/fert-1", {
             method: "DELETE",
             headers: { "x-api-key": "valid" },
@@ -202,7 +256,11 @@ describe("DELETE /fertilizers/:p_id", () => {
     })
 
     it("returns 403 when the caller lacks permission", async () => {
-        const app = makeApp({ removeFertilizer: vi.fn().mockRejectedValue(new Error("Permission denied")) })
+        const app = makeApp({
+            removeFertilizer: vi
+                .fn()
+                .mockRejectedValue(new Error("Permission denied")),
+        })
         const res = await app.request("/fertilizers/fert-1", {
             method: "DELETE",
             headers: { "x-api-key": "valid" },

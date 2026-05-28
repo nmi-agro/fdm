@@ -12,6 +12,7 @@
  * - Submits a POST form with intent=add
  */
 import { zodResolver } from "@hookform/resolvers/zod"
+import type { Measure, MeasureCatalogue } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import fuzzysort from "fuzzysort"
@@ -20,7 +21,6 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Controller } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import type { MeasureCatalogue, Measure } from "@nmi-agro/fdm-core"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Badge } from "~/components/ui/badge"
@@ -36,7 +36,7 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { cn } from "~/lib/utils"
-import { MeasureDateSchema, type MeasureDateFormValues } from "./formschema"
+import { type MeasureDateFormValues, MeasureDateSchema } from "./formschema"
 
 type DatePreset = "doorlopend" | "einde_teeltseizoen" | "vaste_einddatum"
 type DialogStep = "select" | "configure"
@@ -116,14 +116,17 @@ export function AddMeasureDialog({
             onValid: (data) => {
                 const fd = new FormData()
                 fd.append("intent", "add")
-                fd.append("m_id", selected!.m_id)
+                fd.append("m_id", selected?.m_id)
                 fd.append("m_start", data.m_start)
                 if (data.m_end) fd.append("m_end", data.m_end)
                 else fd.append("m_end", "")
                 if (fields) {
                     for (const b_id of selectedFieldIds) fd.append("b_id", b_id)
                 }
-                fetcher.submit(fd, { method: "post", action: action ?? undefined })
+                fetcher.submit(fd, {
+                    method: "post",
+                    action: action ?? undefined,
+                })
             },
         },
     })
@@ -184,7 +187,8 @@ export function AddMeasureDialog({
             if (conflicting.length > 0) {
                 const names = conflicting.map(
                     (cid) =>
-                        activeMeasures.find((m) => m.m_id === cid)?.m_name ?? cid,
+                        activeMeasures.find((m) => m.m_id === cid)?.m_name ??
+                        cid,
                 )
                 map.set(catalogueItem.m_id, names)
             }
@@ -195,8 +199,9 @@ export function AddMeasureDialog({
     // Fuzzy search — search against indexed combined strings per catalogue item
     const filteredCatalogue = useMemo(() => {
         if (!query.trim()) return catalogue
-        const targets = catalogue.map((item, i) =>
-            `[${i}] ${item.m_name} ${item.m_id} ${item.m_description ?? ""}`,
+        const targets = catalogue.map(
+            (item, i) =>
+                `[${i}] ${item.m_name} ${item.m_id} ${item.m_description ?? ""}`,
         )
         const results = fuzzysort.go(query, targets, { threshold: -10000 })
         return results
@@ -244,7 +249,9 @@ export function AddMeasureDialog({
         return sortedFields.filter(
             (f) =>
                 (f.b_name ?? "").toLowerCase().includes(term) ||
-                (f.mainCultivation?.b_lu_name ?? "").toLowerCase().includes(term),
+                (f.mainCultivation?.b_lu_name ?? "")
+                    .toLowerCase()
+                    .includes(term),
         )
     }, [sortedFields, fieldSearch])
 
@@ -293,14 +300,19 @@ export function AddMeasureDialog({
                         <div className="max-h-[55vh] overflow-y-auto border rounded-md">
                             {filteredCatalogue.length === 0 ? (
                                 <p className="text-sm text-muted-foreground text-center py-8">
-                                    Geen maatregelen gevonden voor &ldquo;{query}&rdquo;
+                                    Geen maatregelen gevonden voor &ldquo;
+                                    {query}&rdquo;
                                 </p>
                             ) : (
                                 <div className="divide-y">
                                     {filteredCatalogue.map((item) => {
-                                        const isAlreadyActive = activeMeasureIds.has(item.m_id)
-                                        const conflicts = conflictMap.get(item.m_id)
-                                        const isBlocked = isAlreadyActive || !!conflicts
+                                        const isAlreadyActive =
+                                            activeMeasureIds.has(item.m_id)
+                                        const conflicts = conflictMap.get(
+                                            item.m_id,
+                                        )
+                                        const isBlocked =
+                                            isAlreadyActive || !!conflicts
 
                                         return (
                                             <button
@@ -309,19 +321,25 @@ export function AddMeasureDialog({
                                                 disabled={isBlocked}
                                                 onClick={() => {
                                                     if (!isBlocked) {
-                                                        handleSelectMeasure(item)
+                                                        handleSelectMeasure(
+                                                            item,
+                                                        )
                                                     }
                                                 }}
                                                 className={cn(
                                                     "w-full text-left px-4 py-3 transition-colors flex items-start gap-3",
                                                     "hover:bg-muted/50",
-                                                    isBlocked && "opacity-50 cursor-not-allowed",
+                                                    isBlocked &&
+                                                        "opacity-50 cursor-not-allowed",
                                                 )}
                                             >
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xs font-mono text-muted-foreground shrink-0">
-                                                            {item.m_id.replace("bln_", "")}
+                                                            {item.m_id.replace(
+                                                                "bln_",
+                                                                "",
+                                                            )}
                                                         </span>
                                                         <span className="text-sm font-medium truncate">
                                                             {item.m_name}
@@ -329,13 +347,17 @@ export function AddMeasureDialog({
                                                     </div>
                                                     {isAlreadyActive && (
                                                         <p className="text-xs text-muted-foreground mt-0.5">
-                                                            Al actief op dit perceel
+                                                            Al actief op dit
+                                                            perceel
                                                         </p>
                                                     )}
                                                     {conflicts && (
                                                         <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
                                                             <AlertTriangle className="h-3 w-3 shrink-0" />
-                                                            Conflicteert met: {conflicts.join(", ")}
+                                                            Conflicteert met:{" "}
+                                                            {conflicts.join(
+                                                                ", ",
+                                                            )}
                                                         </p>
                                                     )}
                                                 </div>
@@ -361,9 +383,11 @@ export function AddMeasureDialog({
                                         </span>
                                         {selected.m_name}
                                     </p>
-                                    {(selected.m_summary ?? selected.m_description) && (
+                                    {(selected.m_summary ??
+                                        selected.m_description) && (
                                         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                                            {selected.m_summary ?? selected.m_description}
+                                            {selected.m_summary ??
+                                                selected.m_description}
                                         </p>
                                     )}
                                 </div>
@@ -382,68 +406,98 @@ export function AddMeasureDialog({
 
                         {/* Form */}
                         <form onSubmit={form.handleSubmit}>
-                                <FieldGroup className="py-2">
-                                    {/* Field selector (multi-field mode only) */}
-                                    {fields && fields.length > 0 && (
-                                        <Field>
-                                            <div className="flex items-center justify-between">
-                                                <FieldLabel>
-                                                    Percelen
-                                                    {selectedFieldIds.size > 0 && (
-                                                        <span className="ml-2 font-normal text-muted-foreground">
-                                                            {selectedFieldIds.size} van {fields.length} geselecteerd
-                                                        </span>
-                                                    )}
-                                                </FieldLabel>
+                            <FieldGroup className="py-2">
+                                {/* Field selector (multi-field mode only) */}
+                                {fields && fields.length > 0 && (
+                                    <Field>
+                                        <div className="flex items-center justify-between">
+                                            <FieldLabel>
+                                                Percelen
+                                                {selectedFieldIds.size > 0 && (
+                                                    <span className="ml-2 font-normal text-muted-foreground">
+                                                        {selectedFieldIds.size}{" "}
+                                                        van {fields.length}{" "}
+                                                        geselecteerd
+                                                    </span>
+                                                )}
+                                            </FieldLabel>
+                                            <button
+                                                type="button"
+                                                className="text-xs text-muted-foreground hover:text-foreground"
+                                                onClick={() => {
+                                                    const visibleIds =
+                                                        visibleFields.map(
+                                                            (f) => f.b_id,
+                                                        )
+                                                    const allVisible =
+                                                        visibleIds.every((id) =>
+                                                            selectedFieldIds.has(
+                                                                id,
+                                                            ),
+                                                        )
+                                                    const next = new Set(
+                                                        selectedFieldIds,
+                                                    )
+                                                    if (allVisible) {
+                                                        for (const id of visibleIds)
+                                                            next.delete(id)
+                                                    } else {
+                                                        for (const id of visibleIds)
+                                                            next.add(id)
+                                                    }
+                                                    setSelectedFieldIds(next)
+                                                }}
+                                            >
+                                                {visibleFields.every((f) =>
+                                                    selectedFieldIds.has(
+                                                        f.b_id,
+                                                    ),
+                                                )
+                                                    ? "Geen"
+                                                    : "Alle"}
+                                            </button>
+                                        </div>
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                                            <Input
+                                                placeholder="Zoek perceel…"
+                                                value={fieldSearch}
+                                                onChange={(e) =>
+                                                    setFieldSearch(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="pl-8 h-8 text-sm"
+                                            />
+                                            {fieldSearch && (
                                                 <button
                                                     type="button"
-                                                    className="text-xs text-muted-foreground hover:text-foreground"
-                                                    onClick={() => {
-                                                        const visibleIds = visibleFields.map((f) => f.b_id)
-                                                        const allVisible = visibleIds.every((id) => selectedFieldIds.has(id))
-                                                        const next = new Set(selectedFieldIds)
-                                                        if (allVisible) {
-                                                            for (const id of visibleIds) next.delete(id)
-                                                        } else {
-                                                            for (const id of visibleIds) next.add(id)
-                                                        }
-                                                        setSelectedFieldIds(next)
-                                                    }}
+                                                    onClick={() =>
+                                                        setFieldSearch("")
+                                                    }
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                                 >
-                                                    {visibleFields.every((f) => selectedFieldIds.has(f.b_id))
-                                                        ? "Geen"
-                                                        : "Alle"}
+                                                    <X className="h-3.5 w-3.5" />
                                                 </button>
-                                            </div>
-                                            <div className="relative">
-                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                                                <Input
-                                                    placeholder="Zoek perceel…"
-                                                    value={fieldSearch}
-                                                    onChange={(e) => setFieldSearch(e.target.value)}
-                                                    className="pl-8 h-8 text-sm"
-                                                />
-                                                {fieldSearch && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setFieldSearch("")}
-                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                                    >
-                                                        <X className="h-3.5 w-3.5" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="max-h-48 overflow-y-auto border rounded-md divide-y">
-                                                {visibleFields.length === 0 ? (
-                                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                                        Geen percelen gevonden.
-                                                    </p>
-                                                ) : (
+                                            )}
+                                        </div>
+                                        <div className="max-h-48 overflow-y-auto border rounded-md divide-y">
+                                            {visibleFields.length === 0 ? (
+                                                <p className="text-sm text-muted-foreground text-center py-4">
+                                                    Geen percelen gevonden.
+                                                </p>
+                                            ) : (
                                                 visibleFields.map((f) => {
-                                                    const checked = selectedFieldIds.has(f.b_id)
-                                                    const cultColor = getCultivationColor(
-                                                        f.mainCultivation?.b_lu_croprotation ?? undefined,
-                                                    )
+                                                    const checked =
+                                                        selectedFieldIds.has(
+                                                            f.b_id,
+                                                        )
+                                                    const cultColor =
+                                                        getCultivationColor(
+                                                            f.mainCultivation
+                                                                ?.b_lu_croprotation ??
+                                                                undefined,
+                                                        )
                                                     return (
                                                         <label
                                                             key={f.b_id}
@@ -457,32 +511,65 @@ export function AddMeasureDialog({
                                                             <input
                                                                 type="checkbox"
                                                                 className="rounded shrink-0"
-                                                                checked={checked}
+                                                                checked={
+                                                                    checked
+                                                                }
                                                                 onChange={() => {
-                                                                    const next = new Set(selectedFieldIds)
-                                                                    if (checked) {
-                                                                        next.delete(f.b_id)
+                                                                    const next =
+                                                                        new Set(
+                                                                            selectedFieldIds,
+                                                                        )
+                                                                    if (
+                                                                        checked
+                                                                    ) {
+                                                                        next.delete(
+                                                                            f.b_id,
+                                                                        )
                                                                     } else {
-                                                                        next.add(f.b_id)
+                                                                        next.add(
+                                                                            f.b_id,
+                                                                        )
                                                                     }
-                                                                    setSelectedFieldIds(next)
+                                                                    setSelectedFieldIds(
+                                                                        next,
+                                                                    )
                                                                 }}
                                                             />
-                                                            <span className={cn("text-sm flex-1 min-w-0 truncate", checked && "font-medium")}>
-                                                                {f.b_name ?? f.b_id}
+                                                            <span
+                                                                className={cn(
+                                                                    "text-sm flex-1 min-w-0 truncate",
+                                                                    checked &&
+                                                                        "font-medium",
+                                                                )}
+                                                            >
+                                                                {f.b_name ??
+                                                                    f.b_id}
                                                             </span>
                                                             <div className="flex items-center gap-2 shrink-0">
-                                                                {f.mainCultivation?.b_lu_name && (
+                                                                {f
+                                                                    .mainCultivation
+                                                                    ?.b_lu_name && (
                                                                     <Badge
                                                                         className="text-white text-xs px-1.5 py-0"
-                                                                        style={{ backgroundColor: cultColor }}
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                cultColor,
+                                                                        }}
                                                                     >
-                                                                        {f.mainCultivation.b_lu_name}
+                                                                        {
+                                                                            f
+                                                                                .mainCultivation
+                                                                                .b_lu_name
+                                                                        }
                                                                     </Badge>
                                                                 )}
-                                                                {f.b_area != null && (
+                                                                {f.b_area !=
+                                                                    null && (
                                                                     <span className="text-xs text-muted-foreground">
-                                                                        {f.b_area.toFixed(1)} ha
+                                                                        {f.b_area.toFixed(
+                                                                            1,
+                                                                        )}{" "}
+                                                                        ha
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -490,106 +577,141 @@ export function AddMeasureDialog({
                                                     )
                                                 })
                                             )}
-                                            </div>
-                                            {selectedFieldIds.size === 0 && (
-                                                <p className="text-xs text-destructive mt-1">
-                                                    Selecteer minimaal één perceel.
-                                                </p>
-                                            )}
-                                        </Field>
-                                    )}
-
-                                    <Controller
-                                        control={form.control}
-                                        name="m_start"
-                                        render={({ field, fieldState }) => (
-                                            <DatePicker
-                                                label="Startdatum"
-                                                field={{ ...field, value: field.value }}
-                                                fieldState={fieldState}
-                                                required
-                                            />
-                                        )}
-                                    />
-
-                                    <Field>
-                                        <FieldLabel>Periode</FieldLabel>
-                                        <RadioGroup
-                                            value={datePreset}
-                                            onValueChange={(v) =>
-                                                handleDatePresetChange(v as DatePreset)
-                                            }
-                                            className="space-y-2"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <RadioGroupItem value="doorlopend" id="preset-doorlopend" />
-                                                <Label htmlFor="preset-doorlopend" className="font-normal cursor-pointer">
-                                                    Doorlopend
-                                                    <span className="text-muted-foreground text-xs ml-1">(geen einddatum)</span>
-                                                </Label>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <RadioGroupItem
-                                                    value="einde_teeltseizoen"
-                                                    id="preset-harvest"
-                                                    disabled={!harvestDate}
-                                                />
-                                                <Label
-                                                    htmlFor="preset-harvest"
-                                                    className={cn(
-                                                        "font-normal cursor-pointer",
-                                                        !harvestDate && "opacity-50 cursor-not-allowed",
-                                                    )}
-                                                >
-                                                    Einde teeltseizoen
-                                                    {harvestDate && (
-                                                        <span className="text-muted-foreground text-xs ml-1">
-                                                            (≈ {format(new Date(harvestDate), "d MMM yyyy", { locale: nl })})
-                                                        </span>
-                                                    )}
-                                                    {!harvestDate && (
-                                                        <span className="text-muted-foreground text-xs ml-1">
-                                                            (geen oogstdatum beschikbaar)
-                                                        </span>
-                                                    )}
-                                                </Label>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <RadioGroupItem value="vaste_einddatum" id="preset-fixed" />
-                                                <Label htmlFor="preset-fixed" className="font-normal cursor-pointer">
-                                                    Vaste einddatum
-                                                </Label>
-                                            </div>
-                                        </RadioGroup>
-
-                                        {datePreset === "vaste_einddatum" && (
-                                            <div className="mt-2">
-                                                <Controller
-                                                    control={form.control}
-                                                    name="m_end"
-                                                    render={({ field, fieldState }) => (
-                                                        <DatePicker
-                                                            label=""
-                                                            field={{ ...field, value: field.value }}
-                                                            fieldState={fieldState}
-                                                            required
-                                                        />
-                                                    )}
-                                                />
-                                            </div>
+                                        </div>
+                                        {selectedFieldIds.size === 0 && (
+                                            <p className="text-xs text-destructive mt-1">
+                                                Selecteer minimaal één perceel.
+                                            </p>
                                         )}
                                     </Field>
+                                )}
 
-                                    <div className="flex justify-end pt-1 pb-2">
-                                        <Button
-                                            type="submit"
-                                            disabled={!canSubmit || isSubmitting}
-                                        >
-                                            {isSubmitting ? "Opslaan…" : "Opslaan"}
-                                        </Button>
-                                    </div>
-                                </FieldGroup>
-                            </form>
+                                <Controller
+                                    control={form.control}
+                                    name="m_start"
+                                    render={({ field, fieldState }) => (
+                                        <DatePicker
+                                            label="Startdatum"
+                                            field={{
+                                                ...field,
+                                                value: field.value,
+                                            }}
+                                            fieldState={fieldState}
+                                            required
+                                        />
+                                    )}
+                                />
+
+                                <Field>
+                                    <FieldLabel>Periode</FieldLabel>
+                                    <RadioGroup
+                                        value={datePreset}
+                                        onValueChange={(v) =>
+                                            handleDatePresetChange(
+                                                v as DatePreset,
+                                            )
+                                        }
+                                        className="space-y-2"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <RadioGroupItem
+                                                value="doorlopend"
+                                                id="preset-doorlopend"
+                                            />
+                                            <Label
+                                                htmlFor="preset-doorlopend"
+                                                className="font-normal cursor-pointer"
+                                            >
+                                                Doorlopend
+                                                <span className="text-muted-foreground text-xs ml-1">
+                                                    (geen einddatum)
+                                                </span>
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <RadioGroupItem
+                                                value="einde_teeltseizoen"
+                                                id="preset-harvest"
+                                                disabled={!harvestDate}
+                                            />
+                                            <Label
+                                                htmlFor="preset-harvest"
+                                                className={cn(
+                                                    "font-normal cursor-pointer",
+                                                    !harvestDate &&
+                                                        "opacity-50 cursor-not-allowed",
+                                                )}
+                                            >
+                                                Einde teeltseizoen
+                                                {harvestDate && (
+                                                    <span className="text-muted-foreground text-xs ml-1">
+                                                        (≈{" "}
+                                                        {format(
+                                                            new Date(
+                                                                harvestDate,
+                                                            ),
+                                                            "d MMM yyyy",
+                                                            { locale: nl },
+                                                        )}
+                                                        )
+                                                    </span>
+                                                )}
+                                                {!harvestDate && (
+                                                    <span className="text-muted-foreground text-xs ml-1">
+                                                        (geen oogstdatum
+                                                        beschikbaar)
+                                                    </span>
+                                                )}
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <RadioGroupItem
+                                                value="vaste_einddatum"
+                                                id="preset-fixed"
+                                            />
+                                            <Label
+                                                htmlFor="preset-fixed"
+                                                className="font-normal cursor-pointer"
+                                            >
+                                                Vaste einddatum
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+
+                                    {datePreset === "vaste_einddatum" && (
+                                        <div className="mt-2">
+                                            <Controller
+                                                control={form.control}
+                                                name="m_end"
+                                                render={({
+                                                    field,
+                                                    fieldState,
+                                                }) => (
+                                                    <DatePicker
+                                                        label=""
+                                                        field={{
+                                                            ...field,
+                                                            value: field.value,
+                                                        }}
+                                                        fieldState={fieldState}
+                                                        required
+                                                    />
+                                                )}
+                                            />
+                                        </div>
+                                    )}
+                                </Field>
+
+                                <div className="flex justify-end pt-1 pb-2">
+                                    <Button
+                                        type="submit"
+                                        disabled={!canSubmit || isSubmitting}
+                                    >
+                                        {isSubmitting ? "Opslaan…" : "Opslaan"}
+                                    </Button>
+                                </div>
+                            </FieldGroup>
+                        </form>
                     </>
                 )}
             </DialogContent>

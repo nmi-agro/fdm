@@ -5,6 +5,8 @@
  *
  * Import with React.lazy to avoid SSR issues with maplibre-gl.
  */
+
+import type { FeatureCollection } from "geojson"
 import maplibregl, { type StyleSpecification } from "maplibre-gl"
 import { useCallback, useMemo, useRef, useState } from "react"
 import {
@@ -16,7 +18,6 @@ import {
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
-import type { FeatureCollection } from "geojson"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
@@ -115,7 +116,11 @@ export default function IndicatorsMap({
             <MapGL
                 ref={mapRef}
                 {...viewState}
-                style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+                style={{
+                    height: "100%",
+                    width: "100%",
+                    borderRadius: "0.5rem",
+                }}
                 mapStyle={mapStyle as any}
                 mapLib={maplibregl}
                 interactiveLayerIds={[SCORE_LAYER]}
@@ -131,13 +136,18 @@ export default function IndicatorsMap({
             >
                 <Controls
                     onViewportChange={({ longitude, latitude, zoom }) =>
-                        setViewState((s) => ({ ...s, longitude, latitude, zoom }))
+                        setViewState((s) => ({
+                            ...s,
+                            longitude,
+                            latitude,
+                            zoom,
+                        }))
                     }
                     showFlyToFields={
                         fieldsGeoJSON.features.length > 0 ? true : undefined
                     }
                     onFlyToFields={() => {
-                        setViewState({ ...initialViewState as ViewState })
+                        setViewState({ ...(initialViewState as ViewState) })
                         if ((initialViewState as any).bounds) {
                             mapRef.current?.fitBounds(
                                 (initialViewState as any).bounds,
@@ -195,8 +205,7 @@ export default function IndicatorsMap({
                                             getScoreColor(hoverScore),
                                     }}
                                 >
-                                    {hoverScore} –{" "}
-                                    {getScoreVerdict(hoverScore)}
+                                    {hoverScore} – {getScoreVerdict(hoverScore)}
                                 </span>
                             ) : (
                                 <span className="text-muted-foreground italic">

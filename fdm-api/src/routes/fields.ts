@@ -1,27 +1,27 @@
-import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import type {
     addField,
+    FdmType,
     getField,
     getFields,
     removeField,
     updateField,
 } from "@nmi-agro/fdm-core"
-import type { FdmType } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { assertGeoJsonCoordinates } from "../guards"
 import { rateLimitMiddleware } from "../rate-limit"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
 import {
     commonErrorResponses,
     DateStringSchema,
     GeoJsonGeometrySchema,
+    PaginationQuerySchema,
     paginatedResponse,
     paginatedSchema,
-    PaginationQuerySchema,
     serializeDate,
     writeErrorResponses,
 } from "../schemas"
+import type { ApiEnv, ApiPrincipalContext } from "../types"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
@@ -52,12 +52,12 @@ const FieldSchema = z
         b_area: z.number().nullable(),
         b_perimeter: z.number().nullable(),
         b_bufferstrip: z.boolean(),
-        b_start: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
-        b_end: DateStringSchema
-            .nullable()
-            .describe("Date in YYYY-MM-DD format."),
+        b_start: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
+        b_end: DateStringSchema.nullable().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         b_acquiring_method: z.string(),
     })
     .openapi("Field")
@@ -73,13 +73,11 @@ const CreateFieldBodySchema = z
         b_geometry: GeoJsonGeometrySchema.describe(
             "Field boundary as GeoJSON Polygon or MultiPolygon. Maximum 10,000 coordinates.",
         ),
-        b_start: DateStringSchema
-            .describe("Date in YYYY-MM-DD format."),
+        b_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
         b_acquiring_method: z
             .string()
             .describe("Method by which the field was acquired."),
-        b_end: DateStringSchema
-            .nullable()
+        b_end: DateStringSchema.nullable()
             .optional()
             .describe("Date in YYYY-MM-DD format."),
         b_bufferstrip: z
@@ -100,15 +98,14 @@ const UpdateFieldBodySchema = z
         b_geometry: GeoJsonGeometrySchema.nullable()
             .optional()
             .describe("Field boundary as GeoJSON Polygon or MultiPolygon."),
-        b_start: DateStringSchema
-            .optional()
-            .describe("Date in YYYY-MM-DD format."),
+        b_start: DateStringSchema.optional().describe(
+            "Date in YYYY-MM-DD format.",
+        ),
         b_acquiring_method: z
             .string()
             .optional()
             .describe("Method by which the field was acquired."),
-        b_end: DateStringSchema
-            .nullable()
+        b_end: DateStringSchema.nullable()
             .optional()
             .describe("Date in YYYY-MM-DD format."),
         b_bufferstrip: z
@@ -387,7 +384,9 @@ export function registerFieldRoutes(
                 ? body.b_acquiring_method
                 : existing.b_acquiring_method,
             body.b_end !== undefined
-                ? (body.b_end !== null ? new Date(body.b_end) : null)
+                ? body.b_end !== null
+                    ? new Date(body.b_end)
+                    : null
                 : (existing.b_end ?? undefined),
             body.b_bufferstrip !== undefined
                 ? body.b_bufferstrip
