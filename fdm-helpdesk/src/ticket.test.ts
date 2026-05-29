@@ -20,6 +20,7 @@ import {
     getAssigneesForTickets,
     getTicketCountsForAssignees,
 } from "./ticket-assignment"
+import { getMessagesForTicket } from "./message"
 
 test.describe("Inbox", () => {
     const b_id_farm = "test-farm-id"
@@ -446,6 +447,27 @@ describe("createTicket", () => {
             .where(eq(schema.tickets.ticket_id, ticket_id))
 
         expect(ticket.context_farm_id).toBe("my-farm-id")
+    })
+
+    test("should escape HTML in the body", async ({ fdm }) => {
+        const ticket_id = await createTicket(
+            fdm,
+            requester_id,
+            `"test"<script>alert('xss')</script>`,
+        )
+
+        const ticket = await getTicket(fdm, requester_id, ticket_id)
+
+        const messages = await getMessagesForTicket(
+            fdm,
+            requester_id,
+            ticket_id,
+        )
+
+        const escaped =
+            "&quot;test&quot;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
+        expect(ticket.subject).toBe(escaped.slice(0, 100))
+        expect(messages[0].body).toBe(escaped)
     })
 })
 

@@ -198,6 +198,45 @@ describe("Message CRUD", () => {
         expect(message.updated).toBeTruthy()
     })
 
+    test("should escape message body when adding", async ({ fdm }) => {
+        const message_id = await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "customer",
+            `"test"<script>alert('xss')</script>`,
+        )
+
+        const message = await getMessage(fdm, requester_id, message_id)
+
+        expect(message.body).toBe(
+            "&quot;test&quot;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;",
+        )
+    })
+
+    test("should escape message body when updating", async ({ fdm }) => {
+        const message_id = await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "customer",
+            "Safe Message Body",
+        )
+
+        await updateMessage(
+            fdm,
+            requester_id,
+            message_id,
+            `"test"<script>alert('xss')</script>`,
+        )
+
+        const message = await getMessage(fdm, requester_id, message_id)
+
+        expect(message.body).toBe(
+            "&quot;test&quot;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;",
+        )
+    })
+
     test("should not allow a regular user to make a message internal", async ({
         fdm,
     }) => {

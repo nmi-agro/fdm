@@ -206,6 +206,7 @@ export async function addAdminAgent(
                     agent_id: agent_id,
                     display_name: display_name,
                     role: "admin",
+                    is_active: true,
                 },
             ])
         })
@@ -378,7 +379,8 @@ export async function setAgentActiveStatus(
                 }
             }
 
-            tx.update(schema.agents)
+            await tx
+                .update(schema.agents)
                 .set({
                     is_active: is_active,
                 })
