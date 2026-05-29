@@ -145,10 +145,17 @@ export type { CultivationForHoofdteelt } from "./shared/hoofdteelt"
 export {
     BCS_INDICATORS,
     calculateBcs,
+    deriveOmBcs,
+    derivePhBcs,
     getBcsScoreColor,
+    getBcsScoreLabel,
 } from "./bcs/index"
 export type {
     BcsIndicatorKey,
     BcsResult,
     BcsScores,
+    OmCropCategory,
+    OmSoiltypeN,
 } from "./bcs/index"
+export { calcPhDelta } from "./bcs/ph-delta"
+export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"

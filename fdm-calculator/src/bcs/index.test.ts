@@ -1,22 +1,22 @@
 import { describe, expect, it } from "vitest"
-import { BCS_INDICATORS, calculateBcs, getBcsScoreColor } from "./index"
+import {
+    BCS_INDICATORS,
+    calculateBcs,
+    deriveOmBcs,
+    derivePhBcs,
+    getBcsScoreColor,
+    getBcsScoreLabel,
+} from "./index"
 
-// D_BCS = 2×CC + 3×(RD + SC + EW + SS + pH + OM) + 1×GS − 2×P − 1×(C + RT)
+// D_BCS = 2*CC + 3*(RD + SC + EW + SS + pH + OM) + 1*GS - 2*P - 1*(C + RT)
 // I_BCS = clamp(D_BCS / 40, 0, 1)
 
 describe("calculateBcs", () => {
     describe("with all scores at zero", () => {
         it("returns zero for all fields", () => {
             const result = calculateBcs({
-                a_ss_bcs: 0,
-                a_sc_bcs: 0,
-                a_rd_bcs: 0,
-                a_ew_bcs: 0,
-                a_cc_bcs: 0,
-                a_gs_bcs: 0,
-                a_p_bcs: 0,
-                a_c_bcs: 0,
-                a_rt_bcs: 0,
+                a_ss_bcs: 0, a_sc_bcs: 0, a_rd_bcs: 0, a_ew_bcs: 0,
+                a_cc_bcs: 0, a_gs_bcs: 0, a_p_bcs: 0, a_c_bcs: 0, a_rt_bcs: 0,
             })
             expect(result.d_bcs).toBe(0)
             expect(result.i_bcs).toBe(0)
@@ -29,214 +29,232 @@ describe("calculateBcs", () => {
             expect(result.d_bcs).toBe(0)
             expect(result.i_bcs).toBe(0)
         })
-
         it("treats null values as 0", () => {
-            const result = calculateBcs({
-                a_ss_bcs: null,
-                a_p_bcs: null,
-            })
-            expect(result.d_bcs).toBe(0)
+            expect(calculateBcs({ a_ss_bcs: null, a_p_bcs: null }).d_bcs).toBe(0)
         })
     })
 
-    describe("positive indicators", () => {
+    describe("positive field indicators", () => {
         it("adds weight 3 for SS (bodemstructuur)", () => {
-            const result = calculateBcs({ a_ss_bcs: 2 })
-            expect(result.d_bcs).toBe(6) // 3 × 2
+            expect(calculateBcs({ a_ss_bcs: 2 }).d_bcs).toBe(6)
         })
-
         it("adds weight 3 for SC (verdichting)", () => {
-            const result = calculateBcs({ a_sc_bcs: 2 })
-            expect(result.d_bcs).toBe(6)
+            expect(calculateBcs({ a_sc_bcs: 2 }).d_bcs).toBe(6)
         })
-
         it("adds weight 3 for RD (beworteling)", () => {
-            const result = calculateBcs({ a_rd_bcs: 2 })
-            expect(result.d_bcs).toBe(6)
+            expect(calculateBcs({ a_rd_bcs: 2 }).d_bcs).toBe(6)
         })
-
         it("adds weight 3 for EW (regenwormen)", () => {
-            const result = calculateBcs({ a_ew_bcs: 2 })
-            expect(result.d_bcs).toBe(6)
+            expect(calculateBcs({ a_ew_bcs: 2 }).d_bcs).toBe(6)
         })
-
         it("adds weight 2 for CC (gewasbedekking)", () => {
-            const result = calculateBcs({ a_cc_bcs: 2 })
-            expect(result.d_bcs).toBe(4) // 2 × 2
+            expect(calculateBcs({ a_cc_bcs: 2 }).d_bcs).toBe(4)
         })
-
         it("adds weight 1 for GS (gekleurde vlekken)", () => {
-            const result = calculateBcs({ a_gs_bcs: 2 })
-            expect(result.d_bcs).toBe(2) // 1 × 2
+            expect(calculateBcs({ a_gs_bcs: 2 }).d_bcs).toBe(2)
+        })
+    })
+
+    describe("lab-derived indicators (a_ph_bcs, a_som_bcs)", () => {
+        it("adds weight 3 for a_ph_bcs", () => {
+            expect(calculateBcs({ a_ph_bcs: 2 }).d_bcs).toBe(6)
+        })
+        it("adds weight 3 for a_som_bcs", () => {
+            expect(calculateBcs({ a_som_bcs: 1 }).d_bcs).toBe(3)
         })
     })
 
     describe("negative indicators", () => {
         it("subtracts weight 2 for P (plasvorming)", () => {
-            const result = calculateBcs({ a_ss_bcs: 2, a_p_bcs: 2 })
-            // 3×2 - 2×2 = 6 - 4 = 2
-            expect(result.d_bcs).toBe(2)
+            expect(calculateBcs({ a_ss_bcs: 2, a_p_bcs: 2 }).d_bcs).toBe(2)
         })
-
         it("subtracts weight 1 for C (scheuren)", () => {
-            const result = calculateBcs({ a_ss_bcs: 2, a_c_bcs: 2 })
-            // 3×2 - 1×2 = 6 - 2 = 4
-            expect(result.d_bcs).toBe(4)
+            expect(calculateBcs({ a_ss_bcs: 2, a_c_bcs: 2 }).d_bcs).toBe(4)
         })
-
         it("subtracts weight 1 for RT (spoorvorming)", () => {
-            const result = calculateBcs({ a_ss_bcs: 2, a_rt_bcs: 2 })
-            // 3×2 - 1×2 = 6 - 2 = 4
-            expect(result.d_bcs).toBe(4)
+            expect(calculateBcs({ a_ss_bcs: 2, a_rt_bcs: 2 }).d_bcs).toBe(4)
         })
-
         it("floors d_bcs at 0 when negatives exceed positives", () => {
-            const result = calculateBcs({
-                a_ss_bcs: 0,
-                a_p_bcs: 2, // -4
-                a_c_bcs: 2, // -2
-                a_rt_bcs: 2, // -2
-            })
+            const result = calculateBcs({ a_p_bcs: 2, a_c_bcs: 2, a_rt_bcs: 2 })
             expect(result.d_bcs).toBe(0)
             expect(result.i_bcs).toBe(0)
         })
     })
 
-    describe("with all positives at maximum", () => {
-        it("reaches the expected maximum without lab scores", () => {
+    describe("d_bcs_max", () => {
+        it("is always 40 (official normalizer)", () => {
+            expect(calculateBcs({}).d_bcs_max).toBe(40)
+            expect(calculateBcs({ a_ss_bcs: 2 }).d_bcs_max).toBe(40)
+            expect(calculateBcs({ a_ph_bcs: 2, a_som_bcs: 2 }).d_bcs_max).toBe(40)
+        })
+        it("reaches max field score of 30 without lab scores (i_bcs = 0.75)", () => {
             const result = calculateBcs({
-                a_ss_bcs: 2,
-                a_sc_bcs: 2,
-                a_rd_bcs: 2,
-                a_ew_bcs: 2,
-                a_cc_bcs: 2,
-                a_gs_bcs: 2,
-                a_p_bcs: 0,
-                a_c_bcs: 0,
-                a_rt_bcs: 0,
+                a_ss_bcs: 2, a_sc_bcs: 2, a_rd_bcs: 2, a_ew_bcs: 2,
+                a_cc_bcs: 2, a_gs_bcs: 2, a_p_bcs: 0, a_c_bcs: 0, a_rt_bcs: 0,
             })
-            // 3×2 + 3×2 + 3×2 + 3×2 + 2×2 + 1×2 = 6+6+6+6+4+2 = 30
             expect(result.d_bcs).toBe(30)
             expect(result.i_bcs).toBeCloseTo(0.75)
-            expect(result.d_bcs_max).toBe(4 + 30) // 2×2 + 3×2×5 = 34
         })
-
-        it("includes lab scores in d_bcs_max when provided", () => {
+        it("caps i_bcs at 1.0 when all 11 indicators at max (d_bcs = 42)", () => {
             const result = calculateBcs({
-                a_ss_bcs: 2,
-                a_sc_bcs: 2,
-                a_rd_bcs: 2,
-                a_ew_bcs: 2,
-                a_cc_bcs: 2,
-                a_gs_bcs: 2,
-                bcs_om: 2,
-                bcs_ph: 2,
+                a_ss_bcs: 2, a_sc_bcs: 2, a_rd_bcs: 2, a_ew_bcs: 2,
+                a_cc_bcs: 2, a_gs_bcs: 2, a_ph_bcs: 2, a_som_bcs: 2,
             })
-            // 30 + 3×2 + 3×2 = 30 + 6 + 6 = 42 → capped to i_bcs = 1
             expect(result.d_bcs).toBe(42)
             expect(result.i_bcs).toBe(1.0)
-            expect(result.d_bcs_max).toBe(4 + 3 * 2 * 7) // CC + 7 weight-3 fields
-        })
-    })
-
-    describe("lab scores (bcs_om, bcs_ph)", () => {
-        it("adds weight 3 for bcs_ph", () => {
-            const result = calculateBcs({ bcs_ph: 2 })
-            expect(result.d_bcs).toBe(6)
-            expect(result.includes_lab_scores).toBe(true)
-        })
-
-        it("adds weight 3 for bcs_om", () => {
-            const result = calculateBcs({ bcs_om: 1 })
-            expect(result.d_bcs).toBe(3)
-            expect(result.includes_lab_scores).toBe(true)
-        })
-
-        it("reports includes_lab_scores = false when neither is provided", () => {
-            const result = calculateBcs({ a_ss_bcs: 2 })
-            expect(result.includes_lab_scores).toBe(false)
-        })
-
-        it("reports includes_lab_scores = true when only bcs_ph is set", () => {
-            const result = calculateBcs({ bcs_ph: 1 })
-            expect(result.includes_lab_scores).toBe(true)
         })
     })
 
     describe("i_bcs normalization", () => {
-        it("caps i_bcs at 1.0 even when d_bcs exceeds 40", () => {
-            // All indicators at max including lab
-            const result = calculateBcs({
-                a_ss_bcs: 2,
-                a_sc_bcs: 2,
-                a_rd_bcs: 2,
-                a_ew_bcs: 2,
-                a_cc_bcs: 2,
-                a_gs_bcs: 2,
-                bcs_om: 2,
-                bcs_ph: 2,
-            })
-            expect(result.i_bcs).toBe(1.0)
-        })
-
         it("gives i_bcs = 0.5 for d_bcs = 20", () => {
-            // a_ss_bcs=2 (6) + a_sc_bcs=2 (6) + a_rd_bcs=2 (6) + a_cc_bcs=1 (2) = 20
-            const result = calculateBcs({
-                a_ss_bcs: 2,
-                a_sc_bcs: 2,
-                a_rd_bcs: 2,
-                a_cc_bcs: 1,
-            })
+            const result = calculateBcs({ a_ss_bcs: 2, a_sc_bcs: 2, a_rd_bcs: 2, a_cc_bcs: 1 })
             expect(result.d_bcs).toBe(20)
             expect(result.i_bcs).toBe(0.5)
         })
     })
 })
 
+describe("derivePhBcs (via OBIC logistic ind_ph)", () => {
+    it("returns 2 when D_PH_DELTA = 0 (pH at optimum)", () => {
+        expect(derivePhBcs(0)).toBe(2)
+    })
+    it("returns 2 for small delta (< ~0.23)", () => {
+        expect(derivePhBcs(0.1)).toBe(2)
+        expect(derivePhBcs(0.2)).toBe(2)
+    })
+    it("returns 1 for moderate delta (~0.23–0.43)", () => {
+        expect(derivePhBcs(0.3)).toBe(1)
+    })
+    it("returns 0 for large delta (>= ~0.43)", () => {
+        expect(derivePhBcs(0.5)).toBe(0)
+        expect(derivePhBcs(1.0)).toBe(0)
+        expect(derivePhBcs(2.0)).toBe(0)
+    })
+})
+
+describe("deriveOmBcs (OBIC crop x soiltype lookup)", () => {
+    describe("natuur always returns 2", () => {
+        it("returns 2 regardless of a_som_loi", () => {
+            expect(deriveOmBcs(0.5, "natuur", "zand")).toBe(2)
+            expect(deriveOmBcs(100, "natuur", "klei")).toBe(2)
+        })
+    })
+
+    describe("akkerbouw / klei (low=2.2, high=3.8)", () => {
+        it("returns 0 below threshold", () => {
+            expect(deriveOmBcs(2.0, "akkerbouw", "klei")).toBe(0)
+        })
+        it("returns 1 in range", () => {
+            expect(deriveOmBcs(3.0, "akkerbouw", "klei")).toBe(1)
+        })
+        it("returns 2 above threshold", () => {
+            expect(deriveOmBcs(4.0, "akkerbouw", "klei")).toBe(2)
+        })
+    })
+
+    describe("akkerbouw / zand (low=3.0, high=4.8)", () => {
+        it("returns 0 below threshold", () => {
+            expect(deriveOmBcs(2.5, "akkerbouw", "zand")).toBe(0)
+        })
+        it("returns 1 in range", () => {
+            expect(deriveOmBcs(4.0, "akkerbouw", "zand")).toBe(1)
+        })
+        it("returns 2 above threshold", () => {
+            expect(deriveOmBcs(5.0, "akkerbouw", "zand")).toBe(2)
+        })
+    })
+
+    describe("grasland / veen (low=15.5, high=28.6)", () => {
+        it("returns 0 below threshold", () => {
+            expect(deriveOmBcs(10, "grasland", "veen")).toBe(0)
+        })
+        it("returns 1 in range", () => {
+            expect(deriveOmBcs(20, "grasland", "veen")).toBe(1)
+        })
+        it("returns 2 above threshold", () => {
+            expect(deriveOmBcs(30, "grasland", "veen")).toBe(2)
+        })
+    })
+
+    describe("mais / loess (low=2.6, high=3.4)", () => {
+        it("returns 0 below threshold", () => {
+            expect(deriveOmBcs(2.0, "mais", "loess")).toBe(0)
+        })
+        it("returns 1 in range", () => {
+            expect(deriveOmBcs(3.0, "mais", "loess")).toBe(1)
+        })
+        it("returns 2 above threshold", () => {
+            expect(deriveOmBcs(3.5, "mais", "loess")).toBe(2)
+        })
+    })
+})
+
 describe("getBcsScoreColor", () => {
-    it("returns 'red' for i_bcs < 0.33", () => {
+    it("returns 'red' for d_bcs < 10 (slecht)", () => {
         expect(getBcsScoreColor(0)).toBe("red")
-        expect(getBcsScoreColor(0.1)).toBe("red")
-        expect(getBcsScoreColor(0.329)).toBe("red")
+        expect(getBcsScoreColor(9)).toBe("red")
     })
-
-    it("returns 'orange' for 0.33 <= i_bcs < 0.66", () => {
-        expect(getBcsScoreColor(0.33)).toBe("orange")
-        expect(getBcsScoreColor(0.5)).toBe("orange")
-        expect(getBcsScoreColor(0.659)).toBe("orange")
+    it("returns 'orange' for 10 <= d_bcs < 20 (onvoldoende)", () => {
+        expect(getBcsScoreColor(10)).toBe("orange")
+        expect(getBcsScoreColor(19)).toBe("orange")
     })
+    it("returns 'yellow' for 20 <= d_bcs < 30 (matig)", () => {
+        expect(getBcsScoreColor(20)).toBe("yellow")
+        expect(getBcsScoreColor(29)).toBe("yellow")
+    })
+    it("returns 'green' for 30 <= d_bcs < 40 (goed)", () => {
+        expect(getBcsScoreColor(30)).toBe("green")
+        expect(getBcsScoreColor(39)).toBe("green")
+    })
+    it("returns 'emerald' for d_bcs >= 40 (zeer goed)", () => {
+        expect(getBcsScoreColor(40)).toBe("emerald")
+        expect(getBcsScoreColor(42)).toBe("emerald")
+    })
+})
 
-    it("returns 'green' for i_bcs >= 0.66", () => {
-        expect(getBcsScoreColor(0.66)).toBe("green")
-        expect(getBcsScoreColor(0.8)).toBe("green")
-        expect(getBcsScoreColor(1.0)).toBe("green")
+describe("getBcsScoreLabel", () => {
+    it("returns 'Slecht' for d_bcs < 10", () => {
+        expect(getBcsScoreLabel(0)).toBe("Slecht")
+        expect(getBcsScoreLabel(9)).toBe("Slecht")
+    })
+    it("returns 'Onvoldoende' for 10 <= d_bcs < 20", () => {
+        expect(getBcsScoreLabel(10)).toBe("Onvoldoende")
+        expect(getBcsScoreLabel(19)).toBe("Onvoldoende")
+    })
+    it("returns 'Matig' for 20 <= d_bcs < 30", () => {
+        expect(getBcsScoreLabel(20)).toBe("Matig")
+        expect(getBcsScoreLabel(29)).toBe("Matig")
+    })
+    it("returns 'Goed' for 30 <= d_bcs < 40", () => {
+        expect(getBcsScoreLabel(30)).toBe("Goed")
+        expect(getBcsScoreLabel(39)).toBe("Goed")
+    })
+    it("returns 'Zeer goed' for d_bcs >= 40", () => {
+        expect(getBcsScoreLabel(40)).toBe("Zeer goed")
+        expect(getBcsScoreLabel(42)).toBe("Zeer goed")
     })
 })
 
 describe("BCS_INDICATORS", () => {
-    it("has exactly 9 indicators", () => {
-        expect(BCS_INDICATORS).toHaveLength(9)
+    it("has exactly 11 indicators", () => {
+        expect(BCS_INDICATORS).toHaveLength(11)
     })
-
-    it("has 6 positive indicators", () => {
-        const positive = BCS_INDICATORS.filter((i) => i.direction === "positive")
-        expect(positive).toHaveLength(6)
+    it("has 8 positive indicators", () => {
+        expect(BCS_INDICATORS.filter((i) => i.direction === "positive")).toHaveLength(8)
     })
-
     it("has 3 negative indicators", () => {
-        const negative = BCS_INDICATORS.filter((i) => i.direction === "negative")
-        expect(negative).toHaveLength(3)
+        expect(BCS_INDICATORS.filter((i) => i.direction === "negative")).toHaveLength(3)
     })
-
-    it("each indicator has a unique key matching a BcsScores field", () => {
+    it("has 9 field indicators and 2 lab indicators", () => {
+        expect(BCS_INDICATORS.filter((i) => i.source === "field")).toHaveLength(9)
+        expect(BCS_INDICATORS.filter((i) => i.source === "lab")).toHaveLength(2)
+    })
+    it("each indicator has a unique key", () => {
         const keys = BCS_INDICATORS.map((i) => i.key)
-        const unique = new Set(keys)
-        expect(unique.size).toBe(BCS_INDICATORS.length)
+        expect(new Set(keys).size).toBe(BCS_INDICATORS.length)
     })
-
     it("negative indicators have weight 1 or 2", () => {
-        const negative = BCS_INDICATORS.filter((i) => i.direction === "negative")
-        for (const ind of negative) {
+        for (const ind of BCS_INDICATORS.filter((i) => i.direction === "negative")) {
             expect(ind.weight).toBeGreaterThanOrEqual(1)
             expect(ind.weight).toBeLessThanOrEqual(2)
         }
