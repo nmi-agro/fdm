@@ -1,5 +1,6 @@
 import { type Field, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
+import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
 import { getGeoTiffValue } from "../../../../shared/geotiff"
 import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"
@@ -502,7 +503,7 @@ function calculateKorting(
                 ) {
                     isValidRenewal = true
                 } else {
-                    throw new Error(
+                    throw new NormNotApplicableError(
                         "Graslandvernieuwing op zand- en lössgrond is alleen toegestaan tussen 1 juni en 31 augustus.",
                     )
                 }
@@ -516,7 +517,7 @@ function calculateKorting(
                         ) {
                             isValidRenewal = true
                         } else {
-                            throw new Error(
+                            throw new NormNotApplicableError(
                                 "Graslandvernieuwing op klei- en veengrond (derogatie + NV-gebied) is alleen toegestaan tussen 1 juni en 31 augustus.",
                             )
                         }
@@ -528,7 +529,7 @@ function calculateKorting(
                         ) {
                             isValidRenewal = true
                         } else {
-                            throw new Error(
+                            throw new NormNotApplicableError(
                                 "Graslandvernieuwing op klei- en veengrond (derogatie + niet NV-gebied) is alleen toegestaan tussen 1 juni en 15 september.",
                             )
                         }
@@ -541,7 +542,7 @@ function calculateKorting(
                     ) {
                         isValidRenewal = true
                     } else {
-                        throw new Error(
+                        throw new NormNotApplicableError(
                             "Graslandvernieuwing op klei- en veengrond (geen derogatie) is alleen toegestaan tussen 1 februari en 15 september.",
                         )
                     }
@@ -581,7 +582,7 @@ function calculateKorting(
                 ) {
                     isValidDestruction = true
                 } else {
-                    throw new Error(
+                    throw new NormNotApplicableError(
                         "Graslandvernietiging op zand- en lössgrond is alleen toegestaan tussen 1 februari en 10 mei.",
                     )
                 }
@@ -594,7 +595,7 @@ function calculateKorting(
                     ) {
                         isValidDestruction = true
                     } else {
-                        throw new Error(
+                        throw new NormNotApplicableError(
                             "Graslandvernietiging op klei- en veengrond (NV-gebied) is alleen toegestaan tussen 1 februari en 15 maart.",
                         )
                     }
@@ -606,7 +607,7 @@ function calculateKorting(
                     ) {
                         isValidDestruction = true
                     } else {
-                        throw new Error(
+                        throw new NormNotApplicableError(
                             "Graslandvernietiging op klei- en veengrond (niet NV-gebied) is alleen toegestaan tussen 1 februari en 31 mei.",
                         )
                     }
@@ -853,7 +854,7 @@ export async function calculateNL2025StikstofGebruiksNorm(
         }
     }
     if (!cultivation) {
-        throw new Error(
+        throw new NormNotApplicableError(
             `Cultivation with b_lu_catalogue ${b_lu_catalogue} not found`,
         )
     }
@@ -869,7 +870,7 @@ export async function calculateNL2025StikstofGebruiksNorm(
     )
 
     if (matchingStandards.length === 0) {
-        throw new Error(
+        throw new NormNotApplicableError(
             `No matching nitrogen standard found for b_lu_catalogue ${b_lu_catalogue}.`,
         )
     }
@@ -889,7 +890,7 @@ export async function calculateNL2025StikstofGebruiksNorm(
     }
 
     if (!selectedStandard) {
-        throw new Error(
+        throw new NormNotApplicableError(
             `No specific matching nitrogen standard found for b_lu_catalogue ${b_lu_catalogue} with variety ${
                 cultivation.b_lu_variety || "N/A"
             } in region ${region}.`,

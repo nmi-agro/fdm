@@ -88,6 +88,7 @@ export default defineConfig((env) => {
                 "@nmi-agro/fdm-calculator",
                 "@nmi-agro/fdm-rvo",
                 "@nmi-agro/fdm-agents",
+                "@nmi-agro/fdm-api",
                 "@nmi-agro/fdm-helpdesk",
             ],
             // Pre-bundle heavy transitive deps that workspace packages pull in,

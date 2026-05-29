@@ -3,11 +3,23 @@ import {
     type CatalogueFertilizerItem,
     hashFertilizer,
 } from "@nmi-agro/fdm-data"
-import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm"
+import {
+    and,
+    asc,
+    desc,
+    eq,
+    gte,
+    inArray,
+    isNotNull,
+    isNull,
+    lte,
+    or,
+} from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.types"
 import { getEnabledFertilizerCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
+import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
@@ -81,7 +93,10 @@ export async function getFertilizersFromCatalogues(
             return []
         }
 
-        // Filter to only catalogue sources that are enabled for farms the principal can access
+        // Filter to only catalogue sources that are enabled for farms the principal can access.
+        // Access may be granted directly (role.principal_id matches the user) or through
+        // organization membership (role assigned to an org the user belongs to).
+        const principal_ids = [principal_id].flat()
         const authorizedRows = await fdm
             .selectDistinct({
                 p_source: schema.fertilizerCatalogueEnabling.p_source,
@@ -95,17 +110,29 @@ export async function getFertilizersFromCatalogues(
                         authZSchema.role.resource_id,
                         schema.fertilizerCatalogueEnabling.b_id_farm,
                     ),
-                    inArray(
-                        authZSchema.role.principal_id,
-                        [principal_id].flat(),
-                    ),
                     isNull(authZSchema.role.deleted),
                 ),
             )
+            .leftJoin(
+                authNSchema.member,
+                and(
+                    eq(
+                        authZSchema.role.principal_id,
+                        authNSchema.member.organizationId,
+                    ),
+                    inArray(authNSchema.member.userId, principal_ids),
+                ),
+            )
             .where(
-                inArray(
-                    schema.fertilizerCatalogueEnabling.p_source,
-                    catalogueIds,
+                and(
+                    inArray(
+                        schema.fertilizerCatalogueEnabling.p_source,
+                        catalogueIds,
+                    ),
+                    or(
+                        inArray(authZSchema.role.principal_id, principal_ids),
+                        isNotNull(authNSchema.member.userId),
+                    ),
                 ),
             )
         const authorizedSources = new Set(
@@ -333,19 +360,22 @@ export async function addFertilizer(
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param p_id The ID of the fertilizer.
+ * @param principal_id The ID of the principal making the request.
  * @returns A Promise that resolves with the fertilizer details.
- * @throws If retrieving the fertilizer details fails or the fertilizer is not found.
+ * @throws If retrieving the fertilizer details fails, the fertilizer is not found, or the principal lacks access.
  * @alpha
  */
 export async function getFertilizer(
     fdm: FdmType,
     p_id: schema.fertilizersTypeSelect["p_id"],
+    principal_id: PrincipalId,
 ): Promise<Fertilizer> {
     try {
         // Get properties of the requested fertilizer
         const fertilizer = await fdm
             .select({
                 p_id: schema.fertilizers.p_id,
+                b_id_farm: schema.fertilizerAcquiring.b_id_farm,
                 p_id_catalogue: schema.fertilizersCatalogue.p_id_catalogue,
                 p_source: schema.fertilizersCatalogue.p_source,
                 p_name_nl: schema.fertilizersCatalogue.p_name_nl,
@@ -431,10 +461,22 @@ export async function getFertilizer(
             throw new Error("Fertilizer not found")
         }
 
+        if (result.b_id_farm) {
+            await checkPermission(
+                fdm,
+                "farm",
+                "read",
+                result.b_id_farm,
+                principal_id,
+                "getFertilizer",
+            )
+        }
+
+        const { b_id_farm: _b_id_farm, ...rest } = result
         return {
-            ...result,
+            ...rest,
             p_type: deriveFertilizerType(
-                result as Partial<schema.fertilizersCatalogueTypeSelect>,
+                rest as Partial<schema.fertilizersCatalogueTypeSelect>,
             ),
         } as unknown as Fertilizer
     } catch (err) {
@@ -716,16 +758,38 @@ export async function getFertilizers(
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param p_id The ID of the fertilizer to remove.
+ * @param principal_id The ID of the principal making the request.
  * @returns A Promise that resolves when the fertilizer has been removed.
- * @throws If removing the fertilizer fails.
+ * @throws If removing the fertilizer fails or the principal lacks access.
  * @alpha
  */
 export async function removeFertilizer(
     fdm: FdmType,
     p_id: schema.fertilizerAcquiringTypeInsert["p_id"],
+    principal_id: PrincipalId,
 ): Promise<void> {
     try {
         return await fdm.transaction(async (tx) => {
+            const acquiring = await tx
+                .select({ b_id_farm: schema.fertilizerAcquiring.b_id_farm })
+                .from(schema.fertilizerAcquiring)
+                .where(eq(schema.fertilizerAcquiring.p_id, p_id))
+                .limit(1)
+
+            const b_id_farm = acquiring[0]?.b_id_farm
+            if (!b_id_farm) {
+                throw new Error("Fertilizer not found")
+            }
+
+            await checkPermission(
+                tx,
+                "farm",
+                "write",
+                b_id_farm,
+                principal_id,
+                "removeFertilizer",
+            )
+
             await tx
                 .delete(schema.fertilizerAcquiring)
                 .where(eq(schema.fertilizerAcquiring.p_id, p_id))
@@ -790,7 +854,7 @@ export async function addFertilizerApplication(
         }
 
         // Validate that the fertilizer exists and get it
-        const fertilizer = await getFertilizer(fdm, p_id)
+        const fertilizer = await getFertilizer(fdm, p_id, principal_id)
 
         const p_app_id = createId()
 
@@ -852,7 +916,7 @@ export async function updateFertilizerApplication(
             principal_id,
             "updateFertilizerApplication",
         )
-        const fertilizer = await getFertilizer(fdm, p_id)
+        const fertilizer = await getFertilizer(fdm, p_id, principal_id)
         const p_app_amount =
             p_app_amount_display !== null && p_app_amount_display !== undefined
                 ? toKgPerHa(

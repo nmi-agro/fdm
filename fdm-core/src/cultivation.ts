@@ -1368,8 +1368,7 @@ export async function updateCultivation(
                         if (
                             result[0].b_lu_start !== null &&
                             result[0].b_lu_start !== undefined &&
-                            result[0].b_lu_start.getTime() >=
-                                b_lu_end.getTime()
+                            result[0].b_lu_start.getTime() >= b_lu_end.getTime()
                         ) {
                             throw new Error(
                                 "Terminate date must be after sowing date",

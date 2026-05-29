@@ -1,5 +1,11 @@
 # fdm-data
 
+## 0.21.0
+
+### Minor Changes
+
+- [#606](https://github.com/nmi-agro/fdm/pull/606) [`3319d6a`](https://github.com/nmi-agro/fdm/commit/3319d6a3b4c51dabe8e1813570350e9a851f0dd6) Thanks [@SvenVw](https://github.com/SvenVw)! - Add measures catalogue module for BLN3 integration. Exports `getMeasuresCatalogue(catalogueName, nmiApiKey)` as a dispatcher (mirroring `getFertilizersCatalogue`), with BLN3 implemented in `measures/catalogues/bln.ts`. Adding future catalogues (e.g. ANLb) only requires a new file and extending the `CatalogueMeasureName` union. Also exports `hashMeasure` and the `CatalogueMeasure`, `CatalogueMeasureItem`, `CatalogueMeasureName` types using pandex naming conventions (`m_id`, `m_source`, `m_name`, etc.).
+
 ## 0.20.0
 
 ### Minor Changes

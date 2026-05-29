@@ -66,6 +66,7 @@ const config: Config = {
                     "../fdm-calculator/src/index.ts",
                     "../fdm-rvo/src/index.ts",
                     "../fdm-agents/src/index.ts",
+                    "../fdm-api/src/index.ts",
                 ],
                 tsconfig: "./tsconfig.json", // Use local tsconfig
                 out: "api-reference", // Output directory relative to package root (fdm-docs)

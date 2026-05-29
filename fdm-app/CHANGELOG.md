@@ -1,5 +1,50 @@
 # Changelog fdm-app
 
+## 0.31.0
+
+### Minor Changes
+
+- [#615](https://github.com/nmi-agro/fdm/pull/615) [`da09a07`](https://github.com/nmi-agro/fdm/commit/da09a073514260f098b4952b5957f58aba5dae8d) Thanks [@SvenVw](https://github.com/SvenVw)! - Add BLN3 indicators overview for farms.
+  - **Tabel** (`/farm/:b_id_farm/:calendar/indicators`) – heatmap table with all 27 BLN3 indicators grouped by ecosysteemdienst (Gewasproductie, Koolstofvastlegging, Waterkwaliteit, Nutriëntenkringloop). Aggregation cards per ecosysteemdienst show farm-level averages (computed as the mean of contributing indicator scores).
+  - **Kaart** (`/farm/:b_id_farm/:calendar/atlas/indicators`) – full-height MapLibre map coloured by a selected indicator score, accessible from the Atlas section. An individual indicator or ecosysteemdienst can be chosen via a floating dropdown grouped by ecosysteemdienst. Hovering a field shows its name and score.
+
+  The "Indicatoren" sidebar entry is a direct link (not collapsible). The map layer is available as a sub-item under Atlas in the sidebar and in the Atlas layer dropdown.
+
+- [#618](https://github.com/nmi-agro/fdm/pull/618) [`142a682`](https://github.com/nmi-agro/fdm/commit/142a6825b92d97413e9838326db922e4db680e4c) Thanks [@SvenVw](https://github.com/SvenVw)! - Add Gemini 3.5 Flash as new model for Gerrit
+
+- [#621](https://github.com/nmi-agro/fdm/pull/621) [`c70ed2a`](https://github.com/nmi-agro/fdm/commit/c70ed2a0f4af645e2dcc59c56c041548acadbde2) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the measures pages to view, select, update and delete the adoptions of measures on farm and field level
+
+- [#607](https://github.com/nmi-agro/fdm/pull/607) [`ab7ba85`](https://github.com/nmi-agro/fdm/commit/ab7ba85137202ba0c03d8dfd490d9366594ed8ce) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added the soil analysis atlas. Users can select different soil parameters which will show each field on the atlas coloured according the parameter's value in its soil analyses.
+
+- [#620](https://github.com/nmi-agro/fdm/pull/620) [`419b19c`](https://github.com/nmi-agro/fdm/commit/419b19c2e1f8ee814c4f4696687a5c3f1bd3089b) Thanks [@SvenVw](https://github.com/SvenVw)! - ---
+  "`@nmi-agro/fdm-app`": minor
+
+  ***
+
+  Farm balance pages now display the main cultivation for each field as a badge in the field list. Clicking the badge opens a dialog showing cultivation details alongside any additional cultivations for that field.
+
+- [#607](https://github.com/nmi-agro/fdm/pull/607) [`ab7ba85`](https://github.com/nmi-agro/fdm/commit/ab7ba85137202ba0c03d8dfd490d9366594ed8ce) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users with only read access do not see the edit button for soil parameters, but an external link button to make it more clear that they only can view the value instead of editing it.
+
+- [#619](https://github.com/nmi-agro/fdm/pull/619) [`397aea8`](https://github.com/nmi-agro/fdm/commit/397aea8a7c07537ee08bbe35b4114d5cea86d74a) Thanks [@SvenVw](https://github.com/SvenVw)! - Add field page for indicators to get an overview of the scores for the indicators and a map to quickly switch fields
+
+- [#611](https://github.com/nmi-agro/fdm/pull/611) [`83bf116`](https://github.com/nmi-agro/fdm/commit/83bf116c3c9d2f800731d3fd6ae575520aa44a5d) Thanks [@SvenVw](https://github.com/SvenVw)! - Add Developer Settings with API key management
+
+  A new Developer Settings section is available at account. From there personal API keys can be created for programmatic access to FDM, be renamed, and revoked at any time. The secret key is shown only once — immediately after creation — so it can be copied to a safe place.
+
+### Patch Changes
+
+- [#606](https://github.com/nmi-agro/fdm/pull/606) [`6ff2c0b`](https://github.com/nmi-agro/fdm/commit/6ff2c0b5b4c354466527e2465256479c02e8012b) Thanks [@SvenVw](https://github.com/SvenVw)! - Enable `bln` catalogue for measures when creating a new farm
+
+- [#611](https://github.com/nmi-agro/fdm/pull/611) [`c30057e`](https://github.com/nmi-agro/fdm/commit/c30057ea07f4646bd588d93a1eba894733076dae) Thanks [@SvenVw](https://github.com/SvenVw)! - Store the credential_id in the audit table, thus session_id (when using the application) or key_id (when using the api).
+
+- [#611](https://github.com/nmi-agro/fdm/pull/611) [`f243894`](https://github.com/nmi-agro/fdm/commit/f243894ee8f0fe9e64d313d64a0008a7703c1f49) Thanks [@SvenVw](https://github.com/SvenVw)! - When the norms can not be determined (not a calculation error) return a distinct error message and show it as warning instead of an error to the user
+
+- Updated dependencies [[`1454660`](https://github.com/nmi-agro/fdm/commit/145466048fb0e5e52ec2e0d4e19708722cb2c0be), [`8e454a3`](https://github.com/nmi-agro/fdm/commit/8e454a3d9af12a66b7f13ae0dd7d5e72c2d0a857), [`df22bcb`](https://github.com/nmi-agro/fdm/commit/df22bcb2516cfb04cfe97ab6f490e9a003a67ff5), [`c09b5bf`](https://github.com/nmi-agro/fdm/commit/c09b5bf87af13c2b9cb6f1200c7e293492a12a8c), [`be2f3ae`](https://github.com/nmi-agro/fdm/commit/be2f3aebd1816b832d9915bf1b7f961b16f18585), [`c30057e`](https://github.com/nmi-agro/fdm/commit/c30057ea07f4646bd588d93a1eba894733076dae), [`3319d6a`](https://github.com/nmi-agro/fdm/commit/3319d6a3b4c51dabe8e1813570350e9a851f0dd6), [`f243894`](https://github.com/nmi-agro/fdm/commit/f243894ee8f0fe9e64d313d64a0008a7703c1f49), [`e12afe4`](https://github.com/nmi-agro/fdm/commit/e12afe49ad898412dfe12f487b6a4ca46c57c66f)]:
+  - @nmi-agro/fdm-agents@0.3.1
+  - @nmi-agro/fdm-core@0.33.0
+  - @nmi-agro/fdm-calculator@0.15.0
+  - @nmi-agro/fdm-data@0.21.0
+
 ## 0.30.1
 
 ### Patch Changes

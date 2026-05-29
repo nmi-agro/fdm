@@ -22,9 +22,21 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Install dependencies
+# Strip minimumReleaseAge configuration inside Docker. 
+# This prevents the [ERR_PNPM_MISSING_TIME] error during pnpm deploy where pnpm 
+# crashes if it cannot find timestamp metadata in the local Docker cache. 
+# The lockfile already guarantees these packages were verified when committed.
+RUN sed -i '/^minimumReleaseAge/d' pnpm-workspace.yaml
+
+# Install dependencies.
+# --config.prefer-online=true forces pnpm to re-fetch package metadata from the
+# registry on every build, ensuring the "time" field is present in the store cache.
+# This is needed because minimumReleaseAge requires the "time" field, and a stale
+# Docker cache may contain metadata fetched before that field was recorded.
+# Tarballs are still served from the cache (content-addressable), so build speed
+# is largely unaffected.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --config.prefer-online=true
 
 # Copy source code of isolated subworkspace
 COPY --from=pruner /app/out/full/ .
@@ -36,10 +48,12 @@ COPY --from=pruner /app/tsconfig*.json ./
 RUN pnpm build
 
 # Create a self-contained production deployment bundle.
-# pnpm deploy resolves all production deps (including git-hosted packages) from
-# the already-built node_modules, so no --prod re-install is needed in the runner.
+# --legacy is required because inject-workspace-packages=true is not set; without
+# it pnpm v10+ refuses to deploy. The minimumReleaseAge / missing "time" field
+# issue on the deploy step is avoided by --config.prefer-online=true on the
+# install step above (metadata is refreshed and stored before deploy runs).
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm --filter=@nmi-agro/fdm-app deploy --prod --legacy /app/deployed
+    pnpm --filter=@nmi-agro/fdm-app deploy --prod --legacy --config.resolution-mode=highest --config.prefer-online=true /app/deployed
 
 # Production runner stage
 FROM node:${NODE_VERSION}-alpine AS runner
@@ -48,8 +62,7 @@ WORKDIR /app
 # Add non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 user && \
-    apk add --no-cache libc6-compat curl && \
-    npm install -g pnpm
+    apk add --no-cache libc6-compat curl
 
 # Copy production node_modules from the deploy bundle.
 # This avoids re-fetching and re-building git-hosted packages (like
@@ -83,4 +96,8 @@ HEALTHCHECK --interval=30s --timeout=3s \
   CMD curl -f http://localhost:8080/health || exit 1
 
 WORKDIR /app/fdm-app
-CMD ["pnpm", "start"]
+# Run node directly instead of via `pnpm start` to bypass pnpm v11's pre-script
+# dependency status check, which compares node_modules/.modules.yaml (written by
+# the builder running as root) against the runner's store path (non-root user) and
+# tries to purge + reinstall — failing because the runner has no pnpm store.
+CMD ["/bin/sh", "-c", "node ./app/lib/fdm-migrate.server.js && export NODE_OPTIONS='--import ./instrument.server.mjs' && exec ./node_modules/.bin/react-router-serve ./build/server/index.js"]

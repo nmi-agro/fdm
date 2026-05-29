@@ -1,6 +1,8 @@
+import { AsyncLocalStorage } from "node:async_hooks"
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm"
 import type {
     Action,
+    AuditContext,
     Permission,
     PrincipalId,
     PrincipalWithRoles,
@@ -167,6 +169,7 @@ export async function checkPermission(
     strict = true,
 ) {
     const start = performance.now()
+    const { channel, credential_id } = getAuditContext()
     try {
         const permission = await getPermission(
             fdm,
@@ -184,6 +187,8 @@ export async function checkPermission(
             await fdm.insert(authZSchema.audit).values({
                 audit_id: createId(),
                 audit_origin: origin,
+                audit_channel: channel,
+                credential_id: credential_id ?? null,
                 principal_id:
                     permission?.matched_principal_id ||
                     (Array.isArray(principal_id)
@@ -217,6 +222,50 @@ export async function checkPermission(
             principal_id: principal_id,
         })
     }
+}
+
+/**
+ * Writes a single audit entry for operations that authorize via SQL-level
+ * filtering rather than `checkPermission` (e.g. list operations).
+ * Reads channel and credential_id from the active {@link AuditContext}.
+ *
+ * @param fdm - Database context.
+ * @param origin - Source function name for audit trail.
+ * @param resource - The resource type being listed.
+ * @param action - The action performed (typically "list").
+ * @param principal_id - The principal performing the action.
+ * @param granting_resource - The resource type that grants this access.
+ * @param granting_resource_id - The ID of the granting resource.
+ * @param duration - Time taken in milliseconds.
+ */
+export async function writeAuditEntry(
+    fdm: FdmType,
+    origin: string,
+    resource: Resource,
+    action: Action,
+    principal_id: PrincipalId,
+    granting_resource: string,
+    granting_resource_id: string,
+    duration: number,
+): Promise<void> {
+    const { channel, credential_id } = getAuditContext()
+    const resolvedPrincipalId = Array.isArray(principal_id)
+        ? principal_id[0] || "unknown"
+        : principal_id || "unknown"
+    await fdm.insert(authZSchema.audit).values({
+        audit_id: createId(),
+        audit_origin: origin,
+        audit_channel: channel,
+        credential_id: credential_id ?? null,
+        principal_id: resolvedPrincipalId,
+        target_resource: resource,
+        target_resource_id: granting_resource_id,
+        granting_resource: granting_resource,
+        granting_resource_id: granting_resource_id,
+        action: action,
+        allowed: true,
+        duration: Math.round(duration),
+    })
 }
 
 /**
@@ -1061,4 +1110,32 @@ async function getResourceChain(
             resource_id: resource_id,
         })
     }
+}
+
+const auditStorage = new AsyncLocalStorage<AuditContext>()
+
+/**
+ * Runs `fn` with the given audit context active for its entire async subtree.
+ * Safe for concurrent requests — each call gets its own isolated store.
+ *
+ * @example
+ * ```ts
+ * await withAuditContext({ channel: "api", credential_id: apiKeyId }, async () => {
+ *     await getFarm(fdm, principalId, farmId)
+ * })
+ * ```
+ */
+export function withAuditContext<T>(
+    context: AuditContext,
+    fn: () => T | Promise<T>,
+): Promise<T> {
+    return auditStorage.run(context, () => Promise.resolve(fn()))
+}
+
+/**
+ * Returns the active audit context, or a safe "app" default when called
+ * outside of a `withAuditContext` scope (e.g. scripts, migrations, tests).
+ */
+export function getAuditContext(): AuditContext {
+    return auditStorage.getStore() ?? { channel: "app" }
 }

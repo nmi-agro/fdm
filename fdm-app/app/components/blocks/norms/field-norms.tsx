@@ -26,6 +26,7 @@ export interface FieldNorm {
         nitrogen: GebruiksnormFillingResult
     }
     errorMessage?: string
+    isWarning?: boolean
 }
 
 interface FieldNormsProps {
@@ -140,14 +141,26 @@ export function FieldNorms({ fieldNorms, fieldOptions }: FieldNormsProps) {
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
                                 {field.errorMessage ? (
-                                    <div className="flex h-full flex-col justify-center rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
-                                        <p className="mb-1 font-medium">
-                                            Kon gebruiksnormen niet berekenen
-                                        </p>
-                                        <p className="text-xs">
-                                            {field.errorMessage}
-                                        </p>
-                                    </div>
+                                    field.isWarning ? (
+                                        <div className="flex h-full flex-col justify-center rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm text-amber-700">
+                                            <p className="mb-1 font-medium">
+                                                Geen gebruiksnorm gevonden
+                                            </p>
+                                            <p className="text-xs">
+                                                {field.errorMessage}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex h-full flex-col justify-center rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+                                            <p className="mb-1 font-medium">
+                                                Kon gebruiksnormen niet
+                                                berekenen
+                                            </p>
+                                            <p className="text-xs">
+                                                {field.errorMessage}
+                                            </p>
+                                        </div>
+                                    )
                                 ) : (
                                     <div className="space-y-1">
                                         <NormItem

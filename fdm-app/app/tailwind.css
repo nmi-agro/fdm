@@ -185,6 +185,13 @@
     /* outline: none; */
 }
 
+/* BLN3 heatmap: vertical (rotated) column header text */
+.vertical-header {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+}
+
 /* MapLibre Geocoder Fixes */
 .maplibregl-ctrl-geocoder--icon-close {
     background-repeat: no-repeat;

@@ -1,9 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+    AgentRecursionLimitError,
     AgentTimeoutError,
     buildFertilizerPlanPrompt,
     createFertilizerPlannerAgent,
     type FarmFieldSummary,
+    FertilizerPlanSchema,
     type OneShotAgentResult,
     runOneShotAgent,
 } from "@nmi-agro/fdm-agents"
@@ -94,6 +96,10 @@ import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 import { getDefaultCultivation } from "../lib/cultivation-helpers"
 
+function isValidDutchCropCatalogue(b_lu_catalogue: string | undefined) {
+    return /^nl_\d+$/.test(b_lu_catalogue ?? "")
+}
+
 export const handle = { hideNavigationProgress: true }
 
 export const meta: MetaFunction = () => {
@@ -133,14 +139,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         session.principal_id,
         b_id_farm,
         timeframe.start ?? new Date(),
-    )
+    ).catch(() => false)
 
     const isDerogationFarm = await isDerogationGrantedForYear(
         fdm,
         session.principal_id,
         b_id_farm,
         Number.parseInt(calendar, 10),
-    )
+    ).catch(() => false)
 
     return {
         farm: {
@@ -315,12 +321,16 @@ async function computePlanMetrics(
 
                 const syntheticApps: FertilizerApplication[] =
                     field.applications.map((app, i) => {
+                        const sanitizedCatalogueId = app.p_id_catalogue.replace(
+                            /[^\x00-\x7F]/g,
+                            "",
+                        )
                         const fert = fertilizers.find(
-                            (f) => f.p_id_catalogue === app.p_id_catalogue,
+                            (f) => f.p_id_catalogue === sanitizedCatalogueId,
                         )
                         return {
-                            p_id: fert?.p_id ?? app.p_id_catalogue,
-                            p_id_catalogue: app.p_id_catalogue,
+                            p_id: fert?.p_id ?? sanitizedCatalogueId,
+                            p_id_catalogue: sanitizedCatalogueId,
                             p_name_nl: fert?.p_name_nl ?? null,
                             p_app_amount: app.p_app_amount,
                             p_app_date: new Date(app.p_app_date),
@@ -382,7 +392,10 @@ async function computePlanMetrics(
 
                 // Fetch NMI nutrient advice per field
                 let advice: NutrientAdvice | null = null
-                if (nmiApiKey && field.b_lu_catalogue) {
+                if (
+                    nmiApiKey &&
+                    isValidDutchCropCatalogue(field.b_lu_catalogue)
+                ) {
                     try {
                         const [fieldData, currentSoilData] = await Promise.all([
                             getField(fdm, principalId, field.b_id),
@@ -694,24 +707,41 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     }
                 }),
             )
-            const fieldsSummary: FarmFieldSummary[] = fieldsData
-                .filter((f) => !f.b_bufferstrip)
-                .map((f) => ({
-                    b_id: f.b_id,
-                    b_name: f.b_name,
-                    b_area: f.b_area ?? 0,
-                    b_bufferstrip: false,
-                    b_lu_catalogue: f.b_lu_catalogue,
-                    b_lu_name: f.b_lu_name,
-                    b_soiltype_agr: f.b_soiltype_agr,
-                    b_gwl_class: f.b_gwl_class,
-                    a_som_loi: f.a_som_loi,
-                }))
+            const fieldsSummary: FarmFieldSummary[] = fieldsData.map((f) => ({
+                b_id: f.b_id,
+                b_name: f.b_name,
+                b_area: f.b_area ?? 0,
+                b_bufferstrip: f.b_bufferstrip ?? false,
+                b_lu_catalogue: f.b_lu_catalogue,
+                b_lu_name: f.b_lu_name,
+                b_lu_croprotation: f.b_lu_croprotation,
+                b_soiltype_agr: f.b_soiltype_agr,
+                b_gwl_class: f.b_gwl_class,
+                a_som_loi: f.a_som_loi,
+            }))
             const fertilizers = await getFertilizers(
                 fdm,
                 session.principal_id,
                 b_id_farm,
             )
+
+            const productiveFields = fieldsSummary.filter(
+                (f) => !f.b_bufferstrip && f.b_area,
+            )
+            if (productiveFields.length === 0) {
+                return dataWithError(
+                    null,
+                    "Er zijn geen percelen gevonden voor dit bedrijf. Voeg eerst percelen toe.",
+                )
+            }
+
+            if (fertilizers.length === 0) {
+                return dataWithError(
+                    null,
+                    "Er zijn geen meststoffen gevonden voor dit bedrijf. Voeg eerst meststoffen toe aan het bedrijf.",
+                )
+            }
+
             const agent = createFertilizerPlannerAgent(
                 fdm,
                 serverConfig.integrations.gemini?.api_key,
@@ -737,6 +767,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
             let rawResult = ""
             let usageData: OneShotAgentResult["usage"] = null
             let toolCalls: string[] | undefined
+            let structuredResponse: Record<string, unknown> | undefined
+            let runId: string | undefined
 
             try {
                 const agentResult = await runOneShotAgent(
@@ -747,6 +779,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 rawResult = agentResult.result
                 usageData = agentResult.usage
                 toolCalls = agentResult.toolCalls
+                structuredResponse = agentResult.structuredResponse
+                runId = agentResult.runId
             } catch (err: unknown) {
                 if (err instanceof AgentTimeoutError) {
                     return dataWithError(
@@ -754,45 +788,67 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         "Het duurde te lang om een plan te genereren. Probeer het opnieuw.",
                     )
                 }
+                if (err instanceof AgentRecursionLimitError) {
+                    return dataWithError(
+                        null,
+                        "Gerrit heeft te veel stappen nodig om een plan te maken voor dit bedrijf. Probeer het opnieuw of vereenvoudig de instellingen.",
+                    )
+                }
+                console.error("[gerrit] Agent error (run: unknown):", err)
                 return dataWithError(
                     null,
                     err instanceof Error
-                        ? err.message
+                        ? err.message.slice(0, 200)
                         : "Gerrit kon geen plan genereren.",
                 )
             }
 
-            const firstBrace = rawResult.indexOf("{")
-            const lastBrace = rawResult.lastIndexOf("}")
-            if (firstBrace === -1 || lastBrace <= firstBrace)
-                return dataWithError(
-                    null,
-                    "Gerrit gaf een onleesbaar antwoord. Probeer het opnieuw.",
-                )
-
+            // Prefer structured output from responseFormat, fall back to string parsing
             let parsedPlan: ParsedPlan
-            try {
-                parsedPlan = JSON.parse(
-                    rawResult.slice(firstBrace, lastBrace + 1),
-                ) as ParsedPlan
-            } catch {
-                // Attempt to recover truncated JSON by closing open brackets
-                const truncated = rawResult.slice(firstBrace, lastBrace + 1)
-                const repaired = repairTruncatedJson(truncated)
-                if (repaired) {
-                    try {
-                        parsedPlan = JSON.parse(repaired) as ParsedPlan
-                    } catch {
+            const useStructured = structuredResponse
+                ? FertilizerPlanSchema.safeParse(structuredResponse)
+                : null
+
+            if (useStructured?.success) {
+                parsedPlan = useStructured.data as unknown as ParsedPlan
+            } else {
+                if (structuredResponse && !useStructured?.success) {
+                    console.warn(
+                        "[gerrit] structuredResponse failed schema validation, falling back to raw text",
+                        useStructured?.error?.flatten(),
+                    )
+                }
+                // Fallback: extract JSON from raw text response
+                const firstBrace = rawResult.indexOf("{")
+                const lastBrace = rawResult.lastIndexOf("}")
+                if (firstBrace === -1 || lastBrace <= firstBrace)
+                    return dataWithError(
+                        null,
+                        "Gerrit gaf een onleesbaar antwoord. Probeer het opnieuw.",
+                    )
+
+                try {
+                    parsedPlan = JSON.parse(
+                        rawResult.slice(firstBrace, lastBrace + 1),
+                    ) as ParsedPlan
+                } catch {
+                    const truncated = rawResult.slice(firstBrace, lastBrace + 1)
+                    const repaired = repairTruncatedJson(truncated)
+                    if (repaired) {
+                        try {
+                            parsedPlan = JSON.parse(repaired) as ParsedPlan
+                        } catch {
+                            return dataWithError(
+                                null,
+                                "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
+                            )
+                        }
+                    } else {
                         return dataWithError(
                             null,
                             "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
                         )
                     }
-                } else {
-                    return dataWithError(
-                        null,
-                        "Gerrit gaf een ongeldig plan terug. Probeer het opnieuw.",
-                    )
                 }
             }
 
@@ -816,9 +872,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     b_bufferstrip: fd.b_bufferstrip ?? false,
                     applications: (proposedField?.applications || []).map(
                         (app) => {
+                            const sanitizedCatalogueId =
+                                app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
                             const fert = fertilizers.find(
                                 (f: Fertilizer) =>
-                                    f.p_id_catalogue === app.p_id_catalogue,
+                                    f.p_id_catalogue === sanitizedCatalogueId,
                             )
                             const methodMeta =
                                 applicationMethods?.options?.find(
@@ -846,9 +904,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                                       }
                             return {
                                 ...app,
+                                p_id_catalogue: sanitizedCatalogueId,
                                 ...unitConvertedAmount,
                                 p_name_nl:
-                                    fert?.p_name_nl || app.p_id_catalogue,
+                                    fert?.p_name_nl || sanitizedCatalogueId,
                                 p_type: fert?.p_type || "other",
                                 p_app_method_name:
                                     methodMeta?.label ?? app.p_app_method,
@@ -901,7 +960,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             ],
                             $ai_tools_called: toolCalls || [],
                             $ai_tool_call_count: toolCalls?.length || 0,
-                            $ai_trace_id: `gerrit-${b_id_farm}-${calendar}`,
+                            $ai_trace_id:
+                                runId ?? `gerrit-${b_id_farm}-${calendar}`,
                             b_id_farm,
                             calendar,
                             field_count: fieldsData.length,
@@ -1000,6 +1060,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             )
                         }
 
+                        const appDate = new Date(app.p_app_date)
+                        if (Number.isNaN(appDate.getTime())) {
+                            throw new Error(
+                                `Ongeldige toepassingsdatum: ${app.p_app_date}`,
+                            )
+                        }
+
                         await addFertilizerApplication(
                             tx,
                             session.principal_id,
@@ -1007,7 +1074,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                             fertilizer.p_id,
                             amount,
                             app.p_app_method,
-                            new Date(app.p_app_date),
+                            appDate,
                         )
                     }
                 }
@@ -1019,11 +1086,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
         } catch (e: unknown) {
             console.error("Save failed:", e)
-            return dataWithError(
-                null,
-                "Fout bij opslaan: " +
-                    (e instanceof Error ? e.message : String(e)),
-            )
+            const detail =
+                e instanceof Error ? e.message.slice(0, 200) : "Onbekende fout"
+            return dataWithError(null, `Fout bij opslaan: ${detail}`)
         }
     }
 

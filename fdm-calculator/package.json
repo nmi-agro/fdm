@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-calculator",
     "private": false,
-    "version": "0.14.0",
+    "version": "0.15.0",
     "description": "Calculate various insights based on the Farm Data Model",
     "license": "MIT",
     "homepage": "https://github.com/nmi-agro/fdm",
@@ -27,7 +27,6 @@
         "dist"
     ],
     "scripts": {
-        "dev": "dotenvx run -- vite",
         "db:generate": "npx drizzle-kit generate",
         "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
         "dotenvx": "dotenvx",
@@ -41,7 +40,7 @@
     },
     "dependencies": {
         "@nmi-agro/fdm-core": "workspace:^",
-        "date-fns": "^4.1.0",
+        "date-fns": "^4.3.0",
         "decimal.js": "^10.6.0",
         "geotiff": "^3.0.5",
         "zod": "^4.4.3"

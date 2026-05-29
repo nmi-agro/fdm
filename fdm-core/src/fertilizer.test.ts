@@ -7,6 +7,7 @@ import {
     inject,
     it,
 } from "vitest"
+import { grantRole } from "./authorization"
 import {
     disableFertilizerCatalogue,
     enableFertilizerCatalogue,
@@ -14,6 +15,7 @@ import {
 } from "./catalogues"
 import * as schema from "./db/schema"
 import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
+import * as authNSchema from "./db/schema-authn"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.types"
@@ -250,7 +252,7 @@ describe("Fertilizer Data Model", () => {
             )
             expect(p_id).toBeDefined()
 
-            const fertilizer = await getFertilizer(fdm, p_id)
+            const fertilizer = await getFertilizer(fdm, p_id, principal_id)
             expect(fertilizer.p_id).toBeDefined()
         })
 
@@ -615,11 +617,11 @@ describe("Fertilizer Data Model", () => {
             )
             expect(p_id).toBeDefined()
 
-            await removeFertilizer(fdm, p_id)
+            await removeFertilizer(fdm, p_id, principal_id)
 
-            await expect(getFertilizer(fdm, p_id)).rejects.toThrow(
-                "Exception for getFertilizer",
-            )
+            await expect(
+                getFertilizer(fdm, p_id, principal_id),
+            ).rejects.toThrow("Exception for getFertilizer")
         })
 
         it("should return empty array when no catalogues are enabled", async () => {
@@ -1005,7 +1007,7 @@ describe("Fertilizer Data Model", () => {
             )
 
             // 2. Get the fertilizer and assert that p_type is "mineral".
-            let fertilizer = await getFertilizer(fdm, p_id)
+            let fertilizer = await getFertilizer(fdm, p_id, principal_id)
             expect(fertilizer.p_type).toBe("mineral")
 
             // 3. Update the fertilizer with a p_type_rvo that maps to "compost".
@@ -1020,8 +1022,114 @@ describe("Fertilizer Data Model", () => {
             )
 
             // 4. Get the fertilizer and assert that p_type is "compost".
-            fertilizer = await getFertilizer(fdm, p_id)
+            fertilizer = await getFertilizer(fdm, p_id, principal_id)
             expect(fertilizer.p_type).toBe("compost")
+        })
+
+        it("(getFertilizersFromCatalogue) should return fertilizers for a user who accesses the farm via organization membership", async () => {
+            // Regression test for: org-member users getting empty fertilizerDetailsMap FDM-623
+            // because the inline auth check in getFertilizersFromCatalogues only matched
+            // direct role.principal_id, not membership via an organization.
+
+            const orgId = createId()
+            const memberId = createId()
+
+            // Create the organization and user records
+            await fdm.insert(authNSchema.organization).values({
+                id: orgId,
+                name: "Test Org",
+                slug: `test-org-${createId(8).toLowerCase()}`,
+                createdAt: new Date(),
+            })
+            await fdm.insert(authNSchema.user).values({
+                id: memberId,
+                name: "Org Member",
+                email: `member-${createId(8).toLowerCase()}@example.com`,
+                emailVerified: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            })
+            await fdm.insert(authNSchema.member).values({
+                id: createId(),
+                organizationId: orgId,
+                userId: memberId,
+                role: "member",
+                createdAt: new Date(),
+            })
+
+            // Grant the organization (not the member directly) a role on the farm
+            await grantRole(fdm, "farm", "advisor", b_id_farm, orgId)
+
+            // The farm owner adds a custom fertilizer
+            // (catalogue is already enabled by beforeAll via enableFertilizerCatalogue)
+            const p_id_catalogue = await addFertilizerToCatalogue(
+                fdm,
+                principal_id,
+                b_id_farm,
+                {
+                    p_name_nl: "Org Member Visible Fertilizer",
+                    p_name_en: "Org Member Visible Fertilizer EN",
+                    p_description: "Visible via org membership",
+                    p_app_method_options: [],
+                    p_app_amount_unit: undefined,
+                    p_dm: 10,
+                    p_density: 1,
+                    p_om: 5,
+                    p_a: 0,
+                    p_hc: 0,
+                    p_eom: 0,
+                    p_eoc: 0,
+                    p_c_rt: 0,
+                    p_c_of: 0,
+                    p_c_if: 0,
+                    p_c_fr: 0,
+                    p_cn_of: 0,
+                    p_n_rt: 10,
+                    p_n_if: 0,
+                    p_n_of: 0,
+                    p_n_wc: 1,
+                    p_no3_rt: 0,
+                    p_nh4_rt: 0,
+                    p_p_rt: 0,
+                    p_k_rt: 0,
+                    p_mg_rt: 0,
+                    p_ca_rt: 0,
+                    p_ne: 0,
+                    p_s_rt: 0,
+                    p_s_wc: 0,
+                    p_cu_rt: 0,
+                    p_zn_rt: 0,
+                    p_na_rt: 0,
+                    p_si_rt: 0,
+                    p_b_rt: 0,
+                    p_mn_rt: 0,
+                    p_ni_rt: 0,
+                    p_fe_rt: 0,
+                    p_mo_rt: 0,
+                    p_co_rt: 0,
+                    p_as_rt: 0,
+                    p_cd_rt: 0,
+                    p_cr_rt: 0,
+                    p_cr_vi: 0,
+                    p_pb_rt: 0,
+                    p_hg_rt: 0,
+                    p_cl_rt: 0,
+                    p_ef_nh3: null,
+                    p_type: "manure",
+                    p_type_rvo: "10",
+                },
+            )
+
+            // The org member (not direct role holder) should see the fertilizer
+            const fertilizers = await getFertilizersFromCatalogue(
+                fdm,
+                memberId,
+                b_id_farm,
+            )
+            const found = fertilizers.find(
+                (f) => f.p_id_catalogue === p_id_catalogue,
+            )
+            expect(found).toBeDefined()
         })
     })
 

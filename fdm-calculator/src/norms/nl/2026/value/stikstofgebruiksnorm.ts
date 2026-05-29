@@ -1,5 +1,6 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
+import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
 import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
 import {
@@ -421,7 +422,7 @@ function calculateKorting(
                 }
             }
             // Error if date is invalid for renewal
-            throw new Error(
+            throw new NormNotApplicableError(
                 "Graslandvernieuwing op zand- en lössgrond is alleen toegestaan tussen 1 juni en 31 augustus.",
             )
         }
@@ -463,7 +464,7 @@ function calculateKorting(
                 }
             }
             // Error if date is invalid for destruction
-            throw new Error(
+            throw new NormNotApplicableError(
                 "Graslandvernietiging op zand- en lössgrond is alleen toegestaan tussen 1 februari en 10 mei.",
             )
         }
@@ -691,7 +692,7 @@ export async function calculateNL2026StikstofGebruiksNorm(
         }
     }
     if (!cultivation) {
-        throw new Error(
+        throw new NormNotApplicableError(
             `Cultivation with b_lu_catalogue ${b_lu_catalogue} not found`,
         )
     }
@@ -707,7 +708,7 @@ export async function calculateNL2026StikstofGebruiksNorm(
     )
 
     if (matchingStandards.length === 0) {
-        throw new Error(
+        throw new NormNotApplicableError(
             `No matching nitrogen standard found for b_lu_catalogue ${b_lu_catalogue}.`,
         )
     }
@@ -727,7 +728,7 @@ export async function calculateNL2026StikstofGebruiksNorm(
     }
 
     if (!selectedStandard) {
-        throw new Error(
+        throw new NormNotApplicableError(
             `No specific matching nitrogen standard found for b_lu_catalogue ${b_lu_catalogue} with variety ${
                 cultivation.b_lu_variety || "N/A"
             } in region ${region}.`,

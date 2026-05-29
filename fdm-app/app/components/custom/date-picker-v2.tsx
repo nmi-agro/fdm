@@ -1,11 +1,11 @@
 "use client"
 
+import { nl as calenderLocale } from "@daypicker/react/locale"
 import * as chrono from "chrono-node"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import { type ChangeEvent, useEffect, useState } from "react"
-import { nl as calenderLocale } from "react-day-picker/locale"
 import type {
     ControllerFieldState,
     ControllerRenderProps,

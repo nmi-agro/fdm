@@ -1,0 +1,79 @@
+# syntax=docker/dockerfile:1.7
+ARG NODE_VERSION=24
+ARG PROJECT=@nmi-agro/fdm-api
+
+# Base stage
+FROM node:${NODE_VERSION}-alpine AS base
+RUN apk update && apk add --no-cache libc6-compat git
+RUN npm install -g pnpm turbo
+WORKDIR /app
+
+# Pruner stage
+FROM base AS pruner
+COPY . .
+RUN turbo prune --scope=@nmi-agro/fdm-api --docker
+
+# Builder stage
+FROM base AS builder
+WORKDIR /app
+
+# Copy lockfile and package.json's of isolated subworkspace
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+# Strip minimumReleaseAge configuration inside Docker. 
+# This prevents the [ERR_PNPM_MISSING_TIME] error during pnpm deploy where pnpm 
+# crashes if it cannot find timestamp metadata in the local Docker cache. 
+# The lockfile already guarantees these packages were verified when committed.
+RUN sed -i '/^minimumReleaseAge/d' pnpm-workspace.yaml
+
+# Install dependencies.
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --config.prefer-online=true
+
+# Copy source code of isolated subworkspace
+COPY --from=pruner /app/out/full/ .
+
+# Ensure root tsconfig files are present (turbo prune might miss them if not explicitly referenced as workspace deps)
+COPY --from=pruner /app/tsconfig*.json ./
+
+# Build the project
+# This builds all packages in the isolated workspace (fdm-api and its dependencies)
+RUN pnpm build
+
+# Create a self-contained production deployment bundle.
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm --filter=@nmi-agro/fdm-api deploy --prod --legacy --config.resolution-mode=highest --config.prefer-online=true /app/deployed
+
+# Production runner stage
+FROM node:${NODE_VERSION}-alpine AS runner
+WORKDIR /app
+
+# Add non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 user && \
+    apk add --no-cache libc6-compat curl
+
+# Copy production node_modules from the deploy bundle.
+# Workspace dependencies will be present in node_modules/@nmi-agro/* with their built dist folders.
+COPY --from=builder --chown=user:nodejs /app/deployed/node_modules ./fdm-api/node_modules
+COPY --from=builder --chown=user:nodejs /app/deployed/package.json ./fdm-api/package.json
+
+# Copy built artifacts from the builder stage
+COPY --from=builder --chown=user:nodejs /app/fdm-api/dist ./fdm-api/dist
+COPY --from=builder --chown=user:nodejs /app/fdm-api/instrument.server.mjs ./fdm-api/instrument.server.mjs
+
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Use non-root user
+USER user
+
+# Expose port
+EXPOSE 8080
+
+WORKDIR /app/fdm-api
+# Run node directly
+CMD ["node", "dist/server.js"]
