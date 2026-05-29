@@ -2,6 +2,7 @@ import {
     addSoilAnalysis,
     getField,
     getSoilParametersDescription,
+    type SoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
@@ -198,7 +199,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             b_id,
             Number(soilAnalysis.a_depth_lower),
             new Date(soilAnalysis.b_sampling_date),
-            soilAnalysis,
+            soilAnalysis as Partial<SoilAnalysis>,
             Number(soilAnalysis.a_depth_upper),
         )
 

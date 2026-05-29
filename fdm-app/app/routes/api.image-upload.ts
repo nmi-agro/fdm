@@ -1,30 +1,40 @@
 import { nanoid } from "nanoid"
+import { fileTypeFromBuffer } from "file-type"
+import type { FileUpload } from "@remix-run/form-data-parser"
+import { parseFormData } from "@remix-run/form-data-parser"
 import type { ActionFunctionArgs } from "react-router"
-import { checkPermission } from "@nmi-agro/fdm-core"
-import { generateSignedPutUrl } from "~/integrations/gcs.server"
+import { addSoilImage } from "@nmi-agro/fdm-core"
+import { uploadObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
 
-const ALLOWED_CONTENT_TYPES = [
+const ALLOWED_MIME_TYPES = new Set([
     "image/jpeg",
-    "image/jpg",
     "image/png",
     "image/webp",
     "image/heic",
     "image/heif",
-] as const
+])
+
+const MIME_TO_EXT: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/heic": "heic",
+    "image/heif": "heif",
+}
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
 
 /**
- * API Route: Generate a V4 signed PUT URL for direct browser-to-GCS image upload.
+ * API Route: Upload a soil image directly to GCS and register it in the database.
  *
  * Flow:
- * 1. Browser POSTs {b_id_farm, contentType} to this route
- * 2. Server verifies the session and farm write permission
- * 3. Server generates a signed PUT URL scoped to a unique object key
- * 4. Browser PUTs the image directly to GCS using the signed URL
- * 5. Browser POSTs to /api/image-confirm to register the image in the DB
+ * 1. Browser POSTs multipart/form-data with the image file and metadata
+ * 2. Server validates the file with magic-byte detection (file-type)
+ * 3. Server calls addSoilImage which checks permissions, uploads to GCS via
+ *    the onUpload callback, then inserts the DB record
+ * 4. Returns the created image record ID
  */
 export async function action({ request }: ActionFunctionArgs) {
     const session = await getSession(request)
@@ -32,57 +42,87 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    let body: { b_id_farm?: string; contentType?: string }
+    let fileBuffer: Buffer | null = null
+    let detectedMime: string | null = null
+
+    const uploadHandler = async (fileUpload: FileUpload) => {
+        if (fileUpload.fieldName !== "file") return undefined
+
+        const arrayBuffer = await fileUpload.arrayBuffer()
+        const fileType = await fileTypeFromBuffer(arrayBuffer)
+
+        if (!fileType || !ALLOWED_MIME_TYPES.has(fileType.mime)) {
+            throw new Error(
+                `Unsupported file type. Allowed: ${[...ALLOWED_MIME_TYPES].join(", ")}`,
+            )
+        }
+
+        fileBuffer = Buffer.from(arrayBuffer)
+        detectedMime = fileType.mime
+        return new File([fileBuffer], fileUpload.name, { type: detectedMime })
+    }
+
+    let formData: FormData
     try {
-        body = await request.json()
-    } catch {
-        return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+        formData = await parseFormData(
+            request,
+            { maxFileSize: MAX_SIZE_BYTES },
+            uploadHandler,
+        )
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Invalid upload"
+        return Response.json({ error: message }, { status: 400 })
     }
 
-    const { b_id_farm, contentType } = body
-
-    if (!b_id_farm) {
-        return Response.json({ error: "b_id_farm is required" }, { status: 400 })
-    }
-
-    if (!contentType || !ALLOWED_CONTENT_TYPES.includes(contentType as (typeof ALLOWED_CONTENT_TYPES)[number])) {
+    if (!fileBuffer || !detectedMime) {
         return Response.json(
-            {
-                error: `Unsupported content type. Allowed: ${ALLOWED_CONTENT_TYPES.join(", ")}`,
-            },
+            { error: "No valid image file provided" },
             { status: 400 },
         )
     }
 
-    const hasPermission = await checkPermission(
-        fdm,
-        "farm",
-        "write",
-        b_id_farm,
-        session.principal_id,
-        "api.image-upload",
-        false,
-    )
-
-    if (!hasPermission) {
-        return Response.json({ error: "Forbidden" }, { status: 403 })
+    const b_id_sampling = formData.get("b_id_sampling")?.toString()
+    if (!b_id_sampling) {
+        return Response.json(
+            { error: "b_id_sampling is required" },
+            { status: 400 },
+        )
     }
 
-    const ext = contentType.split("/")[1].replace("jpeg", "jpg")
-    const objectKey = `visual_soil_analysis/farms/${b_id_farm}/${nanoid()}.${ext}`
+    const ext = MIME_TO_EXT[detectedMime] ?? "jpg"
+    const objectKey = `soil_image/${nanoid()}.${ext}`
+
+    const capturedBuffer = fileBuffer
+    const capturedMime = detectedMime
 
     try {
-        const { uploadUrl } = await generateSignedPutUrl(
-            objectKey,
-            contentType,
-            MAX_SIZE_BYTES,
+        const a_id_image = await addSoilImage(
+            fdm,
+            session.principal_id,
+            b_id_sampling,
+            {
+                a_image_path: objectKey,
+                a_image_type: formData.get("a_image_type")?.toString() as
+                    | "profile"
+                    | "surface"
+                    | "roots"
+                    | "earthworms"
+                    | "structure"
+                    | "other"
+                    | undefined,
+                a_image_caption: formData.get("a_image_caption")?.toString(),
+                a_image_order: Number(formData.get("a_image_order") ?? 0),
+            },
+            async (path) => {
+                await uploadObject(path, capturedBuffer, capturedMime)
+            },
         )
 
-        return Response.json({ uploadUrl, objectKey })
+        return Response.json({ success: true, a_id_image })
     } catch (err) {
-        console.error("Failed to generate signed upload URL", err)
+        console.error("Failed to upload soil image", err)
         return Response.json(
-            { error: "Failed to generate upload URL" },
+            { error: "Failed to upload image" },
             { status: 500 },
         )
     }

@@ -7,6 +7,7 @@ import {
     removeSoilImage,
     updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
+import { computeBcs } from "~/lib/bcs.server"
 import { ArrowLeft, Trash2 } from "lucide-react"
 import {
     data,
@@ -25,7 +26,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { uploadSoilImage } from "~/lib/image-upload.client"
+import {
+    deleteObject,
+    generateSignedReadUrl,
+} from "~/integrations/gcs.server"
 import { useState } from "react"
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -53,6 +57,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             ? await getSoilImages(fdm, session.principal_id, assessment.b_id_sampling)
             : []
 
+        const imagesWithUrls = await Promise.all(
+            images.map(async (img) => ({
+                ...img,
+                a_image_path: await generateSignedReadUrl(img.a_image_path),
+            })),
+        )
+
         const writePermission = await checkPermission(
             fdm,
             "soil_analysis",
@@ -63,7 +74,32 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             false,
         )
 
-        return { assessment, images, writePermission, b_id_farm, b_id, a_id }
+        // Compute BCS score server-side
+        const bcsScores = {
+            a_ss_bcs: assessment.a_ss_bcs ?? null,
+            a_sc_bcs: assessment.a_sc_bcs ?? null,
+            a_rd_bcs: assessment.a_rd_bcs ?? null,
+            a_ew_bcs: assessment.a_ew_bcs ?? null,
+            a_cc_bcs: assessment.a_cc_bcs ?? null,
+            a_gs_bcs: assessment.a_gs_bcs ?? null,
+            a_p_bcs: assessment.a_p_bcs ?? null,
+            a_c_bcs: assessment.a_c_bcs ?? null,
+            a_rt_bcs: assessment.a_rt_bcs ?? null,
+        }
+        const { d_bcs, i_bcs, scoreColor, scoreLabel } = computeBcs(bcsScores)
+
+        return {
+            assessment,
+            images: imagesWithUrls,
+            writePermission,
+            b_id_farm,
+            b_id,
+            a_id,
+            d_bcs,
+            i_bcs,
+            scoreColor,
+            scoreLabel,
+        }
     } catch (error) {
         throw handleLoaderError(error)
     }
@@ -85,7 +121,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         if (intent === "delete") {
             await removeSoilAnalysis(fdm, session.principal_id, a_id)
             return redirectWithSuccess(
-                `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/soil/visual`,
+                `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/bcs`,
                 "Beoordeling verwijderd",
             )
         }
@@ -93,7 +129,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         if (intent === "delete-image") {
             const a_id_image = formData.get("a_id_image")?.toString()
             if (!a_id_image) throw data("Image ID is required", { status: 400 })
-            await removeSoilImage(fdm, session.principal_id, a_id_image)
+            await removeSoilImage(fdm, session.principal_id, a_id_image, deleteObject)
             return data({ success: true })
         }
 
@@ -145,7 +181,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         })
 
         return redirectWithSuccess(
-            `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/soil/visual/${a_id}`,
+            `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/bcs/${a_id}`,
             "Beoordeling bijgewerkt",
         )
     } catch (error) {
@@ -158,7 +194,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
  * Shows the assessment form, photo gallery with annotation canvas, and delete option.
  */
 export default function VisualSoilAnalysisDetail() {
-    const { assessment, images, writePermission, b_id_farm, b_id, a_id } =
+    const { assessment, images, writePermission, b_id_farm, b_id, d_bcs, i_bcs, scoreColor, scoreLabel } =
         useLoaderData<typeof loader>()
     const fetcher = useFetcher()
     const [uploading, setUploading] = useState(false)
@@ -167,7 +203,8 @@ export default function VisualSoilAnalysisDetail() {
         if (!assessment.b_id_sampling) return
         setUploading(true)
         try {
-            await uploadSoilImage(file, b_id_farm, assessment.b_id_sampling)
+            const { uploadSoilImage } = await import("~/lib/image-upload.client")
+            await uploadSoilImage(file, assessment.b_id_sampling)
             fetcher.load("")
         } catch (err) {
             console.error("Upload failed", err)
@@ -208,11 +245,6 @@ export default function VisualSoilAnalysisDetail() {
                     </Button>
                     <div>
                         <h3 className="text-lg font-medium">Visuele beoordeling</h3>
-                        {assessment.a_assessor_id && (
-                            <p className="text-sm text-muted-foreground">
-                                {assessment.a_assessor_id}
-                            </p>
-                        )}
                     </div>
                 </div>
 
@@ -261,6 +293,10 @@ export default function VisualSoilAnalysisDetail() {
                         b_id={b_id}
                         action=""
                         editable={writePermission}
+                        d_bcs={d_bcs}
+                        i_bcs={i_bcs}
+                        scoreColor={scoreColor}
+                        scoreLabel={scoreLabel}
                     />
                 </TabsContent>
 

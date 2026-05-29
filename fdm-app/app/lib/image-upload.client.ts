@@ -19,17 +19,16 @@ export async function compressImage(file: File): Promise<File> {
 }
 
 /**
- * Uploads an image to GCS via signed URL and confirms it in the database.
+ * Compresses an image and uploads it to the server, which validates the file
+ * with magic-byte detection and stores it in GCS.
  *
  * @param file - The image File to upload
- * @param b_id_farm - The farm ID (used to scope the GCS object key)
  * @param b_id_sampling - The soil sampling ID to attach the image to
  * @param options - Optional metadata (image_type, caption, sort_order)
  * @returns The created image record ID
  */
 export async function uploadSoilImage(
     file: File,
-    b_id_farm: string,
     b_id_sampling: string,
     options: {
         a_image_type?: string
@@ -37,64 +36,28 @@ export async function uploadSoilImage(
         a_image_order?: number
     } = {},
 ): Promise<string> {
-    // Step 1: Compress before upload
+    // Compress before upload
     const compressed = await compressImage(file)
 
-    // Step 2: Request signed upload URL from our server
-    const uploadResponse = await fetch("/api/image-upload", {
+    const formData = new FormData()
+    formData.append("file", compressed, compressed.name)
+    formData.append("b_id_sampling", b_id_sampling)
+    if (options.a_image_type) formData.append("a_image_type", options.a_image_type)
+    if (options.a_image_caption) formData.append("a_image_caption", options.a_image_caption)
+    formData.append("a_image_order", String(options.a_image_order ?? 0))
+
+    const response = await fetch("/api/image-upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            b_id_farm,
-            contentType: compressed.type || "image/jpeg",
-        }),
+        body: formData,
     })
 
-    if (!uploadResponse.ok) {
-        const error = await uploadResponse.json().catch(() => ({}))
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
         throw new Error(
-            `Failed to get upload URL: ${(error as { error?: string }).error ?? uploadResponse.statusText}`,
+            `Upload failed: ${(error as { error?: string }).error ?? response.statusText}`,
         )
     }
 
-    const { uploadUrl, objectKey } = (await uploadResponse.json()) as {
-        uploadUrl: string
-        objectKey: string
-    }
-
-    // Step 3: PUT directly to GCS
-    const gcsResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": compressed.type || "image/jpeg" },
-        body: compressed,
-    })
-
-    if (!gcsResponse.ok) {
-        throw new Error(`GCS upload failed: ${gcsResponse.status} ${gcsResponse.statusText}`)
-    }
-
-    // Step 4: Confirm the upload and register in database
-    const confirmResponse = await fetch("/api/image-confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            objectKey,
-            b_id_sampling,
-            image_type: options.a_image_type,
-            caption: options.a_image_caption,
-            sort_order: options.a_image_order ?? 0,
-        }),
-    })
-
-    if (!confirmResponse.ok) {
-        const error = await confirmResponse.json().catch(() => ({}))
-        throw new Error(
-            `Failed to confirm upload: ${(error as { error?: string }).error ?? confirmResponse.statusText}`,
-        )
-    }
-
-    const { a_id_image } = (await confirmResponse.json()) as {
-        a_id_image: string
-    }
+    const { a_id_image } = (await response.json()) as { a_id_image: string }
     return a_id_image
 }

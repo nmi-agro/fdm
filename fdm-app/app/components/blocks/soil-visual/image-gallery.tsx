@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Trash2, ZoomIn } from "lucide-react"
 import type { SoilImage } from "@nmi-agro/fdm-core"
-import { visualImageTypeOptions } from "@nmi-agro/fdm-core"
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import {
@@ -13,6 +12,15 @@ import {
 import { SoilAnnotator } from "./soil-annotator"
 import { ImageCapture } from "./image-capture"
 import { cn } from "~/lib/utils"
+
+const visualImageTypeOptions = [
+    { value: "profile",    label: "Bodemprofiel" },
+    { value: "surface",    label: "Bodemoppervlak" },
+    { value: "roots",      label: "Beworteling" },
+    { value: "earthworms", label: "Regenwormen" },
+    { value: "structure",  label: "Bodemstructuur" },
+    { value: "other",      label: "Overig" },
+] as const
 
 interface ImageGalleryProps {
     images: SoilImage[]

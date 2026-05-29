@@ -152,6 +152,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 title: "Bodem",
             },
             {
+                to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`,
+                title: "BodemConditieScore",
+            },
+            {
                 to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/atlas`,
                 title: "Kaart",
             },

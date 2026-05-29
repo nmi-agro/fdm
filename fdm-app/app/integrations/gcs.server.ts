@@ -169,3 +169,24 @@ export async function deleteObject(objectKey: string): Promise<void> {
 
     await storage.bucket(bucket).file(objectKey).delete({ ignoreNotFound: true })
 }
+
+/**
+ * Uploads a Buffer directly to GCS.
+ *
+ * @param objectKey - The GCS object path
+ * @param buffer - The file contents
+ * @param contentType - MIME type of the file
+ */
+export async function uploadObject(
+    objectKey: string,
+    buffer: Buffer,
+    contentType: string,
+): Promise<void> {
+    const storage = getStorage()
+    const bucket = getBucketName()
+
+    await storage.bucket(bucket).file(objectKey).save(buffer, {
+        contentType,
+        resumable: false,
+    })
+}

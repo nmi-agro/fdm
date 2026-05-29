@@ -1,44 +1,33 @@
-import { BCS_INDICATORS, getBcsScoreColor, type BcsScores } from "~/lib/bcs-calculation"
-import { calculateBcs } from "~/lib/bcs-calculation"
+import { BCS_INDICATORS, type BcsScores, SCORE_BAR_CLASSES, SCORE_BG_CLASSES, SCORE_TEXT_CLASSES, type BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { cn } from "~/lib/utils"
 
 interface BcsScoreCardProps {
     scores: BcsScores
+    /** Pre-computed D_BCS score (server-side) */
+    d_bcs: number
+    /** Pre-computed I_BCS indicator (0-1) */
+    i_bcs: number
+    /** Pre-computed color band */
+    scoreColor: BcsColor
+    /** Pre-computed label (e.g., "Goed") */
+    scoreLabel: string
     className?: string
 }
 
 /**
  * Displays the BCS score breakdown with indicator contributions and an overall gauge.
+ * All calculation is done server-side; this component only renders.
  */
-export function BcsScoreCard({ scores, className }: BcsScoreCardProps) {
-    const { d_bcs, i_bcs, d_bcs_max, includes_lab_scores } = calculateBcs(scores)
-    const color = getBcsScoreColor(i_bcs)
-
-    const colorClasses = {
-        red: "text-destructive",
-        orange: "text-orange-500",
-        green: "text-green-600",
-    }
-
-    const bgClasses = {
-        red: "bg-destructive/10",
-        orange: "bg-orange-50",
-        green: "bg-green-50",
-    }
-
-    const barClasses = {
-        red: "bg-destructive",
-        orange: "bg-orange-500",
-        green: "bg-green-600",
-    }
+export function BcsScoreCard({ scores, d_bcs, i_bcs, scoreColor, scoreLabel, className }: BcsScoreCardProps) {
+    const d_bcs_max = 40
 
     return (
         <div className={cn("rounded-lg border p-4 space-y-4", className)}>
             {/* Overall score header */}
-            <div className={cn("rounded-md p-3 flex items-center justify-between", bgClasses[color])}>
+            <div className={cn("rounded-md p-3 flex items-center justify-between", SCORE_BG_CLASSES[scoreColor])}>
                 <div>
                     <p className="text-xs font-medium text-muted-foreground">BCS Score</p>
-                    <p className={cn("text-3xl font-bold", colorClasses[color])}>
+                    <p className={cn("text-3xl font-bold", SCORE_TEXT_CLASSES[scoreColor])}>
                         {d_bcs.toFixed(1)}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -46,10 +35,9 @@ export function BcsScoreCard({ scores, className }: BcsScoreCardProps) {
                     </p>
                 </div>
                 <div className="text-right">
-                    <p className="text-xs font-medium text-muted-foreground">Indicator</p>
-                    <p className={cn("text-3xl font-bold", colorClasses[color])}>
-                        {(i_bcs * 100).toFixed(0)}
-                        <span className="text-base font-normal">%</span>
+                    <p className={cn("text-lg font-semibold", SCORE_TEXT_CLASSES[scoreColor])}>{scoreLabel}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {(i_bcs * 100).toFixed(0)}%
                     </p>
                 </div>
             </div>
@@ -57,7 +45,7 @@ export function BcsScoreCard({ scores, className }: BcsScoreCardProps) {
             {/* Progress bar */}
             <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
-                    className={cn("h-full rounded-full transition-all duration-500", barClasses[color])}
+                    className={cn("h-full rounded-full transition-all duration-500", SCORE_BAR_CLASSES[scoreColor])}
                     style={{ width: `${Math.min(i_bcs * 100, 100)}%` }}
                 />
             </div>
@@ -101,42 +89,7 @@ export function BcsScoreCard({ scores, className }: BcsScoreCardProps) {
                         </div>
                     )
                 })}
-
-                {/* Derived lab scores */}
-                {(scores.bcs_ph != null || scores.bcs_om != null) && (
-                    <>
-                        <div className="border-t pt-2 mt-1">
-                            <p className="text-xs text-muted-foreground mb-1">Afgeleid van laboratoriumanalyse:</p>
-                        </div>
-                        {scores.bcs_ph != null && (
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className="w-4 text-center text-muted-foreground">+</span>
-                                <span className="flex-1 truncate text-muted-foreground italic">pH (afgeleid)</span>
-                                <span className="w-6 text-center font-medium">{scores.bcs_ph}</span>
-                                <span className="w-8 text-right text-xs tabular-nums text-green-600">
-                                    +{(3 * scores.bcs_ph).toFixed(0)}
-                                </span>
-                            </div>
-                        )}
-                        {scores.bcs_om != null && (
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className="w-4 text-center text-muted-foreground">+</span>
-                                <span className="flex-1 truncate text-muted-foreground italic">Org. stof (afgeleid)</span>
-                                <span className="w-6 text-center font-medium">{scores.bcs_om}</span>
-                                <span className="w-8 text-right text-xs tabular-nums text-green-600">
-                                    +{(3 * scores.bcs_om).toFixed(0)}
-                                </span>
-                            </div>
-                        )}
-                    </>
-                )}
             </div>
-
-            {!includes_lab_scores && (
-                <p className="text-xs text-muted-foreground">
-                    Koppel een laboratoriumanalyse om de pH- en OS-scores automatisch mee te rekenen.
-                </p>
-            )}
         </div>
     )
 }

@@ -2,11 +2,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { SoilAnalysis } from "@nmi-agro/fdm-core"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { BCS_INDICATORS } from "~/lib/bcs-calculation"
+import { BCS_INDICATORS, type BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
+import { ScoreButton } from "~/components/blocks/soil-visual/score-button"
 import { Button } from "~/components/ui/button"
 import { DatePicker } from "~/components/custom/date-picker"
 import {
-    FormControl,
     FormField,
     FormItem,
     FormLabel,
@@ -18,43 +18,17 @@ import {
     soilAnalysisBcsSchema,
     type SoilAnalysisBcsFormValues,
 } from "./formschema"
-import { cn } from "~/lib/utils"
 
 interface VisualAssessmentFormProps {
     assessment?: SoilAnalysis
     b_id: string
     action: string
     editable?: boolean
-}
-
-/** Score button for BCS indicator (0, 1, 2) */
-function ScoreButton({
-    value,
-    selected,
-    onClick,
-    disabled,
-}: {
-    value: number
-    selected: boolean
-    onClick: () => void
-    disabled?: boolean
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            disabled={disabled}
-            className={cn(
-                "h-10 w-10 rounded-md border text-sm font-medium transition-colors",
-                selected
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-input bg-background hover:bg-accent hover:text-accent-foreground",
-                disabled && "opacity-50 cursor-not-allowed",
-            )}
-        >
-            {value}
-        </button>
-    )
+    /** Pre-computed BCS values from server (required for score card display) */
+    d_bcs?: number
+    i_bcs?: number
+    scoreColor?: BcsColor
+    scoreLabel?: string
 }
 
 /**
@@ -66,6 +40,10 @@ export function VisualAssessmentForm({
     b_id,
     action,
     editable = true,
+    d_bcs,
+    i_bcs,
+    scoreColor,
+    scoreLabel,
 }: VisualAssessmentFormProps) {
     const form = useRemixForm<SoilAnalysisBcsFormValues>({
         resolver: zodResolver(soilAnalysisBcsSchema),
@@ -110,22 +88,12 @@ export function VisualAssessmentForm({
                     {/* Left: form fields */}
                     <div className="space-y-6">
                         {/* Date */}
-                        <FormField
-                            control={form.control}
+                        <DatePicker
+                            form={form}
                             name="a_date"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Datum</FormLabel>
-                                    <FormControl>
-                                        <DatePicker
-                                            value={field.value as Date | undefined}
-                                            onChange={field.onChange}
-                                            disabled={!editable}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            label="Datum"
+                            description=""
+                            disabled={!editable}
                         />
 
                         {/* BCS Indicators section */}
@@ -138,11 +106,11 @@ export function VisualAssessmentForm({
                             </div>
 
                             <div className="space-y-3">
-                                {BCS_INDICATORS.map((indicator) => (
+                                {BCS_INDICATORS.filter(i => i.source === "field").map((indicator) => (
                                     <FormField
                                         key={indicator.key}
                                         control={form.control}
-                                        name={indicator.key}
+                                        name={indicator.key as keyof SoilAnalysisBcsFormValues}
                                         render={({ field }) => (
                                             <FormItem>
                                                 <div className="flex items-center justify-between gap-4">
@@ -162,6 +130,7 @@ export function VisualAssessmentForm({
                                                             <ScoreButton
                                                                 key={score}
                                                                 value={score}
+                                                                size="sm"
                                                                 selected={field.value === score}
                                                                 onClick={() =>
                                                                     field.onChange(
@@ -196,10 +165,18 @@ export function VisualAssessmentForm({
                         )}
                     </div>
 
-                    {/* Right: live score preview */}
-                    <div className="lg:sticky lg:top-4 lg:self-start">
-                        <BcsScoreCard scores={liveScores} />
-                    </div>
+                    {/* Right: score preview (only if pre-computed values available) */}
+                    {d_bcs != null && i_bcs != null && scoreColor && scoreLabel && (
+                        <div className="lg:sticky lg:top-4 lg:self-start">
+                            <BcsScoreCard
+                                scores={liveScores}
+                                d_bcs={d_bcs}
+                                i_bcs={i_bcs}
+                                scoreColor={scoreColor}
+                                scoreLabel={scoreLabel}
+                            />
+                        </div>
+                    )}
                 </div>
             </Form>
         </RemixFormProvider>

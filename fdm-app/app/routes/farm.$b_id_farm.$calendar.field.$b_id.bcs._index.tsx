@@ -3,6 +3,7 @@ import {
     getField,
     getSoilAnalyses,
 } from "@nmi-agro/fdm-core"
+import { computeBcs } from "~/lib/bcs.server"
 import { format } from "date-fns"
 import { Plus } from "lucide-react"
 import {
@@ -13,8 +14,8 @@ import {
 } from "react-router"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
+import { SCORE_TEXT_CLASSES } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { getSession } from "~/lib/auth.server"
-import { calculateBcs } from "~/lib/bcs-calculation"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
@@ -58,6 +59,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             a.a_rt_bcs != null,
         )
 
+        // Pre-compute BCS scores server-side
+        const assessmentsWithScores = assessments.map((a) => {
+            const { d_bcs, scoreColor, scoreLabel } = computeBcs(a)
+            return {
+                a_id: a.a_id,
+                a_date: a.a_date,
+                d_bcs,
+                scoreColor,
+                scoreLabel,
+            }
+        })
+
         const fieldWritePermission = await checkPermission(
             fdm,
             "field",
@@ -70,7 +83,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         return {
             field,
-            assessments,
+            assessmentsWithScores,
             fieldWritePermission,
             b_id_farm,
             b_id,
@@ -84,14 +97,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * Lists all visual soil assessments (soil analyses with BCS scores) for a field.
  */
 export default function VisualSoilAnalysisIndex() {
-    const { assessments, fieldWritePermission, b_id_farm, b_id } =
+    const { assessmentsWithScores, fieldWritePermission } =
         useLoaderData<typeof loader>()
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-lg font-medium">Visuele bodembeoordelingen</h3>
+                    <h3 className="text-lg font-medium">BodemConditieScore</h3>
                     <p className="text-sm text-muted-foreground">
                         BCS-beoordelingen uitgevoerd in het veld
                     </p>
@@ -109,7 +122,7 @@ export default function VisualSoilAnalysisIndex() {
 
             <Separator />
 
-            {assessments.length === 0 ? (
+            {assessmentsWithScores.length === 0 ? (
                 <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px] py-12">
                     <div className="flex flex-col space-y-2 text-center">
                         <h1 className="text-2xl font-semibold tracking-tight">
@@ -129,43 +142,27 @@ export default function VisualSoilAnalysisIndex() {
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {assessments.map((assessment) => {
-                        const { i_bcs } = calculateBcs(assessment)
-                        return (
-                            <NavLink
-                                key={assessment.a_id}
-                                to={`./${assessment.a_id}`}
-                                className="flex items-center justify-between rounded-lg border p-4 hover:bg-accent transition-colors"
-                            >
-                                <div className="space-y-1">
-                                    <p className="font-medium">
-                                        {assessment.a_date
-                                            ? format(new Date(assessment.a_date), "d MMMM yyyy")
-                                            : "Datum onbekend"}
-                                    </p>
-                                    {assessment.a_assessor_id && (
-                                        <p className="text-sm text-muted-foreground">
-                                            {assessment.a_assessor_id}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="text-right">
-                                    {i_bcs != null ? (
-                                        <>
-                                            <p className="text-lg font-bold">
-                                                {(i_bcs * 100).toFixed(0)}%
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">I_BCS</p>
-                                        </>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">
-                                            Niet gescoord
-                                        </p>
-                                    )}
-                                </div>
-                            </NavLink>
-                        )
-                    })}
+                    {assessmentsWithScores.map((assessment) => (
+                        <NavLink
+                            key={assessment.a_id}
+                            to={`./${assessment.a_id}`}
+                            className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent"
+                        >
+                            <div className="space-y-1">
+                                <p className="font-medium">
+                                    {assessment.a_date
+                                        ? format(new Date(assessment.a_date), "d MMMM yyyy")
+                                        : "Datum onbekend"}
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className={cn("text-2xl font-bold", SCORE_TEXT_CLASSES[assessment.scoreColor])}>
+                                    {assessment.d_bcs.toFixed(1)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">{assessment.scoreLabel}</p>
+                            </div>
+                        </NavLink>
+                    ))}
                 </div>
             )}
         </div>
