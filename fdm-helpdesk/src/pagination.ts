@@ -6,8 +6,19 @@ import type { PaginationFilter } from "./filter.types"
  *
  * @param filters
  */
-export function getPageOffsetAndLimit(filters: PaginationFilter) {
-    const pageOffset = filters?.pageOffset ? Math.max(0, filters.pageOffset) : 0
-    const pageLimit = filters?.pageLimit ? Math.max(1, filters.pageLimit) : 20
+export function getPageOffsetAndLimit(
+    filters?: PaginationFilter,
+    defaultPageLimit = 20,
+) {
+    const pageOffset =
+        typeof filters?.pageOffset === "number"
+            ? Math.max(0, filters.pageOffset)
+            : 0
+    const pageLimit =
+        typeof filters?.pageLimit === "number"
+            ? Math.max(1, filters.pageLimit)
+            : defaultPageLimit <= 0
+              ? undefined
+              : defaultPageLimit
     return { pageOffset, pageLimit }
 }

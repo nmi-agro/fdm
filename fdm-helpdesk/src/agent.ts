@@ -96,7 +96,7 @@ export async function getAgents(
         return (await selectAgents(fdm, false, {
             ...filters,
             ...(helpdeskWritePermission ? {} : { isActive: true }),
-            ...getPageOffsetAndLimit(filters),
+            ...getPageOffsetAndLimit(filters, 0),
         })) as schema.AgentTypeSelect[]
     } catch (err) {
         throw handleError(err, "Exception for getAgents", {
@@ -118,7 +118,7 @@ export async function getAgents(
 export async function getAgentCount(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
-    filters: ActivityFilter & PaginationFilter,
+    filters: AgentFilters = {},
 ): Promise<number> {
     try {
         await checkHelpdeskPermission(
@@ -145,7 +145,7 @@ export async function getAgentCount(
                 await selectAgents(fdm, true, {
                     ...filters,
                     ...(helpdeskWritePermission ? {} : { isActive: true }),
-                    ...getPageOffsetAndLimit(filters),
+                    ...getPageOffsetAndLimit(filters, 0),
                 })
             )[0] as { count: number }
         ).count

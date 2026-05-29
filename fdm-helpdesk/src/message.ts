@@ -7,6 +7,7 @@ import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getMessageWhereClause } from "./filter"
 import type { MessageFilters } from "./filter.types"
 import { createId } from "./id"
+import { getPageOffsetAndLimit } from "./pagination"
 import { escapeHTML } from "./sanitization"
 
 export type Message = schema.MessageTypeSelect & {
@@ -81,18 +82,11 @@ export async function getMessagesForTicket(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
     ticket_id: schema.TicketTypeSelect["ticket_id"],
-    filters?: MessageFilters,
+    filters: MessageFilters = {},
 ): Promise<Message[]> {
-    const pageOffset =
-        typeof filters?.pageOffset === "number"
-            ? Math.max(0, filters.pageOffset)
-            : 0
-    const pageLimit =
-        typeof filters?.pageLimit === "number"
-            ? Math.max(1, filters.pageLimit)
-            : 20
-
     try {
+        const { pageOffset, pageLimit } = getPageOffsetAndLimit(filters, 0)
+
         await checkHelpdeskPermission(
             fdm,
             "ticket-user-side",
@@ -115,7 +109,7 @@ export async function getMessagesForTicket(
             throw new Error(PERMISSION_ERROR_MESSAGE)
         }
 
-        return await fdm
+        let query = fdm
             .select(messageColumns)
             .from(schema.messages)
             .leftJoin(
@@ -130,7 +124,12 @@ export async function getMessagesForTicket(
             )
             .orderBy(schema.messages.created)
             .offset(pageOffset)
-            .limit(pageLimit)
+
+        if (pageLimit) {
+            query = query.limit(pageLimit) as typeof query
+        }
+
+        return await query
     } catch (err) {
         throw handleError(err, "Exception for addMessage", {
             principal_id,

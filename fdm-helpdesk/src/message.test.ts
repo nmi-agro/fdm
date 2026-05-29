@@ -315,7 +315,15 @@ describe("Message Pagination", () => {
             `Seed message ${createId(8)}`,
         )
 
-        const messages: Promise<string>[] = []
+        const currentMessages = await fdm
+            .update(schema.messages)
+            .set({ created: new Date(2023, 0, 1) })
+            .where(eq(schema.messages.ticket_id, ticket_id))
+            .returning({ message_id: schema.messages.message_id })
+
+        const messages: Promise<string>[] = [
+            Promise.resolve(currentMessages[0].message_id),
+        ]
         async function addOrderedMessage(
             fdm: FdmHelpdeskType,
             ticket_id: string,
@@ -358,7 +366,7 @@ describe("Message Pagination", () => {
         message_ids = await Promise.all(messages)
     })
 
-    test("should paginate with no custom pagination specified", async ({
+    test("should not paginate when no custom pagination specified", async ({
         fdm,
     }) => {
         const messages = await getMessagesForTicket(
@@ -367,9 +375,9 @@ describe("Message Pagination", () => {
             ticket_id,
         )
 
-        expect(messages).toHaveLength(20)
+        expect(messages).toHaveLength(message_ids.length)
         expect(messages.map((message) => message.message_id)).toEqual(
-            message_ids.slice(0, 20),
+            message_ids,
         )
     })
 
