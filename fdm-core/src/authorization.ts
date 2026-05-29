@@ -27,7 +27,7 @@ export const resources: Resource[] = [
     "cultivation",
     "fertilizer_application",
     "soil_analysis",
-    "soil_analysis_visual",
+    "soil_image",
     "harvesting",
 ] as const
 export const roles: Role[] = ["owner", "advisor", "researcher"] as const
@@ -110,17 +110,17 @@ export const permissions: Permission[] = [
         action: ["read"],
     },
     {
-        resource: "soil_analysis_visual",
+        resource: "soil_image",
         role: "owner",
         action: ["read", "write", "list", "share"],
     },
     {
-        resource: "soil_analysis_visual",
+        resource: "soil_image",
         role: "advisor",
         action: ["read", "list"],
     },
     {
-        resource: "soil_analysis_visual",
+        resource: "soil_image",
         role: "researcher",
         action: ["read"],
     },
@@ -962,7 +962,7 @@ async function getResourceChain(
             "harvesting",
             "fertilizer_application",
             "soil_analysis",
-            "soil_analysis_visual",
+            "soil_image",
         ]
         const chain: ResourceBead[] = []
         if (resource === "farm") {
@@ -1109,30 +1109,30 @@ async function getResourceChain(
                 return []
             }
             chain.push(...buildBeadsFromRow(result[0]))
-        } else if (resource === "soil_analysis_visual") {
+        } else if (resource === "soil_image") {
             const result = await fdm
                 .select({
                     farm: schema.fieldAcquiring.b_id_farm,
-                    field: schema.soilSamplingVisual.b_id,
-                    soil_analysis_visual: schema.soilAnalysisVisual.a_id_visual,
+                    field: schema.soilSampling.b_id,
+                    soil_image: schema.soilImage.a_id_image,
                 })
-                .from(schema.soilAnalysisVisual)
+                .from(schema.soilImage)
                 .leftJoin(
-                    schema.soilSamplingVisual,
+                    schema.soilSampling,
                     eq(
-                        schema.soilAnalysisVisual.b_id_sampling,
-                        schema.soilSamplingVisual.b_id_sampling,
+                        schema.soilImage.b_id_sampling,
+                        schema.soilSampling.b_id_sampling,
                     ),
                 )
                 .leftJoin(
                     schema.fields,
-                    eq(schema.soilSamplingVisual.b_id, schema.fields.b_id),
+                    eq(schema.soilSampling.b_id, schema.fields.b_id),
                 )
                 .leftJoin(
                     schema.fieldAcquiring,
                     eq(schema.fields.b_id, schema.fieldAcquiring.b_id),
                 )
-                .where(eq(schema.soilAnalysisVisual.a_id_visual, resource_id))
+                .where(eq(schema.soilImage.a_id_image, resource_id))
                 .limit(1)
             if (result.length === 0) {
                 return []

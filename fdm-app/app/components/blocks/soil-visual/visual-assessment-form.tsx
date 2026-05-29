@@ -1,10 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { assessmentTypeOptions } from "@nmi-agro/fdm-core"
-import type { VisualSoilAssessment } from "@nmi-agro/fdm-core"
-import { useEffect, useState } from "react"
+import type { SoilAnalysis } from "@nmi-agro/fdm-core"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { BCS_INDICATORS, calculateBcs } from "~/lib/bcs-calculation"
+import { BCS_INDICATORS } from "~/lib/bcs-calculation"
 import { Button } from "~/components/ui/button"
 import { DatePicker } from "~/components/custom/date-picker"
 import {
@@ -14,26 +12,16 @@ import {
     FormLabel,
     FormMessage,
 } from "~/components/ui/form"
-import { Input } from "~/components/ui/input"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "~/components/ui/select"
-import { Textarea } from "~/components/ui/textarea"
-import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { BcsScoreCard } from "./bcs-score-card"
 import {
-    visualSoilAssessmentSchema,
-    type VisualSoilAssessmentFormValues,
+    soilAnalysisBcsSchema,
+    type SoilAnalysisBcsFormValues,
 } from "./formschema"
 import { cn } from "~/lib/utils"
 
 interface VisualAssessmentFormProps {
-    assessment?: VisualSoilAssessment
+    assessment?: SoilAnalysis
     b_id: string
     action: string
     editable?: boolean
@@ -70,8 +58,8 @@ function ScoreButton({
 }
 
 /**
- * Form for creating or editing a BCS visual soil assessment.
- * Includes metadata fields, 9 BCS indicator score inputs, and a live score preview.
+ * Form for creating or editing a BCS soil assessment.
+ * Shows 9 BCS indicator score inputs and a live score preview.
  */
 export function VisualAssessmentForm({
     assessment,
@@ -79,15 +67,11 @@ export function VisualAssessmentForm({
     action,
     editable = true,
 }: VisualAssessmentFormProps) {
-    const form = useRemixForm<VisualSoilAssessmentFormValues>({
-        resolver: zodResolver(visualSoilAssessmentSchema),
+    const form = useRemixForm<SoilAnalysisBcsFormValues>({
+        resolver: zodResolver(soilAnalysisBcsSchema),
         defaultValues: {
             b_id,
-            date: assessment?.date ?? undefined,
-            assessor_name: assessment?.assessor_name ?? "",
-            assessment_type: assessment?.assessment_type ?? undefined,
-            weather_conditions: assessment?.weather_conditions ?? "",
-            notes: assessment?.notes ?? "",
+            a_date: assessment?.a_date ?? undefined,
             a_ss_bcs: assessment?.a_ss_bcs ?? null,
             a_sc_bcs: assessment?.a_sc_bcs ?? null,
             a_rd_bcs: assessment?.a_rd_bcs ?? null,
@@ -125,99 +109,24 @@ export function VisualAssessmentForm({
                 <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
                     {/* Left: form fields */}
                     <div className="space-y-6">
-                        {/* Metadata section */}
-                        <div className="space-y-4">
-                            <h4 className="font-medium">Beoordeling details</h4>
-
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <FormField
-                                    control={form.control}
-                                    name="date"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Datum</FormLabel>
-                                            <FormControl>
-                                                <DatePicker
-                                                    value={field.value as Date | undefined}
-                                                    onChange={field.onChange}
-                                                    disabled={!editable}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="assessor_name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Beoordelaar</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    value={field.value ?? ""}
-                                                    placeholder="Naam"
-                                                    disabled={!editable}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="assessment_type"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Type meting</FormLabel>
-                                            <Select
-                                                value={field.value ?? ""}
-                                                onValueChange={field.onChange}
-                                                disabled={!editable}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Kies type..." />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {assessmentTypeOptions.map((opt) => (
-                                                        <SelectItem key={opt.value} value={opt.value}>
-                                                            {opt.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="weather_conditions"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Weersomstandigheden</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    value={field.value ?? ""}
-                                                    placeholder="Bijv. droog, bewolkt"
-                                                    disabled={!editable}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
-
-                        <Separator />
+                        {/* Date */}
+                        <FormField
+                            control={form.control}
+                            name="a_date"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Datum</FormLabel>
+                                    <FormControl>
+                                        <DatePicker
+                                            value={field.value as Date | undefined}
+                                            onChange={field.onChange}
+                                            disabled={!editable}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         {/* BCS Indicators section */}
                         <div className="space-y-4">
@@ -271,30 +180,6 @@ export function VisualAssessmentForm({
                                 ))}
                             </div>
                         </div>
-
-                        <Separator />
-
-                        {/* Notes */}
-                        <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Notities</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            {...field}
-                                            value={field.value ?? ""}
-                                            placeholder="Aanvullende observaties..."
-                                            rows={4}
-                                            disabled={!editable}
-                                            className="resize-none"
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
 
                         {editable && (
                             <div className="flex gap-3">

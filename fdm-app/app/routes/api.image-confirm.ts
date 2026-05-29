@@ -1,6 +1,6 @@
 import { fileTypeFromBuffer } from "file-type"
 import type { ActionFunctionArgs } from "react-router"
-import { addVisualSoilImage } from "@nmi-agro/fdm-core"
+import { addSoilImage } from "@nmi-agro/fdm-core"
 import { objectExists } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
@@ -20,7 +20,7 @@ const ALLOWED_MIME_TYPES = new Set([
  * 1. Verify the session
  * 2. Confirm the object exists in GCS
  * 3. Validate the MIME type matches expectations
- * 4. Save the image record linked to the visual soil analysis
+ * 4. Save the image record linked to the soil sampling
  */
 export async function action({ request }: ActionFunctionArgs) {
     const session = await getSession(request)
@@ -30,7 +30,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     let body: {
         objectKey?: string
-        a_id_visual?: string
+        b_id_sampling?: string
         image_type?: string
         caption?: string
         sort_order?: number
@@ -41,11 +41,11 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: "Invalid JSON body" }, { status: 400 })
     }
 
-    const { objectKey, a_id_visual, image_type, caption, sort_order } = body
+    const { objectKey, b_id_sampling, image_type, caption, sort_order } = body
 
-    if (!objectKey || !a_id_visual) {
+    if (!objectKey || !b_id_sampling) {
         return Response.json(
-            { error: "objectKey and a_id_visual are required" },
+            { error: "objectKey and b_id_sampling are required" },
             { status: 400 },
         )
     }
@@ -85,13 +85,13 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     try {
-        const a_id_image = await addVisualSoilImage(
+        const a_id_image = await addSoilImage(
             fdm,
             session.principal_id,
-            a_id_visual,
+            b_id_sampling,
             {
-                gcs_object_key: objectKey,
-                image_type: image_type as
+                a_image_path: objectKey,
+                a_image_type: image_type as
                     | "profile"
                     | "surface"
                     | "roots"
@@ -99,8 +99,8 @@ export async function action({ request }: ActionFunctionArgs) {
                     | "structure"
                     | "other"
                     | undefined,
-                caption,
-                sort_order: sort_order ?? 0,
+                a_image_caption: caption,
+                a_image_order: sort_order ?? 0,
             },
         )
 

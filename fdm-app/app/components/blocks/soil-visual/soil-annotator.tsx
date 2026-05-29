@@ -1,17 +1,17 @@
 import { ClientOnly } from "remix-utils/client-only"
-import type { VisualSoilAnnotation } from "@nmi-agro/fdm-core"
+import type { SoilImageAnnotation } from "@nmi-agro/fdm-core"
 import { useCallback, useRef, useState } from "react"
 import { AnnotationToolbar, type AnnotationMode } from "./annotation-toolbar"
 import { AnnotationPopover } from "./annotation-popover"
 
 interface SoilAnnotatorProps {
     imageUrl: string
-    annotations: VisualSoilAnnotation[]
+    annotations: SoilImageAnnotation[]
     onAnnotationAdd?: (annotation: {
         type: string
         data_json: string
         text?: string
-        indicator?: string
+        a_image_annotation_bcs?: string
     }) => void
     onAnnotationRemove?: (a_id_annotation: string) => void
     readOnly?: boolean
@@ -126,7 +126,7 @@ const SoilAnnotatorCanvas = ({
     const handlePopoverSave = useCallback(
         (text: string, indicator?: string) => {
             if (!pendingAnnotation || !onAnnotationAdd) return
-            onAnnotationAdd({ ...pendingAnnotation, text, indicator })
+            onAnnotationAdd({ ...pendingAnnotation, text, a_image_annotation_bcs: indicator })
             setPendingAnnotation(null)
             setMode(null)
         },
@@ -172,8 +172,9 @@ const SoilAnnotatorCanvas = ({
                         )}
                         {/* Render existing annotations */}
                         {annotations.map((ann, i) => {
-                            const d = JSON.parse(ann.data_json)
-                            if (ann.type === "pin") {
+                            // biome-ignore lint/suspicious/noExplicitAny: jsonb returns unknown
+                            const d = ann.a_image_annotation_coordinates as any
+                            if (ann.a_image_annotation_type === "pin") {
                                 return (
                                     <Text
                                         key={ann.a_id_annotation}
@@ -184,7 +185,7 @@ const SoilAnnotatorCanvas = ({
                                     />
                                 )
                             }
-                            if (ann.type === "circle") {
+                            if (ann.a_image_annotation_type === "circle") {
                                 return (
                                     <Circle
                                         key={ann.a_id_annotation}
@@ -200,7 +201,7 @@ const SoilAnnotatorCanvas = ({
                                     />
                                 )
                             }
-                            if (ann.type === "arrow") {
+                            if (ann.a_image_annotation_type === "arrow") {
                                 return (
                                     <Arrow
                                         key={ann.a_id_annotation}
@@ -216,7 +217,7 @@ const SoilAnnotatorCanvas = ({
                                     />
                                 )
                             }
-                            if (ann.type === "freehand") {
+                            if (ann.a_image_annotation_type === "freehand") {
                                 return (
                                     <Line
                                         key={ann.a_id_annotation}

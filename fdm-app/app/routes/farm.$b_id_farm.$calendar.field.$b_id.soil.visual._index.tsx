@@ -1,7 +1,7 @@
 import {
     checkPermission,
     getField,
-    getVisualSoilAnalyses,
+    getSoilAnalyses,
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { Plus } from "lucide-react"
@@ -14,6 +14,7 @@ import {
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
+import { calculateBcs } from "~/lib/bcs-calculation"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
@@ -38,10 +39,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             throw data("Field is not found", { status: 404 })
         }
 
-        const assessments = await getVisualSoilAnalyses(
+        const analyses = await getSoilAnalyses(
             fdm,
             session.principal_id,
             b_id,
+        )
+
+        // Only keep analyses that have at least one BCS score set
+        const assessments = analyses.filter((a) =>
+            a.a_ss_bcs != null ||
+            a.a_sc_bcs != null ||
+            a.a_rd_bcs != null ||
+            a.a_ew_bcs != null ||
+            a.a_cc_bcs != null ||
+            a.a_gs_bcs != null ||
+            a.a_p_bcs != null ||
+            a.a_c_bcs != null ||
+            a.a_rt_bcs != null,
         )
 
         const fieldWritePermission = await checkPermission(
@@ -67,7 +81,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 /**
- * Lists all visual soil assessments for a field.
+ * Lists all visual soil assessments (soil analyses with BCS scores) for a field.
  */
 export default function VisualSoilAnalysisIndex() {
     const { assessments, fieldWritePermission, b_id_farm, b_id } =
@@ -115,48 +129,43 @@ export default function VisualSoilAnalysisIndex() {
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {assessments.map((assessment) => (
-                        <NavLink
-                            key={assessment.a_id_visual}
-                            to={`./${assessment.a_id_visual}`}
-                            className="flex items-center justify-between rounded-lg border p-4 hover:bg-accent transition-colors"
-                        >
-                            <div className="space-y-1">
-                                <p className="font-medium">
-                                    {assessment.date
-                                        ? format(new Date(assessment.date), "d MMMM yyyy")
-                                        : "Datum onbekend"}
-                                </p>
-                                <div className="flex gap-2 text-sm text-muted-foreground">
-                                    {assessment.assessor_name && (
-                                        <span>{assessment.assessor_name}</span>
-                                    )}
-                                    {assessment.assessment_type && (
-                                        <>
-                                            <span>·</span>
-                                            <span className="capitalize">
-                                                {assessment.assessment_type}
-                                            </span>
-                                        </>
+                    {assessments.map((assessment) => {
+                        const { i_bcs } = calculateBcs(assessment)
+                        return (
+                            <NavLink
+                                key={assessment.a_id}
+                                to={`./${assessment.a_id}`}
+                                className="flex items-center justify-between rounded-lg border p-4 hover:bg-accent transition-colors"
+                            >
+                                <div className="space-y-1">
+                                    <p className="font-medium">
+                                        {assessment.a_date
+                                            ? format(new Date(assessment.a_date), "d MMMM yyyy")
+                                            : "Datum onbekend"}
+                                    </p>
+                                    {assessment.a_assessor_id && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {assessment.a_assessor_id}
+                                        </p>
                                     )}
                                 </div>
-                            </div>
-                            <div className="text-right">
-                                {assessment.i_bcs != null ? (
-                                    <>
-                                        <p className="text-lg font-bold">
-                                            {(assessment.i_bcs * 100).toFixed(0)}%
+                                <div className="text-right">
+                                    {i_bcs != null ? (
+                                        <>
+                                            <p className="text-lg font-bold">
+                                                {(i_bcs * 100).toFixed(0)}%
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">I_BCS</p>
+                                        </>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            Niet gescoord
                                         </p>
-                                        <p className="text-xs text-muted-foreground">I_BCS</p>
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        Niet gescoord
-                                    </p>
-                                )}
-                            </div>
-                        </NavLink>
-                    ))}
+                                    )}
+                                </div>
+                            </NavLink>
+                        )
+                    })}
                 </div>
             )}
         </div>

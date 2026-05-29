@@ -1,5 +1,5 @@
 {
-  "id": "52a76b63-2e30-42ad-9aa0-00ac7e3f3df1",
+  "id": "889d2315-4309-4dd2-9dcd-de7fadb4d373",
   "prevId": "4fbbac19-35ce-4987-a95a-550b7e16b5d4",
   "version": "7",
   "dialect": "postgresql",
@@ -2778,63 +2778,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "fdm.soil_analysis_visual": {
-      "name": "soil_analysis_visual",
-      "schema": "fdm",
-      "columns": {
-        "a_id_visual": {
-          "name": "a_id_visual",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "b_id_sampling": {
-          "name": "b_id_sampling",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "date": {
-          "name": "date",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "assessor_name": {
-          "name": "assessor_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "assessment_type": {
-          "name": "assessment_type",
-          "type": "assessment_type",
-          "typeSchema": "fdm",
-          "primaryKey": false,
-          "notNull": false
-        },
         "a_ss_bcs": {
           "name": "a_ss_bcs",
           "type": "numeric",
@@ -2889,30 +2832,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "d_bcs": {
-          "name": "d_bcs",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "i_bcs": {
-          "name": "i_bcs",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "weather_conditions": {
-          "name": "weather_conditions",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created": {
           "name": "created",
           "type": "timestamp with time zone",
@@ -2928,11 +2847,91 @@
         }
       },
       "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm.soil_image": {
+      "name": "soil_image",
+      "schema": "fdm",
+      "columns": {
+        "a_id_image": {
+          "name": "a_id_image",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "b_id_sampling": {
+          "name": "b_id_sampling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "a_image_path": {
+          "name": "a_image_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "a_image_type": {
+          "name": "a_image_type",
+          "type": "a_image_type",
+          "typeSchema": "fdm",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "a_image_order": {
+          "name": "a_image_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "a_image_caption": {
+          "name": "a_image_caption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "soil_image_b_id_sampling_idx": {
+          "name": "soil_image_b_id_sampling_idx",
+          "columns": [
+            {
+              "expression": "b_id_sampling",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "soil_analysis_visual_b_id_sampling_soil_sampling_visual_b_id_sampling_fk": {
-          "name": "soil_analysis_visual_b_id_sampling_soil_sampling_visual_b_id_sampling_fk",
-          "tableFrom": "soil_analysis_visual",
-          "tableTo": "soil_sampling_visual",
+        "soil_image_b_id_sampling_soil_sampling_b_id_sampling_fk": {
+          "name": "soil_image_b_id_sampling_soil_sampling_b_id_sampling_fk",
+          "tableFrom": "soil_image",
+          "tableTo": "soil_sampling",
           "schemaTo": "fdm",
           "columnsFrom": [
             "b_id_sampling"
@@ -2950,8 +2949,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "fdm.soil_analysis_visual_annotation": {
-      "name": "soil_analysis_visual_annotation",
+    "fdm.soil_image_annotating": {
+      "name": "soil_image_annotating",
       "schema": "fdm",
       "columns": {
         "a_id_annotation": {
@@ -2966,34 +2965,34 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "annotation_type",
+        "a_image_annotation_type": {
+          "name": "a_image_annotation_type",
+          "type": "a_image_annotation_type",
           "typeSchema": "fdm",
           "primaryKey": false,
           "notNull": true
         },
-        "data_json": {
-          "name": "data_json",
-          "type": "text",
+        "a_image_annotation_coordinates": {
+          "name": "a_image_annotation_coordinates",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
-        "text": {
-          "name": "text",
+        "a_image_annotation": {
+          "name": "a_image_annotation",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "indicator": {
-          "name": "indicator",
-          "type": "bcs_indicator",
+        "a_image_annotation_bcs": {
+          "name": "a_image_annotation_bcs",
+          "type": "a_image_annotation_bcs",
           "typeSchema": "fdm",
           "primaryKey": false,
           "notNull": false
         },
-        "sort_order": {
-          "name": "sort_order",
+        "a_image_annotation_order": {
+          "name": "a_image_annotation_order",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -3014,8 +3013,8 @@
         }
       },
       "indexes": {
-        "a_id_image_annotation_idx": {
-          "name": "a_id_image_annotation_idx",
+        "soil_image_annotating_a_id_image_idx": {
+          "name": "soil_image_annotating_a_id_image_idx",
           "columns": [
             {
               "expression": "a_id_image",
@@ -3031,111 +3030,16 @@
         }
       },
       "foreignKeys": {
-        "soil_analysis_visual_annotation_a_id_image_soil_analysis_visual_image_a_id_image_fk": {
-          "name": "soil_analysis_visual_annotation_a_id_image_soil_analysis_visual_image_a_id_image_fk",
-          "tableFrom": "soil_analysis_visual_annotation",
-          "tableTo": "soil_analysis_visual_image",
+        "soil_image_annotating_a_id_image_soil_image_a_id_image_fk": {
+          "name": "soil_image_annotating_a_id_image_soil_image_a_id_image_fk",
+          "tableFrom": "soil_image_annotating",
+          "tableTo": "soil_image",
           "schemaTo": "fdm",
           "columnsFrom": [
             "a_id_image"
           ],
           "columnsTo": [
             "a_id_image"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "fdm.soil_analysis_visual_image": {
-      "name": "soil_analysis_visual_image",
-      "schema": "fdm",
-      "columns": {
-        "a_id_image": {
-          "name": "a_id_image",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "a_id_visual": {
-          "name": "a_id_visual",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "gcs_object_key": {
-          "name": "gcs_object_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "image_type": {
-          "name": "image_type",
-          "type": "visual_image_type",
-          "typeSchema": "fdm",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "caption": {
-          "name": "caption",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "a_id_visual_image_idx": {
-          "name": "a_id_visual_image_idx",
-          "columns": [
-            {
-              "expression": "a_id_visual",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "soil_analysis_visual_image_a_id_visual_soil_analysis_visual_a_id_visual_fk": {
-          "name": "soil_analysis_visual_image_a_id_visual_soil_analysis_visual_a_id_visual_fk",
-          "tableFrom": "soil_analysis_visual_image",
-          "tableTo": "soil_analysis_visual",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "a_id_visual"
-          ],
-          "columnsTo": [
-            "a_id_visual"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3227,98 +3131,6 @@
         "soil_sampling_a_id_soil_analysis_a_id_fk": {
           "name": "soil_sampling_a_id_soil_analysis_a_id_fk",
           "tableFrom": "soil_sampling",
-          "tableTo": "soil_analysis",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "a_id"
-          ],
-          "columnsTo": [
-            "a_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "fdm.soil_sampling_visual": {
-      "name": "soil_sampling_visual",
-      "schema": "fdm",
-      "columns": {
-        "b_id_sampling": {
-          "name": "b_id_sampling",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "b_id": {
-          "name": "b_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "a_id": {
-          "name": "a_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "a_depth_upper": {
-          "name": "a_depth_upper",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "a_depth_lower": {
-          "name": "a_depth_lower",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "b_sampling_date": {
-          "name": "b_sampling_date",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "soil_sampling_visual_b_id_fields_b_id_fk": {
-          "name": "soil_sampling_visual_b_id_fields_b_id_fk",
-          "tableFrom": "soil_sampling_visual",
-          "tableTo": "fields",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "b_id"
-          ],
-          "columnsTo": [
-            "b_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "soil_sampling_visual_a_id_soil_analysis_a_id_fk": {
-          "name": "soil_sampling_visual_a_id_soil_analysis_a_id_fk",
-          "tableFrom": "soil_sampling_visual",
           "tableTo": "soil_analysis",
           "schemaTo": "fdm",
           "columnsFrom": [
@@ -4668,6 +4480,25 @@
           "primaryKey": false,
           "notNull": true
         },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_processing": {
+          "name": "is_processing",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -4676,7 +4507,44 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "calculation_cache_entity_idx": {
+          "name": "calculation_cache_entity_idx",
+          "columns": [
+            {
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "calculation_cache_function_idx": {
+          "name": "calculation_cache_function_idx",
+          "columns": [
+            {
+              "expression": "calculation_function",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -4761,8 +4629,8 @@
         "unknown"
       ]
     },
-    "fdm.annotation_type": {
-      "name": "annotation_type",
+    "fdm.a_image_annotation_type": {
+      "name": "a_image_annotation_type",
       "schema": "fdm",
       "values": [
         "pin",
@@ -4787,27 +4655,19 @@
         "narrowband"
       ]
     },
-    "fdm.assessment_type": {
-      "name": "assessment_type",
+    "fdm.a_image_annotation_bcs": {
+      "name": "a_image_annotation_bcs",
       "schema": "fdm",
       "values": [
-        "kuilmeting",
-        "bedrijfsmeting"
-      ]
-    },
-    "fdm.bcs_indicator": {
-      "name": "bcs_indicator",
-      "schema": "fdm",
-      "values": [
-        "A_SS_BCS",
-        "A_SC_BCS",
-        "A_RD_BCS",
-        "A_EW_BCS",
-        "A_CC_BCS",
-        "A_GS_BCS",
-        "A_P_BCS",
-        "A_C_BCS",
-        "A_RT_BCS"
+        "a_ss_bcs",
+        "a_sc_bcs",
+        "a_rd_bcs",
+        "a_ew_bcs",
+        "a_cc_bcs",
+        "a_gs_bcs",
+        "a_p_bcs",
+        "a_c_bcs",
+        "a_rt_bcs"
       ]
     },
     "fdm.b_gwl_class": {
@@ -4992,8 +4852,8 @@
         "120"
       ]
     },
-    "fdm.visual_image_type": {
-      "name": "visual_image_type",
+    "fdm.a_image_type": {
+      "name": "a_image_type",
       "schema": "fdm",
       "values": [
         "profile",

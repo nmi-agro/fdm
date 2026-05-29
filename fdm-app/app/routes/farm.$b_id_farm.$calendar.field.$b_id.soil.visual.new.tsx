@@ -1,5 +1,5 @@
 import {
-    addVisualSoilAnalysis,
+    addSoilAnalysis,
     checkPermission,
     getField,
 } from "@nmi-agro/fdm-core"
@@ -9,7 +9,6 @@ import {
     type ActionFunctionArgs,
     type LoaderFunctionArgs,
     NavLink,
-    redirect,
     useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
@@ -17,7 +16,6 @@ import { VisualAssessmentForm } from "~/components/blocks/soil-visual/visual-ass
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
-import { calculateBcs } from "~/lib/bcs-calculation"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -74,6 +72,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             return Number.isNaN(d.getTime()) ? undefined : d
         }
 
+        const a_date = parseOptionalDate("a_date")
+        const a_depth_lower = Number(formData.get("a_depth_lower")) || 30
+
         const scores = {
             a_ss_bcs: parseScore("a_ss_bcs"),
             a_sc_bcs: parseScore("a_sc_bcs"),
@@ -86,32 +87,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
             a_rt_bcs: parseScore("a_rt_bcs"),
         }
 
-        const { d_bcs, i_bcs } = calculateBcs(scores)
-
-        const a_id_visual = await addVisualSoilAnalysis(fdm, session.principal_id, {
+        const a_id = await addSoilAnalysis(
+            fdm,
+            session.principal_id,
+            a_date ?? new Date(),
+            "other",
             b_id,
-            date: parseOptionalDate("date"),
-            assessor_name: formData.get("assessor_name")?.toString() || undefined,
-            assessment_type: (formData.get("assessment_type")?.toString() as
-                | "kuilmeting"
-                | "bedrijfsmeting"
-                | undefined) || undefined,
-            weather_conditions:
-                formData.get("weather_conditions")?.toString() || undefined,
-            notes: formData.get("notes")?.toString() || undefined,
-            ...scores,
-        })
-
-        // Persist computed scores
-        await import("@nmi-agro/fdm-core").then(({ updateVisualSoilAnalysis }) =>
-            updateVisualSoilAnalysis(fdm, session.principal_id, a_id_visual, {
-                d_bcs,
-                i_bcs,
-            }),
+            a_depth_lower,
+            a_date ?? new Date(),
+            scores,
         )
 
         return redirectWithSuccess(
-            `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/soil/visual/${a_id_visual}`,
+            `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/soil/visual/${a_id}`,
             "Visuele beoordeling opgeslagen",
         )
     } catch (error) {

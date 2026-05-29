@@ -73,7 +73,6 @@ export type {
 export {
     acquiringMethodOptions,
     annotationTypeOptions,
-    assessmentTypeOptions,
     bcsIndicatorOptions,
     gwlClassesOptions,
     soilTypesOptions,
@@ -224,26 +223,19 @@ export type {
     SoilParameters,
 } from "./soil.types"
 export {
-    addImageAnnotation,
-    addVisualSoilAnalysis,
-    addVisualSoilImage,
-    getVisualSoilAnalysis,
-    getVisualSoilAnalyses,
-    removeImageAnnotation,
-    removeVisualSoilAnalysis,
-    removeVisualSoilImage,
-    updateImageAnnotation,
-    updateVisualSoilAnalysis,
-} from "./soil-visual"
+    addSoilImage,
+    addSoilImageAnnotation,
+    getSoilImages,
+    removeSoilImage,
+    removeSoilImageAnnotation,
+    updateSoilImageAnnotation,
+} from "./soil-image"
 export type {
-    AddImageAnnotationInput,
-    AddVisualSoilAnalysisInput,
-    AddVisualSoilImageInput,
-    UpdateImageAnnotationInput,
-    UpdateVisualSoilAnalysisInput,
-    VisualSoilAnnotation,
-    VisualSoilAssessment,
-    VisualSoilImage,
-} from "./soil-visual.types"
+    AddSoilImageAnnotationInput,
+    AddSoilImageInput,
+    SoilImage,
+    SoilImageAnnotation,
+    UpdateSoilImageAnnotationInput,
+} from "./soil-image.types"
 export type { Timeframe } from "./timeframe.d"
 export { fdmSchema }

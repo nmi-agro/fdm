@@ -23,18 +23,18 @@ export async function compressImage(file: File): Promise<File> {
  *
  * @param file - The image File to upload
  * @param b_id_farm - The farm ID (used to scope the GCS object key)
- * @param a_id_visual - The visual soil analysis ID to attach the image to
+ * @param b_id_sampling - The soil sampling ID to attach the image to
  * @param options - Optional metadata (image_type, caption, sort_order)
  * @returns The created image record ID
  */
-export async function uploadVisualSoilImage(
+export async function uploadSoilImage(
     file: File,
     b_id_farm: string,
-    a_id_visual: string,
+    b_id_sampling: string,
     options: {
-        image_type?: string
-        caption?: string
-        sort_order?: number
+        a_image_type?: string
+        a_image_caption?: string
+        a_image_order?: number
     } = {},
 ): Promise<string> {
     // Step 1: Compress before upload
@@ -79,10 +79,10 @@ export async function uploadVisualSoilImage(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             objectKey,
-            a_id_visual,
-            image_type: options.image_type,
-            caption: options.caption,
-            sort_order: options.sort_order ?? 0,
+            b_id_sampling,
+            image_type: options.a_image_type,
+            caption: options.a_image_caption,
+            sort_order: options.a_image_order ?? 0,
         }),
     })
 

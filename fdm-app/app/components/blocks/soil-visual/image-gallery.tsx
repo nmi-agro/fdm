@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Trash2, ZoomIn } from "lucide-react"
-import type { VisualSoilImage } from "@nmi-agro/fdm-core"
+import type { SoilImage } from "@nmi-agro/fdm-core"
 import { visualImageTypeOptions } from "@nmi-agro/fdm-core"
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
@@ -15,7 +15,7 @@ import { ImageCapture } from "./image-capture"
 import { cn } from "~/lib/utils"
 
 interface ImageGalleryProps {
-    images: VisualSoilImage[]
+    images: SoilImage[]
     /** Called when the user selects a new photo to upload */
     onUpload?: (file: File) => Promise<void>
     /** Called when the user deletes an image */
@@ -27,7 +27,7 @@ interface ImageGalleryProps {
             type: string
             data_json: string
             text?: string
-            indicator?: string
+            a_image_annotation_bcs?: string
         },
     ) => Promise<void>
     readOnly?: boolean
@@ -56,12 +56,12 @@ export function ImageGallery({
     className,
     uploading = false,
 }: ImageGalleryProps) {
-    const [selectedImage, setSelectedImage] = useState<VisualSoilImage | null>(
+    const [selectedImage, setSelectedImage] = useState<SoilImage | null>(
         null,
     )
     const [deletingId, setDeletingId] = useState<string | null>(null)
 
-    const handleDelete = async (image: VisualSoilImage) => {
+    const handleDelete = async (image: SoilImage) => {
         if (!onDelete) return
         setDeletingId(image.a_id_image)
         try {
@@ -82,17 +82,17 @@ export function ImageGallery({
                             className="group relative aspect-square rounded-md overflow-hidden border bg-muted"
                         >
                             <img
-                                src={image.gcs_object_key}
-                                alt={image.caption ?? getImageTypeLabel(image.image_type)}
+                                src={image.a_image_path}
+                                alt={image.a_image_caption ?? getImageTypeLabel(image.a_image_type)}
                                 className="h-full w-full object-cover"
                             />
                             {/* Image type badge */}
-                            {image.image_type && (
+                            {image.a_image_type && (
                                 <Badge
                                     variant="secondary"
                                     className="absolute bottom-1 left-1 text-xs"
                                 >
-                                    {getImageTypeLabel(image.image_type)}
+                                    {getImageTypeLabel(image.a_image_type)}
                                 </Badge>
                             )}
                             {/* Annotation count badge */}
@@ -159,12 +159,12 @@ export function ImageGallery({
                     <DialogContent className="max-w-3xl w-full">
                         <DialogHeader>
                             <DialogTitle>
-                                {selectedImage.caption ??
-                                    getImageTypeLabel(selectedImage.image_type)}
+                                {selectedImage.a_image_caption ??
+                                    getImageTypeLabel(selectedImage.a_image_type)}
                             </DialogTitle>
                         </DialogHeader>
                         <SoilAnnotator
-                            imageUrl={selectedImage.gcs_object_key}
+                            imageUrl={selectedImage.a_image_path}
                             annotations={selectedImage.annotations}
                             readOnly={readOnly}
                             onAnnotationAdd={

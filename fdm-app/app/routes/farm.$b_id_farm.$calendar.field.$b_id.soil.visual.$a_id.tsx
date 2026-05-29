@@ -1,10 +1,11 @@
 import {
+    addSoilImageAnnotation,
     checkPermission,
-    getVisualSoilAnalysis,
-    removeVisualSoilAnalysis,
-    updateVisualSoilAnalysis,
-    addImageAnnotation,
-    removeVisualSoilImage,
+    getSoilAnalysis,
+    getSoilImages,
+    removeSoilAnalysis,
+    removeSoilImage,
+    updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { ArrowLeft, Trash2 } from "lucide-react"
 import {
@@ -22,12 +23,10 @@ import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { getSession } from "~/lib/auth.server"
-import { calculateBcs } from "~/lib/bcs-calculation"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { uploadVisualSoilImage } from "~/lib/image-upload.client"
+import { uploadSoilImage } from "~/lib/image-upload.client"
 import { useState } from "react"
-import { cn } from "~/lib/utils"
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
@@ -37,30 +36,34 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const b_id = params.b_id
         if (!b_id) throw data("Field ID is required", { status: 400 })
 
-        const a_id_visual = params.a_id_visual
-        if (!a_id_visual) throw data("Visual analysis ID is required", { status: 400 })
+        const a_id = params.a_id
+        if (!a_id) throw data("Analysis ID is required", { status: 400 })
 
         const session = await getSession(request)
         const pathname = new URL(request.url).pathname
 
-        const assessment = await getVisualSoilAnalysis(
+        const assessment = await getSoilAnalysis(
             fdm,
             session.principal_id,
-            a_id_visual,
+            a_id,
         )
         if (!assessment) throw data("Assessment not found", { status: 404 })
 
+        const images = assessment.b_id_sampling
+            ? await getSoilImages(fdm, session.principal_id, assessment.b_id_sampling)
+            : []
+
         const writePermission = await checkPermission(
             fdm,
-            "soil_analysis_visual",
+            "soil_analysis",
             "write",
-            a_id_visual,
+            a_id,
             session.principal_id,
             pathname,
             false,
         )
 
-        return { assessment, writePermission, b_id_farm, b_id, a_id_visual }
+        return { assessment, images, writePermission, b_id_farm, b_id, a_id }
     } catch (error) {
         throw handleLoaderError(error)
     }
@@ -70,8 +73,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     try {
         const b_id_farm = params.b_id_farm
         const b_id = params.b_id
-        const a_id_visual = params.a_id_visual
-        if (!b_id_farm || !b_id || !a_id_visual) {
+        const a_id = params.a_id
+        if (!b_id_farm || !b_id || !a_id) {
             throw data("Missing required params", { status: 400 })
         }
 
@@ -80,7 +83,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const intent = formData.get("intent")?.toString()
 
         if (intent === "delete") {
-            await removeVisualSoilAnalysis(fdm, session.principal_id, a_id_visual)
+            await removeSoilAnalysis(fdm, session.principal_id, a_id)
             return redirectWithSuccess(
                 `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/soil/visual`,
                 "Beoordeling verwijderd",
@@ -90,30 +93,30 @@ export async function action({ request, params }: ActionFunctionArgs) {
         if (intent === "delete-image") {
             const a_id_image = formData.get("a_id_image")?.toString()
             if (!a_id_image) throw data("Image ID is required", { status: 400 })
-            await removeVisualSoilImage(fdm, session.principal_id, a_id_image)
+            await removeSoilImage(fdm, session.principal_id, a_id_image)
             return data({ success: true })
         }
 
         if (intent === "add-annotation") {
             const a_id_image = formData.get("a_id_image")?.toString()
-            const type = formData.get("type")?.toString()
-            const annotation_data = formData.get("data_json")?.toString()
-            if (!a_id_image || !type || !annotation_data) {
+            const type = formData.get("a_image_annotation_type")?.toString()
+            const coordinates = formData.get("a_image_annotation_coordinates")?.toString()
+            if (!a_id_image || !type || !coordinates) {
                 throw data("Missing annotation data", { status: 400 })
             }
-            await addImageAnnotation(fdm, session.principal_id, a_id_image, {
-                type: type as "pin" | "circle" | "arrow" | "freehand",
-                data_json: annotation_data,
-                text: formData.get("text")?.toString() || undefined,
-                indicator: formData.get("indicator")?.toString() as
-                    | "A_SS_BCS" | "A_SC_BCS" | "A_RD_BCS" | "A_EW_BCS"
-                    | "A_CC_BCS" | "A_GS_BCS" | "A_P_BCS" | "A_C_BCS"
-                    | "A_RT_BCS" | undefined,
+            await addSoilImageAnnotation(fdm, session.principal_id, a_id_image, {
+                a_image_annotation_type: type as "pin" | "circle" | "arrow" | "freehand",
+                a_image_annotation_coordinates: JSON.parse(coordinates),
+                a_image_annotation: formData.get("a_image_annotation")?.toString() || undefined,
+                a_image_annotation_bcs: formData.get("a_image_annotation_bcs")?.toString() as
+                    | "a_ss_bcs" | "a_sc_bcs" | "a_rd_bcs" | "a_ew_bcs"
+                    | "a_cc_bcs" | "a_gs_bcs" | "a_p_bcs" | "a_c_bcs"
+                    | "a_rt_bcs" | undefined,
             })
             return data({ success: true })
         }
 
-        // Default intent: update scores + metadata
+        // Default intent: update scores + date
         const parseScore = (key: string) => {
             const val = formData.get(key)
             if (val === null || val === "") return null
@@ -128,7 +131,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
             return Number.isNaN(d.getTime()) ? undefined : d
         }
 
-        const scores = {
+        await updateSoilAnalysis(fdm, session.principal_id, a_id, {
+            a_date: parseOptionalDate("a_date"),
             a_ss_bcs: parseScore("a_ss_bcs"),
             a_sc_bcs: parseScore("a_sc_bcs"),
             a_rd_bcs: parseScore("a_rd_bcs"),
@@ -138,27 +142,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
             a_p_bcs: parseScore("a_p_bcs"),
             a_c_bcs: parseScore("a_c_bcs"),
             a_rt_bcs: parseScore("a_rt_bcs"),
-        }
-
-        const { d_bcs, i_bcs } = calculateBcs(scores)
-
-        await updateVisualSoilAnalysis(fdm, session.principal_id, a_id_visual, {
-            date: parseOptionalDate("date"),
-            assessor_name: formData.get("assessor_name")?.toString() || undefined,
-            assessment_type: (formData.get("assessment_type")?.toString() as
-                | "kuilmeting"
-                | "bedrijfsmeting"
-                | undefined) || undefined,
-            weather_conditions:
-                formData.get("weather_conditions")?.toString() || undefined,
-            notes: formData.get("notes")?.toString() || undefined,
-            ...scores,
-            d_bcs,
-            i_bcs,
         })
 
         return redirectWithSuccess(
-            `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/soil/visual/${a_id_visual}`,
+            `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/soil/visual/${a_id}`,
             "Beoordeling bijgewerkt",
         )
     } catch (error) {
@@ -171,16 +158,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
  * Shows the assessment form, photo gallery with annotation canvas, and delete option.
  */
 export default function VisualSoilAnalysisDetail() {
-    const { assessment, writePermission, b_id_farm, b_id, a_id_visual } =
+    const { assessment, images, writePermission, b_id_farm, b_id, a_id } =
         useLoaderData<typeof loader>()
     const fetcher = useFetcher()
     const [uploading, setUploading] = useState(false)
 
     const handleUpload = async (file: File) => {
+        if (!assessment.b_id_sampling) return
         setUploading(true)
         try {
-            await uploadVisualSoilImage(file, b_id_farm, a_id_visual)
-            // Revalidate to show new image
+            await uploadSoilImage(file, b_id_farm, assessment.b_id_sampling)
             fetcher.load("")
         } catch (err) {
             console.error("Upload failed", err)
@@ -198,15 +185,15 @@ export default function VisualSoilAnalysisDetail() {
 
     const handleAnnotationAdd = async (
         a_id_image: string,
-        annotation: { type: string; data_json: string; text?: string; indicator?: string },
+        annotation: { type: string; data_json: string; text?: string; a_image_annotation_bcs?: string },
     ) => {
         const fd = new FormData()
         fd.append("intent", "add-annotation")
         fd.append("a_id_image", a_id_image)
-        fd.append("type", annotation.type)
-        fd.append("data_json", annotation.data_json)
-        if (annotation.text) fd.append("text", annotation.text)
-        if (annotation.indicator) fd.append("indicator", annotation.indicator)
+        fd.append("a_image_annotation_type", annotation.type)
+        fd.append("a_image_annotation_coordinates", annotation.data_json)
+        if (annotation.text) fd.append("a_image_annotation", annotation.text)
+        if (annotation.a_image_annotation_bcs) fd.append("a_image_annotation_bcs", annotation.a_image_annotation_bcs)
         fetcher.submit(fd, { method: "post" })
     }
 
@@ -221,9 +208,9 @@ export default function VisualSoilAnalysisDetail() {
                     </Button>
                     <div>
                         <h3 className="text-lg font-medium">Visuele beoordeling</h3>
-                        {assessment.assessor_name && (
+                        {assessment.a_assessor_id && (
                             <p className="text-sm text-muted-foreground">
-                                {assessment.assessor_name}
+                                {assessment.a_assessor_id}
                             </p>
                         )}
                     </div>
@@ -260,9 +247,9 @@ export default function VisualSoilAnalysisDetail() {
                     <TabsTrigger value="scores">Scores</TabsTrigger>
                     <TabsTrigger value="photos">
                         Foto's
-                        {assessment.images.length > 0 && (
+                        {images.length > 0 && (
                             <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs">
-                                {assessment.images.length}
+                                {images.length}
                             </span>
                         )}
                     </TabsTrigger>
@@ -279,7 +266,7 @@ export default function VisualSoilAnalysisDetail() {
 
                 <TabsContent value="photos" className="mt-6">
                     <ImageGallery
-                        images={assessment.images}
+                        images={images}
                         b_id_farm={b_id_farm}
                         readOnly={!writePermission}
                         uploading={uploading}

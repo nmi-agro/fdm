@@ -8,13 +8,11 @@ const bcsScore = z
     .nullable()
     .optional()
 
-export const visualSoilAssessmentSchema = z.object({
+export const soilAnalysisBcsSchema = z.object({
     b_id: z.string().min(1, "Perceel is verplicht"),
-    date: z.coerce.date().optional(),
-    assessor_name: z.string().max(255).optional(),
-    assessment_type: z.enum(["kuilmeting", "bedrijfsmeting"]).optional(),
-    weather_conditions: z.string().max(500).optional(),
-    notes: z.string().max(2000).optional(),
+    a_date: z.coerce.date().optional(),
+    a_depth_lower: z.coerce.number().positive().optional(),
+    b_sampling_date: z.coerce.date().optional(),
     // 9 BCS indicator scores
     a_ss_bcs: bcsScore,
     a_sc_bcs: bcsScore,
@@ -27,9 +25,7 @@ export const visualSoilAssessmentSchema = z.object({
     a_rt_bcs: bcsScore,
 })
 
-export type VisualSoilAssessmentFormValues = z.infer<
-    typeof visualSoilAssessmentSchema
->
+export type SoilAnalysisBcsFormValues = z.infer<typeof soilAnalysisBcsSchema>
 
 const pinAnnotationData = z.object({
     x: z.number().min(0).max(100),
@@ -62,23 +58,23 @@ export const annotationDataSchema = z.discriminatedUnion("type", [
 
 export const addAnnotationSchema = z.object({
     a_id_image: z.string().min(1),
-    type: z.enum(["pin", "circle", "arrow", "freehand"]),
-    data_json: z.string().min(1, "Annotatiedata is verplicht"),
-    text: z.string().max(500).optional(),
-    indicator: z
+    a_image_annotation_type: z.enum(["pin", "circle", "arrow", "freehand"]),
+    a_image_annotation_coordinates: z.string().min(1, "Annotatiedata is verplicht"),
+    a_image_annotation: z.string().max(500).optional(),
+    a_image_annotation_bcs: z
         .enum([
-            "A_SS_BCS",
-            "A_SC_BCS",
-            "A_RD_BCS",
-            "A_EW_BCS",
-            "A_CC_BCS",
-            "A_GS_BCS",
-            "A_P_BCS",
-            "A_C_BCS",
-            "A_RT_BCS",
+            "a_ss_bcs",
+            "a_sc_bcs",
+            "a_rd_bcs",
+            "a_ew_bcs",
+            "a_cc_bcs",
+            "a_gs_bcs",
+            "a_p_bcs",
+            "a_c_bcs",
+            "a_rt_bcs",
         ])
         .optional(),
-    sort_order: z.number().int().min(0).optional(),
+    a_image_annotation_order: z.number().int().min(0).optional(),
 })
 
 export type AddAnnotationFormValues = z.infer<typeof addAnnotationSchema>
