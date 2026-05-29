@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
     test: {
         globalSetup: "./src/global-setup.ts",
-        maxWorkers: 2,
+        maxWorkers: 1,
         coverage: {
             provider: "v8",
             reporter: ["text", "json", "html"],

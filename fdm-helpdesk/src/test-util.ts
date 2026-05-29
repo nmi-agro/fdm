@@ -1,6 +1,23 @@
+import { sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { test as baseTest, inject } from "vitest"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
+
+/**
+ * Truncates all tables in the fdm-helpdesk schema, removing all rows and cascading to
+ * dependent tables. Use this in a beforeEach hook when a test needs a clean isolated state.
+ */
+export async function truncateAllTables(fdm: FdmHelpdeskType) {
+    await fdm.execute(sql`
+        TRUNCATE TABLE
+            "fdm-helpdesk"."agents",
+            "fdm-helpdesk"."tickets",
+            "fdm-helpdesk"."tags",
+            "fdm-helpdesk"."saved_replies"
+        CASCADE
+    `)
+}
 
 /**
  * Alternative test declaration that provides a fdm fixture, in order to create only one FDM instance per test

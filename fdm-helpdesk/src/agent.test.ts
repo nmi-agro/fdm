@@ -7,9 +7,17 @@ import {
     getAgents,
     setAgentActiveStatus,
     updateAgent,
+    updateAgentRole,
 } from "./agent"
 import { createId } from "./id"
-import { test } from "./test-util"
+import { test, truncateAllTables } from "./test-util"
+
+// Truncate all tables before each test so every test starts with a clean,
+// isolated database state. This enables exact-count assertions and reliably
+// exercises constraints such as the "last admin" guard.
+test.beforeEach(async ({ fdm }) => {
+    await truncateAllTables(fdm)
+})
 
 describe("Agent CRUD", () => {
     let admin_id: string
@@ -154,6 +162,23 @@ describe("Agent CRUD", () => {
         expect(agent.is_active).toBe(false)
     })
 
+    test("should not allow deactivating the last active admin", async ({
+        fdm,
+    }) => {
+        const failError = new Error("Should have thrown")
+        try {
+            await setAgentActiveStatus(fdm, admin_id, admin_id, false)
+            throw failError
+        } catch (err) {
+            if (err === failError) throw err
+            const error = err as Error
+            expect(error.cause).toBeDefined()
+            expect((error.cause as Error).message).toBe(
+                "There must be at least one admin left",
+            )
+        }
+    })
+
     test("should not let regular helpdesk agents update each other's information", async ({
         fdm,
     }) => {
@@ -204,17 +229,25 @@ describe("getAgents", () => {
         const agents = await getAgents(fdm, admin_id)
         expect(agents.some((a) => a.agent_id === admin_id)).toBe(true)
         expect(agents.some((a) => a.agent_id === agent_id)).toBe(true)
+        expect(agents.length).toBe(2)
     })
 
     test("regular agent can list agents", async ({ fdm }) => {
         const agents = await getAgents(fdm, agent_id)
-        expect(agents.length).toBeGreaterThanOrEqual(2)
+        expect(agents.length).toBe(2)
     })
 
     test("regular user cannot list agents", async ({ fdm }) => {
         await expect(getAgents(fdm, user_id)).rejects.toThrow(
             "Principal does not have permission to perform this action",
         )
+    })
+
+    test("should return empty list when filtering for inactive agents with none inactive", async ({
+        fdm,
+    }) => {
+        const agents = await getAgents(fdm, admin_id, { isActive: false })
+        expect(agents).toHaveLength(0)
     })
 })
 
@@ -237,13 +270,72 @@ describe("getAgentCount", () => {
         const agentCount = await getAgentCount(fdm, admin_id, {})
 
         // 1 admin + 3 agents added in beforeEach
-        expect(agentCount).toBeGreaterThanOrEqual(4)
+        expect(agentCount).toBe(4)
+    })
+
+    test("should return 0 when no inactive agents exist", async ({ fdm }) => {
+        const count = await getAgentCount(fdm, admin_id, { isActive: false })
+        expect(count).toBe(0)
     })
 
     test("should throw when a regular user tries to get agent count", async ({
         fdm,
     }) => {
         await expect(getAgentCount(fdm, user_id, {})).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
+    })
+})
+
+describe("updateAgentRole", () => {
+    let admin_id: string
+    let agent_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+    })
+
+    test("should allow admin to promote an agent to admin role", async ({
+        fdm,
+    }) => {
+        await updateAgentRole(fdm, admin_id, agent_id, "admin")
+        const agent = await getAgent(fdm, admin_id, agent_id)
+        expect(agent.role).toBe("admin")
+    })
+
+    test("should not allow demoting the last active admin", async ({ fdm }) => {
+        const failError = new Error("Should have thrown")
+        try {
+            await updateAgentRole(fdm, admin_id, admin_id, "agent")
+            throw failError
+        } catch (err) {
+            if (err === failError) throw err
+            const error = err as Error
+            expect(error.cause).toBeDefined()
+            expect((error.cause as Error).message).toBe(
+                "There must be at least one active admin left",
+            )
+        }
+    })
+
+    test("should allow demoting an admin when another admin exists", async ({
+        fdm,
+    }) => {
+        const second_admin_id = createId()
+        await addAdminAgent(fdm, second_admin_id, "Second Admin")
+        await updateAgentRole(fdm, admin_id, admin_id, "agent")
+        const agent = await getAgent(fdm, admin_id, admin_id)
+        expect(agent.role).toBe("agent")
+    })
+
+    test("should not let regular agents change agent roles", async ({ fdm }) => {
+        await expect(
+            updateAgentRole(fdm, agent_id, admin_id, "agent"),
+        ).rejects.toThrow(
             "Principal does not have permission to perform this action",
         )
     })
