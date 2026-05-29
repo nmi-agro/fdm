@@ -17,7 +17,7 @@ import { handleActionError, handleLoaderError } from "@/app/lib/error"
 import { fdm } from "@/app/lib/fdm.server"
 import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "./assignee-schema"
-import { MessageBodySchema, MessageSchema } from "./message-schema"
+import { MessageSchema } from "./message-schema"
 
 interface Args {
     params: { ticket_id: string }
