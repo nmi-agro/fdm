@@ -7,6 +7,7 @@ import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getMessageWhereClause } from "./filter"
 import type { MessageFilters } from "./filter.types"
 import { createId } from "./id"
+import { escapeHTML } from "./sanitization"
 
 export type Message = schema.MessageTypeSelect & {
     sender_name: schema.AgentTypeSelect["display_name"] | null
@@ -169,7 +170,7 @@ export async function addMessage(
                 ticket_id: ticket_id,
                 message_id: message_id,
                 sender_id: sender_id,
-                body: body,
+                body: escapeHTML(body),
                 sender_type: sender_type,
                 is_internal: is_internal,
             },
@@ -211,7 +212,7 @@ export async function updateMessage(
         await fdm
             .update(schema.messages)
             .set({
-                body: body,
+                body: body ? escapeHTML(body) : undefined,
                 is_internal: is_internal,
                 updated: sql`now()`,
             })

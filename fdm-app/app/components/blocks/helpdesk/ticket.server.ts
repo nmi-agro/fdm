@@ -17,7 +17,7 @@ import { handleActionError, handleLoaderError } from "@/app/lib/error"
 import { fdm } from "@/app/lib/fdm.server"
 import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "./assignee-schema"
-import { MessageBodySchema } from "./message-schema"
+import { MessageBodySchema, MessageSchema } from "./message-schema"
 
 interface Args {
     params: { ticket_id: string }
@@ -27,38 +27,31 @@ export async function loader({ params, request }: Args) {
     try {
         const session = await getSession(request)
 
-        const [ticket, messages, canAddMessages, canAddAssignees] =
-            await Promise.all([
-                getTicket(fdm, session.principal_id, params.ticket_id),
-                getMessagesForTicket(
-                    fdm,
-                    session.principal_id,
-                    params.ticket_id,
-                ),
-                checkHelpdeskPermission(
-                    fdm,
-                    "ticket-user-side",
-                    "write",
-                    params.ticket_id,
-                    session.principal_id,
-                    "_ticketviewer.ticket.$ticket_id",
-                    false,
-                ),
-                checkHelpdeskPermission(
-                    fdm,
-                    "ticket-agent-side",
-                    "write",
-                    params.ticket_id,
-                    session.principal_id,
-                    "_ticketviewer.ticket.$ticket_id",
-                    false,
-                ),
-            ])
+        const [ticket, messages, canAddMessages, isAgent] = await Promise.all([
+            getTicket(fdm, session.principal_id, params.ticket_id),
+            getMessagesForTicket(fdm, session.principal_id, params.ticket_id),
+            checkHelpdeskPermission(
+                fdm,
+                "ticket-user-side",
+                "write",
+                params.ticket_id,
+                session.principal_id,
+                "_ticketviewer.ticket.$ticket_id",
+                false,
+            ),
+            checkHelpdeskPermission(
+                fdm,
+                "ticket-agent-side",
+                "write",
+                params.ticket_id,
+                session.principal_id,
+                "_ticketviewer.ticket.$ticket_id",
+                false,
+            ),
+        ])
 
         // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
-        const agents = canAddAssignees
-            ? await getAgents(fdm, session.principal_id)
-            : []
+        const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
 
         // Message sender's profile pictures are shown
         const principal_ids = messages.map((msg) => msg.sender_id)
@@ -86,7 +79,7 @@ export async function loader({ params, request }: Args) {
             ticket: ticket,
             messages: messages,
             canAddMessages: canAddMessages,
-            canAddAssignees: canAddAssignees,
+            isAgent: isAgent,
             principals: principalsSummarized,
             agents: agents,
         }
@@ -95,10 +88,10 @@ export async function loader({ params, request }: Args) {
     }
 }
 
-const ActionSchema = z.discriminatedUnion("intent", [
+export const ActionSchema = z.discriminatedUnion("intent", [
     z.object({ intent: z.literal("set_ticket_status"), status: z.string() }),
     AssigneeSchema.extend({ intent: z.literal("change_assignment") }),
-    z.object({ intent: z.literal("add_message"), body: MessageBodySchema }),
+    MessageSchema.extend({ intent: z.literal("add_message") }),
 ])
 
 export async function action({ params, request }: Args) {
@@ -181,16 +174,18 @@ export async function action({ params, request }: Args) {
         }
 
         if (formValues.intent === "add_message") {
+            console.log(formValues.body)
             await addMessage(
                 fdm,
                 params.ticket_id,
                 session.principal_id,
-                "customer",
+                formValues.sender_role ?? "customer",
                 formValues.body,
+                formValues.is_internal,
             )
 
-            return dataWithSuccess("Reactie ontgevangen!", {
-                message: "Reactie ongevangen!",
+            return dataWithSuccess("Bericht ontgevangen!", {
+                message: "Bericht ontgevangen!",
             })
         }
     } catch (err) {

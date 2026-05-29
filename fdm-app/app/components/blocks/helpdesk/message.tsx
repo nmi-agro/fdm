@@ -10,27 +10,40 @@ export type MessageExtended = MessageT & { principal: HelpdeskUser | null }
 export function Message({
     title,
     principal,
+    isInternal = false,
     className,
     children,
 }: {
     title?: ReactNode
     principal: HelpdeskUser | null
+    isInternal?: boolean
     className?: string
     children: ReactNode
 }) {
     return (
         <Card
-            className={cn("relative md:ms-10 px-2 py-4 space-y-4", className)}
+            className={cn(
+                "md:ms-10 px-2 py-4 space-y-4",
+                isInternal && "border-amber-100 bg-amber-100/35",
+                className,
+            )}
         >
-            <p className="flex flex-row gap-2 text-muted-foreground">
-                <Avatar className="static md:absolute! md:-left-10 md: top-4 size-6">
+            <div className="relative flex flex-row gap-2 items-center text-muted-foreground">
+                <Avatar className="static size-6 md:absolute! md:-left-10 md: md:top-1/2 md:-translate-y-1/2">
                     <AvatarImage src={principal?.image ?? undefined} />
                     <AvatarFallback>
                         {principal?.initials ?? <User />}
                     </AvatarFallback>
                 </Avatar>
-                {title ?? principal?.displayUserName ?? "Onbekende Verzender"}
-            </p>
+                {title ?? (
+                    <span>
+                        {principal?.displayUserName ?? "Onbekende Verzender"}{" "}
+                        {isInternal && (
+                            <i className="italic text-sm">(Intern)</i>
+                        )}
+                    </span>
+                )}
+            </div>
             {children}
         </Card>
     )

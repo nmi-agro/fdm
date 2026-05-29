@@ -26,6 +26,9 @@ import { Spinner } from "~/components/ui/spinner"
 import { AssigneeDialogContent } from "./assignee-dialog"
 import { MessageComposer } from "./message-composer"
 import type { HelpdeskUser } from "./types"
+import { useRemixForm } from "remix-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { MessageSchema } from "./message-schema"
 
 const GREEN = "#00aa00"
 const PURPLE = "#aa00aa"
@@ -61,7 +64,7 @@ export function Ticket({
     messages,
     agents = [],
     canAddMessages,
-    canAddAssignees,
+    isAgent,
     principal_id,
     principalLookup,
     sender_role,
@@ -70,7 +73,7 @@ export function Ticket({
     messages: MessageT[]
     agents?: Agent[]
     canAddMessages: boolean
-    canAddAssignees: boolean
+    isAgent: boolean
     principal_id: string
     principalLookup: Map<string, HelpdeskUser>
     sender_role: "agent" | "customer"
@@ -146,7 +149,7 @@ export function Ticket({
                             className="flex-initial max-w-60"
                             disabled={
                                 ticketStatusFetcher.state !== "idle" ||
-                                !canAddAssignees ||
+                                !isAgent ||
                                 allowedStatusTransitions.length === 0
                             }
                         >
@@ -247,7 +250,7 @@ export function Ticket({
                             assignees={ticket.assignees}
                             agents={agents}
                             intent="change_assignment"
-                            canModify={canAddAssignees}
+                            canModify={isAgent}
                             principalLookup={principalLookup}
                         />
                     </Dialog>
@@ -258,36 +261,26 @@ export function Ticket({
                     <Message
                         key={msg.message_id}
                         principal={principalLookup.get(msg.sender_id) ?? null}
+                        isInternal={msg.is_internal}
                     >
-                        <p>{msg.body}</p>
+                        <p
+                            className="whitespace-pre-wrap text-sm"
+                            // biome-ignore lint/security/noDangerouslySetInnerHtml: message bodies are sanitized server-side before being written to the database
+                            dangerouslySetInnerHTML={{ __html: msg.body }}
+                        />
                     </Message>
                 ))}
                 {canAddMessages && (
-                    <Message
-                        title={
-                            <>
-                                Nieuwe Reactie
-                                {agents.some(
-                                    (agent) => agent.agent_id === principal_id,
-                                ) ? (
-                                    <span className="text-muted-foreground/50 italic">
-                                        als{" "}
-                                        {sender_role === "agent"
-                                            ? "medewerker"
-                                            : "gebruiker"}
-                                    </span>
-                                ) : null}
-                            </>
-                        }
-                        principal={
-                            principal_id
-                                ? (principalLookup.get(principal_id) ?? null)
-                                : null
-                        }
-                        className="mt-10"
-                    >
-                        <MessageComposer intent="add_message" />
-                    </Message>
+                    <MessageComposer
+                        intent="add_message"
+                        principal={principalLookup.get(principal_id) ?? null}
+                        showAgentControls={isAgent}
+                        defaultValues={{
+                            sender_role: sender_role,
+                            is_internal: false,
+                            body: "",
+                        }}
+                    />
                 )}
             </div>
         </main>

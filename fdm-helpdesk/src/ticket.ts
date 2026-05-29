@@ -8,6 +8,7 @@ import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getTicketWhereClause } from "./filter"
 import type { TicketFilters } from "./filter.types"
 import { createId } from "./id"
+import { escapeHTML } from "./sanitization"
 import { getTagsForTickets, type TagSummary } from "./tag"
 import {
     getAssigneesForTickets,
@@ -312,13 +313,14 @@ export async function createTicket(
 
         return await fdm.transaction(async (tx) => {
             const ticket_ref = await createTicketRefWithRetry(tx)
+            const sanitizedBody = escapeHTML(body)
 
             await tx.insert(schema.tickets).values([
                 {
                     ticket_id: ticket_id,
                     ticket_ref: ticket_ref,
                     requester_id: requester_id,
-                    subject: getDefaultSubjectLine(body),
+                    subject: getDefaultSubjectLine(sanitizedBody),
                     channel: "web",
                     priority: options?.priority,
                     context_farm_id: options?.context?.b_id_farm,
@@ -330,7 +332,7 @@ export async function createTicket(
                 sender_id: requester_id,
                 message_id: message_id,
                 sender_type: "user",
-                body: body,
+                body: sanitizedBody,
             })
 
             return ticket_id
