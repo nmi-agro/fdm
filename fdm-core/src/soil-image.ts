@@ -19,10 +19,18 @@ import type {
  * The caller must have write access to the field associated with the sampling.
  * An owner role is granted on the new soil_image resource.
  *
+ * When `onUpload` is provided it is called with the image path after the
+ * permission check but before the DB insert. If `onUpload` throws the DB
+ * record is never created. Note: if `onUpload` succeeds but the subsequent
+ * DB insert fails, the uploaded object may become orphaned and should be
+ * cleaned up externally.
+ *
  * @param fdm - The FDM database instance.
  * @param principal_id - The ID of the principal performing the operation.
  * @param b_id_sampling - The ID of the soil sampling event.
- * @param input - Image metadata (GCS key, type, caption, sort order).
+ * @param input - Image metadata (path, type, caption, sort order).
+ * @param onUpload - Optional callback invoked with the image path to trigger
+ *   the actual storage upload (e.g. GCS). Called after auth, before DB write.
  * @returns The ID of the newly created image record.
  */
 export async function addSoilImage(
@@ -30,6 +38,7 @@ export async function addSoilImage(
     principal_id: PrincipalId,
     b_id_sampling: schema.soilSamplingTypeSelect["b_id_sampling"],
     input: AddSoilImageInput,
+    onUpload?: (path: string) => Promise<void>,
 ): Promise<schema.soilImageTypeSelect["a_id_image"]> {
     try {
         // Resolve the field from the sampling record for permission check
@@ -48,6 +57,12 @@ export async function addSoilImage(
             principal_id,
             "addSoilImage",
         )
+
+        // Upload to storage before creating the DB record so that a failed
+        // upload does not leave behind a dangling DB row.
+        if (onUpload) {
+            await onUpload(input.a_image_path)
+        }
 
         return await fdm.transaction(async (tx) => {
             const a_id_image = createId()
@@ -140,6 +155,7 @@ export async function removeSoilImage(
     fdm: FdmType,
     principal_id: PrincipalId,
     a_id_image: schema.soilImageTypeSelect["a_id_image"],
+    onDelete?: (path: string) => Promise<void>,
 ): Promise<void> {
     try {
         await checkPermission(
@@ -150,6 +166,18 @@ export async function removeSoilImage(
             principal_id,
             "removeSoilImage",
         )
+
+        // Fetch the image path before deletion so we can clean up storage
+        const [image] = await fdm
+            .select({ a_image_path: schema.soilImage.a_image_path })
+            .from(schema.soilImage)
+            .where(eq(schema.soilImage.a_id_image, a_id_image))
+            .limit(1)
+
+        // Delete from storage first — if this fails, DB record is preserved
+        if (image?.a_image_path && onDelete) {
+            await onDelete(image.a_image_path)
+        }
 
         return await fdm.transaction(async (tx) => {
             // Cascade deletes annotations via FK constraint

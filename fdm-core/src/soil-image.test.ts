@@ -145,6 +145,39 @@ describe("Soil Image Functions", () => {
                 }),
             ).rejects.toThrow()
         })
+
+        it("should call onUpload callback with the image path", async () => {
+            const uploadedPaths: string[] = []
+            const a_id_image = await addSoilImage(
+                fdm,
+                principal_id,
+                b_id_sampling,
+                { a_image_path: "farms/test/upload-callback.jpg" },
+                async (path) => {
+                    uploadedPaths.push(path)
+                },
+            )
+
+            expect(uploadedPaths).toEqual(["farms/test/upload-callback.jpg"])
+            expect(a_id_image).toBeDefined()
+        })
+
+        it("should not insert DB record when onUpload throws", async () => {
+            await expect(
+                addSoilImage(
+                    fdm,
+                    principal_id,
+                    b_id_sampling,
+                    { a_image_path: "farms/test/failing-upload.jpg" },
+                    async () => {
+                        throw new Error("GCS upload failed")
+                    },
+                ),
+            ).rejects.toThrow()
+
+            const images = await getSoilImages(fdm, principal_id, b_id_sampling)
+            expect(images).toHaveLength(0)
+        })
     })
 
     describe("getSoilImages", () => {
@@ -204,6 +237,21 @@ describe("Soil Image Functions", () => {
 
             await removeSoilImage(fdm, principal_id, a_id_image)
 
+            const images = await getSoilImages(fdm, principal_id, b_id_sampling)
+            expect(images).toHaveLength(0)
+        })
+
+        it("should call onDelete callback with the image path", async () => {
+            const a_id_image = await addSoilImage(fdm, principal_id, b_id_sampling, {
+                a_image_path: "farms/test/callback-test.jpg",
+            })
+
+            const deletedPaths: string[] = []
+            await removeSoilImage(fdm, principal_id, a_id_image, async (path) => {
+                deletedPaths.push(path)
+            })
+
+            expect(deletedPaths).toEqual(["farms/test/callback-test.jpg"])
             const images = await getSoilImages(fdm, principal_id, b_id_sampling)
             expect(images).toHaveLength(0)
         })
