@@ -3,12 +3,13 @@ import type {
     TicketAssignmentSummary,
 } from "@nmi-agro/fdm-helpdesk"
 import { Check, Crown } from "lucide-react"
-import { type MouseEventHandler, useId, useState } from "react"
+import { type MouseEventHandler, useEffect, useId, useState } from "react"
 import { Form, useNavigation } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { UserAvatar } from "~/components/blocks/farms/user-display"
 import { Button } from "~/components/ui/button"
 import {
+    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -92,6 +93,15 @@ export function AssigneeDialogContent({
         })
     }
 
+    useEffect(() => {
+        setSelectedAssignees(assignees.map((assignee) => assignee.agent_id))
+        setPrimaryAssignees(
+            assignees
+                .filter((assignee) => assignee.is_primary)
+                .map((assignee) => assignee.agent_id),
+        )
+    }, [assignees])
+
     return (
         <DialogContent>
             <Form id={formId} method="post" className="space-y-4">
@@ -118,6 +128,11 @@ export function AssigneeDialogContent({
                 />
 
                 <Field className="overflow-auto">
+                    {agents.length === 0 && assignees.length === 0 && (
+                        <p className="text-center text-sm text-muted-foreground">
+                            Nog niemand
+                        </p>
+                    )}
                     {agents.length > 0 && assignees.length > 0 && (
                         <h2 className="text-sm text-muted-foreground">
                             Al toegewezen
@@ -170,10 +185,16 @@ export function AssigneeDialogContent({
                 </Field>
 
                 <DialogFooter>
-                    <Button type="submit" form={formId}>
-                        Opslaan{" "}
-                        {navigation.state !== "idle" ? <Spinner /> : null}
-                    </Button>
+                    {canModify ? (
+                        <Button type="submit" form={formId}>
+                            Opslaan{" "}
+                            {navigation.state !== "idle" ? <Spinner /> : null}
+                        </Button>
+                    ) : (
+                        <DialogClose asChild>
+                            <Button variant="outline">Sluiten</Button>
+                        </DialogClose>
+                    )}
                 </DialogFooter>
             </Form>
         </DialogContent>

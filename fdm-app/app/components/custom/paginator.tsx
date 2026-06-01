@@ -157,16 +157,14 @@ function PaginationCurrent({
         <Input
             ref={inputRef}
             type="number"
+            defaultValue={value}
+            min={1}
             onLoad={(e) => e.currentTarget.focus()}
             onKeyDown={(e) => {
                 if (e.key !== "Enter") return
-                let newValue = 0
-                try {
-                    newValue = Number.parseInt(e.currentTarget.value, 10)
-                } catch (_) {
-                    return
-                }
-                onValueChange(newValue)
+                const enteredPage = Number.parseInt(e.currentTarget.value, 10)
+                if (!Number.isInteger(enteredPage) || enteredPage < 1) return
+                onValueChange(enteredPage - 1)
                 setActive(false)
             }}
             onBlur={() => {

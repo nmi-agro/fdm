@@ -9,7 +9,7 @@ export default function TicketViewerNoSelection() {
                 Mijn Tickets
             </EmptyTitle>
             <EmptyDescription className="text-muted-foreground">
-                Hier kun je de tickets die je vroeger gemaakt.
+                Hier kunt u de tickets zien die u eerder hebt aangemaakt.
             </EmptyDescription>
         </Empty>
     )

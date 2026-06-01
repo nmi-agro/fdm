@@ -4,7 +4,8 @@ import {
     MessageSquareDashed,
     User,
 } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink } from "react-router"
+import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -15,7 +16,8 @@ import {
 } from "~/components/ui/sidebar"
 
 export function SidebarAdminHelpdesk() {
-    const location = useLocation()
+    const currentHelpdeskPage = useCurrentHelpdeskPage()
+
     return (
         <SidebarGroup>
             <SidebarGroupLabel>Medewerker</SidebarGroupLabel>
@@ -24,9 +26,7 @@ export function SidebarAdminHelpdesk() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
-                            isActive={location.pathname.startsWith(
-                                "/support?inbox",
-                            )}
+                            isActive={currentHelpdeskPage === "inbox"}
                         >
                             <NavLink to={"/support?inbox"}>
                                 <MessageSquareCheck />
@@ -37,9 +37,7 @@ export function SidebarAdminHelpdesk() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
-                            isActive={location.pathname.includes(
-                                "/support?all",
-                            )}
+                            isActive={currentHelpdeskPage === "all_tickets"}
                         >
                             <NavLink to={"/support?all"}>
                                 <MessageSquareDashed />
@@ -50,22 +48,18 @@ export function SidebarAdminHelpdesk() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
-                            isActive={location.pathname.includes(
-                                "/support/settings/saved-replies",
-                            )}
+                            isActive={currentHelpdeskPage === "saved_replies"}
                         >
                             <NavLink to={"/support/settings/saved-replies"}>
                                 <Bookmark />
-                                <span>Opgeslaande Antwoorden</span>
+                                <span>Opgeslagen Reacties</span>
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
-                            isActive={location.pathname.includes(
-                                "/support/settings/agents",
-                            )}
+                            isActive={currentHelpdeskPage === "agents"}
                         >
                             <NavLink to="/support/settings/agents">
                                 <User />

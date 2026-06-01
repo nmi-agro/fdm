@@ -48,6 +48,7 @@ export function MessageComposer({
     const form = useRemixForm({
         mode: "onTouched",
         resolver: zodResolver(MessageSchema),
+        stringifyAllValues: false,
         defaultValues: {
             ...formDefaultValues,
             intent: intent,

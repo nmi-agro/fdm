@@ -26,6 +26,7 @@ export function TicketComposer({
     const form = useRemixForm<z.infer<typeof TicketSchema>>({
         mode: "onTouched",
         resolver: zodResolver(TicketSchema),
+        stringifyAllValues: false,
         defaultValues: {
             context_farm_id: initial_context_farm_id,
         },
@@ -42,8 +43,7 @@ export function TicketComposer({
                             <Select
                                 value={field.value ?? "NO_SELECTION"}
                                 onValueChange={(value) => {
-                                    form.setValue(
-                                        "context_farm_id",
+                                    field.onChange(
                                         value === "NO_SELECTION" ? null : value,
                                     )
                                 }}
@@ -75,9 +75,13 @@ export function TicketComposer({
                 <Controller
                     name="body"
                     render={({ field, fieldState }) => (
-                        <Field>
+                        <Field className="pb-4">
                             <FieldLabel>Stel je vraag beneden.</FieldLabel>
-                            <Textarea {...field} />
+                            <Textarea
+                                {...field}
+                                rows={5}
+                                placeholder="Beschrijf je vraag of probleem zo duidelijk mogelijk.&#10;&#10;Vermeld welk perceel, gewas of functie het betreft."
+                            />
                             <FieldError errors={[fieldState.error]} />
                         </Field>
                     )}

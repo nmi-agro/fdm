@@ -1,4 +1,4 @@
-import { useMatches } from "react-router"
+import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
 import {
     BreadcrumbItem,
     BreadcrumbLink,
@@ -6,56 +6,46 @@ import {
 } from "~/components/ui/breadcrumb"
 
 export function HeaderHelpdesk() {
-    const matches = useMatches()
-
-    const isNewTicket = matches.some(
-        (match) => match.id === "routes/support.new",
-    )
-    const isMyTickets = matches.some(
-        (match) => match.id === "routes/support._ticketviewer",
-    )
-    const isAdminInbox = matches.some(
-        (match) => match.id === "routes/admin.support._index",
-    )
-    const isAdminSavedReplies = matches.some(
-        (match) => match.id === "routes/admin.support.saved-replies",
-    )
-    const isAdminColleagues = matches.some(
-        (match) => match.id === "routes/admin.support.settings.colleagues",
-    )
+    const currentHelpdeskPage = useCurrentHelpdeskPage()
 
     return (
         <>
             <BreadcrumbItem>
                 <BreadcrumbLink href="/support">Ondersteuning</BreadcrumbLink>
             </BreadcrumbItem>
-            {isNewTicket && (
+            {currentHelpdeskPage === "new_ticket" && (
                 <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>Nieuw Ticket</BreadcrumbItem>
                 </>
             )}
-            {isMyTickets && (
+            {currentHelpdeskPage === "my_tickets" && (
                 <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>Mijn Tickets</BreadcrumbItem>
                 </>
             )}
-            {isAdminInbox && (
+            {currentHelpdeskPage === "all_tickets" && (
+                <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>Alle Tickets</BreadcrumbItem>
+                </>
+            )}
+            {currentHelpdeskPage === "inbox" && (
                 <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>Inbox</BreadcrumbItem>
                 </>
             )}
-            {isAdminSavedReplies && (
+            {currentHelpdeskPage === "saved_replies" && (
                 <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>Instellingen</BreadcrumbItem>
                     <BreadcrumbSeparator />
-                    <BreadcrumbItem>Opgeslaande Antwoorden</BreadcrumbItem>
+                    <BreadcrumbItem>Opgeslagen Reacties</BreadcrumbItem>
                 </>
             )}
-            {isAdminColleagues && (
+            {currentHelpdeskPage === "agents" && (
                 <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>Instellingen</BreadcrumbItem>

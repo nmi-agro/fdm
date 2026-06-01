@@ -5,7 +5,7 @@ import type {
 } from "@nmi-agro/fdm-helpdesk"
 import { CircleCheck, CircleDot } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import { useFetcher, useNavigation } from "react-router"
+import { useNavigation, useSubmit } from "react-router"
 import { cn } from "@/app/lib/utils"
 import {
     AvatarGroup,
@@ -76,7 +76,7 @@ export function Ticket({
     sender_role: "agent" | "customer"
 }) {
     const navigation = useNavigation()
-    const ticketStatusFetcher = useFetcher()
+    const submit = useSubmit()
 
     const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
     const statusSelectId = useId()
@@ -136,7 +136,7 @@ export function Ticket({
                             const formData = new FormData()
                             formData.append("intent", "set_ticket_status")
                             formData.append("status", value)
-                            ticketStatusFetcher.submit(formData, {
+                            submit(formData, {
                                 method: "post",
                             })
                         }}
@@ -145,7 +145,7 @@ export function Ticket({
                             id={statusSelectId}
                             className="flex-initial max-w-60"
                             disabled={
-                                ticketStatusFetcher.state !== "idle" ||
+                                navigation.state !== "idle" ||
                                 !isAgent ||
                                 allowedStatusTransitions.length === 0
                             }
@@ -155,12 +155,6 @@ export function Ticket({
                                     (item) => item.value === ticket.status,
                                 )?.label
                             }
-                            <Spinner
-                                className={cn(
-                                    ticketStatusFetcher.state === "idle" &&
-                                        "invisible",
-                                )}
-                            />
                         </SelectTrigger>
                         <SelectContent>
                             {TICKET_STATUS.filter((item) =>
@@ -187,6 +181,7 @@ export function Ticket({
                                 id={assigneeSelectId}
                                 variant="ghost"
                                 className="group px-2 -ms-2"
+                                disabled={navigation.state !== "idle"}
                             >
                                 {ticket.assignees.length > 0 && (
                                     <AvatarGroup>
@@ -251,6 +246,12 @@ export function Ticket({
                             principalLookup={principalLookup}
                         />
                     </Dialog>
+                    <Spinner
+                        className={cn(
+                            "ms-auto",
+                            navigation.state === "idle" && "invisible",
+                        )}
+                    />
                 </div>
             </div>
             <div className="space-y-4">

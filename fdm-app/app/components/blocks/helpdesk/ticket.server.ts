@@ -17,6 +17,7 @@ import { handleActionError, handleLoaderError } from "@/app/lib/error"
 import { fdm } from "@/app/lib/fdm.server"
 import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "./assignee-schema"
+import { makeHelpdeskUser } from "./helpdesk-user.server"
 import { MessageSchema } from "./message-schema"
 
 interface Args {
@@ -51,7 +52,7 @@ export async function loader({ params, request }: Args) {
         ])
 
         // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
-        const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
+        const agents = await getAgents(fdm, session.principal_id)
 
         // Message sender's profile pictures are shown
         const principal_ids = messages.map((msg) => msg.sender_id)
@@ -66,13 +67,26 @@ export async function loader({ params, request }: Args) {
         const principals = await getPrincipals(fdm, principal_ids)
 
         const principalsSummarized = [...principals.values()].map(
-            (principal) => ({
-                principal_id: principal.id,
-                displayUserName: principal.displayUserName,
-                initials: principal.initials,
-                image: principal.image,
-            }),
+            (principal) => {
+                // Agents should appear with their helpdesk display name
+                const agent = agents.find(
+                    (agent) => agent.agent_id === principal.id,
+                )
+                if (agent) {
+                    return makeHelpdeskUser(agent, principals)
+                }
+                return {
+                    principal_id: principal.id,
+                    displayUserName: agents.find(
+                        (agent) => agent.agent_id === session.principal_id,
+                    )?.display_name,
+                    initials: principal.initials,
+                    image: principal.image,
+                }
+            },
         )
+
+        const agentsConditional = isAgent ? agents : []
 
         return {
             principal_id: session.principal_id,
@@ -81,7 +95,7 @@ export async function loader({ params, request }: Args) {
             canAddMessages: canAddMessages,
             isAgent: isAgent,
             principals: principalsSummarized,
-            agents: agents,
+            agents: agentsConditional,
         }
     } catch (err) {
         throw handleLoaderError(err)
@@ -112,7 +126,7 @@ export async function action({ params, request }: Args) {
         }
 
         if (formValues.intent === "change_assignment") {
-            await fdm.transaction(async (tx) => {
+            return await fdm.transaction(async (tx) => {
                 const currentAssignees =
                     (
                         await getAssigneesForTickets(tx, session.principal_id, [
@@ -129,47 +143,58 @@ export async function action({ params, request }: Args) {
                 const newAssignment = new Set(formValues.assignees)
                 const newPrimary = new Set(formValues.primary)
 
-                const queries = []
-
-                for (const assignee of currentAssignees) {
-                    if (!newAssignment.has(assignee.agent_id)) {
-                        queries.push(
-                            unassignTicket(
-                                tx,
-                                params.ticket_id,
-                                assignee.agent_id,
-                                session.principal_id,
+                // 1. unassign what is needed to be unassigned
+                const unassigned = (
+                    await Promise.all(
+                        currentAssignees
+                            .filter(
+                                (assignee) =>
+                                    !newAssignment.has(assignee.agent_id),
+                            )
+                            .map(async (assignee) =>
+                                unassignTicket(
+                                    tx,
+                                    params.ticket_id,
+                                    assignee.agent_id,
+                                    session.principal_id,
+                                ),
                             ),
-                        )
-                    }
-                }
+                    )
+                ).length
 
-                for (const agent_id of formValues.assignees) {
-                    const currentAssignee = currentAssignment.get(agent_id)
-
-                    if (
-                        !currentAssignee ||
-                        currentAssignee.is_primary !== newPrimary.has(agent_id)
-                    ) {
-                        queries.push(
-                            assignTicket(
-                                tx,
-                                params.ticket_id,
-                                agent_id,
-                                session.principal_id,
-                                newPrimary.has(agent_id),
+                // 2. do the new assignments and updates
+                const assigned = (
+                    await Promise.all(
+                        formValues.assignees
+                            .filter((agent_id) => {
+                                const currentAssignee =
+                                    currentAssignment.get(agent_id)
+                                return (
+                                    !currentAssignee ||
+                                    currentAssignee.is_primary !==
+                                        newPrimary.has(agent_id)
+                                )
+                            })
+                            .map(async (agent_id) =>
+                                assignTicket(
+                                    tx,
+                                    params.ticket_id,
+                                    agent_id,
+                                    session.principal_id,
+                                    newPrimary.has(agent_id),
+                                ),
                             ),
-                        )
-                    }
-                }
+                    )
+                ).length
 
-                await Promise.all(queries)
-
-                if (queries.length > 0) {
+                if (unassigned > 0 || assigned > 0) {
                     return dataWithSuccess("Toewijzing succesvol verandert!", {
                         message: "Toewijzing succesvol verandert!",
                     })
                 }
+
+                // Have not done anything
+                return null
             })
         }
 

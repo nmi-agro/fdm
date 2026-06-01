@@ -1,5 +1,6 @@
 import { ArrowLeft, MessageSquareCheck, Plus } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink } from "react-router"
+import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
 import { Button } from "~/components/ui/button"
 import {
     SidebarGroup,
@@ -11,24 +12,24 @@ import {
 } from "~/components/ui/sidebar"
 
 export function SidebarHelpdesk() {
-    const location = useLocation()
+    const currentHelpdeskPage = useCurrentHelpdeskPage()
+
     return (
         <>
             <SidebarGroup>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild className="p-0">
+                            <Button
+                                asChild
+                                variant="default"
+                                className="w-full justify-start"
+                            >
                                 <NavLink to="/farm">
-                                    <Button
-                                        variant="default"
-                                        className="w-full justify-start"
-                                    >
-                                        <ArrowLeft className="" />
-                                        <span>Terug naar bedrijven</span>
-                                    </Button>
+                                    <ArrowLeft className="" />
+                                    <span>Terug naar bedrijven</span>
                                 </NavLink>
-                            </SidebarMenuButton>
+                            </Button>
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
@@ -40,9 +41,7 @@ export function SidebarHelpdesk() {
                         <SidebarMenuItem>
                             <SidebarMenuButton
                                 asChild
-                                isActive={location.pathname.includes(
-                                    "/support/new",
-                                )}
+                                isActive={currentHelpdeskPage === "new_ticket"}
                             >
                                 <NavLink to={"/support/new"}>
                                     <Plus />
@@ -53,9 +52,7 @@ export function SidebarHelpdesk() {
                         <SidebarMenuItem>
                             <SidebarMenuButton
                                 asChild
-                                isActive={/^\/support\/?$/.test(
-                                    location.pathname,
-                                )}
+                                isActive={currentHelpdeskPage === "my_tickets"}
                             >
                                 <NavLink to={"/support"}>
                                     <MessageSquareCheck />

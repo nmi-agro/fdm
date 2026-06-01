@@ -98,6 +98,12 @@ export async function action({ request }: Route.ActionArgs) {
                 formValues.principal_id,
                 principal?.displayUserName ?? "Onbekende Medewerker",
             )
+            await updateAgentRole(
+                fdm,
+                session.principal_id,
+                formValues.principal_id,
+                formValues.role,
+            )
         }
 
         if (formValues.intent === "update_agent_role") {

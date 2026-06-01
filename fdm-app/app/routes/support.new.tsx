@@ -3,7 +3,6 @@ import { createTicket } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
-import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { TicketComposer } from "~/components/blocks/helpdesk/ticket-composer"
 import { TicketSchema } from "~/components/blocks/helpdesk/ticket-schema"
 import { getSession } from "~/lib/auth.server"
@@ -82,7 +81,7 @@ export default function NewTicket() {
     return (
         <div className="mx-auto max-w-5xl">
             <h1 className="text-2xl font-bold my-6">
-                Wat had je een vraag over?
+                Waar gaat je vraag over?
             </h1>
             <TicketComposer
                 farmOptions={farmOptions}
