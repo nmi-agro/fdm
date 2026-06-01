@@ -1,6 +1,10 @@
 import type { Ticket } from "@nmi-agro/fdm-helpdesk"
-import { Outlet, useLocation } from "react-router"
+import { ChevronLeft, Cross, X } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Outlet, useLocation, useParams } from "react-router"
+import { cn } from "@/app/lib/utils"
 import { getPageSearch, Paginator } from "~/components/custom/paginator"
+import { Button } from "~/components/ui/button"
 import { Empty, EmptyDescription, EmptyTitle } from "~/components/ui/empty"
 import { TicketCard } from "./ticket-card"
 import type { HelpdeskUser } from "./types"
@@ -18,11 +22,24 @@ export function TicketViewer({
     principalLookup: Map<string, HelpdeskUser>
 }) {
     const location = useLocation()
+    const params = useParams()
+    const [sidebarActive, setSidebarActive] = useState(!params.ticket_id)
+
+    useEffect(() => {
+        setSidebarActive(!params.ticket_id)
+    }, [params.ticket_id])
 
     return (
-        <div className="flex flex-col space-y-6 lg:flex-row lg:space-x-4 xl:space-x-8 lg:space-y-0 h-[calc(100vh-16*calc(var(--spacing)))]">
-            <aside className="lg:w-40 xl:w-70 shrink-0 self-stretch border-r border-sidebar-border">
-                <nav className="flex flex-col space-x-2 pb-2 lg:overflow-visible lg:pb-0 lg:flex-col lg:space-x-0 lg:space-y-1 h-full box-border">
+        <div className="relative flex flex-row h-[calc(100vh-16*calc(var(--spacing)))]">
+            <aside
+                className={cn(
+                    "absolute top-0 mx-0 w-full h-full shrink-0 border-r border-sidebar-border bg-background",
+                    "xl:static! xl:w-100",
+                    "transition-transform duration-300",
+                    !sidebarActive && "-translate-x-full xl:translate-x-0",
+                )}
+            >
+                <nav className="flex flex-col gap-2 xl:overflow-visible h-full box-border">
                     <div className="overflow-auto grow">
                         {tickets.length === 0 ? (
                             <Empty>
@@ -54,8 +71,27 @@ export function TicketViewer({
                     />
                 </nav>
             </aside>
-
+            {/* Sidebar close button for narrow screens */}
+            <Button
+                variant="ghost"
+                className={cn(
+                    "absolute right-8 -top-8 translate-x-1/2 -translate-y-1/2 xl:hidden",
+                    !(params.ticket_id && sidebarActive) && "hidden",
+                )}
+                onClick={() => setSidebarActive(false)}
+            >
+                <X />
+            </Button>
             <div className="grow min-w-0 overflow-y-auto self-stretch">
+                {/* Sidebar open button for narrow screens */}
+                <Button
+                    variant="outline"
+                    className="m-6 mb-0 xl:hidden"
+                    onClick={() => setSidebarActive(true)}
+                >
+                    <ChevronLeft />
+                    Tickets
+                </Button>
                 <Outlet />
             </div>
         </div>

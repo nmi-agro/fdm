@@ -90,6 +90,41 @@ export function MessageComposer({
                             {showAgentControls && (
                                 <>
                                     <Controller
+                                        name="is_internal"
+                                        render={({ field, fieldState }) => (
+                                            <div>
+                                                <div
+                                                    data-invalid={
+                                                        fieldState.invalid
+                                                    }
+                                                    className={cn(
+                                                        "flex w-auto shrink-0 grow-0 flex-row items-center gap-2",
+                                                        sender_role !==
+                                                            "agent" &&
+                                                            "invisible",
+                                                    )}
+                                                >
+                                                    <FieldLabel className="whitespace-nowrap text-xs">
+                                                        intern
+                                                    </FieldLabel>
+                                                    <Switch
+                                                        checked={
+                                                            field.value as boolean
+                                                        }
+                                                        onCheckedChange={
+                                                            field.onChange
+                                                        }
+                                                        className="mt-1"
+                                                        disabled={isSubmitting}
+                                                    />
+                                                </div>
+                                                <FieldError
+                                                    errors={[fieldState.error]}
+                                                />
+                                            </div>
+                                        )}
+                                    />
+                                    <Controller
                                         name="sender_role"
                                         render={({ field, fieldState }) => (
                                             <div
@@ -127,41 +162,6 @@ export function MessageComposer({
                                                         </SelectItem>
                                                     </SelectContent>
                                                 </Select>
-                                                <FieldError
-                                                    errors={[fieldState.error]}
-                                                />
-                                            </div>
-                                        )}
-                                    />
-                                    <Controller
-                                        name="is_internal"
-                                        render={({ field, fieldState }) => (
-                                            <div>
-                                                <div
-                                                    data-invalid={
-                                                        fieldState.invalid
-                                                    }
-                                                    className={cn(
-                                                        "flex w-auto shrink-0 grow-0 flex-row items-center gap-2",
-                                                        sender_role !==
-                                                            "agent" &&
-                                                            "invisible",
-                                                    )}
-                                                >
-                                                    <FieldLabel className="whitespace-nowrap text-xs">
-                                                        intern
-                                                    </FieldLabel>
-                                                    <Switch
-                                                        checked={
-                                                            field.value as boolean
-                                                        }
-                                                        onCheckedChange={
-                                                            field.onChange
-                                                        }
-                                                        className="mt-1"
-                                                        disabled={isSubmitting}
-                                                    />
-                                                </div>
                                                 <FieldError
                                                     errors={[fieldState.error]}
                                                 />

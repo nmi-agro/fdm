@@ -17,11 +17,16 @@ import {
     PaginationLink,
 } from "~/components/ui/pagination"
 
-interface PaginatorProps {
-    totalItems: number
-    pageSize: number
-}
-
+/**
+ * Modifies the given path using `modifySearchParams`.
+ * It sets `pageOffset` and `pageLimit` such that the given page is displayed.
+ * No bounds checks happen.
+ *
+ * @param search current URL or path. May contain search params or a hash
+ * @param pageSize page size to increment the `pageOffset` by
+ * @param n page index to display, zero-based
+ * @returns a new URL or path, similar in format to the value of the `search` argument
+ */
 export function getPageSearch(search: string, pageSize: number, n: number) {
     return modifySearchParams(search, (searchParams) => {
         if (typeof n === "number")
@@ -30,6 +35,23 @@ export function getPageSearch(search: string, pageSize: number, n: number) {
     })
 }
 
+interface PaginatorProps {
+    /*
+     * Total number of items that `pageOffset` shouldn't go beyond. `pageLimit` will always be set to `pageSize`,
+     * assuming the server automatically clamps it.
+     */
+    totalItems: number
+    /**
+     * How much to increment the `pageOffset` per page
+     */
+    pageSize: number
+}
+
+/**
+ * Widget that manipulates the `pageOffset` and `pageLimit` search parameters,
+ * assuming that these paginate the main list that is displayed on the page,
+ * in order to let the user move between different pages of the list.
+ */
 export function Paginator({ totalItems, pageSize }: PaginatorProps) {
     const location = useLocation()
     const navigate = useNavigate()
@@ -54,7 +76,7 @@ export function Paginator({ totalItems, pageSize }: PaginatorProps) {
     for (let page = firstDisplayedPage; page <= lastDisplayedPage; page++) {
         if (page === currentPage) {
             deltaPageButtons.push(
-                <PaginationItem key={`${page}`}>
+                <PaginationItem key={page}>
                     <PaginationCurrent
                         value={page}
                         onValueChange={(v) =>
@@ -67,7 +89,7 @@ export function Paginator({ totalItems, pageSize }: PaginatorProps) {
             )
         } else {
             deltaPageButtons.push(
-                <PaginationItem>
+                <PaginationItem key={page}>
                     <PaginationLink
                         size="default"
                         href={getPageSearch(location.search, pageSize, page)}
@@ -144,6 +166,10 @@ export function Paginator({ totalItems, pageSize }: PaginatorProps) {
     )
 }
 
+/**
+ * Link button that can be clicked, which will turn it into a textbox and focus it,
+ * letting the user enter a custom page number (1-based).
+ */
 function PaginationCurrent({
     value,
     onValueChange,
@@ -153,35 +179,45 @@ function PaginationCurrent({
 }) {
     const inputRef = useRef<HTMLInputElement>(null)
     const [active, setActive] = useState(false)
-    return active ? (
-        <Input
-            ref={inputRef}
-            type="number"
-            defaultValue={value}
-            min={1}
-            onLoad={(e) => e.currentTarget.focus()}
-            onKeyDown={(e) => {
-                if (e.key !== "Enter") return
-                const enteredPage = Number.parseInt(e.currentTarget.value, 10)
-                if (!Number.isInteger(enteredPage) || enteredPage < 1) return
-                onValueChange(enteredPage - 1)
-                setActive(false)
-            }}
-            onBlur={() => {
-                setActive(false)
-            }}
-        />
-    ) : (
-        <Button
-            variant="link"
-            onClick={() => {
-                setActive(true)
-                setTimeout(() => {
-                    inputRef.current?.focus()
-                })
-            }}
-        >
-            {value + 1}
-        </Button>
+    return (
+        <div className={"m-2"}>
+            {active ? (
+                <Input
+                    ref={inputRef}
+                    type="number"
+                    defaultValue={value}
+                    min={1}
+                    size={3}
+                    className="max-w-20"
+                    onLoad={(e) => e.currentTarget.focus()}
+                    onKeyDown={(e) => {
+                        if (e.key !== "Enter") return
+                        const enteredPage = Number.parseInt(
+                            e.currentTarget.value,
+                            10,
+                        )
+                        if (!Number.isInteger(enteredPage) || enteredPage < 1)
+                            return
+                        onValueChange(enteredPage - 1)
+                        setActive(false)
+                    }}
+                    onBlur={() => {
+                        setActive(false)
+                    }}
+                />
+            ) : (
+                <Button
+                    variant="secondary"
+                    onClick={() => {
+                        setActive(true)
+                        setTimeout(() => {
+                            inputRef.current?.focus()
+                        })
+                    }}
+                >
+                    {value + 1}
+                </Button>
+            )}
+        </div>
     )
 }

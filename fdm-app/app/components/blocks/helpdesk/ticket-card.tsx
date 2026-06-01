@@ -33,30 +33,31 @@ export function TicketCard({
             aria-current={isSelected ? "page" : undefined}
             aria-label={label}
             className={cn(
-                "block justify-start p-4 transition-[background-color] duration-300 border-b border-gray-300",
+                "block justify-start p-4 transition-[background-color] duration-300 border-b border-gray-300 space-y-2",
                 isSelected
                     ? "bg-muted hover:bg-muted "
                     : "hover:bg-transparent",
             )}
         >
-            <div>
+            <div className="text-sm">
                 <svg
                     aria-label={statusLabel}
-                    className={cn("inline size-[1em]")}
+                    className="float-left size-4"
                     style={{ color: statusColor }}
                     viewBox="0 0 24 24"
                     fill="currentColor"
                 >
                     <title>{statusLabel}</title>
-                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="12" cy="12" r="5" />
                 </svg>
-                {label}
+                {/* overflow: hidden puts the text next to the dot and doesn't wrap it around */}
+                <div className="overflow-hidden">{label}</div>
             </div>
             <div className="text-sm text-muted-foreground">
                 <Badge variant="outline" className="px-1 text-1em">
                     {ticket.ticket_ref}
                 </Badge>{" "}
-                door {principal?.displayUserName ?? "onbekend"} op{" "}
+                {principal?.displayUserName ?? "onbekend"},{" "}
                 {formatDate(ticket.created, "PP", { locale: nl })}
             </div>
         </NavLink>
