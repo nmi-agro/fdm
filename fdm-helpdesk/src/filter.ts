@@ -37,7 +37,7 @@ export function getAgentWhereClause(filters: AgentFilters) {
 
 /**
  * Gets the WHERE clause to filter a database message selection. This by itself will get the messages for all
- * tickets, therefore it should be used in conjuction with a ticket_id condition.
+ * tickets, therefore it should be used in conjunction with a ticket_id condition.
  *
  * The query needs to start by selecting "fdm-helpdesk"."messages"
  *

@@ -12,39 +12,6 @@ import {
     unassignTicket,
 } from "./ticket-assignment"
 
-describe("assignTicket", () => {
-    let admin_id: string
-    let agent_id: string
-    let requester_id: string
-    let ticket_id: string
-
-    test.beforeEach(async ({ fdm }) => {
-        admin_id = createId()
-        await addAdminAgent(fdm, admin_id, "Admin Agent")
-
-        agent_id = createId()
-        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
-
-        requester_id = createId()
-        ticket_id = await createTicket(fdm, requester_id, "Ticket 1")
-    })
-
-    test("should create a new assignment row if the previous ones are marked as unassigned", async ({
-        fdm,
-    }) => {
-        await assignTicket(fdm, ticket_id, agent_id, admin_id, true)
-        await unassignTicket(fdm, ticket_id, agent_id, admin_id)
-        await assignTicket(fdm, ticket_id, agent_id, admin_id, false)
-
-        const assignmentHistory = await getAssignmentHistoryForTicket(
-            fdm,
-            admin_id,
-            ticket_id,
-        )
-        expect(assignmentHistory).toHaveLength(2)
-    })
-})
-
 describe("getAssigneesForTickets", () => {
     let admin_id: string
     let agent_id: string
@@ -244,6 +211,17 @@ describe("getAssignmentHistoryForTicket", () => {
         await unassignTicket(fdm, ticket_id, agent_id, admin_id)
     })
 
+    test("should throw when a regular user requests assignment history", async ({
+        fdm,
+    }) => {
+        const other_user_id = createId()
+        await expect(
+            getAssignmentHistoryForTicket(fdm, other_user_id, ticket_id),
+        ).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
+    })
+
     test("should return the assignment history for a ticket", async ({
         fdm,
     }) => {
@@ -266,5 +244,63 @@ describe("getAssignmentHistoryForTicket", () => {
         expect(history[1].is_primary).toBe(true)
         expect(history[1].unassigned_at).toBeNull()
         expect(history[1].unassigned_by).toBeNull()
+    })
+})
+
+describe("assignTicket", () => {
+    let admin_id: string
+    let agent_id: string
+    let requester_id: string
+    let ticket_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+
+        requester_id = createId()
+        ticket_id = await createTicket(fdm, requester_id, "Ticket 1")
+    })
+
+    test("should create a new assignment row if the previous ones are marked as unassigned", async ({
+        fdm,
+    }) => {
+        await assignTicket(fdm, ticket_id, agent_id, admin_id, true)
+        await unassignTicket(fdm, ticket_id, agent_id, admin_id)
+        await assignTicket(fdm, ticket_id, agent_id, admin_id, false)
+
+        const assignmentHistory = await getAssignmentHistoryForTicket(
+            fdm,
+            admin_id,
+            ticket_id,
+        )
+        expect(assignmentHistory).toHaveLength(2)
+    })
+})
+
+describe("unassignTicket", () => {
+    let admin_id: string
+    let agent_id: string
+    let requester_id: string
+    let ticket_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+
+        requester_id = createId()
+        ticket_id = await createTicket(fdm, requester_id, "Ticket 1")
+    })
+
+    test("should return false when agent is not currently assigned", async ({
+        fdm,
+    }) => {
+        const result = await unassignTicket(fdm, ticket_id, agent_id, admin_id)
+        expect(result).toBe(false)
     })
 })

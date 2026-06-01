@@ -1,3 +1,6 @@
+/**
+ * A type that can be safely serialized to JSON. Used to attach structured context to errors.
+ */
 export type Jsonable =
     | string
     | number
@@ -38,6 +41,14 @@ export function handleError(err: unknown, base: string, context?: Jsonable) {
     })
 }
 
+/**
+ * Converts an unknown thrown value into a proper `Error` instance.
+ * If the value is already an `Error` it is returned as-is;
+ * otherwise a new `Error` is created with a message describing the non-Error value.
+ *
+ * @param value - The value to convert.
+ * @returns An `Error` instance.
+ */
 export function ensureError(value: unknown): Error {
     if (value instanceof Error) return value
 
@@ -52,6 +63,10 @@ export function ensureError(value: unknown): Error {
     return error
 }
 
+/**
+ * A structured error class that carries an optional `context` payload alongside the standard `cause`.
+ * The `name` property is automatically set to the name of the concrete subclass.
+ */
 export class BaseError extends Error {
     public readonly context?: Jsonable
 

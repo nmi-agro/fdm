@@ -264,7 +264,7 @@ describe("getHelpdeskPermission — agent resource", () => {
         expect(result?.granting_resource).toBe("agent")
     })
 
-    test("should not let regular agents view themselves", async ({ fdm }) => {
+    test("should let regular agents view themselves", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "agent",
@@ -276,7 +276,7 @@ describe("getHelpdeskPermission — agent resource", () => {
         expect(result?.granting_resource).toBe("agent")
     })
 
-    test("should not let regular agents modify themselves", async ({ fdm }) => {
+    test("should let regular agents modify themselves", async ({ fdm }) => {
         const result = await getHelpdeskPermission(
             fdm,
             "agent",
@@ -310,6 +310,23 @@ describe("getHelpdeskPermission — agent resource", () => {
             admin_id,
         )
         expect(result).toBeNull()
+    })
+
+    test("should let an inactive agent read their own data", async ({
+        fdm,
+    }) => {
+        await setAgentActiveStatus(fdm, admin_id, agent_id, false)
+
+        const result = await getHelpdeskPermission(
+            fdm,
+            "agent",
+            "read",
+            agent_id,
+            agent_id,
+        )
+
+        expect(result).not.toBeNull()
+        expect(result?.granting_resource).toBe("agent")
     })
 })
 

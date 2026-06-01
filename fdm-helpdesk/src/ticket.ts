@@ -15,6 +15,7 @@ import {
     type TicketAssignmentSummary,
 } from "./ticket-assignment"
 
+/** A ticket record enriched with its current tags and assignees. */
 export type Ticket = schema.TicketTypeSelect & {
     tags: TagSummary[]
     assignees: TicketAssignmentSummary[]
@@ -54,6 +55,15 @@ const ticketColumns = {
     updated: schema.tickets.updated,
 }
 
+/**
+ * Retrieves a single ticket by ID, including its tags and current assignees.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have read access to the ticket.
+ * @param ticket_id ID of the ticket to retrieve.
+ * @returns The ticket record with tags and assignees.
+ */
 export async function getTicket(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -89,6 +99,15 @@ export async function getTicket(
     }
 }
 
+/**
+ * Returns the agent's personal inbox: the subset of tickets that are assigned to the given agent.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param agent_id The agent whose inbox to load.
+ * @param filters Optional filters to narrow the results further.
+ * @returns An array of tickets assigned to the agent that match the filters.
+ */
 export async function getInbox(
     fdm: FdmHelpdeskType,
     agent_id: HelpdeskPrincipalId,
@@ -101,6 +120,16 @@ export async function getInbox(
     })
 }
 
+/**
+ * Returns all tickets visible to the principal, enriched with tags and assignees.
+ * Non-helpdesk principals (regular users) can only see tickets they requested.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing the query.
+ * @param filters Optional filters for status, priority, requester, tags, assignees, and pagination.
+ * @returns An array of tickets matching the filters.
+ */
 export async function getTickets(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -140,6 +169,15 @@ export async function getTickets(
     }
 }
 
+/**
+ * Returns the total count of tickets visible to the principal after applying filters.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing the query.
+ * @param filters Optional filters to apply before counting.
+ * @returns The number of matching tickets.
+ */
 export async function getTicketCount(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -301,6 +339,17 @@ export function getDefaultSubjectLine(body: string) {
     return subject.trim()
 }
 
+/**
+ * Creates a new ticket and its first message in a single transaction.
+ * The body is HTML-escaped and a subject line is derived from the first few words.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param requester_id ID of the user who is opening the ticket.
+ * @param body The opening message body.
+ * @param options Optional priority and farm context to associate with the ticket.
+ * @returns The `ticket_id` of the newly created ticket.
+ */
 export async function createTicket(
     fdm: FdmHelpdeskType,
     requester_id: schema.MessageTypeInsert["sender_id"],
@@ -360,6 +409,14 @@ const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
     closed: ["open"], // "open" = reopen
 }
 
+/**
+ * Checks whether a ticket status transition is allowed.
+ * Returns `true` when moving from `from` to `to` is a permitted transition.
+ *
+ * @param from Current ticket status.
+ * @param to Desired next ticket status.
+ * @returns `true` if the transition is allowed, `false` otherwise.
+ */
 export function validateTicketStatusTransition(
     from: string,
     to: string,
@@ -367,6 +424,16 @@ export function validateTicketStatusTransition(
     return ALLOWED_TICKET_STATUS_TRANSITIONS[from]?.includes(to) ?? false
 }
 
+/**
+ * Updates the status of a ticket after validating the transition is allowed.
+ * Sets `resolved_at` or `closed_at` timestamps automatically when entering those states.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have agent-side write access to the ticket.
+ * @param ticket_id ID of the ticket to update.
+ * @param status The new status to transition to.
+ */
 export async function updateTicketStatus(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,

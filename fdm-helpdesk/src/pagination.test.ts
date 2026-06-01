@@ -27,4 +27,27 @@ describe("getPageOffsetAndLimit", () => {
         expect(result.pageOffset).toBe(10)
         expect(result.pageLimit).toBe(50)
     })
+
+    test("should return undefined pageLimit when defaultPageLimit is 0", () => {
+        const result = getPageOffsetAndLimit({}, 0)
+
+        expect(result.pageLimit).toBeUndefined()
+    })
+
+    test("should handle undefined filters gracefully", () => {
+        const result = getPageOffsetAndLimit(undefined)
+
+        expect(result.pageOffset).toBe(0)
+        expect(result.pageLimit).toBe(20)
+    })
+
+    test("should ignore NaN values for pageOffset and pageLimit", () => {
+        const result = getPageOffsetAndLimit({
+            pageOffset: Number.NaN,
+            pageLimit: Number.NaN,
+        })
+
+        expect(result.pageOffset).toBe(0)
+        expect(result.pageLimit).toBe(20)
+    })
 })

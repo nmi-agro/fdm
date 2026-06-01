@@ -6,7 +6,9 @@ import { handleError } from "./error"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 
+/** Full tag record as stored in the database. */
 export type Tag = schema.TagTypeSelect
+/** A lightweight tag object containing only the fields needed for display. */
 export type TagSummary = Pick<Tag, "tag_id" | "name" | "color">
 
 const tagSummaryColumns = {
@@ -15,6 +17,13 @@ const tagSummaryColumns = {
     color: schema.tags.color,
 }
 
+/**
+ * Retrieves a single tag by ID. Throws if no tag with the given ID exists.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param tag_id ID of the tag to retrieve.
+ * @returns The matching tag record.
+ */
 export async function getTag(fdm: FdmHelpdeskType, tag_id: string) {
     try {
         const found = await fdm
@@ -51,6 +60,12 @@ async function tryGetTagByName(fdm: FdmHelpdeskType, tag_name: string) {
     }
 }
 
+/**
+ * Retrieves all tags in the helpdesk.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @returns An array of all tag records.
+ */
 export async function getTags(fdm: FdmHelpdeskType) {
     try {
         return await fdm.select().from(schema.tags)
@@ -59,6 +74,16 @@ export async function getTags(fdm: FdmHelpdeskType) {
     }
 }
 
+/**
+ * Retrieves the tags associated with the given tickets, grouped by ticket ID.
+ * Requires agent-side read permission for each ticket.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param agent_id The principal identifier(s); must have agent-side read permission for each ticket.
+ * @param ticket_ids IDs of the tickets whose tags to fetch.
+ * @returns A Map from ticket ID to an array of {@link TagSummary} objects.
+ */
 export async function getTagsForTickets(
     fdm: FdmHelpdeskType,
     agent_id: HelpdeskPrincipalId,
@@ -121,6 +146,17 @@ function validateName(name: string) {
     }
 }
 
+/**
+ * Creates a new tag. Tag names must be unique (case-insensitive). Requires helpdesk write permission.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have helpdesk write permission.
+ * @param name Display name for the tag. Must be non-empty and unique.
+ * @param color Optional hex color code for the tag.
+ * @param description Optional longer description for the tag.
+ * @returns The `tag_id` of the newly created tag.
+ */
 export async function createTag(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -164,6 +200,18 @@ export async function createTag(
     }
 }
 
+/**
+ * Updates one or more fields of an existing tag. Requires helpdesk write permission.
+ * Throws if the tag does not exist or the new name conflicts with another tag.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have helpdesk write permission.
+ * @param tag_id ID of the tag to update.
+ * @param name New display name, or `undefined` to leave it unchanged.
+ * @param color New color, or `undefined` to leave it unchanged.
+ * @param description New description, or `undefined` to leave it unchanged.
+ */
 export async function updateTag(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -215,6 +263,15 @@ export async function updateTag(
     }
 }
 
+/**
+ * Attaches a tag to a ticket. No-op if the tag is already attached. Requires agent-side write permission.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have agent-side write permission for the ticket.
+ * @param ticket_id ID of the ticket to tag.
+ * @param tag_id ID of the tag to attach.
+ */
 export async function addTagToTicket(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -249,6 +306,15 @@ export async function addTagToTicket(
     }
 }
 
+/**
+ * Detaches a tag from a ticket. Requires agent-side write permission.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have agent-side write permission for the ticket.
+ * @param ticket_id ID of the ticket to modify.
+ * @param tag_id ID of the tag to detach.
+ */
 export async function removeTagFromTicket(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,

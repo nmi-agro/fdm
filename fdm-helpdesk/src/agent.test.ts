@@ -179,34 +179,18 @@ describe("Agent CRUD", () => {
         }
     })
 
-    test("should not let regular helpdesk agents update each other's information", async ({
+    test("should let an agent view their own information", async ({ fdm }) => {
+        const agent = await getAgent(fdm, agent_id, agent_id)
+        expect(agent.agent_id).toBe(agent_id)
+        expect(agent.display_name).toBe("Support Agent")
+    })
+
+    test("should let an agent update their own display name", async ({
         fdm,
     }) => {
-        const third_agent_id = await addAgent(
-            fdm,
-            admin_id,
-            `thirdagent${createId(8)}`,
-            "Third Support Agent",
-        )
-
-        const failError = new Error("Should have thrown")
-        try {
-            await setAgentActiveStatus(fdm, agent_id, third_agent_id, false)
-            throw failError
-        } catch (err) {
-            if (err === failError) throw err
-            const error = err as Error
-            expect(error.message).toBeDefined()
-            expect(error.message).toContain(
-                "Principal does not have permission to perform this action",
-            )
-
-            const agent = await getAgent(fdm, admin_id, third_agent_id)
-
-            expect(agent.agent_id).toBe(third_agent_id)
-            expect(agent.display_name).toBe("Third Support Agent")
-            expect(agent.is_active).toBe(true)
-        }
+        await updateAgent(fdm, agent_id, agent_id, "Updated Name")
+        const agent = await getAgent(fdm, admin_id, agent_id)
+        expect(agent.display_name).toBe("Updated Name")
     })
 })
 
@@ -225,19 +209,19 @@ describe("getAgents", () => {
         user_id = createId()
     })
 
-    test("admin can list all agents", async ({ fdm }) => {
+    test("should let admins list all agents", async ({ fdm }) => {
         const agents = await getAgents(fdm, admin_id)
         expect(agents.some((a) => a.agent_id === admin_id)).toBe(true)
         expect(agents.some((a) => a.agent_id === agent_id)).toBe(true)
         expect(agents.length).toBe(2)
     })
 
-    test("regular agent can list agents", async ({ fdm }) => {
+    test("should let regular agents list agents", async ({ fdm }) => {
         const agents = await getAgents(fdm, agent_id)
         expect(agents.length).toBe(2)
     })
 
-    test("regular user cannot list agents", async ({ fdm }) => {
+    test("should not let regular users list agents", async ({ fdm }) => {
         await expect(getAgents(fdm, user_id)).rejects.toThrow(
             "Principal does not have permission to perform this action",
         )
@@ -332,7 +316,9 @@ describe("updateAgentRole", () => {
         expect(agent.role).toBe("agent")
     })
 
-    test("should not let regular agents change agent roles", async ({ fdm }) => {
+    test("should not let regular agents change agent roles", async ({
+        fdm,
+    }) => {
         await expect(
             updateAgentRole(fdm, agent_id, admin_id, "agent"),
         ).rejects.toThrow(

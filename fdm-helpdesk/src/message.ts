@@ -10,6 +10,7 @@ import { createId } from "./id"
 import { getPageOffsetAndLimit } from "./pagination"
 import { escapeHTML } from "./sanitization"
 
+/** A message record joined with the sender's display name. */
 export type Message = schema.MessageTypeSelect & {
     sender_name: schema.AgentTypeSelect["display_name"] | null
 }
@@ -44,6 +45,15 @@ async function getCanReadInternalMessages(
 const PERMISSION_ERROR_MESSAGE =
     "Principal does not have permission to perform this action"
 
+/**
+ * Retrieves a single message by ID.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have read permission for the message.
+ * @param message_id ID of the message to retrieve.
+ * @returns The message record including the sender's display name, or `undefined` if not found.
+ */
 export async function getMessage(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -71,13 +81,24 @@ export async function getMessage(
 
         return found[0]
     } catch (err) {
-        throw handleError(err, "Exception for addMessage", {
+        throw handleError(err, "Exception for getMessage", {
             message_id,
             principal_id,
         })
     }
 }
 
+/**
+ * Retrieves all messages for a ticket, with optional filtering and pagination.
+ * Internal messages are hidden from non-agent principals.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have read access to the ticket.
+ * @param ticket_id ID of the ticket whose messages to fetch.
+ * @param filters Optional filters for pagination, internal status, date range, and soft-deleted messages.
+ * @returns An array of messages ordered by creation time.
+ */
 export async function getMessagesForTicket(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -131,13 +152,25 @@ export async function getMessagesForTicket(
 
         return await query
     } catch (err) {
-        throw handleError(err, "Exception for addMessage", {
+        throw handleError(err, "Exception for getMessagesForTicket", {
             principal_id,
             ticket_id,
         })
     }
 }
 
+/**
+ * Adds a new message to an existing ticket. The body is HTML-escaped before storage.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_id ID of the ticket the message belongs to.
+ * @param sender_id ID of the user or agent sending the message.
+ * @param sender_type Whether the sender is a `"customer"` or an `"agent"`.
+ * @param body The message text to store.
+ * @param is_internal When `true`, marks the message as an internal note visible only to agents.
+ * @returns The `message_id` of the newly created message.
+ */
 export async function addMessage(
     fdm: FdmHelpdeskType,
     ticket_id: schema.MessageTypeInsert["ticket_id"],
@@ -184,6 +217,17 @@ export async function addMessage(
     }
 }
 
+/**
+ * Updates the body and/or internal flag of an existing message.
+ * Only agents with helpdesk read permission may mark a message as internal.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have write permission for the message.
+ * @param message_id ID of the message to update.
+ * @param body New body text, or `undefined` to leave it unchanged.
+ * @param is_internal New internal flag, or `undefined` to leave it unchanged.
+ */
 export async function updateMessage(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -228,6 +272,14 @@ export async function updateMessage(
     }
 }
 
+/**
+ * Soft-deletes a message by setting its `deleted_at` timestamp.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have write permission for the message.
+ * @param message_id ID of the message to delete.
+ */
 export async function deleteMessage(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,

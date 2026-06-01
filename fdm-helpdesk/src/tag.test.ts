@@ -1,11 +1,12 @@
 import { describe, expect } from "vitest"
-import { addAdminAgent } from "./agent"
+import { addAdminAgent, addAgent } from "./agent"
 import { createId } from "./id"
 import {
     addTagToTicket,
     createTag,
     getTag,
     getTags,
+    getTagsForTickets,
     removeTagFromTicket,
     updateTag,
 } from "./tag"
@@ -38,6 +39,12 @@ describe("Tag CRUD", () => {
         expect(tag.name_lower).toBe(`Red${nameSuffix}`.toLowerCase())
         expect(tag.color).toBe("#ff0000")
         expect(tag.description).toBe("This is a red tag.")
+    })
+
+    test("should throw when getting a tag that does not exist", async ({
+        fdm,
+    }) => {
+        await expect(getTag(fdm, "nonexistent-tag-id")).rejects.toThrow()
     })
 
     test("should not let tags with empty name", async ({ fdm }) => {
@@ -292,6 +299,36 @@ describe("Tag authorization and edge cases", () => {
         admin_id = createId()
         await addAdminAgent(fdm, admin_id, "Support Agent")
         user_id = createId()
+    })
+
+    test("should let regular agents read tags for their tickets", async ({
+        fdm,
+    }) => {
+        const regular_agent_id = createId()
+        await addAgent(fdm, admin_id, regular_agent_id, "Regular Agent")
+
+        const requester_id = createId()
+        const ticket_id = await createTicket(
+            fdm,
+            requester_id,
+            "Tagged Ticket",
+        )
+
+        const tag_id = await createTag(
+            fdm,
+            admin_id,
+            `AgentTag${createId(8)}`,
+            "#aabbcc",
+        )
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id)
+
+        const tagsMap = await getTagsForTickets(fdm, regular_agent_id, [
+            ticket_id,
+        ])
+        const tags = tagsMap.get(ticket_id)
+
+        expect(tags).toBeDefined()
+        expect(tags?.some((t) => t.tag_id === tag_id)).toBe(true)
     })
 
     test("regular user cannot create a tag", async ({ fdm }) => {

@@ -12,12 +12,17 @@ import type {
 } from "./filter.types"
 import { getPageOffsetAndLimit } from "./pagination"
 
+/**
+ * Summary view of an agent, containing only the identifiers needed for display.
+ */
 export type AgentSummary = {
     agent_id: schema.AgentTypeSelect["agent_id"]
     display_name: schema.AgentTypeSelect["display_name"]
 }
 
+/** An agent record without the `created` and `updated` timestamps. */
 export type BaseAgent = Omit<schema.AgentTypeSelect, "created" | "updated">
+/** Full agent record as stored in the database, including timestamps. */
 export type Agent = schema.AgentTypeSelect
 
 /**
@@ -66,7 +71,8 @@ export async function getAgent(
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
- * @returns
+ * @param filters Optional activity and pagination filters to apply.
+ * @returns An array of agent records matching the applied filters.
  */
 export async function getAgents(
     fdm: FdmHelpdeskType,
@@ -107,13 +113,13 @@ export async function getAgents(
 }
 
 /**
- * Gets the total number of agents on the helpdesk, with optional pagination unlike { @link getAgents }.
+ * Gets the total number of agents on the helpdesk, with optional filters unlike {@link getAgents}.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
  * @param filters Filters to apply before counting.
- * @returns
+ * @returns The number of agents matching the applied filters.
  */
 export async function getAgentCount(
     fdm: FdmHelpdeskType,
@@ -185,6 +191,16 @@ async function selectAgents(
     return await query
 }
 
+/**
+ * Registers the first administrator agent without requiring any prior permissions.
+ * Throws if an agent with the same `agent_id` already exists.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param agent_id Unique identifier to assign to the new admin agent.
+ * @param display_name Human-readable name shown in the helpdesk UI.
+ * @returns The `agent_id` of the newly created admin agent.
+ */
 export async function addAdminAgent(
     fdm: FdmHelpdeskType,
     agent_id: schema.AgentTypeInsert["agent_id"],
@@ -217,6 +233,17 @@ export async function addAdminAgent(
     }
 }
 
+/**
+ * Adds a new agent to the helpdesk. If an agent with the same `agent_id` already exists, their
+ * `display_name` is updated instead.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing this action; must have helpdesk write permission.
+ * @param agent_id Unique identifier to assign to the new agent.
+ * @param display_name Human-readable name shown in the helpdesk UI.
+ * @returns The `agent_id` of the created or updated agent.
+ */
 export async function addAgent(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -257,6 +284,15 @@ export async function addAgent(
     }
 }
 
+/**
+ * Updates the display name of an existing agent. Agents may update their own record; admins may update any agent.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing this action; must have agent write permission.
+ * @param agent_id ID of the agent record to update.
+ * @param display_name New display name to set, or `undefined` to leave it unchanged.
+ */
 export async function updateAgent(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -284,6 +320,16 @@ export async function updateAgent(
     }
 }
 
+/**
+ * Changes the role of an agent. Requires helpdesk write permission.
+ * Prevents demoting the last active admin.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing this action; must be an admin.
+ * @param agent_id ID of the agent whose role should be changed.
+ * @param role The new role to assign (`"admin"` or `"agent"`).
+ */
 export async function updateAgentRole(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -339,6 +385,16 @@ export async function updateAgentRole(
     }
 }
 
+/**
+ * Activates or deactivates an agent. Requires helpdesk write permission.
+ * Prevents deactivating the last active admin.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing this action; must be an admin.
+ * @param agent_id ID of the agent to activate or deactivate.
+ * @param is_active `true` to activate the agent, `false` to deactivate.
+ */
 export async function setAgentActiveStatus(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,

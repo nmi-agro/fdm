@@ -118,7 +118,6 @@ export async function getHelpdeskRole(
  * @param action - The action the principal intends to perform.
  * @param resource_id - The unique identifier of the specific resource.
  * @param principal_id - The principal identifier(s); supports a single ID or an array.
- * @param origin - The source origin used for audit logging the permission check.
  * @returns `granting_resource` is the resource type, `granting_resource_id` is the id of the specific
  * granting resource.
  * `null` is returned if the principal does not have the permission.

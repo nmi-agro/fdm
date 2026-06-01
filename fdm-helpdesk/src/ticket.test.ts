@@ -215,6 +215,37 @@ test.describe("getTickets", () => {
         ).toBe(false)
     })
 
+    test("should filter by farm context", async ({ fdm }) => {
+        const tickets = await getTickets(fdm, agent_id, {
+            context: { b_id_farm },
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 (with farm context) should be in results",
+        ).toBe(true)
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_2),
+            "Ticket 2 (no farm context) should not be in results",
+        ).toBe(false)
+    })
+
+    test("should filter by priority range", async ({ fdm }) => {
+        const tickets = await getTickets(fdm, agent_id, {
+            minPriority: "high",
+            maxPriority: "urgent",
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 (high priority) should be in results",
+        ).toBe(true)
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_2),
+            "Ticket 2 (normal priority) should not be in results",
+        ).toBe(false)
+    })
+
     test("should only list regular user's own tickets", async ({ fdm }) => {
         const new_ticket_id = await createTicket(
             fdm,
