@@ -164,13 +164,15 @@ export async function getHelpdeskPermission(
                     .limit(1)
             ).length > 0
         ) {
-            return helpdeskRoles.includes(role) &&
-                (action === "read" ||
-                    role === "admin" ||
-                    (principal_ids.length > 0 &&
-                        principal_ids.every(
-                            (principal_id) => principal_id === resource_id,
-                        )))
+            const isSelf =
+                principal_ids.length > 0 &&
+                principal_ids.every(
+                    (principal_id) => principal_id === resource_id,
+                )
+
+            return isSelf ||
+                (helpdeskRoles.includes(role) &&
+                    (action === "read" || role === "admin"))
                 ? {
                       granting_resource: "agent",
                       granting_resource_id: resource_id,
@@ -193,13 +195,16 @@ export async function getHelpdeskPermission(
                     .select()
                     .from(schema.savedReplies)
                     .where(
-                        or(
-                            action === "read"
-                                ? schema.savedReplies.is_shared
-                                : sql`false`,
-                            inArray(
-                                schema.savedReplies.created_by,
-                                principal_ids,
+                        and(
+                            eq(schema.savedReplies.reply_id, resource_id),
+                            or(
+                                action === "read"
+                                    ? schema.savedReplies.is_shared
+                                    : sql`false`,
+                                inArray(
+                                    schema.savedReplies.created_by,
+                                    principal_ids,
+                                ),
                             ),
                         ),
                     )

@@ -58,13 +58,15 @@ CREATE TABLE "fdm-helpdesk"."ticket_activity" (
 );
 --> statement-breakpoint
 CREATE TABLE "fdm-helpdesk"."ticket_assignments" (
+	"assignment_id" text PRIMARY KEY NOT NULL,
 	"ticket_id" text NOT NULL,
 	"agent_id" text NOT NULL,
 	"assigned_by" text NOT NULL,
 	"is_primary" boolean DEFAULT true NOT NULL,
 	"assigned_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"unassigned_at" timestamp with time zone,
-	CONSTRAINT "ticket_assignments_pk" PRIMARY KEY("ticket_id","agent_id")
+	"unassigned_by" text,
+	"updated_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "fdm-helpdesk"."ticket_tags_map" (
@@ -115,7 +117,7 @@ CREATE INDEX "activity_ticket_idx" ON "fdm-helpdesk"."ticket_activity" USING btr
 CREATE INDEX "activity_created_idx" ON "fdm-helpdesk"."ticket_activity" USING btree ("ticket_id","created");--> statement-breakpoint
 CREATE INDEX "assignment_ticket_idx" ON "fdm-helpdesk"."ticket_assignments" USING btree ("ticket_id");--> statement-breakpoint
 CREATE INDEX "assignment_agent_idx" ON "fdm-helpdesk"."ticket_assignments" USING btree ("agent_id");--> statement-breakpoint
-CREATE INDEX "assignment_active_idx" ON "fdm-helpdesk"."ticket_assignments" USING btree ("ticket_id","agent_id") WHERE "fdm-helpdesk"."ticket_assignments"."unassigned_at" is null;--> statement-breakpoint
+CREATE INDEX "assignment_unassigned_at_idx" ON "fdm-helpdesk"."ticket_assignments" USING btree ("ticket_id","agent_id") WHERE "fdm-helpdesk"."ticket_assignments"."unassigned_at" is null;--> statement-breakpoint
 CREATE INDEX "ticket_tag_ticket_idx" ON "fdm-helpdesk"."ticket_tags_map" USING btree ("ticket_id");--> statement-breakpoint
 CREATE INDEX "ticket_tag_tag_idx" ON "fdm-helpdesk"."ticket_tags_map" USING btree ("tag_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "ticket_ref_idx" ON "fdm-helpdesk"."tickets" USING btree ("ticket_ref");--> statement-breakpoint

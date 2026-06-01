@@ -47,7 +47,7 @@ async function tryGetTagByName(fdm: FdmHelpdeskType, tag_name: string) {
 
         return found[0]
     } catch (err) {
-        throw handleError(err, "Exception for getTag", { tag_name })
+        throw handleError(err, "Exception for tryGetTagByName", { tag_name })
     }
 }
 
@@ -207,7 +207,7 @@ export async function updateTag(
                 .where(eq(schema.tags.tag_id, tag_id))
         })
     } catch (err) {
-        throw handleError(err, "Exception in createTag", {
+        throw handleError(err, "Exception in updateTag", {
             name,
             color,
             description,

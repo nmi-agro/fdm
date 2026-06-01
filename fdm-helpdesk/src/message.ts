@@ -211,7 +211,10 @@ export async function updateMessage(
         await fdm
             .update(schema.messages)
             .set({
-                body: body ? escapeHTML(body) : undefined,
+                body:
+                    body !== undefined && body !== null
+                        ? escapeHTML(body)
+                        : undefined,
                 is_internal: is_internal,
                 updated: sql`now()`,
             })

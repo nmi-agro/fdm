@@ -57,6 +57,10 @@ export async function setup(project: TestProject) {
     project.provide("database", database)
 }
 
+export async function teardown() {
+    await client.end()
+}
+
 declare module "vitest" {
     export interface ProvidedContext {
         host: string

@@ -59,7 +59,7 @@ export function getMessageWhereClause(filters: MessageFilters) {
         filters?.toDate
             ? lte(schema.messages.created, filters.toDate)
             : undefined,
-        Array.isArray(filters?.sentBy)
+        Array.isArray(filters?.sentBy) && filters.sentBy.length > 0
             ? inArray(schema.messages.sender_id, filters.sentBy)
             : undefined,
     )
@@ -102,7 +102,7 @@ export function getTicketWhereClause(filters: TicketFilters) {
         // To not have an empty case
         sql`TRUE`,
         // Requester IDs
-        Array.isArray(filters.requesterIds)
+        Array.isArray(filters.requesterIds) && filters.requesterIds.length > 0
             ? and(
                   isNotNull(schema.tickets.requester_id),
                   inArray(schema.tickets.requester_id, filters.requesterIds),
@@ -115,14 +115,15 @@ export function getTicketWhereClause(filters: TicketFilters) {
         // Priority
         priorityFilter,
         // Assignees
-        Array.isArray(filters?.assignees)
+        Array.isArray(filters?.assignees) && filters.assignees.length > 0
             ? and(
                   isNotNull(schema.ticketAssignments.agent_id),
+                  isNull(schema.ticketAssignments.unassigned_at),
                   inArray(schema.ticketAssignments.agent_id, filters.assignees),
               )
             : undefined,
         // Tags filter
-        Array.isArray(filters?.tags)
+        Array.isArray(filters?.tags) && filters.tags.length > 0
             ? inArray(schema.ticketTagsMap.tag_id, filters.tags)
             : undefined,
         // Timeframe filter

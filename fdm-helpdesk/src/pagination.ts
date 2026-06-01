@@ -11,11 +11,13 @@ export function getPageOffsetAndLimit(
     defaultPageLimit = 20,
 ) {
     const pageOffset =
-        typeof filters?.pageOffset === "number"
+        typeof filters?.pageOffset === "number" &&
+        Number.isFinite(filters.pageOffset)
             ? Math.max(0, filters.pageOffset)
             : 0
     const pageLimit =
-        typeof filters?.pageLimit === "number"
+        typeof filters?.pageLimit === "number" &&
+        Number.isFinite(filters.pageLimit)
             ? Math.max(1, filters.pageLimit)
             : defaultPageLimit <= 0
               ? undefined

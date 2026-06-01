@@ -394,9 +394,10 @@ export async function updateTicketStatus(
         await fdm
             .update(schema.tickets)
             .set({
-                resolved_at: status === "resolved" ? sql`now()` : undefined,
                 status: status,
                 updated: sql`now()`,
+                resolved_at: status === "resolved" ? sql`now()` : undefined,
+                closed_at: status === "closed" ? sql`now()` : undefined,
             })
             .where(eq(schema.tickets.ticket_id, ticket_id))
     } catch (err) {

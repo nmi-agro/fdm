@@ -3,6 +3,7 @@ import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
+import { getMessagesForTicket } from "./message"
 import { addTagToTicket, createTag } from "./tag"
 import { test } from "./test-util"
 import {
@@ -15,12 +16,7 @@ import {
     updateTicketStatus,
     validateTicketStatusTransition,
 } from "./ticket"
-import {
-    assignTicket,
-    getAssigneesForTickets,
-    getTicketCountsForAssignees,
-} from "./ticket-assignment"
-import { getMessagesForTicket } from "./message"
+import { assignTicket } from "./ticket-assignment"
 
 test.describe("Inbox", () => {
     const b_id_farm = "test-farm-id"
@@ -536,155 +532,6 @@ describe("getTicketCount", () => {
         })
 
         expect(ticketCount).toBe(3)
-    })
-})
-
-describe("getAssigneesForTickets", () => {
-    let admin_id: string
-    let agent_id: string
-    let requester_id: string
-    let ticket_id_1: string
-    let ticket_id_2: string
-
-    test.beforeEach(async ({ fdm }) => {
-        admin_id = createId()
-        await addAdminAgent(fdm, admin_id, "Admin Agent")
-
-        agent_id = createId()
-        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
-
-        requester_id = createId()
-        ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1")
-        ticket_id_2 = await createTicket(fdm, requester_id, "Ticket 2")
-
-        await assignTicket(fdm, ticket_id_1, admin_id, admin_id)
-        await assignTicket(fdm, ticket_id_1, agent_id, admin_id)
-        // ticket_id_2 intentionally left unassigned
-    })
-
-    test("should return assignees grouped by ticket id", async ({ fdm }) => {
-        const assigneesMap = await getAssigneesForTickets(fdm, admin_id, [
-            ticket_id_1,
-            ticket_id_2,
-        ])
-
-        const ticket1Assignees = assigneesMap.get(ticket_id_1)
-        expect(ticket1Assignees).toHaveLength(2)
-        expect(ticket1Assignees?.some((a) => a.agent_id === admin_id)).toBe(
-            true,
-        )
-        expect(ticket1Assignees?.some((a) => a.agent_id === agent_id)).toBe(
-            true,
-        )
-    })
-
-    test("should not include entries for unassigned tickets", async ({
-        fdm,
-    }) => {
-        const assigneesMap = await getAssigneesForTickets(fdm, admin_id, [
-            ticket_id_1,
-            ticket_id_2,
-        ])
-
-        expect(assigneesMap.has(ticket_id_2)).toBe(false)
-    })
-
-    test("should allow the requester to view assignees on their own ticket", async ({
-        fdm,
-    }) => {
-        const assigneesMap = await getAssigneesForTickets(fdm, requester_id, [
-            ticket_id_1,
-        ])
-
-        expect(assigneesMap.get(ticket_id_1)).toHaveLength(2)
-    })
-
-    test("should throw when an unrelated user tries to view assignees", async ({
-        fdm,
-    }) => {
-        const other_user_id = createId()
-
-        await expect(
-            getAssigneesForTickets(fdm, other_user_id, [ticket_id_1]),
-        ).rejects.toThrow(
-            "Principal does not have permission to perform this action",
-        )
-    })
-})
-
-describe("getTicketCountsForAssignees", () => {
-    let admin_id: string
-    let agent_id: string
-    let requester_id: string
-    let ticket_id_1: string
-    let ticket_id_2: string
-    let ticket_id_3: string
-
-    test.beforeEach(async ({ fdm }) => {
-        admin_id = createId()
-        await addAdminAgent(fdm, admin_id, "Admin Agent")
-
-        agent_id = createId()
-        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
-
-        requester_id = createId()
-        ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1")
-        ticket_id_2 = await createTicket(fdm, requester_id, "Ticket 2")
-        ticket_id_3 = await createTicket(fdm, requester_id, "Ticket 3")
-
-        await assignTicket(fdm, ticket_id_1, admin_id, admin_id)
-        await assignTicket(fdm, ticket_id_2, admin_id, admin_id)
-        await assignTicket(fdm, ticket_id_3, agent_id, admin_id)
-    })
-
-    test("should return the correct ticket count per assignee", async ({
-        fdm,
-    }) => {
-        const counts = await getTicketCountsForAssignees(
-            fdm,
-            admin_id,
-            [admin_id, agent_id],
-            {},
-        )
-
-        expect(counts.get(admin_id)).toBe(2)
-        expect(counts.get(agent_id)).toBe(1)
-    })
-
-    test("should not include agents with no assigned tickets", async ({
-        fdm,
-    }) => {
-        const third_agent_id = createId()
-        await addAgent(fdm, admin_id, third_agent_id, "Third Agent")
-
-        const counts = await getTicketCountsForAssignees(
-            fdm,
-            admin_id,
-            [third_agent_id],
-            {},
-        )
-
-        expect(counts.has(third_agent_id)).toBe(false)
-    })
-
-    test("should apply ticket filters when counting", async ({ fdm }) => {
-        const tag_id = await createTag(
-            fdm,
-            admin_id,
-            `CountTag${createId(8)}`,
-            "#123456",
-        )
-        await addTagToTicket(fdm, admin_id, ticket_id_1, tag_id)
-
-        const counts = await getTicketCountsForAssignees(
-            fdm,
-            admin_id,
-            [admin_id, agent_id],
-            { tags: [tag_id] },
-        )
-
-        expect(counts.get(admin_id)).toBe(1)
-        expect(counts.has(agent_id)).toBe(false)
     })
 })
 

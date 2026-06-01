@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull } from "drizzle-orm"
+import { and, asc, eq, inArray, isNull, not, sql } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 import { checkHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
@@ -7,6 +7,7 @@ import { handleError } from "./error"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getTicketWhereClause } from "./filter"
 import type { TicketFilters } from "./filter.types"
+import { createId } from "./id"
 
 export type TicketAssignmentSummary = {
     agent_id: schema.TicketAssignmentTypeSelect["agent_id"]
@@ -78,6 +79,34 @@ export async function getAssigneesForTickets(
     return result
 }
 
+export async function getAssignmentHistoryForTicket(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+    ticket_id: string,
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "ticket-user-side",
+            "read",
+            ticket_id,
+            principal_id,
+            "getAssignmentHistoryForTicket",
+        )
+
+        return await fdm
+            .select()
+            .from(schema.ticketAssignments)
+            .where(eq(schema.ticketAssignments.ticket_id, ticket_id))
+            .orderBy(asc(schema.ticketAssignments.assigned_at))
+    } catch (err) {
+        throw handleError(err, "Exception for getAssigneeHistoryForTicket", {
+            principal_id,
+            ticket_id,
+        })
+    }
+}
+
 export async function assignTicket(
     fdm: FdmHelpdeskType,
     ticket_id: schema.TicketAssignmentTypeInsert["ticket_id"],
@@ -100,29 +129,52 @@ export async function assignTicket(
         if (is_primary) {
             await tx
                 .update(schema.ticketAssignments)
-                .set({ is_primary: false })
-                .where(eq(schema.ticketAssignments.ticket_id, ticket_id))
+                .set({ is_primary: false, updated_at: sql`now()` })
+                .where(
+                    and(
+                        eq(schema.ticketAssignments.ticket_id, ticket_id),
+                        isNull(schema.ticketAssignments.unassigned_at),
+                        not(eq(schema.ticketAssignments.agent_id, agent_id)),
+                    ),
+                )
         }
 
-        // Insert the new assignment
-        await tx
-            .insert(schema.ticketAssignments)
-            .values([
+        const existing = await tx
+            .select()
+            .from(schema.ticketAssignments)
+            .where(
+                and(
+                    eq(schema.ticketAssignments.ticket_id, ticket_id),
+                    eq(schema.ticketAssignments.agent_id, agent_id),
+                    isNull(schema.ticketAssignments.unassigned_at),
+                ),
+            )
+
+        if (existing.length > 0) {
+            await tx
+                .update(schema.ticketAssignments)
+                .set({
+                    is_primary: is_primary,
+                    updated_at: sql`now()`,
+                })
+                .where(
+                    eq(
+                        schema.ticketAssignments.assignment_id,
+                        existing[0].assignment_id,
+                    ),
+                )
+        } else {
+            const assignment_id = createId()
+            await tx.insert(schema.ticketAssignments).values([
                 {
+                    assignment_id: assignment_id,
                     ticket_id: ticket_id,
                     agent_id: agent_id,
                     assigned_by: assigned_by,
-                },
-            ])
-            .onConflictDoUpdate({
-                target: [
-                    schema.ticketAssignments.ticket_id,
-                    schema.ticketAssignments.agent_id,
-                ],
-                set: {
                     is_primary: is_primary,
                 },
-            })
+            ])
+        }
     })
 }
 
@@ -140,21 +192,22 @@ export async function unassignTicket(
             "write",
             ticket_id,
             unassigned_by,
-            "assignTicket",
+            "unassignTicket",
         )
 
-        // Delete the found assignment
+        // Mark the assignment as unassigned by setting the unassigned_at timestamp
         const deleted = await tx
-            .delete(schema.ticketAssignments)
+            .update(schema.ticketAssignments)
+            .set({ unassigned_at: sql`now()`, unassigned_by: unassigned_by })
             .where(
                 and(
                     eq(schema.ticketAssignments.ticket_id, ticket_id),
                     eq(schema.ticketAssignments.agent_id, agent_id),
+                    isNull(schema.ticketAssignments.unassigned_at),
                 ),
             )
             .returning({
-                ticket_id: schema.ticketAssignments.ticket_id,
-                agent_id: schema.ticketAssignments.agent_id,
+                assignment_id: schema.ticketAssignments.assignment_id,
             })
 
         return deleted.length > 0
@@ -168,6 +221,15 @@ export async function getTicketCountsForAssignees(
     ticketFilters: TicketFilters,
 ): Promise<Map<schema.TicketAssignmentTypeSelect["agent_id"], number>> {
     try {
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "read",
+            "",
+            principal_id,
+            "getTicketCountsForAssignees",
+        )
+
         const aliasedTicketAssignments = alias(
             schema.ticketAssignments,
             "GROUP_COLUMN",
@@ -175,7 +237,7 @@ export async function getTicketCountsForAssignees(
         const entries = await fdm
             .select({
                 agent_id: aliasedTicketAssignments.agent_id,
-                count: count(aliasedTicketAssignments.ticket_id),
+                count: sql<number>`cast(count(distinct ${aliasedTicketAssignments.ticket_id}) as integer)`,
             })
             .from(aliasedTicketAssignments)
             .innerJoin(

@@ -1,5 +1,18 @@
 import { defineConfig } from "drizzle-kit"
 
+function requireEnv(name: string): string {
+    const value = process.env[name]
+    if (!value) {
+        throw new Error(`Missing required environment variable: ${name}`)
+    }
+    return value
+}
+
+const port = Number(requireEnv("POSTGRES_PORT"))
+if (Number.isNaN(port)) {
+    throw new Error("POSTGRES_PORT must be a valid number")
+}
+
 export default defineConfig({
     dialect: "postgresql",
     extensionsFilters: ["postgis"],
@@ -10,10 +23,10 @@ export default defineConfig({
         schema: "fdm-helpdesk-migration",
     },
     dbCredentials: {
-        host: String(process.env.POSTGRES_HOST),
-        port: Number(process.env.POSTGRES_PORT),
-        database: String(process.env.POSTGRES_DB),
-        user: process.env.POSTGRES_USER,
-        password: process.env.POSTGRES_PASSWORD,
+        host: requireEnv("POSTGRES_HOST"),
+        port,
+        database: requireEnv("POSTGRES_DB"),
+        user: requireEnv("POSTGRES_USER"),
+        password: requireEnv("POSTGRES_PASSWORD"),
     },
 })

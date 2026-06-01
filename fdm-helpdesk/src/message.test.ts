@@ -237,6 +237,22 @@ describe("Message CRUD", () => {
         )
     })
 
+    test("should set empty message body", async ({ fdm }) => {
+        const message_id = await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "customer",
+            "Safe Message Body",
+        )
+
+        await updateMessage(fdm, requester_id, message_id, "")
+
+        const message = await getMessage(fdm, requester_id, message_id)
+
+        expect(message.body).toBe("")
+    })
+
     test("should not allow a regular user to make a message internal", async ({
         fdm,
     }) => {

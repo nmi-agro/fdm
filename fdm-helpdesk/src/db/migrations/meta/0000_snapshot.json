@@ -1,5 +1,5 @@
 {
-  "id": "0bb02946-19a5-4e7c-99e0-e000ad12e3dc",
+  "id": "a117be5e-8577-4ba3-85bf-d409acf6af2f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -537,6 +537,12 @@
       "name": "ticket_assignments",
       "schema": "fdm-helpdesk",
       "columns": {
+        "assignment_id": {
+          "name": "assignment_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
         "ticket_id": {
           "name": "ticket_id",
           "type": "text",
@@ -574,6 +580,18 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "unassigned_by": {
+          "name": "unassigned_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -607,8 +625,8 @@
           "method": "btree",
           "with": {}
         },
-        "assignment_active_idx": {
-          "name": "assignment_active_idx",
+        "assignment_unassigned_at_idx": {
+          "name": "assignment_unassigned_at_idx",
           "columns": [
             {
               "expression": "ticket_id",
@@ -660,15 +678,7 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "ticket_assignments_pk": {
-          "name": "ticket_assignments_pk",
-          "columns": [
-            "ticket_id",
-            "agent_id"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

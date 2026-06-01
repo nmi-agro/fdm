@@ -85,6 +85,7 @@ export type AgentTypeInsert = typeof agents.$inferInsert
 export const ticketAssignments = fdmHelpdeskSchema.table(
     "ticket_assignments",
     {
+        assignment_id: text().primaryKey(),
         ticket_id: text()
             .notNull()
             .references(() => tickets.ticket_id),
@@ -95,15 +96,13 @@ export const ticketAssignments = fdmHelpdeskSchema.table(
         is_primary: boolean().notNull().default(true), // Primary assignee
         assigned_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
         unassigned_at: timestamp({ withTimezone: true }),
+        unassigned_by: text(), // principal_id of who unassigned
+        updated_at: timestamp({ withTimezone: true }),
     },
     (table) => [
-        primaryKey({
-            name: "ticket_assignments_pk",
-            columns: [table.ticket_id, table.agent_id],
-        }),
         index("assignment_ticket_idx").on(table.ticket_id),
         index("assignment_agent_idx").on(table.agent_id),
-        index("assignment_active_idx")
+        index("assignment_unassigned_at_idx")
             .on(table.ticket_id, table.agent_id)
             .where(isNull(table.unassigned_at)),
     ],

@@ -313,6 +313,44 @@ describe("getHelpdeskPermission — agent resource", () => {
     })
 })
 
+describe("getHelpdeskPermission — saved reply resource", () => {
+    let admin_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+    })
+
+    test("should not let regular users view a saved reply", async ({ fdm }) => {
+        const principal_id = createId()
+        const saved_reply_id = createId()
+        expect(
+            await getHelpdeskPermission(
+                fdm,
+                "saved_reply",
+                "read",
+                saved_reply_id,
+                principal_id,
+            ),
+        ).toBeNull()
+    })
+
+    test("should not let agents read a nonexistent saved reply", async ({
+        fdm,
+    }) => {
+        const saved_reply_id = createId()
+        expect(
+            await getHelpdeskPermission(
+                fdm,
+                "saved_reply",
+                "read",
+                saved_reply_id,
+                admin_id,
+            ),
+        ).toBeNull()
+    })
+})
+
 describe("getHelpdeskPermission — ticket-user-side resource", () => {
     let admin_id: string
     let requester_id: string
