@@ -344,13 +344,11 @@ export async function lookupPrincipal(
 
             // Collect details of principals
             if (principals.length > 0) {
-                const principalsDetails = await Promise.all(
-                    principals.map(async (principal: { id: string }) => {
-                        const details = await getPrincipal(tx, principal.id)
-                        return details
-                    }),
+                const principalsDetails = await getPrincipals(
+                    tx,
+                    principals.map((p) => p.id),
                 )
-                return principalsDetails.filter(
+                return [...principalsDetails.values()].filter(
                     (p): p is Principal => p !== undefined,
                 )
             }
