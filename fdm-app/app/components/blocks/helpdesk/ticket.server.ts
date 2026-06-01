@@ -7,6 +7,7 @@ import {
     getAssigneesForTickets,
     getMessagesForTicket,
     getTicket,
+    markTicketAsViewed,
     unassignTicket,
     updateTicketStatus,
 } from "@nmi-agro/fdm-helpdesk"
@@ -52,7 +53,7 @@ export async function loader({ params, request }: Args) {
         ])
 
         // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
-        const agents = await getAgents(fdm, session.principal_id)
+        const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
 
         // Message sender's profile pictures are shown
         const principal_ids = messages.map((msg) => msg.sender_id)
@@ -66,20 +67,37 @@ export async function loader({ params, request }: Args) {
 
         const principals = await getPrincipals(fdm, principal_ids)
 
+        const agentInfo = new Map<
+            string,
+            { agent_id: string; display_name: string }
+        >(ticket.assignees.map((assignee) => [assignee.agent_id, assignee]))
+        const otherAgentIds = new Set(
+            messages
+                .filter((msg) => msg.sender_type === "agent")
+                .map((msg) => msg.sender_id),
+        )
+
         const principalsSummarized = [...principals.values()].map(
             (principal) => {
                 // Agents should appear with their helpdesk display name
-                const agent = agents.find(
-                    (agent) => agent.agent_id === principal.id,
-                )
-                if (agent) {
-                    return makeHelpdeskUser(agent, principals)
+                if (
+                    agentInfo.has(principal.id) ||
+                    otherAgentIds.has(principal.id)
+                ) {
+                    const found = agentInfo.get(principal.id)
+                    if (found) {
+                        return makeHelpdeskUser(found, principals)
+                    }
+                    return {
+                        principal_id: principal.id,
+                        displayUserName: "Onbekende Medewerker",
+                        initials: "OM",
+                        image: undefined,
+                    }
                 }
                 return {
                     principal_id: principal.id,
-                    displayUserName: agents.find(
-                        (agent) => agent.agent_id === session.principal_id,
-                    )?.display_name,
+                    displayUserName: principal.displayUserName,
                     initials: principal.initials,
                     image: principal.image,
                 }
@@ -103,6 +121,7 @@ export async function loader({ params, request }: Args) {
 }
 
 export const ActionSchema = z.discriminatedUnion("intent", [
+    z.object({ intent: z.literal("mark_ticket_as_viewed") }),
     z.object({ intent: z.literal("set_ticket_status"), status: z.string() }),
     AssigneeSchema.extend({ intent: z.literal("change_assignment") }),
     MessageSchema.extend({ intent: z.literal("add_message") }),
@@ -115,6 +134,14 @@ export async function action({ params, request }: Args) {
             request,
             ActionSchema,
         )
+
+        if (formValues.intent === "mark_ticket_as_viewed") {
+            await markTicketAsViewed(
+                fdm,
+                session.principal_id,
+                params.ticket_id,
+            )
+        }
 
         if (formValues.intent === "set_ticket_status") {
             await updateTicketStatus(

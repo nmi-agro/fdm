@@ -1,5 +1,5 @@
 import type { Ticket } from "@nmi-agro/fdm-helpdesk"
-import { ChevronLeft, Cross, X } from "lucide-react"
+import { ChevronLeft, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"

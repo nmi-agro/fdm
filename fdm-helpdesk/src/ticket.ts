@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, max, sql } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
@@ -17,6 +17,7 @@ import {
 
 /** A ticket record enriched with its current tags and assignees. */
 export type Ticket = schema.TicketTypeSelect & {
+    viewed_at: Date | null
     tags: TagSummary[]
     assignees: TicketAssignmentSummary[]
 }
@@ -80,8 +81,15 @@ export async function getTicket(
         )
 
         const found = await fdm
-            .select(ticketColumns)
+            .select({
+                ...ticketColumns,
+                viewed_at: schema.ticketViews.viewed_at,
+            })
             .from(schema.tickets)
+            .leftJoin(
+                schema.ticketViews,
+                eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+            )
             .where(eq(schema.tickets.ticket_id, ticket_id))
 
         const tags =
@@ -247,7 +255,10 @@ async function selectTickets(
     }
 
     let query = fdm
-        .selectDistinct(ticketColumns)
+        .selectDistinct({
+            ...ticketColumns,
+            viewed_at: max(schema.ticketViews.viewed_at),
+        })
         .from(schema.tickets)
         .leftJoin(
             schema.ticketAssignments,
@@ -260,7 +271,10 @@ async function selectTickets(
         // TODO: check if each agent has viewed, not only one of them
         .leftJoin(
             schema.ticketViews,
-            inArray(schema.ticketViews.actor_id, principal_ids),
+            and(
+                eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+                inArray(schema.ticketViews.actor_id, principal_ids),
+            ),
         )
         .where(whereClause)
         .groupBy(schema.tickets.ticket_id)
@@ -469,5 +483,48 @@ export async function updateTicketStatus(
             .where(eq(schema.tickets.ticket_id, ticket_id))
     } catch (err) {
         throw handleError(err, "Exception for updateTicketStatus")
+    }
+}
+
+/**
+ * Marks the ticket as viewed by each principal.
+ * If any of them has already viewed the ticket, the view timestamp will be updated.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have agent-side write access to the ticket.
+ * @param ticket_id ID of the ticket to mark as viewed.
+ */
+export async function markTicketAsViewed(
+    fdm: FdmHelpdeskType,
+    actor_id: schema.TicketViewTypeInsert["actor_id"],
+    ticket_id: schema.TicketViewTypeInsert["ticket_id"],
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "ticket-user-side",
+            "read",
+            ticket_id,
+            actor_id,
+            "markTicketAsViewed",
+        )
+
+        await fdm
+            .insert(schema.ticketViews)
+            .values({
+                ticket_id: ticket_id,
+                actor_id: actor_id,
+                viewed_at: sql`now()`,
+            })
+            .onConflictDoUpdate({
+                target: [
+                    schema.ticketViews.ticket_id,
+                    schema.ticketViews.actor_id,
+                ],
+                set: { viewed_at: sql`now()` },
+            })
+    } catch (err) {
+        throw handleError(err, "Exception for markTicketAsViewed")
     }
 }

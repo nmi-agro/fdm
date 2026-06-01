@@ -13,6 +13,7 @@ import {
     getTicket,
     getTicketCount,
     getTickets,
+    markTicketAsViewed,
     updateTicketStatus,
     validateTicketStatusTransition,
 } from "./ticket"
@@ -603,5 +604,46 @@ describe("getDefaultTicketSubject", () => {
     })
     test("should handle other whitespace", () => {
         expect(getDefaultSubjectLine(otherWhitespace)).toBe(normal.slice(0, 99))
+    })
+})
+
+describe("markTicketAsViewed", () => {
+    let requester_id: string
+    let ticket_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        requester_id = createId()
+        ticket_id = await createTicket(fdm, requester_id, "Ticket 1")
+    })
+
+    test("should mark the ticket as viewed for the agent", async ({ fdm }) => {
+        await markTicketAsViewed(fdm, requester_id, ticket_id)
+
+        const ticket = await getTicket(fdm, requester_id, ticket_id)
+
+        expect(ticket.viewed_at).toBeTruthy()
+    })
+
+    test("should update read time", async ({ fdm }) => {
+        await markTicketAsViewed(fdm, requester_id, ticket_id)
+
+        const ticketFirst = await getTicket(fdm, requester_id, ticket_id)
+
+        await markTicketAsViewed(fdm, requester_id, ticket_id)
+
+        const ticketSecond = await getTicket(fdm, requester_id, ticket_id)
+
+        expect(ticketFirst.viewed_at).not.toEqual(ticketSecond.viewed_at)
+    })
+
+    test("should throw an error if the actor cannot read the ticket", async ({
+        fdm,
+    }) => {
+        const third_user_id = createId()
+        expect(
+            markTicketAsViewed(fdm, third_user_id, ticket_id),
+        ).rejects.toThrow(
+            "Principal does not have permission to perform this action",
+        )
     })
 })

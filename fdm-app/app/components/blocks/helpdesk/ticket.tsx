@@ -94,12 +94,23 @@ export function Ticket({
         (assignee) => assignee.display_name,
     )
 
+    const isViewed = !!ticket.viewed_at
+
     // Close dialogs when navigation finishes (the user has probably submitted the form in the dialog)
     useEffect(() => {
         if (navigation.state === "idle") {
             setAssignmentDialogOpen(false)
         }
     }, [navigation.state])
+
+    // Mark ticket as viewed if it wasn't viewed yet
+    useEffect(() => {
+        if (!isViewed) {
+            const formData = new FormData()
+            formData.append("intent", "mark_ticket_as_viewed")
+            submit(formData, { method: "POST" })
+        }
+    }, [isViewed, submit])
 
     return (
         <main className="p-6 space-y-6">

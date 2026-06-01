@@ -79,7 +79,7 @@ CREATE TABLE "fdm-helpdesk"."ticket_tags_map" (
 CREATE TABLE "fdm-helpdesk"."ticket_views" (
 	"ticket_id" text NOT NULL,
 	"actor_id" text NOT NULL,
-	"created" timestamp with time zone DEFAULT now() NOT NULL,
+	"viewed_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "ticket_views_pk" PRIMARY KEY("ticket_id","actor_id")
 );
 --> statement-breakpoint

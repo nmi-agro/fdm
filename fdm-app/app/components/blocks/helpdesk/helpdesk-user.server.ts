@@ -1,5 +1,4 @@
 import type { getPrincipals } from "@nmi-agro/fdm-core"
-import type { schemaHelpdesk } from "@nmi-agro/fdm-helpdesk"
 import type { HelpdeskUser } from "./types"
 
 /**
@@ -10,7 +9,7 @@ import type { HelpdeskUser } from "./types"
  * @returns a HelpdeskUser object
  */
 export function makeHelpdeskUser(
-    agent: schemaHelpdesk.AgentTypeSelect,
+    agent: { agent_id: string; display_name: string },
     principals: Awaited<ReturnType<typeof getPrincipals>>,
 ): HelpdeskUser {
     return {

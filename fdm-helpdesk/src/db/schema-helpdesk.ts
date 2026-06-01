@@ -120,7 +120,7 @@ export const ticketViews = fdmHelpdeskSchema.table(
             .notNull()
             .references(() => tickets.ticket_id),
         actor_id: text().notNull(),
-        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        viewed_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
         primaryKey({
@@ -129,6 +129,9 @@ export const ticketViews = fdmHelpdeskSchema.table(
         }),
     ],
 )
+
+export type TicketViewTypeSelect = typeof ticketViews.$inferSelect
+export type TicketViewTypeInsert = typeof ticketViews.$inferInsert
 
 /**
  * Activity log for ticket state changes.
