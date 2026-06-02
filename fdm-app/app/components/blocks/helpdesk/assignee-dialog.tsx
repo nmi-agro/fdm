@@ -19,6 +19,7 @@ import {
 import { Field } from "~/components/ui/field"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip"
+import { makeHelpdeskUser } from "./helpdesk-user"
 import type { HelpdeskUser } from "./types"
 
 export function AssigneeDialogContent({
@@ -218,12 +219,6 @@ function AssigneeSelectItem({
     onClick?: MouseEventHandler<HTMLButtonElement>
     onIsPrimaryClick?: MouseEventHandler<HTMLButtonElement>
 }) {
-    const assigneePrincipal = principalLookup.get(agent.agent_id)
-    const assigneeInitials = agent.display_name
-        .split(" ")
-        .filter((x) => x.length > 0)
-        .map((x) => x[0].toUpperCase())
-        .join("")
     return (
         <p className="flex flex-row gap-2 items-center">
             <Button
@@ -240,13 +235,7 @@ function AssigneeSelectItem({
                         !isSelected && "invisible",
                     )}
                 />
-                <UserAvatar
-                    user={{
-                        displayUserName: agent.display_name,
-                        initials: assigneeInitials,
-                        image: assigneePrincipal?.image ?? null,
-                    }}
-                />
+                <UserAvatar user={makeHelpdeskUser(agent, principalLookup)} />
                 <span className="grow text-start group-hover:underline">
                     {agent.display_name}
                 </span>

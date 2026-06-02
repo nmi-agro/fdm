@@ -213,22 +213,17 @@ export function Ticket({
                                                             undefined
                                                         }
                                                         alt={
-                                                            assignee.display_name
+                                                            principalLookup.get(
+                                                                assignee.agent_id,
+                                                            )
+                                                                ?.displayUserName ??
+                                                            "Onbekende Medewerker"
                                                         }
                                                     />
                                                     <AvatarFallback>
-                                                        {assignee.display_name
-                                                            .split(" ")
-                                                            .filter(
-                                                                (x) =>
-                                                                    x.length >
-                                                                    0,
-                                                            )
-                                                            .slice(0, 2)
-                                                            .map((x) =>
-                                                                x[0].toUpperCase(),
-                                                            )
-                                                            .join("")}
+                                                        {principalLookup.get(
+                                                            assignee.agent_id,
+                                                        )?.initials ?? "OM"}
                                                     </AvatarFallback>
                                                 </Avatar>
                                             ))}

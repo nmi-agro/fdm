@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, max, min, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, max, sql } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"

@@ -20,18 +20,18 @@ export async function sidebarSupportLoader({ request }: { request: Request }) {
         // TODO: Get the count of conjunction properly
         const [numNotViewed, numUnassigned] = await Promise.all([
             helpdeskReadPermission
-                ? await getTicketCount(fdm, session.principal_id, {
+                ? getTicketCount(fdm, session.principal_id, {
                       notViewedBy: [session.principal_id],
                       assignees: [session.principal_id],
                       statuses: statuses,
                   })
-                : await getTicketCount(fdm, session.principal_id, {
+                : getTicketCount(fdm, session.principal_id, {
                       notViewedBy: [session.principal_id],
                       requesterIds: [session.principal_id],
                       statuses: statuses,
                   }),
             helpdeskReadPermission
-                ? await getTicketCount(fdm, session.principal_id, {
+                ? getTicketCount(fdm, session.principal_id, {
                       assigned: false,
                       statuses: statuses,
                   })

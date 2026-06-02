@@ -119,7 +119,10 @@ export async function getAssignmentHistoryForTicket(
             .select()
             .from(schema.ticketAssignments)
             .where(eq(schema.ticketAssignments.ticket_id, ticket_id))
-            .orderBy(asc(schema.ticketAssignments.assigned_at))
+            .orderBy(
+                asc(schema.ticketAssignments.assigned_at),
+                asc(schema.ticketAssignments.assignment_id),
+            )
     } catch (err) {
         throw handleError(err, "Exception for getAssigneeHistoryForTicket", {
             principal_id,
@@ -306,6 +309,10 @@ export async function getTicketCountsForAssignees(
             .leftJoin(
                 schema.ticketTagsMap,
                 eq(schema.tickets.ticket_id, schema.ticketTagsMap.ticket_id),
+            )
+            .leftJoin(
+                schema.ticketViews,
+                and(eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id)),
             )
             .where(
                 and(

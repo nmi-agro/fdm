@@ -20,7 +20,7 @@ import { handleActionError, handleLoaderError } from "@/app/lib/error"
 import { fdm } from "@/app/lib/fdm.server"
 import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "./assignee-schema"
-import { makeHelpdeskUser } from "./helpdesk-user.server"
+import { makeHelpdeskUser } from "./helpdesk-user"
 import { MessageSchema } from "./message-schema"
 
 interface Args {
@@ -106,8 +106,6 @@ export async function loader({ params, request }: Args) {
             },
         )
 
-        const agentsConditional = isAgent ? agents : []
-
         return {
             principal_id: session.principal_id,
             ticket: ticket,
@@ -115,7 +113,7 @@ export async function loader({ params, request }: Args) {
             canAddMessages: canAddMessages,
             isAgent: isAgent,
             principals: principalsSummarized,
-            agents: agentsConditional,
+            agents: agents,
             // To prevent hydration failed errors
             todayDate: new Date(),
         }

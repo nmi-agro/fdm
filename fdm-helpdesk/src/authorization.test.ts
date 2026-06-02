@@ -557,7 +557,7 @@ describe("getHelpdeskPermission — message resource", () => {
         expect(result?.granting_resource).toBe("message")
     })
 
-    test("should let the requester read an internal message on their ticket", async ({
+    test("should not let the requester read an internal message on their ticket", async ({
         fdm,
     }) => {
         const result = await getHelpdeskPermission(

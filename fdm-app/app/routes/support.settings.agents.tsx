@@ -8,6 +8,7 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import z from "zod"
+import { makeHelpdeskUser } from "@/app/components/blocks/helpdesk/helpdesk-user"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import {
     agentRoles,
@@ -47,17 +48,8 @@ export async function loader({ request }: Route.LoaderArgs) {
         )
 
         const helpdeskUsers: HelpdeskUserExtended[] = agents.map((agent) => {
-            const principal = principals.get(agent.agent_id)
             return {
-                principal_id: agent.agent_id,
-                displayUserName: agent.display_name,
-                initials: agent.display_name
-                    .split(" ")
-                    .filter((x) => x.length > 0)
-                    .slice(0, 2)
-                    .map((x) => x[0].toUpperCase())
-                    .join(""),
-                image: principal?.image ?? null,
+                ...makeHelpdeskUser(agent, principals),
                 role: agent.role,
                 isActive: agent.is_active,
                 isInvitation: false,

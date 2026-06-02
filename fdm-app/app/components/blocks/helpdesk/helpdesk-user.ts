@@ -1,4 +1,3 @@
-import type { getPrincipals } from "@nmi-agro/fdm-core"
 import type { HelpdeskUser } from "./types"
 
 /**
@@ -10,7 +9,7 @@ import type { HelpdeskUser } from "./types"
  */
 export function makeHelpdeskUser(
     agent: { agent_id: string; display_name: string },
-    principals: Awaited<ReturnType<typeof getPrincipals>>,
+    principals: Map<string, { image?: string | null }>,
 ): HelpdeskUser {
     return {
         principal_id: agent.agent_id,
