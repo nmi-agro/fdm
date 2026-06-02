@@ -54,11 +54,6 @@ export function HelpdeskNewMessageEmail({
                 </Text>
                 <Text className="m-0 text-black text-[14px]">
                     {messageBody
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                        .replace(/\"/g, "&quot;")
-                        .replace(/'/g, "&#39;")
                         .split("\n")
                         // biome-ignore lint/suspicious/noArrayIndexKey: messageBody is constant for the lifetime of the component
                         .flatMap((line, i) => [line, <br key={i} />])}

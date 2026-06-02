@@ -93,4 +93,4 @@ export type TicketFilters = AssigneeFilter &
     RequesterFilter &
     TagsFilter &
     TimeframeFilter &
-    ViewedFilter
+    ViewedByFilter

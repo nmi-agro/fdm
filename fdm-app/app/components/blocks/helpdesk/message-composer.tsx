@@ -84,7 +84,7 @@ export function MessageComposer({
                                         Bericht
                                     </>
                                 ) : (
-                                    "Nieuwe Bericht"
+                                    "Nieuw Bericht"
                                 )}
                             </span>
                             {showAgentControls && (

@@ -28,8 +28,8 @@ export function SidebarSupport({
 }: {
     name: string | undefined
     email: string | undefined
-    numNotViewed: number
-    numUnassigned: number
+    numNotViewed?: number
+    numUnassigned?: number
 }) {
     const params = useParams()
 
@@ -114,42 +114,64 @@ export function SidebarSupport({
                             >
                                 <LifeBuoy />
                                 <span className="me-auto">Ondersteuning</span>
-                                {numUnassigned > 0 && (
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Badge
-                                                variant="outline"
-                                                className="p-0 ps-1 pe-2 h-6"
-                                            >
-                                                <Asterisk className="m-0 size-4" />
-                                                {numUnassigned}
-                                            </Badge>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {numUnassigned === 1
-                                                ? "Er is een nieuwe ticket toe te wijzen."
-                                                : `Er zijn ${numUnassigned} tickets toe te wijzen.`}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                )}
-                                {numNotViewed > 0 && (
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Badge
-                                                variant="outline"
-                                                className="p-0 ps-1 pe-2 h-6"
-                                            >
-                                                <Dot className="m-0 size-4 scale-200" />
-                                                {numNotViewed}
-                                            </Badge>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {numNotViewed === 1
-                                                ? "U hebt een nieuwe bericht te bekijken."
-                                                : `U hebt ${numNotViewed} nieuwe berichten te bekijken.`}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                )}
+                                {typeof numUnassigned === "number" &&
+                                    numUnassigned > 0 && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="p-0 ps-1 pe-2 h-6"
+                                                >
+                                                    <Asterisk
+                                                        className="m-0 size-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span className="sr-only">
+                                                        {numUnassigned === 1
+                                                            ? "1 ticket toe te wijzen"
+                                                            : `${numUnassigned} tickets toe te wijzen`}
+                                                    </span>
+                                                    <span aria-hidden="true">
+                                                        {numUnassigned}
+                                                    </span>
+                                                </Badge>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {numUnassigned === 1
+                                                    ? "Er is een nieuw ticket toe te wijzen."
+                                                    : `Er zijn ${numUnassigned} nieuwe tickets toe te wijzen.`}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
+                                {typeof numNotViewed === "number" &&
+                                    numNotViewed > 0 && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="p-0 ps-1 pe-2 h-6"
+                                                >
+                                                    <Dot
+                                                        className="m-0 size-4 scale-200"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span className="sr-only">
+                                                        {numNotViewed === 1
+                                                            ? "1 nieuw bericht te bekijken"
+                                                            : `${numNotViewed} nieuwe berichten te bekijken`}
+                                                    </span>
+                                                    <span aria-hidden="true">
+                                                        {numNotViewed}
+                                                    </span>
+                                                </Badge>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {numNotViewed === 1
+                                                    ? "U hebt een nieuw bericht te bekijken."
+                                                    : `U hebt ${numNotViewed} nieuwe berichten te bekijken.`}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

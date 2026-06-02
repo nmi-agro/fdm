@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, max, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, max, min, sql } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
@@ -80,6 +80,10 @@ export async function getTicket(
             "getTicket",
         )
 
+        const principal_ids = Array.isArray(principal_id)
+            ? principal_id
+            : [principal_id]
+
         const found = await fdm
             .select({
                 ...ticketColumns,
@@ -88,9 +92,13 @@ export async function getTicket(
             .from(schema.tickets)
             .leftJoin(
                 schema.ticketViews,
-                eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+                and(
+                    eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+                    inArray(schema.ticketViews.actor_id, principal_ids),
+                ),
             )
             .where(eq(schema.tickets.ticket_id, ticket_id))
+            .limit(1)
 
         const tags =
             (await getTagsForTickets(fdm, principal_id, [ticket_id])).get(
@@ -252,7 +260,10 @@ async function selectTickets(
             )
             .leftJoin(
                 schema.ticketViews,
-                inArray(schema.ticketViews.actor_id, principal_ids),
+                and(
+                    eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+                    inArray(schema.ticketViews.actor_id, principal_ids),
+                ),
             )
             .where(whereClause)
     }
@@ -481,7 +492,10 @@ export async function updateTicketStatus(
                 status: status,
                 updated: sql`now()`,
                 resolved_at: status === "resolved" ? sql`now()` : undefined,
-                closed_at: status === "closed" ? sql`now()` : undefined,
+                closed_at:
+                    status === "closed"
+                        ? sql`CASE WHEN ${isNull(schema.tickets.closed_at)} THEN now() ELSE ${schema.tickets.closed_at} END`
+                        : null,
             })
             .where(eq(schema.tickets.ticket_id, ticket_id))
     } catch (err) {
@@ -490,7 +504,7 @@ export async function updateTicketStatus(
 }
 
 /**
- * Marks the ticket as viewed by each principal.
+ * Marks the ticket as viewed by the actor.
  * If any of them has already viewed the ticket, the view timestamp will be updated.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
@@ -529,5 +543,18 @@ export async function markTicketAsViewed(
             })
     } catch (err) {
         throw handleError(err, "Exception for markTicketAsViewed")
+    }
+}
+
+export async function markTicketAsNotViewedByAll(
+    fdm: FdmHelpdeskType,
+    ticket_id: schema.TicketViewTypeSelect["ticket_id"],
+) {
+    try {
+        await fdm
+            .delete(schema.ticketViews)
+            .where(eq(schema.ticketViews.ticket_id, ticket_id))
+    } catch (err) {
+        throw handleError(err, "Exception for markTicketAsNotViewedByAll")
     }
 }

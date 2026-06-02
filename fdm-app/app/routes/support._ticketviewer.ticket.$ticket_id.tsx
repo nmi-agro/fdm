@@ -27,7 +27,7 @@ export default function DisplayedTicket() {
             isAgent={isAgent}
             principal_id={principal_id}
             principalLookup={principalLookup}
-            sender_role="customer"
+            sender_role={isAgent ? "agent" : "customer"}
             todayDate={todayDate}
         />
     )

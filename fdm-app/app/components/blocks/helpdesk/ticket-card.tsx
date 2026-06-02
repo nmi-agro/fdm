@@ -24,7 +24,7 @@ export function TicketCard({
 
     const { label: statusLabel, color: statusColor } = TICKET_STATUS.find(
         (item) => item.value === ticket.status,
-    ) ?? { status: ticket.status, color: "#777777" }
+    ) ?? { label: ticket.status, color: "#777777" }
 
     const isViewed = !!ticket.viewed_at
 

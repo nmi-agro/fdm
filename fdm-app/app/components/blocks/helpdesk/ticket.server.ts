@@ -7,6 +7,7 @@ import {
     getAssigneesForTickets,
     getMessagesForTicket,
     getTicket,
+    markTicketAsNotViewedByAll,
     markTicketAsViewed,
     unassignTicket,
     updateTicketStatus,
@@ -93,7 +94,7 @@ export async function loader({ params, request }: Args) {
                         principal_id: principal.id,
                         displayUserName: "Onbekende Medewerker",
                         initials: "OM",
-                        image: undefined,
+                        image: null,
                     }
                 }
                 return {
@@ -239,65 +240,83 @@ export async function action({ params, request }: Args) {
             )
 
             // Send email notification to the other party (non-internal messages only)
-            if (!formValues.is_internal) {
-                const senderRole = formValues.sender_role ?? "customer"
-                const ticket = await getTicket(
-                    fdm,
-                    session.principal_id,
-                    params.ticket_id,
-                )
+            try {
+                if (!formValues.is_internal) {
+                    const senderRole = formValues.sender_role ?? "customer"
+                    const ticket = await getTicket(
+                        fdm,
+                        session.principal_id,
+                        params.ticket_id,
+                    )
 
-                if (senderRole === "agent") {
-                    // Notify the customer (ticket requester)
-                    if (ticket.requester_id) {
-                        const principals = await getPrincipals(fdm, [
-                            ticket.requester_id,
-                        ])
-                        const recipient = principals.get(ticket.requester_id)
-                        if (recipient?.email) {
-                            await sendHelpdeskNewMessageEmail(
-                                recipient.email,
-                                recipient.displayUserName ?? recipient.email,
-                                ticket.assignees.find(
-                                    (assignee) =>
-                                        assignee.agent_id ===
-                                        session.principal_id,
-                                )?.display_name ?? "Een medewerker",
-                                ticket.ticket_ref,
-                                ticket.subject ?? null,
-                                params.ticket_id,
-                                formValues.body,
+                    if (senderRole === "agent") {
+                        // Notify the customer (ticket requester)
+                        if (ticket.requester_id) {
+                            const principals = await getPrincipals(fdm, [
+                                ticket.requester_id,
+                            ])
+                            const recipient = principals.get(
+                                ticket.requester_id,
+                            )
+                            if (recipient?.email) {
+                                await sendHelpdeskNewMessageEmail(
+                                    recipient.email,
+                                    recipient.displayUserName ??
+                                        recipient.email,
+                                    ticket.assignees.find(
+                                        (assignee) =>
+                                            assignee.agent_id ===
+                                            session.principal_id,
+                                    )?.display_name ?? "Een medewerker",
+                                    ticket.ticket_ref,
+                                    ticket.subject ?? null,
+                                    params.ticket_id,
+                                    formValues.body,
+                                )
+                            }
+                        }
+                    } else {
+                        // Notify the assigned agents when a customer sends a message
+                        if (ticket.assignees.length > 0) {
+                            const agentIds = ticket.assignees.map(
+                                (a) => a.agent_id,
+                            )
+                            const principals = await getPrincipals(fdm, [
+                                ...agentIds,
+                                session.principal_id,
+                            ])
+                            const sender = principals.get(session.principal_id)
+                            await Promise.all(
+                                agentIds.map(async (agentId) => {
+                                    const agent = principals.get(agentId)
+                                    if (agent?.email) {
+                                        await sendHelpdeskNewMessageEmail(
+                                            agent.email,
+                                            agent.displayUserName ??
+                                                agent.email,
+                                            sender?.displayUserName ??
+                                                "Een gebruiker",
+                                            ticket.ticket_ref,
+                                            ticket.subject ?? null,
+                                            params.ticket_id,
+                                            formValues.body,
+                                        )
+                                    }
+                                }),
                             )
                         }
                     }
-                } else {
-                    // Notify the assigned agents when a customer sends a message
-                    if (ticket.assignees.length > 0) {
-                        const agentIds = ticket.assignees.map((a) => a.agent_id)
-                        const principals = await getPrincipals(fdm, [
-                            ...agentIds,
-                            session.principal_id,
-                        ])
-                        const sender = principals.get(session.principal_id)
-                        await Promise.all(
-                            agentIds.map(async (agentId) => {
-                                const agent = principals.get(agentId)
-                                if (agent?.email) {
-                                    await sendHelpdeskNewMessageEmail(
-                                        agent.email,
-                                        agent.displayUserName ?? agent.email,
-                                        sender?.displayUserName ??
-                                            "Een gebruiker",
-                                        ticket.ticket_ref,
-                                        ticket.subject ?? null,
-                                        params.ticket_id,
-                                        formValues.body,
-                                    )
-                                }
-                            }),
-                        )
-                    }
                 }
+            } catch (notificationErr) {
+                // Sending the emails failed, but continue
+                handleActionError(notificationErr)
+            }
+
+            try {
+                await markTicketAsNotViewedByAll(fdm, params.ticket_id)
+            } catch (unreadError) {
+                // Marking as not read failed, but continue
+                handleActionError(unreadError)
             }
 
             return dataWithSuccess("Bericht ontgevangen!", {

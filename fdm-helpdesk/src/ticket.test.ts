@@ -367,6 +367,40 @@ describe("updateTicketStatus", () => {
 
         expect(ticket.status).toBe("resolved")
     })
+
+    test("should not update close time if closing twice", async ({ fdm }) => {
+        const closeDate = new Date(2023, 0, 1)
+
+        // Set an old date so we are certain now() will land after this
+        // This will be like the ticket has been closed before,
+        // and is enough to test if the closed_at date is not overridden
+        await fdm
+            .update(schema.tickets)
+            .set({ closed_at: closeDate })
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+
+        // Close again
+        await updateTicketStatus(fdm, agent_id, ticket_id, "closed")
+
+        const ticketAfter = await getTicket(fdm, agent_id, ticket_id)
+
+        expect(ticketAfter.closed_at).toBeTruthy()
+        expect(
+            Math.abs(
+                (ticketAfter.closed_at as Date).getTime() - closeDate.getTime(),
+            ),
+            "Ticket close date must not change",
+        ).toBeLessThan(1000)
+    })
+
+    test("should clear the closed_at date if opening again", async ({
+        fdm,
+    }) => {
+        await updateTicketStatus(fdm, agent_id, ticket_id, "closed")
+        await updateTicketStatus(fdm, agent_id, ticket_id, "open")
+        const ticketAfter = await getTicket(fdm, agent_id, ticket_id)
+        expect(ticketAfter.closed_at).toBeNull()
+    })
 })
 
 describe("assignTicket", () => {
@@ -640,7 +674,7 @@ describe("markTicketAsViewed", () => {
         fdm,
     }) => {
         const third_user_id = createId()
-        expect(
+        await expect(
             markTicketAsViewed(fdm, third_user_id, ticket_id),
         ).rejects.toThrow(
             "Principal does not have permission to perform this action",

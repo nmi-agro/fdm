@@ -310,6 +310,7 @@ export async function getTicketCountsForAssignees(
             .where(
                 and(
                     inArray(aliasedTicketAssignments.agent_id, agent_ids),
+                    isNull(aliasedTicketAssignments.unassigned_at),
                     getTicketWhereClause(fdm, ticketFilters),
                 ),
             )

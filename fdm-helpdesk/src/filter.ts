@@ -1,6 +1,7 @@
 import {
     and,
     eq,
+    exists,
     gte,
     inArray,
     isNotNull,
@@ -80,29 +81,6 @@ export function getTicketWhereClause(
     fdm: FdmHelpdeskType,
     filters: TicketFilters,
 ): SQL<unknown> | undefined {
-    // Check for existence if notViewedBy is requested
-    if (Array.isArray(filters?.notViewedBy) && filters.notViewedBy.length > 0) {
-        const { notViewedBy, ...filtersWithout } = filters
-        const clauseWithout = getTicketWhereClause(fdm, filtersWithout)
-        return and(
-            notExists(
-                fdm
-                    .select()
-                    .from(schema.ticketViews)
-                    .where(
-                        and(
-                            eq(
-                                schema.ticketViews.ticket_id,
-                                schema.tickets.ticket_id,
-                            ),
-                            inArray(schema.ticketViews.actor_id, notViewedBy),
-                        ),
-                    ),
-            ),
-            clauseWithout,
-        )
-    }
-
     // Build the priority filter if the user has specified either min priority or max priority out of the known priority options
     let priorityFilter: SQL | undefined
     if (filters.minPriority || filters.maxPriority) {
@@ -148,10 +126,36 @@ export function getTicketWhereClause(
             : undefined,
         // Assigned
         filters?.assigned === true
-            ? and(isNotNull(schema.ticketAssignments.agent_id))
+            ? exists(
+                  fdm
+                      .select({ ticket_id: schema.ticketAssignments.ticket_id })
+                      .from(schema.ticketAssignments)
+                      .where(
+                          and(
+                              eq(
+                                  schema.ticketAssignments.ticket_id,
+                                  schema.tickets.ticket_id,
+                              ),
+                              isNull(schema.ticketAssignments.unassigned_at),
+                          ),
+                      ),
+              )
             : undefined,
         filters?.assigned === false
-            ? isNull(schema.ticketAssignments.agent_id)
+            ? notExists(
+                  fdm
+                      .select({ ticket_id: schema.ticketAssignments.ticket_id })
+                      .from(schema.ticketAssignments)
+                      .where(
+                          and(
+                              eq(
+                                  schema.ticketAssignments.ticket_id,
+                                  schema.tickets.ticket_id,
+                              ),
+                              isNull(schema.ticketAssignments.unassigned_at),
+                          ),
+                      ),
+              )
             : undefined,
         // Assignees
         Array.isArray(filters?.assignees) && filters.assignees.length > 0
@@ -172,8 +176,27 @@ export function getTicketWhereClause(
         filters?.toDate
             ? lte(schema.tickets.created, filters.toDate)
             : undefined,
-        filters.viewedBy
+        Array.isArray(filters.viewedBy) && filters.viewedBy.length > 0
             ? inArray(schema.ticketViews.actor_id, filters.viewedBy)
+            : undefined,
+        Array.isArray(filters.notViewedBy) && filters.notViewedBy.length > 0
+            ? notExists(
+                  fdm
+                      .select()
+                      .from(schema.ticketViews)
+                      .where(
+                          and(
+                              eq(
+                                  schema.ticketViews.ticket_id,
+                                  schema.tickets.ticket_id,
+                              ),
+                              inArray(
+                                  schema.ticketViews.actor_id,
+                                  filters.notViewedBy,
+                              ),
+                          ),
+                      ),
+              )
             : undefined,
     )
 }
