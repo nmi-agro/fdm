@@ -6,10 +6,12 @@ import {
     isNotNull,
     isNull,
     lte,
+    notExists,
     type SQL,
     sql,
 } from "drizzle-orm"
 import * as schema from "./db/schema-helpdesk"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import type {
     AgentFilters,
     MessageFilters,
@@ -74,15 +76,41 @@ export function getMessageWhereClause(filters: MessageFilters) {
  * @param filters filters to apply
  * @returns a drizzle-orm SQL object
  */
-export function getTicketWhereClause(filters: TicketFilters) {
+export function getTicketWhereClause(
+    fdm: FdmHelpdeskType,
+    filters: TicketFilters,
+): SQL<unknown> | undefined {
+    // Check for existence if notViewedBy is requested
+    if (Array.isArray(filters?.notViewedBy) && filters.notViewedBy.length > 0) {
+        const { notViewedBy, ...filtersWithout } = filters
+        const clauseWithout = getTicketWhereClause(fdm, filtersWithout)
+        return and(
+            notExists(
+                fdm
+                    .select()
+                    .from(schema.ticketViews)
+                    .where(
+                        and(
+                            eq(
+                                schema.ticketViews.ticket_id,
+                                schema.tickets.ticket_id,
+                            ),
+                            inArray(schema.ticketViews.actor_id, notViewedBy),
+                        ),
+                    ),
+            ),
+            clauseWithout,
+        )
+    }
+
     // Build the priority filter if the user has specified either min priority or max priority out of the known priority options
     let priorityFilter: SQL | undefined
     if (filters.minPriority || filters.maxPriority) {
         const priorities = ["low", "normal", "high", "urgent"] as const
-        const minPriorityIndex = filters.minPriority
+        const minPriorityIndex = filters?.minPriority
             ? priorities.indexOf(filters.minPriority)
             : -1
-        const maxPriorityIndex = filters.maxPriority
+        const maxPriorityIndex = filters?.maxPriority
             ? priorities.indexOf(filters.maxPriority)
             : -1
         if (minPriorityIndex !== -1 || maxPriorityIndex !== -1) {
@@ -114,6 +142,17 @@ export function getTicketWhereClause(filters: TicketFilters) {
             : undefined,
         // Priority
         priorityFilter,
+        // Status
+        Array.isArray(filters.statuses) && filters.statuses.length > 0
+            ? inArray(schema.tickets.status, filters.statuses)
+            : undefined,
+        // Assigned
+        filters?.assigned === true
+            ? and(isNotNull(schema.ticketAssignments.agent_id))
+            : undefined,
+        filters?.assigned === false
+            ? isNull(schema.ticketAssignments.agent_id)
+            : undefined,
         // Assignees
         Array.isArray(filters?.assignees) && filters.assignees.length > 0
             ? and(
@@ -132,6 +171,9 @@ export function getTicketWhereClause(filters: TicketFilters) {
             : undefined,
         filters?.toDate
             ? lte(schema.tickets.created, filters.toDate)
+            : undefined,
+        filters.viewedBy
+            ? inArray(schema.ticketViews.actor_id, filters.viewedBy)
             : undefined,
     )
 }

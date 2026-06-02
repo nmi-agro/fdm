@@ -7,6 +7,7 @@ import { Outlet } from "react-router-dom"
 import { SidebarApps } from "~/components/blocks/sidebar/apps"
 import { SidebarFarm, SidebarLabs } from "~/components/blocks/sidebar/farm"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
+import { sidebarSupportLoader } from "~/components/blocks/sidebar/support.server"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
 import {
@@ -60,12 +61,15 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
                 ? await getFarm(fdm, session.principal_id, params.b_id_farm)
                 : undefined
 
+        const supportLoaderData = await sidebarSupportLoader({ request })
+
         // Return user information from loader
         return {
             farm: farm,
             user: session.user,
             userName: session.userName,
             initials: session.initials,
+            ...supportLoaderData,
         }
     } catch (error) {
         // If getSession throws (e.g., invalid token), it might result in a 401
@@ -134,6 +138,8 @@ export default function App() {
                 <SidebarSupport
                     name={loaderData.userName}
                     email={loaderData.user.email}
+                    numNotViewed={loaderData.numNotViewed}
+                    numUnassigned={loaderData.numUnassigned}
                 />
                 <SidebarUser
                     name={loaderData.userName}

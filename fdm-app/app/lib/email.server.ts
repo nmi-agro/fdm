@@ -7,6 +7,7 @@ import { render } from "react-email"
 import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
 import { FarmInvitationCancelledEmail } from "~/components/blocks/email/farm-invitation-cancelled"
 import { FarmInvitationRoleUpdatedEmail } from "~/components/blocks/email/farm-invitation-role-updated"
+import { HelpdeskNewMessageEmail } from "~/components/blocks/email/helpdesk-new-message"
 import { InvitationEmail } from "~/components/blocks/email/invitation"
 import { MagicLinkEmail } from "~/components/blocks/email/magic-link"
 import { WelcomeEmail } from "~/components/blocks/email/welcome"
@@ -257,6 +258,43 @@ function getTimeZoneFromUrl(url: string): string | undefined {
     return undefined
 }
 
+export async function renderHelpdeskNewMessageEmail(
+    recipientEmail: string,
+    recipientName: string,
+    senderName: string,
+    ticketRef: string,
+    ticketSubject: string | null,
+    ticketId: string,
+    messageBody: string,
+): Promise<Email> {
+    const ticketUrl = `${serverConfig.url}/support/ticket/${ticketId}`
+
+    const emailHtml = await render(
+        HelpdeskNewMessageEmail({
+            ticketRef,
+            ticketSubject,
+            senderName,
+            messageBody,
+            ticketUrl,
+            recipientName,
+            appName: serverConfig.name,
+            appBaseUrl: serverConfig.url,
+            emailSenderName: serverConfig.mail?.postmark.sender_name,
+        }),
+        { pretty: true },
+    )
+
+    const email: Email = {
+        From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
+        To: recipientEmail,
+        Subject: `Nieuw bericht op ticket ${ticketRef}${ticketSubject ? ` – ${ticketSubject}` : ""}`,
+        HtmlBody: emailHtml,
+        Tag: "helpdesk-new-message",
+    }
+
+    return email
+}
+
 export async function sendEmail(email: Email): Promise<void> {
     await client.sendEmail(email)
 }
@@ -281,5 +319,30 @@ export async function sendWelcomeEmailToUser(user: User) {
         await sendEmail(email)
     } catch (error) {
         console.error("Error sending welcome email:", error)
+    }
+}
+
+export async function sendHelpdeskNewMessageEmail(
+    recipientEmail: string,
+    recipientName: string,
+    senderName: string,
+    ticketRef: string,
+    ticketSubject: string | null,
+    ticketId: string,
+    messageBody: string,
+): Promise<void> {
+    try {
+        const email = await renderHelpdeskNewMessageEmail(
+            recipientEmail,
+            recipientName,
+            senderName,
+            ticketRef,
+            ticketSubject,
+            ticketId,
+            messageBody,
+        )
+        await sendEmail(email)
+    } catch (error) {
+        console.error("Error sending helpdesk new message email:", error)
     }
 }

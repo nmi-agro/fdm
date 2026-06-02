@@ -1,11 +1,12 @@
 import * as Sentry from "@sentry/react-router"
-import { LifeBuoy, Send } from "lucide-react"
+import { Asterisk, Dot, LifeBuoy, Send } from "lucide-react"
 import { useEffect, useState } from "react"
 import { NavLink, useParams } from "react-router"
 import { toast } from "sonner"
 import { clientConfig } from "@/app/lib/config"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { ChangelogNotification } from "~/components/custom/changelog-notification"
+import { Badge } from "~/components/ui/badge"
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -13,13 +14,22 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "~/components/ui/sidebar"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 
 export function SidebarSupport({
     name,
     email,
+    numNotViewed,
+    numUnassigned,
 }: {
     name: string | undefined
     email: string | undefined
+    numNotViewed: number
+    numUnassigned: number
 }) {
     const params = useParams()
 
@@ -103,7 +113,43 @@ export function SidebarSupport({
                                 )}
                             >
                                 <LifeBuoy />
-                                <span>Ondersteuning</span>
+                                <span className="me-auto">Ondersteuning</span>
+                                {numUnassigned > 0 && (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Badge
+                                                variant="outline"
+                                                className="p-0 ps-1 pe-2 h-6"
+                                            >
+                                                <Asterisk className="m-0 size-4" />
+                                                {numUnassigned}
+                                            </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {numUnassigned === 1
+                                                ? "Er is een nieuwe ticket toe te wijzen."
+                                                : `Er zijn ${numUnassigned} tickets toe te wijzen.`}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
+                                {numNotViewed > 0 && (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Badge
+                                                variant="outline"
+                                                className="p-0 ps-1 pe-2 h-6"
+                                            >
+                                                <Dot className="m-0 size-4 scale-200" />
+                                                {numNotViewed}
+                                            </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {numNotViewed === 1
+                                                ? "U hebt een nieuwe bericht te bekijken."
+                                                : `U hebt ${numNotViewed} nieuwe berichten te bekijken.`}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

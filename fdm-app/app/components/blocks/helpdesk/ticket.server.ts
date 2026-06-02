@@ -14,6 +14,7 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import z from "zod"
 import { getSession } from "@/app/lib/auth.server"
+import { sendHelpdeskNewMessageEmail } from "@/app/lib/email.server"
 import { handleActionError, handleLoaderError } from "@/app/lib/error"
 import { fdm } from "@/app/lib/fdm.server"
 import { extractFormValuesFromRequest } from "@/app/lib/form"
@@ -226,7 +227,6 @@ export async function action({ params, request }: Args) {
         }
 
         if (formValues.intent === "add_message") {
-            console.log(formValues.body)
             await addMessage(
                 fdm,
                 params.ticket_id,
@@ -235,6 +235,68 @@ export async function action({ params, request }: Args) {
                 formValues.body,
                 formValues.is_internal,
             )
+
+            // Send email notification to the other party (non-internal messages only)
+            if (!formValues.is_internal) {
+                const senderRole = formValues.sender_role ?? "customer"
+                const ticket = await getTicket(
+                    fdm,
+                    session.principal_id,
+                    params.ticket_id,
+                )
+
+                if (senderRole === "agent") {
+                    // Notify the customer (ticket requester)
+                    if (ticket.requester_id) {
+                        const principals = await getPrincipals(fdm, [
+                            ticket.requester_id,
+                        ])
+                        const recipient = principals.get(ticket.requester_id)
+                        if (recipient?.email) {
+                            await sendHelpdeskNewMessageEmail(
+                                recipient.email,
+                                recipient.displayUserName ?? recipient.email,
+                                ticket.assignees.find(
+                                    (assignee) =>
+                                        assignee.agent_id ===
+                                        session.principal_id,
+                                )?.display_name ?? "Een medewerker",
+                                ticket.ticket_ref,
+                                ticket.subject ?? null,
+                                params.ticket_id,
+                                formValues.body,
+                            )
+                        }
+                    }
+                } else {
+                    // Notify the assigned agents when a customer sends a message
+                    if (ticket.assignees.length > 0) {
+                        const agentIds = ticket.assignees.map((a) => a.agent_id)
+                        const principals = await getPrincipals(fdm, [
+                            ...agentIds,
+                            session.principal_id,
+                        ])
+                        const sender = principals.get(session.principal_id)
+                        await Promise.all(
+                            agentIds.map(async (agentId) => {
+                                const agent = principals.get(agentId)
+                                if (agent?.email) {
+                                    await sendHelpdeskNewMessageEmail(
+                                        agent.email,
+                                        agent.displayUserName ?? agent.email,
+                                        sender?.displayUserName ??
+                                            "Een gebruiker",
+                                        ticket.ticket_ref,
+                                        ticket.subject ?? null,
+                                        params.ticket_id,
+                                        formValues.body,
+                                    )
+                                }
+                            }),
+                        )
+                    }
+                }
+            }
 
             return dataWithSuccess("Bericht ontgevangen!", {
                 message: "Bericht ontgevangen!",

@@ -310,7 +310,7 @@ export async function getTicketCountsForAssignees(
             .where(
                 and(
                     inArray(aliasedTicketAssignments.agent_id, agent_ids),
-                    getTicketWhereClause(ticketFilters),
+                    getTicketWhereClause(fdm, ticketFilters),
                 ),
             )
             .groupBy(aliasedTicketAssignments.agent_id)

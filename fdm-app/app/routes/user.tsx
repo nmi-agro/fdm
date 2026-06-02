@@ -5,6 +5,7 @@ import { useLoaderData } from "react-router"
 import { Outlet } from "react-router-dom"
 import { SidebarPlatform } from "~/components/blocks/sidebar/platform"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
+import { sidebarSupportLoader } from "~/components/blocks/sidebar/support.server"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
 import {
@@ -38,11 +39,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
             return sessionCheckResponse
         }
 
+        const supportLoaderData = await sidebarSupportLoader({ request })
+
         // Return user information from loader
         return {
             user: session.user,
             userName: session.userName,
             initials: session.initials,
+            ...supportLoaderData,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -78,6 +82,8 @@ export default function App() {
                 <SidebarSupport
                     name={loaderData.userName}
                     email={loaderData.user.email}
+                    numNotViewed={loaderData.numNotViewed}
+                    numUnassigned={loaderData.numUnassigned}
                 />
                 <SidebarUser
                     name={loaderData.userName}

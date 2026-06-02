@@ -4,6 +4,8 @@ export type ActivityFilter = {
 }
 
 export type AssigneeFilter = {
+    /** Is the ticket assigned at all */
+    assigned?: boolean
     /** Agent IDs that the ticket is assigned to */
     assignees?: string[]
 }
@@ -51,6 +53,11 @@ export type SenderFilter = {
     sentBy?: string[]
 }
 
+export type TicketStatusFilter = {
+    /** Ticket status */
+    statuses?: string[]
+}
+
 export type TagsFilter = {
     /** Tag IDs to filter the records by */
     tags?: string[]
@@ -63,6 +70,13 @@ export type TimeframeFilter = {
     toDate?: Date
 }
 
+export type ViewedByFilter = {
+    /** Has any of the actors viewed the ticket */
+    viewedBy?: string[]
+    /** Has any of the actors not viewed the ticket */
+    notViewedBy?: string[]
+}
+
 export type AgentFilters = ActivityFilter & PaginationFilter
 
 export type MessageFilters = TimeframeFilter &
@@ -73,8 +87,10 @@ export type MessageFilters = TimeframeFilter &
 
 export type TicketFilters = AssigneeFilter &
     TicketContextFilter &
+    TicketStatusFilter &
     PaginationFilter &
     PriorityFilter &
     RequesterFilter &
     TagsFilter &
-    TimeframeFilter
+    TimeframeFilter &
+    ViewedFilter

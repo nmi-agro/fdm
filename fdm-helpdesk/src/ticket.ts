@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, max, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, max, sql } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
@@ -228,7 +228,7 @@ async function selectTickets(
         ? principal_ids
         : filters.requesterIds
 
-    const whereClause = getTicketWhereClause({ ...filters, requesterIds })
+    const whereClause = getTicketWhereClause(fdm, { ...filters, requesterIds })
 
     if (selectCount) {
         return await fdm
@@ -238,9 +238,12 @@ async function selectTickets(
             .from(schema.tickets)
             .leftJoin(
                 schema.ticketAssignments,
-                eq(
-                    schema.ticketAssignments.ticket_id,
-                    schema.tickets.ticket_id,
+                and(
+                    eq(
+                        schema.ticketAssignments.ticket_id,
+                        schema.tickets.ticket_id,
+                    ),
+                    isNull(schema.ticketAssignments.unassigned_at),
                 ),
             )
             .leftJoin(
