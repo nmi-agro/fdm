@@ -13,6 +13,7 @@ export default function DisplayedTicket() {
         canAddMessages,
         isAgent,
         principals,
+        todayDate,
     } = useLoaderData<typeof loader>()
     const principalLookup = new Map(
         principals.map((principal) => [principal.principal_id, principal]),
@@ -27,6 +28,7 @@ export default function DisplayedTicket() {
             principal_id={principal_id}
             principalLookup={principalLookup}
             sender_role="customer"
+            todayDate={todayDate}
         />
     )
 }

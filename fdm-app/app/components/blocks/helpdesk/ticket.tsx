@@ -65,6 +65,7 @@ export function Ticket({
     principal_id,
     principalLookup,
     sender_role,
+    todayDate,
 }: {
     ticket: TicketT
     messages: MessageT[]
@@ -74,6 +75,7 @@ export function Ticket({
     principal_id: string
     principalLookup: Map<string, HelpdeskUser>
     sender_role: "agent" | "customer"
+    todayDate: Date
 }) {
     const navigation = useNavigation()
     const submit = useSubmit()
@@ -271,6 +273,8 @@ export function Ticket({
                         key={msg.message_id}
                         principal={principalLookup.get(msg.sender_id) ?? null}
                         isInternal={msg.is_internal}
+                        date={msg.created}
+                        todayDate={todayDate}
                     >
                         <p
                             className="whitespace-pre-wrap text-sm"

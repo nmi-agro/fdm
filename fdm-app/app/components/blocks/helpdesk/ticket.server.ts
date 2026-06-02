@@ -115,6 +115,8 @@ export async function loader({ params, request }: Args) {
             isAgent: isAgent,
             principals: principalsSummarized,
             agents: agentsConditional,
+            // To prevent hydration failed errors
+            todayDate: new Date(),
         }
     } catch (err) {
         throw handleLoaderError(err)

@@ -1,4 +1,6 @@
 import type { Message as MessageT } from "@nmi-agro/fdm-helpdesk"
+import { formatDate, formatDistance } from "date-fns"
+import { nl } from "date-fns/locale"
 import { User } from "lucide-react"
 import type { ReactNode } from "react"
 import { cn } from "@/app/lib/utils"
@@ -10,16 +12,27 @@ export type MessageExtended = MessageT & { principal: HelpdeskUser | null }
 export function Message({
     title,
     principal,
+    date,
+    todayDate,
     isInternal = false,
     className,
     children,
 }: {
     title?: ReactNode
     principal: HelpdeskUser | null
+    date?: Date
+    todayDate?: Date
     isInternal?: boolean
     className?: string
     children: ReactNode
 }) {
+    const formattedDateTooltip = date
+        ? formatDate(date, "PP HH:mm", { locale: nl })
+        : null
+    const formattedDateDisplay =
+        date && todayDate
+            ? formatDistance(todayDate, date, { locale: nl })
+            : formattedDateTooltip
     return (
         <Card
             className={cn(
@@ -43,6 +56,20 @@ export function Message({
                         )}
                     </span>
                 )}
+                <div className="ms-auto">
+                    {formattedDateTooltip && (
+                        <span
+                            className="text-sm"
+                            title={
+                                (formattedDateDisplay !== formattedDateTooltip
+                                    ? formattedDateTooltip
+                                    : null) ?? undefined
+                            }
+                        >
+                            {formattedDateDisplay}
+                        </span>
+                    )}
+                </div>
             </div>
             {children}
         </Card>
