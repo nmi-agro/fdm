@@ -1,35 +1,88 @@
 import {
     addSoilAnalysis,
+    addSoilImage,
+    addSoilImageAnnotation,
     checkPermission,
+    getCurrentSoilData,
     getField,
     getSoilAnalysis,
-    updateSoilAnalysis,
+    removeSoilAnalysis,
+    removeSoilImage,
 } from "@nmi-agro/fdm-core"
-import { ArrowLeft } from "lucide-react"
 import {
-    data,
     type ActionFunctionArgs,
+    data,
     type LoaderFunctionArgs,
-    NavLink,
     useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { BcsWizard } from "~/components/blocks/soil-visual/bcs-wizard"
-import { Button } from "~/components/ui/button"
-import { Separator } from "~/components/ui/separator"
+import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
+import { BCS_VISUAL_KEYS, type BcsSavePayload, type BcsVisualKey } from "~/lib/bcs"
+import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
+function getRouteParams(params: ActionFunctionArgs["params"]) {
+    const { b_id, b_id_farm, calendar } = params
+    if (!b_id_farm) {
+        throw data("Farm ID is required", {
+            status: 400,
+            statusText: "Farm ID is required",
+        })
+    }
+    if (!calendar) {
+        throw data("Calendar is required", {
+            status: 400,
+            statusText: "Calendar is required",
+        })
+    }
+    if (!b_id) {
+        throw data("Field ID is required", {
+            status: 400,
+            statusText: "Field ID is required",
+        })
+    }
+    return { b_id, b_id_farm, calendar }
+}
+
+function getBcsPath(params: ActionFunctionArgs["params"]) {
+    const { b_id, b_id_farm, calendar } = getRouteParams(params)
+    return `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`
+}
+
+function sanitizeScores(payload: BcsSavePayload) {
+    return Object.fromEntries(
+        BCS_VISUAL_KEYS.flatMap((key) => {
+            const score = payload.scores[key]
+            return score === 0 || score === 1 || score === 2 ? [[key, score]] : []
+        }),
+    ) as Partial<Record<BcsVisualKey, 0 | 1 | 2>>
+}
+
+function ensureValidDate(value: string, label: string) {
+    const dateValue = new Date(value)
+    if (Number.isNaN(dateValue.getTime())) {
+        throw data(`${label} is ongeldig`, {
+            status: 400,
+            statusText: `${label} is ongeldig`,
+        })
+    }
+    return dateValue
+}
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) throw data("Farm ID is required", { status: 400 })
-
-        const b_id = params.b_id
-        if (!b_id) throw data("Field ID is required", { status: 400 })
-
+        const { b_id } = getRouteParams(params)
         const session = await getSession(request)
+        const field = await getField(fdm, session.principal_id, b_id)
+        if (!field) {
+            throw data("Field is not found", {
+                status: 404,
+                statusText: "Field is not found",
+            })
+        }
 
         await checkPermission(
             fdm,
@@ -37,138 +90,153 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             "write",
             b_id,
             session.principal_id,
-            "bcs.new",
+            new URL(request.url).pathname,
         )
 
-        const field = await getField(fdm, session.principal_id, b_id)
-        if (!field) throw data("Field is not found", { status: 404 })
+        const { labContext: _labContext, labAnalysisDate } = await deriveBcsScores(
+            fdm,
+            session.principal_id,
+            b_id,
+            new Date(),
+        )
 
-        return { field, b_id_farm, b_id, calendar: params.calendar ?? "" }
+        const currentSoilData = await getCurrentSoilData(fdm, session.principal_id, b_id)
+        const soilDataArray = Array.isArray(currentSoilData) ? currentSoilData : []
+        const somItem = soilDataArray.find((item) => item.parameter === "a_som_loi")
+        const phItem = soilDataArray.find((item) => item.parameter === "a_ph_cc")
+
+        return {
+            b_id,
+            fieldName: field.b_name,
+            labAnalysisDate,
+            somLoi: typeof somItem?.value === "number" ? somItem.value : null,
+            phCc: typeof phItem?.value === "number" ? phItem.value : null,
+            soilSource: somItem?.a_source ?? phItem?.a_source ?? null,
+        }
     } catch (error) {
         throw handleLoaderError(error)
     }
 }
 
+export default function FieldBcsNewRoute() {
+    const loaderData = useLoaderData<typeof loader>()
+
+    return <BcsWizard {...loaderData} />
+}
+
 export async function action({ request, params }: ActionFunctionArgs) {
+    const { b_id } = getRouteParams(params)
+
+    if (request.method !== "POST") {
+        throw data("Method not allowed", {
+            status: 405,
+            statusText: "Method not allowed",
+        })
+    }
+
+    const payload = (await request.json()) as BcsSavePayload
+    const scores = sanitizeScores(payload)
+    if (!BCS_VISUAL_KEYS.some((key) => scores[key] != null)) {
+        throw data("Geef minimaal één visuele BCS-score op", {
+            status: 400,
+            statusText: "Geef minimaal één visuele BCS-score op",
+        })
+    }
+
+    const a_date = ensureValidDate(payload.a_date, "Beoordelingsdatum")
+    const b_sampling_date = ensureValidDate(
+        payload.b_sampling_date,
+        "Bemonsteringsdatum",
+    )
+
+    const objectKeyPrefix = "soil_image/"
+    if (
+        payload.images.some(
+            (image) => !image.objectKey || !image.objectKey.startsWith(objectKeyPrefix),
+        )
+    ) {
+        throw data("Ongeldige afbeeldingreferentie", {
+            status: 400,
+            statusText: "Ongeldige afbeeldingreferentie",
+        })
+    }
+
+    let createdAnalysisId: string | null = null
+    const createdImageIds: string[] = []
+
     try {
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) throw data("Farm ID is required", { status: 400 })
-
-        const b_id = params.b_id
-        if (!b_id) throw data("Field ID is required", { status: 400 })
-
         const session = await getSession(request)
-        const formData = await request.formData()
-        const intent = formData.get("intent")?.toString()
+        createdAnalysisId = await addSoilAnalysis(
+            fdm,
+            session.principal_id,
+            a_date,
+            "other",
+            b_id,
+            Number(payload.a_depth_lower) || 25,
+            b_sampling_date,
+            scores,
+        )
 
-        if (intent === "create-draft") {
-            const a_id = await addSoilAnalysis(
+        const analysis = await getSoilAnalysis(
+            fdm,
+            session.principal_id,
+            createdAnalysisId,
+        )
+
+        const tempImageIdToStoredId = new Map<string, string>()
+        for (const [index, image] of payload.images.entries()) {
+            const a_id_image = await addSoilImage(
                 fdm,
                 session.principal_id,
-                new Date(),
-                "other",
-                b_id,
-                30,
-                new Date(),
-                {},
+                analysis.b_id_sampling,
+                {
+                    a_image_path: image.objectKey,
+                    a_image_type: undefined,
+                    a_image_order: index,
+                    a_image_caption: image.caption,
+                },
             )
-            const analysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
-            return data({ a_id, b_id_sampling: analysis?.b_id_sampling ?? null })
+            createdImageIds.push(a_id_image)
+            tempImageIdToStoredId.set(image.tempId, a_id_image)
         }
 
-        const parseScore = (key: string) => {
-            const val = formData.get(key)
-            if (val === null || val === "") return null
-            const n = Number(val)
-            return Number.isNaN(n) ? null : n
-        }
+        for (const [index, annotation] of payload.annotations.entries()) {
+            const a_id_image = tempImageIdToStoredId.get(annotation.tempImageId)
+            if (!a_id_image) {
+                throw new Error(`Unknown tempImageId: ${annotation.tempImageId}`)
+            }
 
-        const parseOptionalDate = (key: string) => {
-            const val = formData.get(key)?.toString()
-            if (!val) return undefined
-            const d = new Date(val)
-            return Number.isNaN(d.getTime()) ? undefined : d
-        }
-
-        const a_date = parseOptionalDate("a_date")
-        const a_depth_lower = Number(formData.get("a_depth_lower")) || 30
-        const existingAnalysisId = formData.get("a_id")?.toString()
-
-        const scores = {
-            a_ss_bcs: parseScore("a_ss_bcs"),
-            a_sc_bcs: parseScore("a_sc_bcs"),
-            a_rd_bcs: parseScore("a_rd_bcs"),
-            a_ew_bcs: parseScore("a_ew_bcs"),
-            a_cc_bcs: parseScore("a_cc_bcs"),
-            a_gs_bcs: parseScore("a_gs_bcs"),
-            a_p_bcs: parseScore("a_p_bcs"),
-            a_c_bcs: parseScore("a_c_bcs"),
-            a_rt_bcs: parseScore("a_rt_bcs"),
-        }
-
-        const a_id = existingAnalysisId
-            ? existingAnalysisId
-            : await addSoilAnalysis(
-                  fdm,
-                  session.principal_id,
-                  a_date ?? new Date(),
-                  "other",
-                  b_id,
-                  a_depth_lower,
-                  a_date ?? new Date(),
-                  scores,
-              )
-
-        if (existingAnalysisId) {
-            await updateSoilAnalysis(fdm, session.principal_id, existingAnalysisId, {
-                a_date,
-                ...scores,
+            await addSoilImageAnnotation(fdm, session.principal_id, a_id_image, {
+                a_image_annotation_type: "pin",
+                a_image_annotation_coordinates: annotation.coordinates,
+                a_image_annotation: annotation.text,
+                a_image_annotation_bcs: annotation.bcsIndicator,
+                a_image_annotation_order: index,
             })
         }
 
-        return redirectWithSuccess(
-            `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/bcs/${a_id}`,
-            existingAnalysisId
-                ? "Visuele beoordeling opgeslagen"
-                : "Visuele beoordeling opgeslagen",
-        )
+        return redirectWithSuccess(getBcsPath(params), {
+            message: "BCS opgeslagen! 🎉",
+        })
     } catch (error) {
+        const session = await getSession(request)
+
+        await Promise.allSettled(
+            createdImageIds.map((a_id_image) =>
+                removeSoilImage(fdm, session.principal_id, a_id_image, deleteObject),
+            ),
+        )
+
+        if (createdAnalysisId) {
+            await Promise.allSettled([
+                removeSoilAnalysis(fdm, session.principal_id, createdAnalysisId),
+            ])
+        }
+
+        await Promise.allSettled(
+            payload.images.map((image) => deleteObject(image.objectKey)),
+        )
+
         throw handleActionError(error)
     }
-}
-
-/**
- * Page for creating a new BCS visual soil assessment.
- */
-export default function NewVisualSoilAnalysis() {
-    const { field, b_id_farm, b_id, calendar } = useLoaderData<typeof loader>()
-
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" asChild>
-                    <NavLink to="..">
-                        <ArrowLeft className="h-4 w-4" />
-                    </NavLink>
-                </Button>
-                <div>
-                    <h3 className="text-lg font-medium">
-                        Nieuwe visuele beoordeling
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                        {field.b_name}
-                    </p>
-                </div>
-            </div>
-
-            <Separator />
-
-            <BcsWizard
-                b_id={b_id}
-                b_id_farm={b_id_farm}
-                calendar={calendar}
-                action=""
-            />
-        </div>
-    )
 }

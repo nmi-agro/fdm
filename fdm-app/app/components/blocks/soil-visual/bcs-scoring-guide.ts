@@ -1,288 +1,251 @@
-import type { BcsIndicatorKey } from "~/components/blocks/soil-visual/bcs-color-utils"
-
-interface ScoreLevel {
+export interface ScoringCriteria {
     score: 0 | 1 | 2
     label: string
     description: string
-    referenceImageUrl?: string
 }
 
-export interface IndicatorScoringGuide {
-    key: BcsIndicatorKey
-    instruction: string
-    scoreLevels: ScoreLevel[]
+export interface IndicatorGuide {
+    key: string
+    name: string
+    description: string
+    instructions: string
+    criteria: ScoringCriteria[]
+    tip: string
 }
 
-/**
- * Scoring criteria per BCS indicator, derived from the official protocol documents
- * (WUR/Boerenverstand/Louis Bolk "MijnBodemconditie" methodology).
- *
- * Each indicator has:
- * - instruction: what to do in the field
- * - scoreLevels: what 0/1/2 means with descriptions
- * - optional referenceImageUrl: can be added later as static assets
- */
-export const BCS_SCORING_GUIDE: IndicatorScoringGuide[] = [
+export const BCS_GUIDES: IndicatorGuide[] = [
     {
         key: "a_cc_bcs",
-        instruction:
-            "Beoordeel het percentage bodemoppervlak dat bedekt is door vegetatie. Kijk van bovenaf naar het perceel.",
-        scoreLevels: [
+        name: "Gewasbedekking",
+        description:
+            "Hoeveel van het bodemoppervlak bedekt is met een levend gewas of plantenresten.",
+        instructions:
+            "Kijk recht van boven naar het perceel en schat welk deel van de bodem niet meer zichtbaar is.",
+        criteria: [
             {
-                score: 2,
-                label: "Goed",
-                description: ">75% van het bodemoppervlak bedekt door vegetatie",
+                score: 0,
+                label: "Slecht",
+                description: "Minder dan 30% van de bodem is bedekt; grote delen liggen kaal.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description: "~50% van het bodemoppervlak bedekt",
+                description: "Ongeveer 30% tot 70% van het oppervlak is bedekt.",
             },
             {
-                score: 0,
-                label: "Onvoldoende",
-                description: "<20% van het bodemoppervlak bedekt",
+                score: 2,
+                label: "Goed",
+                description: "Meer dan 70% van de bodem is bedekt door vegetatie of resten.",
             },
         ],
+        tip: "Maak een overzichtsfoto recht van boven zodat de bedekking goed zichtbaar is.",
     },
     {
         key: "a_rd_bcs",
-        instruction:
-            "Bekijk de beworteling in het uitgegraven blok. Beoordeel de maximale wortelgroei-diepte, verdeling en vertakking.",
-        scoreLevels: [
+        name: "Beworteling",
+        description:
+            "De diepte, dichtheid en vertakking van wortels in de profielwand en het bodemblok.",
+        instructions:
+            "Bekijk de profielwand en breek een kluit open. Let op hoe diep de wortels gaan en hoe gelijkmatig ze verdeeld zijn.",
+        criteria: [
             {
-                score: 2,
-                label: "Goed",
-                description:
-                    "Maximale wortelgroei tot 50 cm, goed regelmatig over het hele profiel. Fijne vertakkingen zichtbaar.",
+                score: 0,
+                label: "Slecht",
+                description: "Wortels zijn oppervlakkig, schaars en vooral in de bovenlaag aanwezig.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description:
-                    "Maximale wortelgroei tot 30 cm, onregelmatige verdeling. Beperkte vertakking.",
+                description: "Wortels komen tot middelmatige diepte en zijn redelijk verdeeld.",
             },
             {
-                score: 0,
-                label: "Onvoldoende",
-                description:
-                    "Maximale wortelgroei slechts 20 cm. Zeer beperkte of geen fijne wortels.",
+                score: 2,
+                label: "Goed",
+                description: "Wortels gaan diep door en zijn fijn vertakt en dicht aanwezig.",
             },
         ],
+        tip: "Fotografeer een schone profielwand of opengebroken kluit met duidelijk zichtbare wortels.",
     },
     {
         key: "a_sc_bcs",
-        instruction:
-            "Graaf de kuil tot 40-50 cm diepte. Snij de bodem van boven naar beneden met een spatel. Voel of er weerstandsverschillen zijn (ploegzool).",
-        scoreLevels: [
+        name: "Verdichting ondergrond",
+        description:
+            "Mate van verdichting, plaatstructuren en doorwortelbaarheid in de ondergrond.",
+        instructions:
+            "Voel in de ondergrond met een spade of hand aan de weerstand en let op platte structuren of dichte lagen.",
+        criteria: [
             {
-                score: 2,
-                label: "Goed",
-                description:
-                    "Geen weerstandsverschillen voelbaar. Poriën aanwezig in alle dieptes. Goede wortelgroei door hele profiel.",
+                score: 0,
+                label: "Slecht",
+                description: "De ondergrond is sterk verdicht, hard en toont duidelijke plaatstructuren.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description:
-                    "Matig weerstandsverschil voelbaar. Poriën aanwezig. Kleurverschil tussen lagen zichtbaar.",
+                description: "Er is enige verdichting zichtbaar, maar nog wel enige kruimeligheid aanwezig.",
             },
             {
-                score: 0,
-                label: "Onvoldoende",
-                description:
-                    "Groot contrast in weerstand voelbaar. Duidelijke ploegzool zichtbaar. Wortels stoppen of worden blauw.",
+                score: 2,
+                label: "Goed",
+                description: "Geen duidelijke verdichting; de ondergrond is kruimelig en goed doorwortelbaar.",
             },
         ],
+        tip: "Leg een detail vast van de ondergrond waar plaatjes of juist kruimels goed zichtbaar zijn.",
     },
     {
         key: "a_ew_bcs",
-        instruction:
-            "Breek het uitgegraven blok open in kleinere stukjes. Tel de regenwormen en bepaal hoeveel soorten (strooiselbewoners=rood, bodembewoners=grauw, pendelaars=rood/roze).",
-        scoreLevels: [
+        name: "Regenwormen",
+        description:
+            "Aantal regenwormen in een steekproef van circa 20 x 20 x 20 cm.",
+        instructions:
+            "Tel alle regenwormen in een uitgegraven bodemblok van ongeveer 20 centimeter diep, breed en lang.",
+        criteria: [
             {
-                score: 2,
-                label: "Goed",
-                description:
-                    "Meer dan 6 regenwormen gevonden met minimaal 3 soorten.",
+                score: 0,
+                label: "Slecht",
+                description: "Er zijn 0 tot 2 regenwormen gevonden in het bodemblok.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description: "3 tot 6 regenwormen met 2 soorten.",
+                description: "Er zijn 3 tot 5 regenwormen gevonden.",
             },
             {
-                score: 0,
-                label: "Onvoldoende",
-                description: "Minder dan 3 regenwormen, slechts 1 soort.",
+                score: 2,
+                label: "Goed",
+                description: "Er zijn meer dan 5 regenwormen gevonden.",
             },
         ],
+        tip: "Maak een close-up van het uitgegraven bodemblok of leg de wormen naast een meetlat vast.",
     },
     {
         key: "a_ss_bcs",
-        instruction:
-            "Laat het uitgegraven blok 3× vallen vanuit circa 1 meter hoogte op een plastic zak. Sorteer de aggregaten: grootste bovenaan, kleinste onderaan. Vergelijk met referentiebeelden.",
-        scoreLevels: [
+        name: "Bodemstructuur",
+        description:
+            "Grootte en stevigheid van kluiten en de stabiliteit van aggregaten.",
+        instructions:
+            "Neem een bodemblok in de hand en beoordeel hoe makkelijk het uiteenvalt in kruimels of harde kluiten.",
+        criteria: [
             {
-                score: 2,
-                label: "Goed",
-                description:
-                    "Overwegend kleine, kruimelige aggregaten. Bodem valt gemakkelijk uit elkaar in stabiele kruimels.",
+                score: 0,
+                label: "Slecht",
+                description: "Grote, harde kluiten die moeilijk breken en weinig kruimels geven.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description:
-                    "Mix van grote en kleine aggregaten. Enige plattige kluiten aanwezig.",
+                description: "Middelgrote kluiten met zowel kruimels als enkele stevige delen.",
             },
-            {
-                score: 0,
-                label: "Onvoldoende",
-                description:
-                    "Vooral grote, plattige kluiten. Bodem breekt niet of nauwelijks op. Geen kruimelstructuur.",
-            },
-        ],
-    },
-    {
-        key: "a_ph_bcs",
-        instruction:
-            "Gebruik de pH-CaCl₂ waarde uit het bodemonderzoek. Vergelijk met de optimale range voor uw grondsoort en gewas.",
-        scoreLevels: [
             {
                 score: 2,
                 label: "Goed",
-                description: "pH binnen optimaal bereik voor grondsoort en gewas.",
-            },
-            {
-                score: 1,
-                label: "Matig",
-                description: "pH net buiten optimaal bereik (suboptimaal).",
-            },
-            {
-                score: 0,
-                label: "Onvoldoende",
-                description: "pH ver buiten optimaal bereik.",
+                description: "Kleine, kruimelige aggregaten die gemakkelijk uiteen vallen.",
             },
         ],
-    },
-    {
-        key: "a_som_bcs",
-        instruction:
-            "Gebruik het organische stofgehalte (%) uit het bodemonderzoek. Vergelijk met normen voor uw grondsoort en landgebruik.",
-        scoreLevels: [
-            {
-                score: 2,
-                label: "Goed",
-                description:
-                    "Organische stofgehalte boven de 70e percentiel voor grondsoort/gewas.",
-            },
-            {
-                score: 1,
-                label: "Matig",
-                description:
-                    "Organische stofgehalte tussen de 30e en 70e percentiel.",
-            },
-            {
-                score: 0,
-                label: "Onvoldoende",
-                description: "Organische stofgehalte onder de 30e percentiel.",
-            },
-        ],
+        tip: "Fotografeer een opengebroken bodemblok van dichtbij zodat de aggregaten goed zichtbaar zijn.",
     },
     {
         key: "a_gs_bcs",
-        instruction:
-            "Bekijk het profiel op gekleurde vlekken (roest/oranje, blauw/grijs). Deze duiden op afwisselend natte en droge omstandigheden (redox).",
-        scoreLevels: [
+        name: "Gekleurde vlekken",
+        description:
+            "Roest-, blauwe of grijze vlekken die wijzen op langdurige natte omstandigheden.",
+        instructions:
+            "Inspecteer de profielwand op verkleuringen en bepaal hoeveel van deze vlekken aanwezig zijn.",
+        criteria: [
+            {
+                score: 0,
+                label: "Slecht",
+                description: "Veel gekleurde vlekken aanwezig; duidelijke sporen van wateroverlast.",
+            },
+            {
+                score: 1,
+                label: "Matig",
+                description: "Enkele gekleurde vlekken zichtbaar in de profielwand.",
+            },
             {
                 score: 2,
                 label: "Goed",
-                description: "Minder dan 5% van het oppervlak vertoont vlekken.",
-            },
-            {
-                score: 1,
-                label: "Matig",
-                description: "5-20% van het oppervlak vertoont vlekken.",
-            },
-            {
-                score: 0,
-                label: "Onvoldoende",
-                description: "Meer dan 20% van het oppervlak vertoont vlekken.",
+                description: "Geen of vrijwel geen gekleurde vlekken zichtbaar.",
             },
         ],
+        tip: "Maak een scherpe foto van de profielwand bij egaal daglicht om kleurverschillen zichtbaar te maken.",
     },
     {
         key: "a_p_bcs",
-        instruction:
-            "Beoordeel of er waterplassen op het perceel aanwezig zijn. Dit is een negatieve indicator (hogere score = slechter).",
-        scoreLevels: [
+        name: "Plasvorming",
+        description:
+            "Hoe vaak water op het oppervlak blijft staan na neerslag.",
+        instructions:
+            "Kijk op het perceel naar stilstaand water, natte plekken en sporen van recente plasvorming.",
+        criteria: [
             {
                 score: 0,
                 label: "Geen",
-                description: "Geen plasvorming zichtbaar op het perceel.",
+                description: "Geen of nauwelijks plasvorming zichtbaar.",
             },
             {
                 score: 1,
-                label: "Matig",
-                description: "Enkele plassen aanwezig, beperkt oppervlak.",
+                label: "Enig",
+                description: "Op meerdere plekken is enige plasvorming zichtbaar.",
             },
             {
                 score: 2,
                 label: "Veel",
-                description:
-                    "Veel plassen, grote delen van het perceel staan onder water.",
+                description: "Regelmatig of veel plasvorming op het bodemoppervlak.",
             },
         ],
+        tip: "Gebruik een overzichtsfoto waarop natte plekken en de omvang van de plasvorming duidelijk te zien zijn.",
     },
     {
         key: "a_c_bcs",
-        instruction:
-            "Beoordeel of er scheuren zichtbaar zijn in de bovenste laag van de bodem. Dit is een negatieve indicator.",
-        scoreLevels: [
+        name: "Scheuren",
+        description:
+            "Mate waarin de toplaag open is gescheurd door uitdroging of structuurproblemen.",
+        instructions:
+            "Beoordeel het bodemoppervlak op zichtbare scheuren en let op diepte en dichtheid van het patroon.",
+        criteria: [
             {
                 score: 0,
                 label: "Geen",
-                description: "Geen zichtbare scheuren in de toplaag.",
+                description: "Geen zichtbare scheuren in het bodemoppervlak.",
             },
             {
                 score: 1,
-                label: "Matig",
-                description: "Enkele scheuren aanwezig, beperkte breedte/diepte.",
+                label: "Enig",
+                description: "Enkele zichtbare scheuren aanwezig.",
             },
             {
                 score: 2,
                 label: "Veel",
-                description:
-                    "Veel en/of diepe scheuren in de toplaag. Bodem droogt sterk uit.",
+                description: "Veel of diepe scheuren over een groot deel van het oppervlak.",
             },
         ],
+        tip: "Fotografeer schuin over het oppervlak zodat diepte en lengte van scheuren beter zichtbaar zijn.",
     },
     {
         key: "a_rt_bcs",
-        instruction:
-            "Beoordeel of er wielsporen, hoefafdrukken of vertrapping zichtbaar is op het perceel. Dit is een negatieve indicator.",
-        scoreLevels: [
+        name: "Spoorvorming",
+        description:
+            "Wielsporen, hoefafdrukken of andere indrukkingen aan het oppervlak.",
+        instructions:
+            "Loop over het perceel en beoordeel hoe diep en hoe ernstig de sporen of vertrapping zijn.",
+        criteria: [
             {
                 score: 0,
                 label: "Geen",
-                description: "Geen spoorvorming of vertrapping zichtbaar.",
+                description: "Geen zichtbare sporen of vertrapping.",
             },
             {
                 score: 1,
-                label: "Matig",
-                description: "Enkele sporen of matige vertrapping.",
+                label: "Enig",
+                description: "Ondiepe of plaatselijke sporen zichtbaar.",
             },
             {
                 score: 2,
                 label: "Veel",
-                description:
-                    "Veel en diepe wielsporen of ernstige vertrapping over groot deel van perceel.",
+                description: "Diepe of ernstige spoorvorming of vertrapping aanwezig.",
             },
         ],
+        tip: "Neem een foto vanuit de lengte van het spoor zodat diepte en breedte goed zichtbaar worden.",
     },
 ]
-
-/** Look up scoring guide for a specific indicator */
-export function getScoringGuide(key: BcsIndicatorKey): IndicatorScoringGuide | undefined {
-    return BCS_SCORING_GUIDE.find((g) => g.key === key)
-}

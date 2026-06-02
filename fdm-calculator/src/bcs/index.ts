@@ -1,4 +1,5 @@
 import Decimal from "decimal.js"
+import { calcPhDelta, type SoiltypeAgr } from "./ph-delta"
 
 /**
  * BCS (BodemConditieScore) calculation utilities.
@@ -15,6 +16,31 @@ export type OmCropCategory = "akkerbouw" | "grasland" | "mais" | "natuur"
 
 /** Simplified soil type used for organic matter BCS scoring (OBIC soiltype.n). */
 export type OmSoiltypeN = "klei" | "zand" | "loess" | "veen"
+
+/** Clay/loess soil types that require a_clay_mi for pH optimum calculation. */
+const CLAY_LOESS_SOILTYPES = new Set<SoiltypeAgr>(["zeeklei", "rivierklei", "maasklei", "moerige_klei", "loess"])
+
+/**
+ * Lab context needed to derive pH and organic matter BCS scores internally.
+ * All fields are optional so each lab indicator can be derived independently.
+ */
+export interface BcsLabContext {
+    // pH derivation inputs
+    a_ph_cc?: number | null
+    a_som_loi?: number | null
+    b_soiltype_agr?: string | null
+    /** Required only for clay/loess soils (zeeklei, rivierklei, maasklei, moerige_klei, loess). */
+    a_clay_mi?: number | null
+    d_cp_starch?: number | null
+    d_cp_potato?: number | null
+    d_cp_sugarbeet?: number | null
+    d_cp_grass?: number | null
+    d_cp_mais?: number | null
+    b_lu_is_clover?: boolean | null
+    // OM derivation inputs
+    om_crop_category?: OmCropCategory | null
+    om_soiltype_n?: OmSoiltypeN | null
+}
 
 export interface BcsScores {
     /** Bodemstructuur (0–2) */
@@ -35,10 +61,6 @@ export interface BcsScores {
     a_c_bcs?: number | null
     /** Spoorvorming/vertrapping (0–2, negative contribution) */
     a_rt_bcs?: number | null
-    /** Zuurgraad score (0–2, derived from pH-CaCl2 lab value) */
-    a_ph_bcs?: number | null
-    /** Organische stof score (0–2, derived from a_som_loi lab value) */
-    a_som_bcs?: number | null
 }
 
 export interface BcsResult {
@@ -48,6 +70,10 @@ export interface BcsResult {
     i_bcs: number
     /** Maximum possible D_BCS (always 40 — the official normalizer) */
     d_bcs_max: number
+    /** Derived pH BCS score (null when lab data insufficient) */
+    a_ph_bcs: 0 | 1 | 2 | null
+    /** Derived organic matter BCS score (null when lab data insufficient) */
+    a_som_bcs: 0 | 1 | 2 | null
 }
 
 const ZERO = new Decimal(0)
@@ -60,20 +86,50 @@ const D_BCS_NORMALIZER = new Decimal(40)
  * D_BCS = 2×CC + 3×(RD + SC + EW + SS + pH + OM) + 1×GS − 2×P − 1×(C + RT)
  * I_BCS = min(D_BCS / 40, 1.0)
  *
- * Null/undefined scores are treated as 0 (missing observation).
+ * Null/undefined field scores are treated as 0 (missing observation).
+ * pH and OM BCS scores are derived internally from `labContext` when provided.
  * The result is floored at 0 — negative totals are not meaningful.
- * `a_ph_bcs` and `a_som_bcs` are derived from lab values via `derivePhBcs` / `deriveOmBcs`.
  */
-export function calculateBcs(scores: BcsScores): BcsResult {
+export function calculateBcs(scores: BcsScores, labContext?: BcsLabContext): BcsResult {
     const d = (v: number | null | undefined) => new Decimal(v ?? 0)
+
+    // Derive pH BCS from lab context — skip for clay/loess soils when clay data is missing
+    let a_ph_bcs: 0 | 1 | 2 | null = null
+    if (labContext?.a_ph_cc != null && labContext?.a_som_loi != null && labContext?.b_soiltype_agr) {
+        const soiltype = labContext.b_soiltype_agr as SoiltypeAgr
+        const needsClay = CLAY_LOESS_SOILTYPES.has(soiltype)
+        if (!needsClay || labContext.a_clay_mi != null) {
+            const phDelta = calcPhDelta({
+                b_soiltype_agr: soiltype,
+                a_som_loi: labContext.a_som_loi,
+                a_clay_mi: labContext.a_clay_mi ?? 0,
+                a_ph_cc: labContext.a_ph_cc,
+                d_cp_starch: labContext.d_cp_starch ?? 0,
+                d_cp_potato: labContext.d_cp_potato ?? 0,
+                d_cp_sugarbeet: labContext.d_cp_sugarbeet ?? 0,
+                d_cp_grass: labContext.d_cp_grass ?? 0,
+                d_cp_mais: labContext.d_cp_mais ?? 0,
+                b_lu_is_clover: labContext.b_lu_is_clover ?? false,
+            })
+            if (phDelta != null) {
+                a_ph_bcs = derivePhBcs(phDelta)
+            }
+        }
+    }
+
+    // Derive OM BCS from lab context — independent of pH derivation
+    let a_som_bcs: 0 | 1 | 2 | null = null
+    if (labContext?.a_som_loi != null && labContext?.om_crop_category && labContext?.om_soiltype_n) {
+        a_som_bcs = deriveOmBcs(labContext.a_som_loi, labContext.om_crop_category, labContext.om_soiltype_n)
+    }
 
     const d_bcs_decimal = d(scores.a_cc_bcs).times(2)
         .add(d(scores.a_rd_bcs).times(3))
         .add(d(scores.a_sc_bcs).times(3))
         .add(d(scores.a_ew_bcs).times(3))
         .add(d(scores.a_ss_bcs).times(3))
-        .add(d(scores.a_ph_bcs).times(3))
-        .add(d(scores.a_som_bcs).times(3))
+        .add(d(a_ph_bcs).times(3))
+        .add(d(a_som_bcs).times(3))
         .add(d(scores.a_gs_bcs).times(1))
         .sub(d(scores.a_p_bcs).times(2))
         .sub(d(scores.a_c_bcs).times(1))
@@ -86,6 +142,8 @@ export function calculateBcs(scores: BcsScores): BcsResult {
         d_bcs: d_bcs_floored.toNumber(),
         i_bcs: i_bcs_decimal.toNumber(),
         d_bcs_max: D_BCS_NORMALIZER.toNumber(),
+        a_ph_bcs,
+        a_som_bcs,
     }
 }
 
@@ -218,6 +276,7 @@ export type BcsIndicatorKey = (typeof BCS_INDICATORS)[number]["key"]
 /**
  * Replicates OBIC `evaluate_logistic(x, b, x0, v, increasing=TRUE)`.
  * Uses the logistic with sign-flipped b for the increasing variant.
+ * Uses Decimal.js for precise arithmetic.
  */
 function evaluateLogisticIncreasing(
     x: number,
@@ -225,8 +284,18 @@ function evaluateLogisticIncreasing(
     x0: number,
     v: number,
 ): number {
-    const raw = Math.pow(1 + v * Math.exp(-b * (x - x0)), -1 / v)
-    return Math.max(0, Math.min(1, raw))
+    const dX = new Decimal(x)
+    const dB = new Decimal(b)
+    const dX0 = new Decimal(x0)
+    const dV = new Decimal(v)
+
+    // 1 + v * exp(-b * (x - x0))
+    const exponent = dB.neg().times(dX.minus(dX0))
+    const inner = ONE.add(dV.times(Decimal.exp(exponent)))
+    // inner^(-1/v)
+    const raw = inner.pow(ONE.neg().div(dV))
+
+    return Decimal.max(ZERO, Decimal.min(ONE, raw)).toNumber()
 }
 
 /**

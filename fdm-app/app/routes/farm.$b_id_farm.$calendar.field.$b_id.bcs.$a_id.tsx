@@ -1,319 +1,292 @@
 import {
-    addSoilImageAnnotation,
     checkPermission,
     getSoilAnalysis,
     getSoilImages,
     removeSoilAnalysis,
     removeSoilImage,
-    updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import { computeBcs } from "~/lib/bcs.server"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale/nl"
 import { ArrowLeft, Trash2 } from "lucide-react"
 import {
-    data,
     type ActionFunctionArgs,
+    data,
+    Link,
     type LoaderFunctionArgs,
-    NavLink,
     useFetcher,
     useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
-import { VisualAssessmentForm } from "~/components/blocks/soil-visual/visual-assessment-form"
+import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
 import { ImageGallery } from "~/components/blocks/soil-visual/image-gallery"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
-import { Separator } from "~/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
+import { deleteObject, generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
+import { deriveBcsScores } from "~/lib/bcs-derived.server"
+import { computeBcs } from "~/lib/bcs.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import {
-    deleteObject,
-    generateSignedReadUrl,
-} from "~/integrations/gcs.server"
-import { useState } from "react"
+
+function getRouteParams(params: ActionFunctionArgs["params"]) {
+    const { a_id, b_id, b_id_farm, calendar } = params
+    if (!b_id_farm) {
+        throw data("Farm ID is required", {
+            status: 400,
+            statusText: "Farm ID is required",
+        })
+    }
+    if (!calendar) {
+        throw data("Calendar is required", {
+            status: 400,
+            statusText: "Calendar is required",
+        })
+    }
+    if (!b_id) {
+        throw data("Field ID is required", {
+            status: 400,
+            statusText: "Field ID is required",
+        })
+    }
+    if (!a_id) {
+        throw data("Analysis ID is required", {
+            status: 400,
+            statusText: "Analysis ID is required",
+        })
+    }
+    return { a_id, b_id, b_id_farm, calendar }
+}
+
+function getBcsPath(params: ActionFunctionArgs["params"]) {
+    const { b_id, b_id_farm, calendar } = getRouteParams(params)
+    return `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`
+}
+
+function parseCoordinates(value: unknown) {
+    if (typeof value === "string") {
+        try {
+            return parseCoordinates(JSON.parse(value))
+        } catch {
+            return { x: 50, y: 50 }
+        }
+    }
+
+    if (
+        typeof value === "object" &&
+        value !== null &&
+        "x" in value &&
+        typeof value.x === "number" &&
+        "y" in value &&
+        typeof value.y === "number"
+    ) {
+        return { x: value.x, y: value.y }
+    }
+
+    return { x: 50, y: 50 }
+}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) throw data("Farm ID is required", { status: 400 })
-
-        const b_id = params.b_id
-        if (!b_id) throw data("Field ID is required", { status: 400 })
-
-        const a_id = params.a_id
-        if (!a_id) throw data("Analysis ID is required", { status: 400 })
-
+        const { a_id, b_id } = getRouteParams(params)
         const session = await getSession(request)
-        const pathname = new URL(request.url).pathname
-
-        const assessment = await getSoilAnalysis(
+        const analysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
+        const images = await getSoilImages(
             fdm,
             session.principal_id,
-            a_id,
+            analysis.b_id_sampling,
         )
-        if (!assessment) throw data("Assessment not found", { status: 404 })
-
-        const images = assessment.b_id_sampling
-            ? await getSoilImages(fdm, session.principal_id, assessment.b_id_sampling)
-            : []
-
-        const imagesWithUrls = await Promise.all(
-            images.map(async (img) => ({
-                ...img,
-                a_image_path: await generateSignedReadUrl(img.a_image_path),
-            })),
-        )
-
-        const writePermission = await checkPermission(
+        const { labContext, labAnalysisDate } = await deriveBcsScores(
             fdm,
-            "soil_analysis",
+            session.principal_id,
+            b_id,
+            new Date(analysis.b_sampling_date ?? analysis.a_date ?? new Date()),
+        )
+        const computed = computeBcs(analysis, labContext ?? undefined)
+        const fieldWritePermission = await checkPermission(
+            fdm,
+            "field",
             "write",
-            a_id,
+            b_id,
             session.principal_id,
-            pathname,
+            new URL(request.url).pathname,
             false,
         )
 
-        // Compute BCS score server-side
-        const bcsScores = {
-            a_ss_bcs: assessment.a_ss_bcs ?? null,
-            a_sc_bcs: assessment.a_sc_bcs ?? null,
-            a_rd_bcs: assessment.a_rd_bcs ?? null,
-            a_ew_bcs: assessment.a_ew_bcs ?? null,
-            a_cc_bcs: assessment.a_cc_bcs ?? null,
-            a_gs_bcs: assessment.a_gs_bcs ?? null,
-            a_p_bcs: assessment.a_p_bcs ?? null,
-            a_c_bcs: assessment.a_c_bcs ?? null,
-            a_rt_bcs: assessment.a_rt_bcs ?? null,
-        }
-        const { d_bcs, i_bcs, scoreColor, scoreLabel } = computeBcs(bcsScores)
-
         return {
-            assessment,
-            images: imagesWithUrls,
-            writePermission,
-            b_id_farm,
-            b_id,
-            a_id,
-            d_bcs,
-            i_bcs,
-            scoreColor,
-            scoreLabel,
+            analysis,
+            labAnalysisDate,
+            computed,
+            fieldWritePermission,
+            images: await Promise.all(
+                images.map(async (image) => ({
+                    id: image.a_id_image,
+                    url: await generateSignedReadUrl(image.a_image_path),
+                    caption: image.a_image_caption ?? undefined,
+                    annotations: image.annotations.map((annotation) => ({
+                        type: "pin" as const,
+                        coordinates: parseCoordinates(
+                            annotation.a_image_annotation_coordinates,
+                        ),
+                        text: annotation.a_image_annotation ?? undefined,
+                        bcsIndicator:
+                            annotation.a_image_annotation_bcs ?? undefined,
+                    })),
+                })),
+            ),
         }
     } catch (error) {
         throw handleLoaderError(error)
     }
 }
 
-export async function action({ request, params }: ActionFunctionArgs) {
-    try {
-        const b_id_farm = params.b_id_farm
-        const b_id = params.b_id
-        const a_id = params.a_id
-        if (!b_id_farm || !b_id || !a_id) {
-            throw data("Missing required params", { status: 400 })
-        }
-
-        const session = await getSession(request)
-        const formData = await request.formData()
-        const intent = formData.get("intent")?.toString()
-
-        if (intent === "delete") {
-            await removeSoilAnalysis(fdm, session.principal_id, a_id)
-            return redirectWithSuccess(
-                `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/bcs`,
-                "Beoordeling verwijderd",
-            )
-        }
-
-        if (intent === "delete-image") {
-            const a_id_image = formData.get("a_id_image")?.toString()
-            if (!a_id_image) throw data("Image ID is required", { status: 400 })
-            await removeSoilImage(fdm, session.principal_id, a_id_image, deleteObject)
-            return data({ success: true })
-        }
-
-        if (intent === "add-annotation") {
-            const a_id_image = formData.get("a_id_image")?.toString()
-            const type = formData.get("a_image_annotation_type")?.toString()
-            const coordinates = formData.get("a_image_annotation_coordinates")?.toString()
-            if (!a_id_image || !type || !coordinates) {
-                throw data("Missing annotation data", { status: 400 })
-            }
-            await addSoilImageAnnotation(fdm, session.principal_id, a_id_image, {
-                a_image_annotation_type: type as "pin" | "circle" | "arrow" | "freehand",
-                a_image_annotation_coordinates: JSON.parse(coordinates),
-                a_image_annotation: formData.get("a_image_annotation")?.toString() || undefined,
-                a_image_annotation_bcs: formData.get("a_image_annotation_bcs")?.toString() as
-                    | "a_ss_bcs" | "a_sc_bcs" | "a_rd_bcs" | "a_ew_bcs"
-                    | "a_cc_bcs" | "a_gs_bcs" | "a_p_bcs" | "a_c_bcs"
-                    | "a_rt_bcs" | undefined,
-            })
-            return data({ success: true })
-        }
-
-        // Default intent: update scores + date
-        const parseScore = (key: string) => {
-            const val = formData.get(key)
-            if (val === null || val === "") return null
-            const n = Number(val)
-            return Number.isNaN(n) ? null : n
-        }
-
-        const parseOptionalDate = (key: string) => {
-            const val = formData.get(key)?.toString()
-            if (!val) return undefined
-            const d = new Date(val)
-            return Number.isNaN(d.getTime()) ? undefined : d
-        }
-
-        await updateSoilAnalysis(fdm, session.principal_id, a_id, {
-            a_date: parseOptionalDate("a_date"),
-            a_ss_bcs: parseScore("a_ss_bcs"),
-            a_sc_bcs: parseScore("a_sc_bcs"),
-            a_rd_bcs: parseScore("a_rd_bcs"),
-            a_ew_bcs: parseScore("a_ew_bcs"),
-            a_cc_bcs: parseScore("a_cc_bcs"),
-            a_gs_bcs: parseScore("a_gs_bcs"),
-            a_p_bcs: parseScore("a_p_bcs"),
-            a_c_bcs: parseScore("a_c_bcs"),
-            a_rt_bcs: parseScore("a_rt_bcs"),
-        })
-
-        return redirectWithSuccess(
-            `/farm/${b_id_farm}/${params.calendar}/field/${b_id}/bcs/${a_id}`,
-            "Beoordeling bijgewerkt",
-        )
-    } catch (error) {
-        throw handleActionError(error)
-    }
-}
-
-/**
- * Detail/edit page for a visual soil assessment.
- * Shows the assessment form, photo gallery with annotation canvas, and delete option.
- */
-export default function VisualSoilAnalysisDetail() {
-    const { assessment, images, writePermission, b_id_farm, b_id, d_bcs, i_bcs, scoreColor, scoreLabel } =
-        useLoaderData<typeof loader>()
+export default function FieldBcsDetailRoute() {
+    const loaderData = useLoaderData<typeof loader>()
     const fetcher = useFetcher()
-    const [uploading, setUploading] = useState(false)
-
-    const handleUpload = async (file: File) => {
-        if (!assessment.b_id_sampling) return
-        setUploading(true)
-        try {
-            const { uploadSoilImage } = await import("~/lib/image-upload.client")
-            await uploadSoilImage(file, assessment.b_id_sampling)
-            fetcher.load("")
-        } catch (err) {
-            console.error("Upload failed", err)
-        } finally {
-            setUploading(false)
-        }
-    }
-
-    const handleImageDelete = async (a_id_image: string) => {
-        const fd = new FormData()
-        fd.append("intent", "delete-image")
-        fd.append("a_id_image", a_id_image)
-        fetcher.submit(fd, { method: "post" })
-    }
-
-    const handleAnnotationAdd = async (
-        a_id_image: string,
-        annotation: { type: string; data_json: string; text?: string; a_image_annotation_bcs?: string },
-    ) => {
-        const fd = new FormData()
-        fd.append("intent", "add-annotation")
-        fd.append("a_id_image", a_id_image)
-        fd.append("a_image_annotation_type", annotation.type)
-        fd.append("a_image_annotation_coordinates", annotation.data_json)
-        if (annotation.text) fd.append("a_image_annotation", annotation.text)
-        if (annotation.a_image_annotation_bcs) fd.append("a_image_annotation_bcs", annotation.a_image_annotation_bcs)
-        fetcher.submit(fd, { method: "post" })
-    }
+    const measuredAt =
+        loaderData.analysis.b_sampling_date ?? loaderData.analysis.a_date
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" asChild>
-                        <NavLink to="..">
-                            <ArrowLeft className="h-4 w-4" />
-                        </NavLink>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-2">
+                    <Button asChild variant="outline">
+                        <Link to="..">
+                            <ArrowLeft className="size-4" />
+                            Terug naar overzicht
+                        </Link>
                     </Button>
                     <div>
-                        <h3 className="text-lg font-medium">Visuele beoordeling</h3>
+                        <h3 className="text-lg font-medium">BCS meting</h3>
+                        <p className="text-sm text-muted-foreground">
+                            {measuredAt
+                                ? format(new Date(measuredAt), "PPP", {
+                                      locale: nl,
+                                  })
+                                : "Onbekende datum"}
+                        </p>
                     </div>
                 </div>
-
-                {writePermission && (
-                    <fetcher.Form method="post">
-                        <input type="hidden" name="intent" value="delete" />
-                        <Button
-                            type="submit"
-                            variant="destructive"
-                            size="sm"
-                            onClick={(e) => {
-                                if (
-                                    !confirm(
-                                        "Weet je zeker dat je deze beoordeling wilt verwijderen?",
-                                    )
-                                ) {
-                                    e.preventDefault()
-                                }
-                            }}
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Verwijderen
-                        </Button>
-                    </fetcher.Form>
-                )}
+                {loaderData.fieldWritePermission ? (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={fetcher.state !== "idle"}
+                            >
+                                <Trash2 className="size-4" />
+                                {fetcher.state !== "idle"
+                                    ? "Verwijderen..."
+                                    : "Verwijderen"}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    BCS-meting verwijderen?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Deze actie kan niet ongedaan worden gemaakt.
+                                    Alle foto&apos;s en notities worden ook
+                                    verwijderd.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() =>
+                                        fetcher.submit(null, {
+                                            method: "DELETE",
+                                        })
+                                    }
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                    Verwijderen
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                ) : null}
             </div>
 
-            <Separator />
+            {loaderData.labAnalysisDate ? (
+                <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
+                    pH en organische stof zijn afgeleid uit de labanalyse van{" "}
+                    {format(new Date(loaderData.labAnalysisDate), "PPP", {
+                        locale: nl,
+                    })}
+                    .
+                </div>
+            ) : null}
 
-            <Tabs defaultValue="scores">
-                <TabsList>
-                    <TabsTrigger value="scores">Scores</TabsTrigger>
-                    <TabsTrigger value="photos">
-                        Foto's
-                        {images.length > 0 && (
-                            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs">
-                                {images.length}
-                            </span>
-                        )}
-                    </TabsTrigger>
-                </TabsList>
+            {/* Desktop 2-column: score card left, images right */}
+            <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+                <BcsScoreCard
+                    scores={loaderData.analysis}
+                    a_ph_bcs={loaderData.computed.a_ph_bcs}
+                    a_som_bcs={loaderData.computed.a_som_bcs}
+                    d_bcs={loaderData.computed.d_bcs}
+                    i_bcs={loaderData.computed.i_bcs}
+                    scoreColor={loaderData.computed.scoreColor}
+                    scoreLabel={loaderData.computed.scoreLabel}
+                />
 
-                <TabsContent value="scores" className="mt-6">
-                    <VisualAssessmentForm
-                        assessment={assessment}
-                        b_id={b_id}
-                        action=""
-                        editable={writePermission}
-                        d_bcs={d_bcs}
-                        i_bcs={i_bcs}
-                        scoreColor={scoreColor}
-                        scoreLabel={scoreLabel}
-                    />
-                </TabsContent>
-
-                <TabsContent value="photos" className="mt-6">
-                    <ImageGallery
-                        images={images}
-                        b_id_farm={b_id_farm}
-                        readOnly={!writePermission}
-                        uploading={uploading}
-                        onUpload={writePermission ? handleUpload : undefined}
-                        onDelete={writePermission ? handleImageDelete : undefined}
-                        onAnnotationAdd={
-                            writePermission ? handleAnnotationAdd : undefined
-                        }
-                    />
-                </TabsContent>
-            </Tabs>
+                {loaderData.images.length > 0 ? (
+                    <div className="space-y-3">
+                        <h4 className="font-medium">Foto&apos;s en notities</h4>
+                        <ImageGallery images={loaderData.images} />
+                    </div>
+                ) : null}
+            </div>
         </div>
     )
+}
+
+export async function action({ request, params }: ActionFunctionArgs) {
+    const { a_id } = getRouteParams(params)
+
+    try {
+        if (request.method !== "DELETE") {
+            throw data("Method not allowed", {
+                status: 405,
+                statusText: "Method not allowed",
+            })
+        }
+
+        const session = await getSession(request)
+        const analysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
+        const images = await getSoilImages(
+            fdm,
+            session.principal_id,
+            analysis.b_id_sampling,
+        )
+
+        await Promise.all(
+            images.map((image) =>
+                removeSoilImage(
+                    fdm,
+                    session.principal_id,
+                    image.a_id_image,
+                    deleteObject,
+                ),
+            ),
+        )
+        await removeSoilAnalysis(fdm, session.principal_id, a_id)
+
+        return redirectWithSuccess(getBcsPath(params), {
+            message: "BCS-meting is verwijderd! 🎉",
+        })
+    } catch (error) {
+        throw handleActionError(error)
+    }
 }

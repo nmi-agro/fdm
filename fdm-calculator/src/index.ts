@@ -141,7 +141,6 @@ export {
     findHoofdteelt,
     GROENE_BRAAK,
 } from "./shared/hoofdteelt"
-export type { CultivationForHoofdteelt } from "./shared/hoofdteelt"
 export {
     BCS_INDICATORS,
     calculateBcs,
@@ -152,6 +151,7 @@ export {
 } from "./bcs/index"
 export type {
     BcsIndicatorKey,
+    BcsLabContext,
     BcsResult,
     BcsScores,
     OmCropCategory,
@@ -159,3 +159,5 @@ export type {
 } from "./bcs/index"
 export { calcPhDelta } from "./bcs/ph-delta"
 export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
+export { deriveCropPlanFractions } from "./bcs/crop-plan"
+export type { CultivationForCropPlan, CropPlanFractions } from "./bcs/crop-plan"

@@ -55,12 +55,52 @@ describe("calculateBcs", () => {
         })
     })
 
-    describe("lab-derived indicators (a_ph_bcs, a_som_bcs)", () => {
-        it("adds weight 3 for a_ph_bcs", () => {
-            expect(calculateBcs({ a_ph_bcs: 2 }).d_bcs).toBe(6)
+    describe("lab-derived indicators (a_ph_bcs, a_som_bcs via labContext)", () => {
+        // dekzand + no potatoes/sugarbeet/grass/mais → phOptimum ~5.4 for a_som_loi=2
+        // a_ph_cc = 5.4 → delta = 0 → derivePhBcs(0) = 2
+        it("adds weight 3 for pH BCS (a_ph_bcs=2 at optimum pH, no OM context)", () => {
+            const result = calculateBcs({}, {
+                a_ph_cc: 5.4,
+                a_som_loi: 2,
+                b_soiltype_agr: "dekzand",
+            })
+            expect(result.a_ph_bcs).toBe(2)
+            expect(result.a_som_bcs).toBeNull()
+            expect(result.d_bcs).toBe(6)
         })
-        it("adds weight 3 for a_som_bcs", () => {
-            expect(calculateBcs({ a_som_bcs: 1 }).d_bcs).toBe(3)
+        // akkerbouw/zand: thresholds low=3.0, high=4.8 → a_som_loi=4.0 → score 1
+        it("adds weight 3 for OM BCS (a_som_bcs=1, no pH context)", () => {
+            const result = calculateBcs({}, {
+                a_som_loi: 4.0,
+                om_crop_category: "akkerbouw",
+                om_soiltype_n: "zand",
+            })
+            expect(result.a_som_bcs).toBe(1)
+            expect(result.a_ph_bcs).toBeNull()
+            expect(result.d_bcs).toBe(3)
+        })
+        it("returns null for both when no labContext is provided", () => {
+            const result = calculateBcs({ a_ss_bcs: 2 })
+            expect(result.a_ph_bcs).toBeNull()
+            expect(result.a_som_bcs).toBeNull()
+        })
+        it("skips pH BCS for clay soil when a_clay_mi is missing", () => {
+            const result = calculateBcs({}, {
+                a_ph_cc: 6.0,
+                a_som_loi: 2,
+                b_soiltype_agr: "zeeklei",
+                a_clay_mi: null,
+            })
+            expect(result.a_ph_bcs).toBeNull()
+        })
+        it("derives pH BCS for clay soil when a_clay_mi is provided", () => {
+            const result = calculateBcs({}, {
+                a_ph_cc: 6.7,
+                a_som_loi: 1,
+                b_soiltype_agr: "zeeklei",
+                a_clay_mi: 4,
+            })
+            expect(result.a_ph_bcs).toBe(2)
         })
     })
 
@@ -85,7 +125,7 @@ describe("calculateBcs", () => {
         it("is always 40 (official normalizer)", () => {
             expect(calculateBcs({}).d_bcs_max).toBe(40)
             expect(calculateBcs({ a_ss_bcs: 2 }).d_bcs_max).toBe(40)
-            expect(calculateBcs({ a_ph_bcs: 2, a_som_bcs: 2 }).d_bcs_max).toBe(40)
+            expect(calculateBcs({}, { a_ph_cc: 5.4, a_som_loi: 2, b_soiltype_agr: "dekzand" }).d_bcs_max).toBe(40)
         })
         it("reaches max field score of 30 without lab scores (i_bcs = 0.75)", () => {
             const result = calculateBcs({
@@ -96,10 +136,20 @@ describe("calculateBcs", () => {
             expect(result.i_bcs).toBeCloseTo(0.75)
         })
         it("caps i_bcs at 1.0 when all 11 indicators at max (d_bcs = 42)", () => {
-            const result = calculateBcs({
-                a_ss_bcs: 2, a_sc_bcs: 2, a_rd_bcs: 2, a_ew_bcs: 2,
-                a_cc_bcs: 2, a_gs_bcs: 2, a_ph_bcs: 2, a_som_bcs: 2,
-            })
+            // akkerbouw/zand: a_som_loi=5.0 → a_som_bcs=2 (> high=4.8)
+            // dekzand + a_ph_cc=5.4 + a_som_loi=5.0 → phOptimum ~5.2 → delta≈0 → a_ph_bcs=2
+            const result = calculateBcs(
+                { a_ss_bcs: 2, a_sc_bcs: 2, a_rd_bcs: 2, a_ew_bcs: 2, a_cc_bcs: 2, a_gs_bcs: 2 },
+                {
+                    a_ph_cc: 5.4,
+                    a_som_loi: 5.0,
+                    b_soiltype_agr: "dekzand",
+                    om_crop_category: "akkerbouw",
+                    om_soiltype_n: "zand",
+                },
+            )
+            expect(result.a_ph_bcs).toBe(2)
+            expect(result.a_som_bcs).toBe(2)
             expect(result.d_bcs).toBe(42)
             expect(result.i_bcs).toBe(1.0)
         })

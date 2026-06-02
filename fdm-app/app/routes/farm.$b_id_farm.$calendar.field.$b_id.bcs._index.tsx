@@ -2,75 +2,104 @@ import {
     checkPermission,
     getField,
     getSoilAnalyses,
+    getSoilAnalysis,
+    getSoilImages,
+    removeSoilAnalysis,
+    removeSoilImage,
 } from "@nmi-agro/fdm-core"
-import { computeBcs } from "~/lib/bcs.server"
 import { format } from "date-fns"
-import { Plus } from "lucide-react"
+import { nl } from "date-fns/locale/nl"
+import { Plus, Trash2 } from "lucide-react"
 import {
+    type ActionFunctionArgs,
     data,
+    Link,
     type LoaderFunctionArgs,
-    NavLink,
+    useFetcher,
     useLoaderData,
 } from "react-router"
+import { redirectWithSuccess } from "remix-toast"
+import {
+    BCS_COLOR_CLASSES,
+    type BcsScores,
+} from "~/components/blocks/soil-visual/bcs-color-utils"
+import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
-import { Separator } from "~/components/ui/separator"
-import { SCORE_TEXT_CLASSES } from "~/components/blocks/soil-visual/bcs-color-utils"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "~/components/ui/alert-dialog"
+import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
-import { handleLoaderError } from "~/lib/error"
+import { computeBcs } from "~/lib/bcs.server"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { isBcsAnalysis } from "~/lib/bcs"
 import { cn } from "~/lib/utils"
+
+function getRouteParams(params: ActionFunctionArgs["params"]) {
+    const { b_id, b_id_farm, calendar } = params
+    if (!b_id_farm) {
+        throw data("Farm ID is required", {
+            status: 400,
+            statusText: "Farm ID is required",
+        })
+    }
+    if (!calendar) {
+        throw data("Calendar is required", {
+            status: 400,
+            statusText: "Calendar is required",
+        })
+    }
+    if (!b_id) {
+        throw data("Field ID is required", {
+            status: 400,
+            statusText: "Field ID is required",
+        })
+    }
+    return { b_id, b_id_farm, calendar }
+}
+
+function getBcsPath(params: ActionFunctionArgs["params"]) {
+    const { b_id, b_id_farm, calendar } = getRouteParams(params)
+    return `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`
+}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
     try {
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", { status: 400 })
-        }
-
-        const b_id = params.b_id
-        if (!b_id) {
-            throw data("Field ID is required", { status: 400 })
-        }
-
+        const { b_id } = getRouteParams(params)
         const session = await getSession(request)
-        const pathname = new URL(request.url).pathname
-
         const field = await getField(fdm, session.principal_id, b_id)
         if (!field) {
-            throw data("Field is not found", { status: 404 })
+            throw data("Field is not found", {
+                status: 404,
+                statusText: "Field is not found",
+            })
         }
 
-        const analyses = await getSoilAnalyses(
+        const soilAnalyses = await getSoilAnalyses(
             fdm,
             session.principal_id,
             b_id,
         )
-
-        // Only keep analyses that have at least one BCS score set
-        const assessments = analyses.filter((a) =>
-            a.a_ss_bcs != null ||
-            a.a_sc_bcs != null ||
-            a.a_rd_bcs != null ||
-            a.a_ew_bcs != null ||
-            a.a_cc_bcs != null ||
-            a.a_gs_bcs != null ||
-            a.a_p_bcs != null ||
-            a.a_c_bcs != null ||
-            a.a_rt_bcs != null,
+        const bcsAnalyses = soilAnalyses.filter((analysis) =>
+            isBcsAnalysis(analysis),
         )
-
-        // Pre-compute BCS scores server-side
-        const assessmentsWithScores = assessments.map((a) => {
-            const { d_bcs, scoreColor, scoreLabel } = computeBcs(a)
-            return {
-                a_id: a.a_id,
-                a_date: a.a_date,
-                d_bcs,
-                scoreColor,
-                scoreLabel,
-            }
-        })
-
+        const pathname = new URL(request.url).pathname
         const fieldWritePermission = await checkPermission(
             fdm,
             "field",
@@ -83,88 +112,215 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         return {
             field,
-            assessmentsWithScores,
             fieldWritePermission,
-            b_id_farm,
-            b_id,
+            assessments: bcsAnalyses.map((analysis) => ({
+                analysis,
+                computed: computeBcs(analysis as BcsScores),
+            })),
         }
     } catch (error) {
         throw handleLoaderError(error)
     }
 }
 
-/**
- * Lists all visual soil assessments (soil analyses with BCS scores) for a field.
- */
-export default function VisualSoilAnalysisIndex() {
-    const { assessmentsWithScores, fieldWritePermission } =
-        useLoaderData<typeof loader>()
+export default function FieldBcsOverviewRoute() {
+    const loaderData = useLoaderData<typeof loader>()
+    const fetcher = useFetcher()
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <h3 className="text-lg font-medium">BodemConditieScore</h3>
                     <p className="text-sm text-muted-foreground">
-                        BCS-beoordelingen uitgevoerd in het veld
+                        Visuele bodemconditiebeoordelingen voor{" "}
+                        {loaderData.field.b_name}.
                     </p>
                 </div>
-                <Button
-                    asChild
-                    className={cn(!fieldWritePermission ? "invisible" : "")}
-                >
-                    <NavLink to="./new">
-                        <Plus />
-                        Nieuwe beoordeling
-                    </NavLink>
-                </Button>
+                {loaderData.fieldWritePermission ? (
+                    <Button asChild size="lg">
+                        <Link to="./new">
+                            <Plus className="size-4" />
+                            Nieuwe meting toevoegen
+                        </Link>
+                    </Button>
+                ) : null}
             </div>
 
-            <Separator />
-
-            {assessmentsWithScores.length === 0 ? (
-                <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px] py-12">
-                    <div className="flex flex-col space-y-2 text-center">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Nog geen visuele beoordelingen
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Voer een BCS-beoordeling uit om de bodemkwaliteit visueel te
-                            beoordelen
-                        </p>
-                    </div>
-                    <Button
-                        asChild
-                        className={cn(!fieldWritePermission ? "invisible" : "")}
-                    >
-                        <NavLink to="./new">Eerste beoordeling toevoegen</NavLink>
-                    </Button>
-                </div>
+            {loaderData.assessments.length === 0 ? (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Nog geen BCS-metingen</CardTitle>
+                        <CardDescription>
+                            Voeg een nieuwe visuele bodemconditiebeoordeling toe
+                            om hier resultaten te zien.
+                        </CardDescription>
+                    </CardHeader>
+                    {loaderData.fieldWritePermission ? (
+                        <CardContent>
+                            <Button asChild size="lg">
+                                <Link to="./new">Eerste beoordeling toevoegen</Link>
+                            </Button>
+                        </CardContent>
+                    ) : null}
+                </Card>
             ) : (
-                <div className="space-y-2">
-                    {assessmentsWithScores.map((assessment) => (
-                        <NavLink
-                            key={assessment.a_id}
-                            to={`./${assessment.a_id}`}
-                            className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent"
-                        >
-                            <div className="space-y-1">
-                                <p className="font-medium">
-                                    {assessment.a_date
-                                        ? format(new Date(assessment.a_date), "d MMMM yyyy")
-                                        : "Datum onbekend"}
-                                </p>
-                            </div>
-                            <div className="text-right">
-                                <p className={cn("text-2xl font-bold", SCORE_TEXT_CLASSES[assessment.scoreColor])}>
-                                    {assessment.d_bcs.toFixed(1)}
-                                </p>
-                                <p className="text-xs text-muted-foreground">{assessment.scoreLabel}</p>
-                            </div>
-                        </NavLink>
-                    ))}
+                <div className="grid gap-4">
+                    {loaderData.assessments.map(({ analysis, computed }) => {
+                        const isDeleting =
+                            fetcher.state !== "idle" &&
+                            fetcher.formData?.get("a_id") === analysis.a_id
+                        const measuredAt =
+                            analysis.b_sampling_date ?? analysis.a_date
+
+                        return (
+                            <Card key={analysis.a_id}>
+                                <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <Link
+                                        to={`./${analysis.a_id}`}
+                                        className="block flex-1 rounded-lg p-1"
+                                    >
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <div className="text-base font-semibold">
+                                                    {measuredAt
+                                                        ? format(
+                                                              new Date(
+                                                                  measuredAt,
+                                                              ),
+                                                              "PPP",
+                                                              {
+                                                                  locale: nl,
+                                                              },
+                                                          )
+                                                        : "Onbekende datum"}
+                                                </div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    BodemConditieScore{" "}
+                                                    {computed.d_bcs.toFixed(0)}{" "}
+                                                    · Indicator {" "}
+                                                    {(
+                                                        computed.i_bcs * 100
+                                                    ).toFixed(0)}
+                                                    %
+                                                </div>
+                                            </div>
+                                            <Badge
+                                                className={cn(
+                                                    "w-fit border px-3 py-1 text-sm",
+                                                    BCS_COLOR_CLASSES[
+                                                        computed.scoreColor
+                                                    ],
+                                                )}
+                                            >
+                                                {computed.scoreLabel}
+                                            </Badge>
+                                        </div>
+                                    </Link>
+                                    {loaderData.fieldWritePermission ? (
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    disabled={isDeleting}
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                    {isDeleting
+                                                        ? "Verwijderen..."
+                                                        : "Verwijderen"}
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>
+                                                        BCS-meting verwijderen?
+                                                    </AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Deze actie kan niet
+                                                        ongedaan worden gemaakt.
+                                                        Alle foto&apos;s en
+                                                        notities worden ook
+                                                        verwijderd.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>
+                                                        Annuleren
+                                                    </AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() =>
+                                                            fetcher.submit(
+                                                                {
+                                                                    a_id: analysis.a_id,
+                                                                },
+                                                                {
+                                                                    method: "DELETE",
+                                                                },
+                                                            )
+                                                        }
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                        Verwijderen
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    ) : null}
+                                </CardContent>
+                            </Card>
+                        )
+                    })}
                 </div>
             )}
         </div>
     )
+}
+
+export async function action({ request, params }: ActionFunctionArgs) {
+    getRouteParams(params)
+
+    try {
+        if (request.method !== "DELETE") {
+            throw data("Method not allowed", {
+                status: 405,
+                statusText: "Method not allowed",
+            })
+        }
+
+        const formData = await request.formData()
+        const a_id = formData.get("a_id")?.toString()
+        if (!a_id) {
+            throw data("Analysis ID is required", {
+                status: 400,
+                statusText: "Analysis ID is required",
+            })
+        }
+
+        const session = await getSession(request)
+        const analysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
+        const images = await getSoilImages(
+            fdm,
+            session.principal_id,
+            analysis.b_id_sampling,
+        )
+
+        await Promise.all(
+            images.map((image) =>
+                removeSoilImage(
+                    fdm,
+                    session.principal_id,
+                    image.a_id_image,
+                    deleteObject,
+                ),
+            ),
+        )
+        await removeSoilAnalysis(fdm, session.principal_id, a_id)
+
+        return redirectWithSuccess(getBcsPath(params), {
+            message: "BCS-meting is verwijderd! 🎉",
+        })
+    } catch (error) {
+        throw handleActionError(error)
+    }
 }

@@ -1,578 +1,714 @@
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, ChevronDown, ChevronUp, ImageIcon, Upload } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { Form, useFetcher } from "react-router"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale/nl"
 import {
-    BCS_INDICATORS,
-    type BcsIndicatorKey,
-} from "~/components/blocks/soil-visual/bcs-color-utils"
-import { ScoreButton } from "~/components/blocks/soil-visual/score-button"
-import { WizardProgress } from "~/components/blocks/soil-visual/wizard-progress"
-import { getScoringGuide } from "~/components/blocks/soil-visual/bcs-scoring-guide"
-import { SoilAnnotator } from "~/components/blocks/soil-visual/soil-annotator"
-import { Dropzone } from "~/components/custom/dropzone"
+    Camera,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    ChevronDown,
+    Upload,
+} from "lucide-react"
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
+import { useFetcher } from "react-router"
+import { toast } from "sonner"
+import { DatePicker } from "~/components/custom/date-picker-v2"
+import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
+import { BCS_GUIDES } from "~/components/blocks/soil-visual/bcs-scoring-guide"
+import { BCS_SELECTED_CLASSES, indicatorScoreColor } from "~/components/blocks/soil-visual/bcs-color-utils"
+import { ImageGallery } from "~/components/blocks/soil-visual/image-gallery"
+import { uploadBcsImage } from "~/lib/bcs-image-upload.client"
+import {
+    BCS_FIELD_INDICATORS,
+    BCS_VISUAL_KEYS,
+    type AnnotationCoords,
+    type AnnotationType,
+    type BcsPreviewResult,
+    type BcsSavePayload,
+    type BcsVisualKey,
+    type WizardAnnotation,
+    type WizardImage,
+} from "~/lib/bcs"
 import { Button } from "~/components/ui/button"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
+import { Progress } from "~/components/ui/progress"
+import { Separator } from "~/components/ui/separator"
 import { cn } from "~/lib/utils"
 
-const IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,.heic"
+interface PhotoUploadButtonProps {
+    onFiles: (files: FileList) => void
+    disabled?: boolean
+    size?: "sm" | "lg"
+    label?: string
+}
+
+/** On mobile shows a single button with a dropdown (Camera / Galerij).
+ *  On desktop shows a regular file-picker button. */
+function PhotoUploadButton({
+    onFiles,
+    disabled,
+    size = "lg",
+    label = "Foto's kiezen",
+}: PhotoUploadButtonProps) {
+    const cameraRef = useRef<HTMLInputElement>(null)
+    const galleryRef = useRef<HTMLInputElement>(null)
+
+    function handleChange(e: ChangeEvent<HTMLInputElement>) {
+        if (e.target.files?.length) {
+            onFiles(e.target.files)
+            e.target.value = ""
+        }
+    }
+
+    return (
+        <>
+            {/* Hidden inputs — shared by both mobile and desktop */}
+            <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                disabled={disabled}
+                onChange={handleChange}
+            />
+            <input
+                ref={galleryRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={disabled}
+                onChange={handleChange}
+            />
+
+            {/* Mobile: single button → dropdown */}
+            <div className="sm:hidden">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button type="button" size={size} disabled={disabled}>
+                            <Camera className="size-4" />
+                            {label}
+                            <ChevronDown className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                            onSelect={() => cameraRef.current?.click()}
+                        >
+                            <Camera className="size-4" />
+                            Camera
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={() => galleryRef.current?.click()}
+                        >
+                            <Upload className="size-4" />
+                            Galerij kiezen
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            {/* Desktop: regular file-picker */}
+            <div className="hidden sm:block">
+                <Button type="button" size={size} disabled={disabled} asChild>
+                    <label className="cursor-pointer">
+                        <Upload className="size-4" />
+                        {disabled ? "Uploaden..." : label}
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            disabled={disabled}
+                            onChange={handleChange}
+                        />
+                    </label>
+                </Button>
+            </div>
+        </>
+    )
+}
 
 interface BcsWizardProps {
     b_id: string
-    b_id_farm: string
-    calendar: string
-    action: string
+    fieldName: string
+    labAnalysisDate: Date | null
+    somLoi: number | null
+    phCc: number | null
+    soilSource: string | null
 }
 
-interface DraftResponse {
-    a_id: string
-    b_id_sampling: string | null
-}
-
-interface WizardImage {
-    a_id_image: string
-    a_image_url: string
-    annotations: { a_id_annotation: string; a_image_annotation_type: string; a_image_annotation_coordinates: unknown }[]
-    a_image_type: string | null
-    a_image_caption: string | null
-}
-
-const FIELD_INDICATORS = BCS_INDICATORS.filter((indicator) => indicator.source === "field")
-
-/** Step indices: 0=photos, 1=annotate (conditional), then scoring steps, then summary */
-function getStepConfig(hasImages: boolean) {
-    const steps: { type: "photos" | "annotate" | "score" | "summary"; indicatorIndex?: number }[] = []
-    steps.push({ type: "photos" })
-    if (hasImages) {
-        steps.push({ type: "annotate" })
+function createTempId() {
+    if (
+        typeof crypto !== "undefined" &&
+        typeof crypto.randomUUID === "function"
+    ) {
+        return crypto.randomUUID()
     }
-    for (let i = 0; i < FIELD_INDICATORS.length; i++) {
-        steps.push({ type: "score", indicatorIndex: i })
-    }
-    steps.push({ type: "summary" })
-    return steps
+    return `tmp-${Math.random().toString(36).slice(2, 10)}`
 }
 
-export function BcsWizard({ b_id, b_id_farm, calendar, action }: BcsWizardProps) {
-    const [step, setStep] = useState(0)
-    const [a_date, setADate] = useState(new Date())
-    const [scores, setScores] = useState<Partial<Record<BcsIndicatorKey, 0 | 1 | 2>>>({})
-    const [draftId, setDraftId] = useState<string | null>(null)
-    const [b_id_sampling, setBIdSampling] = useState<string | null>(null)
+export function BcsWizard({
+    b_id,
+    fieldName,
+    labAnalysisDate,
+    somLoi,
+    phCc,
+    soilSource,
+}: BcsWizardProps) {
+    const fetcher = useFetcher()
+    const previewFetcher = useFetcher<BcsPreviewResult>()
+    const totalSteps = BCS_FIELD_INDICATORS.length + 2
+    const [currentStep, setCurrentStep] = useState(0)
+    const [samplingDate, setSamplingDate] = useState<Date>(new Date())
+    const [scores, setScores] = useState<
+        Partial<Record<BcsVisualKey, 0 | 1 | 2>>
+    >({})
     const [images, setImages] = useState<WizardImage[]>([])
-    const [uploading, setUploading] = useState(false)
-    const [pendingFile, setPendingFile] = useState<File | null>(null)
-    const [guideExpanded, setGuideExpanded] = useState(false)
-    const [annotatingImageIndex, setAnnotatingImageIndex] = useState(0)
-    const cameraInputRef = useRef<HTMLInputElement>(null)
-    const createDraftFetcher = useFetcher<DraftResponse>()
+    const [annotations, setAnnotations] = useState<WizardAnnotation[]>([])
+    const [isUploading, setIsUploading] = useState(false)
 
-    const hasImages = images.length > 0
-    const stepConfig = useMemo(() => getStepConfig(hasImages), [hasImages])
-    const totalSteps = stepConfig.length
-    const currentStepConfig = stepConfig[step] ?? stepConfig[stepConfig.length - 1]
+    const isReviewStep = currentStep === totalSteps - 1
+    const currentIndicator =
+        currentStep > 0 && currentStep <= BCS_FIELD_INDICATORS.length
+            ? BCS_FIELD_INDICATORS[currentStep - 1]
+            : null
+    const currentGuide = currentIndicator
+        ? (BCS_GUIDES.find((guide) => guide.key === currentIndicator.key) ??
+          null)
+        : null
+    const hasAnyVisualScore = BCS_VISUAL_KEYS.some((key) => scores[key] != null)
 
-    const stepLabel = useMemo(() => {
-        if (currentStepConfig.type === "photos") return "Foto's uploaden"
-        if (currentStepConfig.type === "annotate") return "Foto's annoteren"
-        if (currentStepConfig.type === "summary") return "Samenvatting"
-        if (currentStepConfig.type === "score" && currentStepConfig.indicatorIndex != null) {
-            return FIELD_INDICATORS[currentStepConfig.indicatorIndex]?.name ?? "BCS"
-        }
-        return "BCS"
-    }, [currentStepConfig])
-
+    // Fetch server-side BCS preview whenever the review step is entered
     useEffect(() => {
-        if (createDraftFetcher.data?.a_id) {
-            setDraftId(createDraftFetcher.data.a_id)
-            setBIdSampling(createDraftFetcher.data.b_id_sampling)
-        }
-    }, [createDraftFetcher.data])
+        if (!isReviewStep) return
+        previewFetcher.submit(
+            {
+                scores,
+                b_id,
+                samplingDate: samplingDate.toISOString(),
+            },
+            {
+                method: "POST",
+                action: "/api/bcs-preview",
+                encType: "application/json",
+            },
+        )
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isReviewStep, scores, b_id, samplingDate])
 
-    useEffect(() => {
-        if (!pendingFile || !b_id_sampling || uploading) return
-        const file = pendingFile
-        setPendingFile(null)
-        void uploadImage(file, b_id_sampling)
-    }, [b_id_sampling, pendingFile, uploading])
+    const galleryImages = useMemo(
+        () =>
+            images.map((image) => ({
+                id: image.tempId,
+                url: image.url,
+                caption: image.caption,
+                annotations: annotations
+                    .filter(
+                        (annotation) => annotation.tempImageId === image.tempId,
+                    )
+                    .map((annotation) => ({
+                        type: annotation.type,
+                        coordinates: annotation.coordinates,
+                        text: annotation.text,
+                        bcsIndicator: annotation.bcsIndicator,
+                    })),
+            })),
+        [annotations, images],
+    )
 
-    const createDraft = () => {
-        if (draftId || createDraftFetcher.state !== "idle") return
-        const formData = new FormData()
-        formData.append("intent", "create-draft")
-        formData.append("b_id", b_id)
-        formData.append("b_id_farm", b_id_farm)
-        formData.append("calendar", calendar)
-        createDraftFetcher.submit(formData, { method: "post", action })
-    }
+    const isSubmitting = fetcher.state !== "idle"
 
-    const uploadImage = async (file: File, samplingId: string) => {
-        setUploading(true)
+    const uploadFiles = async (fileList: FileList) => {
+        const selectedFiles = Array.from(fileList)
+        if (selectedFiles.length === 0) return
+
+        setIsUploading(true)
         try {
-            const { uploadSoilImage } = await import("~/lib/image-upload.client")
-            const a_id_image = await uploadSoilImage(file, samplingId)
-            const objectUrl = URL.createObjectURL(file)
-            setImages((current) => [
-                ...current,
-                {
-                    a_id_image,
-                    a_image_url: objectUrl,
-                    annotations: [],
-                    a_image_type: null,
-                    a_image_caption: null,
-                },
-            ])
+            const uploadedImages = await Promise.all(
+                selectedFiles.map(async (file) => {
+                    const result = await uploadBcsImage(file, b_id, file.name)
+                    return {
+                        tempId: createTempId(),
+                        objectKey: result.objectKey,
+                        url: result.url,
+                        caption: file.name,
+                    } satisfies WizardImage
+                }),
+            )
+            setImages((previous) => [...previous, ...uploadedImages])
+            toast.success(
+                `${uploadedImages.length} foto${uploadedImages.length === 1 ? "" : "'s"} toegevoegd`,
+            )
         } catch (error) {
-            console.error("Upload failed", error)
+            toast.error(
+                error instanceof Error ? error.message : "Upload mislukt",
+            )
         } finally {
-            setUploading(false)
+            setIsUploading(false)
         }
     }
 
-    const handleCapture = async (file: File) => {
-        if (!b_id_sampling) {
-            setPendingFile(file)
-            createDraft()
-            return
-        }
-        await uploadImage(file, b_id_sampling)
+    const handleAddAnnotation = (
+        imageId: string,
+        type: AnnotationType,
+        coords: AnnotationCoords,
+        text: string,
+        bcsIndicator?: string,
+    ) => {
+        const indicator =
+            (bcsIndicator as BcsVisualKey | undefined) ?? currentIndicator?.key
+
+        setAnnotations((previous) => [
+            ...previous,
+            {
+                tempId: createTempId(),
+                tempImageId: imageId,
+                type,
+                coordinates: coords,
+                text: text || undefined,
+                bcsIndicator: indicator,
+            },
+        ])
     }
 
-    const handleScoreChange = (key: BcsIndicatorKey, value: 0 | 1 | 2) => {
-        setScores((current) => ({
-            ...current,
-            [key]: current[key] === value ? undefined : value,
-        }))
-    }
+    const handleRemoveAnnotation = (
+        imageId: string,
+        annotationIndex: number,
+    ) => {
+        const annotationToRemove = annotations.filter(
+            (annotation) => annotation.tempImageId === imageId,
+        )[annotationIndex]
 
-    const handleAnnotationAdd = (imageIndex: number, annotation: {
-        type: string
-        data_json: string
-        text?: string
-        a_image_annotation_bcs?: string
-    }) => {
-        setImages((current) =>
-            current.map((img, i) =>
-                i === imageIndex
-                    ? {
-                          ...img,
-                          annotations: [
-                              ...img.annotations,
-                              {
-                                  a_id_annotation: `local-${Date.now()}`,
-                                  a_image_annotation_type: annotation.type,
-                                  a_image_annotation_coordinates: JSON.parse(annotation.data_json),
-                              },
-                          ],
-                      }
-                    : img,
+        if (!annotationToRemove) return
+
+        setAnnotations((previous) =>
+            previous.filter(
+                (annotation) => annotation.tempId !== annotationToRemove.tempId,
             ),
         )
+    }
 
-        // Persist annotation to server if we have a draft
-        if (draftId) {
-            const fd = new FormData()
-            fd.append("intent", "add-annotation")
-            fd.append("a_id_image", images[imageIndex].a_id_image)
-            fd.append("a_image_annotation_type", annotation.type)
-            fd.append("a_image_annotation_coordinates", annotation.data_json)
-            if (annotation.text) fd.append("a_image_annotation", annotation.text)
-            if (annotation.a_image_annotation_bcs) fd.append("a_image_annotation_bcs", annotation.a_image_annotation_bcs)
-            createDraftFetcher.submit(fd, { method: "post", action })
+    const handleSubmit = () => {
+        if (!hasAnyVisualScore) {
+            toast.error(
+                "Geef minimaal één indicator voor BodemConditieScore op.",
+            )
+            return
         }
+
+        const payload: BcsSavePayload = {
+            a_date: format(samplingDate, "yyyy-MM-dd"),
+            b_sampling_date: format(samplingDate, "yyyy-MM-dd"),
+            a_depth_lower: 25,
+            scores,
+            images,
+            annotations,
+        }
+
+        fetcher.submit(JSON.stringify(payload), {
+            method: "POST",
+            encType: "application/json",
+        })
     }
-
-    const next = () => setStep((current) => Math.min(current + 1, totalSteps - 1))
-    const prev = () => setStep((current) => Math.max(current - 1, 0))
-
-    // ─── Photo Upload Step ───────────────────────────────────────────────
-    if (currentStepConfig.type === "photos") {
-        return (
-            <div className="space-y-6">
-                <WizardProgress currentStep={step} totalSteps={totalSteps} stepLabel={stepLabel} />
-
-                <div className="rounded-xl border p-6 space-y-4">
-                    <div className="space-y-2">
-                        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <Camera className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-semibold">Foto's uploaden</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Maak of upload foto's van het bodemprofiel. Je kunt later annotaties toevoegen om observaties te markeren.
-                            </p>
-                        </div>
-                    </div>
-
-                    <Dropzone
-                        name="images"
-                        accept={IMAGE_ACCEPT}
-                        multiple
-                        disabled={uploading || createDraftFetcher.state !== "idle"}
-                        allowReset={false}
-                        onFilesChange={(files) => {
-                            for (const file of files) {
-                                void handleCapture(file)
-                            }
-                        }}
-                    >
-                        <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                            Sleep foto's hierheen of{" "}
-                            <span className="text-primary underline-offset-4 hover:underline">blader</span>
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            JPG, PNG, WEBP of HEIC — max. 10 MB
-                        </p>
-                    </Dropzone>
-
-                    {/* Camera capture — mobile only */}
-                    <input
-                        ref={cameraInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) void handleCapture(file)
-                            e.target.value = ""
-                        }}
-                    />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full sm:hidden"
-                        disabled={uploading || createDraftFetcher.state !== "idle"}
-                        onClick={() => {
-                            if (!b_id_sampling) createDraft()
-                            cameraInputRef.current?.click()
-                        }}
-                    >
-                        <Camera className="mr-2 h-4 w-4" />
-                        Foto maken
-                    </Button>
-
-                    {/* Image thumbnails */}
-                    {images.length > 0 && (
-                        <div className="grid grid-cols-4 gap-2">
-                            {images.map((img) => (
-                                <div key={img.a_id_image} className="aspect-square rounded-md overflow-hidden border bg-muted">
-                                    <img src={img.a_image_url} alt="" className="h-full w-full object-cover" />
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3 text-sm">
-                        <span className="font-medium">{images.length} foto's toegevoegd</span>
-                        <span className="text-muted-foreground">
-                            {uploading
-                                ? "Uploaden..."
-                                : createDraftFetcher.state !== "idle"
-                                  ? "Klaarzetten..."
-                                  : "Foto's zijn optioneel"}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                    <Button type="button" variant="ghost" onClick={next}>
-                        Overslaan
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                    <Button type="button" onClick={next}>
-                        Volgende
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-        )
-    }
-
-    // ─── Annotation Step (only if images uploaded) ───────────────────────
-    if (currentStepConfig.type === "annotate") {
-        const currentImage = images[annotatingImageIndex]
-
-        return (
-            <div className="space-y-6">
-                <WizardProgress currentStep={step} totalSteps={totalSteps} stepLabel={stepLabel} />
-
-                <div className="rounded-xl border p-6 space-y-4">
-                    <div className="space-y-2">
-                        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <ImageIcon className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-semibold">Foto's annoteren</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Markeer observaties op je foto's met pins, cirkels of pijlen. Koppel annotaties aan BCS-indicatoren. Je kunt dit ook overslaan.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Image selector */}
-                    {images.length > 1 && (
-                        <div className="flex gap-2">
-                            {images.map((img, i) => (
-                                <button
-                                    key={img.a_id_image}
-                                    type="button"
-                                    onClick={() => setAnnotatingImageIndex(i)}
-                                    className={cn(
-                                        "h-16 w-16 rounded-md overflow-hidden border-2 transition-colors",
-                                        i === annotatingImageIndex ? "border-primary" : "border-transparent",
-                                    )}
-                                >
-                                    <img src={img.a_image_url} alt="" className="h-full w-full object-cover" />
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Annotation canvas */}
-                    {currentImage && (
-                        <SoilAnnotator
-                            imageUrl={currentImage.a_image_url}
-                            annotations={currentImage.annotations.map((a) => ({
-                                ...a,
-                                a_image_annotation: null,
-                                a_image_annotation_bcs: null,
-                                a_image_annotation_order: 0,
-                                a_id_image: currentImage.a_id_image,
-                                created: new Date().toISOString(),
-                                updated: new Date().toISOString(),
-                            })) as unknown as Parameters<typeof SoilAnnotator>[0]["annotations"]}
-                            onAnnotationAdd={(ann) => handleAnnotationAdd(annotatingImageIndex, ann)}
-                        />
-                    )}
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                    <Button type="button" variant="outline" onClick={prev}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Vorige
-                    </Button>
-                    <Button type="button" onClick={next}>
-                        Volgende
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-        )
-    }
-
-    // ─── Scoring Steps ───────────────────────────────────────────────────
-    if (currentStepConfig.type === "score" && currentStepConfig.indicatorIndex != null) {
-        const indicator = FIELD_INDICATORS[currentStepConfig.indicatorIndex]
-        const isPositive = indicator.direction === "positive"
-        const guide = getScoringGuide(indicator.key)
-
-        return (
-            <div className="space-y-6">
-                <WizardProgress currentStep={step} totalSteps={totalSteps} stepLabel={stepLabel} />
-
-                <div className="rounded-xl border p-6 space-y-6">
-                    {/* Indicator header */}
-                    <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <span
-                                className={cn(
-                                    "rounded-full px-3 py-1 font-medium",
-                                    isPositive
-                                        ? "bg-green-100 text-green-700"
-                                        : "bg-orange-100 text-orange-700",
-                                )}
-                            >
-                                {isPositive ? "Positief" : "Negatief"}
-                            </span>
-                            <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
-                                Gewicht ×{indicator.weight}
-                            </span>
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-semibold">{indicator.name}</h3>
-                            <p className="text-sm text-muted-foreground">{indicator.description}</p>
-                        </div>
-                    </div>
-
-                    {/* Scoring guide */}
-                    {guide && (
-                        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                            <button
-                                type="button"
-                                onClick={() => setGuideExpanded(!guideExpanded)}
-                                className="flex w-full items-center justify-between text-sm font-medium"
-                            >
-                                <span>📋 Beoordelingsrichtlijn</span>
-                                {guideExpanded ? (
-                                    <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                    <ChevronDown className="h-4 w-4" />
-                                )}
-                            </button>
-
-                            {guideExpanded && (
-                                <div className="space-y-3 pt-2">
-                                    <p className="text-sm text-muted-foreground italic">
-                                        {guide.instruction}
-                                    </p>
-                                    <div className="space-y-2">
-                                        {guide.scoreLevels.map((level) => (
-                                            <div
-                                                key={level.score}
-                                                className={cn(
-                                                    "flex gap-3 rounded-md border p-3 text-sm transition-colors",
-                                                    scores[indicator.key] === level.score && "border-primary bg-primary/5",
-                                                )}
-                                            >
-                                                <span className="shrink-0 font-bold text-base w-6 text-center">
-                                                    {level.score}
-                                                </span>
-                                                <div>
-                                                    <span className="font-medium">{level.label}</span>
-                                                    <p className="text-muted-foreground">{level.description}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Score buttons */}
-                    <div className="flex gap-3">
-                        {[0, 1, 2].map((value) => (
-                            <ScoreButton
-                                key={value}
-                                value={value}
-                                selected={scores[indicator.key] === value}
-                                onClick={() => handleScoreChange(indicator.key, value as 0 | 1 | 2)}
-                            />
-                        ))}
-                    </div>
-
-                    {/* User's own photos as reference (thumbnails) */}
-                    {images.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground">Je foto's ter referentie</p>
-                            <div className="flex gap-2 overflow-x-auto pb-1">
-                                {images.map((img) => (
-                                    <div key={img.a_id_image} className="h-16 w-16 shrink-0 rounded-md overflow-hidden border bg-muted">
-                                        <img src={img.a_image_url} alt="" className="h-full w-full object-cover" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                    <Button type="button" variant="outline" onClick={prev}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Vorige
-                    </Button>
-                    <Button type="button" onClick={next}>
-                        Volgende
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-        )
-    }
-
-    // ─── Summary Step ────────────────────────────────────────────────────
-    const scoredCount = Object.values(scores).filter((v) => v != null).length
-    const fieldIndicatorCount = FIELD_INDICATORS.length
 
     return (
-        <div className="space-y-6">
-            <WizardProgress currentStep={step} totalSteps={totalSteps} stepLabel={stepLabel} />
-
-            <div className="rounded-xl border p-6 space-y-6">
+        <Card>
+            <CardHeader className="space-y-4 pb-2">
+                {/* Progress */}
                 <div className="space-y-2">
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <CheckCircle2 className="h-6 w-6" />
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>
+                            Stap {currentStep + 1} van {totalSteps}
+                        </span>
+                        <span>
+                            {Math.round(((currentStep + 1) / totalSteps) * 100)}
+                            %
+                        </span>
                     </div>
-                    <div>
-                        <h3 className="text-2xl font-semibold">Samenvatting</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Controleer de datum en scores, en sla de BCS-beoordeling op. De totaalscore wordt na opslaan berekend.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Scores overview */}
-                <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-                    <p className="text-sm font-medium">
-                        {scoredCount} van {fieldIndicatorCount} indicatoren beoordeeld
-                    </p>
-                    <div className="space-y-1">
-                        {FIELD_INDICATORS.map((indicator) => {
-                            const score = scores[indicator.key]
-                            return (
-                                <div key={indicator.key} className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">{indicator.name}</span>
-                                    <span className="font-medium">
-                                        {score != null ? score : "—"}
-                                    </span>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <label htmlFor="a_date" className="text-sm font-medium">
-                        Datum
-                    </label>
-                    <input
-                        id="a_date"
-                        type="date"
-                        value={a_date.toISOString().split("T")[0]}
-                        onChange={(event) => {
-                            if (!event.target.value) return
-                            setADate(new Date(`${event.target.value}T12:00:00`))
-                        }}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    <Progress
+                        value={((currentStep + 1) / totalSteps) * 100}
+                        className="h-2"
                     />
                 </div>
 
-                {/* Uploaded images summary */}
-                {images.length > 0 && (
-                    <div className="space-y-2">
-                        <p className="text-sm font-medium">{images.length} foto's</p>
-                        <div className="grid grid-cols-4 gap-2">
-                            {images.map((img) => (
-                                <div key={img.a_id_image} className="aspect-square rounded-md overflow-hidden border bg-muted">
-                                    <img src={img.a_image_url} alt="" className="h-full w-full object-cover" />
+                {/* Step title */}
+                <div>
+                    {currentStep === 0 ? (
+                        <>
+                            <CardTitle>
+                                BodemConditieScore voor {fieldName}
+                            </CardTitle>
+                            <CardDescription className="mt-1.5">
+                                Leg eerst de beoordelingsdatum vast en voeg optioneel
+                                foto&apos;s toe die, waar je later notities aan kunt toevoegen.
+                            </CardDescription>
+                        </>
+                    ) : currentIndicator ? (
+                        <>
+                            <CardTitle>{currentIndicator.name}</CardTitle>
+                            <CardDescription className="mt-1.5">
+                                {currentIndicator.description}
+                            </CardDescription>
+                        </>
+                    ) : (
+                        <>
+                            <CardTitle>Controleer en bevestig</CardTitle>
+                            <CardDescription className="mt-1.5">
+                                Bekijk het totaal, de deelindicatoren en de
+                                foto&apos;s voordat je opslaat.
+                            </CardDescription>
+                        </>
+                    )}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {currentStep === 0 ? (
+                    <div className="space-y-6">
+                        <div className="grid gap-4 md:grid-cols-2 md:items-start">
+                            <DatePicker
+                                label="Datum bemonstering"
+                                description="Datum waarop de beoordeling is uitgevoerd."
+                                field={{
+                                    value: samplingDate.toISOString(),
+                                    onChange: (value: string | null) => {
+                                        if (value)
+                                            setSamplingDate(new Date(value))
+                                    },
+                                    onBlur: () => {},
+                                    disabled: false,
+                                    name: "samplingDate",
+                                    ref: () => {},
+                                }}
+                                fieldState={{
+                                    invalid: false,
+                                    isDirty: false,
+                                    isTouched: false,
+                                    isValidating: false,
+                                    error: undefined,
+                                }}
+                                required
+                            />
+
+                            <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground space-y-1">
+                                <div className="font-medium text-foreground">
+                                    pH en organische stof
                                 </div>
-                            ))}
+                                {labAnalysisDate ? (
+                                    <>
+                                        <p>
+                                            Labanalyse van{" "}
+                                            {format(
+                                                new Date(labAnalysisDate),
+                                                "PPP",
+                                                { locale: nl },
+                                            )}
+                                            {soilSource
+                                                ? ` · ${soilSource}`
+                                                : ""}
+                                            .
+                                        </p>
+                                        <p>
+                                            pH-CaCl₂:{" "}
+                                            <span className="font-medium text-foreground">
+                                                {phCc != null
+                                                    ? phCc.toFixed(1)
+                                                    : "–"}
+                                            </span>
+                                            {" · "}
+                                            OS:{" "}
+                                            <span className="font-medium text-foreground">
+                                                {somLoi != null
+                                                    ? `${somLoi.toFixed(1)} %`
+                                                    : "–"}
+                                            </span>
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p>
+                                        Geen recente labanalyse gevonden — pH en
+                                        organische stof blijven onbekend.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-dashed p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 font-medium">
+                                        <Camera className="size-4" />
+                                        Foto&apos;s toevoegen
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Upload profiel-, oppervlakte- of
+                                        detailfoto&apos;s voor notities tijdens
+                                        de beoordeling.
+                                    </p>
+                                </div>
+                                <PhotoUploadButton
+                                    onFiles={uploadFiles}
+                                    disabled={isUploading}
+                                    size="lg"
+                                    label={
+                                        isUploading
+                                            ? "Uploaden..."
+                                            : "Foto's kiezen"
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <ImageGallery
+                            images={galleryImages}
+                            editMode={true}
+                            onAddAnnotation={handleAddAnnotation}
+                            onRemoveAnnotation={handleRemoveAnnotation}
+                        />
+                    </div>
+                ) : currentIndicator && currentGuide ? (
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        {/* Left: What to assess + how */}
+                        <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
+                            <div>
+                                <div className="text-sm font-medium">
+                                    Wat beoordeel je?
+                                </div>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {currentGuide.description}
+                                </p>
+                            </div>
+                            <div>
+                                <div className="text-sm font-medium">
+                                    Werkwijze
+                                </div>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {currentGuide.instructions}
+                                </p>
+                            </div>
+                            <div>
+                                <div className="text-sm font-medium">
+                                    Fototip
+                                </div>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {currentGuide.tip}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Right: Clickable criteria (= score selection) + images */}
+                        <div className="space-y-4">
+                            <div className="text-sm font-medium">
+                                Kies de score
+                            </div>
+                            <div className="space-y-3">
+                                {currentGuide.criteria.map((criterion) => {
+                                    const selected =
+                                        scores[currentIndicator.key] ===
+                                        criterion.score
+                                    const bcsColor = indicatorScoreColor(
+                                        criterion.score,
+                                        currentIndicator.direction,
+                                    )
+
+                                    return (
+                                        <button
+                                            key={criterion.score}
+                                            type="button"
+                                            onClick={() =>
+                                                setScores((previous) => ({
+                                                    ...previous,
+                                                    [currentIndicator.key]:
+                                                        criterion.score,
+                                                }))
+                                            }
+                                            className={cn(
+                                                "w-full rounded-xl border-2 p-3 text-left transition-colors hover:bg-accent",
+                                                selected
+                                                    ? BCS_SELECTED_CLASSES[bcsColor]
+                                                    : "border-border bg-background",
+                                            )}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-medium">
+                                                    {criterion.label}
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        "rounded-full px-2 py-0.5 text-xs font-semibold",
+                                                        selected
+                                                            ? "bg-primary text-primary-foreground"
+                                                            : "bg-muted text-muted-foreground",
+                                                    )}
+                                                >
+                                                    Score {criterion.score}
+                                                </span>
+                                            </div>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                {criterion.description}
+                                            </p>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+
+                            <Separator />
+                            <div className="flex items-center justify-between">
+                                <div className="text-sm font-medium">
+                                    Foto&apos;s en annotaties
+                                </div>
+                                <PhotoUploadButton
+                                    onFiles={uploadFiles}
+                                    disabled={isUploading}
+                                    size="sm"
+                                    label={
+                                        isUploading
+                                            ? "Uploaden..."
+                                            : "Foto toevoegen"
+                                    }
+                                />
+                            </div>
+                            {images.length > 0 ? (
+                                <div className="space-y-3">
+                                    <p className="text-sm text-muted-foreground">
+                                        Koppel annotaties aan deze indicator
+                                        door op een foto te klikken.
+                                    </p>
+                                    <ImageGallery
+                                        images={galleryImages}
+                                        editMode={true}
+                                        onAddAnnotation={handleAddAnnotation}
+                                        onRemoveAnnotation={
+                                            handleRemoveAnnotation
+                                        }
+                                        defaultIndicator={currentIndicator.key}
+                                    />
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    Nog geen foto&apos;s. Voeg foto&apos;s toe
+                                    om annotaties te plaatsen.
+                                </p>
+                            )}
                         </div>
                     </div>
-                )}
-            </div>
+                ) : (
+                    /* Review step: 2-col on desktop */
+                    <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+                        <div className="space-y-4">
+                            {previewFetcher.state !== "idle" ? (
+                                <div className="flex items-center justify-center rounded-xl border bg-muted/20 p-12 text-sm text-muted-foreground">
+                                    Score wordt berekend...
+                                </div>
+                            ) : previewFetcher.data ? (
+                                <BcsScoreCard
+                                    scores={scores}
+                                    a_ph_bcs={previewFetcher.data.a_ph_bcs}
+                                    a_som_bcs={previewFetcher.data.a_som_bcs}
+                                    d_bcs={previewFetcher.data.d_bcs}
+                                    i_bcs={previewFetcher.data.i_bcs}
+                                    scoreColor={previewFetcher.data.scoreColor}
+                                    scoreLabel={previewFetcher.data.scoreLabel}
+                                />
+                            ) : null}
 
-            <div className="flex items-center justify-between gap-3">
-                <Button type="button" variant="outline" onClick={prev}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Vorige
+                            <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+                                {hasAnyVisualScore ? (
+                                    <div className="flex items-start gap-2">
+                                        <CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />
+                                        <span>
+                                            Klaar om op te slaan. Je
+                                            hebt{" "}
+                                            {
+                                                BCS_VISUAL_KEYS.filter(
+                                                    (key) =>
+                                                        scores[key] != null,
+                                                ).length
+                                            }{" "}
+                                            van de {BCS_VISUAL_KEYS.length}{" "}
+                                            visuele indicatoren ingevuld.
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <span>
+                                        Vul minimaal één visuele indicator in
+                                        voordat je opslaat.
+                                    </span>
+                                )}
+                            </div>
+
+                            <Button
+                                type="button"
+                                size="lg"
+                                className="w-full"
+                                disabled={isSubmitting || !hasAnyVisualScore}
+                                onClick={handleSubmit}
+                            >
+                                {isSubmitting
+                                    ? "Opslaan..."
+                                    : "Bevestigen en opslaan"}
+                            </Button>
+                        </div>
+
+                        {images.length > 0 ? (
+                            <div className="space-y-3">
+                                <div className="text-sm font-medium">
+                                    Foto&apos;s en notities
+                                </div>
+                                <ImageGallery
+                                    images={galleryImages}
+                                    editMode={true}
+                                    onAddAnnotation={handleAddAnnotation}
+                                    onRemoveAnnotation={handleRemoveAnnotation}
+                                />
+                            </div>
+                        ) : null}
+                    </div>
+                )}
+            </CardContent>
+
+            <CardFooter className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between">
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={currentStep === 0 || isSubmitting}
+                    onClick={() =>
+                        setCurrentStep((step) => Math.max(0, step - 1))
+                    }
+                >
+                    <ChevronLeft className="size-4" />
+                    Terug
                 </Button>
 
-                <Form method="post" action={action}>
-                    {draftId && <input type="hidden" name="a_id" value={draftId} />}
-                    <input type="hidden" name="intent" value="save" />
-                    <input type="hidden" name="b_id" value={b_id} />
-                    <input type="hidden" name="b_id_farm" value={b_id_farm} />
-                    <input type="hidden" name="calendar" value={calendar} />
-                    <input type="hidden" name="a_date" value={a_date.toISOString()} />
-                    {Object.entries(scores).map(([key, value]) =>
-                        value != null ? (
-                            <input key={key} type="hidden" name={key} value={String(value)} />
-                        ) : null,
-                    )}
-                    <Button type="submit">Opslaan</Button>
-                </Form>
-            </div>
-        </div>
+                {currentStep < totalSteps - 1 ? (
+                    <Button
+                        type="button"
+                        size="lg"
+                        disabled={isSubmitting}
+                        onClick={() =>
+                            setCurrentStep((step) =>
+                                Math.min(totalSteps - 1, step + 1),
+                            )
+                        }
+                    >
+                        Volgende
+                        <ChevronRight className="size-4" />
+                    </Button>
+                ) : null}
+            </CardFooter>
+        </Card>
     )
 }
