@@ -327,24 +327,7 @@ export function BcsWizard({
 
     return (
         <Card>
-            <CardHeader className="space-y-4 pb-2">
-                {/* Progress */}
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>
-                            Stap {currentStep + 1} van {totalSteps}
-                        </span>
-                        <span>
-                            {Math.round(((currentStep + 1) / totalSteps) * 100)}
-                            %
-                        </span>
-                    </div>
-                    <Progress
-                        value={((currentStep + 1) / totalSteps) * 100}
-                        className="h-2"
-                    />
-                </div>
-
+            <CardHeader className="space-y-3 pb-2">
                 {/* Step title */}
                 <div>
                     {currentStep === 0 ? (
@@ -373,6 +356,23 @@ export function BcsWizard({
                             </CardDescription>
                         </>
                     )}
+                </div>
+
+                {/* Progress */}
+                <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>
+                            Stap {currentStep + 1} van {totalSteps}
+                        </span>
+                        <span>
+                            {Math.round(((currentStep + 1) / totalSteps) * 100)}
+                            %
+                        </span>
+                    </div>
+                    <Progress
+                        value={((currentStep + 1) / totalSteps) * 100}
+                        className="h-2"
+                    />
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
