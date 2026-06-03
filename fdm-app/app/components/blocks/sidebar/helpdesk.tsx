@@ -45,7 +45,7 @@ export function SidebarHelpdesk() {
                             >
                                 <NavLink to={"/support/new"}>
                                     <Plus />
-                                    <span>Nieuw Ticket</span>
+                                    <span>Nieuw ticket</span>
                                 </NavLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -56,7 +56,7 @@ export function SidebarHelpdesk() {
                             >
                                 <NavLink to={"/support"}>
                                     <MessageSquareCheck />
-                                    <span>Mijn Tickets</span>
+                                    <span>Mijn tickets</span>
                                 </NavLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

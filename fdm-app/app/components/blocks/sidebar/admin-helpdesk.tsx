@@ -45,7 +45,7 @@ export function SidebarAdminHelpdesk() {
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
+                    {/* <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
                             isActive={currentHelpdeskPage === "saved_replies"}
@@ -55,7 +55,7 @@ export function SidebarAdminHelpdesk() {
                                 <span>Opgeslagen Reacties</span>
                             </NavLink>
                         </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    </SidebarMenuItem> */}
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
@@ -63,7 +63,7 @@ export function SidebarAdminHelpdesk() {
                         >
                             <NavLink to="/support/settings/agents">
                                 <User />
-                                <span>Collega</span>
+                                <span>Medewerkers</span>
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

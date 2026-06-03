@@ -30,15 +30,15 @@ import type { HelpdeskUser } from "./types"
 const GREEN = "#00aa00"
 const PURPLE = "#aa00aa"
 export const TICKET_STATUS = [
-    { value: "open", label: "Open", color: GREEN },
-    { value: "in_progress", label: "In Voortgang", color: GREEN },
-    { value: "pending", label: "Hangend", color: PURPLE },
+    { value: "open", label: "Ontvangen", color: GREEN },
+    { value: "in_progress", label: "In behandeling", color: GREEN },
+    { value: "pending", label: "Wordt nagevraagd", color: PURPLE },
     {
         value: "waiting_on_customer",
-        label: "Actie vereist van gebruiker",
+        label: "Wachten op reactie van gebruiker",
         color: GREEN,
     },
-    { value: "resolved", label: "Goedkeurd", color: PURPLE },
+    { value: "resolved", label: "Opgelost", color: PURPLE },
     { value: "closed", label: "Gesloten", color: PURPLE },
 ]
 const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -183,7 +183,7 @@ export function Ticket({
                         htmlFor={assigneeSelectId}
                         className="text-muted-foreground"
                     >
-                        Toewijzing:
+                        Medewerker:
                     </label>
                     <Dialog
                         open={assignmentDialogOpen}

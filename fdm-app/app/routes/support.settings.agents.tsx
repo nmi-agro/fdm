@@ -127,11 +127,11 @@ export default function HelpdeskAgentSettings() {
     return (
         <main className="p-6">
             <FarmTitle
-                title="Jouw Collega"
+                title="Medewerkers"
                 description={
                     helpdeskWritePermission
-                        ? "Bekijk en beheer de gebruikers die toegang naar de ondersteuningsdashboard heeft."
-                        : "Bekijk de gebruikers die toegang naar de ondersteuningsdashboard heeft."
+                        ? "Bekijk en beheer de gebruikers die toegang naar de ondersteuningsdashboard hebben."
+                        : "Bekijk de gebruikers die toegang naar de ondersteuningsdashboard hebben."
                 }
             />
             <HelpdeskAgentManager

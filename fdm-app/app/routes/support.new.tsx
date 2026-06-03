@@ -16,7 +16,7 @@ import type { Route } from "./+types/support.new"
 export const meta: Route.MetaFunction = () => {
     return [
         {
-            title: `Nieuw Ticket - Ondersteuning | ${clientConfig.name}`,
+            title: `Nieuw ticket - Ondersteuning | ${clientConfig.name}`,
         },
         {
             name: "description",

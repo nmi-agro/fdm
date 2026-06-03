@@ -11,7 +11,7 @@ import type { Route } from "./+types/support._ticketviewer"
 export const meta: Route.MetaFunction = () => {
     return [
         {
-            title: `Mijn Tickets - Ondersteuning | ${clientConfig.name}`,
+            title: `Mijn tickets - Ondersteuning | ${clientConfig.name}`,
         },
         {
             name: "description",

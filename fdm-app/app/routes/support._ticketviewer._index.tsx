@@ -6,7 +6,7 @@ export default function TicketViewerNoSelection() {
         <Empty>
             <MessageSquareCheck className="size-8 text-muted-foreground" />
             <EmptyTitle className="text-muted-foreground">
-                Mijn Tickets
+                Mijn tickets
             </EmptyTitle>
             <EmptyDescription className="text-muted-foreground">
                 Hier kunt u de tickets zien die u eerder hebt aangemaakt.

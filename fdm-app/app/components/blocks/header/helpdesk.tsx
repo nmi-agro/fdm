@@ -16,19 +16,19 @@ export function HeaderHelpdesk() {
             {currentHelpdeskPage === "new_ticket" && (
                 <>
                     <BreadcrumbSeparator />
-                    <BreadcrumbItem>Nieuw Ticket</BreadcrumbItem>
+                    <BreadcrumbItem>Nieuw ticket</BreadcrumbItem>
                 </>
             )}
             {currentHelpdeskPage === "my_tickets" && (
                 <>
                     <BreadcrumbSeparator />
-                    <BreadcrumbItem>Mijn Tickets</BreadcrumbItem>
+                    <BreadcrumbItem>Mijn tickets</BreadcrumbItem>
                 </>
             )}
             {currentHelpdeskPage === "all_tickets" && (
                 <>
                     <BreadcrumbSeparator />
-                    <BreadcrumbItem>Alle Tickets</BreadcrumbItem>
+                    <BreadcrumbItem>Alle tickets</BreadcrumbItem>
                 </>
             )}
             {currentHelpdeskPage === "inbox" && (
@@ -41,8 +41,8 @@ export function HeaderHelpdesk() {
                 <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>Instellingen</BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>Opgeslagen Reacties</BreadcrumbItem>
+                    {/* <BreadcrumbSeparator />
+                    <BreadcrumbItem>Opgeslagen reacties</BreadcrumbItem> */}
                 </>
             )}
             {currentHelpdeskPage === "agents" && (
@@ -50,7 +50,7 @@ export function HeaderHelpdesk() {
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>Instellingen</BreadcrumbItem>
                     <BreadcrumbSeparator />
-                    <BreadcrumbItem>Collega</BreadcrumbItem>
+                    <BreadcrumbItem>Medewerkers</BreadcrumbItem>
                 </>
             )}
         </>
