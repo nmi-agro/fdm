@@ -3,12 +3,12 @@ import type { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"
-import { useEffect, useState } from "react"
+import { type MouseEventHandler, useEffect, useState } from "react"
 import { Controller } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
 import type { UseRemixFormReturn } from "remix-hook-form"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type { z } from "zod"
+import { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -40,6 +40,7 @@ import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
 
 type HarvestFormDialogProps = {
+    b_lu_croprotation?: string
     harvestParameters: HarvestParameters
     exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
     example_b_lu_harvest_date?: Date | null
@@ -60,8 +61,13 @@ type HarvestFormDialogProps = {
     action?: string
     handleConfirmation?: (data: z.infer<typeof FormSchema>) => Promise<boolean>
     editable?: boolean
+    allowBatch?: boolean
+    onBatchClick?: MouseEventHandler
 }
 
+const SchemaWithIntent = FormSchema.extend({
+    intent: z.literal("single_harvest"),
+})
 function useHarvestRemixForm({
     harvestParameters,
     b_lu_harvest_date,
@@ -112,11 +118,11 @@ function useHarvestRemixForm({
         return undefined
     }
 
-    const form = useRemixForm<z.infer<typeof FormSchema>>({
+    const form = useRemixForm<z.infer<typeof SchemaWithIntent>>({
         mode: "onSubmit",
         resolver: async (values, bypass, options) => {
             // Do the validation using Zod
-            const validation = await zodResolver(FormSchema)(
+            const validation = await zodResolver(SchemaWithIntent)(
                 values,
                 bypass,
                 options,
@@ -150,6 +156,7 @@ function useHarvestRemixForm({
             return validation
         },
         defaultValues: {
+            intent: "single_harvest",
             b_lu_harvest_date: getDefaultHarvestDate(),
             b_lu_yield: harvestParameters.includes("b_lu_yield")
                 ? b_lu_yield
@@ -213,10 +220,13 @@ function useHarvestRemixForm({
 function HarvestFields({
     form,
     className,
+    b_lu_croprotation,
     harvestParameters,
     exampleHarvestableAnalysis,
     example_b_lu_harvest_date,
     b_lu_harvest_date,
+    allowBatch,
+    onBatchClick,
 }: HarvestFormDialogProps & {
     form: UseRemixFormReturn<z.infer<typeof FormSchema>>
     className: React.ComponentProps<typeof FieldGroup>["className"]
@@ -226,6 +236,7 @@ function HarvestFields({
         : undefined
     return (
         <FieldGroup className={cn("gap-5", className)}>
+            <input type="hidden" name="intent" value="single_harvest" />
             <Controller
                 name="b_lu_harvest_date"
                 control={form.control}
@@ -254,6 +265,13 @@ function HarvestFields({
                     />
                 )}
             />
+            {allowBatch && (
+                <Button type="button" onClick={onBatchClick}>
+                    {b_lu_croprotation === "grass"
+                        ? "Meerdere sneden toevoegen"
+                        : "Meerdere oogsten toevoegen"}
+                </Button>
+            )}
             <Controller
                 name="b_lu_yield"
                 control={form.control}
