@@ -407,15 +407,12 @@ export function BcsWizard({
                                 <div className="font-medium text-foreground">
                                     pH en organische stof
                                 </div>
-                                {labAnalysisDate ? (
+                                {phCc != null || somLoi != null ? (
                                     <>
                                         <p>
-                                            Labanalyse van{" "}
-                                            {format(
-                                                new Date(labAnalysisDate),
-                                                "PPP",
-                                                { locale: nl },
-                                            )}
+                                            {labAnalysisDate
+                                                ? `Labanalyse van ${format(new Date(labAnalysisDate), "PPP", { locale: nl })}`
+                                                : "Labanalyse"}
                                             {soilSource
                                                 ? ` · ${soilSource}`
                                                 : ""}
@@ -568,7 +565,7 @@ export function BcsWizard({
                             <Separator />
                             <div className="flex items-center justify-between">
                                 <div className="text-sm font-medium">
-                                    Foto&apos;s en annotaties
+                                    Foto&apos;s en notities
                                 </div>
                                 <PhotoUploadButton
                                     onFiles={uploadFiles}
@@ -584,7 +581,7 @@ export function BcsWizard({
                             {images.length > 0 ? (
                                 <div className="space-y-3">
                                     <p className="text-sm text-muted-foreground">
-                                        Koppel annotaties aan deze indicator
+                                        Koppel notities aan deze indicator
                                         door op een foto te klikken.
                                     </p>
                                     <ImageGallery
@@ -600,7 +597,7 @@ export function BcsWizard({
                             ) : (
                                 <p className="text-sm text-muted-foreground">
                                     Nog geen foto&apos;s. Voeg foto&apos;s toe
-                                    om annotaties te plaatsen.
+                                    om notities te plaatsen.
                                 </p>
                             )}
                         </div>

@@ -6,6 +6,7 @@ import {
     getCurrentSoilData,
     getField,
     getSoilAnalysis,
+    getSoilParametersDescription,
     removeSoilAnalysis,
     removeSoilImage,
 } from "@nmi-agro/fdm-core"
@@ -105,13 +106,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const somItem = soilDataArray.find((item) => item.parameter === "a_som_loi")
         const phItem = soilDataArray.find((item) => item.parameter === "a_ph_cc")
 
+        const rawSource = somItem?.a_source ?? phItem?.a_source ?? null
+        const soilParameterDescription = getSoilParametersDescription()
+        const sourceParam = soilParameterDescription.find(
+            (x: { parameter: string }) => x.parameter === "a_source",
+        )
+        const sourceOption = sourceParam?.options?.find(
+            (x: { value: string }) => x.value === rawSource,
+        )
+        const soilSource = sourceOption?.label ?? rawSource
+
         return {
             b_id,
             fieldName: field.b_name,
             labAnalysisDate,
             somLoi: typeof somItem?.value === "number" ? somItem.value : null,
             phCc: typeof phItem?.value === "number" ? phItem.value : null,
-            soilSource: somItem?.a_source ?? phItem?.a_source ?? null,
+            soilSource,
         }
     } catch (error) {
         throw handleLoaderError(error)

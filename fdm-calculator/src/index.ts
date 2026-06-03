@@ -144,6 +144,7 @@ export {
 export {
     BCS_INDICATORS,
     calculateBcs,
+    deriveBcsLabContext,
     deriveOmBcs,
     derivePhBcs,
     getBcsScoreColor,
@@ -152,6 +153,7 @@ export {
 export type {
     BcsIndicatorKey,
     BcsLabContext,
+    BcsRawSoilData,
     BcsResult,
     BcsScores,
     OmCropCategory,

@@ -1,5 +1,6 @@
 import Decimal from "decimal.js"
 import { calcPhDelta, type SoiltypeAgr } from "./ph-delta"
+import { deriveCropPlanFractions, type CultivationForCropPlan } from "./crop-plan"
 
 /**
  * BCS (BodemConditieScore) calculation utilities.
@@ -144,6 +145,67 @@ export function calculateBcs(scores: BcsScores, labContext?: BcsLabContext): Bcs
         d_bcs_max: D_BCS_NORMALIZER.toNumber(),
         a_ph_bcs,
         a_som_bcs,
+    }
+}
+
+/**
+ * Maps a `b_soiltype_agr` value to the simplified soil type used for OM BCS scoring.
+ */
+function mapOmSoilType(soiltype: string | null | undefined): OmSoiltypeN | null {
+    switch (soiltype as SoiltypeAgr | null | undefined) {
+        case "dekzand":
+        case "dalgrond":
+        case "duinzand":
+            return "zand"
+        case "zeeklei":
+        case "rivierklei":
+        case "maasklei":
+        case "moerige_klei":
+            return "klei"
+        case "loess":
+            return "loess"
+        case "veen":
+            return "veen"
+        default:
+            return null
+    }
+}
+
+/** Raw soil analysis values needed for BCS lab scoring. */
+export interface BcsRawSoilData {
+    a_ph_cc?: number | null
+    a_som_loi?: number | null
+    b_soiltype_agr?: string | null
+    a_clay_mi?: number | null
+}
+
+/**
+ * Derives a `BcsLabContext` from raw soil analysis data and cultivation history.
+ *
+ * All internal derivations (crop plan fractions, soil type mapping) are handled
+ * here so callers only need to supply the collected raw inputs.
+ */
+export function deriveBcsLabContext(
+    soilData: BcsRawSoilData,
+    cultivations: CultivationForCropPlan[],
+    bcsYear: number,
+): BcsLabContext {
+    const cropPlan = deriveCropPlanFractions(cultivations, bcsYear)
+    const omSoilType = mapOmSoilType(soilData.b_soiltype_agr)
+
+    return {
+        a_ph_cc: soilData.a_ph_cc ?? null,
+        a_som_loi: soilData.a_som_loi ?? null,
+        b_soiltype_agr: (soilData.b_soiltype_agr as SoiltypeAgr) ?? null,
+        a_clay_mi: soilData.a_clay_mi ?? null,
+        d_cp_starch: cropPlan.d_cp_starch,
+        d_cp_potato: cropPlan.d_cp_potato,
+        d_cp_sugarbeet: cropPlan.d_cp_sugarbeet,
+        d_cp_grass: cropPlan.d_cp_grass,
+        d_cp_mais: cropPlan.d_cp_mais,
+        b_lu_is_clover: cropPlan.b_lu_is_clover,
+        om_crop_category: cropPlan.om_crop_category,
+        om_soiltype_n: omSoilType ?? undefined,
     }
 }
 
