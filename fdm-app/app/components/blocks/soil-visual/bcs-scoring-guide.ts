@@ -1,3 +1,5 @@
+import type { BcsIndicatorKey } from "~/lib/bcs"
+
 export interface ScoringCriteria {
     score: 0 | 1 | 2
     label: string
@@ -5,7 +7,7 @@ export interface ScoringCriteria {
 }
 
 export interface IndicatorGuide {
-    key: string
+    key: BcsIndicatorKey
     name: string
     description: string
     instructions: string

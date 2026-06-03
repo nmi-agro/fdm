@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm"
+import { and, eq, inArray, isNull } from "drizzle-orm"
 import { checkPermission, grantRole } from "./authorization"
 import type { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
@@ -76,11 +76,13 @@ export async function addSoilImage(
                 a_image_caption: input.a_image_caption ?? null,
             })
 
-            // Grant owner role so the creator has exclusive write access
-            const creatorId = Array.isArray(principal_id)
-                ? principal_id[0]
-                : principal_id
-            await grantRole(tx, "soil_image", "owner", a_id_image, creatorId)
+            // Grant owner role to every creator principal
+            const creatorIds = Array.isArray(principal_id)
+                ? principal_id
+                : [principal_id]
+            for (const creatorId of creatorIds) {
+                await grantRole(tx, "soil_image", "owner", a_id_image, creatorId)
+            }
 
             return a_id_image
         })
@@ -126,19 +128,26 @@ export async function getSoilImages(
             .where(eq(schema.soilImage.b_id_sampling, b_id_sampling))
             .orderBy(schema.soilImage.a_image_order)
 
-        return await Promise.all(
-            images.map(async (image) => {
-                const annotations = await fdm
-                    .select()
-                    .from(schema.soilImageAnnotating)
-                    .where(
-                        eq(schema.soilImageAnnotating.a_id_image, image.a_id_image),
-                    )
-                    .orderBy(schema.soilImageAnnotating.a_image_annotation_order)
+        if (images.length === 0) return []
 
-                return { ...image, annotations }
-            }),
-        )
+        const imageIds = images.map((img) => img.a_id_image)
+        const allAnnotations = await fdm
+            .select()
+            .from(schema.soilImageAnnotating)
+            .where(inArray(schema.soilImageAnnotating.a_id_image, imageIds))
+            .orderBy(schema.soilImageAnnotating.a_image_annotation_order)
+
+        const annotationsByImageId = new Map<string, typeof allAnnotations>()
+        for (const annotation of allAnnotations) {
+            const list = annotationsByImageId.get(annotation.a_id_image) ?? []
+            list.push(annotation)
+            annotationsByImageId.set(annotation.a_id_image, list)
+        }
+
+        return images.map((image) => ({
+            ...image,
+            annotations: annotationsByImageId.get(image.a_id_image) ?? [],
+        }))
     } catch (err) {
         throw handleError(err, "Exception for getSoilImages", { b_id_sampling })
     }
@@ -167,19 +176,14 @@ export async function removeSoilImage(
             "removeSoilImage",
         )
 
-        // Fetch the image path before deletion so we can clean up storage
+        // Fetch the image path before deletion so we can clean up storage after commit
         const [image] = await fdm
             .select({ a_image_path: schema.soilImage.a_image_path })
             .from(schema.soilImage)
             .where(eq(schema.soilImage.a_id_image, a_id_image))
             .limit(1)
 
-        // Delete from storage first — if this fails, DB record is preserved
-        if (image?.a_image_path && onDelete) {
-            await onDelete(image.a_image_path)
-        }
-
-        return await fdm.transaction(async (tx) => {
+        await fdm.transaction(async (tx) => {
             // Cascade deletes annotations via FK constraint
             await tx
                 .delete(schema.soilImage)
@@ -197,6 +201,12 @@ export async function removeSoilImage(
                     ),
                 )
         })
+
+        // Delete from storage only after the DB commit succeeds; a failure here
+        // leaves an orphaned GCS object but preserves DB consistency.
+        if (image?.a_image_path && onDelete) {
+            await onDelete(image.a_image_path)
+        }
     } catch (err) {
         throw handleError(err, "Exception for removeSoilImage", { a_id_image })
     }

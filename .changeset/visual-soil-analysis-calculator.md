@@ -4,8 +4,8 @@
 
 Add BCS (BodemConditieScore) calculation functions.
 
-- `calculateBcs(scores)` — computes D_BCS (weighted total) and I_BCS (normalized 0–1 indicator) using exact Decimal.js arithmetic. Supports all 9 visual field indicators plus lab-derived `a_ph_bcs` and `a_som_bcs` scores
-- `getBcsScoreColor(d_bcs)` — maps a D_BCS value to a `"red"` / `"orange"` / `"green"` band based on thresholds
+- `calculateBcs(scores, labContext?)` — computes D_BCS (weighted total) and I_BCS (normalized 0–1 indicator) using exact Decimal.js arithmetic. Supports all 9 visual field indicators; when the optional `labContext` is provided, also derives and includes lab-based `a_ph_bcs` and `a_som_bcs` scores
+- `getBcsScoreColor(d_bcs)` — maps a D_BCS value to a colour band: `"red"` (< 10), `"orange"` (< 20), `"yellow"` (< 30), `"green"` (< 40), or `"emerald"` (≥ 40)
 - `getBcsScoreLabel(d_bcs)` — returns a Dutch label for a D_BCS value (Slecht / Onvoldoende / Matig / Goed / Zeer goed)
 - `derivePhBcs(d_ph_delta)` — derives a BCS pH score (0–2) from D_PH_DELTA using the OBIC logistic function
 - `deriveOmBcs(a_som_loi, crop_category, soiltype_n)` — derives a BCS organic matter score (0–2) from an a_som_loi lab measurement using OBIC crop × soil type quantile thresholds

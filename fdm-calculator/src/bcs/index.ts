@@ -211,9 +211,14 @@ export function deriveBcsLabContext(
 
 /**
  * Returns a colour band for the D_BCS score.
- * - `"red"`:    d_bcs < 20  (slecht / onvoldoende)
- * - `"orange"`: d_bcs < 30  (matig)
- * - `"green"`:  d_bcs >= 30 (goed / zeer goed)
+ * - `"red"`:     d_bcs < 10  (slecht)
+ * - `"orange"`:  d_bcs < 20  (onvoldoende)
+ * - `"yellow"`:  d_bcs < 30  (matig)
+ * - `"green"`:   d_bcs < 40  (goed)
+ * - `"emerald"`: d_bcs >= 40 (zeer goed)
+ *
+ * @param d_bcs - The D_BCS weighted total score
+ * @returns One of `"red" | "orange" | "yellow" | "green" | "emerald"`
  */
 export function getBcsScoreColor(
     d_bcs: number,

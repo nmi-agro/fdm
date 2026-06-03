@@ -259,7 +259,6 @@ export function ImageGallery({
         start: { x: number; y: number }
         current?: { x: number; y: number }
         points?: Array<{ x: number; y: number }>
-        arrowPhase?: "first" // waiting for second click
     }>(null)
     const imageContainerRef = useRef<HTMLDivElement>(null)
 
@@ -320,33 +319,6 @@ export function ImageGallery({
                 start: { x, y },
                 current: { x, y },
             })
-            return
-        }
-
-        if (activeTool === "arrow") {
-            if (!drawingState) {
-                setDrawingState({
-                    tool: "arrow",
-                    start: { x, y },
-                    arrowPhase: "first",
-                })
-            } else if (
-                drawingState.tool === "arrow" &&
-                drawingState.arrowPhase === "first"
-            ) {
-                const coords: ArrowCoords = {
-                    x1: drawingState.start.x,
-                    y1: drawingState.start.y,
-                    x2: x,
-                    y2: y,
-                }
-                setDrawingState(null)
-                openAnnotationDialog({
-                    imageId: selectedImage.id,
-                    type: "arrow",
-                    coords,
-                })
-            }
             return
         }
 
@@ -422,9 +394,8 @@ export function ImageGallery({
 
     const handleImageClick = (event: MouseEvent<HTMLDivElement>) => {
         if (!editMode || !onAddAnnotation || !selectedImage) return
-        // Only handle pin clicks and arrow second-click here (others handled by pointer events)
-        if (activeTool !== "pin" && activeTool !== "arrow") return
-        if (drawingState?.tool === "arrow") return // arrow second click handled in pointerDown
+        // Only handle pin clicks here (circle/freehand handled by pointer events)
+        if (activeTool !== "pin") return
 
         if (activeTool === "pin") {
             const rect = getContainerRect()
@@ -474,20 +445,6 @@ export function ImageGallery({
             )
         }
         if (
-            drawingState.tool === "arrow" &&
-            drawingState.arrowPhase === "first"
-        ) {
-            return (
-                <circle
-                    cx={drawingState.start.x}
-                    cy={drawingState.start.y}
-                    r={1.5}
-                    fill="white"
-                    vectorEffect="non-scaling-stroke"
-                />
-            )
-        }
-        if (
             drawingState.tool === "freehand" &&
             drawingState.points &&
             drawingState.points.length > 1
@@ -511,8 +468,6 @@ export function ImageGallery({
 
     const getCursorClass = () => {
         if (!editMode || !onAddAnnotation) return "cursor-default"
-        if (activeTool === "arrow" && drawingState?.tool === "arrow")
-            return "cursor-crosshair"
         return "cursor-crosshair"
     }
 
@@ -634,14 +589,7 @@ export function ImageGallery({
                                                     </TooltipContent>
                                                 </Tooltip>
                                             ))}
-                                            {drawingState?.tool === "arrow" &&
-                                            drawingState.arrowPhase ===
-                                                "first" ? (
-                                                <span className="text-xs text-muted-foreground">
-                                                    Klik op het eindpunt van de
-                                                    pijl
-                                                </span>
-                                            ) : activeTool === "freehand" ? (
+                                            {activeTool === "freehand" ? (
                                                 <span className="text-xs text-muted-foreground">
                                                     Houd ingedrukt en sleep om
                                                     te tekenen

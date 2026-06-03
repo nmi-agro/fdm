@@ -45,9 +45,10 @@ export function ScoreButton({
                     <Button
                         key={option.value}
                         type="button"
+                        role="radio"
                         variant="outline"
                         disabled={disabled}
-                        aria-pressed={selected}
+                        aria-checked={selected}
                         className={cn(
                             "h-14 flex-col border-2 text-sm",
                             selected

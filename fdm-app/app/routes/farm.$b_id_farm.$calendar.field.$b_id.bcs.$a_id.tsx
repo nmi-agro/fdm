@@ -133,7 +133,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     url: await generateSignedReadUrl(image.a_image_path),
                     caption: image.a_image_caption ?? undefined,
                     annotations: image.annotations.map((annotation) => ({
-                        type: "pin" as const,
+                            type: (annotation.a_image_annotation_type ?? "pin") as "pin" | "circle" | "arrow" | "freehand",
                         coordinates: parseCoordinates(
                             annotation.a_image_annotation_coordinates,
                         ),

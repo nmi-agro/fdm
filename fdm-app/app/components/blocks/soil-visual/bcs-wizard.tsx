@@ -1,4 +1,4 @@
-import { format } from "date-fns"
+import { format, formatISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import {
     Camera,
@@ -199,7 +199,7 @@ export function BcsWizard({
             {
                 scores,
                 b_id,
-                samplingDate: samplingDate.toISOString(),
+                samplingDate: formatISO(samplingDate),
             },
             {
                 method: "POST",
@@ -383,7 +383,7 @@ export function BcsWizard({
                                 label="Datum bemonstering"
                                 description="Datum waarop de beoordeling is uitgevoerd."
                                 field={{
-                                    value: samplingDate.toISOString(),
+                                    value: formatISO(samplingDate),
                                     onChange: (value: string | null) => {
                                         if (value)
                                             setSamplingDate(new Date(value))

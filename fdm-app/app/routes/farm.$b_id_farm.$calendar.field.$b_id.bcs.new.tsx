@@ -174,6 +174,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     let createdAnalysisId: string | null = null
     const createdImageIds: string[] = []
+    const registeredObjectKeys = new Set<string>()
 
     try {
         const session = await getSession(request)
@@ -208,6 +209,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 },
             )
             createdImageIds.push(a_id_image)
+            registeredObjectKeys.add(image.objectKey)
             tempImageIdToStoredId.set(image.tempId, a_id_image)
         }
 
@@ -244,8 +246,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
             ])
         }
 
+        // Only delete GCS objects that were uploaded but not yet registered in DB;
+        // those already in DB are cleaned up by removeSoilImage above.
+        const unregisteredImages = payload.images.filter(
+            (image) => !registeredObjectKeys.has(image.objectKey),
+        )
         await Promise.allSettled(
-            payload.images.map((image) => deleteObject(image.objectKey)),
+            unregisteredImages.map((image) => deleteObject(image.objectKey)),
         )
 
         throw handleActionError(error)

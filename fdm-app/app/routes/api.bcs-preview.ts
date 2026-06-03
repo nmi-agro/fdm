@@ -10,10 +10,20 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: "Method not allowed" }, { status: 405 })
     }
 
-    const body = (await request.json()) as {
-        scores: BcsScores
-        b_id: string
-        samplingDate: string
+    let body: { scores: BcsScores; b_id: string; samplingDate: string }
+    try {
+        body = await request.json()
+    } catch {
+        return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+    }
+
+    if (!body || typeof body.b_id !== "string" || !body.b_id) {
+        return Response.json({ error: "b_id is required" }, { status: 400 })
+    }
+
+    const samplingDate = new Date(body.samplingDate)
+    if (Number.isNaN(samplingDate.getTime())) {
+        return Response.json({ error: "samplingDate is invalid" }, { status: 400 })
     }
 
     const session = await getSession(request)
@@ -21,7 +31,7 @@ export async function action({ request }: ActionFunctionArgs) {
         fdm,
         session.principal_id,
         body.b_id,
-        new Date(body.samplingDate),
+        samplingDate,
     )
     const result = computeBcs(body.scores, labContext ?? undefined)
     return Response.json(result)

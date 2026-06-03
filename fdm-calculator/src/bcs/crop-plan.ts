@@ -45,7 +45,7 @@ const ROTATION_TO_BUCKET: Partial<
     maize: "d_cp_mais",
 }
 
-const GRASS_ROTATION_TYPES = new Set(["grass", "clover", "alfalfa", "nature"])
+const GRASS_ROTATION_TYPES = new Set(["grass", "clover", "alfalfa"])
 
 /**
  * Derives crop plan fractions (d_cp_*) and crop category from cultivation history.

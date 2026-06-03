@@ -22,8 +22,11 @@ export async function deriveBcsScores(
 
     const get = (param: string) => data.find((d) => d.parameter === param)?.value
 
-    const a_ph_cc = (get("a_ph_cc") as number | null | undefined) ?? null
-    const a_som_loi = (get("a_som_loi") as number | null | undefined) ?? null
+    const phItem = data.find((d) => d.parameter === "a_ph_cc")
+    const somItem = data.find((d) => d.parameter === "a_som_loi")
+
+    const a_ph_cc = (phItem?.value as number | null | undefined) ?? null
+    const a_som_loi = (somItem?.value as number | null | undefined) ?? null
 
     if (a_ph_cc == null && a_som_loi == null) {
         return { labContext: null, labAnalysisDate: null }
@@ -32,8 +35,12 @@ export async function deriveBcsScores(
     const b_soiltype_agr = (get("b_soiltype_agr") as string | null | undefined) ?? null
     const a_clay_mi = (get("a_clay_mi") as number | null | undefined) ?? null
 
-    const dateItem = get("a_ph_cc") != null ? data.find((d) => d.parameter === "a_ph_cc") : data.find((d) => d.parameter === "a_som_loi")
-    const labAnalysisDate = dateItem?.b_sampling_date ? new Date(dateItem.b_sampling_date) : null
+    // Only show an analysis date when both pH and SOM come from the same record
+    const sharedAnalysis =
+        phItem && somItem && phItem.a_id === somItem.a_id ? phItem : null
+    const labAnalysisDate = sharedAnalysis?.b_sampling_date
+        ? new Date(sharedAnalysis.b_sampling_date)
+        : null
 
     let cultivations: Awaited<ReturnType<typeof getCultivations>> = []
     try {

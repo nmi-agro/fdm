@@ -92,6 +92,39 @@ export async function action({ request }: ActionFunctionArgs) {
     const ext = MIME_TO_EXT[detectedMime] ?? "jpg"
     const objectKey = `soil_image/${nanoid()}.${ext}`
 
+    const ALLOWED_IMAGE_TYPES = new Set([
+        "profile",
+        "surface",
+        "roots",
+        "earthworms",
+        "structure",
+        "other",
+    ])
+
+    const rawImageType = formData.get("a_image_type")?.toString()
+    if (rawImageType !== undefined && !ALLOWED_IMAGE_TYPES.has(rawImageType)) {
+        return Response.json(
+            { error: `Invalid a_image_type. Allowed: ${[...ALLOWED_IMAGE_TYPES].join(", ")}` },
+            { status: 400 },
+        )
+    }
+    const a_image_type = rawImageType as
+        | "profile"
+        | "surface"
+        | "roots"
+        | "earthworms"
+        | "structure"
+        | "other"
+        | undefined
+
+    const rawOrder = Number(formData.get("a_image_order") ?? 0)
+    if (!Number.isFinite(rawOrder) || rawOrder < 0 || !Number.isInteger(rawOrder)) {
+        return Response.json(
+            { error: "a_image_order must be a non-negative integer" },
+            { status: 400 },
+        )
+    }
+
     const capturedBuffer = fileBuffer
     const capturedMime = detectedMime
 
@@ -102,16 +135,9 @@ export async function action({ request }: ActionFunctionArgs) {
             b_id_sampling,
             {
                 a_image_path: objectKey,
-                a_image_type: formData.get("a_image_type")?.toString() as
-                    | "profile"
-                    | "surface"
-                    | "roots"
-                    | "earthworms"
-                    | "structure"
-                    | "other"
-                    | undefined,
+                a_image_type,
                 a_image_caption: formData.get("a_image_caption")?.toString(),
-                a_image_order: Number(formData.get("a_image_order") ?? 0),
+                a_image_order: rawOrder,
             },
             async (path) => {
                 await uploadObject(path, capturedBuffer, capturedMime)
