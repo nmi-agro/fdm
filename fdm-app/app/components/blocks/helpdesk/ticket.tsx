@@ -3,7 +3,9 @@ import type {
     Message as MessageT,
     Ticket as TicketT,
 } from "@nmi-agro/fdm-helpdesk"
-import { CircleCheck, CircleDot } from "lucide-react"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
+import { CircleCheck, CircleDot, CircleHelp, CirclePause, CirclePlay, CircleX, ChevronDown, UserPlus } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { useNavigation, useSubmit } from "react-router"
 import { cn } from "@/app/lib/utils"
@@ -17,29 +19,53 @@ import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Dialog, DialogTrigger } from "~/components/ui/dialog"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-} from "~/components/ui/select"
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 import { Spinner } from "~/components/ui/spinner"
 import { AssigneeDialogContent } from "./assignee-dialog"
 import { MessageComposer } from "./message-composer"
 import type { HelpdeskUser } from "./types"
 
-const GREEN = "#00aa00"
-const PURPLE = "#aa00aa"
 export const TICKET_STATUS = [
-    { value: "open", label: "Ontvangen", color: GREEN },
-    { value: "in_progress", label: "In behandeling", color: GREEN },
-    { value: "pending", label: "Wordt nagevraagd", color: PURPLE },
+    {
+        value: "open",
+        label: "Ontvangen",
+        color: "#3b82f6", // blue-500
+        icon: CircleDot,
+    },
+    {
+        value: "in_progress",
+        label: "In behandeling",
+        color: "#6366f1", // indigo-500
+        icon: CirclePlay,
+    },
+    {
+        value: "pending",
+        label: "Wordt nagevraagd",
+        color: "#f59e0b", // amber-500
+        icon: CirclePause,
+    },
     {
         value: "waiting_on_customer",
-        label: "Wachten op reactie van gebruiker",
-        color: GREEN,
+        label: "Wachten op reactie",
+        color: "#f97316", // orange-500
+        icon: CircleHelp,
     },
-    { value: "resolved", label: "Opgelost", color: PURPLE },
-    { value: "closed", label: "Gesloten", color: PURPLE },
+    {
+        value: "resolved",
+        label: "Opgelost",
+        color: "#22c55e", // green-500
+        icon: CircleCheck,
+    },
+    {
+        value: "closed",
+        label: "Gesloten",
+        color: "#6b7280", // gray-500
+        icon: CircleX,
+    },
 ]
 
 const TICKET_STATUS_DESCRIPTIONS: Record<string, string> = {
@@ -51,6 +77,14 @@ const TICKET_STATUS_DESCRIPTIONS: Record<string, string> = {
     resolved: "Uw vraag is beantwoord. Neem contact op als u nog vragen heeft.",
     closed: "Dit ticket is gesloten.",
 }
+
+const PRIORITY_LABELS: Record<string, string> = {
+    low: "Laag",
+    normal: "Normaal",
+    high: "Hoog",
+    urgent: "Urgent",
+}
+
 const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
     open: [
         "in_progress",
@@ -66,6 +100,28 @@ const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
     closed: ["open"], // "open" = reopen
 }
 
+export function TicketStatusDot({
+    ticket,
+    className,
+}: {
+    ticket: Pick<TicketT, "status" | "closed_at">
+    className?: string
+}) {
+    const statusEntry = TICKET_STATUS.find(
+        (item) => item.value === ticket.status,
+    )
+    const statusColor = statusEntry?.color ?? "#6b7280"
+    const statusLabel = statusEntry?.label ?? ticket.status
+    const Icon = statusEntry?.icon ?? CircleDot
+    return (
+        <Icon
+            className={cn("size-4 shrink-0", className)}
+            style={{ color: statusColor }}
+            aria-label={statusLabel}
+        />
+    )
+}
+
 export function Ticket({
     ticket,
     messages,
@@ -76,6 +132,7 @@ export function Ticket({
     principalLookup,
     sender_role,
     todayDate,
+    contextFarmName,
 }: {
     ticket: TicketT
     messages: MessageT[]
@@ -86,18 +143,20 @@ export function Ticket({
     principalLookup: Map<string, HelpdeskUser>
     sender_role: "agent" | "customer"
     todayDate: Date
+    contextFarmName?: string | null
 }) {
     const navigation = useNavigation()
     const submit = useSubmit()
 
     const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
-    const statusSelectId = useId()
     const assigneeSelectId = useId()
 
-    const isResolved = !!ticket.closed_at
-    const statusColor =
-        TICKET_STATUS.find((item) => item.value === ticket.status)?.color ??
-        "#777777"
+    const statusEntry = TICKET_STATUS.find(
+        (item) => item.value === ticket.status,
+    )
+    const statusColor = statusEntry?.color ?? "#777777"
+    const statusLabel = statusEntry?.label ?? ticket.status
+    const StatusIcon = statusEntry?.icon ?? CircleDot
     const allowedStatusTransitions =
         ALLOWED_TICKET_STATUS_TRANSITIONS[ticket.status] ?? []
 
@@ -105,6 +164,12 @@ export function Ticket({
     const assigneeNames = ticket.assignees.map(
         (assignee) => assignee.display_name,
     )
+
+    const requesterName =
+        ticket.requester_id
+            ? (principalLookup.get(ticket.requester_id)?.displayUserName ??
+              null)
+            : null
 
     const isViewed = !!ticket.viewed_at
 
@@ -126,77 +191,110 @@ export function Ticket({
 
     return (
         <main className="p-6 space-y-6">
-            <div className="space-y-4">
+            <header className="space-y-2">
+                {/* 1. Meta line — muted, middot-separated */}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                    <span className="font-mono">{ticket.ticket_ref}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                        Aangemaakt op{" "}
+                        {format(ticket.created, "PP", { locale: nl })}
+                    </span>
+                    {ticket.updated && (
+                        <>
+                            <span aria-hidden="true">·</span>
+                            <span>
+                                Bijgewerkt op{" "}
+                                {format(ticket.updated, "PP", { locale: nl })}
+                            </span>
+                        </>
+                    )}
+                    {requesterName && (
+                        <>
+                            <span aria-hidden="true">·</span>
+                            <span>door {requesterName}</span>
+                        </>
+                    )}
+                    {contextFarmName && (
+                        <>
+                            <span aria-hidden="true">·</span>
+                            <span>Bedrijf: {contextFarmName}</span>
+                        </>
+                    )}
+                    {isAgent && ticket.priority && (
+                        <Badge variant="outline" className="ms-1">
+                            Prioriteit:{" "}
+                            {PRIORITY_LABELS[ticket.priority] ??
+                                ticket.priority}
+                        </Badge>
+                    )}
+                </div>
+
+                {/* 2. Title */}
                 <h1 className="text-3xl font-bold">
-                    <Badge
-                        variant="outline"
-                        className="px-2"
-                        style={{
-                            fontSize: "0.8em",
-                            color: statusColor,
-                            borderColor: statusColor,
-                        }}
-                    >
-                        {isResolved ? (
-                            <CircleCheck className="size-[0.8em] me-1" />
-                        ) : (
-                            <CircleDot className="size-[0.8em] me-1" />
-                        )}
-                        {ticket.ticket_ref}
-                    </Badge>{" "}
                     {ticket.subject ?? "Ticket"}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <label
-                        htmlFor={statusSelectId}
-                        className="text-muted-foreground"
-                    >
-                        Status:
-                    </label>
-                    <Select
-                        value={ticket.status}
-                        onValueChange={(value) => {
-                            const formData = new FormData()
-                            formData.append("intent", "set_ticket_status")
-                            formData.append("status", value)
-                            submit(formData, {
-                                method: "post",
-                            })
-                        }}
-                    >
-                        <SelectTrigger
-                            id={statusSelectId}
-                            className="flex-initial max-w-60"
-                            disabled={
-                                navigation.state !== "idle" ||
-                                !isAgent ||
-                                allowedStatusTransitions.length === 0
-                            }
-                        >
-                            {
-                                TICKET_STATUS.find(
-                                    (item) => item.value === ticket.status,
-                                )?.label
-                            }
-                        </SelectTrigger>
-                        <SelectContent>
-                            {TICKET_STATUS.filter((item) =>
-                                allowedStatusTransitions.includes(item.value),
-                            ).map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {!isAgent &&
-                        TICKET_STATUS_DESCRIPTIONS[ticket.status] && (
-                            <span className="text-sm text-muted-foreground">
-                                {TICKET_STATUS_DESCRIPTIONS[ticket.status]}
-                            </span>
-                        )}
-                    {isAgent && (
+
+                {/* 3. State row */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    {isAgent ? (
                         <>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-2 font-medium"
+                                        disabled={
+                                            navigation.state !== "idle" ||
+                                            allowedStatusTransitions.length ===
+                                                0
+                                        }
+                                    >
+                                        <StatusIcon
+                                            className="size-4 shrink-0"
+                                            style={{ color: statusColor }}
+                                        />
+                                        {statusLabel}
+                                        {allowedStatusTransitions.length >
+                                            0 && (
+                                            <ChevronDown className="size-3 opacity-50 ms-1" />
+                                        )}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                    {TICKET_STATUS.filter((item) =>
+                                        allowedStatusTransitions.includes(
+                                            item.value,
+                                        ),
+                                    ).map((item) => (
+                                        <DropdownMenuItem
+                                            key={item.value}
+                                            className="gap-2"
+                                            onClick={() => {
+                                                const formData = new FormData()
+                                                formData.append(
+                                                    "intent",
+                                                    "set_ticket_status",
+                                                )
+                                                formData.append(
+                                                    "status",
+                                                    item.value,
+                                                )
+                                                submit(formData, {
+                                                    method: "post",
+                                                })
+                                            }}
+                                        >
+                                            <item.icon
+                                                className="size-4 shrink-0"
+                                                style={{ color: item.color }}
+                                            />
+                                            {item.label}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                             <label
                                 htmlFor={assigneeSelectId}
                                 className="text-muted-foreground"
@@ -210,11 +308,12 @@ export function Ticket({
                                 <DialogTrigger asChild>
                                     <Button
                                         id={assigneeSelectId}
-                                        variant="ghost"
-                                        className="group px-2 -ms-2"
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-2"
                                         disabled={navigation.state !== "idle"}
                                     >
-                                        {ticket.assignees.length > 0 && (
+                                        {ticket.assignees.length > 0 ? (
                                             <AvatarGroup>
                                                 {ticket.assignees
                                                     .slice(
@@ -226,7 +325,7 @@ export function Ticket({
                                                             key={
                                                                 assignee.agent_id
                                                             }
-                                                            className="h-6 w-6 rounded-lg"
+                                                            className="h-5 w-5 rounded-full"
                                                         >
                                                             <AvatarImage
                                                                 src={
@@ -243,7 +342,7 @@ export function Ticket({
                                                                     "Onbekende Medewerker"
                                                                 }
                                                             />
-                                                            <AvatarFallback>
+                                                            <AvatarFallback className="text-[10px]">
                                                                 {principalLookup.get(
                                                                     assignee.agent_id,
                                                                 )?.initials ??
@@ -261,13 +360,15 @@ export function Ticket({
                                                     </AvatarGroupCount>
                                                 ) : null}
                                             </AvatarGroup>
+                                        ) : (
+                                            <UserPlus className="size-4 text-muted-foreground" />
                                         )}
-                                        <span className="group-hover:underline">
+                                        <span>
                                             {assigneeNames.length > 0
                                                 ? assigneeNames.length > 3
                                                     ? `${assigneeNames.slice(0, 3).join(", ")} en meer`
                                                     : assigneeNames.join(", ")
-                                                : "Nog niemand"}
+                                                : "Toewijzen"}
                                         </span>
                                     </Button>
                                 </DialogTrigger>
@@ -280,6 +381,14 @@ export function Ticket({
                                 />
                             </Dialog>
                         </>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 text-sm font-medium border rounded-md px-2.5 py-1">
+                            <StatusIcon
+                                className="size-4 shrink-0"
+                                style={{ color: statusColor }}
+                            />
+                            {statusLabel}
+                        </span>
                     )}
                     <Spinner
                         className={cn(
@@ -288,7 +397,14 @@ export function Ticket({
                         )}
                     />
                 </div>
-            </div>
+
+                {/* 4. Customer status description */}
+                {!isAgent && TICKET_STATUS_DESCRIPTIONS[ticket.status] && (
+                    <p className="text-sm text-muted-foreground">
+                        {TICKET_STATUS_DESCRIPTIONS[ticket.status]}
+                    </p>
+                )}
+            </header>
             <div className="space-y-4">
                 {messages.map((msg) => (
                     <Message

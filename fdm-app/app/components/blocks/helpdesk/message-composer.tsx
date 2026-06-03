@@ -179,14 +179,12 @@ export function MessageComposer({
                             name="body"
                             render={({ field, fieldState }) => (
                                 <Field data-invalid={fieldState.invalid}>
-                                    <FieldLabel htmlFor={messageInputId}>
-                                        Schrijf uw bericht
-                                    </FieldLabel>
                                     <FieldContent>
                                         <Textarea
                                             {...field}
                                             className="bg-card"
                                             id={messageInputId}
+                                            placeholder={"Schrijf uw bericht hier..."}
                                         />
                                         <FieldDescription>
                                             {showAgentControls

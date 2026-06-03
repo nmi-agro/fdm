@@ -75,6 +75,9 @@ export const serverConfig: ServerConfig = {
             key: String(process.env.POSTMARK_API_KEY),
             sender_address: String(process.env.POSTMARK_SENDER_ADDRESS),
             sender_name: String(process.env.POSTMARK_SENDER_NAME),
+            helpdesk_sender_address: process.env
+                .POSTMARK_HELPDESK_SENDER_ADDRESS,
+            helpdesk_sender_name: process.env.POSTMARK_HELPDESK_SENDER_NAME,
         },
     },
 }

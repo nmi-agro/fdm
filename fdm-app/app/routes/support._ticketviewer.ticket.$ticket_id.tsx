@@ -14,6 +14,7 @@ export default function DisplayedTicket() {
         isAgent,
         principals,
         todayDate,
+        contextFarmName,
     } = useLoaderData<typeof loader>()
     const principalLookup = new Map(
         principals.map((principal) => [principal.principal_id, principal]),
@@ -29,6 +30,7 @@ export default function DisplayedTicket() {
             principalLookup={principalLookup}
             sender_role={isAgent ? "agent" : "customer"}
             todayDate={todayDate}
+            contextFarmName={contextFarmName}
         />
     )
 }

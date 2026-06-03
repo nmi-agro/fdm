@@ -1,4 +1,4 @@
-import { getPrincipals } from "@nmi-agro/fdm-core"
+import { getFarm, getPrincipals } from "@nmi-agro/fdm-core"
 import {
     addMessage,
     assignTicket,
@@ -116,6 +116,20 @@ export async function loader({ params, request }: Args) {
             agents: agents,
             // To prevent hydration failed errors
             todayDate: new Date(),
+            contextFarmName: ticket.context_farm_id
+                ? await (async () => {
+                      try {
+                          const farm = await getFarm(
+                              fdm,
+                              session.principal_id,
+                              ticket.context_farm_id as string,
+                          )
+                          return farm.b_name_farm ?? null
+                      } catch {
+                          return null
+                      }
+                  })()
+                : null,
         }
     } catch (err) {
         throw handleLoaderError(err)

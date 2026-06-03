@@ -60,6 +60,8 @@ export interface ServerConfig {
             key: string
             sender_address: string
             sender_name: string
+            helpdesk_sender_address?: string
+            helpdesk_sender_name?: string
         }
     }
 }

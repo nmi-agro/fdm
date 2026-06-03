@@ -3,18 +3,19 @@ import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { NavLink, useLocation } from "react-router"
 import { cn } from "@/app/lib/utils"
-import { Badge } from "~/components/ui/badge"
-import { TICKET_STATUS } from "./ticket"
+import { TICKET_STATUS, TicketStatusDot } from "./ticket"
 import type { HelpdeskUser } from "./types"
 
 export function TicketCard({
     ticket,
     principal,
     href,
+    showAssignees = false,
 }: {
     ticket: Ticket
     principal: HelpdeskUser | undefined
     href: string
+    showAssignees?: boolean
 }) {
     const { pathname, search } = useLocation()
     const domainUrl = `${pathname}${search}`
@@ -22,11 +23,22 @@ export function TicketCard({
 
     const label = ticket.subject ?? "Ticket"
 
-    const { label: statusLabel, color: statusColor } = TICKET_STATUS.find(
+    const { label: statusLabel } = TICKET_STATUS.find(
         (item) => item.value === ticket.status,
-    ) ?? { label: ticket.status, color: "#777777" }
+    ) ?? { label: ticket.status }
 
     const isViewed = !!ticket.viewed_at
+
+    const assigneeText =
+        showAssignees && ticket.assignees.length > 0
+            ? ticket.assignees
+                  .slice(0, 3)
+                  .map((a) => a.display_name)
+                  .join(", ") +
+              (ticket.assignees.length > 3
+                  ? ` en ${ticket.assignees.length - 3} meer`
+                  : "")
+            : null
 
     return (
         <NavLink
@@ -43,33 +55,36 @@ export function TicketCard({
         >
             <div
                 className={cn(
-                    "p-4 transition-[background-color] duration-300 border-l-4 space-y-2",
+                    "p-4 transition-[background-color] duration-300 border-l-4 space-y-1.5",
                     isViewed ? "border-transparent" : "border-blue-400",
                     isSelected
                         ? "bg-muted hover:bg-muted "
                         : "hover:bg-transparent",
                 )}
             >
-                <div className="text-sm">
-                    <svg
-                        aria-label={statusLabel}
-                        className="float-left size-4"
-                        style={{ color: statusColor }}
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                    >
-                        <title>{statusLabel}</title>
-                        <circle cx="12" cy="12" r="5" />
-                    </svg>
-                    {/* overflow: hidden puts the text next to the dot and doesn't wrap it around */}
-                    <div className="overflow-hidden">{label}</div>
+                <div className="flex items-start gap-2 text-sm">
+                    <TicketStatusDot
+                        ticket={ticket}
+                        className="mt-0.5 shrink-0"
+                    />
+                    <span className="leading-snug">{label}</span>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                    <Badge variant="outline" className="px-1 text-1em">
-                        {ticket.ticket_ref}
-                    </Badge>{" "}
-                    {principal?.displayUserName ?? "onbekend"},{" "}
-                    {formatDate(ticket.created, "PP", { locale: nl })}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground ps-6">
+                    <span className="font-mono">{ticket.ticket_ref}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{statusLabel}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{principal?.displayUserName ?? "onbekend"}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                        {formatDate(ticket.created, "PP", { locale: nl })}
+                    </span>
+                    {assigneeText && (
+                        <>
+                            <span aria-hidden="true">·</span>
+                            <span>Toegewezen: {assigneeText}</span>
+                        </>
+                    )}
                 </div>
             </div>
         </NavLink>

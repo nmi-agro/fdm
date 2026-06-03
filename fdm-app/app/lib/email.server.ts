@@ -269,6 +269,13 @@ export async function renderHelpdeskNewMessageEmail(
 ): Promise<Email> {
     const ticketUrl = `${serverConfig.url}/support/ticket/${ticketId}`
 
+    const helpdeskSenderName =
+        serverConfig.mail?.postmark.helpdesk_sender_name ??
+        serverConfig.mail?.postmark.sender_name
+    const helpdeskSenderAddress =
+        serverConfig.mail?.postmark.helpdesk_sender_address ??
+        serverConfig.mail?.postmark.sender_address
+
     const emailHtml = await render(
         HelpdeskNewMessageEmail({
             ticketRef,
@@ -279,13 +286,13 @@ export async function renderHelpdeskNewMessageEmail(
             recipientName,
             appName: serverConfig.name,
             appBaseUrl: serverConfig.url,
-            emailSenderName: serverConfig.mail?.postmark.sender_name,
+            emailSenderName: helpdeskSenderName,
         }),
         { pretty: true },
     )
 
     const email: Email = {
-        From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
+        From: `"${helpdeskSenderName}" <${helpdeskSenderAddress}>`,
         To: recipientEmail,
         Subject: `Nieuw bericht op ticket ${ticketRef}${ticketSubject ? ` – ${ticketSubject}` : ""}`,
         HtmlBody: emailHtml,

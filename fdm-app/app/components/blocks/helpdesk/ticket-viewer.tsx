@@ -70,7 +70,8 @@ function TicketList({
                                     : undefined
                             }
                             href={`${toPrefix}/${ticket.ticket_id}${getPageSearch(location.search, TICKET_VIEWER_PAGE_SIZE, 0)}`}
-                        />
+                        showAssignees={isAgentView}
+                    />
                     ))
                 )}
             </div>
