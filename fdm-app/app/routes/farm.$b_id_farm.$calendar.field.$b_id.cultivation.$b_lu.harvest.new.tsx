@@ -111,6 +111,7 @@ export default function HarvestNewBlock() {
                 defaultHarvest={{
                     ...loaderData.defaultHarvestParameters,
                 }}
+                onBack={() => setIsBatch(false)}
             />
         )
     }

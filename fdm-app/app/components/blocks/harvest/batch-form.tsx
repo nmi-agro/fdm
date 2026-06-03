@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { HarvestParameters } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { Plus, X } from "lucide-react"
+import { ChevronLeft, Plus, Trash2 } from "lucide-react"
 import { type MouseEventHandler, useCallback, useRef } from "react"
 import { Controller, useFieldArray } from "react-hook-form"
 import { useFetcher, useNavigate } from "react-router"
@@ -119,6 +119,7 @@ interface BatchHarvestFormProps {
     defaultHarvest?: Partial<HarvestRow>
     isHarvestUpdate?: boolean
     b_date_harvest_default?: string | null
+    onBack?: MouseEventHandler
 }
 
 const SchemaWithIntent = BatchFormSchema.extend({
@@ -227,7 +228,7 @@ function BatchHarvestFormRow({
                                     }
                                 }}
                             >
-                                <X />
+                                <Trash2 />
                             </Button>
                         ) : columnInfo.type === "number" ? (
                             <Controller
@@ -446,6 +447,16 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                         </div>
                         <HarvestFormExplainer />
                         <DialogFooter>
+                            {props.onBack && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={props.onBack}
+                                >
+                                    <ChevronLeft />
+                                    Terug
+                                </Button>
+                            )}
                             <Button
                                 type="submit"
                                 disabled={
@@ -496,7 +507,17 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
                         <BatchHarvestFormFields {...props} form={form} />
                     </div>
                     <HarvestFormExplainer />
-                    <div className="w-full">
+                    <div className="flex justify-end gap-4">
+                        {props.onBack && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={props.onBack}
+                            >
+                                <ChevronLeft />
+                                Terug
+                            </Button>
+                        )}
                         <Button
                             type="submit"
                             className="flex ml-auto"

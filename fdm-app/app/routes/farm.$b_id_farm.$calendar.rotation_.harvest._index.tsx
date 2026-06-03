@@ -742,6 +742,9 @@ export default function FarmRotationHarvestAddIndex() {
                                                 defaultHarvest={{
                                                     ...loaderData.harvestableAnalysis,
                                                 }}
+                                                onBack={() =>
+                                                    setIsBatchAdd(false)
+                                                }
                                             />
                                         ) : (
                                             <HarvestForm
