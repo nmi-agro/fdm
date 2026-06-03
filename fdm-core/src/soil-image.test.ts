@@ -255,6 +255,25 @@ describe("Soil Image Functions", () => {
             const images = await getSoilImages(fdm, principal_id, b_id_sampling)
             expect(images).toHaveLength(0)
         })
+
+        it("should allow removeSoilImage by any principal in the array", async () => {
+            const second_principal = createId()
+            const array_principal: string[] = [principal_id, second_principal]
+
+            const a_id_image = await addSoilImage(fdm, array_principal, b_id_sampling, {
+                a_image_path: "farms/test/array-principal.jpg",
+            })
+
+            expect(a_id_image).toBeDefined()
+
+            // The second principal should also have owner rights and be able to delete
+            await expect(
+                removeSoilImage(fdm, second_principal, a_id_image),
+            ).resolves.not.toThrow()
+
+            const images = await getSoilImages(fdm, principal_id, b_id_sampling)
+            expect(images).toHaveLength(0)
+        })
     })
 
     describe("Annotation management", () => {

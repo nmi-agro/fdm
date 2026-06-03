@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
     BCS_INDICATORS,
     calculateBcs,
+    deriveBcsLabContext,
     deriveOmBcs,
     derivePhBcs,
     getBcsScoreColor,
@@ -308,5 +309,125 @@ describe("BCS_INDICATORS", () => {
             expect(ind.weight).toBeGreaterThanOrEqual(1)
             expect(ind.weight).toBeLessThanOrEqual(2)
         }
+    })
+})
+
+describe("deriveBcsLabContext", () => {
+    const noCultivations: never[] = []
+
+    describe("mapOmSoilType — soil type to om_soiltype_n mapping", () => {
+        const soilTypeCases: Array<[string, "zand" | "klei" | "loess" | "veen" | undefined]> = [
+            ["dekzand", "zand"],
+            ["dalgrond", "zand"],
+            ["duinzand", "zand"],
+            ["zeeklei", "klei"],
+            ["rivierklei", "klei"],
+            ["maasklei", "klei"],
+            ["moerige_klei", "klei"],
+            ["loess", "loess"],
+            ["veen", "veen"],
+        ]
+        for (const [soiltype, expected] of soilTypeCases) {
+            it(`maps '${soiltype}' → '${expected}'`, () => {
+                const ctx = deriveBcsLabContext(
+                    { b_soiltype_agr: soiltype, a_ph_cc: null, a_som_loi: null },
+                    noCultivations,
+                    2024,
+                )
+                expect(ctx.om_soiltype_n).toBe(expected)
+            })
+        }
+
+        it("maps unknown soil type → undefined", () => {
+            const ctx = deriveBcsLabContext(
+                { b_soiltype_agr: "unknown_type", a_ph_cc: null, a_som_loi: null },
+                noCultivations,
+                2024,
+            )
+            expect(ctx.om_soiltype_n).toBeUndefined()
+        })
+
+        it("maps null soil type → undefined", () => {
+            const ctx = deriveBcsLabContext(
+                { b_soiltype_agr: null, a_ph_cc: null, a_som_loi: null },
+                noCultivations,
+                2024,
+            )
+            expect(ctx.om_soiltype_n).toBeUndefined()
+        })
+    })
+
+    describe("with soil data and no cultivations", () => {
+        it("passes through a_ph_cc, a_som_loi, a_clay_mi", () => {
+            const ctx = deriveBcsLabContext(
+                { a_ph_cc: 5.8, a_som_loi: 3.2, a_clay_mi: 12, b_soiltype_agr: "zeeklei" },
+                noCultivations,
+                2024,
+            )
+            expect(ctx.a_ph_cc).toBe(5.8)
+            expect(ctx.a_som_loi).toBe(3.2)
+            expect(ctx.a_clay_mi).toBe(12)
+            expect(ctx.b_soiltype_agr).toBe("zeeklei")
+        })
+
+        it("sets all d_cp_* to 0 and b_lu_is_clover=false when no cultivations", () => {
+            const ctx = deriveBcsLabContext(
+                { b_soiltype_agr: "dekzand" },
+                noCultivations,
+                2024,
+            )
+            expect(ctx.d_cp_starch).toBe(0)
+            expect(ctx.d_cp_potato).toBe(0)
+            expect(ctx.d_cp_sugarbeet).toBe(0)
+            expect(ctx.d_cp_grass).toBe(0)
+            expect(ctx.d_cp_mais).toBe(0)
+            expect(ctx.b_lu_is_clover).toBe(false)
+            expect(ctx.om_crop_category).toBe("akkerbouw")
+        })
+
+        it("propagates null values as null", () => {
+            const ctx = deriveBcsLabContext(
+                { a_ph_cc: null, a_som_loi: null, a_clay_mi: null, b_soiltype_agr: null },
+                noCultivations,
+                2024,
+            )
+            expect(ctx.a_ph_cc).toBeNull()
+            expect(ctx.a_som_loi).toBeNull()
+            expect(ctx.a_clay_mi).toBeNull()
+            expect(ctx.b_soiltype_agr).toBeNull()
+        })
+    })
+
+    describe("with cultivations", () => {
+        it("derives crop plan fractions from cultivations", () => {
+            const cultivations = [
+                {
+                    b_lu_catalogue: "c1",
+                    b_lu_croprotation: "grass",
+                    b_lu_start: new Date("2022-03-01"),
+                    b_lu_end: new Date("2022-10-31"),
+                },
+                {
+                    b_lu_catalogue: "c1",
+                    b_lu_croprotation: "grass",
+                    b_lu_start: new Date("2023-03-01"),
+                    b_lu_end: new Date("2023-10-31"),
+                },
+                {
+                    b_lu_catalogue: "c2",
+                    b_lu_croprotation: "maize",
+                    b_lu_start: new Date("2024-03-01"),
+                    b_lu_end: new Date("2024-10-31"),
+                },
+            ]
+            const ctx = deriveBcsLabContext(
+                { b_soiltype_agr: "dekzand", a_som_loi: 4.0 },
+                cultivations,
+                2024,
+            )
+            expect(ctx.d_cp_grass).toBeCloseTo(2 / 3)
+            expect(ctx.d_cp_mais).toBeCloseTo(1 / 3)
+            expect(ctx.om_crop_category).toBe("mais") // bcsYear = 2024 → maize
+        })
     })
 })
