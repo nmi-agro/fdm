@@ -41,6 +41,16 @@ export const TICKET_STATUS = [
     { value: "resolved", label: "Opgelost", color: PURPLE },
     { value: "closed", label: "Gesloten", color: PURPLE },
 ]
+
+const TICKET_STATUS_DESCRIPTIONS: Record<string, string> = {
+    open: "Uw vraag is ontvangen en wacht op behandeling door een medewerker.",
+    in_progress: "Een medewerker is bezig met uw vraag.",
+    pending: "We zijn aanvullende informatie aan het opvragen.",
+    waiting_on_customer:
+        "We wachten op een reactie van u. Voeg een bericht toe hieronder.",
+    resolved: "Uw vraag is beantwoord. Neem contact op als u nog vragen heeft.",
+    closed: "Dit ticket is gesloten.",
+}
 const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
     open: [
         "in_progress",
@@ -136,7 +146,7 @@ export function Ticket({
                     </Badge>{" "}
                     {ticket.subject ?? "Ticket"}
                 </h1>
-                <div className="flex flex-row items-center gap-4">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     <label
                         htmlFor={statusSelectId}
                         className="text-muted-foreground"
@@ -179,81 +189,98 @@ export function Ticket({
                             ))}
                         </SelectContent>
                     </Select>
-                    <label
-                        htmlFor={assigneeSelectId}
-                        className="text-muted-foreground"
-                    >
-                        Medewerker:
-                    </label>
-                    <Dialog
-                        open={assignmentDialogOpen}
-                        onOpenChange={setAssignmentDialogOpen}
-                    >
-                        <DialogTrigger asChild>
-                            <Button
-                                id={assigneeSelectId}
-                                variant="ghost"
-                                className="group px-2 -ms-2"
-                                disabled={navigation.state !== "idle"}
+                    {!isAgent &&
+                        TICKET_STATUS_DESCRIPTIONS[ticket.status] && (
+                            <span className="text-sm text-muted-foreground">
+                                {TICKET_STATUS_DESCRIPTIONS[ticket.status]}
+                            </span>
+                        )}
+                    {isAgent && (
+                        <>
+                            <label
+                                htmlFor={assigneeSelectId}
+                                className="text-muted-foreground"
                             >
-                                {ticket.assignees.length > 0 && (
-                                    <AvatarGroup>
-                                        {ticket.assignees
-                                            .slice(0, ASSIGNEE_DISPLAY_CUTOFF)
-                                            .map((assignee) => (
-                                                <Avatar
-                                                    key={assignee.agent_id}
-                                                    className="h-6 w-6 rounded-lg"
-                                                >
-                                                    <AvatarImage
-                                                        src={
-                                                            principalLookup.get(
-                                                                assignee.agent_id,
-                                                            )?.image ??
-                                                            undefined
-                                                        }
-                                                        alt={
-                                                            principalLookup.get(
-                                                                assignee.agent_id,
-                                                            )
-                                                                ?.displayUserName ??
-                                                            "Onbekende Medewerker"
-                                                        }
-                                                    />
-                                                    <AvatarFallback>
-                                                        {principalLookup.get(
-                                                            assignee.agent_id,
-                                                        )?.initials ?? "OM"}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                            ))}
-                                        {ticket.assignees.length >
-                                        ASSIGNEE_DISPLAY_CUTOFF ? (
-                                            <AvatarGroupCount>
-                                                +
-                                                {ticket.assignees.length -
-                                                    ASSIGNEE_DISPLAY_CUTOFF}
-                                            </AvatarGroupCount>
-                                        ) : null}
-                                    </AvatarGroup>
-                                )}
-                                <span className="group-hover:underline">
-                                    {assigneeNames.length > 0
-                                        ? assigneeNames.length > 3
-                                            ? `${assigneeNames.slice(0, 3).join(", ")} en meer`
-                                            : assigneeNames.join(", ")
-                                        : "Nog niemand"}
-                                </span>
-                            </Button>
-                        </DialogTrigger>
-                        <AssigneeDialogContent
-                            assignees={ticket.assignees}
-                            agents={agents}
-                            intent="change_assignment"
-                            canModify={isAgent}
-                            principalLookup={principalLookup}
-                        />
-                    </Dialog>
+                                Medewerker:
+                            </label>
+                            <Dialog
+                                open={assignmentDialogOpen}
+                                onOpenChange={setAssignmentDialogOpen}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button
+                                        id={assigneeSelectId}
+                                        variant="ghost"
+                                        className="group px-2 -ms-2"
+                                        disabled={navigation.state !== "idle"}
+                                    >
+                                        {ticket.assignees.length > 0 && (
+                                            <AvatarGroup>
+                                                {ticket.assignees
+                                                    .slice(
+                                                        0,
+                                                        ASSIGNEE_DISPLAY_CUTOFF,
+                                                    )
+                                                    .map((assignee) => (
+                                                        <Avatar
+                                                            key={
+                                                                assignee.agent_id
+                                                            }
+                                                            className="h-6 w-6 rounded-lg"
+                                                        >
+                                                            <AvatarImage
+                                                                src={
+                                                                    principalLookup.get(
+                                                                        assignee.agent_id,
+                                                                    )?.image ??
+                                                                    undefined
+                                                                }
+                                                                alt={
+                                                                    principalLookup.get(
+                                                                        assignee.agent_id,
+                                                                    )
+                                                                        ?.displayUserName ??
+                                                                    "Onbekende Medewerker"
+                                                                }
+                                                            />
+                                                            <AvatarFallback>
+                                                                {principalLookup.get(
+                                                                    assignee.agent_id,
+                                                                )?.initials ??
+                                                                    "OM"}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                    ))}
+                                                {ticket.assignees.length >
+                                                ASSIGNEE_DISPLAY_CUTOFF ? (
+                                                    <AvatarGroupCount>
+                                                        +
+                                                        {ticket.assignees
+                                                            .length -
+                                                            ASSIGNEE_DISPLAY_CUTOFF}
+                                                    </AvatarGroupCount>
+                                                ) : null}
+                                            </AvatarGroup>
+                                        )}
+                                        <span className="group-hover:underline">
+                                            {assigneeNames.length > 0
+                                                ? assigneeNames.length > 3
+                                                    ? `${assigneeNames.slice(0, 3).join(", ")} en meer`
+                                                    : assigneeNames.join(", ")
+                                                : "Nog niemand"}
+                                        </span>
+                                    </Button>
+                                </DialogTrigger>
+                                <AssigneeDialogContent
+                                    assignees={ticket.assignees}
+                                    agents={agents}
+                                    intent="change_assignment"
+                                    canModify={isAgent}
+                                    principalLookup={principalLookup}
+                                />
+                            </Dialog>
+                        </>
+                    )}
                     <Spinner
                         className={cn(
                             "ms-auto",

@@ -130,8 +130,8 @@ export default function HelpdeskAgentSettings() {
                 title="Medewerkers"
                 description={
                     helpdeskWritePermission
-                        ? "Bekijk en beheer de gebruikers die toegang naar de ondersteuningsdashboard hebben."
-                        : "Bekijk de gebruikers die toegang naar de ondersteuningsdashboard hebben."
+                        ? "Beheer de medewerkers die toegang hebben tot het ondersteuningsdashboard. Medewerkers kunnen tickets bekijken en beantwoorden; beheerders kunnen ook medewerkers toevoegen en deactiveren."
+                        : "Bekijk de medewerkers die toegang hebben tot het ondersteuningsdashboard."
                 }
             />
             <HelpdeskAgentManager

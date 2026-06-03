@@ -246,7 +246,9 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRow) {
                             }}
                             disabled={isSubmitting}
                         >
-                            {principal.isActive ? "Ontslaan" : "Maak actief"}
+                            {principal.isActive
+                                ? "Deactiveren"
+                                : "Activeren"}
                         </Button>
                     </TableCell>
                 </>

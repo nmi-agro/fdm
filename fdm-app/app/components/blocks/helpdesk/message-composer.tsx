@@ -9,6 +9,7 @@ import { Button } from "~/components/ui/button"
 import {
     Field,
     FieldContent,
+    FieldDescription,
     FieldError,
     FieldLabel,
 } from "~/components/ui/field"
@@ -80,11 +81,11 @@ export function MessageComposer({
                             <span className="min-w-0 flex-1">
                                 {is_internal ? (
                                     <>
-                                        Nieuwe <i className="italic">Intern</i>{" "}
-                                        Bericht
+                                        Nieuw <i className="italic">intern</i>{" "}
+                                        bericht
                                     </>
                                 ) : (
-                                    "Nieuw Bericht"
+                                    "Nieuw bericht"
                                 )}
                             </span>
                             {showAgentControls && (
@@ -105,7 +106,7 @@ export function MessageComposer({
                                                     )}
                                                 >
                                                     <FieldLabel className="whitespace-nowrap text-xs">
-                                                        intern
+                                                        Intern
                                                     </FieldLabel>
                                                     <Switch
                                                         checked={
@@ -179,7 +180,7 @@ export function MessageComposer({
                             render={({ field, fieldState }) => (
                                 <Field data-invalid={fieldState.invalid}>
                                     <FieldLabel htmlFor={messageInputId}>
-                                        Schrijf beneden
+                                        Schrijf uw bericht
                                     </FieldLabel>
                                     <FieldContent>
                                         <Textarea
@@ -187,6 +188,15 @@ export function MessageComposer({
                                             className="bg-card"
                                             id={messageInputId}
                                         />
+                                        <FieldDescription>
+                                            {showAgentControls
+                                                ? sender_role === "agent"
+                                                    ? is_internal
+                                                        ? "Intern bericht — alleen zichtbaar voor medewerkers."
+                                                        : "Dit bericht wordt als medewerker verstuurd en is zichtbaar voor de gebruiker."
+                                                    : "Dit bericht wordt verstuurd als de gebruiker."
+                                                : "Voeg aanvullende informatie toe of stel een vervolgvraag. U ontvangt een kopie per e-mail."}
+                                        </FieldDescription>
                                         <FieldError
                                             errors={[fieldState.error]}
                                         />

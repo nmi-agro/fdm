@@ -1,14 +1,15 @@
 import type { Ticket } from "@nmi-agro/fdm-helpdesk"
-import { ChevronLeft, X } from "lucide-react"
+import { ChevronLeft, Plus, X } from "lucide-react"
 import { Dialog } from "radix-ui"
 import { useCallback, useEffect, useState } from "react"
-import { Outlet, useLocation, useParams } from "react-router"
+import { NavLink, Outlet, useLocation, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { getPageSearch, Paginator } from "~/components/custom/paginator"
 import { Button } from "~/components/ui/button"
-import { Empty, EmptyDescription, EmptyTitle } from "~/components/ui/empty"
+import { Empty, EmptyContent, EmptyDescription, EmptyTitle } from "~/components/ui/empty"
 import { Sheet, SheetClose, SheetPortal } from "~/components/ui/sheet"
 import { useIsXl } from "~/hooks/use-is-xl"
+import { useCurrentHelpdeskPage } from "./navigation"
 import { TicketCard } from "./ticket-card"
 import type { HelpdeskUser } from "./types"
 
@@ -26,15 +27,37 @@ function TicketList({
     principalLookup: Map<string, HelpdeskUser>
 }) {
     const location = useLocation()
+    const currentPage = useCurrentHelpdeskPage()
+    const isAgentView =
+        currentPage === "inbox" || currentPage === "all_tickets"
     return (
         <nav className="flex flex-col gap-2 h-full box-border">
             <div className="overflow-auto grow">
                 {tickets.length === 0 ? (
-                    <Empty>
-                        <EmptyTitle>Geen tickets gevonden</EmptyTitle>
-                        <EmptyDescription>
-                            Probeer om jouw filters te wijzigen
-                        </EmptyDescription>
+                    <Empty className="border-none">
+                        <EmptyContent>
+                            <EmptyTitle>Geen tickets gevonden</EmptyTitle>
+                            {isAgentView ? (
+                                <EmptyDescription>
+                                    Er zijn momenteel geen tickets die aan de
+                                    huidige filters voldoen.
+                                </EmptyDescription>
+                            ) : (
+                                <>
+                                    <EmptyDescription>
+                                        U heeft nog geen tickets aangemaakt. Stel
+                                        een vraag en een medewerker neemt contact
+                                        met u op.
+                                    </EmptyDescription>
+                                    <Button asChild size="sm" className="mt-2">
+                                        <NavLink to="/support/new">
+                                            <Plus className="size-4" />
+                                            Nieuw ticket aanmaken
+                                        </NavLink>
+                                    </Button>
+                                </>
+                            )}
+                        </EmptyContent>
                     </Empty>
                 ) : (
                     tickets.map((ticket) => (

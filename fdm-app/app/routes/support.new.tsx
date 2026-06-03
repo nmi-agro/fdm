@@ -3,6 +3,7 @@ import { createTicket } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { TicketComposer } from "~/components/blocks/helpdesk/ticket-composer"
 import { TicketSchema } from "~/components/blocks/helpdesk/ticket-schema"
 import { getSession } from "~/lib/auth.server"
@@ -20,7 +21,7 @@ export const meta: Route.MetaFunction = () => {
         },
         {
             name: "description",
-            content: "Bekijk en bewerk jouw tickets.",
+            content: "Stel een vraag of meld een probleem. Een medewerker neemt binnen enkele werkdagen contact met u op.",
         },
     ]
 }
@@ -79,14 +80,15 @@ export default function NewTicket() {
     const { farmOptions, initial_context_farm_id } =
         useLoaderData<typeof loader>()
     return (
-        <div className="mx-auto max-w-5xl">
-            <h1 className="text-2xl font-bold my-6">
-                Waar gaat je vraag over?
-            </h1>
+        <main className="p-6">
+            <FarmTitle
+                title="Nieuw ticket"
+                description="Stel uw vraag of meld een probleem. Een medewerker neemt doorgaans binnen enkele werkdagen contact met u op."
+            />
             <TicketComposer
                 farmOptions={farmOptions}
                 initial_context_farm_id={initial_context_farm_id}
             />
-        </div>
+        </main>
     )
 }

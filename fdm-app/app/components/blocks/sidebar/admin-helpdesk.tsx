@@ -30,7 +30,7 @@ export function SidebarAdminHelpdesk() {
                         >
                             <NavLink to={"/support?inbox"}>
                                 <MessageSquareCheck />
-                                <span>Mijn Inbox</span>
+                                <span>Mijn inbox</span>
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -41,7 +41,7 @@ export function SidebarAdminHelpdesk() {
                         >
                             <NavLink to={"/support?all"}>
                                 <MessageSquareDashed />
-                                <span>Alle Tickets</span>
+                                <span>Alle tickets</span>
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
