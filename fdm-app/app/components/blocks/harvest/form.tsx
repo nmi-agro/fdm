@@ -602,7 +602,7 @@ function HarvestFields({
     )
 }
 
-function HarvestFormExplainer() {
+export function HarvestFormExplainer() {
     const [hostname, setHostname] = useState("")
     useEffect(() => {
         if (typeof window !== "undefined") {

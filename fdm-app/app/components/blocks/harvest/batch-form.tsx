@@ -5,7 +5,7 @@ import { nl } from "date-fns/locale"
 import { Plus, X } from "lucide-react"
 import { type MouseEventHandler, useCallback, useRef } from "react"
 import { Controller, useFieldArray } from "react-hook-form"
-import { Form, useNavigate } from "react-router"
+import { useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
 import { getContextualDate } from "@/app/lib/calendar"
@@ -21,6 +21,7 @@ import {
 } from "~/components/ui/dialog"
 import { Field, FieldError } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
+import { Spinner } from "~/components/ui/spinner"
 import {
     Table,
     TableBody,
@@ -29,6 +30,7 @@ import {
     TableHeader,
     TableRow,
 } from "~/components/ui/table"
+import { HarvestFormExplainer } from "./form"
 import { getHarvestParameterLabel } from "./parameters"
 import { BatchFormSchema } from "./schema"
 import type { HarvestableType } from "./types"
@@ -95,6 +97,16 @@ function createNewRow(
                 : undefined) ??
             getContextualDate(calendar, 4, 15).toISOString(),
     }
+}
+
+function getColumnTitle(columnName: ColumnName) {
+    return columnName === "cutting"
+        ? "#"
+        : columnName === "b_lu_harvest_date"
+          ? "Oogstdatum"
+          : columnName === "delete"
+            ? null
+            : getHarvestParameterLabel(columnName)
 }
 
 interface BatchHarvestFormProps {
@@ -169,13 +181,27 @@ function BatchHarvestFormRow({
     return (
         <TableRow ref={rowRef} id={id}>
             {columnNames.map((columnName) => {
-                if (columnName === "cutting") {
-                    return <TableCell key={columnName}>{index + 1}</TableCell>
-                }
+                const columnInfo =
+                    columnName === "b_lu_harvest_date" ||
+                    columnName === "delete" ||
+                    columnName === "cutting"
+                        ? { type: "date" }
+                        : columnInfos[columnName]
 
-                if (columnName === "delete") {
-                    return (
-                        <TableCell key={"columnName"}>
+                const columnTitle =
+                    columnName === "delete" || columnName === "cutting"
+                        ? undefined
+                        : getColumnTitle(columnName)
+
+                return (
+                    <TableCell
+                        key={columnName}
+                        title={columnTitle ?? undefined}
+                        className="align-top"
+                    >
+                        {columnName === "cutting" ? (
+                            <TableCell key={columnName}>{index + 1}</TableCell>
+                        ) : columnName === "delete" ? (
                             <Button
                                 key={columnName}
                                 type="button"
@@ -203,18 +229,7 @@ function BatchHarvestFormRow({
                             >
                                 <X />
                             </Button>
-                        </TableCell>
-                    )
-                }
-
-                const columnInfo =
-                    columnName === "b_lu_harvest_date"
-                        ? { type: "date" }
-                        : columnInfos[columnName]
-
-                if (columnInfo.type === "number") {
-                    return (
-                        <TableCell key={columnName}>
+                        ) : columnInfo.type === "number" ? (
                             <Controller
                                 name={`harvests.${index}.${columnName}`}
                                 render={({ field, fieldState }) => (
@@ -238,13 +253,7 @@ function BatchHarvestFormRow({
                                     </Field>
                                 )}
                             />
-                        </TableCell>
-                    )
-                }
-
-                if (columnInfo.type === "date") {
-                    return (
-                        <TableCell key={columnName}>
+                        ) : columnInfo.type === "date" ? (
                             <Controller
                                 name={`harvests.${index}.${columnName}`}
                                 render={({ field, fieldState }) => (
@@ -262,11 +271,11 @@ function BatchHarvestFormRow({
                                     />
                                 )}
                             />
-                        </TableCell>
-                    )
-                }
-
-                return harvestRow[columnName]?.toString() ?? "Onbekend"
+                        ) : (
+                            (harvestRow[columnName]?.toString() ?? "Onbekend")
+                        )}
+                    </TableCell>
+                )
             })}
         </TableRow>
     )
@@ -355,13 +364,7 @@ function BatchHarvestFormFields({
                     <TableRow>
                         {columnNames.map((columnName) => (
                             <TableHead key={columnName}>
-                                {columnName === "cutting"
-                                    ? "#"
-                                    : columnName === "b_lu_harvest_date"
-                                      ? "Oogstdatum"
-                                      : columnName === "delete"
-                                        ? null
-                                        : getHarvestParameterLabel(columnName)}
+                                {getColumnTitle(columnName)}
                             </TableHead>
                         ))}
                     </TableRow>
@@ -383,11 +386,12 @@ function BatchHarvestFormFields({
             <Button
                 ref={addButtonRef}
                 type="button"
-                variant="ghost"
+                variant="secondary"
                 onClick={addRow}
+                className="flex mt-2"
             >
                 <Plus />
-                Nieuw toevoegen
+                Nieuwe rij toevoegen
             </Button>
         </>
     )
@@ -397,6 +401,7 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
     const navigate = useNavigate()
 
     const form = useBatchHarvestRemixForm(props)
+    const fetcher = useFetcher()
 
     return (
         <Dialog open={true} onOpenChange={() => navigate("..")}>
@@ -416,33 +421,102 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                     </DialogDescription>
                 </DialogHeader>
                 <RemixFormProvider {...form}>
-                    <Form
+                    <fetcher.Form
                         method="post"
                         onSubmit={form.handleSubmit}
-                        className="grow overflow-y-auto"
+                        className="grow overflow-y-auto space-y-4"
                     >
                         <input
                             type="hidden"
                             name="intent"
                             value="batch_harvest"
                         />
-                        <BatchHarvestFormFields
-                            form={form}
-                            calendar={props.calendar}
-                            b_lu_start={props.b_lu_start}
-                            b_lu_end={props.b_lu_start}
-                            b_date_harvest_default={
-                                props.b_date_harvest_default
-                            }
-                            harvestParameters={props.harvestParameters}
-                            defaultHarvest={props.defaultHarvest}
-                        />
+                        <div>
+                            <BatchHarvestFormFields
+                                form={form}
+                                calendar={props.calendar}
+                                b_lu_start={props.b_lu_start}
+                                b_lu_end={props.b_lu_start}
+                                b_date_harvest_default={
+                                    props.b_date_harvest_default
+                                }
+                                harvestParameters={props.harvestParameters}
+                                defaultHarvest={props.defaultHarvest}
+                            />
+                        </div>
+                        <HarvestFormExplainer />
                         <DialogFooter>
-                            <Button type="submit">Opslaan</Button>
+                            <Button
+                                type="submit"
+                                disabled={
+                                    form.formState.isSubmitting ||
+                                    fetcher.state !== "idle"
+                                }
+                            >
+                                {form.formState.isSubmitting ? (
+                                    <>
+                                        <Spinner />
+                                        <span>Opslaan...</span>
+                                    </>
+                                ) : (
+                                    "Toevoegen"
+                                )}
+                            </Button>
                         </DialogFooter>
-                    </Form>
+                    </fetcher.Form>
                 </RemixFormProvider>
             </DialogContent>
         </Dialog>
+    )
+}
+
+export function BatchHarvestForm(props: BatchHarvestFormProps) {
+    const editable = true
+
+    const form = useBatchHarvestRemixForm(props)
+
+    const fetcher = useFetcher()
+
+    return (
+        <RemixFormProvider {...form}>
+            <fetcher.Form
+                id="formHarvest"
+                onSubmit={form.handleSubmit}
+                method="post"
+            >
+                <fieldset
+                    disabled={
+                        !editable ||
+                        form.formState.isSubmitting ||
+                        fetcher.state !== "idle"
+                    }
+                    className="space-y-8"
+                >
+                    <div>
+                        <BatchHarvestFormFields {...props} form={form} />
+                    </div>
+                    <HarvestFormExplainer />
+                    <div className="w-full">
+                        <Button
+                            type="submit"
+                            className="flex ml-auto"
+                            disabled={
+                                form.formState.isSubmitting ||
+                                fetcher.state !== "idle"
+                            }
+                        >
+                            {form.formState.isSubmitting ? (
+                                <>
+                                    <Spinner />
+                                    <span>Opslaan...</span>
+                                </>
+                            ) : (
+                                "Toevoegen"
+                            )}
+                        </Button>
+                    </div>
+                </fieldset>
+            </fetcher.Form>
+        </RemixFormProvider>
     )
 }
