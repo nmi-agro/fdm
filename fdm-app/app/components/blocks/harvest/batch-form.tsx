@@ -8,9 +8,11 @@ import { Controller, useFieldArray, useWatch } from "react-hook-form"
 import { useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
+import { useIsMobile } from "@/app/hooks/use-mobile"
 import { getContextualDate } from "@/app/lib/calendar"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
     Dialog,
     DialogContent,
@@ -19,7 +21,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "~/components/ui/dialog"
-import { Field, FieldError } from "~/components/ui/field"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import {
@@ -35,11 +37,13 @@ import { getHarvestParameterLabel } from "./parameters"
 import { BatchFormSchema } from "./schema"
 import type { HarvestableType } from "./types"
 
-type ColumnName =
+type TableColumnName =
     | HarvestParameters[number]
     | "b_lu_harvest_date"
     | "cutting"
     | "delete"
+
+type CardColumnName = HarvestParameters[number] | "b_lu_harvest_date"
 
 interface ColumnInfo {
     type: "number" | "date" | "b_lu_harvestable"
@@ -99,7 +103,7 @@ function createNewRow(
     }
 }
 
-function getColumnTitle(columnName: ColumnName) {
+function getColumnTitle(columnName: TableColumnName) {
     return columnName === "cutting"
         ? "#"
         : columnName === "b_lu_harvest_date"
@@ -135,7 +139,7 @@ function useBatchHarvestRemixForm({
 }: BatchHarvestFormProps) {
     return useRemixForm<{ intent: "batch_harvest"; harvests: HarvestRow[] }>({
         mode: "onTouched",
-        // We don't let batch deletion yet so not confirmation dialog logic is necessary
+        // We don't let batch deletion yet so no confirmation dialog logic is necessary
         resolver: zodResolver(SchemaWithIntent),
         defaultValues: {
             intent: "batch_harvest",
@@ -161,6 +165,68 @@ function useBatchHarvestRemixForm({
     })
 }
 
+function BatchHarvestDataCell({
+    index,
+    label,
+    columnName,
+    harvestRow,
+    exampleRow,
+}: {
+    index: number
+    label?: string
+    columnName: "b_lu_harvest_date" | HarvestParameters[number]
+    harvestRow: HarvestRow
+    exampleRow?: HarvestRow
+}) {
+    const columnInfo =
+        columnName === "b_lu_harvest_date"
+            ? { type: "date" }
+            : columnInfos[columnName]
+    return columnInfo.type === "number" ? (
+        <Controller
+            name={`harvests.${index}.${columnName}`}
+            render={({ field, fieldState }) => (
+                <Field>
+                    {typeof label === "string" && (
+                        <FieldLabel>{label}</FieldLabel>
+                    )}
+                    <Input
+                        {...field}
+                        type="number"
+                        placeholder={
+                            exampleRow?.[columnName] !== undefined &&
+                            exampleRow[columnName] !== null
+                                ? `b.v. ${exampleRow[columnName]}`
+                                : undefined
+                        }
+                    />
+                    {fieldState.error ? (
+                        <FieldError errors={[fieldState.error]} />
+                    ) : null}
+                </Field>
+            )}
+        />
+    ) : columnInfo.type === "date" ? (
+        <Controller
+            name={`harvests.${index}.${columnName}`}
+            render={({ field, fieldState }) => (
+                <DatePicker
+                    label={label}
+                    field={field}
+                    fieldState={fieldState}
+                    placeholder={
+                        exampleRow?.[columnName] !== undefined &&
+                        exampleRow[columnName] !== null
+                            ? `b.v. ${format(new Date(exampleRow[columnName]), "PP", { locale: nl })}`
+                            : undefined
+                    }
+                />
+            )}
+        />
+    ) : (
+        (harvestRow[columnName]?.toString() ?? "Onbekend")
+    )
+}
 function BatchHarvestFormRow({
     index,
     id,
@@ -172,7 +238,7 @@ function BatchHarvestFormRow({
 }: {
     index: number
     id: string
-    columnNames: ColumnName[]
+    columnNames: TableColumnName[]
     exampleRow?: HarvestRow
     harvestRow: HarvestRow
     onDelete: MouseEventHandler
@@ -182,13 +248,6 @@ function BatchHarvestFormRow({
     return (
         <TableRow ref={rowRef} id={id}>
             {columnNames.map((columnName) => {
-                const columnInfo =
-                    columnName === "b_lu_harvest_date" ||
-                    columnName === "delete" ||
-                    columnName === "cutting"
-                        ? { type: "date" }
-                        : columnInfos[columnName]
-
                 const columnTitle =
                     columnName === "delete" || columnName === "cutting"
                         ? undefined
@@ -204,14 +263,10 @@ function BatchHarvestFormRow({
                             <div className="py-2">{index + 1}</div>
                         ) : columnName === "delete" ? (
                             <Button
-                                key={columnName}
                                 type="button"
                                 variant="ghost"
-                                onClick={(e) => {
-                                    if (e.currentTarget === e.target)
-                                        onDelete(e)
-                                }}
-                                className="text-destructive"
+                                onClick={onDelete}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                 title="Verwijderen"
                                 aria-label="Verwijderen"
                                 data-delete
@@ -230,55 +285,62 @@ function BatchHarvestFormRow({
                             >
                                 <Trash2 />
                             </Button>
-                        ) : columnInfo.type === "number" ? (
-                            <Controller
-                                name={`harvests.${index}.${columnName}`}
-                                render={({ field, fieldState }) => (
-                                    <Field>
-                                        <Input
-                                            {...field}
-                                            type="number"
-                                            placeholder={
-                                                exampleRow?.[columnName] !==
-                                                    undefined &&
-                                                exampleRow[columnName] !== null
-                                                    ? `b.v. ${exampleRow[columnName]}`
-                                                    : undefined
-                                            }
-                                        />
-                                        {fieldState.error ? (
-                                            <FieldError
-                                                errors={[fieldState.error]}
-                                            />
-                                        ) : null}
-                                    </Field>
-                                )}
-                            />
-                        ) : columnInfo.type === "date" ? (
-                            <Controller
-                                name={`harvests.${index}.${columnName}`}
-                                render={({ field, fieldState }) => (
-                                    <DatePicker
-                                        label={undefined}
-                                        field={field}
-                                        fieldState={fieldState}
-                                        placeholder={
-                                            exampleRow?.[columnName] !==
-                                                undefined &&
-                                            exampleRow[columnName] !== null
-                                                ? `b.v. ${format(new Date(exampleRow[columnName]), "PP", { locale: nl })}`
-                                                : undefined
-                                        }
-                                    />
-                                )}
-                            />
                         ) : (
-                            (harvestRow[columnName]?.toString() ?? "Onbekend")
+                            <BatchHarvestDataCell
+                                index={index}
+                                columnName={columnName}
+                                harvestRow={harvestRow}
+                                exampleRow={exampleRow}
+                            />
                         )}
                     </TableCell>
                 )
             })}
         </TableRow>
+    )
+}
+
+function BatchHarvestFormItemCard({
+    index,
+    columnNames,
+    exampleRow,
+    harvestRow,
+    onDelete,
+}: {
+    index: number
+    columnNames: CardColumnName[]
+    exampleRow?: HarvestRow
+    harvestRow: HarvestRow
+    onDelete: MouseEventHandler
+}) {
+    return (
+        <Card className="p-2 space-y-2">
+            <CardHeader className="flex flex-row items-center p-0">
+                <CardTitle className="grow">{index + 1}e oogst</CardTitle>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    title="Verwijderen"
+                    aria-label="Verwijderen"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={onDelete}
+                >
+                    <Trash2 />
+                </Button>
+            </CardHeader>
+            <CardContent className="grid gap-2 p-0 grid-cols-1 sm:grid-cols-2">
+                {columnNames.map((columnName) => (
+                    <BatchHarvestDataCell
+                        key={columnName}
+                        index={index}
+                        label={getColumnTitle(columnName) ?? undefined}
+                        columnName={columnName}
+                        harvestRow={harvestRow}
+                        exampleRow={exampleRow}
+                    />
+                ))}
+            </CardContent>
+        </Card>
     )
 }
 
@@ -293,17 +355,13 @@ function BatchHarvestFormFields({
 }: BatchHarvestFormProps & {
     form: ReturnType<typeof useBatchHarvestRemixForm>
 }) {
-    const columnNames: ColumnName[] = [
-        "cutting",
-        "b_lu_harvest_date",
-        ...harvestParameters,
-        "delete",
-    ]
+    const isMobile = useIsMobile()
 
     const fieldArray = useFieldArray({
         control: form.control,
         name: "harvests",
     })
+    const harvests = useWatch({ control: form.control, name: "harvests" })
 
     const addButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -313,8 +371,8 @@ function BatchHarvestFormFields({
                 calendar,
                 b_lu_start,
                 b_lu_end,
-                fieldArray.fields.length > 0
-                    ? fieldArray.fields[fieldArray.fields.length - 1]
+                harvests.length > 0
+                    ? harvests[fieldArray.fields.length - 1]
                     : undefined,
                 defaultHarvest,
                 b_date_harvest_default,
@@ -332,6 +390,7 @@ function BatchHarvestFormFields({
         b_lu_start,
         b_lu_end,
         fieldArray,
+        harvests,
         defaultHarvest,
         b_date_harvest_default,
     ])
@@ -349,6 +408,44 @@ function BatchHarvestFormFields({
         },
         [fieldArray],
     )
+
+    if (isMobile) {
+        const columnNames: CardColumnName[] = [
+            "b_lu_harvest_date",
+            ...harvestParameters,
+        ]
+
+        return (
+            <div className="space-y-2">
+                {fieldArray.fields.map(({ id, ...harvestRow }, index) => (
+                    <BatchHarvestFormItemCard
+                        key={id}
+                        index={index}
+                        harvestRow={harvestRow}
+                        columnNames={columnNames}
+                        onDelete={() => deleteRow(index)}
+                    />
+                ))}
+                <Button
+                    ref={addButtonRef}
+                    type="button"
+                    variant="secondary"
+                    onClick={addRow}
+                    className="flex mt-2"
+                >
+                    <Plus />
+                    Nieuwe oogst toevoegen
+                </Button>
+            </div>
+        )
+    }
+
+    const columnNames: TableColumnName[] = [
+        "cutting",
+        "b_lu_harvest_date",
+        ...harvestParameters,
+        "delete",
+    ]
 
     return (
         <>
@@ -371,14 +468,14 @@ function BatchHarvestFormFields({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {fieldArray.fields.map(({ id, ...harvestRow }, i) => (
+                    {fieldArray.fields.map(({ id, ...harvestRow }, index) => (
                         <BatchHarvestFormRow
                             key={id}
                             id={id}
-                            index={i}
+                            index={index}
                             harvestRow={harvestRow}
                             columnNames={columnNames}
-                            onDelete={() => deleteRow(i)}
+                            onDelete={() => deleteRow(index)}
                             onAdd={addRow}
                         />
                     ))}
