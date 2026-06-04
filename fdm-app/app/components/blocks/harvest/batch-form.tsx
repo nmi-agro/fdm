@@ -74,6 +74,22 @@ interface HarvestPair {
     default?: Partial<HarvestRow>
 }
 
+/**
+ * Creates a new harvest row object with values pre-filled according to the different existing rows supplied.
+ *
+ * Most importantly, if the table already contains a row, the last row is duplicated and the date is
+ * incremented by one month, assuming the farmer would cut their grass every four weeks.
+ *
+ * @param calendar the calendar parameter from the URL. Used to build the default harvest date
+ * @param b_lu_start default b_lu_start, used to validate b_lu_harvest_date for this row
+ * @param b_lu_end default b_lu_end, used to validate b_lu_harvest_date for this row
+ * @param lastRow last row on the table, if one exists
+ * @param defaultRow harvest row object containing the default harvest parameters. b_lu_harvest_date is
+ * ignored
+ * @param b_date_harvest_default a string in the form "07-15" containing the month and day of the usual
+ * harvest of this cultivation
+ * @returns a new harvest row object, which can be appended to the table data
+ */
 function createNewRow(
     calendar: string,
     b_lu_start: Date | null,
@@ -103,6 +119,13 @@ function createNewRow(
     }
 }
 
+/**
+ * Gets the column title/field label for any field that may be found on the input table or the input cards
+ *
+ * @param columnName name of the column. Everything in the batch form use the terms column and row for
+ * consistency
+ * @returns the column title/field label
+ */
 function getColumnTitle(columnName: TableColumnName) {
     return columnName === "cutting"
         ? "#"
@@ -114,21 +137,46 @@ function getColumnTitle(columnName: TableColumnName) {
 }
 
 interface BatchHarvestFormProps {
+    /** The calendar parameter from the URL. Used to build the default harvest date. */
     calendar: string
+    /** Crop rotation ID for the cultivation, found in the catalogue */
     b_lu_croprotation: string | null
+    /** Start date for the cultivation. Used to validate b_lu_harvest_date. */
     b_lu_start: Date | null
+    /** Ending date for the cultivation. Used to validate b_lu_harvest_date. */
     b_lu_end: Date | null
+    /** Which parameters are needed for a complete harvest analysis */
     harvestParameters: HarvestParameters
+    /**
+     * Data for rows to add at start. An empty array will create an empty table.
+     * If this is `undefined` a new row will be added, created using the defaultHarvest.
+     */
     harvestPairs?: HarvestPair[]
+    /** Default harvest to add if the table contains no rows */
     defaultHarvest?: Partial<HarvestRow>
+    /** Whether the form modifying existing harvests. Currently it only changes the help message displayed. */
     isHarvestUpdate?: boolean
+    /** Most common harvest date for this cultivation, provided in form, for example, `"07-15"` for 15 July */
     b_date_harvest_default?: string | null
+    /**
+     * If provided, a back button will be displayed next to Submit, and it will be called when the button
+     * is clicked.
+     */
     onBack?: MouseEventHandler
 }
 
+/**
+ * Schema with an intent field, which is used to distinguish between single and batch harvest entry
+ */
 const SchemaWithIntent = BatchFormSchema.extend({
     intent: z.literal("batch_harvest"),
 })
+
+/**
+ * useRemixForm call used in `BatchHarvestFormDialog` and `BatchHarvestForm`
+ * @param param0 batch harvest form props
+ * @returns a remix-hook-form object
+ */
 function useBatchHarvestRemixForm({
     calendar,
     b_lu_start,
@@ -165,6 +213,11 @@ function useBatchHarvestRemixForm({
     })
 }
 
+/**
+ * Component that renders a form input for each known data field, or just the value if the columnName is not known
+ * @param param0 props
+ * @returns a ReactNode
+ */
 function BatchHarvestDataCell({
     index,
     label,
@@ -172,10 +225,15 @@ function BatchHarvestDataCell({
     harvestRow,
     exampleRow,
 }: {
+    /** Row index */
     index: number
+    /** Label to display as part of the input field */
     label?: string
+    /** Column name to determine the type of input field */
     columnName: "b_lu_harvest_date" | HarvestParameters[number]
+    /** Data to fill in the inputs */
     harvestRow: HarvestRow
+    /** Data to fill in the placeholders of the inputs */
     exampleRow?: HarvestRow
 }) {
     const columnInfo =
@@ -227,21 +285,35 @@ function BatchHarvestDataCell({
         (harvestRow[columnName]?.toString() ?? "Onbekend")
     )
 }
+
+/**
+ * Table row for the input table as seen on desktop
+ *
+ * @param param0 props
+ * @returns a ReactNode that renders into a <td> element
+ */
 function BatchHarvestFormRow({
     index,
     id,
     columnNames,
-    exampleRow,
     harvestRow,
+    exampleRow,
     onDelete,
     onAdd,
 }: {
+    /** Row index */
     index: number
+    /** Unique row ID */
     id: string
+    /** Column names to show */
     columnNames: TableColumnName[]
-    exampleRow?: HarvestRow
+    /** Data to fill in the placeholders of the inputs */
     harvestRow: HarvestRow
+    /** Data to fill in the inputs */
+    exampleRow?: HarvestRow
+    /** Event handler callback for when the delete button is clicked */
     onDelete: MouseEventHandler
+    /** Callback for when a new row addition is triggered via keyboard */
     onAdd: () => void
 }) {
     const rowRef = useRef<HTMLTableRowElement>(null)
@@ -300,17 +372,28 @@ function BatchHarvestFormRow({
     )
 }
 
+/**
+ * Card for the stacked table view as seen on mobile
+ *
+ * @param param0 props
+ * @returns
+ */
 function BatchHarvestFormItemCard({
     index,
     columnNames,
-    exampleRow,
     harvestRow,
+    exampleRow,
     onDelete,
 }: {
+    /** Row index */
     index: number
-    columnNames: CardColumnName[]
-    exampleRow?: HarvestRow
+    /** Column names to show */
+    columnNames: TableColumnName[]
+    /** Data to fill in the placeholders of the inputs */
     harvestRow: HarvestRow
+    /** Data to fill in the inputs */
+    exampleRow?: HarvestRow
+    /** Event handler callback for when the delete button is clicked */
     onDelete: MouseEventHandler
 }) {
     return (
@@ -344,6 +427,14 @@ function BatchHarvestFormItemCard({
     )
 }
 
+/**
+ * Responsive fields for the form. This doesn't include the submit and back buttons.
+ *
+ * On desktop a table is displayed. On mobile a stacked card view is used.
+ *
+ * @param param0 props
+ * @returns a ReactNode to be used inside a form
+ */
 function BatchHarvestFormFields({
     form,
     calendar,
@@ -353,6 +444,7 @@ function BatchHarvestFormFields({
     defaultHarvest,
     b_date_harvest_default,
 }: BatchHarvestFormProps & {
+    /** Remix Hook Form object */
     form: ReturnType<typeof useBatchHarvestRemixForm>
 }) {
     const isMobile = useIsMobile()
@@ -495,6 +587,12 @@ function BatchHarvestFormFields({
     )
 }
 
+/**
+ * The batch harvest input form in dialog format
+ *
+ * @param props props
+ * @returns a ReactNode of the dialog
+ */
 export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
     const navigate = useNavigate()
 
@@ -581,6 +679,12 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
     )
 }
 
+/**
+ * The batch harvest input form in inline format
+ *
+ * @param props props
+ * @returns a ReactNode of the inline form
+ */
 export function BatchHarvestForm(props: BatchHarvestFormProps) {
     const form = useBatchHarvestRemixForm(props)
     const fetcher = useFetcher()
