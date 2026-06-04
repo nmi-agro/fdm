@@ -1001,23 +1001,30 @@ export async function action({ request, params }: ActionFunctionArgs) {
         )
 
         if (formValues.intent === "batch_harvest") {
-            await fdm.transaction(async (tx) => {
+            return await fdm.transaction(async (tx) => {
                 let first = true
                 for (const row of formValues.harvests) {
-                    await addHarvestHelper(tx, row, first)
+                    await addHarvestHelper(tx, row, first, true)
                     first = false
                 }
+                return redirectWithSuccess(redirectURL, {
+                    message: `Oogsten succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+                })
             })
         }
 
         if (formValues.intent === "single_harvest") {
-            await addHarvestHelper(fdm, formValues, true)
+            await addHarvestHelper(fdm, formValues, true, false)
+            return redirectWithSuccess(redirectURL, {
+                message: `Oogst succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+            })
         }
 
         async function addHarvestHelper(
             tx: Omit<typeof fdm, "$client">,
             formValues: z.infer<typeof FormSchema>,
             first: boolean,
+            checkBatchSupport: boolean,
         ) {
             if (!formValues.b_lu_harvest_date) {
                 const errors = [
@@ -1042,9 +1049,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 )
 
                 if (!targetCultivationInstance) {
-                    return dataWithError(
+                    throw dataWithError(
                         null,
                         `Gewas niet gevonden voor perceel ${fieldId}.`,
+                    )
+                }
+
+                if (
+                    checkBatchSupport &&
+                    targetCultivationInstance.b_lu_croprotation !== "grass"
+                ) {
+                    throw dataWithWarning(
+                        {
+                            warning: `You cannot add harvests to ${targetCultivationInstance.b_lu_catalogue} in batches.`,
+                        },
+                        `You cannot add harvests to ${targetCultivationInstance.b_lu_name} in batches. Only grass is allowed.`,
                     )
                 }
 
@@ -1073,7 +1092,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 )
 
                 if (missingParameters.length > 0) {
-                    return dataWithWarning(
+                    throw dataWithWarning(
                         {
                             warning: `Missing required harvest parameters: ${missingParameters.join(
                                 ", ",
@@ -1125,10 +1144,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     harvestProperties,
                 )
             }
-
-            return redirectWithSuccess(redirectURL, {
-                message: `Oogst succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
-            })
         }
     } catch (error) {
         if (error instanceof z.ZodError) {

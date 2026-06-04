@@ -4,7 +4,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronLeft, Plus, Trash2 } from "lucide-react"
 import { type MouseEventHandler, useCallback, useRef } from "react"
-import { Controller, useFieldArray } from "react-hook-form"
+import { Controller, useFieldArray, useWatch } from "react-hook-form"
 import { useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
@@ -403,6 +403,7 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
 
     const form = useBatchHarvestRemixForm(props)
     const fetcher = useFetcher()
+    const harvests = useWatch({ control: form.control, name: "harvests" })
 
     return (
         <Dialog open={true} onOpenChange={() => navigate("..")}>
@@ -425,55 +426,57 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                     <fetcher.Form
                         method="post"
                         onSubmit={form.handleSubmit}
-                        className="grow overflow-y-auto space-y-4"
+                        className="grow overflow-y-auto"
                     >
-                        <input
-                            type="hidden"
-                            name="intent"
-                            value="batch_harvest"
-                        />
-                        <div>
-                            <BatchHarvestFormFields
-                                form={form}
-                                calendar={props.calendar}
-                                b_lu_start={props.b_lu_start}
-                                b_lu_end={props.b_lu_start}
-                                b_date_harvest_default={
-                                    props.b_date_harvest_default
-                                }
-                                harvestParameters={props.harvestParameters}
-                                defaultHarvest={props.defaultHarvest}
+                        <fieldset
+                            className="space-y-4"
+                            disabled={
+                                form.formState.isSubmitting ||
+                                fetcher.state !== "idle"
+                            }
+                        >
+                            <input
+                                type="hidden"
+                                name="intent"
+                                value="batch_harvest"
                             />
-                        </div>
-                        <HarvestFormExplainer />
-                        <DialogFooter>
-                            {props.onBack && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={props.onBack}
-                                >
-                                    <ChevronLeft />
-                                    Terug
-                                </Button>
-                            )}
-                            <Button
-                                type="submit"
-                                disabled={
-                                    form.formState.isSubmitting ||
-                                    fetcher.state !== "idle"
-                                }
-                            >
-                                {form.formState.isSubmitting ? (
-                                    <>
-                                        <Spinner />
-                                        <span>Opslaan...</span>
-                                    </>
-                                ) : (
-                                    "Toevoegen"
+                            <div>
+                                <BatchHarvestFormFields
+                                    {...props}
+                                    form={form}
+                                />
+                            </div>
+                            <HarvestFormExplainer />
+                            <DialogFooter>
+                                {props.onBack && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={props.onBack}
+                                    >
+                                        <ChevronLeft />
+                                        Terug
+                                    </Button>
                                 )}
-                            </Button>
-                        </DialogFooter>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        form.formState.isSubmitting ||
+                                        fetcher.state !== "idle" ||
+                                        harvests.length === 0
+                                    }
+                                >
+                                    {form.formState.isSubmitting ? (
+                                        <>
+                                            <Spinner />
+                                            <span>Opslaan...</span>
+                                        </>
+                                    ) : (
+                                        "Toevoegen"
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </fieldset>
                     </fetcher.Form>
                 </RemixFormProvider>
             </DialogContent>
@@ -482,11 +485,9 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
 }
 
 export function BatchHarvestForm(props: BatchHarvestFormProps) {
-    const editable = true
-
     const form = useBatchHarvestRemixForm(props)
-
     const fetcher = useFetcher()
+    const harvests = useWatch({ control: form.control, name: "harvests" })
 
     return (
         <RemixFormProvider {...form}>
@@ -497,9 +498,7 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
             >
                 <fieldset
                     disabled={
-                        !editable ||
-                        form.formState.isSubmitting ||
-                        fetcher.state !== "idle"
+                        form.formState.isSubmitting || fetcher.state !== "idle"
                     }
                     className="space-y-8"
                 >
@@ -523,7 +522,8 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
                             className="flex ml-auto"
                             disabled={
                                 form.formState.isSubmitting ||
-                                fetcher.state !== "idle"
+                                fetcher.state !== "idle" ||
+                                harvests.length === 0
                             }
                         >
                             {form.formState.isSubmitting ? (

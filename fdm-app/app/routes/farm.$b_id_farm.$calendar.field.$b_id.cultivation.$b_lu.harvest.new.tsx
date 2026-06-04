@@ -178,6 +178,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
         )
 
         if (formValues.intent === "batch_harvest") {
+            if (cultivation.b_lu_croprotation !== "grass") {
+                return dataWithWarning(
+                    {
+                        warning: `You cannot add harvests to ${cultivation.b_lu_catalogue} in batches.`,
+                    },
+                    `You cannot add harvests to ${cultivation.b_lu_name} in batches. Only grass is allowed.`,
+                )
+            }
             const dataWarnings: string[] = []
             const bodyWarnings: string[] = []
 
