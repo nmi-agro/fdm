@@ -189,17 +189,29 @@ export async function action({ request, params }: ActionFunctionArgs) {
             throw new Error("Missing required a_depth_upper value")
         }
 
+        const {
+            a_source,
+            a_depth_lower,
+            a_depth_upper,
+            b_sampling_date,
+            location,
+            b_name,
+            ...soilAnalysisData
+        } = soilAnalysis
+        void location
+        void b_name
+
         // Add soil analysis
         const soilAnalysisId = await addSoilAnalysis(
             fdm,
             session.principal_id,
             null,
-            "other",
+            typeof a_source === "string" ? a_source : "other",
             b_id,
-            Number(soilAnalysis.a_depth_lower),
-            new Date(soilAnalysis.b_sampling_date),
-            soilAnalysis,
-            Number(soilAnalysis.a_depth_upper),
+            Number(a_depth_lower),
+            new Date(b_sampling_date),
+            soilAnalysisData as Parameters<typeof addSoilAnalysis>[7],
+            Number(a_depth_upper),
         )
 
         return redirectWithSuccess(`../soil/analysis/${soilAnalysisId}`, {

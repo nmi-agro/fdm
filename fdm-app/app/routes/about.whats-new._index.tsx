@@ -340,7 +340,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * update posts.
  */
 export default function WhatsNew() {
-    const _loaderData = useLoaderData<typeof loader>()
+    useLoaderData<typeof loader>()
     const markAllAsSeen = useChangelogStore((state) => state.markAllAsSeen)
 
     useEffect(() => {

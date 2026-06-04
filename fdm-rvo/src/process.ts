@@ -3,6 +3,8 @@ import {
     addCultivation,
     addField,
     type FdmType,
+    type Field,
+    type FieldGeometry,
     getDefaultDatesOfCultivation,
     removeCultivation,
     removeField,
@@ -12,6 +14,7 @@ import type { RvoImportReviewItem, UserChoiceMap } from "./types"
 import { getItemId } from "./utils"
 
 type AcquiringMethod = (typeof acquiringMethodOptions)[number]["value"]
+type ProcessLocalField = Pick<Field, "b_id"> & Partial<Omit<Field, "b_id">>
 
 function parseBufferstrip(value: string | undefined): boolean | undefined {
     if (value === "J") return true
@@ -47,14 +50,18 @@ export async function processRvoImport(
     fdm: FdmType,
     principal_id: string,
     b_id_farm: string,
-    rvoImportReviewData: RvoImportReviewItem<any>[],
+    rvoImportReviewData: RvoImportReviewItem<ProcessLocalField>[],
     userChoices: UserChoiceMap,
     year: number,
-    onFieldAdded?: (tx: FdmType, b_id: string, geometry: any) => Promise<void>,
+    onFieldAdded?: (
+        tx: FdmType,
+        b_id: string,
+        geometry: FieldGeometry,
+    ) => Promise<void>,
 ) {
     await fdm.transaction(async (tx) => {
-        const addedFields: Array<{ b_id: string; geometry: any }> = []
-        async function handleItem(item: RvoImportReviewItem<any>) {
+        const addedFields: Array<{ b_id: string; geometry: FieldGeometry }> = []
+        async function handleItem(item: RvoImportReviewItem<ProcessLocalField>) {
             const id = getItemId(item)
             const action = userChoices[id]
 
@@ -207,6 +214,13 @@ export async function processRvoImport(
                     if (item.localField) {
                         // Close the field on Dec 31st of the previous year
                         const closeDate = new Date(year - 1, 11, 31)
+                        const fieldStart =
+                            item.localField.b_start instanceof Date
+                                ? item.localField.b_start
+                                : typeof item.localField.b_start === "string"
+                                  ? new Date(item.localField.b_start)
+                                  : undefined
+
                         await updateField(
                             tx,
                             principal_id,
@@ -214,9 +228,7 @@ export async function processRvoImport(
                             item.localField.b_name,
                             item.localField.b_id_source,
                             item.localField.b_geometry,
-                            item.localField.b_start instanceof Date
-                                ? item.localField.b_start
-                                : new Date(item.localField.b_start),
+                            fieldStart,
                             item.localField.b_acquiring_method,
                             closeDate,
                         )

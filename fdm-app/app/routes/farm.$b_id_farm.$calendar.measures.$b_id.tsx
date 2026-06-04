@@ -388,7 +388,7 @@ function MeasureEditDialog({
             onValid: (data) => {
                 const fd = new FormData()
                 fd.append("intent", "update")
-                fd.append("b_id_measure", measure?.b_id_measure)
+                fd.append("b_id_measure", measure?.b_id_measure ?? "")
                 fd.append("m_start", data.m_start)
                 if (data.m_end) fd.append("m_end", data.m_end)
                 else fd.append("m_end", "")

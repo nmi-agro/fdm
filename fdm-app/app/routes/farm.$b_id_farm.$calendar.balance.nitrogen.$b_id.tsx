@@ -1,6 +1,7 @@
 import {
     calculateNitrogenBalance,
     collectInputForNitrogenBalance,
+    type NitrogenBalanceFieldResultNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
@@ -40,6 +41,10 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
+
+type NitrogenFieldResultWithErrorId = NitrogenBalanceFieldResultNumeric & {
+    errorId?: string
+}
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -104,9 +109,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 fdm,
                 input,
             )
-            let fieldResult = nitrogenBalanceResult.fields.find(
-                (field: { b_id: string }) => field.b_id === b_id,
-            )
+            let fieldResult: NitrogenFieldResultWithErrorId | undefined =
+                nitrogenBalanceResult.fields.find(
+                    (field: { b_id: string }) => field.b_id === b_id,
+                )
 
             if (!fieldResult) {
                 throw new Error(
@@ -133,6 +139,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 fieldResult = {
                     b_id: b_id,
                     b_area: field?.b_area ?? 0,
+                    b_bufferstrip: field?.b_bufferstrip ?? false,
                     errorMessage: fieldResult.errorMessage,
                     errorId: errorId,
                 }
@@ -141,6 +148,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 (field: { field: { b_id: string } }) =>
                     field.field.b_id === b_id,
             )
+
+            if (!inputForField) {
+                throw new Error(`Nitrogen balance input not found for field ${b_id}`)
+            }
 
             return {
                 fieldResult: fieldResult,
@@ -416,7 +427,7 @@ function NitrogenBalance({
                     <CardContent>
                         <div className="space-y-8">
                             <NitrogenBalanceDetails
-                                balanceData={fieldResult.balance}
+                                balanceData={result}
                                 fieldInput={fieldInput}
                             />
                         </div>

@@ -91,8 +91,8 @@ export const fields = fdmSchema.table(
     {
         b_id: text().primaryKey(),
         b_name: text().notNull(),
-        b_geometry: geometry("b_geometry", {
-            type: "Polygon",
+        b_geometry: geometry<"Polygon" | "MultiPolygon">("b_geometry", {
+            type: ["Polygon", "MultiPolygon"],
         }), // PGLite does not support PostGIS yet; I expect to be supported in Q4 2024: https://github.com/electric-sql/pglite/issues/11
         b_id_source: text(),
         b_bufferstrip: boolean().notNull().default(false),

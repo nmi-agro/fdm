@@ -42,11 +42,11 @@ export default function FieldDetailsInfoPopup({
                         )}
                     </DialogTitle>
                     <DialogDescription>
-                        {field.properties.b_area}
+                        {field.properties?.b_area ?? "-"}
                         {" ha"}
                     </DialogDescription>
                     <DialogDescription>
-                        {field.properties.b_lu_name}
+                        {field.properties?.b_lu_name ?? "Onbekend gewas"}
                     </DialogDescription>
                 </DialogHeader>
             </DialogContent>

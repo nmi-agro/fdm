@@ -36,13 +36,27 @@ export function CultivationSelector({
         })
     }
 
+    const getCultivationStartTime = (value: Date | string | null | undefined) =>
+        value ? new Date(value).getTime() : 0
+
+    const formatCultivationStartDate = (
+        value: Date | string | null | undefined,
+    ) =>
+        value
+            ? new Date(value).toLocaleDateString("nl-NL", {
+                  day: "numeric",
+                  month: "short",
+              })
+            : ""
+
     const selectedCultivation = cultivations.find(
         (c) => c.b_lu === selectedCultivationId,
     )
 
     const sortedCultivations = [...cultivations].sort(
         (a, b) =>
-            new Date(b.b_lu_start).getTime() - new Date(a.b_lu_start).getTime(),
+            getCultivationStartTime(b.b_lu_start) -
+            getCultivationStartTime(a.b_lu_start),
     )
 
     const triggerContent =
@@ -54,7 +68,8 @@ export function CultivationSelector({
                             className="w-3 h-3 rounded-full cursor-pointer"
                             style={{
                                 backgroundColor: getCultivationColor(
-                                    selectedCultivation?.b_lu_croprotation,
+                                    selectedCultivation?.b_lu_croprotation ??
+                                        undefined,
                                 ),
                             }}
                         />
@@ -71,7 +86,7 @@ export function CultivationSelector({
             <Badge
                 style={{
                     backgroundColor: getCultivationColor(
-                        selectedCultivation.b_lu_croprotation,
+                        selectedCultivation.b_lu_croprotation ?? undefined,
                     ),
                 }}
                 className="text-white hover:opacity-90 px-3 py-1 text-sm"
@@ -98,7 +113,8 @@ export function CultivationSelector({
                                 className="w-3 h-3 rounded-full shrink-0"
                                 style={{
                                     backgroundColor: getCultivationColor(
-                                        cultivation.b_lu_croprotation,
+                                        cultivation.b_lu_croprotation ??
+                                            undefined,
                                     ),
                                 }}
                             />
@@ -106,12 +122,9 @@ export function CultivationSelector({
                                 {cultivation.b_lu_name}
                             </span>
                             <span className="text-muted-foreground text-xs ml-auto pl-2">
-                                {new Date(
+                                {formatCultivationStartDate(
                                     cultivation.b_lu_start,
-                                ).toLocaleDateString("nl-NL", {
-                                    day: "numeric",
-                                    month: "short",
-                                })}
+                                )}
                             </span>
                         </div>
                     </SelectItem>

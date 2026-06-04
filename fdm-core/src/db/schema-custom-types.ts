@@ -33,14 +33,14 @@ export const geometry = <
     T extends CustomTypeValues = CustomTypeValues,
 >(
     dbName: string,
-    fieldConfig?: T["config"] & { type: TType },
+    fieldConfig?: T["config"] & { type?: TType | readonly TType[] },
 ) => {
     const type = fieldConfig?.type
     return customType<{
         data: GeometryTypes[TType]
     }>({
         dataType() {
-            return type ? `geometry(${type},4326)` : "geometry"
+            return typeof type === "string" ? `geometry(${type},4326)` : "geometry"
         },
         toDriver(value) {
             return sql`ST_GeomFromGeoJSON(${JSON.stringify(value)})`
@@ -55,9 +55,18 @@ export const geometry = <
             try {
                 const data = JSON.parse(value as string)
 
-                if (type && data.type !== type) {
+                if (typeof type === "string" && data.type !== type) {
                     throw new Error(
                         `Expected geometry type ${type}, got ${data.type}`,
+                    )
+                }
+
+                if (
+                    Array.isArray(type) &&
+                    !type.includes(data.type as TType)
+                ) {
+                    throw new Error(
+                        `Expected geometry type ${type.join(", ")}, got ${data.type}`,
                     )
                 }
 
@@ -216,27 +225,54 @@ function readPolygon(
 //     return lineStrings
 // }
 
-// function readMultiPolygon(
-//     dataView: DataView,
-//     littleEndian: boolean,
-//     offset: number,
-// ): GeoJSON.Position[][][] {
-//     const numPolygons = dataView.getUint32(offset, littleEndian)
-//     offset += 4
-//     const polygons: GeoJSON.Position[][][] = []
+function readMultiPolygon(
+    dataView: DataView,
+    littleEndian: boolean,
+    offset: number,
+): GeoJSON.Position[][][] {
+    if (offset + 4 > dataView.byteLength) {
+        throw new Error("Buffer too small to read MultiPolygon")
+    }
+    const numPolygons = dataView.getUint32(offset, littleEndian)
+    offset += 4
+    const polygons: GeoJSON.Position[][][] = []
 
-//     for (let i = 0; i < numPolygons; i++) {
-//         polygons.push(readPolygon(dataView, littleEndian, offset))
-//         // Calculate the size of the current polygon to advance the offset correctly
-//         let polygonSize = 4 // Start with the size of numRings field
-//         for (const ring of polygons[i]) {
-//             polygonSize += 4 + ring.length * 16 // Add size of numPoints field and points
-//         }
-//         offset += polygonSize
-//     }
+    for (let i = 0; i < numPolygons; i++) {
+        if (offset + 5 > dataView.byteLength) {
+            throw new Error("Buffer too small to read nested Polygon")
+        }
 
-//     return polygons
-// }
+        const polygonByteOrder = dataView.getUint8(offset)
+        offset += 1
+        const polygonLittleEndian = polygonByteOrder === 1
+
+        let polygonType = dataView.getUint32(offset, polygonLittleEndian)
+        offset += 4
+
+        const hasSRID = (polygonType & 0x20000000) > 0
+        if (hasSRID) {
+            polygonType &= ~0x20000000
+            offset += 4
+        }
+
+        if (polygonType !== GeometryType.Polygon) {
+            throw new Error(
+                `Expected nested Polygon, got geometry type ${polygonType}`,
+            )
+        }
+
+        const polygon = readPolygon(dataView, polygonLittleEndian, offset)
+        polygons.push(polygon)
+
+        let polygonSize = 4
+        for (const ring of polygon) {
+            polygonSize += 4 + ring.length * 16
+        }
+        offset += polygonSize
+    }
+
+    return polygons
+}
 
 export const parseGeometry = (
     dataView: DataView,
@@ -290,15 +326,15 @@ export const parseGeometry = (
         //             offset,
         //         ) as GeoJSON.MultiLineString["coordinates"],
         //     }
-        // case GeometryType.MultiPolygon:
-        //     return {
-        //         type: "MultiPolygon",
-        //         coordinates: readMultiPolygon(
-        //             dataView,
-        //             littleEndian,
-        //             offset,
-        //         ) as GeoJSON.MultiPolygon["coordinates"],
-        //     }
+        case GeometryType.MultiPolygon:
+            return {
+                type: "MultiPolygon",
+                coordinates: readMultiPolygon(
+                    dataView,
+                    littleEndian,
+                    offset,
+                ) as GeoJSON.MultiPolygon["coordinates"],
+            }
         // case GeometryType.GeometryCollection:
         //     throw new Error("GeometryCollection is not supported yet")
         default:
@@ -312,6 +348,6 @@ export type GeometryTypes = {
     Polygon: GeoJSON.Polygon
     MultiPoint: GeoJSON.MultiPoint
     // MultiLineString: GeoJSON.MultiLineString
-    // MultiPolygon: GeoJSON.MultiPolygon
+    MultiPolygon: GeoJSON.MultiPolygon
     // GeometryCollection: GeoJSON.GeometryCollection
 }

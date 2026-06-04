@@ -208,7 +208,7 @@ async function loadAsyncData(
             fieldDetailsData
 
         const cultivationCatalogueMap = new Map(
-            cultivationCatalogue.map((item: { b_lu_catalogue: string }) => [
+            cultivationCatalogue.map((item) => [
                 item.b_lu_catalogue,
                 item,
             ]),

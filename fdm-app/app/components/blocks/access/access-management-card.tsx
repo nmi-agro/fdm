@@ -62,7 +62,12 @@ export const AccessManagementCard = ({
                                 displayUserName={principal.displayUserName}
                                 image={principal.image}
                                 initials={principal.initials}
-                                role={principal.role}
+                                role={
+                                    principal.role as
+                                        | "owner"
+                                        | "advisor"
+                                        | "researcher"
+                                }
                                 type={principal.type}
                                 status={principal.status}
                                 invitation_id={principal.invitation_id}

@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { checkPermission, getFarm, updateFarm } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
-import { Form } from "react-hook-form"
+import type { Control, Resolver } from "react-hook-form"
 import {
     type ActionFunctionArgs,
     data,
+    Form,
     type LoaderFunctionArgs,
     type MetaFunction,
     useLoaderData,
@@ -106,38 +107,28 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  *
  * This component initializes a form using data loaded from the route loader and sets default values for fields such as company name (required), business ID, address, and postal code. It leverages validation with a Zod schema and automatically resets form data when the loader data changes. Upon submission, the form sends a POST request to update the farm settings.
  */
+type FormValues = z.infer<typeof FormSchema>
+
 export default function FarmSettingsPropertiesBlock() {
     const loaderData = useLoaderData<typeof loader>()
 
-    const form = useRemixForm<z.infer<typeof FormSchema>>({
+    const form = useRemixForm<FormValues>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as Resolver<FormValues>,
         defaultValues: {
-            b_name_farm: loaderData.farm.b_name_farm,
-            b_businessid_farm: loaderData.farm.b_businessid_farm
-                ? loaderData.farm.b_businessid_farm
-                : "",
-            b_address_farm: loaderData.farm.b_address_farm
-                ? loaderData.farm.b_address_farm
-                : "",
-            b_postalcode_farm: loaderData.farm.b_postalcode_farm
-                ? loaderData.farm.b_postalcode_farm
-                : "",
+            b_name_farm: loaderData.farm.b_name_farm ?? "",
+            b_businessid_farm: loaderData.farm.b_businessid_farm ?? "",
+            b_address_farm: loaderData.farm.b_address_farm ?? "",
+            b_postalcode_farm: loaderData.farm.b_postalcode_farm ?? "",
         },
     })
 
     useEffect(() => {
         form.reset({
-            b_name_farm: loaderData.farm.b_name_farm,
-            b_businessid_farm: loaderData.farm.b_businessid_farm
-                ? loaderData.farm.b_businessid_farm
-                : "",
-            b_address_farm: loaderData.farm.b_address_farm
-                ? loaderData.farm.b_address_farm
-                : "",
-            b_postalcode_farm: loaderData.farm.b_postalcode_farm
-                ? loaderData.farm.b_postalcode_farm
-                : "",
+            b_name_farm: loaderData.farm.b_name_farm ?? "",
+            b_businessid_farm: loaderData.farm.b_businessid_farm ?? "",
+            b_address_farm: loaderData.farm.b_address_farm ?? "",
+            b_postalcode_farm: loaderData.farm.b_postalcode_farm ?? "",
         })
     }, [loaderData, form.reset])
 
@@ -154,7 +145,7 @@ export default function FarmSettingsPropertiesBlock() {
                 <Form
                     id="formFarmProperties"
                     onSubmit={form.handleSubmit}
-                    method="POST"
+                    method="post"
                 >
                     <fieldset
                         disabled={
@@ -165,7 +156,7 @@ export default function FarmSettingsPropertiesBlock() {
                         <div className="grid grid-cols-2 w-full items-center gap-4">
                             <div className="flex flex-col space-y-1.5 col-span-2">
                                 <FormField
-                                    control={form.control}
+                                    control={form.control as unknown as Control<any, any, any>}
                                     name="b_name_farm"
                                     render={({ field }) => (
                                         <FormItem>
@@ -185,7 +176,7 @@ export default function FarmSettingsPropertiesBlock() {
                             </div>
                             <div className="flex flex-col space-y-1.5 col-span-1">
                                 <FormField
-                                    control={form.control}
+                                    control={form.control as unknown as Control<any, any, any>}
                                     name="b_businessid_farm"
                                     render={({ field }) => (
                                         <FormItem>
@@ -208,7 +199,7 @@ export default function FarmSettingsPropertiesBlock() {
                             </div>
                             <div className="flex flex-col space-y-1.5 col-span-2">
                                 <FormField
-                                    control={form.control}
+                                    control={form.control as unknown as Control<any, any, any>}
                                     name="b_address_farm"
                                     render={({ field }) => (
                                         <FormItem>
@@ -232,7 +223,7 @@ Wageningen"
                             </div>
                             <div className="flex flex-col space-y-1.5 col-span-1">
                                 <FormField
-                                    control={form.control}
+                                    control={form.control as unknown as Control<any, any, any>}
                                     name="b_postalcode_farm"
                                     render={({ field }) => (
                                         <FormItem>

@@ -1,5 +1,12 @@
 import { Check, ChevronsUpDown } from "lucide-react"
 import { type ReactNode, useMemo, useState } from "react"
+import type {
+    Control,
+    FieldPathValue,
+    FieldValues,
+    Path,
+    UseFormSetValue,
+} from "react-hook-form"
 import { Button } from "~/components/ui/button"
 import {
     Command,
@@ -29,23 +36,32 @@ type optionType = {
     label: string
 }
 
-interface ComboboxProps {
-    options: { value: string; label: string }[]
-    name: string
+interface ComboboxProps<
+    TFieldValues extends FieldValues,
+    TName extends Path<TFieldValues>,
+> {
+    options: optionType[]
+    name: TName
     label: ReactNode
-    form: any // TODO: Replace 'any' with a more specific type from react-hook-form if available
+    form: {
+        control: Control<TFieldValues, any, any>
+        setValue: UseFormSetValue<TFieldValues>
+    }
     defaultValue?: optionType["value"]
     disabled?: boolean
 }
 
-export function Combobox({
+export function Combobox<
+    TFieldValues extends FieldValues,
+    TName extends Path<TFieldValues>,
+>({
     options,
     name,
     label,
     form,
     defaultValue,
     disabled,
-}: ComboboxProps) {
+}: ComboboxProps<TFieldValues, TName>) {
     const [open, setOpen] = useState(false)
 
     /** Map of option values to their labels for efficient lookup */
@@ -68,7 +84,7 @@ export function Combobox({
 
     return (
         <FormField
-            control={form.control}
+            control={form.control as Control<FieldValues, any, any>}
             name={name}
             render={({ field }) => (
                 <FormItem>
@@ -124,7 +140,10 @@ export function Combobox({
                                                 onSelect={(_value) => {
                                                     form.setValue(
                                                         name,
-                                                        option.value,
+                                                        option.value as FieldPathValue<
+                                                            TFieldValues,
+                                                            TName
+                                                        >,
                                                     )
                                                     setOpen(false)
                                                 }}

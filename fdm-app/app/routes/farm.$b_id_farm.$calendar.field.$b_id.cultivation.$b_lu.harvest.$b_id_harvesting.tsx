@@ -4,6 +4,7 @@ import {
     getHarvest,
     getParametersForHarvestCat,
     removeHarvest,
+    type HarvestParameters,
     updateHarvest,
 } from "@nmi-agro/fdm-core"
 import {
@@ -23,6 +24,8 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getHarvestParameterLabel } from "../components/blocks/harvest/parameters"
+
+type HarvestParameter = HarvestParameters[number]
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -154,16 +157,20 @@ export default function FarmFieldsOverviewBlock() {
         <HarvestFormDialog
             harvestParameters={loaderData.harvestParameters}
             b_lu_harvest_date={loaderData.harvest.b_lu_harvest_date}
-            b_lu_yield={loaderData.harvestableAnalysis.b_lu_yield}
-            b_lu_yield_fresh={loaderData.harvestableAnalysis.b_lu_yield_fresh}
-            b_lu_yield_bruto={loaderData.harvestableAnalysis.b_lu_yield_bruto}
-            b_lu_tarra={loaderData.harvestableAnalysis.b_lu_tarra}
-            b_lu_uww={loaderData.harvestableAnalysis.b_lu_uww}
-            b_lu_moist={loaderData.harvestableAnalysis.b_lu_moist}
-            b_lu_dm={loaderData.harvestableAnalysis.b_lu_dm}
-            b_lu_cp={loaderData.harvestableAnalysis.b_lu_cp}
+            b_lu_yield={loaderData.harvestableAnalysis.b_lu_yield ?? undefined}
+            b_lu_yield_fresh={
+                loaderData.harvestableAnalysis.b_lu_yield_fresh ?? undefined
+            }
+            b_lu_yield_bruto={
+                loaderData.harvestableAnalysis.b_lu_yield_bruto ?? undefined
+            }
+            b_lu_tarra={loaderData.harvestableAnalysis.b_lu_tarra ?? undefined}
+            b_lu_uww={loaderData.harvestableAnalysis.b_lu_uww ?? undefined}
+            b_lu_moist={loaderData.harvestableAnalysis.b_lu_moist ?? undefined}
+            b_lu_dm={loaderData.harvestableAnalysis.b_lu_dm ?? undefined}
+            b_lu_cp={loaderData.harvestableAnalysis.b_lu_cp ?? undefined}
             b_lu_n_harvestable={
-                loaderData.harvestableAnalysis.b_lu_n_harvestable
+                loaderData.harvestableAnalysis.b_lu_n_harvestable ?? undefined
             }
             b_lu_harvestable={loaderData.cultivation.b_lu_harvestable}
             b_lu_start={loaderData.cultivation.b_lu_start}
@@ -243,7 +250,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
 
             // Check if all required parameters are present
-            const missingParameters: string[] = []
+            const missingParameters: HarvestParameter[] = []
             for (const param of requiredHarvestParameters) {
                 if (
                     (formValues as Record<string, any>)[param] === undefined ||

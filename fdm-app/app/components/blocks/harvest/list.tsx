@@ -49,7 +49,7 @@ export function HarvestsList({
             <div className="flex items-center">
                 <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span className="text-md font-medium">
-                    {format(harvest.b_lu_harvest_date, "PPP", {
+                    {format(harvest.b_lu_harvest_date ?? new Date(), "PPP", {
                         locale: nl,
                     })}
                 </span>
