@@ -1,5 +1,6 @@
 import {
     addHarvest,
+    type Cultivation,
     getCultivations,
     getCultivationsFromCatalogue,
     getDefaultsForHarvestParameters,
@@ -1000,12 +1001,103 @@ export async function action({ request, params }: ActionFunctionArgs) {
             ActionSchema,
         )
 
+        const firstTargetCultivation = (
+            await getCultivations(fdm, session.principal_id, fieldIds[0])
+        ).find((c) => c.b_lu_catalogue === cultivationIds[0])
+
+        if (!firstTargetCultivation) {
+            return dataWithError(
+                null,
+                `Gewas niet gevonden voor perceel ${fieldIds[0]}.`,
+            )
+        }
+
+        // Batch harvest only works for grass
+        if (
+            formValues.intent === "batch_harvest" &&
+            firstTargetCultivation.b_lu_croprotation !== "grass"
+        ) {
+            return dataWithError(
+                {
+                    warning: `Je kunt bij ${firstTargetCultivation.b_lu_catalogue} geen oogsten in batches toevoegen. Alleen gras is toegestaan.`,
+                },
+                `Je kunt bij ${firstTargetCultivation.b_lu_name} geen oogsten in batches toevoegen. Alleen gras is toegestaan.`,
+            )
+        }
+
+        // Batch harvest must not add multiple harvests to a cultivation that can only be harvested once
+        if (
+            formValues.intent === "batch_harvest" &&
+            formValues.harvests.length > 1 &&
+            firstTargetCultivation.b_lu_harvestable !== "multiple"
+        ) {
+            return dataWithWarning(
+                null,
+                "Dit gewas kan niet meer dan één keer geoogst worden.",
+            )
+        }
+
         if (formValues.intent === "batch_harvest") {
-            return await fdm.transaction(async (tx) => {
-                let first = true
-                for (const row of formValues.harvests) {
-                    await addHarvestHelper(tx, row, first, true)
-                    first = false
+            const errors = formValues.harvests.map((row) =>
+                validateRow(firstTargetCultivation, row),
+            )
+
+            if (errors.some((error) => Object.keys(error).length > 0))
+                return dataWithWarning(
+                    { errors: { harvests: errors } },
+                    "Invoer is ongeldig. Controleer het formulier.",
+                )
+        }
+
+        if (formValues.intent === "single_harvest") {
+            const errors = validateRow(firstTargetCultivation, formValues)
+            if (Object.keys(errors).length > 0) {
+                return dataWithWarning(
+                    { errors },
+                    "Invoer is ongeldig. Controleer het formulier.",
+                )
+            }
+        }
+
+        const targetCultivationInstances = [firstTargetCultivation].concat(
+            await Promise.all(
+                fieldIds.slice(1).map(async (fieldId) => {
+                    const cultivationsForField = await getCultivations(
+                        fdm,
+                        session.principal_id,
+                        fieldId,
+                    )
+
+                    const targetCultivationInstance = cultivationsForField.find(
+                        (c) => c.b_lu_catalogue === cultivationIds[0],
+                    )
+
+                    if (!targetCultivationInstance) {
+                        throw dataWithError(
+                            null,
+                            `Gewas niet gevonden voor perceel ${fieldId}.`,
+                        )
+                    }
+
+                    return targetCultivationInstance
+                }),
+            ),
+        )
+
+        if (formValues.intent === "batch_harvest") {
+            await fdm.transaction(async (tx) => {
+                for (let f = 0; f < fieldIds.length; f++) {
+                    await Promise.all(
+                        formValues.harvests.map((row, h) =>
+                            addHarvestFromRow(
+                                tx,
+                                session.principal_id,
+                                targetCultivationInstances[f],
+                                row,
+                                h === 0,
+                            ),
+                        ),
+                    )
                 }
                 return redirectWithSuccess(redirectURL, {
                     message: `Oogsten succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
@@ -1014,144 +1106,102 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
 
         if (formValues.intent === "single_harvest") {
-            await addHarvestHelper(fdm, formValues, true, false)
+            await fdm.transaction(async (tx) => {
+                for (let f = 0; f < fieldIds.length; f++) {
+                    await addHarvestFromRow(
+                        tx,
+                        session.principal_id,
+                        targetCultivationInstances[f],
+                        formValues,
+                        true,
+                    )
+                }
+            })
             return redirectWithSuccess(redirectURL, {
                 message: `Oogst succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
             })
         }
-
-        async function addHarvestHelper(
-            tx: Omit<typeof fdm, "$client">,
-            formValues: z.infer<typeof FormSchema>,
-            first: boolean,
-            checkBatchSupport: boolean,
-        ) {
-            if (!formValues.b_lu_harvest_date) {
-                const errors = [
-                    {
-                        path: "b_lu_harvest_date",
-                        message: "Selecteer een oogstdatum",
-                    },
-                ]
-
-                throw new Error(JSON.stringify(errors))
-            }
-
-            for (const fieldId of fieldIds) {
-                const cultivationsForField = await getCultivations(
-                    tx,
-                    session.principal_id,
-                    fieldId,
-                )
-
-                const targetCultivationInstance = cultivationsForField.find(
-                    (c) => c.b_lu_catalogue === cultivationIds[0],
-                )
-
-                if (!targetCultivationInstance) {
-                    throw dataWithError(
-                        null,
-                        `Gewas niet gevonden voor perceel ${fieldId}.`,
-                    )
-                }
-
-                if (
-                    checkBatchSupport &&
-                    targetCultivationInstance.b_lu_croprotation !== "grass"
-                ) {
-                    throw dataWithWarning(
-                        {
-                            warning: `You cannot add harvests to ${targetCultivationInstance.b_lu_catalogue} in batches.`,
-                        },
-                        `You cannot add harvests to ${targetCultivationInstance.b_lu_name} in batches. Only grass is allowed.`,
-                    )
-                }
-
-                const b_lu = targetCultivationInstance.b_lu
-
-                // Get required harvest parameters for the cultivation's harvest category
-                const requiredHarvestParameters = getParametersForHarvestCat(
-                    targetCultivationInstance.b_lu_harvestcat,
-                )
-
-                // Check if all required parameters are present
-                const missingParameters: string[] = []
-                for (const param of requiredHarvestParameters) {
-                    if (
-                        (formValues as Record<string, any>)[param] ===
-                            undefined ||
-                        (formValues as Record<string, any>)[param] === null
-                    ) {
-                        missingParameters.push(param)
-                    }
-                }
-                const missingParameterLabels = missingParameters.map(
-                    (param) => {
-                        return getHarvestParameterLabel(param)
-                    },
-                )
-
-                if (missingParameters.length > 0) {
-                    throw dataWithWarning(
-                        {
-                            warning: `Missing required harvest parameters: ${missingParameters.join(
-                                ", ",
-                            )}`,
-                        },
-                        `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(
-                            ", ",
-                        )}`,
-                    )
-                }
-
-                // Filter form values to include only required parameters for updateHarvest
-                const harvestProperties: Record<string, any> = {}
-                for (const param of requiredHarvestParameters) {
-                    if (
-                        (formValues as Record<string, any>)[param] !== undefined
-                    ) {
-                        harvestProperties[param] = (
-                            formValues as Record<string, any>
-                        )[param]
-                    }
-                }
-
-                if (first && b_lu_harvestable === "once") {
-                    // Check for existing harvests for this specific cultivation instance
-                    const existingHarvests = await getHarvests(
-                        tx,
-                        session.principal_id,
-                        b_lu,
-                    )
-
-                    if (existingHarvests.length > 0) {
-                        // If there are existing harvests, remove them before adding new ones
-                        for (const harvest of existingHarvests) {
-                            await removeHarvest(
-                                tx,
-                                session.principal_id,
-                                harvest.b_id_harvesting,
-                            )
-                        }
-                    }
-                }
-
-                await addHarvest(
-                    tx,
-                    session.principal_id,
-                    b_lu,
-                    formValues.b_lu_harvest_date,
-                    harvestProperties,
-                )
-            }
-        }
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return dataWithError(
+            return dataWithWarning(
                 null,
                 "Invoer is ongeldig. Controleer het formulier.",
             )
         }
         throw handleActionError(error)
     }
+}
+
+function validateRow(
+    targetCultivationInstance: Cultivation,
+    row: z.infer<typeof FormSchema>,
+) {
+    const errors: Partial<
+        Record<keyof z.infer<typeof FormSchema>, { message: string }>
+    > = {}
+
+    if (!row.b_lu_harvest_date) {
+        errors.b_lu_harvest_date = { message: "Selecteer een oogstdatum" }
+    }
+
+    // Get required harvest parameters for the cultivation's harvest category
+    const requiredHarvestParameters = getParametersForHarvestCat(
+        targetCultivationInstance.b_lu_harvestcat,
+    )
+
+    // Check if all required parameters are present
+    for (const param of requiredHarvestParameters) {
+        if (row[param] === undefined || row[param] === null) {
+            errors[param] = {
+                message: `${getHarvestParameterLabel(param)} is nodig voor dit gewas.`,
+            }
+        }
+    }
+
+    return errors
+}
+
+async function addHarvestFromRow(
+    tx: Omit<typeof fdm, "$client">,
+    principal_id: string,
+    targetCultivationInstance: Cultivation,
+    formValues: z.infer<typeof FormSchema>,
+    first: boolean,
+) {
+    // Get required harvest parameters for the cultivation's harvest category
+    const requiredHarvestParameters = getParametersForHarvestCat(
+        targetCultivationInstance.b_lu_harvestcat,
+    )
+
+    // Filter form values to include only required parameters for updateHarvest
+    const harvestProperties: Record<string, number> = {}
+    for (const param of requiredHarvestParameters) {
+        if (formValues[param] !== undefined) {
+            harvestProperties[param] = formValues[param]
+        }
+    }
+
+    if (first && targetCultivationInstance.b_lu_harvestable === "once") {
+        // Check for existing harvests for this specific cultivation instance
+        const existingHarvests = await getHarvests(
+            tx,
+            principal_id,
+            targetCultivationInstance.b_lu,
+        )
+
+        if (existingHarvests.length > 0) {
+            // If there are existing harvests, remove them before adding new ones
+            for (const harvest of existingHarvests) {
+                await removeHarvest(tx, principal_id, harvest.b_id_harvesting)
+            }
+        }
+    }
+
+    await addHarvest(
+        tx,
+        principal_id,
+        targetCultivationInstance.b_lu,
+        formValues.b_lu_harvest_date,
+        harvestProperties,
+    )
 }

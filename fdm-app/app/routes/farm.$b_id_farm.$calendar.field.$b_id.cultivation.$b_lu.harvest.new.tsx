@@ -1,10 +1,10 @@
 import {
     addHarvest,
+    type Cultivation,
     getCultivation,
     getCultivationsFromCatalogue,
     getDefaultsForHarvestParameters,
     getParametersForHarvestCat,
-    type HarvestParameters,
 } from "@nmi-agro/fdm-core"
 import { useState } from "react"
 import {
@@ -166,63 +166,57 @@ export async function action({ request, params }: ActionFunctionArgs) {
             b_lu,
         )
 
-        // Get required harvest parameters for the cultivation's harvest category
-        const requiredHarvestParameters = getParametersForHarvestCat(
-            cultivation.b_lu_harvestcat,
-        )
-
         // First, validate against the full FormSchema
         const formValues = await extractFormValuesFromRequest(
             request,
             ActionSchema,
         )
 
+        // Batch harvest only works for grass
+        if (
+            formValues.intent === "batch_harvest" &&
+            cultivation.b_lu_croprotation !== "grass"
+        ) {
+            return dataWithWarning(
+                {
+                    warning: `Je kunt bij ${cultivation.b_lu_catalogue} geen oogsten in batches toevoegen. Alleen gras is toegestaan.`,
+                },
+                `Je kunt bij ${cultivation.b_lu_name} geen oogsten in batches toevoegen. Alleen gras is toegestaan.`,
+            )
+        }
+
+        // Batch harvest must not add multiple harvests to a cultivation that can only be harvested once
+        if (
+            formValues.intent === "batch_harvest" &&
+            formValues.harvests.length > 1 &&
+            cultivation.b_lu_harvestable !== "multiple"
+        ) {
+            return dataWithWarning(
+                null,
+                "Dit gewas kan niet meer dan één keer geoogst worden.",
+            )
+        }
+
         if (formValues.intent === "batch_harvest") {
-            if (cultivation.b_lu_croprotation !== "grass") {
-                return dataWithWarning(
-                    {
-                        warning: `You cannot add harvests to ${cultivation.b_lu_catalogue} in batches.`,
-                    },
-                    `You cannot add harvests to ${cultivation.b_lu_name} in batches. Only grass is allowed.`,
-                )
-            }
-            const dataWarnings: string[] = []
-            const bodyWarnings: string[] = []
+            const errors = formValues.harvests.map((row) =>
+                validateRow(cultivation, row),
+            )
 
-            for (const harvest of formValues.harvests) {
-                const warning = validateSingleHarvest(
-                    requiredHarvestParameters,
-                    harvest,
-                )
-                const dataWarning = warning.dataWarning ?? warning.bodyWarning
-                const bodyWarning = warning.bodyWarning ?? warning.dataWarning
-
-                if (
-                    typeof dataWarning === "string" &&
-                    typeof bodyWarning === "string"
-                ) {
-                    dataWarnings.push(dataWarning)
-                    bodyWarnings.push(bodyWarning)
-                }
-            }
-            if (dataWarnings.length > 0 || bodyWarnings.length > 0) {
+            if (errors.some((item) => Object.keys(item).length > 0)) {
                 return dataWithWarning(
-                    {
-                        warning: dataWarnings.join("; "),
-                    },
-                    bodyWarnings.join("; "),
+                    { errors: { harvests: errors } },
+                    "Invoer is ongeldig. Controleer het formulier.",
                 )
             }
 
             await fdm.transaction((tx) =>
                 Promise.all(
-                    formValues.harvests.map((harvest) =>
-                        addSingleHarvest(
+                    formValues.harvests.map((row) =>
+                        addHarvestFromRow(
                             tx,
                             session.principal_id,
-                            b_lu,
-                            requiredHarvestParameters,
-                            harvest,
+                            cultivation,
+                            row,
                         ),
                     ),
                 ),
@@ -233,31 +227,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
             })
         }
 
-        const warning = validateSingleHarvest(
-            requiredHarvestParameters,
-            formValues,
-        )
-        const dataWarning = warning.dataWarning ?? warning.bodyWarning
-        const bodyWarning = warning.bodyWarning ?? warning.dataWarning
+        const errors = validateRow(cultivation, formValues)
 
-        if (
-            typeof dataWarning === "string" &&
-            typeof bodyWarning === "string"
-        ) {
+        if (Object.keys(errors).length > 0) {
             return dataWithWarning(
-                {
-                    warning: dataWarning,
-                },
-                bodyWarning,
+                { errors },
+                "Invoer is ongeldig. Controleer het formulier.",
             )
         }
 
-        await addSingleHarvest(
-            fdm,
-            session.principal_id,
-            b_lu,
-            requiredHarvestParameters,
-            formValues,
+        await fdm.transaction((tx) =>
+            addHarvestFromRow(
+                tx,
+                session.principal_id,
+                cultivation,
+                formValues,
+            ),
         )
 
         return redirectWithSuccess("..", {
@@ -268,58 +253,48 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 }
 
-function validateSingleHarvest(
-    requiredHarvestParameters: HarvestParameters,
-    formValues: z.infer<typeof FormSchema>,
+function validateRow(
+    targetCultivationInstance: Cultivation,
+    row: z.infer<typeof FormSchema>,
 ) {
-    if (!formValues.b_lu_harvest_date) {
-        const errors = [
-            {
-                path: "b_lu_harvest_date",
-                message: "Selecteer een oogstdatum",
-            },
-        ]
+    const errors: Partial<
+        Record<keyof z.infer<typeof FormSchema>, { message: string }>
+    > = {}
 
-        throw new Error(JSON.stringify(errors))
+    if (!row.b_lu_harvest_date) {
+        errors.b_lu_harvest_date = { message: "Selecteer een oogstdatum" }
     }
+
+    // Get required harvest parameters for the cultivation's harvest category
+    const requiredHarvestParameters = getParametersForHarvestCat(
+        targetCultivationInstance.b_lu_harvestcat,
+    )
 
     // Check if all required parameters are present
-    const missingParameters: HarvestParameters = []
     for (const param of requiredHarvestParameters) {
-        if (
-            (formValues as Record<string, unknown>)[param] === undefined ||
-            (formValues as Record<string, unknown>)[param] === null
-        ) {
-            missingParameters.push(param)
-        }
-    }
-    const missingParameterLabels = missingParameters.map((param) => {
-        return getHarvestParameterLabel(param)
-    })
-
-    if (missingParameters.length > 0) {
-        return {
-            dataWarning: `Missing required harvest parameters: ${missingParameters.join(
-                ", ",
-            )}`,
-            bodyWarning: `Missing required harvest parameters: ${missingParameterLabels.join(
-                ", ",
-            )}`,
+        if (row[param] === undefined || row[param] === null) {
+            errors[param] = {
+                message: `${getHarvestParameterLabel(param)} is nodig voor dit gewas.`,
+            }
         }
     }
 
-    return {}
+    return errors
 }
 
-async function addSingleHarvest(
+async function addHarvestFromRow(
     tx: Omit<typeof fdm, "$client">,
     principal_id: string,
-    b_lu: string,
-    requiredHarvestParameters: HarvestParameters,
+    targetCultivationInstance: Cultivation,
     formValues: z.infer<typeof FormSchema>,
 ) {
-    // Filter form values to include only required parameters for addHarvest
-    const harvestProperties: Record<string, unknown> = {}
+    // Get required harvest parameters for the cultivation's harvest category
+    const requiredHarvestParameters = getParametersForHarvestCat(
+        targetCultivationInstance.b_lu_harvestcat,
+    )
+
+    // Filter form values to include only required parameters for updateHarvest
+    const harvestProperties: Record<string, number> = {}
     for (const param of requiredHarvestParameters) {
         if (formValues[param] !== undefined) {
             harvestProperties[param] = formValues[param]
@@ -329,7 +304,7 @@ async function addSingleHarvest(
     await addHarvest(
         tx,
         principal_id,
-        b_lu,
+        targetCultivationInstance.b_lu,
         formValues.b_lu_harvest_date,
         harvestProperties,
     )

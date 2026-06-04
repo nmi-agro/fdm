@@ -201,7 +201,7 @@ function BatchHarvestFormRow({
                         className="align-top"
                     >
                         {columnName === "cutting" ? (
-                            <TableCell key={columnName}>{index + 1}</TableCell>
+                            <div className="py-2">{index + 1}</div>
                         ) : columnName === "delete" ? (
                             <Button
                                 key={columnName}
