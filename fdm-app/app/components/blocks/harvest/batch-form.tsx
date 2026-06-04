@@ -523,7 +523,7 @@ function BatchHarvestFormFields({
                     type="button"
                     variant="secondary"
                     onClick={addRow}
-                    className="flex mt-2"
+                    className="w-full flex mt-2 items-center"
                 >
                     <Plus />
                     Nieuwe oogst toevoegen

@@ -694,23 +694,41 @@ export default function FarmRotationHarvestAddIndex() {
                                 </CardFooter>
                             </Card>
                             <Card className="flex-1">
-                                <CardHeader>
-                                    <CardTitle>
-                                        {isHarvestUpdate
-                                            ? "Oogst bijwerken"
-                                            : "Oogst toevoegen"}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {loaderData.fieldAmount === 0
-                                            ? "Selecteer eerst een of meerdere percelen."
-                                            : loaderData.fieldAmount === 1
-                                              ? isHarvestUpdate
-                                                  ? "Werk oogst bij van het geselecteerde perceel."
-                                                  : "Voeg een nieuwe oogst toe aan de geselecteerde perceel."
-                                              : isHarvestUpdate
-                                                ? "Werk oogst bij van de geselecteerde percelen."
-                                                : `Voeg een nieuwe oogst toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
-                                    </CardDescription>
+                                <CardHeader className="flex flex-row items-start">
+                                    <div className="grow">
+                                        <CardTitle>
+                                            {isBatchAdd ? "Oogsten" : "Oogst"}{" "}
+                                            {isHarvestUpdate
+                                                ? "bijwerken"
+                                                : "toevoegen"}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {loaderData.fieldAmount === 0
+                                                ? "Selecteer eerst een of meerdere percelen."
+                                                : loaderData.fieldAmount === 1
+                                                  ? isHarvestUpdate
+                                                      ? `Werk ${isBatchAdd ? "oogsten" : "oogst"} bij van het geselecteerde perceel.`
+                                                      : `Voeg ${isBatchAdd ? "nieuwe oogsten" : "een nieuwe oogst"} toe aan de geselecteerde perceel.`
+                                                  : isHarvestUpdate
+                                                    ? `Werk ${isBatchAdd ? "oogsten" : "oogst"} bij van de geselecteerde percelen.`
+                                                    : `Voeg ${isBatchAdd ? "nieuwe oogsten" : "een nieuwe oogst"} toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
+                                        </CardDescription>
+                                    </div>
+                                    {!isHarvestUpdate &&
+                                        loaderData.cultivation
+                                            .b_lu_croprotation === "grass" && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setIsBatchAdd(!isBatchAdd)
+                                                }
+                                            >
+                                                {isBatchAdd
+                                                    ? "Een oogst toevoegen"
+                                                    : "Meerdere oogsten toevoegen"}
+                                            </Button>
+                                        )}
                                 </CardHeader>
                                 <CardContent>
                                     {loaderData.b_lu_harvestable === "none" ? (
@@ -743,9 +761,6 @@ export default function FarmRotationHarvestAddIndex() {
                                                 defaultHarvest={{
                                                     ...loaderData.harvestableAnalysis,
                                                 }}
-                                                onBack={() =>
-                                                    setIsBatchAdd(false)
-                                                }
                                             />
                                         ) : (
                                             <HarvestForm
@@ -765,15 +780,6 @@ export default function FarmRotationHarvestAddIndex() {
                                                 }
                                                 b_date_harvest_default={
                                                     loaderData.b_date_harvest_default
-                                                }
-                                                allowBatch={
-                                                    !isHarvestUpdate &&
-                                                    loaderData.cultivation
-                                                        .b_lu_croprotation ===
-                                                        "grass"
-                                                }
-                                                onBatchClick={() =>
-                                                    setIsBatchAdd(true)
                                                 }
                                                 b_lu_yield={
                                                     loaderData
