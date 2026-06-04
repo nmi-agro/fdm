@@ -302,7 +302,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const bcsScores = BCS_INDICATORS.flatMap((ind) => {
             const value = (bln3Inputs as Record<string, unknown>)[ind.key]
             if (typeof value !== "number") return []
-            return [{ key: ind.key as string, name: ind.name, value }]
+            return [{ key: ind.key as string, name: ind.name, value, direction: ind.direction }]
         })
 
         // Derive the current cultivation (FarmTitle badge) using the May 15th point check.

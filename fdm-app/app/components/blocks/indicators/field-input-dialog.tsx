@@ -28,12 +28,19 @@ type BcsScore = {
     key: string
     name: string
     value: number
+    direction: "positive" | "negative"
 }
 
-const BCS_SCORE_LABELS: Record<number, string> = {
+const BCS_SCORE_LABELS_POSITIVE: Record<number, string> = {
     0: "Slecht",
     1: "Matig",
     2: "Goed",
+}
+
+const BCS_SCORE_LABELS_NEGATIVE: Record<number, string> = {
+    0: "Goed",
+    1: "Matig",
+    2: "Slecht",
 }
 
 type SoilData = {
@@ -121,7 +128,7 @@ export function FieldInputDialog({
                             label={`BodemConditieScore (${soilData.bcsScores.length} indicatoren)`}
                         >
                             <div className="space-y-0.5">
-                                {soilData.bcsScores.map(({ key, name, value }) => (
+                                {soilData.bcsScores.map(({ key, name, value, direction }) => (
                                     <div
                                         key={key}
                                         className="flex items-baseline justify-between gap-2"
@@ -132,7 +139,9 @@ export function FieldInputDialog({
                                         <span className="text-foreground text-xs tabular-nums font-mono text-right">
                                             {value}
                                             <span className="text-muted-foreground ml-1 font-sans">
-                                                {BCS_SCORE_LABELS[value] ?? ""}
+                                                {direction === "negative"
+                                                    ? (BCS_SCORE_LABELS_NEGATIVE[value] ?? "")
+                                                    : (BCS_SCORE_LABELS_POSITIVE[value] ?? "")}
                                             </span>
                                         </span>
                                     </div>
