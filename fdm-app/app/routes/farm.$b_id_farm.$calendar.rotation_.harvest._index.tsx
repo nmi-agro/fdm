@@ -1105,9 +1105,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         ),
                     )
                 }
-                return redirectWithSuccess(redirectURL, {
-                    message: `Oogsten succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
-                })
+            })
+            return redirectWithSuccess(redirectURL, {
+                message: `Oogsten zijn succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
             })
         }
 
