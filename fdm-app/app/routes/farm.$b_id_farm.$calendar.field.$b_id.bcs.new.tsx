@@ -148,9 +148,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const payload = (await request.json()) as BcsSavePayload
     const scores = sanitizeScores(payload)
     if (!BCS_VISUAL_KEYS.some((key) => scores[key] != null)) {
-        throw data("Geef minimaal één visuele BCS-score op", {
+        throw data("Geef minimaal één indicator voor BodemConditieScore op", {
             status: 400,
-            statusText: "Geef minimaal één visuele BCS-score op",
+            statusText: "Geef minimaal één indicator voor BodemConditieScore op",
         })
     }
 

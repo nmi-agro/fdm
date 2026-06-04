@@ -193,7 +193,7 @@ export default function FieldBcsDetailRoute() {
                         <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>
-                                    BCS-meting verwijderen?
+                                    BodemConditieScore verwijderen?
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
                                     Deze actie kan niet ongedaan worden gemaakt.
@@ -284,7 +284,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         await removeSoilAnalysis(fdm, session.principal_id, a_id)
 
         return redirectWithSuccess(getBcsPath(params), {
-            message: "BCS-meting is verwijderd! 🎉",
+            message: "BodemConditieScore is verwijderd!",
         })
     } catch (error) {
         throw handleActionError(error)

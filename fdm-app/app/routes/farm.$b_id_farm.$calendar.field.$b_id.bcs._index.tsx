@@ -150,9 +150,9 @@ export default function FieldBcsOverviewRoute() {
             {loaderData.assessments.length === 0 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Nog geen BCS-metingen</CardTitle>
+                        <CardTitle>Nog geen BodemConditieScore</CardTitle>
                         <CardDescription>
-                            Voeg een nieuwe visuele bodemconditiebeoordeling toe
+                            Voeg een nieuwe visuele bodembeoordeling toe
                             om hier resultaten te zien.
                         </CardDescription>
                     </CardHeader>
@@ -234,7 +234,7 @@ export default function FieldBcsOverviewRoute() {
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>
-                                                        BCS-meting verwijderen?
+                                                        BodemConditieScore verwijderen?
                                                     </AlertDialogTitle>
                                                     <AlertDialogDescription>
                                                         Deze actie kan niet
@@ -318,7 +318,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         await removeSoilAnalysis(fdm, session.principal_id, a_id)
 
         return redirectWithSuccess(getBcsPath(params), {
-            message: "BCS-meting is verwijderd! 🎉",
+            message: "BodemConditieScore is verwijderd!",
         })
     } catch (error) {
         throw handleActionError(error)
