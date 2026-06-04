@@ -49,6 +49,7 @@ import {
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
+import { BCS_INDICATORS } from "~/lib/bcs"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
@@ -276,12 +277,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 { name: p.name, unit: p.unit ?? null },
             ]),
         )
+        const bcsKeySet = new Set(BCS_INDICATORS.map((i) => i.key as string))
         const soilMeasurements = Object.entries(bln3Inputs)
             .filter(
                 ([key, value]) =>
                     key.startsWith("a_") &&
                     key !== "a_lat" &&
                     key !== "a_lon" &&
+                    !bcsKeySet.has(key) &&
                     typeof value === "number",
             )
             .map(([key, value]) => {
@@ -294,6 +297,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     value: value as number,
                 }
             })
+
+        // Collect BCS indicator scores separately for the dialog.
+        const bcsScores = BCS_INDICATORS.flatMap((ind) => {
+            const value = (bln3Inputs as Record<string, unknown>)[ind.key]
+            if (typeof value !== "number") return []
+            return [{ key: ind.key as string, name: ind.name, value }]
+        })
 
         // Derive the current cultivation (FarmTitle badge) using the May 15th point check.
         const currentCultivation = getDefaultCultivation(
@@ -357,6 +367,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 soilType: bln3Inputs.b_soiltype_agr ?? null,
                 gwlClass: bln3Inputs.b_gwl_class ?? null,
                 measurements: soilMeasurements,
+                bcsScores,
             },
             fieldList: fields.map((f) => ({
                 b_id: f.b_id,
