@@ -509,6 +509,14 @@ function BatchHarvestFormFields({
 
         return (
             <div className="space-y-2">
+                {fieldArray.fields.map((row, index) => (
+                    <input
+                        key={row.id}
+                        type="hidden"
+                        name={`harvests.${index}.b_lu_harvestable`}
+                        value="multiple"
+                    />
+                ))}
                 {fieldArray.fields.map(({ id, ...harvestRow }, index) => (
                     <BatchHarvestFormItemCard
                         key={id}
