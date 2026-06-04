@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
+import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import { RvoImportReviewStatus } from "./types"
-import { getItemId } from "./utils"
+import { computeBbox, getItemId } from "./utils"
 
 describe("getItemId", () => {
     it("should return local ID if present", () => {
@@ -31,5 +32,23 @@ describe("getItemId", () => {
         expect(id).toContain(RvoImportReviewStatus.NEW_REMOTE)
         // Must not be "unknown" — no collisions across degenerate items
         expect(id).not.toBe("unknown")
+    })
+})
+
+describe("computeBbox", () => {
+    it("returns the bounding box of a Polygon geometry", () => {
+        const polygon: FieldGeometry = {
+            type: "Polygon",
+            coordinates: [
+                [
+                    [0, 0],
+                    [2, 0],
+                    [2, 3],
+                    [0, 3],
+                    [0, 0],
+                ],
+            ],
+        }
+        expect(computeBbox(polygon)).toEqual([0, 0, 2, 3])
     })
 })
