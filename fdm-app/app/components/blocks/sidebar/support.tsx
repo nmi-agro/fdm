@@ -119,8 +119,8 @@ export function SidebarSupport({
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Badge
-                                                    variant="outline"
-                                                    className="p-0 ps-1 pe-2 h-6"
+                                                    variant="default"
+                                                    className="p-0 ps-1 pe-2 h-6 bg-orange-400 hover:bg-orange-400 color-white"
                                                 >
                                                     <Asterisk
                                                         className="m-0 size-4"
@@ -148,8 +148,8 @@ export function SidebarSupport({
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Badge
-                                                    variant="outline"
-                                                    className="p-0 ps-1 pe-2 h-6"
+                                                    variant="default"
+                                                    className="p-0 ps-1 pe-2 h-6 bg-blue-600 hover:bg-blue-600"
                                                 >
                                                     <Dot
                                                         className="m-0 size-4 scale-200"
