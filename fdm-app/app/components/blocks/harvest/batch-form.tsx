@@ -487,7 +487,7 @@ function BatchHarvestFormFields({
         const result = new Map<string, Partial<HarvestRow>>()
         if (harvestPairs) {
             fieldArray.fields.forEach((field, i) => {
-                if (harvestPairs.length >= i && harvestPairs[i].example) {
+                if (i < harvestPairs.length && harvestPairs[i].example) {
                     result.set(field.id, harvestPairs[i].example)
                 }
             })
