@@ -412,7 +412,16 @@ export default function FarmRotationHarvestAddIndex() {
     )
 
     const isHarvestUpdate = loaderData.harvestApplication.b_lu_harvest_date
+    const canBatchAdd =
+        !isHarvestUpdate && loaderData.cultivation.b_lu_croprotation === "grass"
     const [isBatchAdd, setIsBatchAdd] = useState(false)
+
+    // Switch back to the single harvest form if the conditions for batch harvest no longer hold
+    useEffect(() => {
+        if (!canBatchAdd && isBatchAdd) {
+            setIsBatchAdd(false)
+        }
+    }, [canBatchAdd, isBatchAdd])
 
     function handleSelectionDialogOpenChange(open: boolean) {
         if (!open) {
@@ -714,21 +723,19 @@ export default function FarmRotationHarvestAddIndex() {
                                                     : `Voeg ${isBatchAdd ? "nieuwe oogsten" : "een nieuwe oogst"} toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
                                         </CardDescription>
                                     </div>
-                                    {!isHarvestUpdate &&
-                                        loaderData.cultivation
-                                            .b_lu_croprotation === "grass" && (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setIsBatchAdd(!isBatchAdd)
-                                                }
-                                            >
-                                                {isBatchAdd
-                                                    ? "Een oogst toevoegen"
-                                                    : "Meerdere oogsten toevoegen"}
-                                            </Button>
-                                        )}
+                                    {canBatchAdd && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setIsBatchAdd(!isBatchAdd)
+                                            }
+                                        >
+                                            {isBatchAdd
+                                                ? "Een oogst toevoegen"
+                                                : "Meerdere oogsten toevoegen"}
+                                        </Button>
+                                    )}
                                 </CardHeader>
                                 <CardContent>
                                     {loaderData.b_lu_harvestable === "none" ? (
@@ -917,6 +924,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const session = await getSession(request)
         const url = new URL(request.url)
+        const timeframe = getTimeframe(params)
+
         const fieldIds =
             url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
         const cultivationIds =
@@ -966,6 +975,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                     fdm,
                     session.principal_id,
                     fieldId,
+                    timeframe,
                 )
 
                 const targetCultivationInstance = cultivationsForField.find(
@@ -1008,7 +1018,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
         )
 
         const firstTargetCultivation = (
-            await getCultivations(fdm, session.principal_id, fieldIds[0])
+            await getCultivations(
+                fdm,
+                session.principal_id,
+                fieldIds[0],
+                timeframe,
+            )
         ).find((c) => c.b_lu_catalogue === cultivationIds[0])
 
         if (!firstTargetCultivation) {
@@ -1072,6 +1087,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         fdm,
                         session.principal_id,
                         fieldId,
+                        timeframe,
                     )
 
                     const targetCultivationInstance = cultivationsForField.find(
