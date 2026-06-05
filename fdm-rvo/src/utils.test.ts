@@ -51,4 +51,33 @@ describe("computeBbox", () => {
         }
         expect(computeBbox(polygon)).toEqual([0, 0, 2, 3])
     })
+
+    it("returns the bounding box covering all polygons in a MultiPolygon geometry", () => {
+        const multiPolygon: FieldGeometry = {
+            type: "MultiPolygon",
+            coordinates: [
+                // First polygon: x 0–2, y 0–3
+                [
+                    [
+                        [0, 0],
+                        [2, 0],
+                        [2, 3],
+                        [0, 3],
+                        [0, 0],
+                    ],
+                ],
+                // Second polygon: x 5–8, y 1–4 (non-overlapping)
+                [
+                    [
+                        [5, 1],
+                        [8, 1],
+                        [8, 4],
+                        [5, 4],
+                        [5, 1],
+                    ],
+                ],
+            ],
+        }
+        expect(computeBbox(multiPolygon)).toEqual([0, 0, 8, 4])
+    })
 })
