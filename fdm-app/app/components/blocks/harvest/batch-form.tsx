@@ -3,7 +3,13 @@ import type { HarvestParameters } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronLeft, Plus, Trash2 } from "lucide-react"
-import { type MouseEventHandler, useCallback, useRef } from "react"
+import {
+    type MouseEventHandler,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from "react"
 import { Controller, useFieldArray, useWatch } from "react-hook-form"
 import { useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -47,17 +53,19 @@ type CardColumnName = HarvestParameters[number] | "b_lu_harvest_date"
 
 interface ColumnInfo {
     type: "number" | "date" | "b_lu_harvestable"
+    placeholder: string
+    unit?: string
 }
 const columnInfos = {
-    b_lu_yield: { type: "number" },
-    b_lu_yield_fresh: { type: "number" },
-    b_lu_yield_bruto: { type: "number" },
-    b_lu_dm: { type: "number" },
-    b_lu_n_harvestable: { type: "number" },
-    b_lu_tarra: { type: "number" },
-    b_lu_uww: { type: "number" },
-    b_lu_moist: { type: "number" },
-    b_lu_cp: { type: "number" },
+    b_lu_yield: { type: "number", placeholder: "37500", unit: "kg / ha" },
+    b_lu_yield_fresh: { type: "number", placeholder: "37500", unit: "kg / ha" },
+    b_lu_yield_bruto: { type: "number", placeholder: "37500", unit: "kg / ha" },
+    b_lu_tarra: { type: "number", placeholder: "5", unit: "%" },
+    b_lu_dm: { type: "number", placeholder: "850", unit: "g / kg" },
+    b_lu_uww: { type: "number", placeholder: "350", unit: "g / 5kg" },
+    b_lu_moist: { type: "number", placeholder: "15", unit: "%" },
+    b_lu_n_harvestable: { type: "number", placeholder: "850", unit: "g / kg" },
+    b_lu_cp: { type: "number", placeholder: "170", unit: "g RE / kg DS" },
 } as const satisfies Record<HarvestParameters[number], ColumnInfo>
 
 type HarvestRow = Partial<
@@ -98,11 +106,35 @@ function createNewRow(
     defaultRow?: Partial<HarvestRow>,
     b_date_harvest_default?: string | null,
 ): Partial<HarvestRow> {
-    let last_b_lu_harvest_date = lastRow?.b_lu_harvest_date ?? null
-    if (last_b_lu_harvest_date) {
-        const copy = new Date(last_b_lu_harvest_date)
+    let b_lu_harvest_date: string | undefined | null
+    if (lastRow?.b_lu_harvest_date) {
+        const copy = new Date(lastRow?.b_lu_harvest_date)
         copy.setMonth(copy.getMonth() + 1)
-        last_b_lu_harvest_date = copy.toISOString()
+        b_lu_harvest_date = copy.toISOString()
+    } else if (calendar && b_date_harvest_default) {
+        try {
+            const splitted = b_date_harvest_default.split("-")
+            if (splitted.length !== 2) {
+                throw new Error("Expected format MM-DD")
+            }
+            const month = Number.parseInt(splitted[0], 10)
+            const day = Number.parseInt(splitted[0], 10)
+            if (!Number.isFinite(day) || day > 31 || day < 1) {
+                throw new Error("Day is expected to be in range 1-31")
+            }
+            if (!Number.isFinite(month) || month > 11 || month < 0) {
+                throw new Error("Expected month to be in range 0-11")
+            }
+            b_lu_harvest_date = getContextualDate(
+                calendar,
+                month,
+                day,
+            ).toISOString()
+        } catch (err) {
+            console.error(
+                new Error("Failed to parse default date", { cause: err }),
+            )
+        }
     }
     return {
         b_lu_harvestable: "multiple",
@@ -110,12 +142,7 @@ function createNewRow(
         b_lu_end: b_lu_end,
         ...defaultRow,
         ...lastRow,
-        b_lu_harvest_date:
-            last_b_lu_harvest_date ??
-            (b_date_harvest_default
-                ? `${calendar}-${b_date_harvest_default}`
-                : undefined) ??
-            getContextualDate(calendar, 4, 15).toISOString(),
+        b_lu_harvest_date: b_lu_harvest_date,
     }
 }
 
@@ -234,11 +261,11 @@ function BatchHarvestDataCell({
     /** Data to fill in the inputs */
     harvestRow: HarvestRow
     /** Data to fill in the placeholders of the inputs */
-    exampleRow?: HarvestRow
+    exampleRow: HarvestRow | undefined
 }) {
     const columnInfo =
         columnName === "b_lu_harvest_date"
-            ? { type: "date" }
+            ? { type: "date", placeholder: "1 jan. 2026", unit: undefined }
             : columnInfos[columnName]
     return columnInfo.type === "number" ? (
         <Controller
@@ -251,12 +278,7 @@ function BatchHarvestDataCell({
                     <Input
                         {...field}
                         type="number"
-                        placeholder={
-                            exampleRow?.[columnName] !== undefined &&
-                            exampleRow[columnName] !== null
-                                ? `b.v. ${exampleRow[columnName]}`
-                                : undefined
-                        }
+                        placeholder={`b.v. ${exampleRow?.[columnName] ?? columnInfo.placeholder} ${columnInfo.unit ?? ""}`}
                     />
                     {fieldState.error ? (
                         <FieldError errors={[fieldState.error]} />
@@ -275,8 +297,8 @@ function BatchHarvestDataCell({
                     placeholder={
                         exampleRow?.[columnName] !== undefined &&
                         exampleRow[columnName] !== null
-                            ? `b.v. ${format(new Date(exampleRow[columnName]), "PP", { locale: nl })}`
-                            : undefined
+                            ? `b.v. ${format(new Date(exampleRow[columnName]), "PP", { locale: nl })} ${columnInfo.unit ?? ""}`
+                            : `b.v. ${columnInfo.placeholder} ${columnInfo.unit ?? ""}`
                     }
                 />
             )}
@@ -310,7 +332,7 @@ function BatchHarvestFormRow({
     /** Data to fill in the placeholders of the inputs */
     harvestRow: HarvestRow
     /** Data to fill in the inputs */
-    exampleRow?: HarvestRow
+    exampleRow: HarvestRow | undefined
     /** Event handler callback for when the delete button is clicked */
     onDelete: MouseEventHandler
     /** Callback for when a new row addition is triggered via keyboard */
@@ -388,11 +410,11 @@ function BatchHarvestFormItemCard({
     /** Row index */
     index: number
     /** Column names to show */
-    columnNames: TableColumnName[]
+    columnNames: CardColumnName[]
     /** Data to fill in the placeholders of the inputs */
     harvestRow: HarvestRow
     /** Data to fill in the inputs */
-    exampleRow?: HarvestRow
+    exampleRow: HarvestRow | undefined
     /** Event handler callback for when the delete button is clicked */
     onDelete: MouseEventHandler
 }) {
@@ -443,6 +465,7 @@ function BatchHarvestFormFields({
     harvestParameters,
     defaultHarvest,
     b_date_harvest_default,
+    harvestPairs,
 }: BatchHarvestFormProps & {
     /** Remix Hook Form object */
     form: ReturnType<typeof useBatchHarvestRemixForm>
@@ -454,6 +477,27 @@ function BatchHarvestFormFields({
         name: "harvests",
     })
     const harvests = useWatch({ control: form.control, name: "harvests" })
+
+    // Map the initial list of row unique IDs to the example harvests
+    const [harvestExamplesMap, setHarvestExamplesMap] = useState(
+        new Map<string, Partial<HarvestRow>>(),
+    )
+    // biome-ignore lint/correctness/useExhaustiveDependencies: fieldArray's initial value is derived from harvestPairs
+    useEffect(() => {
+        const result = new Map<string, Partial<HarvestRow>>()
+        if (harvestPairs) {
+            fieldArray.fields.forEach((field, i) => {
+                if (harvestPairs.length >= i && harvestPairs[i].example) {
+                    result.set(field.id, harvestPairs[i].example)
+                }
+            })
+        }
+        setHarvestExamplesMap(result)
+    }, [harvestPairs])
+
+    const harvestParameterColumns = (
+        Object.keys(columnInfos) as HarvestParameters
+    ).filter((columnName) => harvestParameters.includes(columnName))
 
     const addButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -504,11 +548,12 @@ function BatchHarvestFormFields({
     if (isMobile) {
         const columnNames: CardColumnName[] = [
             "b_lu_harvest_date",
-            ...harvestParameters,
+            ...harvestParameterColumns,
         ]
 
         return (
             <div className="space-y-2">
+                <input type="hidden" name="intent" value="batch_harvest" />
                 {fieldArray.fields.map((row, index) => (
                     <input
                         key={row.id}
@@ -522,6 +567,7 @@ function BatchHarvestFormFields({
                         key={id}
                         index={index}
                         harvestRow={harvestRow}
+                        exampleRow={harvestExamplesMap.get(id)}
                         columnNames={columnNames}
                         onDelete={() => deleteRow(index)}
                     />
@@ -543,12 +589,13 @@ function BatchHarvestFormFields({
     const columnNames: TableColumnName[] = [
         "cutting",
         "b_lu_harvest_date",
-        ...harvestParameters,
+        ...harvestParameterColumns,
         "delete",
     ]
 
     return (
-        <>
+        <div className="space-y-2">
+            <input type="hidden" name="intent" value="batch_harvest" />
             {fieldArray.fields.map((row, index) => (
                 <input
                     key={row.id}
@@ -574,6 +621,7 @@ function BatchHarvestFormFields({
                             id={id}
                             index={index}
                             harvestRow={harvestRow}
+                            exampleRow={harvestExamplesMap.get(id)}
                             columnNames={columnNames}
                             onDelete={() => deleteRow(index)}
                             onAdd={addRow}
@@ -586,12 +634,11 @@ function BatchHarvestFormFields({
                 type="button"
                 variant="secondary"
                 onClick={addRow}
-                className="flex mt-2"
             >
                 <Plus />
                 Nieuwe rij toevoegen
             </Button>
-        </>
+        </div>
     )
 }
 
@@ -638,17 +685,7 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                                 fetcher.state !== "idle"
                             }
                         >
-                            <input
-                                type="hidden"
-                                name="intent"
-                                value="batch_harvest"
-                            />
-                            <div>
-                                <BatchHarvestFormFields
-                                    {...props}
-                                    form={form}
-                                />
-                            </div>
+                            <BatchHarvestFormFields {...props} form={form} />
                             <HarvestFormExplainer />
                             <DialogFooter>
                                 {props.onBack && (
