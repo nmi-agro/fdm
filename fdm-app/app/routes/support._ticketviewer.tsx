@@ -8,10 +8,49 @@ import { clientConfig } from "~/lib/config"
 import type { Route } from "./+types/support._ticketviewer"
 
 // Meta
-export const meta: Route.MetaFunction = () => {
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+    const suffix = ` - Ondersteuning | ${clientConfig.name}`
+
+    if (loaderData.defaultFilterType === "all") {
+        return [
+            {
+                title: `Alle tickets${suffix}`,
+            },
+            {
+                name: "description",
+                content: "Bekijk en bewerk tickets.",
+            },
+        ]
+    }
+
+    if (loaderData.defaultFilterType === "inbox") {
+        return [
+            {
+                title: `Mijn inbox${suffix}`,
+            },
+            {
+                name: "description",
+                content: "Bekijk en bewerk jouw tickets.",
+            },
+        ]
+    }
+
+    if (loaderData.defaultFilterType === "unassigned") {
+        return [
+            {
+                title: `Niet toegewezen${suffix}`,
+            },
+            {
+                name: "description",
+                content:
+                    "Bekijk en bewerk de tickets die nog niet toegewezen zijn.",
+            },
+        ]
+    }
+
     return [
         {
-            title: `Mijn tickets - Ondersteuning | ${clientConfig.name}`,
+            title: `Mijn tickets${suffix}`,
         },
         {
             name: "description",

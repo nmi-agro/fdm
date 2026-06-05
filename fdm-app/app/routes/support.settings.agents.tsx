@@ -21,10 +21,25 @@ import {
     UpdateAgentRoleSchema,
 } from "~/components/blocks/helpdesk/agent-schema"
 import { getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/support.settings.agents"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Medewerkers - Ondersteuning | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content:
+                "Bekijk de medewerkers die toegang hebben tot het ondersteuningsdashboard.",
+        },
+    ]
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
     try {

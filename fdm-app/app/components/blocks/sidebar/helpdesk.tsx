@@ -1,5 +1,6 @@
 import { ArrowLeft, MessageSquareCheck, Plus } from "lucide-react"
-import { NavLink } from "react-router"
+import { NavLink, useLocation } from "react-router"
+import { modifySearchParams } from "@/app/lib/url-utils"
 import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
 import { Button } from "~/components/ui/button"
 import {
@@ -13,6 +14,25 @@ import {
 
 export function SidebarHelpdesk() {
     const currentHelpdeskPage = useCurrentHelpdeskPage()
+    const location = useLocation()
+    const ticketViewerPages = {
+        all_tickets: "all",
+        inbox: "inbox",
+        unassigned_tickets: "unassigned",
+    } as const
+    const isTicketViewerPage =
+        currentHelpdeskPage && currentHelpdeskPage in ticketViewerPages
+    const urlWithNoFilters = isTicketViewerPage
+        ? modifySearchParams(
+              `${location.pathname}${location.search}`,
+              (searchParams) =>
+                  searchParams.delete(
+                      ticketViewerPages[
+                          currentHelpdeskPage as keyof typeof ticketViewerPages
+                      ],
+                  ),
+          )
+        : `${location.pathname}${location.search}`
 
     return (
         <>
@@ -54,7 +74,13 @@ export function SidebarHelpdesk() {
                                 asChild
                                 isActive={currentHelpdeskPage === "my_tickets"}
                             >
-                                <NavLink to={"/support"}>
+                                <NavLink
+                                    to={
+                                        isTicketViewerPage
+                                            ? urlWithNoFilters
+                                            : "/support"
+                                    }
+                                >
                                     <MessageSquareCheck />
                                     <span>Mijn tickets</span>
                                 </NavLink>

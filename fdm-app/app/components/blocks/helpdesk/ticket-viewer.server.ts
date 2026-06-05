@@ -15,6 +15,7 @@ import { fdm } from "~/lib/fdm.server"
 import type { HelpdeskUser } from "./types"
 
 export type LoadPaginatedTicketsData = {
+    defaultFilterType: "all" | "inbox" | "unassigned" | null
     tickets: Ticket[]
     totalTicketCount: number
     principals: HelpdeskUser[]
@@ -107,13 +108,23 @@ export async function loadPaginatedTickets(request: Request) {
             JSON.parse(url.searchParams.get("filters") ?? "{}"),
         )
 
+        const defaultFilterType = url.searchParams.has("all")
+            ? "all"
+            : url.searchParams.has("inbox")
+              ? "inbox"
+              : url.searchParams.has("unassigned")
+                ? "unassigned"
+                : null
+
         const defaultFilters: TicketFilters = !helpdeskReadPermission
             ? { requesterIds: [session.principal_id] }
-            : url.searchParams.has("all")
+            : defaultFilterType === "all"
               ? {}
-              : url.searchParams.has("inbox")
+              : defaultFilterType === "inbox"
                 ? { assignees: [session.principal_id] }
-                : { requesterIds: [session.principal_id] }
+                : defaultFilterType === "unassigned"
+                  ? { assigned: false }
+                  : { requesterIds: [session.principal_id] }
 
         const filters: TicketFilters = mergeFilters(defaultFilters, userFilters)
 
@@ -162,6 +173,7 @@ export async function loadPaginatedTickets(request: Request) {
         )
 
         return {
+            defaultFilterType: defaultFilterType,
             tickets: tickets,
             totalTicketCount: totalTicketCount,
             principals: principalsSummarized,

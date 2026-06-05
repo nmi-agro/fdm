@@ -22,7 +22,9 @@ export function useCurrentHelpdeskPage() {
             ? "all_tickets"
             : searchParams.has("inbox")
               ? "inbox"
-              : "my_tickets"
+              : searchParams.has("unassigned")
+                ? "unassigned_tickets"
+                : "my_tickets"
         : isAgents
           ? "agents"
           : isNewTicket

@@ -25,6 +25,14 @@ export function HeaderHelpdesk() {
                     <BreadcrumbItem>Mijn tickets</BreadcrumbItem>
                 </>
             )}
+            {currentHelpdeskPage === "unassigned_tickets" && (
+                <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>Tickets</BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>Niet toegewezen</BreadcrumbItem>
+                </>
+            )}
             {currentHelpdeskPage === "all_tickets" && (
                 <>
                     <BreadcrumbSeparator />
