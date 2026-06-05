@@ -230,29 +230,30 @@ function readMultiPolygon(
     littleEndian: boolean,
     offset: number,
 ): GeoJSON.Position[][][] {
-    if (offset + 4 > dataView.byteLength) {
+    let cursor = offset
+    if (cursor + 4 > dataView.byteLength) {
         throw new Error("Buffer too small to read MultiPolygon")
     }
-    const numPolygons = dataView.getUint32(offset, littleEndian)
-    offset += 4
+    const numPolygons = dataView.getUint32(cursor, littleEndian)
+    cursor += 4
     const polygons: GeoJSON.Position[][][] = []
 
     for (let i = 0; i < numPolygons; i++) {
-        if (offset + 5 > dataView.byteLength) {
+        if (cursor + 5 > dataView.byteLength) {
             throw new Error("Buffer too small to read nested Polygon")
         }
 
-        const polygonByteOrder = dataView.getUint8(offset)
-        offset += 1
+        const polygonByteOrder = dataView.getUint8(cursor)
+        cursor += 1
         const polygonLittleEndian = polygonByteOrder === 1
 
-        let polygonType = dataView.getUint32(offset, polygonLittleEndian)
-        offset += 4
+        let polygonType = dataView.getUint32(cursor, polygonLittleEndian)
+        cursor += 4
 
         const hasSRID = (polygonType & 0x20000000) > 0
         if (hasSRID) {
             polygonType &= ~0x20000000
-            offset += 4
+            cursor += 4
         }
 
         if (polygonType !== GeometryType.Polygon) {
@@ -261,14 +262,14 @@ function readMultiPolygon(
             )
         }
 
-        const polygon = readPolygon(dataView, polygonLittleEndian, offset)
+        const polygon = readPolygon(dataView, polygonLittleEndian, cursor)
         polygons.push(polygon)
 
         let polygonSize = 4
         for (const ring of polygon) {
             polygonSize += 4 + ring.length * 16
         }
-        offset += polygonSize
+        cursor += polygonSize
     }
 
     return polygons
