@@ -2,45 +2,57 @@ import type {
     AgentSummary,
     TicketAssignmentSummary,
 } from "@nmi-agro/fdm-helpdesk"
-import { Check, Crown, Users } from "lucide-react"
+import { Check, Crown, UserPlus, Users } from "lucide-react"
 import { type MouseEventHandler, useEffect, useId, useState } from "react"
-import { Form, useNavigation } from "react-router"
+import { useFetcher } from "react-router"
 import { cn } from "@/app/lib/utils"
-import { UserAvatar } from "~/components/blocks/farms/user-display"
+import {
+    AvatarGroup,
+    AvatarGroupCount,
+    UserAvatar,
+} from "~/components/blocks/farms/user-display"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import {
+    Dialog,
     DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogTrigger,
 } from "~/components/ui/dialog"
 import { Field } from "~/components/ui/field"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 import { makeHelpdeskUser } from "./helpdesk-user"
 import type { HelpdeskUser } from "./types"
 
-export function AssigneeDialogContent({
+export function AssignmentSelector({
+    triggerId,
+    formIntent,
+    canModify = true,
     assignees,
     agents,
-    intent,
-    canModify,
     principalLookup,
 }: {
+    triggerId?: string
+    formIntent?: string
+    canModify?: boolean
     assignees: TicketAssignmentSummary[]
     agents: AgentSummary[]
-    intent?: string
-    canModify: boolean
     principalLookup: Map<string, HelpdeskUser>
 }) {
-    const navigation = useNavigation()
+    const fetcher = useFetcher()
     const formId = useId()
-    const alreadyAssigned = new Set(
-        assignees.map((assignee) => assignee.agent_id),
-    )
+    const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
+
     const [selectedAssignees, setSelectedAssignees] = useState<string[]>(
         assignees.map((assignee) => assignee.agent_id),
     )
@@ -49,6 +61,14 @@ export function AssigneeDialogContent({
             .filter((assignee) => assignee.is_primary)
             .map((assignee) => assignee.agent_id),
     )
+
+    const ASSIGNEE_DISPLAY_CUTOFF = 3
+    const assigneeNames = assignees.map((assignee) => assignee.display_name)
+
+    const alreadyAssigned = new Set(
+        assignees.map((assignee) => assignee.agent_id),
+    )
+
     const unassignedAgents = agents.filter(
         (agent) => !alreadyAssigned.has(agent.agent_id),
     )
@@ -95,6 +115,13 @@ export function AssigneeDialogContent({
         })
     }
 
+    // Close dialogs when navigation finishes (the user has probably submitted the form in the dialog)
+    useEffect(() => {
+        if (fetcher.state === "idle") {
+            setAssignmentDialogOpen(false)
+        }
+    }, [fetcher.state])
+
     useEffect(() => {
         setSelectedAssignees(assignees.map((assignee) => assignee.agent_id))
         setPrimaryAssignees(
@@ -105,118 +132,180 @@ export function AssigneeDialogContent({
     }, [assignees])
 
     return (
-        <DialogContent className="sm:max-w-md">
-            <Form id={formId} method="post" className="space-y-4">
-                <DialogHeader>
-                    <DialogTitle>Medewerker toewijzen</DialogTitle>
-                    <DialogDescription>
-                        Selecteer wie aan dit ticket werkt. De medewerker met de
-                        kroon is de hoofdverantwoordelijke.
-                    </DialogDescription>
-                </DialogHeader>
-
-                {typeof intent === "string" && (
-                    <input type="hidden" name="intent" value={intent} />
-                )}
-                <input
-                    type="hidden"
-                    name="assignees"
-                    value={JSON.stringify(selectedAssignees)}
-                />
-                <input
-                    type="hidden"
-                    name="primary"
-                    value={JSON.stringify(primaryAssignees)}
-                />
-
-                <Field className="overflow-auto max-h-80 space-y-1">
-                    {agents.length === 0 && assignees.length === 0 && (
-                        <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
-                            <Users className="size-8 opacity-40" />
-                            <p>Geen medewerkers beschikbaar</p>
-                        </div>
-                    )}
-
-                    {assignees.length > 0 && (
-                        <>
-                            <p className="px-2 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                Toegewezen
-                            </p>
-                            {assignees.map((assignee) => (
-                                <AssigneeSelectItem
-                                    key={assignee.agent_id}
-                                    agent={assignee}
-                                    isSelected={selectedAssignees.includes(
-                                        assignee.agent_id,
-                                    )}
-                                    isPrimary={primaryAssignees.includes(
-                                        assignee.agent_id,
-                                    )}
-                                    principalLookup={principalLookup}
-                                    canModify={canModify}
-                                    onClick={() =>
-                                        toggleAssigned(assignee.agent_id)
-                                    }
-                                    onIsPrimaryClick={() =>
-                                        togglePrimary(assignee.agent_id)
-                                    }
-                                />
-                            ))}
-                        </>
-                    )}
-
-                    {assignees.length > 0 && unassignedAgents.length > 0 && (
-                        <Separator className="my-2" />
-                    )}
-
-                    {unassignedAgents.length > 0 && (
-                        <>
-                            <p className="px-2 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                Beschikbaar
-                            </p>
-                            {unassignedAgents.map((agent) => (
-                                <AssigneeSelectItem
-                                    key={agent.agent_id}
-                                    agent={agent}
-                                    isSelected={selectedAssignees.includes(
-                                        agent.agent_id,
-                                    )}
-                                    isPrimary={primaryAssignees.includes(
-                                        agent.agent_id,
-                                    )}
-                                    principalLookup={principalLookup}
-                                    canModify={canModify}
-                                    onClick={() =>
-                                        toggleAssigned(agent.agent_id)
-                                    }
-                                    onIsPrimaryClick={() =>
-                                        togglePrimary(agent.agent_id)
-                                    }
-                                />
-                            ))}
-                        </>
-                    )}
-                </Field>
-
-                <DialogFooter className="gap-2">
-                    <DialogClose asChild>
-                        <Button variant="outline">Annuleren</Button>
-                    </DialogClose>
-                    {canModify ? (
-                        <Button type="submit" form={formId}>
-                            Opslaan
-                            {navigation.state !== "idle" ? (
-                                <Spinner className="ms-2" />
+        <Dialog
+            open={assignmentDialogOpen}
+            onOpenChange={setAssignmentDialogOpen}
+        >
+            <DialogTrigger asChild>
+                <Button
+                    id={triggerId}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    disabled={fetcher.state !== "idle"}
+                >
+                    {assignees.length > 0 ? (
+                        <AvatarGroup>
+                            {assignees
+                                .slice(0, ASSIGNEE_DISPLAY_CUTOFF)
+                                .map((assignee) => (
+                                    <Avatar
+                                        key={assignee.agent_id}
+                                        className="h-5 w-5 rounded-full"
+                                    >
+                                        <AvatarImage
+                                            src={
+                                                principalLookup.get(
+                                                    assignee.agent_id,
+                                                )?.image ?? undefined
+                                            }
+                                            alt={
+                                                principalLookup.get(
+                                                    assignee.agent_id,
+                                                )?.displayUserName ??
+                                                "Onbekende Medewerker"
+                                            }
+                                        />
+                                        <AvatarFallback className="text-[10px]">
+                                            {principalLookup.get(
+                                                assignee.agent_id,
+                                            )?.initials ?? "OM"}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                ))}
+                            {assignees.length > ASSIGNEE_DISPLAY_CUTOFF ? (
+                                <AvatarGroupCount>
+                                    +
+                                    {assignees.length - ASSIGNEE_DISPLAY_CUTOFF}
+                                </AvatarGroupCount>
                             ) : null}
-                        </Button>
+                        </AvatarGroup>
                     ) : (
-                        <DialogClose asChild>
-                            <Button>Sluiten</Button>
-                        </DialogClose>
+                        <UserPlus className="size-4 text-muted-foreground" />
                     )}
-                </DialogFooter>
-            </Form>
-        </DialogContent>
+                    <span>
+                        {assigneeNames.length > 0
+                            ? assigneeNames.length > 3
+                                ? `${assigneeNames.slice(0, 3).join(", ")} en meer`
+                                : assigneeNames.join(", ")
+                            : "Toewijzen"}
+                    </span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <fetcher.Form id={formId} method="post" className="space-y-4">
+                    <DialogHeader>
+                        <DialogTitle>Medewerker toewijzen</DialogTitle>
+                        <DialogDescription>
+                            Selecteer wie aan dit ticket werkt. De medewerker
+                            met de kroon is de hoofdverantwoordelijke.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {typeof formIntent === "string" && (
+                        <input type="hidden" name="intent" value={formIntent} />
+                    )}
+                    <input
+                        type="hidden"
+                        name="assignees"
+                        value={JSON.stringify(selectedAssignees)}
+                    />
+                    <input
+                        type="hidden"
+                        name="primary"
+                        value={JSON.stringify(primaryAssignees)}
+                    />
+
+                    <Field className="overflow-auto max-h-80 space-y-1">
+                        {agents.length === 0 && assignees.length === 0 && (
+                            <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
+                                <Users className="size-8 opacity-40" />
+                                <p>Geen medewerkers beschikbaar</p>
+                            </div>
+                        )}
+
+                        {assignees.length > 0 && (
+                            <>
+                                <p className="px-2 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                    Toegewezen
+                                </p>
+                                {assignees.map((assignee) => (
+                                    <AssigneeSelectItem
+                                        key={assignee.agent_id}
+                                        agent={assignee}
+                                        isSelected={selectedAssignees.includes(
+                                            assignee.agent_id,
+                                        )}
+                                        isPrimary={primaryAssignees.includes(
+                                            assignee.agent_id,
+                                        )}
+                                        principalLookup={principalLookup}
+                                        canModify={canModify}
+                                        onClick={() =>
+                                            toggleAssigned(assignee.agent_id)
+                                        }
+                                        onIsPrimaryClick={() =>
+                                            togglePrimary(assignee.agent_id)
+                                        }
+                                    />
+                                ))}
+                            </>
+                        )}
+
+                        {assignees.length > 0 &&
+                            unassignedAgents.length > 0 && (
+                                <Separator className="my-2" />
+                            )}
+
+                        {unassignedAgents.length > 0 && (
+                            <>
+                                <p className="px-2 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                    Beschikbaar
+                                </p>
+                                {unassignedAgents.map((agent) => (
+                                    <AssigneeSelectItem
+                                        key={agent.agent_id}
+                                        agent={agent}
+                                        isSelected={selectedAssignees.includes(
+                                            agent.agent_id,
+                                        )}
+                                        isPrimary={primaryAssignees.includes(
+                                            agent.agent_id,
+                                        )}
+                                        principalLookup={principalLookup}
+                                        canModify={canModify}
+                                        onClick={() =>
+                                            toggleAssigned(agent.agent_id)
+                                        }
+                                        onIsPrimaryClick={() =>
+                                            togglePrimary(agent.agent_id)
+                                        }
+                                    />
+                                ))}
+                            </>
+                        )}
+                    </Field>
+
+                    <DialogFooter className="gap-2">
+                        <DialogClose asChild>
+                            <Button variant="outline">Annuleren</Button>
+                        </DialogClose>
+                        {canModify ? (
+                            <Button type="submit" form={formId}>
+                                Opslaan
+                                {fetcher.state !== "idle" ? (
+                                    <Spinner className="ms-2" />
+                                ) : null}
+                            </Button>
+                        ) : (
+                            <DialogClose asChild>
+                                <Button>Sluiten</Button>
+                            </DialogClose>
+                        )}
+                    </DialogFooter>
+                </fetcher.Form>
+            </DialogContent>
+        </Dialog>
     )
 }
 

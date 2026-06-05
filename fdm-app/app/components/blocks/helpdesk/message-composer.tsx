@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useId } from "react"
 import { Controller, useWatch } from "react-hook-form"
-import { Form } from "react-router"
+import { useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type z from "zod"
 import { cn } from "@/app/lib/utils"
@@ -46,6 +46,8 @@ export function MessageComposer({
     defaultValues?: z.infer<typeof MessageSchema>
     className?: string
 }) {
+    const fetcher = useFetcher()
+
     const form = useRemixForm({
         mode: "onTouched",
         resolver: zodResolver(MessageSchema),
@@ -60,11 +62,11 @@ export function MessageComposer({
     const is_internal = useWatch({ name: "is_internal", control: form.control })
     const messageInputId = useId()
 
-    const isSubmitting = form.formState.isSubmitting
+    const isSubmitting = fetcher.state !== "idle"
 
     return (
         <RemixFormProvider {...form}>
-            <Form
+            <fetcher.Form
                 method="post"
                 onSubmit={form.handleSubmit}
                 className={className}
@@ -184,7 +186,9 @@ export function MessageComposer({
                                             {...field}
                                             className="bg-card"
                                             id={messageInputId}
-                                            placeholder={"Schrijf uw bericht hier..."}
+                                            placeholder={
+                                                "Schrijf uw bericht hier..."
+                                            }
                                         />
                                         <FieldDescription>
                                             {showAgentControls
@@ -212,7 +216,7 @@ export function MessageComposer({
                         {isSubmitting && <Spinner />}
                     </Button>
                 </Message>
-            </Form>
+            </fetcher.Form>
         </RemixFormProvider>
     )
 }

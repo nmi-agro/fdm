@@ -3,7 +3,7 @@ import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { NavLink, useLocation } from "react-router"
 import { cn } from "@/app/lib/utils"
-import { TICKET_STATUS, TicketStatusDot } from "./ticket"
+import { TICKET_STATUS, TicketStatusDot } from "./ticket-status"
 import type { HelpdeskUser } from "./types"
 
 export function TicketCard({
