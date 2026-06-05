@@ -2,10 +2,11 @@ import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent } from "./agent"
 import { createId } from "./id"
 import { addTagToTicket, createTag } from "./tag"
-import { test } from "./test-util"
+import { test, truncateAllTables } from "./test-util"
 import { createTicket } from "./ticket"
 import {
     assignTicket,
+    assignTicketToAnAdmin,
     getAssigneesForTickets,
     getAssignmentHistoryForTicket,
     getTicketCountsForAssignees,
@@ -302,5 +303,50 @@ describe("unassignTicket", () => {
     }) => {
         const result = await unassignTicket(fdm, ticket_id, agent_id, admin_id)
         expect(result).toBe(false)
+    })
+})
+
+describe("assignTicketToAnAdmin", () => {
+    let requester_id: string
+    let ticket_id: string
+
+    // Truncate all tables before each test so every test starts with a clean, isolated database state.
+    // This enables testing for the case where no admins exists and where only one or two admins exist.
+    test.beforeEach(async ({ fdm }) => {
+        await truncateAllTables(fdm)
+
+        requester_id = createId()
+        ticket_id = await createTicket(fdm, requester_id, "Ticket 1")
+    })
+
+    test("should assign to the admin if an admin is found", async ({ fdm }) => {
+        const admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        const agent_id = createId()
+        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+
+        expect(await assignTicketToAnAdmin(fdm, ticket_id)).toBe(admin_id)
+    })
+
+    test("should assign the ticket to the earliest created admin", async ({
+        fdm,
+    }) => {
+        const admin_id_1 = createId()
+        await addAdminAgent(fdm, admin_id_1, "Admin Agent 1")
+
+        const admin_id_2 = createId()
+        await addAgent(fdm, admin_id_1, admin_id_2, "Admin Agent 2")
+
+        expect(await assignTicketToAnAdmin(fdm, ticket_id)).toBe(admin_id_1)
+    })
+
+    test(
+        "should fail and return null if the ticket cannot be assigned to an admin",
+    )
+    test("should assign the ticket to the earliest created admin", async ({
+        fdm,
+    }) => {
+        expect(await assignTicketToAnAdmin(fdm, ticket_id)).toBeNull()
     })
 })

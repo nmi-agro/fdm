@@ -215,6 +215,51 @@ export async function assignTicket(
 }
 
 /**
+ * Assigns the ticket to the first helpdesk admin found. The admin created the earliest has priority.
+ *
+ * This is intended as a workaround until the triage system is implemented.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_id ID of the ticket to assign the agent to.
+ * @returns the agent_id to whom the ticket is assigned. Returns null if no admin is found so the assignment
+ * has failed.
+ * @throws in case of database errors
+ */
+export async function assignTicketToAnAdmin(
+    fdm: FdmHelpdeskType,
+    ticket_id: schema.TicketAssignmentTypeInsert["ticket_id"],
+) {
+    return await fdm.transaction(async (tx) => {
+        const foundAdmins = await tx
+            .select({ agent_id: schema.agents.agent_id })
+            .from(schema.agents)
+            .where(eq(schema.agents.role, "admin"))
+            .orderBy(asc(schema.agents.created))
+            .limit(1)
+
+        if (foundAdmins.length === 0) {
+            return null
+        }
+
+        const agent_id = foundAdmins[0].agent_id
+        const assignment_id = createId()
+
+        await tx.insert(schema.ticketAssignments).values([
+            {
+                assignment_id: assignment_id,
+                ticket_id: ticket_id,
+                agent_id: agent_id,
+                assigned_by: agent_id,
+                is_primary: true,
+            },
+        ])
+
+        return agent_id
+    })
+}
+
+/**
  * Removes an agent's active assignment from a ticket by setting `unassigned_at`.
  * Requires agent-side write permission for the ticket.
  *

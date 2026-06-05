@@ -1,5 +1,9 @@
-import { getFarms } from "@nmi-agro/fdm-core"
-import { createTicket } from "@nmi-agro/fdm-helpdesk"
+import { getFarms, getPrincipal } from "@nmi-agro/fdm-core"
+import {
+    assignTicketToAnAdmin,
+    createTicket,
+    getTicket,
+} from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
@@ -8,6 +12,7 @@ import { TicketComposer } from "~/components/blocks/helpdesk/ticket-composer"
 import { TicketSchema } from "~/components/blocks/helpdesk/ticket-schema"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
+import { sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -21,7 +26,8 @@ export const meta: Route.MetaFunction = () => {
         },
         {
             name: "description",
-            content: "Stel een vraag of meld een probleem. Een medewerker neemt binnen enkele werkdagen contact met u op.",
+            content:
+                "Stel een vraag of meld een probleem. Een medewerker neemt binnen enkele werkdagen contact met u op.",
         },
     ]
 }
@@ -61,14 +67,52 @@ export async function action({ request }: Route.ActionArgs) {
             TicketSchema,
         )
 
-        await createTicket(fdm, session.principal_id, ticketCreateInfo.body, {
-            context: {
-                b_id_farm: ticketCreateInfo.context_farm_id,
+        const ticket_id = await createTicket(
+            fdm,
+            session.principal_id,
+            ticketCreateInfo.body,
+            {
+                context: {
+                    b_id_farm: ticketCreateInfo.context_farm_id,
+                },
             },
-        })
+        )
+
+        // Assign the ticket to an admin and send an email to them
+        try {
+            const assigned_agent_id = await assignTicketToAnAdmin(
+                fdm,
+                ticket_id,
+            )
+
+            if (assigned_agent_id) {
+                const ticket = await getTicket(
+                    fdm,
+                    assigned_agent_id,
+                    ticket_id,
+                )
+                const agentPrincipal = await getPrincipal(
+                    fdm,
+                    assigned_agent_id,
+                )
+                if (agentPrincipal?.email) {
+                    await sendHelpdeskNewMessageEmail(
+                        agentPrincipal.email,
+                        agentPrincipal.displayUserName ?? agentPrincipal.email,
+                        session.user.displayUsername ?? "Een gebruiker",
+                        ticket.ticket_ref,
+                        ticket.subject,
+                        ticket_id,
+                        ticketCreateInfo.body,
+                    )
+                }
+            }
+        } catch (assignmentError) {
+            handleActionError(assignmentError)
+        }
 
         return redirectWithSuccess(
-            "/support",
+            `/support/ticket/${ticket_id}`,
             "We hebben uw vraag ontvangen. Een collega neemt binnenkort contact met u op.",
         )
     } catch (err) {
