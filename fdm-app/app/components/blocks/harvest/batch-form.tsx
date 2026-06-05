@@ -117,17 +117,21 @@ function createNewRow(
             if (splitted.length !== 2) {
                 throw new Error("Expected format MM-DD")
             }
-            const month = Number.parseInt(splitted[0], 10)
-            const day = Number.parseInt(splitted[0], 10)
+            const monthOrdinal = Number.parseInt(splitted[0], 10)
+            const day = Number.parseInt(splitted[1], 10)
             if (!Number.isFinite(day) || day > 31 || day < 1) {
-                throw new Error("Day is expected to be in range 1-31")
+                throw new Error("Day is expected to be in range 01-31")
             }
-            if (!Number.isFinite(month) || month > 11 || month < 0) {
-                throw new Error("Expected month to be in range 0-11")
+            if (
+                !Number.isFinite(monthOrdinal) ||
+                monthOrdinal > 12 ||
+                monthOrdinal < 1
+            ) {
+                throw new Error("Expected month to be in range 01-12")
             }
             b_lu_harvest_date = getContextualDate(
                 calendar,
-                month,
+                monthOrdinal,
                 day,
             ).toISOString()
         } catch (err) {
