@@ -70,7 +70,7 @@ import {
 } from "~/components/blocks/gerrit/schema"
 import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
 import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
-import type { FieldMetrics, ParsedPlan } from "~/components/blocks/gerrit/types"
+import type { FieldMetrics, FarmTotals, ParsedPlan } from "~/components/blocks/gerrit/types"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import {
@@ -1349,7 +1349,7 @@ export default function GerritApp() {
                                 />
                             ) : (
                                 <SummaryCards
-                                    farmTotals={farmTotals as typeof farmTotals & import("~/components/blocks/gerrit/types").FarmTotals}
+                                    farmTotals={farmTotals as FarmTotals | undefined}
                                     planSummary={plan?.summary}
                                     activeStrategyLabels={activeStrategyLabels}
                                     onEditStrategy={() =>

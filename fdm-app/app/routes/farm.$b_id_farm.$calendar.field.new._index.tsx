@@ -139,8 +139,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
         const features = await Promise.all(
             fields.map(async (field) => {
-                // Get field cultivation if available or get the first cultivation created by the farmer
-                let cultivation = field.b_name
+                // Get field cultivation name if available, fall back to field name
+                let cultivation: string | undefined | null = (
+                    field as { b_lu_name?: string }
+                ).b_lu_name
                 if (!cultivation) {
                     try {
                         const cultivations = await getCultivations(
@@ -159,6 +161,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         console.warn(e)
                         cultivation = "gewassen onbekend"
                     }
+                }
+                // Last resort: use the field name
+                if (!cultivation) {
+                    cultivation = field.b_name
                 }
 
                 const feature: Feature = {
