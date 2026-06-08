@@ -54,6 +54,7 @@ export function BcsScoreCard({
                     </div>
                     <div className="flex items-center gap-2">
                         <Badge
+                            variant="outline"
                             className={cn(
                                 "w-fit border px-4 py-2 text-sm font-semibold",
                                 BCS_COLOR_CLASSES[scoreColor],
