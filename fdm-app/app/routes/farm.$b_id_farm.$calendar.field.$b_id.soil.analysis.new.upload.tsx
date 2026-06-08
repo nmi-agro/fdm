@@ -2,7 +2,6 @@ import {
     addSoilAnalysis,
     getField,
     getSoilParametersDescription,
-    type SoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"

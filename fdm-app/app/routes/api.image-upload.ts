@@ -59,7 +59,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
         fileBuffer = Buffer.from(arrayBuffer)
         detectedMime = fileType.mime
-        return new File([fileBuffer], fileUpload.name, { type: detectedMime })
+        return new File([new Uint8Array(arrayBuffer)], fileUpload.name, { type: detectedMime })
     }
 
     let formData: FormData

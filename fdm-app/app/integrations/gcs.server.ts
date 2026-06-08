@@ -40,7 +40,7 @@ function getStorage(): Storage {
         // serviceAccountEmail is required for Workload Identity Federation
         // and optional when the metadata server can resolve it automatically.
         _storage = serviceAccountEmail
-            ? new Storage({ serviceAccountEmail })
+            ? new Storage({ email: serviceAccountEmail })
             : new Storage()
     }
 
