@@ -1,4 +1,4 @@
-import { Circle, MapPin, Pencil, Trash2 } from "lucide-react"
+import { ArrowRight, Circle, MapPin, Pencil, Trash2 } from "lucide-react"
 import {
     useCallback,
     useMemo,
@@ -330,6 +330,15 @@ export function ImageGallery({
                 points: [{ x, y }],
             })
         }
+
+        if (activeTool === "arrow") {
+            event.currentTarget.setPointerCapture(event.pointerId)
+            setDrawingState({
+                tool: "arrow",
+                start: { x, y },
+                current: { x, y },
+            })
+        }
     }
 
     const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -339,6 +348,10 @@ export function ImageGallery({
         const { x, y } = getRelativeCoords(event.nativeEvent, rect)
 
         if (drawingState.tool === "circle") {
+            setDrawingState((prev) =>
+                prev ? { ...prev, current: { x, y } } : prev,
+            )
+        } else if (drawingState.tool === "arrow") {
             setDrawingState((prev) =>
                 prev ? { ...prev, current: { x, y } } : prev,
             )
@@ -374,6 +387,26 @@ export function ImageGallery({
             openAnnotationDialog({
                 imageId: selectedImage.id,
                 type: "circle",
+                coords,
+            })
+        } else if (drawingState.tool === "arrow") {
+            const dx = x - drawingState.start.x
+            const dy = y - drawingState.start.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            if (dist < 1) {
+                setDrawingState(null)
+                return
+            }
+            const coords: ArrowCoords = {
+                x1: drawingState.start.x,
+                y1: drawingState.start.y,
+                x2: x,
+                y2: y,
+            }
+            setDrawingState(null)
+            openAnnotationDialog({
+                imageId: selectedImage.id,
+                type: "arrow",
                 coords,
             })
         } else if (drawingState.tool === "freehand") {
@@ -431,17 +464,41 @@ export function ImageGallery({
             const dx = drawingState.current.x - drawingState.start.x
             const dy = drawingState.current.y - drawingState.start.y
             const r = Math.sqrt(dx * dx + dy * dy)
+            const aspectRatio = imgSize ? imgSize.w / imgSize.h : 1
             return (
-                <circle
+                <ellipse
                     cx={drawingState.start.x}
                     cy={drawingState.start.y}
-                    r={r}
+                    rx={r}
+                    ry={r * aspectRatio}
                     fill="rgba(255,255,255,0.15)"
                     stroke="white"
                     strokeWidth="0.5"
                     strokeDasharray="2 1"
                     vectorEffect="non-scaling-stroke"
                 />
+            )
+        }
+        if (drawingState.tool === "arrow" && drawingState.current) {
+            return (
+                <g>
+                    <line
+                        x1={drawingState.start.x}
+                        y1={drawingState.start.y}
+                        x2={drawingState.current.x}
+                        y2={drawingState.current.y}
+                        stroke="white"
+                        strokeWidth="0.5"
+                        strokeDasharray="2 1"
+                        vectorEffect="non-scaling-stroke"
+                    />
+                    <circle
+                        cx={drawingState.current.x}
+                        cy={drawingState.current.y}
+                        r={1}
+                        fill="white"
+                    />
+                </g>
             )
         }
         if (
@@ -489,7 +546,7 @@ export function ImageGallery({
                         className="group overflow-hidden rounded-xl border bg-card text-left"
                         onClick={() => setSelectedImageId(image.id)}
                     >
-                        <div className="relative aspect-square overflow-hidden bg-muted">
+                        <div className="relative aspect-video overflow-hidden bg-muted">
                             <img
                                 src={image.url}
                                 alt={image.caption ?? "BCS foto"}
@@ -554,9 +611,14 @@ export function ImageGallery({
                                                         label: "Cirkel",
                                                     },
                                                     {
-                                                        type: "freehand" as const,
-                                                        Icon: Pencil,
-                                                        label: "Tekening",
+                                                       type: "arrow" as const,
+                                                       Icon: ArrowRight,
+                                                       label: "Pijl",
+                                                    },
+                                                    {
+                                                       type: "freehand" as const,
+                                                       Icon: Pencil,
+                                                       label: "Tekening",
                                                     },
                                                 ] as const
                                             ).map(({ type, Icon, label }) => (
@@ -597,6 +659,11 @@ export function ImageGallery({
                                             ) : activeTool === "circle" ? (
                                                 <span className="text-xs text-muted-foreground">
                                                     Sleep om een cirkel te
+                                                    tekenen
+                                                </span>
+                                            ) : activeTool === "arrow" ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    Sleep om een pijl te
                                                     tekenen
                                                 </span>
                                             ) : (
@@ -666,12 +733,21 @@ export function ImageGallery({
                                                                 "circle" &&
                                                             isCircleCoords(c)
                                                         ) {
+                                                            const aspectRatio =
+                                                                imgSize
+                                                                    ? imgSize.w /
+                                                                      imgSize.h
+                                                                    : 1
                                                             return (
-                                                                <circle
+                                                                <ellipse
                                                                     key={index}
                                                                     cx={c.cx}
                                                                     cy={c.cy}
-                                                                    r={c.r}
+                                                                    rx={c.r}
+                                                                    ry={
+                                                                        c.r *
+                                                                        aspectRatio
+                                                                    }
                                                                     fill="none"
                                                                     stroke={
                                                                         color
