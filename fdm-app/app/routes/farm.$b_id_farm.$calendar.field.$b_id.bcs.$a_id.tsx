@@ -7,11 +7,10 @@ import {
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
-import { ArrowLeft, Trash2 } from "lucide-react"
+import { Trash2 } from "lucide-react"
 import {
     type ActionFunctionArgs,
     data,
-    Link,
     type LoaderFunctionArgs,
     useFetcher,
     useLoaderData,
@@ -159,12 +158,6 @@ export default function FieldBcsDetailRoute() {
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-2">
-                    <Button asChild variant="outline">
-                        <Link to="..">
-                            <ArrowLeft className="size-4" />
-                            Terug naar overzicht
-                        </Link>
-                    </Button>
                     <div>
                         <h3 className="text-lg font-medium">BCS meting</h3>
                         <p className="text-sm text-muted-foreground">
