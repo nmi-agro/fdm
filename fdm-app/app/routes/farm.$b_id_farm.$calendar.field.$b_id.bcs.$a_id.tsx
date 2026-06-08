@@ -154,64 +154,48 @@ export default function FieldBcsDetailRoute() {
     const measuredAt =
         loaderData.analysis.b_sampling_date ?? loaderData.analysis.a_date
 
+    const deleteButton = loaderData.fieldWritePermission ? (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    disabled={fetcher.state !== "idle"}
+                >
+                    <Trash2 className="size-4" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>
+                        BodemConditieScore verwijderen?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Deze actie kan niet ongedaan worden gemaakt.
+                        Alle foto&apos;s en notities worden ook
+                        verwijderd.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() =>
+                            fetcher.submit(null, {
+                                method: "DELETE",
+                            })
+                        }
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                        Verwijderen
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    ) : null
+
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-2">
-                    <div>
-                        <h3 className="text-lg font-medium">BCS meting</h3>
-                        <p className="text-sm text-muted-foreground">
-                            {measuredAt
-                                ? format(new Date(measuredAt), "PPP", {
-                                      locale: nl,
-                                  })
-                                : "Onbekende datum"}
-                        </p>
-                    </div>
-                </div>
-                {loaderData.fieldWritePermission ? (
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                disabled={fetcher.state !== "idle"}
-                            >
-                                <Trash2 className="size-4" />
-                                {fetcher.state !== "idle"
-                                    ? "Verwijderen..."
-                                    : "Verwijderen"}
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                    BodemConditieScore verwijderen?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Deze actie kan niet ongedaan worden gemaakt.
-                                    Alle foto&apos;s en notities worden ook
-                                    verwijderd.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={() =>
-                                        fetcher.submit(null, {
-                                            method: "DELETE",
-                                        })
-                                    }
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                    Verwijderen
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                ) : null}
-            </div>
-
             {loaderData.labAnalysisDate ? (
                 <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
                     pH en organische stof zijn afgeleid uit de labanalyse van{" "}
@@ -232,6 +216,14 @@ export default function FieldBcsDetailRoute() {
                     i_bcs={loaderData.computed.i_bcs}
                     scoreColor={loaderData.computed.scoreColor}
                     scoreLabel={loaderData.computed.scoreLabel}
+                    measuredAt={
+                        measuredAt
+                            ? format(new Date(measuredAt), "PPP", {
+                                  locale: nl,
+                              })
+                            : "Onbekende datum"
+                    }
+                    actions={deleteButton}
                 />
 
                 {loaderData.images.length > 0 ? (
@@ -239,7 +231,11 @@ export default function FieldBcsDetailRoute() {
                         <h4 className="font-medium">Foto&apos;s en notities</h4>
                         <ImageGallery images={loaderData.images} />
                     </div>
-                ) : null}
+                ) : (
+                    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                        <p>Geen foto&apos;s opgeslagen voor deze BodemConditieScore.</p>
+                    </div>
+                )}
             </div>
         </div>
     )

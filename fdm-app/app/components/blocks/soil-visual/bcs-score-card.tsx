@@ -15,6 +15,7 @@ import {
     CardTitle,
 } from "~/components/ui/card"
 import { cn } from "~/lib/utils"
+import type { ReactNode } from "react"
 
 interface BcsScoreCardProps {
     scores: BcsScores
@@ -24,6 +25,8 @@ interface BcsScoreCardProps {
     i_bcs: number
     scoreColor: BcsColor
     scoreLabel: string
+    measuredAt?: string | null
+    actions?: ReactNode
 }
 
 export function BcsScoreCard({
@@ -34,6 +37,8 @@ export function BcsScoreCard({
     i_bcs,
     scoreColor,
     scoreLabel,
+    measuredAt,
+    actions,
 }: BcsScoreCardProps) {
     return (
         <Card>
@@ -42,17 +47,22 @@ export function BcsScoreCard({
                     <div className="space-y-1">
                         <CardTitle className="text-xl">Overzicht</CardTitle>
                         <CardDescription>
-                            BodemConditieScore met alle visuele indicatoren en afgeleide labindicatoren.
+                            {measuredAt
+                                ? measuredAt
+                                : "BodemConditieScore met alle visuele indicatoren en afgeleide labindicatoren."}
                         </CardDescription>
                     </div>
-                    <Badge
-                        className={cn(
-                            "w-fit border px-4 py-2 text-sm font-semibold",
-                            BCS_COLOR_CLASSES[scoreColor],
-                        )}
-                    >
-                        {scoreLabel}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        <Badge
+                            className={cn(
+                                "w-fit border px-4 py-2 text-sm font-semibold",
+                                BCS_COLOR_CLASSES[scoreColor],
+                            )}
+                        >
+                            {scoreLabel}
+                        </Badge>
+                        {actions}
+                    </div>
                 </div>
                 <div className={cn("rounded-xl border p-4", BCS_COLOR_CLASSES[scoreColor])}>
                     <div className="text-sm font-medium opacity-80">BodemConditieScore</div>
