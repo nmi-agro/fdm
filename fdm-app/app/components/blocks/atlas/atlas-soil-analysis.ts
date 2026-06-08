@@ -1,5 +1,14 @@
-import type { ExpressionSpecification } from "maplibre-gl"
-import type { LayerProps } from "react-map-gl"
+import type {
+    ExpressionSpecification,
+    FillLayerSpecification,
+} from "maplibre-gl"
+
+const FILL_LAYER_TYPE = "fill" as const
+
+type FillLayerStyle = {
+    type: typeof FILL_LAYER_TYPE
+    paint: FillLayerSpecification["paint"]
+}
 
 /* ================ SHADING DEFINITIONS ================ */
 
@@ -255,7 +264,7 @@ export function getSoilAnalysisLayerStyle(
     parameter: ShadedSoilParameters,
     min: number,
     max: number,
-): { paint: LayerProps["paint"]; type: "fill" } {
+): FillLayerStyle {
     // MapLibreGL expression to get the data path out of the input object (which is the feature properties)
     const dataGetter = getShadingParameterMapper(parameter).paint([
         "get",
@@ -266,10 +275,14 @@ export function getSoilAnalysisLayerStyle(
         const fillColor =
             ENUM_SHADED_SOIL_PARAMETERS[parameter as EnumShadedSoilParameters]
         return {
-            type: "fill",
+            type: FILL_LAYER_TYPE,
             paint: {
                 "fill-opacity": 0.8,
-                "fill-color": ["match", dataGetter, ...fillColor],
+                "fill-color": [
+                    "match",
+                    dataGetter,
+                    ...fillColor,
+                ] as ExpressionSpecification,
             },
         }
     }
@@ -282,7 +295,7 @@ export function getSoilAnalysisLayerStyle(
         const fillColor = GRADIENT_DEFINITIONS[gradientName]
         function greyIfUndefined(
             expr: ExpressionSpecification,
-        ): ["match", ...unknown[]] {
+        ): ExpressionSpecification {
             return [
                 "match",
                 ["typeof", dataGetter],
@@ -295,7 +308,7 @@ export function getSoilAnalysisLayerStyle(
         }
 
         return {
-            type: "fill",
+            type: FILL_LAYER_TYPE,
             paint: {
                 "fill-color": greyIfUndefined([
                     "interpolate",
@@ -313,7 +326,7 @@ export function getSoilAnalysisLayerStyle(
     }
 
     return {
-        type: "fill",
+        type: FILL_LAYER_TYPE,
         paint: {
             "fill-color": "#ff00ff",
         },

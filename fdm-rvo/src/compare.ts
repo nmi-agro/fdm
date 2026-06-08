@@ -16,6 +16,15 @@ import { bboxOverlap, calculateIoU } from "./utils"
 // A value of 0.99 means the intersection area must be at least 99% of the union area.
 const IOU_THRESHOLD = 0.99
 
+type FieldWithCultivations = Field & { cultivations?: Cultivation[] }
+type FieldWithGeometry = FieldWithCultivations & {
+    b_geometry: NonNullable<Field["b_geometry"]>
+}
+
+function hasGeometry(field: FieldWithCultivations): field is FieldWithGeometry {
+    return field.b_geometry !== null
+}
+
 function findActiveCultivation(
     cultivations: Cultivation[],
     calendar: number,
@@ -43,7 +52,7 @@ function findActiveCultivation(
  * @returns An array of `RvoImportReviewItem` objects, each representing a field and its status (MATCH, CONFLICT, NEW_REMOTE, NEW_LOCAL).
  */
 export function compareFields(
-    localFields: (Field & { cultivations?: Cultivation[] })[],
+    localFields: FieldWithCultivations[],
     rvoFields: RvoField[],
     calendar = new Date().getFullYear(),
     cultivationsCatalogue: CultivationCatalogue[] = [],
@@ -53,7 +62,7 @@ export function compareFields(
     const matchedLocalIds = new Set<string>()
 
     const processMatch = (
-        local: Field & { cultivations?: Cultivation[] },
+        local: FieldWithCultivations,
         rvo: RvoField,
     ) => {
         // Detect property differences
@@ -139,10 +148,11 @@ export function compareFields(
     // Prepare candidates: Only local fields that haven't been matched yet
     const remainingLocals = localFields
         .filter((f) => !matchedLocalIds.has(f.b_id))
+        .filter(hasGeometry)
         .map((f) => ({
             field: f,
             // Pre-calculate BBox for performance (avoid recalc inside loop)
-            bbox: bbox(f.b_geometry as any),
+            bbox: bbox(f.b_geometry),
         }))
 
     for (const rvo of rvoFields) {
@@ -150,7 +160,7 @@ export function compareFields(
         if (matchedRvoIds.has(rvo.properties.CropFieldID)) continue
 
         const rvoBbox = bbox(rvo.geometry)
-        let bestMatch: (Field & { cultivations?: Cultivation[] }) | null = null
+        let bestMatch: FieldWithGeometry | null = null
         let bestIoU = 0
 
         // Optimization: Fast BBox overlap check before accurate IoU; exclude already-matched locals
@@ -292,9 +302,13 @@ function detectDiffs(local: Field, rvo: RvoField): FieldDiff[] {
     // We use a very strict IoU (0.99) to detect if the shape has been modified, even slightly.
     // If IoU is less than this threshold, we flag it as a geometry difference.
     // We don't require 1.0 because of potential minor floating point differences in coordinates.
-    const iou = calculateIoU(local.b_geometry, rvo.geometry)
-    if (iou < IOU_THRESHOLD) {
+    if (!local.b_geometry) {
         diffs.push("b_geometry")
+    } else {
+        const iou = calculateIoU(local.b_geometry, rvo.geometry)
+        if (iou < IOU_THRESHOLD) {
+            diffs.push("b_geometry")
+        }
     }
 
     // 3. Dates (Start)

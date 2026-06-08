@@ -1,6 +1,12 @@
 import { Command as CommandPrimitive } from "cmdk"
 import { Check, User, Users } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
+import type {
+    FieldPathValue,
+    FieldValues,
+    Path,
+    UseFormSetValue,
+} from "react-hook-form"
 import { useFetcher } from "react-router-dom"
 import {
     Command,
@@ -23,7 +29,11 @@ type LookupItem<T extends string> = {
 
 type IconMap = Record<string, React.ComponentType<{ className?: string }>>
 
-type Props<T extends string> = {
+type Props<
+    T extends string,
+    TFieldValues extends FieldValues = FieldValues,
+    TName extends Path<TFieldValues> = Path<TFieldValues>,
+> = {
     selectedValue: T
     onSelectedValueChange: (value: T) => void
     lookupUrl: string // API endpoint for lookup
@@ -32,16 +42,21 @@ type Props<T extends string> = {
     iconMap?: IconMap // Optional map of icon identifiers to components
     emptyMessage?: string | ((inputValue: string) => React.ReactNode)
     placeholder?: string
-    // biome-ignore lint/suspicious/noExplicitAny: Using any temporarily due to potential type conflicts with remix-hook-form
-    form?: any
-    name?: string // Name for remix-hook-form registration
+    form?: {
+        setValue: UseFormSetValue<TFieldValues>
+    }
+    name?: TName // Name for remix-hook-form registration
     className?: string
     /** When true, values typed directly (not from dropdown) are accepted as-is (e.g. email addresses) */
     allowValuesOutsideList?: boolean
     disabled?: boolean
 }
 
-export function AutoComplete<T extends string>({
+export function AutoComplete<
+    T extends string,
+    TFieldValues extends FieldValues = FieldValues,
+    TName extends Path<TFieldValues> = Path<TFieldValues>,
+>({
     selectedValue,
     onSelectedValueChange,
     lookupUrl,
@@ -55,7 +70,7 @@ export function AutoComplete<T extends string>({
     className,
     allowValuesOutsideList = false,
     disabled = false,
-}: Props<T>) {
+}: Props<T, TFieldValues, TName>) {
     const fetcher = useFetcher<LookupItem<T>[]>()
     const [open, setOpen] = useState(false)
     const openRef = useRef(open)
@@ -142,7 +157,7 @@ export function AutoComplete<T extends string>({
         if (selectedValue && value !== selectedLabel) {
             onSelectedValueChange("" as T) // Clear parent state
             if (form && name) {
-                form.setValue(name, "") // Clear form state if applicable
+                form.setValue(name, "" as FieldPathValue<TFieldValues, TName>)
             }
         }
     }
@@ -154,7 +169,10 @@ export function AutoComplete<T extends string>({
             setInputValue(selectedItem.label) // Update input to reflect selection
             prevInputValue.current = selectedItem.label // Update previous input value to prevent unnecessary fetch
             if (form && name) {
-                form.setValue(name, selectedItem.value) // Update form state
+                form.setValue(
+                    name,
+                    selectedItem.value as FieldPathValue<TFieldValues, TName>,
+                )
             }
         }
         setOpen(false)
@@ -171,7 +189,10 @@ export function AutoComplete<T extends string>({
                 // Accept typed value as-is (e.g. email address)
                 onSelectedValueChange(inputValue as T)
                 if (form && name) {
-                    form.setValue(name, inputValue)
+                    form.setValue(
+                        name,
+                        inputValue as FieldPathValue<TFieldValues, TName>,
+                    )
                 }
             } else {
                 // Only dropdown selections allowed — clear the input
@@ -288,14 +309,7 @@ export function AutoComplete<T extends string>({
                     </PopoverContent>
                 </Command>
             </Popover>
-            {/* Hidden input for react-hook-form integration */}
-            {form && name && (
-                <input
-                    type="hidden"
-                    {...form.register(name)}
-                    defaultValue={selectedValue}
-                />
-            )}
+            {name && <input type="hidden" name={name} value={selectedValue} readOnly />}
         </div>
     )
 }

@@ -1,4 +1,7 @@
-import type { FertilizerParameters } from "@nmi-agro/fdm-core"
+import type {
+    FertilizerParameterDescription,
+    FertilizerParameterDescriptionItem,
+} from "@nmi-agro/fdm-core"
 import { Copy, InfoIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Controller, useWatch } from "react-hook-form"
@@ -26,21 +29,6 @@ import {
     SelectValue,
 } from "~/components/ui/select"
 import { cn } from "~/lib/utils"
-
-export interface FertilizerParameterDescriptionItem {
-    parameter: FertilizerParameters
-    unit: string
-    type: "numeric" | "enum" | "date" | "text" | "enum_multi"
-    name: string
-    description: string
-    category: "general" | "primary" | "secondary" | "trace" | "physical"
-    min?: number
-    max?: number
-    options?: { label: string; value: string }[]
-}
-
-export type FertilizerParameterDescription =
-    FertilizerParameterDescriptionItem[]
 
 type FormSchemaKeys = keyof z.infer<typeof FormSchema>
 
@@ -164,13 +152,13 @@ export function FertilizerForm({
                                 <SelectContent>
                                     {param.options?.map((option) => (
                                         <SelectItem
-                                            key={option.value}
-                                            value={option.value}
+                                            key={option.value ?? option.label}
+                                            value={option.value ?? ""}
                                         >
                                             {param.parameter ===
                                             "p_app_amount_unit"
                                                 ? option.label
-                                                : `${option.label} (${option.value})`}
+                                                : `${option.label} (${option.value ?? ""})`}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -231,7 +219,9 @@ export function FertilizerForm({
                                         disabled={!editable}
                                         checked={
                                             Array.isArray(field.value) &&
-                                            field.value.includes(option.value)
+                                            field.value.includes(
+                                                option.value ?? "",
+                                            )
                                         }
                                         onCheckedChange={(checked) => {
                                             const currentValues = Array.isArray(

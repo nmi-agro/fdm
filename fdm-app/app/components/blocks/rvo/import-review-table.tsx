@@ -1,3 +1,4 @@
+import type { Field, FieldGeometry } from "@nmi-agro/fdm-core"
 import type {
     ImportReviewAction,
     RvoImportReviewItem,
@@ -56,26 +57,28 @@ declare module "@tanstack/react-table" {
         userChoices: UserChoiceMap
         flags?: ImportReviewFlags
         /** Function to replace a review item. `getItemId(replacement)` will return the same value as the original. */
-        onItemChange?: (id: string, item: RvoImportReviewItem<any>) => void
+        onItemChange?: (id: string, item: ReviewItem) => void
         onChoiceChange: (id: string, action: ImportReviewAction) => void
     }
 }
+
+type ReviewItem = RvoImportReviewItem<Field>
 
 export interface ImportReviewFlags {
     b_bufferstrip_info_available?: boolean
 }
 
 interface RvoImportReviewTableProps {
-    data: RvoImportReviewItem<any>[]
+    data: ReviewItem[]
     calendar: string
     userChoices: UserChoiceMap
     flags?: ImportReviewFlags
     /** Function to replace a review item. `getItemId(replacement)` will return the same value as the original. Replacements won't work if this is not provided. */
-    onItemChange?: (id: string, action: RvoImportReviewItem<any>) => void
+    onItemChange?: (id: string, action: ReviewItem) => void
     onChoiceChange: (id: string, action: ImportReviewAction) => void
 }
 
-function formatDate(dateString?: string | Date) {
+function formatDate(dateString?: string | Date | null) {
     if (!dateString) return "-"
     try {
         const date =
@@ -86,7 +89,7 @@ function formatDate(dateString?: string | Date) {
     }
 }
 
-function formatArea(geometry: any) {
+function formatArea(geometry: FieldGeometry) {
     if (!geometry) return "-"
     const a = area(geometry)
     return `${(a / 10000).toFixed(2)} ha`
@@ -216,7 +219,7 @@ const DiffCell = ({
     return null
 }
 
-export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
+export const columns: ColumnDef<ReviewItem>[] = [
     {
         accessorKey: "status",
         header: () => (
@@ -613,7 +616,7 @@ export const columns: ColumnDef<RvoImportReviewItem<any>>[] = [
                                 },
                             },
                         },
-                    } as RvoImportReviewItem<any>)
+                    } as ReviewItem)
                 }
             }
 
@@ -746,8 +749,9 @@ export function RvoImportReviewTable({
                 if (item.rvoField?.geometry) {
                     return area(item.rvoField.geometry) / 10000
                 }
-                if (Number.isFinite(item.localField?.b_area)) {
-                    return item.localField.b_area as number
+                const localArea = item.localField?.b_area
+                if (Number.isFinite(localArea)) {
+                    return localArea as number
                 }
                 return null
             }
@@ -772,6 +776,7 @@ export function RvoImportReviewTable({
         columns,
         getCoreRowModel: getCoreRowModel(),
         meta: {
+            canModify: true,
             userChoices,
             calendar,
             flags,

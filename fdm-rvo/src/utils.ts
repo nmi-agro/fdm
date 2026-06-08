@@ -1,3 +1,4 @@
+import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import area from "@turf/area"
 import bbox from "@turf/bbox"
 import { feature, featureCollection } from "@turf/helpers"
@@ -47,7 +48,10 @@ export function getItemId(item: RvoImportReviewItem<any>): string {
  * @param geom2 - The second geometry (GeoJSON).
  * @returns A number between 0 (no overlap) and 1 (perfect match). Returns 0 on error.
  */
-export function calculateIoU(geom1: any, geom2: any): number {
+export function calculateIoU(
+    geom1: FieldGeometry,
+    geom2: FieldGeometry,
+): number {
     try {
         const f1 = feature(geom1)
         const f2 = feature(geom2)
@@ -93,6 +97,6 @@ export function bboxOverlap(bbox1: number[], bbox2: number[]): boolean {
  * @param geometry - The GeoJSON geometry.
  * @returns The bounding box as [minX, minY, maxX, maxY].
  */
-export function computeBbox(geometry: any): number[] {
+export function computeBbox(geometry: FieldGeometry): number[] {
     return bbox(geometry)
 }

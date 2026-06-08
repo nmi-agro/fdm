@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { Slot } from "radix-ui"
+import { Slot as SlotPrimitive } from "radix-ui"
 import {
     type ButtonHTMLAttributes,
     createContext,
@@ -57,7 +57,7 @@ export function ExpandableTrigger(props: ExpandableTriggerProps) {
         },
     }
     return props.asChild ? (
-        <Slot {...props} {...myProps} />
+        <SlotPrimitive.Slot {...props} {...myProps} />
     ) : (
         <Button
             variant="link"

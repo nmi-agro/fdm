@@ -45,10 +45,10 @@ function CultivationAddForm({
 }: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void }) {
     const form = useRemixForm<z.infer<typeof CultivationAddFormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(CultivationAddFormSchema),
+        resolver: zodResolver(CultivationAddFormSchema) as never,
         defaultValues: {
             b_lu_catalogue: "",
-            b_lu_start: new Date(), // Initialize with a Date object
+            b_lu_start: new Date(),
             b_lu_end: undefined,
         },
     })
@@ -76,7 +76,7 @@ function CultivationAddForm({
                         <div className="col-span-1">
                             <Combobox
                                 options={options}
-                                form={form as any}
+                                form={form}
                                 name="b_lu_catalogue"
                                 label={
                                     <span>
@@ -93,6 +93,7 @@ function CultivationAddForm({
                                 name={"b_lu_start"}
                                 label={"Zaaidatum"}
                                 description={""}
+                                disabled={form.formState.isSubmitting}
                             />
                             <DatePicker
                                 form={form as any}
@@ -101,6 +102,7 @@ function CultivationAddForm({
                                 description={
                                     "Datum waarop het gewas wordt beëindigd"
                                 }
+                                disabled={form.formState.isSubmitting}
                             />
                         </div>
                         <div className="">

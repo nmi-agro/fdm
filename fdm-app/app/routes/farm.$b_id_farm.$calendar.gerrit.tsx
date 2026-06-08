@@ -19,7 +19,6 @@ import {
     collectInputForNitrogenBalance,
     collectInputForOrganicMatterBalance,
     createFunctionsForFertilizerApplicationFilling,
-    createFunctionsForNorms,
     getNutrientAdvice,
     type NormFilling,
     type NutrientAdvice,
@@ -71,7 +70,7 @@ import {
 } from "~/components/blocks/gerrit/schema"
 import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
 import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
-import type { FieldMetrics, ParsedPlan } from "~/components/blocks/gerrit/types"
+import type { FieldMetrics, FarmTotals, ParsedPlan } from "~/components/blocks/gerrit/types"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import {
@@ -87,6 +86,7 @@ import {
 import { Button } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { getFieldNormValues } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -96,7 +96,9 @@ import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 import { getDefaultCultivation } from "../lib/cultivation-helpers"
 
-function isValidDutchCropCatalogue(b_lu_catalogue: string | undefined) {
+function isValidDutchCropCatalogue(
+    b_lu_catalogue: string | undefined,
+): b_lu_catalogue is string {
     return /^nl_\d+$/.test(b_lu_catalogue ?? "")
 }
 
@@ -244,7 +246,6 @@ async function computePlanMetrics(
     const year = (["2025", "2026"].includes(calendar) ? calendar : "2025") as
         | "2025"
         | "2026"
-    const normFuncs = createFunctionsForNorms("NL", year)
     const fillingFuncs = createFunctionsForFertilizerApplicationFilling(
         "NL",
         year,
@@ -279,38 +280,15 @@ async function computePlanMetrics(
                 let nitrogen: { normValue: number; normSource: string }
                 let phosphate: { normValue: number; normSource: string }
                 try {
-                    const normsInput = await normFuncs.collectInputForNorms(
+                    const norms = await getFieldNormValues({
                         fdm,
-                        principalId,
-                        field.b_id,
-                    )
-                    const [manureResult, phosphateResult, nitrogenResult] =
-                        await Promise.all([
-                            normFuncs.calculateNormForManure(
-                                fdm,
-                                normsInput as any,
-                            ),
-                            normFuncs.calculateNormForPhosphate(
-                                fdm,
-                                normsInput as any,
-                            ),
-                            normFuncs.calculateNormForNitrogen(
-                                fdm,
-                                normsInput as any,
-                            ),
-                        ])
-                    manure = {
-                        normValue: manureResult.normValue,
-                        normSource: manureResult.normSource,
-                    }
-                    phosphate = {
-                        normValue: phosphateResult.normValue,
-                        normSource: phosphateResult.normSource,
-                    }
-                    nitrogen = {
-                        normValue: nitrogenResult.normValue,
-                        normSource: nitrogenResult.normSource,
-                    }
+                        principal_id: principalId,
+                        b_id: field.b_id,
+                        calendar: year,
+                    })
+                    manure = norms.manure
+                    phosphate = norms.phosphate
+                    nitrogen = norms.nitrogen
                 } catch (err) {
                     console.warn(
                         `[computePlanMetrics] Norm calc failed for ${field.b_id}:`,
@@ -538,29 +516,16 @@ async function computePlanMetrics(
             .filter((f) => !f.b_bufferstrip && f.b_area)
             .map(async (f) => {
                 try {
-                    const normsInput = await normFuncs.collectInputForNorms(
+                    const norms = await getFieldNormValues({
                         fdm,
-                        principalId,
-                        f.b_id,
-                    )
-                    const [manure, phosphate, nitrogen] = await Promise.all([
-                        normFuncs.calculateNormForManure(
-                            fdm,
-                            normsInput as any,
-                        ),
-                        normFuncs.calculateNormForPhosphate(
-                            fdm,
-                            normsInput as any,
-                        ),
-                        normFuncs.calculateNormForNitrogen(
-                            fdm,
-                            normsInput as any,
-                        ),
-                    ])
+                        principal_id: principalId,
+                        b_id: f.b_id,
+                        calendar: year,
+                    })
                     return {
                         b_id: f.b_id,
-                        b_area: f.b_area as number,
-                        norms: { manure, phosphate, nitrogen },
+                        b_area: f.b_area ?? 0,
+                        norms,
                     }
                 } catch {
                     return null
@@ -569,11 +534,18 @@ async function computePlanMetrics(
     )
 
     const farmNormsKg = aggregateNormsToFarmLevel(
-        allFarmFieldNorms.filter(Boolean).map((r) => ({
-            b_id: r?.b_id,
-            b_area: r?.b_area,
-            norms: r?.norms,
-        })),
+        allFarmFieldNorms
+            .filter(
+                (
+                    field,
+                ): field is NonNullable<(typeof allFarmFieldNorms)[number]> =>
+                    field?.b_id != null && field.norms != null,
+            )
+            .map((field) => ({
+                b_id: field.b_id,
+                b_area: field.b_area ?? 0,
+                norms: field.norms,
+            })),
     )
 
     const farmFillingsKg = aggregateNormFillingsToFarmLevel(
@@ -1144,9 +1116,15 @@ export default function GerritApp() {
             currentLocation.pathname !== nextLocation.pathname,
     )
 
-    const plan = actionData?.intent === "generate" ? actionData.plan : null
-    const strategies =
-        actionData?.intent === "generate" ? actionData.strategies : null
+    const generatedActionData =
+        actionData &&
+        typeof actionData === "object" &&
+        "intent" in actionData &&
+        actionData.intent === "generate"
+            ? actionData
+            : null
+    const plan = generatedActionData?.plan ?? null
+    const strategies = generatedActionData?.strategies ?? null
     const farmTotals = plan?.metrics?.farmTotals
 
     const [showStrategyForm, setShowStrategyForm] = useState(true)
@@ -1371,7 +1349,7 @@ export default function GerritApp() {
                                 />
                             ) : (
                                 <SummaryCards
-                                    farmTotals={farmTotals}
+                                    farmTotals={farmTotals as FarmTotals | undefined}
                                     planSummary={plan?.summary}
                                     activeStrategyLabels={activeStrategyLabels}
                                     onEditStrategy={() =>
@@ -1388,7 +1366,9 @@ export default function GerritApp() {
                                 <GerritLoading />
                             ) : plan ? (
                                 <PlanTable
-                                    plan={plan}
+                                    plan={
+                                        plan as ParsedPlan & { plan: import("~/components/blocks/gerrit/types").PlanRow[] }
+                                    }
                                     isSaving={isSaving}
                                     expandedRows={expandedRows}
                                     toggleRow={toggleRow}

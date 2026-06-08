@@ -99,7 +99,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // TODO: Add wizard-specific layout/header/breadcrumbs
 // TODO: Add "Voltooien" button with correct navigation
 export default function CreateFarmAccessStep() {
-    const { b_id_farm, b_name_farm, principals, hasSharePermission, calendar } =
+    const { b_id_farm, b_name_farm, principals, hasSharePermission } =
         useLoaderData<typeof loader>()
 
     return (

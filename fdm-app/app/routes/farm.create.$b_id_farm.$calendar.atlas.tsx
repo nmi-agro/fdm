@@ -22,7 +22,6 @@ import {
     Layer,
     Map as MapGL,
     type MapRef,
-    type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import {
@@ -49,7 +48,10 @@ import {
     FieldsSourceSelected,
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import {
+    type AtlasViewState,
+    getViewState,
+} from "~/components/blocks/atlas/atlas-viewstate"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { Separator } from "~/components/ui/separator"
@@ -125,7 +127,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const features = await Promise.all(
             fields.map(async (field) => {
                 // Get field cultivation if available or get the first cultivation created by the farmer
-                let cultivation = field.b_lu_name
+                let cultivation = (field as { b_lu_name?: string }).b_lu_name
                 if (!cultivation) {
                     try {
                         const cultivations = await getCultivations(
@@ -151,7 +153,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     properties: {
                         b_id: field.b_id,
                         b_name: field.b_name,
-                        b_area: Math.round(field.b_area * 10) / 10,
+                        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
                         b_lu_name: cultivation,
                         b_id_source: field.b_id_source,
                     },
@@ -195,9 +197,7 @@ export default function Index() {
     const initialViewState = getViewState(loaderData.fieldsSaved)
     const fieldsAvailableStyle = getFieldsStyle(fieldsAvailableId)
 
-    const [viewState, setViewState] = useState<ViewState>(
-        initialViewState as ViewState,
-    )
+    const [viewState, setViewState] = useState<AtlasViewState>(initialViewState)
 
     const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
         setViewState(event.viewState)
@@ -380,14 +380,8 @@ export default function Index() {
                                     id={fieldsSavedId}
                                     fieldsData={fieldsSaved}
                                 >
-                                    <Layer
-                                        {...fieldsSavedOutlineStyle}
-                                        source={fieldsSavedId}
-                                    />
-                                    <Layer
-                                        {...fieldsSavedStyle}
-                                        source={fieldsSavedId}
-                                    />
+                                    <Layer {...fieldsSavedOutlineStyle} />
+                                    <Layer {...fieldsSavedStyle} />
                                 </FieldsSourceNotClickable>
 
                                 <div className="fields-panel">
@@ -502,7 +496,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         parsedYear >= 1970 &&
                         parsedYear < 2100
                             ? parsedYear
-                            : timeframe.start.getFullYear()
+                            : timeframe.start?.getFullYear() ?? new Date().getFullYear()
                     const cultivationDefaultDates =
                         await getDefaultDatesOfCultivation(
                             fdm,

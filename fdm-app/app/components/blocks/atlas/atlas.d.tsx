@@ -1,11 +1,11 @@
-import type { FeatureCollection } from "geojson"
+import type { FieldGeometry } from "@nmi-agro/fdm-core"
 
 export interface FeatureFdm {
-    type: "feature"
-    geometry: FeatureCollection
+    type: "Feature"
+    geometry: FieldGeometry
     properties: {
         b_id_source: string
-        [key: string]: any
+        [key: string]: unknown
     }
 }
 

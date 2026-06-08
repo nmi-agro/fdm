@@ -6,12 +6,13 @@ import {
     collectInputForOrganicMatterBalance,
     createFunctionsForFertilizerApplicationFilling,
     createFunctionsForNorms,
-    type FieldInput,
+    type GebruiksnormResult,
     getNitrogenBalanceField,
     getNutrientAdvice,
     getOrganicMatterBalanceField,
     type NitrogenBalanceFieldResultNumeric,
     type NitrogenBalanceNumeric,
+    type NormFilling,
     type NutrientAdvice,
     type OrganicMatterBalanceFieldResultNumeric,
     type OrganicMatterBalanceNumeric,
@@ -30,6 +31,174 @@ import {
 } from "@nmi-agro/fdm-core"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { getNmiApiKey } from "./nmi.server"
+
+type OrganicMatterFieldInput =
+    Awaited<ReturnType<typeof collectInputForOrganicMatterBalance>>["fields"][number]
+
+function getRequiredTimeFrame(timeframe: Timeframe): { start: Date; end: Date } {
+    if (!timeframe.start || !timeframe.end) {
+        throw new Error("Timeframe start and end must be provided")
+    }
+
+    return {
+        start: timeframe.start,
+        end: timeframe.end,
+    }
+}
+
+export type FieldNormValues = {
+    manure: GebruiksnormResult
+    phosphate: GebruiksnormResult
+    nitrogen: GebruiksnormResult
+}
+
+export type FieldNormFillings = {
+    manure: NormFilling
+    phosphate: NormFilling
+    nitrogen: NormFilling
+}
+
+export async function getFieldNormValues({
+    fdm,
+    principal_id,
+    b_id,
+    calendar,
+}: {
+    fdm: FdmType
+    principal_id: PrincipalId
+    b_id: Field["b_id"]
+    calendar: "2025" | "2026"
+}): Promise<FieldNormValues> {
+    if (calendar === "2026") {
+        const functionsForNorms = createFunctionsForNorms("NL", "2026")
+        const normsInput = await functionsForNorms.collectInputForNorms(
+            fdm,
+            principal_id,
+            b_id,
+        )
+        const [manure, phosphate, nitrogen] = await Promise.all([
+            (
+                functionsForNorms.calculateNormForManure as (
+                    fdm: FdmType,
+                    input: typeof normsInput,
+                ) => Promise<GebruiksnormResult>
+            )(fdm, normsInput),
+            (
+                functionsForNorms.calculateNormForPhosphate as (
+                    fdm: FdmType,
+                    input: typeof normsInput,
+                ) => Promise<GebruiksnormResult>
+            )(fdm, normsInput),
+            (
+                functionsForNorms.calculateNormForNitrogen as (
+                    fdm: FdmType,
+                    input: typeof normsInput,
+                ) => Promise<GebruiksnormResult>
+            )(fdm, normsInput),
+        ])
+
+        return { manure, phosphate, nitrogen }
+    }
+
+    const functionsForNorms = createFunctionsForNorms("NL", "2025")
+    const normsInput = await functionsForNorms.collectInputForNorms(
+        fdm,
+        principal_id,
+        b_id,
+    )
+    const [manure, phosphate, nitrogen] = await Promise.all([
+        (
+            functionsForNorms.calculateNormForManure as (
+                fdm: FdmType,
+                input: typeof normsInput,
+            ) => Promise<GebruiksnormResult>
+        )(fdm, normsInput),
+        (
+            functionsForNorms.calculateNormForPhosphate as (
+                fdm: FdmType,
+                input: typeof normsInput,
+            ) => Promise<GebruiksnormResult>
+        )(fdm, normsInput),
+        (
+            functionsForNorms.calculateNormForNitrogen as (
+                fdm: FdmType,
+                input: typeof normsInput,
+            ) => Promise<GebruiksnormResult>
+        )(fdm, normsInput),
+    ])
+
+    return { manure, phosphate, nitrogen }
+}
+
+async function getFieldNormFillings({
+    fdm,
+    principal_id,
+    b_id,
+    calendar,
+    phosphateNorm,
+}: {
+    fdm: FdmType
+    principal_id: PrincipalId
+    b_id: Field["b_id"]
+    calendar: "2025" | "2026"
+    phosphateNorm: number
+}): Promise<FieldNormFillings> {
+    if (calendar === "2026") {
+        const functionsForFilling =
+            createFunctionsForFertilizerApplicationFilling("NL", "2026")
+        const fillingInput =
+            await functionsForFilling.collectInputForFertilizerApplicationFilling(
+                fdm,
+                principal_id,
+                b_id,
+                phosphateNorm,
+            )
+        const [manure, phosphate, nitrogen] = await Promise.all([
+            functionsForFilling.calculateFertilizerApplicationFillingForManure(
+                fdm,
+                fillingInput,
+            ),
+            functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(
+                fdm,
+                fillingInput,
+            ),
+            functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(
+                fdm,
+                fillingInput,
+            ),
+        ])
+
+        return { manure, phosphate, nitrogen }
+    }
+
+    const functionsForFilling = createFunctionsForFertilizerApplicationFilling(
+        "NL",
+        "2025",
+    )
+    const fillingInput =
+        await functionsForFilling.collectInputForFertilizerApplicationFilling(
+            fdm,
+            principal_id,
+            b_id,
+            phosphateNorm,
+        )
+    const [manure, phosphate, nitrogen] = await Promise.all([
+        functionsForFilling.calculateFertilizerApplicationFillingForManure(
+            fdm,
+            fillingInput,
+        ),
+        functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(
+            fdm,
+            fillingInput,
+        ),
+        functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(
+            fdm,
+            fillingInput,
+        ),
+    ])
+
+    return { manure, phosphate, nitrogen }
+}
 
 // Get nitrogen balance for a field
 export async function getNitrogenBalanceForField({
@@ -64,6 +233,7 @@ export async function getNitrogenBalanceForField({
     return {
         b_id: b_id,
         b_area: fields[0].field.b_area ?? 0,
+        b_bufferstrip: fields[0].field.b_bufferstrip ?? false,
         balance: nitrogenBalanceResult,
     }
 }
@@ -104,7 +274,7 @@ export async function getOrganicMatterBalanceForField({
     timeframe: Timeframe
 }): Promise<{
     fieldResult: OrganicMatterBalanceFieldResultNumeric
-    fieldInput: FieldInput
+    fieldInput: OrganicMatterFieldInput
 }> {
     const { fields, ...rest } = await collectInputForOrganicMatterBalance(
         fdm,
@@ -118,17 +288,20 @@ export async function getOrganicMatterBalanceForField({
         throw new Error(`Field ${b_id} not found for farm ${b_id_farm}`)
     }
 
+    const fieldInput = fields[0]
     const organicMatterBalanceResult = await getOrganicMatterBalanceField(fdm, {
-        fieldInput: fields[0],
+        fieldInput,
         ...rest,
+        timeFrame: getRequiredTimeFrame(rest.timeFrame),
     })
     return {
         fieldResult: {
             b_id: b_id,
-            b_area: fields[0].field.b_area ?? 0,
+            b_area: fieldInput.field.b_area ?? 0,
+            b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
             balance: organicMatterBalanceResult,
         },
-        fieldInput: fields[0],
+        fieldInput,
     }
 }
 
@@ -150,7 +323,10 @@ export async function getOrganicMatterBalanceForFarm({
         timeframe,
     )
 
-    return calculateOrganicMatterBalance(fdm, input)
+    return calculateOrganicMatterBalance(fdm, {
+        ...input,
+        timeFrame: getRequiredTimeFrame(input.timeFrame),
+    })
 }
 
 export async function getNutrientAdviceForField({
@@ -212,62 +388,24 @@ export async function getNorms({
     b_id: Field["b_id"]
     calendar: "2025" | "2026"
 }) {
-    const functionsForNorms = createFunctionsForNorms("NL", calendar)
-    const functionsForFilling = createFunctionsForFertilizerApplicationFilling(
-        "NL",
-        calendar,
-    )
-
-    const normsInput = await functionsForNorms.collectInputForNorms(
+    const value = await getFieldNormValues({
         fdm,
         principal_id,
         b_id,
-    )
+        calendar,
+    })
+    const filling = await getFieldNormFillings({
+        fdm,
+        principal_id,
+        b_id,
+        calendar,
+        phosphateNorm: value.phosphate.normValue,
+    })
 
-    const [normManure, normPhosphate, normNitrogen] = await Promise.all([
-        functionsForNorms.calculateNormForManure(fdm, normsInput),
-        functionsForNorms.calculateNormForPhosphate(fdm, normsInput),
-        functionsForNorms.calculateNormForNitrogen(fdm, normsInput),
-    ])
-
-    const fillingInput =
-        await functionsForFilling.collectInputForFertilizerApplicationFilling(
-            fdm,
-            principal_id,
-            b_id,
-            normPhosphate.normValue,
-        )
-
-    const [fillingManure, fillingPhosphate, fillingNitrogen] =
-        await Promise.all([
-            functionsForFilling.calculateFertilizerApplicationFillingForManure(
-                fdm,
-                fillingInput,
-            ),
-            functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(
-                fdm,
-                fillingInput,
-            ),
-            functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(
-                fdm,
-                fillingInput,
-            ),
-        ])
-
-    const norms = {
-        value: {
-            manure: normManure.normValue,
-            phosphate: normPhosphate.normValue,
-            nitrogen: normNitrogen.normValue,
-        },
-        filling: {
-            manure: fillingManure.normFilling,
-            phosphate: fillingPhosphate.normFilling,
-            nitrogen: fillingNitrogen.normFilling,
-        },
+    return {
+        value,
+        filling,
     }
-
-    return norms
 }
 
 export async function getPlannedDosesForField({

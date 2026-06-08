@@ -21,7 +21,7 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { columns } from "~/components/blocks/fields/columns"
+import { columns, type FieldExtended } from "~/components/blocks/fields/columns"
 import { DataTable } from "~/components/blocks/fields/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -140,7 +140,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             return {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
             }
         })
 
@@ -178,13 +178,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     field.b_id,
                     timeframe,
                 )
-                const a_som_loi =
+                const a_som_loi = Number(
                     currentSoilData.find((x) => x.parameter === "a_som_loi")
-                        ?.value ?? null
-                const b_soiltype_agr =
+                        ?.value ?? 0,
+                )
+                const b_soiltype_agr = String(
                     currentSoilData.find(
                         (x) => x.parameter === "b_soiltype_agr",
-                    )?.value ?? null
+                    )?.value ?? "",
+                )
 
                 const has_write_permission = await checkPermission(
                     fdm,
@@ -202,7 +204,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     fertilizers: fertilizersFiltered,
                     a_som_loi: a_som_loi,
                     b_soiltype_agr: b_soiltype_agr,
-                    b_area: Math.round(field.b_area * 10) / 10,
+                    b_area: Math.round((field.b_area ?? 0) * 10) / 10,
                     b_bufferstrip: field.b_bufferstrip,
                     has_write_permission: has_write_permission,
                 }
@@ -328,7 +330,7 @@ export default function FarmFieldIndex() {
                             <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
                                 <DataTable
                                     columns={columns}
-                                    data={filteredFields}
+                                    data={filteredFields as FieldExtended[]}
                                     canAddItem={loaderData.farmWritePermission}
                                 />
                             </div>

@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { Cultivation } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
+import type { FieldValues, Resolver, UseFormReturn } from "react-hook-form"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { DatePicker } from "~/components/custom/date-picker"
@@ -28,6 +29,13 @@ import {
     type CultivationDetailsFormSchemaType,
 } from "./schema"
 
+function toDate(value: Date | string | null | undefined) {
+    if (!value) {
+        return undefined
+    }
+    return value instanceof Date ? value : new Date(value)
+}
+
 export function CultivationDetailsCard({
     cultivation,
     b_lu_variety_options,
@@ -39,18 +47,18 @@ export function CultivationDetailsCard({
 }) {
     const fetcher = useFetcher()
     const form = useRemixForm<CultivationDetailsFormSchemaType>({
-        resolver: zodResolver(CultivationDetailsFormSchema),
+        resolver: zodResolver(
+            CultivationDetailsFormSchema,
+        ) as Resolver<CultivationDetailsFormSchemaType>,
         mode: "onTouched",
         defaultValues: {
-            b_lu_start: new Date(cultivation.b_lu_start),
-            b_lu_end: cultivation.b_lu_end
-                ? new Date(cultivation.b_lu_end)
-                : null,
+            b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
+            b_lu_end: toDate(cultivation.b_lu_end) ?? null,
             m_cropresidue:
                 cultivation.b_lu_croprotation === "cereal"
                     ? (cultivation.m_cropresidue ?? undefined)
                     : undefined,
-            b_lu_variety: cultivation.b_lu_variety ?? null,
+            b_lu_variety: cultivation.b_lu_variety ?? undefined,
         },
     })
 
@@ -59,15 +67,13 @@ export function CultivationDetailsCard({
 
     useEffect(() => {
         form.reset({
-            b_lu_start: new Date(cultivation.b_lu_start),
-            b_lu_end: cultivation.b_lu_end
-                ? new Date(cultivation.b_lu_end)
-                : null,
+            b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
+            b_lu_end: toDate(cultivation.b_lu_end) ?? null,
             m_cropresidue:
                 cultivation.b_lu_croprotation === "cereal"
                     ? (cultivation.m_cropresidue ?? undefined)
                     : undefined,
-            b_lu_variety: cultivation.b_lu_variety ?? null,
+            b_lu_variety: cultivation.b_lu_variety ?? undefined,
         })
     }, [cultivation, form.reset])
 
@@ -115,14 +121,18 @@ export function CultivationDetailsCard({
                         >
                             <div className="grid lg:grid-cols-2 gap-4">
                                 <DatePicker
-                                    form={form}
+                                    form={
+                                        form as unknown as UseFormReturn<FieldValues>
+                                    }
                                     name="b_lu_start"
                                     label="Zaaidatum"
                                     description=""
                                     disabled={!editable}
                                 />
                                 <DatePicker
-                                    form={form}
+                                    form={
+                                        form as unknown as UseFormReturn<FieldValues>
+                                    }
                                     name="b_lu_end"
                                     label="Einddatum"
                                     description=""

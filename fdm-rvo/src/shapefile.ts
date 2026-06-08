@@ -1,12 +1,6 @@
+import { type FieldGeometry } from "@nmi-agro/fdm-core"
 import { multiPolygon, polygon } from "@turf/helpers"
-import type {
-    Feature,
-    FeatureCollection,
-    Geometry,
-    MultiPolygon,
-    Polygon,
-    Position,
-} from "geojson"
+import type { Feature, FeatureCollection, Geometry, Position } from "geojson"
 import proj4 from "proj4"
 import { combine, parseDbf, parseShp } from "shpjs"
 import type { RvoField } from "./types"
@@ -38,7 +32,7 @@ export async function parseShapefileGeometry(
     shp_file: FileInterface,
     shx_file: FileInterface | undefined,
     prj_file: Blob | string | undefined,
-): Promise<(Polygon | MultiPolygon)[]> {
+): Promise<FieldGeometry[]> {
     try {
         const [shpData, shxData, projection] = await Promise.all([
             shp_file instanceof Blob ? shp_file.arrayBuffer() : shp_file,
@@ -104,7 +98,7 @@ export async function parseShapefileAttributes(
  * @throws if any of the required properties are missing
  */
 export function convertShapefileFeatureIntoRvoField(
-    feature: Feature<Polygon, Partial<RvoProperties>>,
+    feature: Feature<FieldGeometry, Partial<RvoProperties>>,
 ): RvoField {
     const isDefined = (x: unknown) => x !== null && typeof x !== "undefined"
     const { properties, geometry } = feature
@@ -201,7 +195,7 @@ export async function getRvoFieldsFromShapefile(
     )
     const attributes = await parseShapefileAttributes(dbf_file)
     const shapefile: FeatureCollection<
-        Polygon,
+        FieldGeometry,
         Partial<RvoProperties>
     > = combine([geometries, attributes])
 

@@ -29,7 +29,7 @@ import {
     Users,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { FormProvider } from "react-hook-form"
+import type { Resolver } from "react-hook-form"
 import type {
     ActionFunctionArgs,
     LinksFunction,
@@ -37,7 +37,7 @@ import type {
     MetaFunction,
 } from "react-router"
 import { Form, redirect, useSearchParams } from "react-router"
-import { useRemixForm } from "remix-hook-form"
+import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
 import {
@@ -176,31 +176,6 @@ function getSafeRedirect(address: string | null) {
         : "/farm"
 }
 
-const _UIPlaceholder = ({
-    className,
-    label,
-}: {
-    className?: string
-    label?: string
-}) => (
-    <div
-        className={cn(
-            "w-full h-32 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/10 flex flex-col items-center justify-center gap-2 overflow-hidden relative",
-            className,
-        )}
-    >
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/20" />
-        <div className="w-16 h-10 bg-background rounded shadow-sm border opacity-50 mb-1" />
-        <div className="w-20 h-2 bg-muted-foreground/20 rounded-full" />
-        <div className="w-12 h-2 bg-muted-foreground/20 rounded-full" />
-        {label && (
-            <span className="text-muted-foreground/50 text-xs font-medium z-10 mt-2">
-                {label}
-            </span>
-        )}
-    </div>
-)
-
 const StickyHeader = () => {
     const { scrollY } = useScroll()
     const [isVisible, setIsVisible] = useState(false)
@@ -318,7 +293,7 @@ export default function SignIn() {
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as Resolver<z.infer<typeof FormSchema>>,
         defaultValues: {
             email: "",
             timeZone: "",
@@ -529,11 +504,11 @@ export default function SignIn() {
                                             </span>
                                         </div>
                                     </div>
-                                    <FormProvider {...form}>
+                                    <RemixFormProvider {...form}>
                                         <Form
                                             id="formSigninMagicLink"
                                             onSubmit={form.handleSubmit}
-                                            method="POST"
+                                            method="post"
                                         >
                                             <fieldset
                                                 disabled={
@@ -601,7 +576,7 @@ export default function SignIn() {
                                                 </div>
                                             </fieldset>
                                         </Form>
-                                    </FormProvider>
+                                    </RemixFormProvider>
                                 </CardContent>
                                 <CardFooter className="flex flex-col gap-2">
                                     <p className="text-sm font-medium text-muted-foreground text-center">

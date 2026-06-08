@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router"
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader(_args: LoaderFunctionArgs) {
     // Add basic health checks here
     try {
         // Add any critical service checks here

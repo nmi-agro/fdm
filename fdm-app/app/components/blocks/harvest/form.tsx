@@ -4,7 +4,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Controller } from "react-hook-form"
+import { Controller, type Resolver } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
 import type { UseRemixFormReturn } from "remix-hook-form"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -39,6 +39,13 @@ import { useCalendarStore } from "~/store/calendar"
 import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
 
+type HarvestFormValues = z.infer<typeof FormSchema>
+type HarvestFormInput = z.input<typeof FormSchema>
+
+function toDate(value: Date | string) {
+    return value instanceof Date ? value : new Date(value)
+}
+
 type HarvestFormDialogProps = {
     harvestParameters: HarvestParameters
     exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
@@ -58,7 +65,7 @@ type HarvestFormDialogProps = {
     b_lu_start: Date | undefined | null
     b_lu_end: Date | undefined | null
     action?: string
-    handleConfirmation?: (data: z.infer<typeof FormSchema>) => Promise<boolean>
+    handleConfirmation?: (data: HarvestFormValues) => Promise<boolean>
     editable?: boolean
 }
 
@@ -92,7 +99,7 @@ function useHarvestRemixForm({
     // Only apply when creating a new harvest (no existing date) and not in current year
     function getDefaultHarvestDate(): Date | undefined {
         if (b_lu_harvest_date) {
-            return new Date(b_lu_harvest_date)
+            return toDate(b_lu_harvest_date)
         }
         if (example_b_lu_harvest_date) {
             // Bulk edit: leave empty
@@ -112,15 +119,15 @@ function useHarvestRemixForm({
         return undefined
     }
 
-    const form = useRemixForm<z.infer<typeof FormSchema>>({
+    const form = useRemixForm<HarvestFormValues>({
         mode: "onSubmit",
-        resolver: async (values, bypass, options) => {
+        resolver: (async (values, bypass, options) => {
             // Do the validation using Zod
-            const validation = await zodResolver(FormSchema)(
-                values,
+            const validation = (await (zodResolver(FormSchema) as any)(
+                values as HarvestFormInput,
                 bypass,
-                options,
-            )
+                options as any,
+            )) as any
             // If there are validation errors anyways, just return them
             if (
                 validation.errors &&
@@ -147,10 +154,10 @@ function useHarvestRemixForm({
             ) {
                 return { values: {}, errors: true }
             }
-            return validation
-        },
+            return validation as any
+        }) as Resolver<HarvestFormValues>,
         defaultValues: {
-            b_lu_harvest_date: getDefaultHarvestDate(),
+            b_lu_harvest_date: getDefaultHarvestDate() ?? null,
             b_lu_yield: harvestParameters.includes("b_lu_yield")
                 ? b_lu_yield
                 : undefined,
@@ -195,7 +202,7 @@ function useHarvestRemixForm({
             !currentValue &&
             !isDirty
         ) {
-            form.setValue("b_lu_harvest_date", getDefaultHarvestDate())
+            form.setValue("b_lu_harvest_date", getDefaultHarvestDate() ?? null)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -218,11 +225,11 @@ function HarvestFields({
     example_b_lu_harvest_date,
     b_lu_harvest_date,
 }: HarvestFormDialogProps & {
-    form: UseRemixFormReturn<z.infer<typeof FormSchema>>
-    className: React.ComponentProps<typeof FieldGroup>["className"]
+    form: UseRemixFormReturn<HarvestFormValues, any, any>
+    className?: React.ComponentProps<typeof FieldGroup>["className"]
 }) {
     const formatted_b_lu_harvest_date = example_b_lu_harvest_date
-        ? format(new Date(example_b_lu_harvest_date), "PP", { locale: nl })
+        ? format(example_b_lu_harvest_date, "PP", { locale: nl })
         : undefined
     return (
         <FieldGroup className={cn("gap-5", className)}>
@@ -239,11 +246,9 @@ function HarvestFields({
                                 : undefined
                         }
                         defaultValue={
-                            b_lu_harvest_date instanceof Date
-                                ? b_lu_harvest_date
-                                : b_lu_harvest_date
-                                  ? new Date(b_lu_harvest_date)
-                                  : undefined
+                            b_lu_harvest_date
+                                ? toDate(b_lu_harvest_date)
+                                : undefined
                         }
                         field={{
                             ...field,
@@ -666,7 +671,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                 fetcher.state !== "idle"
                             }
                         >
-                            <HarvestFields {...props} form={form} />
+                            <HarvestFields {...props} form={form as unknown as UseRemixFormReturn<HarvestFormValues, any, any>} />
                         </FieldSet>
                         <HarvestFormExplainer />
                         <DialogFooter>
@@ -765,7 +770,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                     >
                         <HarvestFields
                             {...props}
-                            form={form}
+                            form={form as unknown as UseRemixFormReturn<HarvestFormValues, any, any>}
                             className="grid lg:grid-cols-2 items-center gap-y-6 gap-x-8"
                         />
                         <HarvestFormExplainer />
