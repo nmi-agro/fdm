@@ -1,18 +1,26 @@
 import type { TicketFilters } from "@nmi-agro/fdm-helpdesk"
 import z from "zod"
 
+const BooleanSchema = z.coerce
+    .string()
+    .optional()
+    .transform((val) => val === "true")
 const PrioritySchema = z.enum(["low", "normal", "high", "urgent"])
-const DateSchema = z.preprocess(
-    (val) => (typeof val === "string" ? new Date(val) : val),
-    z.date({
-        error: (issue) =>
-            issue.input === undefined
-                ? "Datum is verplicht"
-                : "Datum is ongeldig",
-    }),
-)
+const DateSchema = z
+    .preprocess(
+        (val) => (typeof val === "string" ? new Date(val) : val),
+        z.date({
+            error: (issue) =>
+                issue.input === undefined
+                    ? "Datum is verplicht"
+                    : "Datum is ongeldig",
+        }),
+    )
+    .nullable()
+    .optional()
 
 export const TicketFilterSchema = z.object({
+    assigned: BooleanSchema,
     assigneeIds: z.array(z.string().min(1)).optional(),
     context: z
         .object({

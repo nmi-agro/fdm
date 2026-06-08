@@ -64,7 +64,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function PersonalTicketViewer() {
-    const { tickets, totalTicketCount, principals } =
+    const { tickets, totalTicketCount, principals, helpdeskReadPermission } =
         useLoaderData<LoadPaginatedTicketsData>()
 
     const principalLookup = new Map(
@@ -76,6 +76,7 @@ export default function PersonalTicketViewer() {
             totalTicketCount={totalTicketCount}
             principalLookup={principalLookup}
             toPrefix="/support/ticket"
+            helpdeskReadPermission={helpdeskReadPermission}
         />
     )
 }

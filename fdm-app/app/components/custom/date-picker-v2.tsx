@@ -120,7 +120,7 @@ export function DatePicker({
             data-invalid={fieldState.invalid}
             className={cn("gap-1", className)}
         >
-            <FieldLabel>{label}</FieldLabel>
+            {typeof label === "string" && <FieldLabel>{label}</FieldLabel>}
             <div className="flex relative gap-2">
                 <Input
                     {...field}

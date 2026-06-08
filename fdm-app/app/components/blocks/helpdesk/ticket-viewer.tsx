@@ -1,16 +1,35 @@
-import type { Ticket } from "@nmi-agro/fdm-helpdesk"
-import { ChevronLeft, Plus, X } from "lucide-react"
+import type { Ticket, TicketFilters } from "@nmi-agro/fdm-helpdesk"
+import throttle from "lodash.throttle"
+import { ChevronLeft, Filter, Plus, X } from "lucide-react"
 import { Dialog } from "radix-ui"
-import { useCallback, useEffect, useState } from "react"
-import { NavLink, Outlet, useLocation, useParams } from "react-router"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+    NavLink,
+    Outlet,
+    useLocation,
+    useParams,
+    useSearchParams,
+} from "react-router"
 import { cn } from "@/app/lib/utils"
 import { getPageSearch, Paginator } from "~/components/custom/paginator"
 import { Button } from "~/components/ui/button"
-import { Empty, EmptyContent, EmptyDescription, EmptyTitle } from "~/components/ui/empty"
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyTitle,
+} from "~/components/ui/empty"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "~/components/ui/popover"
 import { Sheet, SheetClose, SheetPortal } from "~/components/ui/sheet"
 import { useIsXl } from "~/hooks/use-is-xl"
 import { useCurrentHelpdeskPage } from "./navigation"
+import { TicketSearch } from "./search"
 import { TicketCard } from "./ticket-card"
+import { TicketFilterSchema } from "./ticket-filter-schema"
 import type { HelpdeskUser } from "./types"
 
 export const TICKET_VIEWER_PAGE_SIZE = 20
@@ -20,18 +39,80 @@ function TicketList({
     totalTicketCount,
     toPrefix,
     principalLookup,
+    isAgent,
 }: {
     tickets: Ticket[]
     totalTicketCount: number
     toPrefix: string
     principalLookup: Map<string, HelpdeskUser>
+    isAgent: boolean
 }) {
     const location = useLocation()
     const currentPage = useCurrentHelpdeskPage()
-    const isAgentView =
-        currentPage === "inbox" || currentPage === "all_tickets"
+    const isAgentView = currentPage === "inbox" || currentPage === "all_tickets"
+
+    // For navigation with filters
+    const [searchParams, setSearchParams] = useSearchParams()
+
+    // For controlling the TicketSearch
+    const [filters, setFilters] = useState<TicketFilters>(() => {
+        try {
+            const initialFilters = JSON.parse(
+                searchParams.get("filters") ?? "{}",
+            )
+            return TicketFilterSchema.parse(initialFilters)
+        } catch (err) {
+            console.error(err)
+            return {}
+        }
+    })
+
+    // For setting search params in a debounced manner
+    const searchParamsToNavigateTo = useRef<TicketFilters>({})
+
+    const navigateWithFilters = useMemo(
+        () =>
+            throttle(
+                () => {
+                    setSearchParams((searchParams) => {
+                        searchParams.set(
+                            "filters",
+                            JSON.stringify(searchParamsToNavigateTo.current),
+                        )
+                        return searchParams
+                    })
+                },
+                300,
+                { trailing: true },
+            ),
+        [setSearchParams],
+    )
+
+    function handleNewFilters(filters: TicketFilters) {
+        setFilters(filters)
+        searchParamsToNavigateTo.current = filters
+        navigateWithFilters()
+    }
+
     return (
         <nav className="flex flex-col gap-2 h-full box-border">
+            <div>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" className="block ml-auto">
+                            <Filter />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-2">
+                        <h1>Filters Wijzigen</h1>
+                        <TicketSearch
+                            filters={filters}
+                            setFilters={handleNewFilters}
+                            isAgent={isAgent}
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
             <div className="overflow-auto grow">
                 {tickets.length === 0 ? (
                     <Empty className="border-none">
@@ -45,9 +126,9 @@ function TicketList({
                             ) : (
                                 <>
                                     <EmptyDescription>
-                                        U heeft nog geen tickets aangemaakt. Stel
-                                        een vraag en een medewerker neemt contact
-                                        met u op.
+                                        U heeft nog geen tickets aangemaakt.
+                                        Stel een vraag en een medewerker neemt
+                                        contact met u op.
                                     </EmptyDescription>
                                     <Button asChild size="sm" className="mt-2">
                                         <NavLink to="/support/new">
@@ -70,8 +151,8 @@ function TicketList({
                                     : undefined
                             }
                             href={`${toPrefix}/${ticket.ticket_id}${getPageSearch(location.search, TICKET_VIEWER_PAGE_SIZE, 0)}`}
-                        showAssignees={isAgentView}
-                    />
+                            showAssignees={isAgentView}
+                        />
                     ))
                 )}
             </div>
@@ -88,11 +169,13 @@ export function TicketViewer({
     totalTicketCount,
     toPrefix,
     principalLookup,
+    helpdeskReadPermission,
 }: {
     tickets: Ticket[]
     totalTicketCount: number
     toPrefix: string
     principalLookup: Map<string, HelpdeskUser>
+    helpdeskReadPermission: boolean
 }) {
     const params = useParams()
     const isXl = useIsXl()
@@ -112,6 +195,7 @@ export function TicketViewer({
         totalTicketCount,
         toPrefix,
         principalLookup,
+        isAgent: helpdeskReadPermission,
     }
 
     return (
@@ -139,7 +223,7 @@ export function TicketViewer({
                     <SheetPortal container={container}>
                         <Dialog.Content
                             aria-label="Tickets"
-                            className="absolute inset-y-0 left-0 z-50 flex flex-col w-full h-full bg-background border-r border-sidebar-border transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
+                            className="absolute inset-y-0 left-0 top-0 z-50 flex flex-col w-full h-full bg-background border-r border-sidebar-border transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
                         >
                             <SheetClose asChild>
                                 <Button

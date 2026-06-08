@@ -3,6 +3,7 @@ import {
     eq,
     exists,
     gte,
+    ilike,
     inArray,
     isNotNull,
     isNull,
@@ -34,6 +35,10 @@ export function getAgentWhereClause(filters: AgentFilters) {
         // Activity filter - availability is separate
         typeof filters.isActive === "boolean"
             ? eq(schema.agents.is_active, filters.isActive)
+            : undefined,
+        // Text filter
+        typeof filters.text === "string" && filters.text.length > 0
+            ? ilike(schema.agents.display_name, `%${filters.text}%`)
             : undefined,
     )
 }

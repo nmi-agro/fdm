@@ -204,7 +204,7 @@ describe("getAgents", () => {
         await addAdminAgent(fdm, admin_id, "Admin Agent")
 
         agent_id = createId()
-        await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+        await addAgent(fdm, admin_id, agent_id, "Regular Text Search Agent")
 
         user_id = createId()
     })
@@ -232,6 +232,13 @@ describe("getAgents", () => {
     }) => {
         const agents = await getAgents(fdm, admin_id, { isActive: false })
         expect(agents).toHaveLength(0)
+    })
+
+    test("should search by display name", async ({ fdm }) => {
+        const agents = await getAgents(fdm, admin_id, {
+            text: "regular text search",
+        })
+        expect(agents).toHaveLength(1)
     })
 })
 

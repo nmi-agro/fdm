@@ -53,14 +53,19 @@ export type SenderFilter = {
     sentBy?: string[]
 }
 
-export type TicketStatusFilter = {
-    /** Ticket status */
-    statuses?: string[]
-}
-
 export type TagsFilter = {
     /** Tag IDs to filter the records by */
     tags?: string[]
+}
+
+export type TextFilter = {
+    /** Text to search for */
+    text?: string
+}
+
+export type TicketStatusFilter = {
+    /** Ticket status */
+    statuses?: string[]
 }
 
 export type TimeframeFilter = {
@@ -77,7 +82,7 @@ export type ViewedByFilter = {
     notViewedBy?: string[]
 }
 
-export type AgentFilters = ActivityFilter & PaginationFilter
+export type AgentFilters = ActivityFilter & PaginationFilter & TextFilter
 
 export type MessageFilters = TimeframeFilter &
     SenderFilter &

@@ -18,6 +18,7 @@ export type LoadPaginatedTicketsData = {
     defaultFilterType: "all" | "inbox" | "unassigned" | null
     tickets: Ticket[]
     totalTicketCount: number
+    helpdeskReadPermission: boolean
     principals: HelpdeskUser[]
 }
 
@@ -177,6 +178,7 @@ export async function loadPaginatedTickets(request: Request) {
             tickets: tickets,
             totalTicketCount: totalTicketCount,
             principals: principalsSummarized,
+            helpdeskReadPermission: helpdeskReadPermission,
         } satisfies LoadPaginatedTicketsData
     } catch (err) {
         throw handleLoaderError(err)
