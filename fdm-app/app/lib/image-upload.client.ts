@@ -1,10 +1,15 @@
 import imageCompression from "browser-image-compression"
+// Vite ?url import emits the file as a static asset and returns its public URL.
+// This lets the Web Worker load the library from the same origin instead of
+// falling back to cdn.jsdelivr.net (which is blocked by our CSP).
+import compressionLibURL from "browser-image-compression/dist/browser-image-compression?url"
 
 const COMPRESSION_OPTIONS = {
     maxSizeMB: 2,
     maxWidthOrHeight: 3840, // 4K max dimension
     useWebWorker: true,
     fileType: "image/jpeg",
+    libURL: compressionLibURL,
 }
 
 /**
