@@ -1,10 +1,11 @@
+import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon"
 import type { ProcessedAnalysis } from "./bulk-upload-review"
 
 type Field = {
     b_id: string
     b_name: string
-    geometry: any
+    geometry: FieldGeometry | null
 }
 
 /**
@@ -28,7 +29,7 @@ export function matchAnalysesToFields(
                         // booleanPointInPolygon handles both Polygon and MultiPolygon
                         return booleanPointInPolygon(
                             analysis.location,
-                            field.geometry as any,
+                            field.geometry,
                         )
                     } catch (e) {
                         console.warn(

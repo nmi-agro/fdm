@@ -1,6 +1,7 @@
+import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import centroid from "@turf/centroid"
 import { fileTypeFromBuffer } from "file-type"
-import type { Feature, Geometry, Polygon } from "geojson"
+import type { Feature, Geometry } from "geojson"
 import proj4 from "proj4"
 import { z } from "zod"
 import { serverConfig } from "~/lib/config.server"
@@ -38,7 +39,7 @@ async function validatePdfMagicBytes(file: File) {
 }
 
 export async function getSoilParameterEstimates(
-    field: Feature | Polygon,
+    field: Feature | FieldGeometry,
     nmiApiKey: string | undefined,
 ): Promise<{
     a_al_ox: number

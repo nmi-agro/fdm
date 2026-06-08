@@ -208,8 +208,6 @@ export default function FarmFieldsOverviewBlock() {
         <div className="space-y-6">
             <CultivationDetailsCard
                 cultivation={loaderData.cultivation}
-                harvests={loaderData.harvests}
-                b_lu_harvestable={loaderData.b_lu_harvestable}
                 b_lu_variety_options={loaderData.b_lu_variety_options}
                 editable={loaderData.cultivationWritePermission}
             />

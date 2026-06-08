@@ -386,8 +386,8 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
       remix-hook-form:
-        specifier: 7.1.1
-        version: 7.1.1(react-dom@19.2.6(react@19.2.6))(react-hook-form@7.76.1(react@19.2.6))(react-router@7.15.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
+        specifier: 7.2.0
+        version: 7.2.0(react-dom@19.2.6(react@19.2.6))(react-hook-form@7.76.1(react@19.2.6))(react-router@7.15.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
       remix-toast:
         specifier: ^4.0.0
         version: 4.0.0(react-router@7.15.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6))
@@ -3477,8 +3477,8 @@ packages:
     resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
     engines: {node: '>= 20.19.0'}
 
-  '@nodable/entities@2.1.0':
-    resolution: {integrity: sha512-nyT7T3nbMyBI/lvr6L5TyWbFJAI9FTgVRakNoBqCD+PmID8DzFrrNdLLtHMwMszOtqZa8PAOV24ZqDnQrhQINA==}
+  '@nodable/entities@2.1.1':
+    resolution: {integrity: sha512-Pig3HxDIoMgjdEH8OCf/dkcTmLFjJRjWuq8jSnklu284/TKOPibSRERmOykiwmyXTtv61mP+44f3GMx0tLAyjg==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -10723,12 +10723,12 @@ packages:
   remark-stringify@11.0.0:
     resolution: {integrity: sha512-1OSmLd3awB/t8qdoEOMazZkNsfVTeY4fTsgzcQFdXNq8ToTN4ZGwrMnlda4K6smTFKD+GRV6O48i6Z4iKgPPpw==}
 
-  remix-hook-form@7.1.1:
-    resolution: {integrity: sha512-czEFVv8OrzV+BCjwwwJW4x9/OMxR7dnO/PFtHZJ/wLITur+OQ2jtqaOMh6VD+VHJ2Wu8IWf2P0mE4cgiw2cYXw==}
+  remix-hook-form@7.2.0:
+    resolution: {integrity: sha512-FBJRJN+HX41+sBC8xrmUAbZNj4q+tPXqIHQRATYZlgyjXkmRXrHh+VfOXfZRbr0akmx1P29ZsRlyStT7SgmX0Q==}
     peerDependencies:
       react: ^18.2.0 || ^19.0.0
       react-dom: ^18.2.0 || ^19.0.0
-      react-hook-form: ^7.55.0
+      react-hook-form: ^7.75.0
       react-router: '>=7.5.0'
 
   remix-toast@4.0.0:
@@ -15823,7 +15823,7 @@ snapshots:
 
   '@noble/hashes@2.2.0': {}
 
-  '@nodable/entities@2.1.0': {}
+  '@nodable/entities@2.1.1': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -20400,7 +20400,7 @@ snapshots:
 
   fast-xml-parser@5.8.0:
     dependencies:
-      '@nodable/entities': 2.1.0
+      '@nodable/entities': 2.1.1
       fast-xml-builder: 1.2.0
       path-expression-matcher: 1.5.0
       strnum: 2.3.0
@@ -24026,7 +24026,7 @@ snapshots:
       mdast-util-to-markdown: 2.1.2
       unified: 11.0.5
 
-  remix-hook-form@7.1.1(react-dom@19.2.6(react@19.2.6))(react-hook-form@7.76.1(react@19.2.6))(react-router@7.15.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6):
+  remix-hook-form@7.2.0(react-dom@19.2.6(react@19.2.6))(react-hook-form@7.76.1(react@19.2.6))(react-router@7.15.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6):
     dependencies:
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)

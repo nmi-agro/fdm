@@ -13,6 +13,7 @@
  */
 
 /** {@inheritDoc createFdmServer} */
+import type { MultiPolygon, Polygon } from "geojson"
 import * as fdmSchema from "./db/schema"
 
 export type { FdmAuth } from "./authentication"
@@ -150,6 +151,7 @@ export {
     updateField,
 } from "./field"
 export type { Field } from "./field.types"
+export type FieldGeometry = Polygon | MultiPolygon
 export {
     getGrazingIntention,
     getGrazingIntentions,

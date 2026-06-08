@@ -1,3 +1,4 @@
+import type { Field } from "@nmi-agro/fdm-core"
 import type {
     ImportReviewAction,
     RvoImportReviewItem,
@@ -15,6 +16,8 @@ import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-tabl
 import { Button } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
 import type { genericAction } from "./loader-and-action.server"
+
+type ReviewItem = RvoImportReviewItem<Field>
 
 /**
  * Renders a single-page wizard that handles MijnPercelen shapefile uploads.
@@ -38,14 +41,14 @@ export function UploadMijnPercelenPage({
     const location = useLocation()
 
     const [rvoImportReviewData, setRvoImportReviewData] = useState<
-        RvoImportReviewItem<any>[] | null
+        ReviewItem[] | null
     >()
     const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
     const [canUnloadSafely, setCanUnloadSafely] = useState(true)
 
     const actionData = useActionData<typeof genericAction>()
 
-    const handleItemChange = (id: string, item: RvoImportReviewItem<any>) => {
+    const handleItemChange = (id: string, item: ReviewItem) => {
         // Note: there is the assumption that getItemId will keep returning the same id.
         // Therefore, make sure that `item` doesn't have a different rvoField id and localField id.
         if (getItemId(item) !== id) {

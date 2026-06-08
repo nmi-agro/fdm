@@ -21,7 +21,9 @@ export function NewFieldsAtlas({
     const mapRef = useRef<MapRef>(null)
 
     useEffect(() => {
-        mapRef.current?.fitBounds(viewState.bounds, viewState.fitBoundsOptions)
+        if (viewState.bounds) {
+            mapRef.current?.fitBounds(viewState.bounds, viewState.fitBoundsOptions)
+        }
     }, [viewState])
 
     //ref to check if map is rendered

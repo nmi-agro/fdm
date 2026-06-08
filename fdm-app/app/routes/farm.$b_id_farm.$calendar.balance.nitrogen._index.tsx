@@ -359,6 +359,7 @@ function FarmBalanceNitrogenOverview({
                         <NitrogenBalanceChart
                             type="farm"
                             balanceData={resolvedNitrogenBalanceResult}
+                            fieldInput={undefined}
                         />
                     </CardContent>
                 </Card>

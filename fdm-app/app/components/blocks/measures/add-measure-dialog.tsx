@@ -114,9 +114,13 @@ export function AddMeasureDialog({
         },
         submitHandlers: {
             onValid: (data) => {
+                if (!selected?.m_id) {
+                    return
+                }
+
                 const fd = new FormData()
                 fd.append("intent", "add")
-                fd.append("m_id", selected?.m_id)
+                fd.append("m_id", selected.m_id)
                 fd.append("m_start", data.m_start)
                 if (data.m_end) fd.append("m_end", data.m_end)
                 else fd.append("m_end", "")

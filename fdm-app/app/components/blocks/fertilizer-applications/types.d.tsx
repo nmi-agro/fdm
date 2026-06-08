@@ -1,13 +1,11 @@
-import type { AppAmountUnit } from "@nmi-agro/fdm-core"
+import type {
+    AppAmountUnit,
+    FertilizerApplication as CoreFertilizerApplication,
+} from "@nmi-agro/fdm-core"
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 
-export interface FertilizerApplication {
-    p_app_id: string
-    p_app_ids: string[]
-    p_name_nl: string
-    p_app_amount: number
-    p_app_date: Date
-    p_app_method: ApplicationMethods | null
+export type FertilizerApplication = CoreFertilizerApplication & {
+    p_app_ids?: string[]
 }
 
 export interface FertilizerOption {

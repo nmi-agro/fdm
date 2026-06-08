@@ -12,7 +12,6 @@ import {
     type MapRef,
     Popup,
     Source,
-    type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import {
@@ -25,7 +24,10 @@ import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import {
+    type AtlasViewState,
+    getViewState,
+} from "~/components/blocks/atlas/atlas-viewstate"
 import { Badge } from "~/components/ui/badge"
 import { Spinner } from "~/components/ui/spinner"
 import { getMapStyle } from "~/integrations/map"
@@ -152,7 +154,7 @@ export default function FarmAtlasSoilBlock() {
 
     // ViewState logic
     const initialViewState = getViewState(fields)
-    const [viewState, setViewState] = useState<ViewState>(() => {
+    const [viewState, setViewState] = useState<AtlasViewState>(() => {
         if (typeof window !== "undefined") {
             try {
                 const savedViewState = sessionStorage.getItem("mapViewState")
@@ -163,7 +165,7 @@ export default function FarmAtlasSoilBlock() {
                 // ignore storage errors (e.g., private mode)
             }
         }
-        return initialViewState as ViewState
+        return initialViewState
     })
 
     useEffect(() => {

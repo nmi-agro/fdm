@@ -4,13 +4,6 @@ import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
-// Define the expected return type from lookupPrincipal based on previous usage
-type CorePrincipal = {
-    username: string
-    displayUserName: string
-    type: "user" | "organization"
-}
-
 // Define the structure expected by the AutoComplete component
 type AutocompletePrincipal = {
     value: string
@@ -45,16 +38,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
             return [] // Return empty for too short or too long inputs
         }
 
-        const principals: CorePrincipal[] = await lookupPrincipal(
-            fdm,
-            identifier,
-        )
+        const principals = await lookupPrincipal(fdm, identifier)
 
         // Map the result to the format expected by AutoComplete
         const autocompletePrincipals: AutocompletePrincipal[] = principals.map(
             (p) => ({
                 value: p.username,
-                label: p.displayUserName,
+                label: p.displayUserName ?? p.username,
                 icon: p.type, // Pass the type as the icon identifier
             }),
         )

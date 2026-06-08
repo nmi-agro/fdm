@@ -96,7 +96,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Get soil parameter descriptions and filter on the available soil parameters
         const soilParameterDescription = getSoilParametersDescription().filter(
-            (item: { parameter: string }) => soilAnalysis[item.parameter],
+            (item: { parameter: string }) =>
+                ((soilAnalysis as unknown as Record<string, unknown>)[
+                    item.parameter
+                ]),
         )
 
         const soilAnalysisWritePermission = await checkPermission(

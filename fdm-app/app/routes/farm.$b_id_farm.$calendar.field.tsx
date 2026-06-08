@@ -22,7 +22,7 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { columns } from "~/components/blocks/fields/columns"
+import { columns, type FieldExtended } from "~/components/blocks/fields/columns"
 import { DataTable } from "~/components/blocks/fields/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -181,19 +181,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     field.b_id,
                     timeframe,
                 )
-                const a_som_loi_raw =
+                const a_som_loi = Number(
                     currentSoilData.find((x) => x.parameter === "a_som_loi")
-                        ?.value ?? null
-                const a_som_loi =
-                    typeof a_som_loi_raw === "number" ? a_som_loi_raw : null
-                const b_soiltype_agr_raw =
+                        ?.value ?? 0,
+                )
+                const b_soiltype_agr = String(
                     currentSoilData.find(
                         (x) => x.parameter === "b_soiltype_agr",
-                    )?.value ?? null
-                const b_soiltype_agr =
-                    typeof b_soiltype_agr_raw === "string"
-                        ? b_soiltype_agr_raw
-                        : null
+                    )?.value ?? "",
+                )
 
                 // Fetch latest BCS analysis up to end of this calendar year.
                 const soilAnalyses = await getSoilAnalyses(
@@ -374,7 +370,7 @@ export default function FarmFieldIndex() {
                             <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
                                 <DataTable
                                     columns={columns}
-                                    data={filteredFields}
+                                    data={filteredFields as FieldExtended[]}
                                     canAddItem={loaderData.farmWritePermission}
                                 />
                             </div>

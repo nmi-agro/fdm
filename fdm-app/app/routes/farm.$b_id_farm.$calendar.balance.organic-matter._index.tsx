@@ -201,7 +201,6 @@ function FarmBalanceOrganicMatterOverview({
         )
     }
 
-    const { hasErrors } = organicMatterBalanceResult
     const fieldsMap = new Map(fields.map((f) => [f.b_id, f]))
     const filteredFields = organicMatterBalanceResult.fields.filter(
         (fieldResult: OrganicMatterBalanceFieldResultNumeric) => {

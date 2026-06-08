@@ -11,7 +11,8 @@
         "start": "pnpm db:migrate && NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
         "start-dev": "dotenvx run -- pnpm db:migrate && dotenvx run -- NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
         "db:migrate": "node ./app/lib/fdm-migrate.server.js",
-        "typecheck": "react-router typegen && tsc"
+        "typecheck": "react-router typegen && tsc",
+        "check-types": "react-router typegen && tsc"
     },
     "dependencies": {
         "@better-auth/api-key": "catalog:",
@@ -83,7 +84,7 @@
         "react-router-dom": "^7.15.1",
         "recharts": "^3.8.1",
         "remark-gfm": "^4.0.1",
-        "remix-hook-form": "7.1.1",
+        "remix-hook-form": "7.2.0",
         "remix-toast": "^4.0.0",
         "remix-utils": "^9.3.1",
         "sonner": "^2.0.7",

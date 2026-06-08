@@ -9,6 +9,12 @@ import { Separator } from "~/components/ui/separator"
 import { InvitationForm } from "./invitation-form"
 import { PrincipalRow } from "./principal-row"
 
+const VALID_ROLES = ["owner", "advisor", "researcher"] as const
+type Role = (typeof VALID_ROLES)[number]
+function isValidRole(role: string): role is Role {
+    return (VALID_ROLES as readonly string[]).includes(role)
+}
+
 // Define the type for the principal object based on usage
 // Ensure this matches the type definition used in InvitationForm and PrincipalRow if needed elsewhere
 type Principal = {
@@ -62,7 +68,11 @@ export const AccessManagementCard = ({
                                 displayUserName={principal.displayUserName}
                                 image={principal.image}
                                 initials={principal.initials}
-                                role={principal.role}
+                                role={
+                                    isValidRole(principal.role)
+                                        ? principal.role
+                                        : "advisor"
+                                }
                                 type={principal.type}
                                 status={principal.status}
                                 invitation_id={principal.invitation_id}

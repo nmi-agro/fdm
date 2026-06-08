@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { Cookie } from "lucide-react"
+import type { Resolver } from "react-hook-form"
 import type {
     ActionFunctionArgs,
     LoaderFunctionArgs,
     MetaFunction,
 } from "react-router"
-import { Form, useLoaderData } from "react-router"
+import { Form, redirect, useLoaderData } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
@@ -118,7 +119,7 @@ export default function Welcome() {
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as Resolver<z.infer<typeof FormSchema>>,
         defaultValues: {
             firstname: loaderData.firstname || "",
             surname: loaderData.surname || "",
@@ -155,7 +156,7 @@ export default function Welcome() {
                                 <Form
                                     id="formWelcome"
                                     onSubmit={form.handleSubmit}
-                                    method="POST"
+                                    method="post"
                                 >
                                     <fieldset
                                         disabled={form.formState.isSubmitting}
@@ -286,6 +287,10 @@ export async function action({ request }: ActionFunctionArgs) {
         const session = await auth.api.getSession({
             headers: request.headers,
         })
+
+        if (!session) {
+            return redirect("/signin")
+        }
 
         // Update the user profile
         await updateUserProfile(fdm, session.user.id, firstname, surname)

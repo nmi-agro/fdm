@@ -4,9 +4,7 @@ import type { Cultivation } from "./types"
 
 interface Harvest {
     b_lu: string
-    b_lu_harvest_date: Date
-    b_lu_yield: number
-    b_lu_n_harvestable: number
+    b_lu_harvest_date: Date | null
 }
 
 export function CultivationList({
@@ -16,6 +14,9 @@ export function CultivationList({
     cultivations: Cultivation[]
     harvests: Harvest[]
 }) {
+    const formatCultivationDate = (value: Date | null) =>
+        value ? format(new Date(value), "yyyy-MM-dd") : "Onbekend"
+
     return (
         <ul>
             <li key={"header"}>
@@ -70,20 +71,16 @@ export function CultivationList({
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground leading-none">
-                                        {format(
-                                            new Date(cultivation.b_lu_start),
-                                            "yyyy-MM-dd",
+                                        {formatCultivationDate(
+                                            cultivation.b_lu_start,
                                         )}
                                     </p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground leading-none">
                                         {cultivation.b_lu_end
-                                            ? format(
-                                                  new Date(
-                                                      cultivation.b_lu_end,
-                                                  ),
-                                                  "yyyy-MM-dd",
+                                            ? formatCultivationDate(
+                                                  cultivation.b_lu_end,
                                               )
                                             : "Nog niet beëindigd"}
                                     </p>
