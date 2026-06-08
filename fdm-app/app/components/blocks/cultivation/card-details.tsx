@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { Cultivation } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
-import type { Control, FieldValues, Resolver, UseFormReturn } from "react-hook-form"
+import type { FieldValues, Resolver, UseFormReturn } from "react-hook-form"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { DatePicker } from "~/components/custom/date-picker"
@@ -47,8 +47,9 @@ export function CultivationDetailsCard({
 }) {
     const fetcher = useFetcher()
     const form = useRemixForm<CultivationDetailsFormSchemaType>({
-        resolver:
-            zodResolver(CultivationDetailsFormSchema) as Resolver<CultivationDetailsFormSchemaType>,
+        resolver: zodResolver(
+            CultivationDetailsFormSchema,
+        ) as Resolver<CultivationDetailsFormSchemaType>,
         mode: "onTouched",
         defaultValues: {
             b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
@@ -120,14 +121,18 @@ export function CultivationDetailsCard({
                         >
                             <div className="grid lg:grid-cols-2 gap-4">
                                 <DatePicker
-                                    form={form as unknown as UseFormReturn<FieldValues>}
+                                    form={
+                                        form as unknown as UseFormReturn<FieldValues>
+                                    }
                                     name="b_lu_start"
                                     label="Zaaidatum"
                                     description=""
                                     disabled={!editable}
                                 />
                                 <DatePicker
-                                    form={form as unknown as UseFormReturn<FieldValues>}
+                                    form={
+                                        form as unknown as UseFormReturn<FieldValues>
+                                    }
                                     name="b_lu_end"
                                     label="Einddatum"
                                     description=""
@@ -136,7 +141,7 @@ export function CultivationDetailsCard({
                             </div>
                             <div className="grid lg:grid-cols-2 gap-4 items-end">
                                 <FormField
-                                    control={form.control as unknown as Control<any, any, any>}
+                                    control={form.control}
                                     name="m_cropresidue"
                                     render={({ field }) => (
                                         <FormItem
@@ -172,7 +177,7 @@ export function CultivationDetailsCard({
                                     )}
                                 />
                                 <FormField
-                                    control={form.control as unknown as Control<any, any, any>}
+                                    control={form.control}
                                     name="b_lu_variety"
                                     render={({ field }) => (
                                         <FormItem>
