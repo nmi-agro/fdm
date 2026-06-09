@@ -30,7 +30,7 @@ const BcsSavePayloadSchema = z.object({
     a_date: z.string(),
     b_sampling_date: z.string(),
     a_depth_lower: z.union([z.number(), z.string(), z.null(), z.undefined()]).optional(),
-    scores: z.record(z.any()).optional().default({}),
+    scores: z.record(z.string(), z.any()).optional().default({}),
     images: z.array(
         z.object({
             tempId: z.string(),
