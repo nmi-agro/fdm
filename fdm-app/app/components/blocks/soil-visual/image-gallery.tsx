@@ -1,23 +1,12 @@
-import { ArrowRight, Circle, MapPin, Pencil, Trash2 } from "lucide-react"
+import { MapPin, Pencil, Trash2 } from "lucide-react"
 import {
+    type MouseEvent,
+    type PointerEvent,
     useCallback,
     useMemo,
     useRef,
     useState,
-    type MouseEvent,
-    type PointerEvent,
 } from "react"
-import {
-    BCS_FIELD_INDICATORS,
-    BCS_VISUAL_INDICATOR_MAP,
-    type AnnotationCoords,
-    type AnnotationType,
-    type ArrowCoords,
-    type BcsVisualKey,
-    type CircleCoords,
-    type FreehandCoords,
-    type PinCoords,
-} from "~/lib/bcs"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -50,6 +39,17 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
+import {
+    type AnnotationCoords,
+    type AnnotationType,
+    type ArrowCoords,
+    BCS_FIELD_INDICATORS,
+    BCS_VISUAL_INDICATOR_MAP,
+    type BcsVisualKey,
+    type CircleCoords,
+    type FreehandCoords,
+    type PinCoords,
+} from "~/lib/bcs"
 import { cn } from "~/lib/utils"
 
 interface GalleryAnnotation {
@@ -606,19 +606,9 @@ export function ImageGallery({
                                                         label: "Pin",
                                                     },
                                                     {
-                                                        type: "circle" as const,
-                                                        Icon: Circle,
-                                                        label: "Cirkel",
-                                                    },
-                                                    {
-                                                       type: "arrow" as const,
-                                                       Icon: ArrowRight,
-                                                       label: "Pijl",
-                                                    },
-                                                    {
-                                                       type: "freehand" as const,
-                                                       Icon: Pencil,
-                                                       label: "Tekening",
+                                                        type: "freehand" as const,
+                                                        Icon: Pencil,
+                                                        label: "Tekening",
                                                     },
                                                 ] as const
                                             ).map(({ type, Icon, label }) => (
@@ -655,16 +645,6 @@ export function ImageGallery({
                                                 <span className="text-xs text-muted-foreground">
                                                     Houd ingedrukt en sleep om
                                                     te tekenen
-                                                </span>
-                                            ) : activeTool === "circle" ? (
-                                                <span className="text-xs text-muted-foreground">
-                                                    Sleep om een cirkel te
-                                                    tekenen
-                                                </span>
-                                            ) : activeTool === "arrow" ? (
-                                                <span className="text-xs text-muted-foreground">
-                                                    Sleep om een pijl te
-                                                    tekenen
                                                 </span>
                                             ) : (
                                                 <span className="text-xs text-muted-foreground">
