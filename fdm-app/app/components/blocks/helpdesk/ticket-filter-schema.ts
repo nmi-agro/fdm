@@ -4,7 +4,7 @@ import z from "zod"
 const BooleanSchema = z.coerce
     .string()
     .optional()
-    .transform((val) => val === "true")
+    .transform((val) => (val === undefined ? undefined : val === "true"))
 const PrioritySchema = z.enum(["low", "normal", "high", "urgent"])
 const DateSchema = z
     .preprocess(
@@ -16,12 +16,12 @@ const DateSchema = z
                     : "Datum is ongeldig",
         }),
     )
-    .nullable()
-    .optional()
+    .nullish()
+    .transform((val) => val ?? undefined)
 
 export const TicketFilterSchema = z.object({
     assigned: BooleanSchema,
-    assigneeIds: z.array(z.string().min(1)).optional(),
+    assignees: z.array(z.string().min(1)).optional(),
     context: z
         .object({
             b_id_farm: z.string().min(1).optional(),

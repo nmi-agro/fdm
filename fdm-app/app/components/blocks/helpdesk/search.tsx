@@ -1,7 +1,9 @@
-import type { TicketFilters } from "@nmi-agro/fdm-helpdesk"
-import { type Dispatch, type SetStateAction, useMemo } from "react"
+﻿import type { TicketFilters } from "@nmi-agro/fdm-helpdesk"
+import { ChevronDown, User, Users } from "lucide-react"
+import { useMemo } from "react"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import { Button } from "~/components/ui/button"
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -11,8 +13,6 @@ import {
 } from "~/components/ui/dropdown-menu"
 import { Field, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
-import { Button } from "../../ui/button"
-import { ChevronDown, User, Users } from "lucide-react"
 
 type FilterCommon<T> = { name: keyof T; label: string }
 type FilterConfig =
@@ -87,7 +87,7 @@ export function TicketSearch({
     isAgent,
 }: {
     filters: TicketFilters
-    setFilters: Dispatch<SetStateAction<TicketFilters>>
+    setFilters: (filters: TicketFilters) => void
     isAgent: boolean
 }) {
     const filterConfig = useTicketFilterConfig(isAgent)
@@ -96,12 +96,8 @@ export function TicketSearch({
         <SearchFields<TicketFilters>
             filterConfig={filterConfig}
             filters={filters}
-            setFilters={(incomingFilters) => {
-                const nextFilters =
-                    typeof incomingFilters === "function"
-                        ? incomingFilters(filters)
-                        : incomingFilters
-                // Set maxFilters the same as minFilters
+            setFilters={(nextFilters) => {
+                // Mirror minPriority -> maxPriority so the range filter works
                 setFilters({
                     ...nextFilters,
                     minPriority: nextFilters.minPriority,
@@ -123,10 +119,8 @@ export function SearchFields<
 }: {
     filterConfig: FilterConfigArray<T>
     filters: T
-    setFilters: Dispatch<SetStateAction<T>>
+    setFilters: (filters: T) => void
 }) {
-    const setFiltersThrottled = setFilters // TODO: Must be similar to what Autocomplete does
-
     // Define icon map for AutoComplete
     const iconMap = { user: User, organization: Users }
 
@@ -135,16 +129,15 @@ export function SearchFields<
             {filterConfig.map((field) => {
                 if (field.type === "date") {
                     return (
-                        <Field className="space-y-0">
+                        <Field key={field.name as string} className="space-y-0">
                             <FieldLabel className="text-sm text-muted-foreground">
                                 {field.label}
                             </FieldLabel>
                             <DatePicker
-                                key={field.name as string}
                                 label={undefined}
                                 field={{
                                     onChange: (...event: any[]): void => {
-                                        setFiltersThrottled({
+                                        setFilters({
                                             ...filters,
                                             [field.name]: event[0],
                                         })
@@ -184,15 +177,17 @@ export function SearchFields<
                                         : undefined
                                 }
                                 onSelectedValueChange={(value) =>
-                                    setFiltersThrottled({
+                                    setFilters({
                                         ...filters,
-                                        [field.name]: [value],
+                                        [field.name]: value
+                                            ? [value]
+                                            : undefined,
                                     })
                                 }
                                 emptyMessage="Geen gebruikers gevonden."
                                 placeholder="Zoek naar een gebruiker of organisatie"
                                 allowValuesOutsideList={false}
-                                name={field.name as string} // Name for remix-hook-form registration
+                                name={field.name as string}
                             />
                         </Field>
                     )
@@ -210,20 +205,28 @@ export function SearchFields<
                                         ? filters[field.name][0]
                                         : undefined
                                 }
-                                onSelectedValueChange={(value: string) => {
-                                    setFiltersThrottled({
+                                onSelectedValueChange={(value) => {
+                                    setFilters({
                                         ...filters,
-                                        [field.name]: [value],
+                                        [field.name]: value
+                                            ? [value]
+                                            : undefined,
                                     })
                                 }}
                                 allowValuesOutsideList={false}
                                 lookupUrl={"/api/lookup/agent?principal_id"}
+                                iconMap={iconMap}
+                                placeholder="Zoek naar een medewerker"
+                                emptyMessage="Geen medewerkers gevonden."
                             />
                         </Field>
                     )
                 }
 
                 if (field.type === "enum") {
+                    const activeOption = field.options.find(
+                        (item) => item.value === filters[field.name],
+                    )
                     return (
                         <Field key={field.name as string} className="space-y-0">
                             <FieldLabel className="text-sm text-muted-foreground">
@@ -234,17 +237,36 @@ export function SearchFields<
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="justify-between font-medium"
+                                        className="justify-between font-medium w-full"
                                     >
-                                        {field.options.find(
-                                            (item) =>
-                                                item.value ===
-                                                filters[field.name],
-                                        )?.label ?? ""}
+                                        <span
+                                            className={
+                                                activeOption
+                                                    ? undefined
+                                                    : "text-muted-foreground"
+                                            }
+                                        >
+                                            {activeOption?.label ??
+                                                "Alle prioriteiten"}
+                                        </span>
                                         <ChevronDown className="size-3 opacity-50 ms-1" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
+                                    {activeOption && (
+                                        <DropdownMenuItem
+                                            onSelect={() => {
+                                                const {
+                                                    [field.name]: _removed,
+                                                    ...newFilters
+                                                } = filters
+                                                setFilters(newFilters as T)
+                                            }}
+                                            className="text-muted-foreground"
+                                        >
+                                            Wis filter
+                                        </DropdownMenuItem>
+                                    )}
                                     {field.options.map((item) => (
                                         <DropdownMenuCheckboxItem
                                             key={item.value}
@@ -261,11 +283,9 @@ export function SearchFields<
                                                         [field.name]: _removed,
                                                         ...newFilters
                                                     } = filters
-                                                    setFiltersThrottled(
-                                                        newFilters as T,
-                                                    )
+                                                    setFilters(newFilters as T)
                                                 } else {
-                                                    setFiltersThrottled({
+                                                    setFilters({
                                                         ...filters,
                                                         [field.name]:
                                                             item.value,
@@ -287,7 +307,16 @@ export function SearchFields<
                         <FieldLabel className="text-sm text-muted-foreground">
                             {field.label}
                         </FieldLabel>
-                        <Input type="text" value={filters[field.name] ?? ""} />
+                        <Input
+                            type="text"
+                            value={filters[field.name] ?? ""}
+                            onChange={(e) =>
+                                setFilters({
+                                    ...filters,
+                                    [field.name]: e.target.value || undefined,
+                                })
+                            }
+                        />
                     </Field>
                 )
             })}

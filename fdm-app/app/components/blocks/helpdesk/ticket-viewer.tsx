@@ -12,6 +12,7 @@ import {
 } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { getPageSearch, Paginator } from "~/components/custom/paginator"
+import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
     Empty,
@@ -33,6 +34,16 @@ import { TicketFilterSchema } from "./ticket-filter-schema"
 import type { HelpdeskUser } from "./types"
 
 export const TICKET_VIEWER_PAGE_SIZE = 20
+
+/** Count how many user-facing filters are active (excludes pagination) */
+function countActiveFilters(filters: TicketFilters): number {
+    const { pageOffset: _o, pageLimit: _l, ...userFilters } = filters
+    return Object.values(userFilters).filter((v) => {
+        if (v === undefined || v === null) return false
+        if (Array.isArray(v)) return v.length > 0
+        return true
+    }).length
+}
 
 function TicketList({
     tickets,
@@ -99,12 +110,22 @@ function TicketList({
             <div>
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant="ghost" className="block ml-auto">
+                        <Button
+                            variant="ghost"
+                            className="relative block ml-auto"
+                        >
                             <Filter />
+                            {countActiveFilters(filters) > 0 && (
+                                <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center p-0 text-[10px]">
+                                    {countActiveFilters(filters)}
+                                </Badge>
+                            )}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-2">
-                        <h1>Filters Wijzigen</h1>
+                        <h2 className="text-sm font-semibold mb-3">
+                            Filters wijzigen
+                        </h2>
                         <TicketSearch
                             filters={filters}
                             setFilters={handleNewFilters}

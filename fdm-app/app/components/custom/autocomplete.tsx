@@ -1,5 +1,5 @@
 import { Command as CommandPrimitive } from "cmdk"
-import { Check, User, Users } from "lucide-react"
+import { Check, User, Users, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useFetcher } from "react-router-dom"
 import { modifySearchParams } from "@/app/lib/url-utils"
@@ -15,6 +15,9 @@ import { Popover, PopoverAnchor, PopoverContent } from "~/components/ui/popover"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
+// Stable empty array
+const EMPTY_EXCLUDE_VALUES: readonly string[] = []
+
 // Expected shape of items returned by the lookup API
 type LookupItem<T extends string> = {
     value: T
@@ -25,11 +28,11 @@ type LookupItem<T extends string> = {
 type IconMap = Record<string, React.ComponentType<{ className?: string }>>
 
 type Props<T extends string> = {
-    selectedValue: T
-    onSelectedValueChange: (value: T) => void
+    selectedValue: T | undefined
+    onSelectedValueChange: (value: T | undefined) => void
     lookupUrl: string // API endpoint for lookup
     searchParamName?: string // Query parameter name for search term (default: 'identifier')
-    excludeValues?: T[] // Optional array of values to filter out
+    excludeValues?: readonly string[] // Optional array of values to filter out
     iconMap?: IconMap // Optional map of icon identifiers to components
     emptyMessage?: string | ((inputValue: string) => React.ReactNode)
     placeholder?: string
@@ -47,7 +50,7 @@ export function AutoComplete<T extends string>({
     onSelectedValueChange,
     lookupUrl,
     searchParamName = "identifier", // Default search param name
-    excludeValues = [],
+    excludeValues = EMPTY_EXCLUDE_VALUES,
     iconMap = { user: User, organization: Users }, // Default icon map
     emptyMessage = "No items.",
     placeholder = "Search...",
@@ -66,13 +69,16 @@ export function AutoComplete<T extends string>({
     const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
     const prevInputValue = useRef<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null) // Ref for the input element
+    // Guards the sync effect from overriding the input while the user is actively typing
+    const preventSyncRef = useRef(false)
 
     // Derive display label for the currently selected value.
     // Falls back to selectedValue for free-form entries (when allowValuesOutsideList is true).
     const selectedLabel = useMemo(() => {
         const selectedItem = items.find((item) => item.value === selectedValue)
         return (
-            selectedItem?.label ?? (allowValuesOutsideList ? selectedValue : "")
+            selectedItem?.label ??
+            (allowValuesOutsideList && selectedValue ? selectedValue : "")
         )
     }, [selectedValue, items, allowValuesOutsideList])
 
@@ -127,6 +133,11 @@ export function AutoComplete<T extends string>({
 
     // Effect to sync input field when selectedValue changes externally
     useEffect(() => {
+        // Skip when we the input is cleared by code but the user was still typing
+        if (preventSyncRef.current) {
+            preventSyncRef.current = false
+            return
+        }
         // If a value is selected externally, update the input field to its label
         // This handles cases where the form is reset or pre-populated
         if (selectedValue && selectedLabel) {
@@ -143,7 +154,8 @@ export function AutoComplete<T extends string>({
         setInputValue(value)
         // If user types something different than the selected label, clear the selection
         if (selectedValue && value !== selectedLabel) {
-            onSelectedValueChange("" as T) // Clear parent state
+            preventSyncRef.current = true // Don't let the sync effect clear the user's input
+            onSelectedValueChange(undefined) // Clear parent state
             if (form && name) {
                 form.setValue(name, "") // Clear form state if applicable
             }
@@ -162,6 +174,16 @@ export function AutoComplete<T extends string>({
         }
         setOpen(false)
         openRef.current = false
+    }
+
+    const handleClear = () => {
+        onSelectedValueChange(undefined)
+        setInputValue("")
+        prevInputValue.current = null
+        setItems([])
+        if (form && name) {
+            form.setValue(name, "")
+        }
     }
 
     // Keep input if it matches a valid item, otherwise use typed value as-is (if allowFreeform).
@@ -198,34 +220,54 @@ export function AutoComplete<T extends string>({
             >
                 <Command shouldFilter={false} className="w-full">
                     <PopoverAnchor asChild>
-                        <CommandPrimitive.Input
-                            asChild
-                            value={inputValue}
-                            onValueChange={handleInputChange}
-                            onKeyDown={(e) => {
-                                const next = e.key !== "Escape"
-                                setOpen(next)
-                                openRef.current = next
-                            }}
-                            onMouseDown={() => {
-                                const next = !!inputValue || !open
-                                setOpen(next)
-                                openRef.current = next
-                            }}
-                            onFocus={() => {
-                                setOpen(true)
-                                openRef.current = true
-                            }}
-                            onBlur={handleInputBlur}
-                        >
-                            <Input
-                                ref={inputRef} // Assign ref to the input
-                                placeholder={placeholder}
-                                className="w-full"
-                                autoComplete="off" // Prevent browser autocomplete
-                                disabled={disabled}
-                            />
-                        </CommandPrimitive.Input>
+                        <div className="relative w-full">
+                            <CommandPrimitive.Input
+                                asChild
+                                value={inputValue}
+                                onValueChange={handleInputChange}
+                                onKeyDown={(e) => {
+                                    const next = e.key !== "Escape"
+                                    setOpen(next)
+                                    openRef.current = next
+                                }}
+                                onMouseDown={() => {
+                                    const next = !!inputValue || !open
+                                    setOpen(next)
+                                    openRef.current = next
+                                }}
+                                onFocus={() => {
+                                    setOpen(true)
+                                    openRef.current = true
+                                }}
+                                onBlur={handleInputBlur}
+                            >
+                                <Input
+                                    ref={inputRef}
+                                    placeholder={placeholder}
+                                    className={cn(
+                                        "w-full",
+                                        selectedValue &&
+                                            !allowValuesOutsideList &&
+                                            "pr-8",
+                                    )}
+                                    autoComplete="off"
+                                    disabled={disabled}
+                                />
+                            </CommandPrimitive.Input>
+                            {selectedValue && !allowValuesOutsideList && (
+                                <button
+                                    type="button"
+                                    aria-label="Wis selectie"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault()
+                                        handleClear()
+                                    }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="size-3.5" />
+                                </button>
+                            )}
+                        </div>
                     </PopoverAnchor>
                     {!open && (
                         <CommandList aria-hidden="true" className="hidden" />
