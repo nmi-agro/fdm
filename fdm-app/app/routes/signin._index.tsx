@@ -1336,7 +1336,7 @@ export default function SignIn() {
                                     Voer visuele bodemanalyses uit en bereken uw
                                     BodemConditieScore. Maak foto's van uw
                                     bodemkuil en voeg notities toe om
-                                    interressante bodemkenmerken vast te leggen.
+                                    interessante bodemkenmerken vast te leggen.
                                 </p>
                             </div>
                         </div>

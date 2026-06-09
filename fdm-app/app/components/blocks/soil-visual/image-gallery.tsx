@@ -521,7 +521,7 @@ export function ImageGallery({
             )
         }
         return null
-    }, [drawingState])
+    }, [drawingState, imgSize])
 
     const getCursorClass = () => {
         if (!editMode || !onAddAnnotation) return "cursor-default"

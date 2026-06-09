@@ -24,6 +24,32 @@ import { BCS_VISUAL_KEYS, type BcsSavePayload, type BcsVisualKey } from "~/lib/b
 import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { z } from "zod"
+
+const BcsSavePayloadSchema = z.object({
+    a_date: z.string(),
+    b_sampling_date: z.string(),
+    a_depth_lower: z.union([z.number(), z.string(), z.null(), z.undefined()]).optional(),
+    scores: z.record(z.any()).optional().default({}),
+    images: z.array(
+        z.object({
+            tempId: z.string(),
+            objectKey: z.string(),
+            url: z.string(),
+            caption: z.string().optional(),
+        })
+    ).optional().default([]),
+    annotations: z.array(
+        z.object({
+            tempId: z.string(),
+            tempImageId: z.string(),
+            type: z.enum(["pin", "circle", "arrow", "freehand"]),
+            coordinates: z.any(),
+            text: z.string().optional(),
+            bcsIndicator: z.string().optional(),
+        })
+    ).optional().default([]),
+})
 
 function getRouteParams(params: ActionFunctionArgs["params"]) {
     const { b_id, b_id_farm, calendar } = params
@@ -145,7 +171,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
         })
     }
 
-    const payload = (await request.json()) as BcsSavePayload
+    const rawPayload = await request.json()
+    const parseResult = BcsSavePayloadSchema.safeParse(rawPayload)
+    if (!parseResult.success) {
+        throw data("Invalid payload format", {
+            status: 400,
+            statusText: "Invalid payload format",
+        })
+    }
+    const payload = parseResult.data as BcsSavePayload
     const scores = sanitizeScores(payload)
     if (!BCS_VISUAL_KEYS.some((key) => scores[key] != null)) {
         throw data("Geef minimaal één indicator voor BodemConditieScore op", {
@@ -183,7 +217,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             a_date,
             "other",
             b_id,
-            Number(payload.a_depth_lower) || 25,
+            Number(payload.a_depth_lower ?? 25),
             b_sampling_date,
             scores,
         )
