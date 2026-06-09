@@ -6,6 +6,7 @@ import {
     getFertilizerApplications,
     getFertilizers,
     getFields,
+    getSoilAnalyses,
     updateField,
 } from "@nmi-agro/fdm-core"
 import {
@@ -29,6 +30,8 @@ import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
+import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -188,6 +191,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     )?.value ?? "",
                 )
 
+                // Fetch latest BCS analysis up to end of this calendar year.
+                const soilAnalyses = await getSoilAnalyses(
+                    fdm,
+                    session.principal_id,
+                    field.b_id,
+                    { start: undefined, end: timeframe?.end },
+                )
+                const latestBcs = soilAnalyses
+                    .filter(isBcsAnalysis)
+                    .sort((a, b) => {
+                        const da = a.b_sampling_date?.getTime() ?? 0
+                        const db = b.b_sampling_date?.getTime() ?? 0
+                        return db - da
+                    })[0]
+                const bcs = latestBcs
+                    ? (() => {
+                          const { d_bcs, scoreColor, scoreLabel } = computeBcs({
+                              a_ss_bcs: latestBcs.a_ss_bcs,
+                              a_sc_bcs: latestBcs.a_sc_bcs,
+                              a_rd_bcs: latestBcs.a_rd_bcs,
+                              a_ew_bcs: latestBcs.a_ew_bcs,
+                              a_cc_bcs: latestBcs.a_cc_bcs,
+                              a_gs_bcs: latestBcs.a_gs_bcs,
+                              a_p_bcs: latestBcs.a_p_bcs,
+                              a_c_bcs: latestBcs.a_c_bcs,
+                              a_rt_bcs: latestBcs.a_rt_bcs,
+                          })
+                          return {
+                              a_id: latestBcs.a_id,
+                              d_bcs,
+                              scoreColor,
+                              scoreLabel,
+                          }
+                      })()
+                    : null
+
                 const has_write_permission = await checkPermission(
                     fdm,
                     "field",
@@ -207,6 +246,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     b_area: Math.round((field.b_area ?? 0) * 10) / 10,
                     b_bufferstrip: field.b_bufferstrip,
                     has_write_permission: has_write_permission,
+                    bcs,
                 }
             }),
         )

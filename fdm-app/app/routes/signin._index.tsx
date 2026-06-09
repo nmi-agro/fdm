@@ -7,6 +7,7 @@ import {
     BadgeCheck,
     BookOpen,
     Calculator,
+    Camera,
     CheckCircle2,
     Droplets,
     ExternalLink,
@@ -293,7 +294,9 @@ export default function SignIn() {
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema) as Resolver<z.infer<typeof FormSchema>>,
+        resolver: zodResolver(FormSchema) as Resolver<
+            z.infer<typeof FormSchema>
+        >,
         defaultValues: {
             email: "",
             timeZone: "",
@@ -1269,7 +1272,7 @@ export default function SignIn() {
                             </p>
                         </div>
 
-                        <div className="grid gap-12 lg:grid-cols-3">
+                        <div className="grid gap-12 md:grid-cols-2 xl:grid-cols-4">
                             {/* Feature 1: Import */}
                             <div className="flex flex-col items-center space-y-4 text-center">
                                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
@@ -1318,6 +1321,22 @@ export default function SignIn() {
                                     Beheer uw bouwplan, bemesting en oogst in
                                     overzichtelijke tabellen. Voer acties uit
                                     voor meerdere percelen of gewassen tegelijk.
+                                </p>
+                            </div>
+
+                            {/* Feature 4: BodemConditieScore */}
+                            <div className="flex flex-col items-center space-y-4 text-center">
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100 text-purple-700">
+                                    <Camera className="h-8 w-8" />
+                                </div>
+                                <h3 className="text-xl font-semibold">
+                                    BodemConditieScore
+                                </h3>
+                                <p className="text-muted-foreground">
+                                    Voer visuele bodemanalyses uit en bereken uw
+                                    BodemConditieScore. Maak foto's van uw
+                                    bodemkuil en voeg notities toe om
+                                    interessante bodemkenmerken vast te leggen.
                                 </p>
                             </div>
                         </div>

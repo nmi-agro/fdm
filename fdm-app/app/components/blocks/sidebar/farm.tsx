@@ -180,8 +180,7 @@ export function SidebarFarm({
                         )}
 
                         {/* Conditionally render the Kalender item */}
-                        {isFarmSelected ? (
-                            <Collapsible
+                        {isFarmSelected ? (                            <Collapsible
                                 asChild
                                 open={isCalendarOpen}
                                 className="group/collapsible"
@@ -280,10 +279,11 @@ export function SidebarFarm({
                             {fieldsLink ? (
                                 <SidebarMenuButton
                                     asChild
-                                    isActive={location.pathname.includes(
-                                        fieldsLink,
-                                    )}
-                                >
+                                        isActive={
+                                            location.pathname.includes(`/farm/${farmId}/`) &&
+                                            location.pathname.includes("/field")
+                                        }
+                                    >
                                     <NavLink to={fieldsLink}>
                                         <Square />
                                         <span>Percelen</span>
@@ -313,10 +313,11 @@ export function SidebarFarm({
                             {rotationLink ? (
                                 <SidebarMenuButton
                                     asChild
-                                    isActive={location.pathname.includes(
-                                        rotationLink,
-                                    )}
-                                >
+                                        isActive={
+                                            location.pathname.includes(`/farm/${farmId}/`) &&
+                                            location.pathname.includes("/rotation")
+                                        }
+                                    >
                                     <NavLink to={rotationLink}>
                                         <Sprout />
                                         <span>Bouwplan</span>

@@ -73,8 +73,11 @@ export type {
 } from "./cultivation.types"
 export {
     acquiringMethodOptions,
+    annotationTypeOptions,
+    bcsIndicatorOptions,
     gwlClassesOptions,
     soilTypesOptions,
+    visualImageTypeOptions,
 } from "./db/schema"
 export { rateLimit } from "./db/schema-authn"
 export type {
@@ -221,5 +224,20 @@ export type {
     SoilParameterDescription,
     SoilParameters,
 } from "./soil.types"
+export {
+    addSoilImage,
+    addSoilImageAnnotation,
+    getSoilImages,
+    removeSoilImage,
+    removeSoilImageAnnotation,
+    updateSoilImageAnnotation,
+} from "./soil-image"
+export type {
+    AddSoilImageAnnotationInput,
+    AddSoilImageInput,
+    SoilImage,
+    SoilImageAnnotation,
+    UpdateSoilImageAnnotationInput,
+} from "./soil-image.types"
 export type { Timeframe } from "./timeframe.d"
 export { fdmSchema }
