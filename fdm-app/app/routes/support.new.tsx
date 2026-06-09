@@ -3,7 +3,9 @@ import {
     assignTicketToAnAdmin,
     createTicket,
     getTicket,
+    updateTicketSubjectAndPriority,
 } from "@nmi-agro/fdm-helpdesk"
+import { TriageAgent } from "@nmi-agro/fdm-helpdesk/triage"
 import { useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
@@ -12,6 +14,7 @@ import { TicketComposer } from "~/components/blocks/helpdesk/ticket-composer"
 import { TicketSchema } from "~/components/blocks/helpdesk/ticket-schema"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
+import { serverConfig } from "~/lib/config.server"
 import { sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -111,12 +114,43 @@ export async function action({ request }: Route.ActionArgs) {
             handleActionError(assignmentError)
         }
 
+        // Generate subject and priority if Gemini is configured
+        if (serverConfig.integrations.gemini) {
+            // If it is slow you can remove the await in the beginning
+            await performTriage(
+                serverConfig.integrations.gemini.api_key,
+                "gemini-3.1-flash-lite",
+                ticket_id,
+                ticketCreateInfo.body,
+            )
+        }
+
         return redirectWithSuccess(
             `/support/ticket/${ticket_id}`,
             "We hebben uw vraag ontvangen. Een collega neemt binnenkort contact met u op.",
         )
     } catch (err) {
         throw handleActionError(err)
+    }
+}
+
+async function performTriage(
+    apiKey: string,
+    model: string,
+    ticket_id: string,
+    body: string,
+) {
+    try {
+        const triageAgent = new TriageAgent({ apiKey, model })
+
+        const { subject, priority, reasoning } =
+            await triageAgent.generateSubjectAndPriority(body)
+
+        console.log(reasoning)
+
+        await updateTicketSubjectAndPriority(fdm, ticket_id, subject, priority)
+    } catch (triageError) {
+        handleActionError(triageError)
     }
 }
 

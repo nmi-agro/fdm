@@ -422,6 +422,25 @@ export async function createTicket(
     }
 }
 
+export async function updateTicketSubjectAndPriority(
+    fdm: FdmHelpdeskType,
+    ticket_id: schema.TicketTypeSelect["ticket_id"],
+    subject?: string,
+    priority?: string,
+) {
+    try {
+        await fdm
+            .update(schema.tickets)
+            .set({ subject: subject, priority: priority })
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+    } catch (e) {
+        throw handleError(e, "Exception for updateTicketSubjectAndPriority", {
+            ticket_id,
+            priority,
+        })
+    }
+}
+
 const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
     open: [
         "in_progress",
