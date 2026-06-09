@@ -1,8 +1,10 @@
 import { getPrincipals } from "@nmi-agro/fdm-core"
 import {
     checkHelpdeskPermission,
+    getTags,
     getTicketCount,
     getTickets,
+    type TagSummary,
     type Ticket,
     type TicketFilters,
 } from "@nmi-agro/fdm-helpdesk"
@@ -20,6 +22,7 @@ export type LoadPaginatedTicketsData = {
     totalTicketCount: number
     helpdeskReadPermission: boolean
     principals: HelpdeskUser[]
+    availableTags: TagSummary[]
 }
 
 function mergeFilters(...filters: TicketFilters[]): TicketFilters {
@@ -59,6 +62,9 @@ function mergeFiltersInner(
     }
     if (base.maxPriority || current.maxPriority) {
         result.maxPriority = current.maxPriority ?? base.maxPriority
+    }
+    if (base.tags || current.tags) {
+        result.tags = [...(base.tags ?? []), ...(current.tags ?? [])]
     }
     return result
 }
@@ -135,7 +141,11 @@ export async function loadPaginatedTickets(request: Request) {
             filters,
         )
 
-        if (typeof pageOffset === "number" && totalTicketCount <= pageOffset) {
+        if (
+            typeof pageOffset === "number" &&
+            totalTicketCount !== 0 &&
+            totalTicketCount <= pageOffset
+        ) {
             const newSearchParams = new URLSearchParams(url.searchParams)
             newSearchParams.set(
                 "pageOffset",
@@ -173,12 +183,15 @@ export async function loadPaginatedTickets(request: Request) {
             }),
         )
 
+        const availableTags = await getTags(fdm)
+
         return {
             defaultFilterType: defaultFilterType,
             tickets: tickets,
             totalTicketCount: totalTicketCount,
             principals: principalsSummarized,
             helpdeskReadPermission: helpdeskReadPermission,
+            availableTags: availableTags,
         } satisfies LoadPaginatedTicketsData
     } catch (err) {
         throw handleLoaderError(err)

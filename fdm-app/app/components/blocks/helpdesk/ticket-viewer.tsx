@@ -1,4 +1,4 @@
-import type { Ticket, TicketFilters } from "@nmi-agro/fdm-helpdesk"
+import type { TagSummary, Ticket, TicketFilters } from "@nmi-agro/fdm-helpdesk"
 import throttle from "lodash.throttle"
 import { ChevronLeft, Filter, Plus, X } from "lucide-react"
 import { Dialog } from "radix-ui"
@@ -51,12 +51,14 @@ function TicketList({
     toPrefix,
     principalLookup,
     isAgent,
+    availableTags,
 }: {
     tickets: Ticket[]
     totalTicketCount: number
     toPrefix: string
     principalLookup: Map<string, HelpdeskUser>
     isAgent: boolean
+    availableTags: TagSummary[]
 }) {
     const location = useLocation()
     const currentPage = useCurrentHelpdeskPage()
@@ -130,6 +132,7 @@ function TicketList({
                             filters={filters}
                             setFilters={handleNewFilters}
                             isAgent={isAgent}
+                            availableTags={availableTags}
                         />
                     </PopoverContent>
                 </Popover>
@@ -191,12 +194,14 @@ export function TicketViewer({
     toPrefix,
     principalLookup,
     helpdeskReadPermission,
+    availableTags,
 }: {
     tickets: Ticket[]
     totalTicketCount: number
     toPrefix: string
     principalLookup: Map<string, HelpdeskUser>
     helpdeskReadPermission: boolean
+    availableTags: TagSummary[]
 }) {
     const params = useParams()
     const isXl = useIsXl()
@@ -217,6 +222,7 @@ export function TicketViewer({
         toPrefix,
         principalLookup,
         isAgent: helpdeskReadPermission,
+        availableTags: availableTags,
     }
 
     return (

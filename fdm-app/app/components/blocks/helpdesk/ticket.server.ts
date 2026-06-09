@@ -1,14 +1,19 @@
 import { getFarm, getPrincipals } from "@nmi-agro/fdm-core"
 import {
     addMessage,
+    addTagToTicket,
     assignTicket,
     checkHelpdeskPermission,
+    createTag,
     getAgents,
     getAssigneesForTickets,
     getMessagesForTicket,
+    getTags,
+    getTagsForTickets,
     getTicket,
     markTicketAsNotViewedByAll,
     markTicketAsViewed,
+    removeTagFromTicket,
     unassignTicket,
     updateTicketStatus,
 } from "@nmi-agro/fdm-helpdesk"
@@ -22,6 +27,7 @@ import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "./assignee-schema"
 import { makeHelpdeskUser } from "./helpdesk-user"
 import { MessageSchema } from "./message-schema"
+import { TagSchema, TicketTagsSchema } from "./tag-schema"
 
 interface Args {
     params: { ticket_id: string }
@@ -31,28 +37,34 @@ export async function loader({ params, request }: Args) {
     try {
         const session = await getSession(request)
 
-        const [ticket, messages, canAddMessages, isAgent] = await Promise.all([
-            getTicket(fdm, session.principal_id, params.ticket_id),
-            getMessagesForTicket(fdm, session.principal_id, params.ticket_id),
-            checkHelpdeskPermission(
-                fdm,
-                "ticket-user-side",
-                "write",
-                params.ticket_id,
-                session.principal_id,
-                "_ticketviewer.ticket.$ticket_id",
-                false,
-            ),
-            checkHelpdeskPermission(
-                fdm,
-                "ticket-agent-side",
-                "write",
-                params.ticket_id,
-                session.principal_id,
-                "_ticketviewer.ticket.$ticket_id",
-                false,
-            ),
-        ])
+        const [ticket, messages, availableTags, canAddMessages, isAgent] =
+            await Promise.all([
+                getTicket(fdm, session.principal_id, params.ticket_id),
+                getMessagesForTicket(
+                    fdm,
+                    session.principal_id,
+                    params.ticket_id,
+                ),
+                getTags(fdm),
+                checkHelpdeskPermission(
+                    fdm,
+                    "ticket-user-side",
+                    "write",
+                    params.ticket_id,
+                    session.principal_id,
+                    "_ticketviewer.ticket.$ticket_id",
+                    false,
+                ),
+                checkHelpdeskPermission(
+                    fdm,
+                    "ticket-agent-side",
+                    "write",
+                    params.ticket_id,
+                    session.principal_id,
+                    "_ticketviewer.ticket.$ticket_id",
+                    false,
+                ),
+            ])
 
         // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
         const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
@@ -110,6 +122,7 @@ export async function loader({ params, request }: Args) {
             principal_id: session.principal_id,
             ticket: ticket,
             messages: messages,
+            availableTags: availableTags,
             canAddMessages: canAddMessages,
             isAgent: isAgent,
             principals: principalsSummarized,
@@ -141,6 +154,8 @@ export const ActionSchema = z.discriminatedUnion("intent", [
     z.object({ intent: z.literal("set_ticket_status"), status: z.string() }),
     AssigneeSchema.extend({ intent: z.literal("change_assignment") }),
     MessageSchema.extend({ intent: z.literal("add_message") }),
+    TagSchema.extend({ intent: z.literal("create_tag") }),
+    TicketTagsSchema.extend({ intent: z.literal("set_tags") }),
 ])
 
 export async function action({ params, request }: Args) {
@@ -238,6 +253,66 @@ export async function action({ params, request }: Args) {
 
                 // Have not done anything
                 return null
+            })
+        }
+
+        if (formValues.intent === "create_tag") {
+            // Create the tag
+            const tag_id = await createTag(
+                fdm,
+                session.principal_id,
+                formValues.name,
+                formValues.color,
+                formValues.description,
+            )
+
+            // Also add the tag to the current ticket
+            await addTagToTicket(
+                fdm,
+                session.principal_id,
+                params.ticket_id,
+                tag_id,
+            )
+        }
+
+        if (formValues.intent === "set_tags") {
+            await fdm.transaction(async (tx) => {
+                const currentTags =
+                    (
+                        await getTagsForTickets(tx, session.principal_id, [
+                            params.ticket_id,
+                        ])
+                    )
+                        .get(params.ticket_id)
+                        ?.map((tag) => tag.tag_id) ?? []
+
+                const currentTagsSet = new Set(currentTags)
+
+                const newTags = formValues.tags
+                const newTagsSet = new Set(newTags)
+
+                // Resolve the difference between the two tag_id lists
+                for (const current_tag_id of currentTags) {
+                    if (!newTagsSet.has(current_tag_id)) {
+                        await removeTagFromTicket(
+                            tx,
+                            session.principal_id,
+                            params.ticket_id,
+                            current_tag_id,
+                        )
+                    }
+                }
+
+                for (const new_tag_id of newTags) {
+                    if (!currentTagsSet.has(new_tag_id)) {
+                        await addTagToTicket(
+                            tx,
+                            session.principal_id,
+                            params.ticket_id,
+                            new_tag_id,
+                        )
+                    }
+                }
             })
         }
 

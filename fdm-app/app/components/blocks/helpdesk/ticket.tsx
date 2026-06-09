@@ -1,6 +1,7 @@
 import type {
     Agent,
     Message as MessageT,
+    TagSummary,
     Ticket as TicketT,
 } from "@nmi-agro/fdm-helpdesk"
 import { format } from "date-fns"
@@ -19,6 +20,7 @@ import {
     TICKET_STATUS_DESCRIPTIONS,
     TicketStatusSelector,
 } from "./ticket-status"
+import { TicketTags } from "./ticket-tags"
 import type { HelpdeskUser } from "./types"
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -32,24 +34,24 @@ export function Ticket({
     ticket,
     messages,
     agents = [],
+    availableTags = [],
     canAddMessages,
     isAgent,
     principal_id,
-    principalLookup,
-    sender_role,
     todayDate,
     contextFarmName,
+    principalLookup,
 }: {
     ticket: TicketT
     messages: MessageT[]
     agents?: Agent[]
+    availableTags?: TagSummary[]
     canAddMessages: boolean
     isAgent: boolean
     principal_id: string
-    principalLookup: Map<string, HelpdeskUser>
-    sender_role: "agent" | "customer"
     todayDate: Date
     contextFarmName?: string | null
+    principalLookup: Map<string, HelpdeskUser>
 }) {
     const navigation = useNavigation()
     const submit = useSubmit()
@@ -80,7 +82,7 @@ export function Ticket({
 
     return (
         <main className="p-6 space-y-6">
-            <header className="space-y-2">
+            <header className="space-y-4">
                 {/* 1. Meta line — muted, middot-separated */}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                     <span className="font-mono">{ticket.ticket_ref}</span>
@@ -134,7 +136,7 @@ export function Ticket({
                             />
                             <label
                                 htmlFor={assigneeSelectId}
-                                className="text-muted-foreground"
+                                className="text-sm text-muted-foreground"
                             >
                                 Medewerker:
                             </label>
@@ -164,7 +166,19 @@ export function Ticket({
                     />
                 </div>
 
-                {/* 4. Customer status description */}
+                {/* 4. Ticket Tags */}
+                <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+                    <div className="text-muted-foreground text-sm py-1">
+                        Tags:
+                    </div>
+                    <TicketTags
+                        tags={ticket.tags}
+                        availableTags={availableTags}
+                        isAgent={isAgent}
+                    />
+                </div>
+
+                {/* 5. Customer status description */}
                 {!isAgent && TICKET_STATUS_DESCRIPTIONS[ticket.status] && (
                     <p className="text-sm text-muted-foreground">
                         {TICKET_STATUS_DESCRIPTIONS[ticket.status]}
@@ -193,7 +207,7 @@ export function Ticket({
                         principal={principalLookup.get(principal_id) ?? null}
                         showAgentControls={isAgent}
                         defaultValues={{
-                            sender_role: sender_role,
+                            sender_role: isAgent ? "agent" : "customer",
                             is_internal: false,
                             body: "",
                         }}

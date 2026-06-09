@@ -1,6 +1,6 @@
-﻿import type { TicketFilters } from "@nmi-agro/fdm-helpdesk"
+﻿import type { TagSummary, TicketFilters } from "@nmi-agro/fdm-helpdesk"
 import { ChevronDown, User, Users } from "lucide-react"
-import { useMemo } from "react"
+import { type ReactNode, useMemo } from "react"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -13,16 +13,28 @@ import {
 } from "~/components/ui/dropdown-menu"
 import { Field, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
+import { TagSelector } from "./tag-selector"
 
 type FilterCommon<T> = { name: keyof T; label: string }
-type FilterConfig =
+type FilterConfig<T> =
     | { type: "text" }
     | { type: "date" }
     | { type: "principal" }
     | { type: "agent" }
-    | { type: "enum"; options: { value: string; label: string }[] }
+    | {
+          type: "enum"
+          options: EnumOption[]
+      }
+    | {
+          type: "custom"
+          render: (props: {
+              filters: T
+              setFilters: (value: any) => void
+          }) => ReactNode
+      }
+type EnumOption = { value: string; label: string; icon?: ReactNode }
 
-type FilterConfigArray<T> = (FilterCommon<T> & FilterConfig)[]
+type FilterConfigArray<T> = (FilterCommon<T> & FilterConfig<T>)[]
 
 /**
  * Gets the memoized ticket search filter config according to whether the viewer is an agent or not
@@ -31,6 +43,7 @@ type FilterConfigArray<T> = (FilterCommon<T> & FilterConfig)[]
  */
 export function useTicketFilterConfig(
     isAgent: boolean,
+    availableTags: TagSummary[],
 ): FilterConfigArray<TicketFilters> {
     return useMemo(() => {
         const common: FilterConfigArray<TicketFilters> = [
@@ -43,6 +56,25 @@ export function useTicketFilterConfig(
                 name: "toDate",
                 label: "Tot en met",
                 type: "date",
+            },
+            {
+                name: "tags",
+                label: "Tags",
+                type: "custom",
+                render: ({ filters, setFilters }) => (
+                    <TagSelector
+                        availableTags={availableTags}
+                        value={filters?.tags ?? []}
+                        setValue={(tags) => {
+                            setFilters({ ...filters, tags: tags })
+                        }}
+                        disabled={false}
+                        canModify={true}
+                        canClear={true}
+                        canCreateTag={false}
+                        onCreateTag={undefined}
+                    />
+                ),
             },
         ]
         if (isAgent) {
@@ -73,7 +105,7 @@ export function useTicketFilterConfig(
         }
 
         return common
-    }, [isAgent])
+    }, [isAgent, availableTags])
 }
 
 /**
@@ -85,12 +117,14 @@ export function TicketSearch({
     filters,
     setFilters,
     isAgent,
+    availableTags,
 }: {
     filters: TicketFilters
     setFilters: (filters: TicketFilters) => void
     isAgent: boolean
+    availableTags: TagSummary[]
 }) {
-    const filterConfig = useTicketFilterConfig(isAgent)
+    const filterConfig = useTicketFilterConfig(isAgent, availableTags)
 
     return (
         <SearchFields<TicketFilters>
@@ -298,6 +332,20 @@ export function SearchFields<
                                     ))}
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                        </Field>
+                    )
+                }
+
+                if (field.type === "custom") {
+                    return (
+                        <Field key={field.name as string}>
+                            <FieldLabel className="text-sm text-muted-foreground">
+                                {field.label}
+                            </FieldLabel>
+                            {field.render({
+                                filters: filters,
+                                setFilters: setFilters,
+                            })}
                         </Field>
                     )
                 }

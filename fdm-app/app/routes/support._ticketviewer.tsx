@@ -64,8 +64,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function PersonalTicketViewer() {
-    const { tickets, totalTicketCount, principals, helpdeskReadPermission } =
-        useLoaderData<LoadPaginatedTicketsData>()
+    const {
+        tickets,
+        totalTicketCount,
+        principals,
+        helpdeskReadPermission,
+        availableTags,
+    } = useLoaderData<LoadPaginatedTicketsData>()
 
     const principalLookup = new Map(
         principals.map((principal) => [principal.principal_id, principal]),
@@ -77,6 +82,7 @@ export default function PersonalTicketViewer() {
             principalLookup={principalLookup}
             toPrefix="/support/ticket"
             helpdeskReadPermission={helpdeskReadPermission}
+            availableTags={availableTags}
         />
     )
 }
