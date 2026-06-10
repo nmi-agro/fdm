@@ -126,7 +126,9 @@ export async function action({ request }: Route.ActionArgs) {
                     return dataWithWarning(
                         {
                             errors: {
-                                name: { message: nameCollisionMessageNL },
+                                [`${formValues.tag_id}.name`]: {
+                                    message: nameCollisionMessageNL,
+                                },
                             },
                         },
                         nameCollisionMessageNL,

@@ -235,20 +235,16 @@ function TagNameCell({
 
     useEffect(() => {
         if (fetcher.state === "idle") {
-            console.log(fetcher.state, fetcher.data)
             if (!fetcher.data?.errors) {
-                setActiveTableCell((currentActiveCell) => {
-                    if (currentActiveCell === nameCellId) {
-                        return null
-                    }
-                    return currentActiveCell
-                })
+                setActiveTableCell((currentActiveCell) =>
+                    currentActiveCell === nameCellId ? null : currentActiveCell,
+                )
             }
         }
     }, [fetcher.state, fetcher.data, nameCellId, setActiveTableCell])
 
     const isSubmitting = fetcher.state !== "idle"
-    const isInvalid = !fetcher.data?.errors?.[nameCellId]
+    const isInvalid = !!fetcher.data?.errors?.[nameCellId]
 
     return canModify ? (
         nameCellId === activeTableCell ? (
@@ -258,11 +254,19 @@ function TagNameCell({
                     type="text"
                     defaultValue={tag.name}
                     min={1}
-                    className={cn(isInvalid && "outline-destructive")}
+                    aria-invalid={isInvalid}
                     disabled={isSubmitting}
                     onBlur={(e) => {
                         if (e.currentTarget.value === "") {
                             toast.warning("Schrijf een naam.")
+                            return
+                        }
+                        if (e.currentTarget.value === tag.name) {
+                            setActiveTableCell((currentActiveCell) =>
+                                currentActiveCell === nameCellId
+                                    ? null
+                                    : currentActiveCell,
+                            )
                             return
                         }
                         const formData = new FormData()

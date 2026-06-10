@@ -3,7 +3,7 @@ import type {
     GenerateContentConfig,
     GenerateContentResponse,
 } from "@google/genai"
-import { expect } from "vitest"
+import { expect, vi } from "vitest"
 import { test } from "./test-util"
 import {
     DEFAULT_MODEL_CODE,
@@ -115,7 +115,8 @@ test.describe("SubjectAndPrioritySchema", async () => {
     })
 
     test("should return preset response if the body is empty", async () => {
-        const captures: Captures = {}
+        const mockGenerateContent = vi.fn()
+        agent.ai.models.generateContent = mockGenerateContent
         const response = await agent.generateSubjectAndPriority("")
         expect(response).toEqual({
             priority: "low",
@@ -123,7 +124,10 @@ test.describe("SubjectAndPrioritySchema", async () => {
             reasoning:
                 "The message was empty, so the agents can probably ignore it.",
         })
-        expect(captures.model).toBeFalsy()
+        expect(
+            mockGenerateContent,
+            "The model was called even though there was no need to.",
+        ).not.toHaveBeenCalled()
     })
 
     test("should throw if the response is invalid JSON", async () => {

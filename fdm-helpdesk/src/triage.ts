@@ -33,6 +33,8 @@ const SubjectAndPriorityResponseJsonSchema = zodToJsonSchema(
     SubjectAndPrioritySchema,
 )
 
+type SubjectAndPriority = z.infer<typeof SubjectAndPrioritySchema>
+
 export const SUBJECT_AND_PRIORITY_PROMPT = `You are a support ticket triage assistant for FDM (Farm Data Model), 
 an agricultural data management platform used by Dutch farmers and advisors.
 
@@ -69,7 +71,9 @@ export class TriageAgent {
         this.model = model
     }
 
-    async generateSubjectAndPriority(body: string) {
+    async generateSubjectAndPriority(
+        body: string,
+    ): Promise<SubjectAndPriority> {
         if (body.trim().length === 0) {
             return {
                 subject: "Empty Message",

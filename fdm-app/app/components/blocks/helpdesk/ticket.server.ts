@@ -181,6 +181,10 @@ export async function action({ params, request }: Args) {
                 params.ticket_id,
                 formValues.status,
             )
+
+            return dataWithSuccess("De status is successvol bijgewerkt!", {
+                message: "De status is successvol bijgewerkt!",
+            })
         }
 
         if (formValues.intent === "change_assignment") {
@@ -257,22 +261,28 @@ export async function action({ params, request }: Args) {
         }
 
         if (formValues.intent === "create_tag") {
-            // Create the tag
-            const tag_id = await createTag(
-                fdm,
-                session.principal_id,
-                formValues.name,
-                formValues.color,
-                formValues.description,
-            )
+            await fdm.transaction(async (tx) => {
+                // Create the tag
+                const tag_id = await createTag(
+                    tx,
+                    session.principal_id,
+                    formValues.name,
+                    formValues.color,
+                    formValues.description,
+                )
 
-            // Also add the tag to the current ticket
-            await addTagToTicket(
-                fdm,
-                session.principal_id,
-                params.ticket_id,
-                tag_id,
-            )
+                // Also add the tag to the current ticket
+                await addTagToTicket(
+                    tx,
+                    session.principal_id,
+                    params.ticket_id,
+                    tag_id,
+                )
+            })
+
+            return dataWithSuccess(null, {
+                message: "Tag is successvol aangemaakt en toegevoegd!",
+            })
         }
 
         if (formValues.intent === "set_tags") {

@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { TagSummary } from "@nmi-agro/fdm-helpdesk"
 import { useEffect } from "react"
 import { Controller } from "react-hook-form"
-import type { Fetcher } from "react-router"
+import type { FetcherWithComponents } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
 import { Button } from "~/components/ui/button"
@@ -93,7 +93,7 @@ export function TagCreator({
     dialogOpen,
     setDialogOpen,
 }: {
-    fetcher: Fetcher
+    fetcher: FetcherWithComponents<any>
     availableTags: TagSummary[]
     intent: string
     dialogOpen: boolean
@@ -111,11 +111,24 @@ export function TagCreator({
         },
     })
 
+    // Close the dialog when tag creation succeeds
     useEffect(() => {
         if (form.formState.isSubmitSuccessful) {
             setDialogOpen(false)
         }
     }, [form.formState.isSubmitSuccessful, setDialogOpen])
+
+    // Rrset the form if the list of available tags changes (so usually when a new tag is created)
+    useEffect(() => {
+        const currentColors = new Set(availableTags.map((tag) => tag.color))
+        const unusedColor = SWATCH.find(
+            (color) => !currentColors.has(color.value),
+        )
+        form.reset({
+            intent: intent,
+            color: unusedColor?.value,
+        })
+    }, [intent, availableTags, form.reset])
 
     return (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -141,6 +154,7 @@ export function TagCreator({
                                         type="text"
                                         placeholder="Naam voor deze tag"
                                         {...field}
+                                        value={field.value ?? ""}
                                     />
                                     {fieldState.error && (
                                         <FieldError
@@ -171,9 +185,16 @@ export function TagCreator({
                         <Controller
                             name="color"
                             render={({ field, fieldState }) => {
-                                const activeOption = SWATCH.find(
-                                    (color) => color.value === field.value,
-                                )
+                                const activeOption =
+                                    SWATCH.find(
+                                        (color) => color.value === field.value,
+                                    ) ??
+                                    (field.value
+                                        ? {
+                                              value: field.value,
+                                              label: field.value,
+                                          }
+                                        : null)
                                 return (
                                     <Field>
                                         <FieldLabel>Kleur</FieldLabel>

@@ -64,7 +64,7 @@ export function useTicketFilterConfig(
                 render: ({ filters, setFilters }) => (
                     <TagSelector
                         availableTags={availableTags}
-                        value={filters?.tags ?? []}
+                        value={filters.tags ?? []}
                         setValue={(tags) => {
                             setFilters({ ...filters, tags: tags })
                         }}
