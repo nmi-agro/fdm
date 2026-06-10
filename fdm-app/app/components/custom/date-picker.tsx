@@ -110,7 +110,7 @@ interface DatePickerProps<TFieldValues extends FieldValues> {
     name: Path<TFieldValues> // Use Path for better type inference with react-hook-form
     label: string
     description: string
-    disabled: boolean
+    disabled?: boolean
 }
 
 export function DatePicker<TFieldValues extends FieldValues>({

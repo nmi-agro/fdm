@@ -3,8 +3,20 @@ import {
     type ColumnDef,
     flexRender,
     getCoreRowModel,
+    type RowData,
     useReactTable,
 } from "@tanstack/react-table"
+
+declare module "@tanstack/react-table" {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    interface TableMeta<TData extends RowData> {
+        matches?: Record<string, string>
+        dates?: Record<string, string>
+        handleFieldChange?: (id: string, fieldId: string) => void
+        handleDateChange?: (id: string, date: string) => void
+        fieldOptions?: React.ReactNode
+    }
+}
 import * as chrono from "chrono-node"
 import { format, isValid, parseISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
@@ -500,13 +512,8 @@ export function BulkSoilAnalysisReview({
         data: analyses,
         columns,
         getCoreRowModel: getCoreRowModel(),
-        meta: {
-            matches,
-            dates,
-            handleFieldChange,
-            handleDateChange,
-            fieldOptions,
-        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        meta: { matches, dates, handleFieldChange, handleDateChange, fieldOptions } as any,
     })
 
     return (

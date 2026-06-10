@@ -43,6 +43,15 @@ export interface SoilAnalysis {
     a_zn_cc: schema.soilAnalysisTypeSelect["a_zn_cc"]
     b_gwl_class: schema.soilAnalysisTypeSelect["b_gwl_class"]
     b_soiltype_agr: schema.soilAnalysisTypeSelect["b_soiltype_agr"]
+    a_ss_bcs: schema.soilAnalysisTypeSelect["a_ss_bcs"]
+    a_sc_bcs: schema.soilAnalysisTypeSelect["a_sc_bcs"]
+    a_rd_bcs: schema.soilAnalysisTypeSelect["a_rd_bcs"]
+    a_ew_bcs: schema.soilAnalysisTypeSelect["a_ew_bcs"]
+    a_cc_bcs: schema.soilAnalysisTypeSelect["a_cc_bcs"]
+    a_gs_bcs: schema.soilAnalysisTypeSelect["a_gs_bcs"]
+    a_p_bcs: schema.soilAnalysisTypeSelect["a_p_bcs"]
+    a_c_bcs: schema.soilAnalysisTypeSelect["a_c_bcs"]
+    a_rt_bcs: schema.soilAnalysisTypeSelect["a_rt_bcs"]
     b_id_sampling: schema.soilSamplingTypeSelect["b_id_sampling"]
     b_sampling_date: schema.soilSamplingTypeSelect["b_sampling_date"]
     b_sampling_geometry?: schema.soilSamplingTypeSelect["b_sampling_geometry"]
@@ -91,6 +100,15 @@ export type SoilParameters =
     | "a_zn_cc"
     | "b_gwl_class"
     | "b_soiltype_agr"
+    | "a_ss_bcs"
+    | "a_sc_bcs"
+    | "a_rd_bcs"
+    | "a_ew_bcs"
+    | "a_cc_bcs"
+    | "a_gs_bcs"
+    | "a_p_bcs"
+    | "a_c_bcs"
+    | "a_rt_bcs"
 
 export interface CurrentSoilDataItem {
     parameter: SoilParameters

@@ -8,6 +8,8 @@ import {
     Triangle,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
+import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
+import type { BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -22,24 +24,30 @@ import {
 import { BufferStripCheckbox } from "./buffer-strip-checkbox"
 import { DataTableColumnHeader } from "./column-header"
 
+const BCS_BADGE_CLASS: Record<BcsColor, string> = {
+    red: "bg-red-100 text-red-700 hover:bg-red-200",
+    orange: "bg-orange-100 text-orange-700 hover:bg-orange-200",
+    yellow: "bg-yellow-100 text-yellow-700 hover:bg-yellow-200",
+    green: "bg-green-100 text-green-700 hover:bg-green-200",
+    emerald: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200",
+}
+
 export type FieldExtended = {
     b_id: string
     b_name: string
-    cultivations: {
-        b_lu_name: string
-        b_lu_croprotation: string
-        b_lu_start: Date
-    }[]
-    fertilizers: {
-        p_name_nl: string
-        p_id: string
-        p_type: string
-    }[]
-    a_som_loi: number
-    b_soiltype_agr: string
+    cultivations: Cultivation[]
+    fertilizers: Fertilizer[]
+    a_som_loi: number | null
+    b_soiltype_agr: string | null
     b_area: number
     b_bufferstrip: boolean
     has_write_permission: boolean
+    bcs: {
+        a_id: string
+        d_bcs: number
+        scoreColor: BcsColor
+        scoreLabel: string
+    } | null
 }
 
 export const columns: ColumnDef<FieldExtended>[] = [
@@ -112,7 +120,7 @@ export const columns: ColumnDef<FieldExtended>[] = [
                             key={`${cultivation.b_lu_name}-${idx}`}
                             style={{
                                 backgroundColor: getCultivationColor(
-                                    cultivation.b_lu_croprotation,
+                                    cultivation.b_lu_croprotation ?? undefined,
                                 ),
                             }}
                             className="text-white"
@@ -195,10 +203,49 @@ export const columns: ColumnDef<FieldExtended>[] = [
             const field = row.original
             return (
                 <p className="text-muted-foreground">
-                    {field.a_som_loi !== null && field.a_som_loi !== undefined
+                    {field.a_som_loi !== null
                         ? `${field.a_som_loi.toFixed(2)} %`
                         : "-"}
                 </p>
+            )
+        },
+    },
+    {
+        id: "bcs",
+        accessorFn: (row) => row.bcs?.d_bcs ?? null,
+        enableSorting: true,
+        sortingFn: "alphanumeric",
+        header: ({ column }) => {
+            return (
+                <DataTableColumnHeader column={column} title="BCS" />
+            )
+        },
+        enableHiding: true,
+        cell: ({ row }) => {
+            const field = row.original
+            if (!field.bcs) {
+                return (
+                    <NavLink
+                        to={`./${field.b_id}/bcs/new`}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        title="Nieuwe BCS aanmaken"
+                    >
+                        –
+                    </NavLink>
+                )
+            }
+            return (
+                <NavLink
+                    to={`./${field.b_id}/bcs/${field.bcs.a_id}`}
+                    className="inline-flex"
+                >
+                    <Badge
+                        className={`tabular-nums ${BCS_BADGE_CLASS[field.bcs.scoreColor]}`}
+                        variant="secondary"
+                    >
+                        {Math.round(field.bcs.d_bcs)}
+                    </Badge>
+                </NavLink>
             )
         },
     },

@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { User, Users } from "lucide-react"
 import type { ComponentProps } from "react"
 import { Controller } from "react-hook-form"
-import { Form, useFetcher, useNavigation, useSubmit } from "react-router"
+import { Form, useFetcher, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type z from "zod"
 import { cn } from "@/app/lib/utils"
@@ -23,22 +23,21 @@ import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
 import { AddAgentSchema } from "./agent-schema"
 import type { HelpdeskUser } from "./types"
 
-export type RoleDescription = { name: string; label: string }
-
 export type HelpdeskUserExtended = HelpdeskUser & {
     role: string
     isInvitation: boolean
     isActive: boolean
 }
 
-export const agentRoles: RoleDescription[] = [
+export const agentRoles = [
     { name: "agent", label: "Medewerker" },
     { name: "admin", label: "Beheerder" },
-]
+] as const
 
+type RoleDescription = (typeof agentRoles)[number]
 export interface HelpdeskAgentManagerProps {
     helpdeskUsers: HelpdeskUserExtended[]
-    roles: RoleDescription[]
+    roles: readonly RoleDescription[]
     canModify: boolean
 }
 
@@ -74,32 +73,21 @@ export function HelpdeskAgentManager({
 
 export interface AddAgentFormProps {
     helpdeskUsers: HelpdeskUser[]
-    roles: RoleDescription[]
+    roles: readonly RoleDescription[]
 }
 
+const FormSchema = AddAgentSchema.extend({ intent: "add_agent" })
 export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
     const navigation = useNavigation()
     const isSubmitting = navigation.state !== "idle"
 
-    const submit = useSubmit()
-
     const defaultRole = roles[0].name
-    const form = useRemixForm<z.infer<typeof AddAgentSchema>>({
+    const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onSubmit",
-        resolver: zodResolver(AddAgentSchema),
+        resolver: zodResolver(FormSchema),
         defaultValues: {
+            intent: "add_agent",
             role: defaultRole,
-        },
-        submitHandlers: {
-            onValid: (values) => {
-                submit(
-                    {
-                        ...values,
-                        intent: "add_agent",
-                    },
-                    { method: "post" },
-                )
-            },
         },
     })
 
@@ -116,7 +104,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
                     {/* For uncontrolled form - intent is injected in Javascript in submitHandlers, see above. */}
                     <input type="hidden" name="intent" value="add_agent" />
                     <Controller
-                        name="username"
+                        name="principal_id"
                         render={({ field }) => (
                             <Field className="grow">
                                 <FieldContent>
@@ -149,7 +137,10 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
                                     <RoleSelect
                                         defaultValue={defaultRole}
                                         onValueChange={(value) =>
-                                            form.setValue("role", value)
+                                            form.setValue(
+                                                "role",
+                                                value as RoleDescription["name"],
+                                            )
                                         }
                                         roles={roles}
                                     />
@@ -166,13 +157,17 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
     )
 }
 
-export interface PrincipalRow {
+export interface PrincipalRowProps {
     principal: HelpdeskUserExtended
-    roles: RoleDescription[]
+    roles: readonly RoleDescription[]
     canModify: boolean
 }
 
-export function PrincipalRow({ principal, roles, canModify }: PrincipalRow) {
+export function PrincipalRow({
+    principal,
+    roles,
+    canModify,
+}: PrincipalRowProps) {
     const fetcher = useFetcher()
     const isSubmitting = fetcher.state !== "idle"
 
@@ -246,9 +241,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRow) {
                             }}
                             disabled={isSubmitting}
                         >
-                            {principal.isActive
-                                ? "Deactiveren"
-                                : "Activeren"}
+                            {principal.isActive ? "Deactiveren" : "Activeren"}
                         </Button>
                     </TableCell>
                 </>
@@ -263,7 +256,9 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRow) {
 }
 
 function RoleSelect(
-    props: ComponentProps<typeof Select> & { roles: RoleDescription[] },
+    props: ComponentProps<typeof Select> & {
+        roles: readonly RoleDescription[]
+    },
 ) {
     const { roles, ...selectProps } = props
     return (

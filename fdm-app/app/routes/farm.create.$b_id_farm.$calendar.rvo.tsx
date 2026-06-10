@@ -3,6 +3,7 @@ import {
     type Cultivation,
     type FdmType,
     type Field,
+    type FieldGeometry,
     getCultivationsFromCatalogue,
     getFarm,
 } from "@nmi-agro/fdm-core"
@@ -61,6 +62,8 @@ import {
     processRvoImport,
 } from "~/lib/rvo.server"
 
+type ReviewItem = RvoImportReviewItem<Field>
+
 export const meta: MetaFunction = ({ params }) => {
     const b_id_farm = params.b_id_farm
     return [{ title: `Percelen ophalen bij RVO - Nieuw Bedrijf ${b_id_farm}` }]
@@ -84,7 +87,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         request.headers.get("Cookie"),
     )
 
-    let rvoImportReviewData: RvoImportReviewItem<any>[] = []
+    let rvoImportReviewData: ReviewItem[] = []
     let error: string | null = null
     let b_businessid_farm: string | null = null
     let b_name_farm: string | null | undefined = null
@@ -465,7 +468,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const RvoImportReviewDataJson = formData.get("RvoImportReviewDataJson")
         const userChoicesJson = formData.get("userChoices")
 
-        let rvoImportReviewData: RvoImportReviewItem<any>[] = []
+        let rvoImportReviewData: ReviewItem[] = []
         let userChoices: UserChoiceMap = {}
 
         if (!RvoImportReviewDataJson || !userChoicesJson) {
@@ -487,7 +490,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             const onFieldAdded = async (
                 tx: FdmType,
                 b_id: string,
-                geometry: any,
+                geometry: FieldGeometry,
             ) => {
                 const nmiApiKey = getNmiApiKey()
                 if (nmiApiKey) {

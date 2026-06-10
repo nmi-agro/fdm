@@ -142,17 +142,9 @@ export function FertilizerApplicationsList({
                                                         size="icon"
                                                         disabled={isBusy}
                                                         onClick={() => {
-                                                            if (
-                                                                application.p_app_ids
-                                                            ) {
-                                                                handleDelete(
-                                                                    application.p_app_ids,
-                                                                )
-                                                            } else {
-                                                                handleDelete([
-                                                                    application.p_app_id,
-                                                                ])
-                                                            }
+                                                            handleDelete(
+                                                                application.p_app_id,
+                                                            )
                                                         }}
                                                     >
                                                         {isBusy ? (

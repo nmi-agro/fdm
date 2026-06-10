@@ -11,10 +11,8 @@ import type {
     Geometry,
 } from "geojson"
 import throttle from "lodash.throttle"
-import type { MapLayerMouseEvent } from "maplibre-gl"
 import {
     type Dispatch,
-    type JSX,
     type ReactNode,
     type SetStateAction,
     useEffect,
@@ -22,7 +20,11 @@ import {
     useRef,
     useState,
 } from "react"
-import { Source, useMap } from "react-map-gl/maplibre"
+import {
+    type MapLayerMouseEvent,
+    Source,
+    useMap,
+} from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
 import { deserializeFgb } from "./atlas-fgb"
 import { generateFeatureClass } from "./atlas-functions"
@@ -59,7 +61,7 @@ export function FieldsSourceSelected({
     setFieldsData: React.Dispatch<
         React.SetStateAction<FeatureCollection>
     > | null
-    children: JSX.Element
+    children: ReactNode
 }) {
     const { current: map } = useMap()
 
@@ -157,7 +159,7 @@ export function FieldsSourceAvailable({
     calendar: string
     zoomLevelFields: number
     redirectToDetailsPage: boolean
-    children: JSX.Element
+    children: ReactNode
 }) {
     const { current: map } = useMap()
     const [data, setData] = useState(generateFeatureClass())
@@ -184,7 +186,7 @@ export function FieldsSourceAvailable({
 
     useEffect(() => {
         if (map && redirectToDetailsPage) {
-            const handleClick = (e: any) => {
+            const handleClick = (e: MapLayerMouseEvent) => {
                 // Get the coordinates of the centroid of the clicked field
                 if (e.features) {
                     try {

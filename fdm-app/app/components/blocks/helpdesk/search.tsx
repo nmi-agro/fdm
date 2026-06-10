@@ -15,8 +15,9 @@ import { Field, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { TagSelector } from "./tag-selector"
 
-type FilterCommon<T> = { name: keyof T; label: string }
-type FilterConfig<T> =
+type BaseFilter = { [k: string]: any }
+type FilterCommon<T extends BaseFilter> = { name: keyof T; label: string }
+type FilterConfig<T extends BaseFilter> =
     | { type: "text" }
     | { type: "date" }
     | { type: "principal" }
@@ -34,7 +35,8 @@ type FilterConfig<T> =
       }
 type EnumOption = { value: string; label: string; icon?: ReactNode }
 
-type FilterConfigArray<T> = (FilterCommon<T> & FilterConfig<T>)[]
+type FilterConfigArray<T extends BaseFilter> = (FilterCommon<T> &
+    FilterConfig<T>)[]
 
 /**
  * Gets the memoized ticket search filter config according to whether the viewer is an agent or not
@@ -142,11 +144,7 @@ export function TicketSearch({
     )
 }
 
-export function SearchFields<
-    T extends {
-        [k: string]: any
-    },
->({
+export function SearchFields<T extends BaseFilter>({
     filterConfig,
     filters,
     setFilters,

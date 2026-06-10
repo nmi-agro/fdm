@@ -107,7 +107,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                                 fieldInput: fieldOmInput,
                                 fertilizerDetails: omInput.fertilizerDetails,
                                 cultivationDetails: omInput.cultivationDetails,
-                                timeFrame: omInput.timeFrame,
+                                timeFrame: {
+                                    start:
+                                        omInput.timeFrame.start ??
+                                        timeframe.start ??
+                                        new Date(),
+                                    end:
+                                        omInput.timeFrame.end ??
+                                        timeframe.end ??
+                                        new Date(),
+                                },
                             },
                         )
                     }
@@ -227,14 +236,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                             a_silt_mi: soilParams.a_silt_mi,
                         },
                         norms: {
-                            nitrogen: normsResult.value.nitrogen,
-                            manure: normsResult.value.manure,
-                            phosphate: normsResult.value.phosphate,
+                            nitrogen: normsResult.value.nitrogen.normValue,
+                            manure: normsResult.value.manure.normValue,
+                            phosphate: normsResult.value.phosphate.normValue,
                         },
                         normsFilling: {
-                            nitrogen: normsResult.filling.nitrogen,
-                            manure: normsResult.filling.manure,
-                            phosphate: normsResult.filling.phosphate,
+                            nitrogen: normsResult.filling.nitrogen.normFilling,
+                            manure: normsResult.filling.manure.normFilling,
+                            phosphate:
+                                normsResult.filling.phosphate.normFilling,
                         },
                         advice: adviceKgHa,
                         planned: plannedKgHa,

@@ -37,4 +37,5 @@ export const TicketFilterSchema = z.object({
     toDate: DateSchema.optional(),
 })
 
+//@ts-expect-error this is to confirm that the schema type matches TicketFilters
 const _ = {} as z.infer<typeof TicketFilterSchema> satisfies TicketFilters

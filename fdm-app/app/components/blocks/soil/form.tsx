@@ -1,6 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
+import type {
+    Control,
+    FieldValues,
+    Path,
+    Resolver,
+    UseFormReturn,
+} from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { z } from "zod"
@@ -28,6 +35,8 @@ import { Spinner } from "~/components/ui/spinner"
 import { getContextualDate } from "~/lib/calendar"
 import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
+
+type SoilFormValues = z.infer<typeof FormSchema>
 
 export function SoilAnalysisForm(props: {
     soilAnalysis: SoilAnalysis | undefined
@@ -61,9 +70,9 @@ export function SoilAnalysisForm(props: {
     }
     defaultValues.a_id = undefined
 
-    const form = useRemixForm<z.infer<typeof FormSchema>>({
+    const form = useRemixForm<SoilFormValues>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as Resolver<SoilFormValues>,
         defaultValues: defaultValues,
     })
 
@@ -93,8 +102,8 @@ export function SoilAnalysisForm(props: {
                                 if (x.type === "numeric") {
                                     return (
                                         <FormField
-                                            control={form.control}
-                                            name={x.parameter}
+                                            control={form.control as unknown as Control<any, any, any>}
+                                            name={x.parameter as Path<SoilFormValues>}
                                             key={x.parameter}
                                             render={({ field }) => (
                                                 <FormItem>
@@ -107,7 +116,12 @@ export function SoilAnalysisForm(props: {
                                                                 {...field}
                                                                 type="number"
                                                                 value={
-                                                                    field.value
+                                                                    typeof field.value ===
+                                                                        "number" ||
+                                                                    typeof field.value ===
+                                                                        "string"
+                                                                        ? field.value
+                                                                        : ""
                                                                 }
                                                                 placeholder=""
                                                             />
@@ -131,8 +145,8 @@ export function SoilAnalysisForm(props: {
                                 if (x.type === "enum") {
                                     return (
                                         <FormField
-                                            control={form.control}
-                                            name={x.parameter}
+                                            control={form.control as unknown as Control<any, any, any>}
+                                            name={x.parameter as Path<SoilFormValues>}
                                             key={x.parameter}
                                             render={({ field }) => (
                                                 <FormItem>
@@ -143,11 +157,14 @@ export function SoilAnalysisForm(props: {
                                                         onValueChange={
                                                             field.onChange
                                                         }
-                                                        value={field.value}
+                                                        value={
+                                                            typeof field.value ===
+                                                            "string"
+                                                                ? field.value
+                                                                : undefined
+                                                        }
                                                     >
-                                                        <SelectTrigger
-                                                            {...field}
-                                                        >
+                                                        <SelectTrigger>
                                                             <SelectValue placeholder="" />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -194,8 +211,8 @@ export function SoilAnalysisForm(props: {
                                     return (
                                         <DatePicker
                                             key={x.parameter}
-                                            form={form}
-                                            name={x.parameter}
+                                            form={form as unknown as UseFormReturn<FieldValues>}
+                                            name={x.parameter as Path<FieldValues>}
                                             label={x.name}
                                             description={x.description}
                                         />
@@ -205,8 +222,8 @@ export function SoilAnalysisForm(props: {
                                 if (x.type === "text") {
                                     return (
                                         <FormField
-                                            control={form.control}
-                                            name={x.parameter}
+                                            control={form.control as unknown as Control<any, any, any>}
+                                            name={x.parameter as Path<SoilFormValues>}
                                             key={x.parameter}
                                             render={({ field }) => (
                                                 <FormItem>
@@ -217,7 +234,12 @@ export function SoilAnalysisForm(props: {
                                                         <Input
                                                             {...field}
                                                             type="text"
-                                                            value={field.value}
+                                                            value={
+                                                                typeof field.value ===
+                                                                "string"
+                                                                    ? field.value
+                                                                    : ""
+                                                            }
                                                             placeholder=""
                                                             aria-required="true"
                                                             required

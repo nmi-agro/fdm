@@ -6,6 +6,7 @@ import {
     getFertilizerApplications,
     getFertilizers,
     getFields,
+    getSoilAnalyses,
     updateField,
 } from "@nmi-agro/fdm-core"
 import {
@@ -21,7 +22,7 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { columns } from "~/components/blocks/fields/columns"
+import { columns, type FieldExtended } from "~/components/blocks/fields/columns"
 import { DataTable } from "~/components/blocks/fields/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -29,6 +30,8 @@ import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
+import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -140,7 +143,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             return {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
             }
         })
 
@@ -178,13 +181,51 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     field.b_id,
                     timeframe,
                 )
-                const a_som_loi =
+                const a_som_loi = Number(
                     currentSoilData.find((x) => x.parameter === "a_som_loi")
-                        ?.value ?? null
-                const b_soiltype_agr =
+                        ?.value ?? 0,
+                )
+                const b_soiltype_agr = String(
                     currentSoilData.find(
                         (x) => x.parameter === "b_soiltype_agr",
-                    )?.value ?? null
+                    )?.value ?? "",
+                )
+
+                // Fetch latest BCS analysis up to end of this calendar year.
+                const soilAnalyses = await getSoilAnalyses(
+                    fdm,
+                    session.principal_id,
+                    field.b_id,
+                    { start: undefined, end: timeframe?.end },
+                )
+                const latestBcs = soilAnalyses
+                    .filter(isBcsAnalysis)
+                    .sort((a, b) => {
+                        const da = a.b_sampling_date?.getTime() ?? 0
+                        const db = b.b_sampling_date?.getTime() ?? 0
+                        return db - da
+                    })[0]
+                const bcs = latestBcs
+                    ? (() => {
+                          const { d_bcs, scoreColor, scoreLabel } = computeBcs({
+                              a_ss_bcs: latestBcs.a_ss_bcs,
+                              a_sc_bcs: latestBcs.a_sc_bcs,
+                              a_rd_bcs: latestBcs.a_rd_bcs,
+                              a_ew_bcs: latestBcs.a_ew_bcs,
+                              a_cc_bcs: latestBcs.a_cc_bcs,
+                              a_gs_bcs: latestBcs.a_gs_bcs,
+                              a_p_bcs: latestBcs.a_p_bcs,
+                              a_c_bcs: latestBcs.a_c_bcs,
+                              a_rt_bcs: latestBcs.a_rt_bcs,
+                          })
+                          return {
+                              a_id: latestBcs.a_id,
+                              d_bcs,
+                              scoreColor,
+                              scoreLabel,
+                          }
+                      })()
+                    : null
 
                 const has_write_permission = await checkPermission(
                     fdm,
@@ -202,9 +243,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     fertilizers: fertilizersFiltered,
                     a_som_loi: a_som_loi,
                     b_soiltype_agr: b_soiltype_agr,
-                    b_area: Math.round(field.b_area * 10) / 10,
+                    b_area: Math.round((field.b_area ?? 0) * 10) / 10,
                     b_bufferstrip: field.b_bufferstrip,
                     has_write_permission: has_write_permission,
+                    bcs,
                 }
             }),
         )
@@ -328,7 +370,7 @@ export default function FarmFieldIndex() {
                             <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
                                 <DataTable
                                     columns={columns}
-                                    data={filteredFields}
+                                    data={filteredFields as FieldExtended[]}
                                     canAddItem={loaderData.farmWritePermission}
                                 />
                             </div>

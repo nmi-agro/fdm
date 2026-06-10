@@ -457,4 +457,42 @@ describe("processRvoImport", () => {
         )
         expect(updateField).not.toHaveBeenCalled()
     })
+
+    it("should process CLOSE_LOCAL action with b_start undefined (fieldStart becomes undefined)", async () => {
+        const item: RvoImportReviewItem<any> = {
+            status: RvoImportReviewStatus.EXPIRED_LOCAL,
+            localField: {
+                b_id: "local-1",
+                b_name: "Field 1",
+                b_id_source: "rvo-1",
+                b_geometry: {},
+                b_start: undefined,
+                b_acquiring_method: "purchase",
+            },
+            diffs: [],
+        }
+        const choices = { "local-1": "CLOSE_LOCAL" as const }
+
+        await processRvoImport(
+            mockFdm,
+            principalId,
+            farmId,
+            [item],
+            choices,
+            year,
+        )
+
+        const expectedCloseDate = new Date(year - 1, 11, 31)
+        expect(updateField).toHaveBeenCalledWith(
+            mockFdm,
+            principalId,
+            "local-1",
+            "Field 1",
+            "rvo-1",
+            {},
+            undefined,
+            "purchase",
+            expectedCloseDate,
+        )
+    })
 })

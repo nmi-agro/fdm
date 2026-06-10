@@ -41,17 +41,19 @@ const initializeRuntimeEnvMap = (): RuntimeConfig => {
         "PUBLIC_POSTHOG_HOST",
     ]
 
+    const importMetaEnv = import.meta.env as Record<string, string | undefined>
+
     for (const key of keysToProcess) {
-        const stringKey = key as string // Explicit cast for indexing
+        const stringKey = key as string
 
         if (
             typeof process !== "undefined" &&
             process.env &&
             process.env[stringKey] !== undefined
         ) {
-            env[key] = process.env[stringKey]
-        } else if (import.meta.env[stringKey] !== undefined) {
-            env[key] = import.meta.env[stringKey] as any
+            ;(env as Record<string, unknown>)[key] = process.env[stringKey]
+        } else if (importMetaEnv[stringKey] !== undefined) {
+            ;(env as Record<string, unknown>)[key] = importMetaEnv[stringKey]
         }
     }
 

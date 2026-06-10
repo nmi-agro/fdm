@@ -1,6 +1,6 @@
 import type {
-    FieldInput,
-    OrganicMatterBalanceNumeric,
+    collectInputForOrganicMatterBalance,
+    OrganicMatterBalanceFieldNumeric,
     OrganicMatterDegradationNumeric,
     OrganicMatterSupplyCultivationsNumeric,
     OrganicMatterSupplyFertilizersNumeric,
@@ -19,9 +19,12 @@ import {
     AccordionTrigger,
 } from "~/components/ui/accordion"
 
+type OrganicMatterFieldInput =
+    Awaited<ReturnType<typeof collectInputForOrganicMatterBalance>>["fields"][number]
+
 interface OrganicMatterBalanceDetailsProps {
-    balanceData: OrganicMatterBalanceNumeric
-    fieldInput: FieldInput
+    balanceData: OrganicMatterBalanceFieldNumeric
+    fieldInput: OrganicMatterFieldInput
 }
 
 const OrganicMatterBalanceDetails: React.FC<
@@ -35,7 +38,7 @@ const OrganicMatterBalanceDetails: React.FC<
             total: number
             applications: Array<{ id: string; value: number }>
         },
-        fieldInput: FieldInput,
+        fieldInput: OrganicMatterFieldInput,
         title: string,
         sectionKey: string,
     ) => {
@@ -88,7 +91,7 @@ const OrganicMatterBalanceDetails: React.FC<
 
     const renderFertilizersSupply = (
         fertilizers: OrganicMatterSupplyFertilizersNumeric,
-        fieldInput: FieldInput,
+        fieldInput: OrganicMatterFieldInput,
     ) => {
         return (
             <AccordionItem value="supply.fertilizers">
@@ -123,7 +126,7 @@ const OrganicMatterBalanceDetails: React.FC<
 
     const renderCultivationsList = (
         items: Array<{ id: string; value: number }>,
-        fieldInput: FieldInput,
+        fieldInput: OrganicMatterFieldInput,
         unit: string,
     ) => {
         return (
@@ -151,7 +154,7 @@ const OrganicMatterBalanceDetails: React.FC<
 
     const renderCultivationsSupply = (
         cultivations: OrganicMatterSupplyCultivationsNumeric,
-        fieldInput: FieldInput,
+        fieldInput: OrganicMatterFieldInput,
     ) => {
         if (cultivations.cultivations.length === 0) return null
         return (
@@ -172,7 +175,7 @@ const OrganicMatterBalanceDetails: React.FC<
 
     const renderResiduesSupply = (
         residues: OrganicMatterSupplyResiduesNumeric,
-        fieldInput: FieldInput,
+        fieldInput: OrganicMatterFieldInput,
     ) => {
         if (residues.cultivations.length === 0) return null
         return (
@@ -193,7 +196,7 @@ const OrganicMatterBalanceDetails: React.FC<
 
     const renderSupply = (
         supply: OrganicMatterSupplyNumeric,
-        fieldInput: FieldInput,
+        fieldInput: OrganicMatterFieldInput,
     ) => {
         return (
             <AccordionItem value="supply">

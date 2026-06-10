@@ -159,6 +159,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmFieldsOverviewBlock() {
     const loaderData = useLoaderData<typeof loader>()
 
+    if ("warning" in loaderData) {
+        return (
+            <div className="space-y-6">
+                <p className="text-sm text-muted-foreground">
+                    {loaderData.warning instanceof Error
+                        ? loaderData.warning.message
+                        : String(loaderData.warning)}
+                </p>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-6">
             <div className="grid 2xl:grid-cols-2 gap-4">

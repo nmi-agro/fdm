@@ -93,7 +93,7 @@ export function TagCreator({
     dialogOpen,
     setDialogOpen,
 }: {
-    fetcher: FetcherWithComponents<any>
+    fetcher: FetcherWithComponents<unknown>
     availableTags: TagSummary[]
     intent: string
     dialogOpen: boolean

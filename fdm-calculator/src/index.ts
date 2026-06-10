@@ -131,7 +131,9 @@ export type {
     NutrientAdviceResponse,
 } from "./nutrient-advice/types"
 export type { NlvSupplyBySomParams } from "./other/nlv-supply-by-som"
-export { calculateNlvSupplyBySom } from "./other/nlv-supply-by-som"
+export {
+    calculateNlvSupplyBySom,
+} from "./other/nlv-supply-by-som"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
 export type { CultivationForHoofdteelt } from "./shared/hoofdteelt"
@@ -139,3 +141,25 @@ export {
     findHoofdteelt,
     GROENE_BRAAK,
 } from "./shared/hoofdteelt"
+export {
+    BCS_INDICATORS,
+    calculateBcs,
+    deriveBcsLabContext,
+    deriveOmBcs,
+    derivePhBcs,
+    getBcsScoreColor,
+    getBcsScoreLabel,
+} from "./bcs/index"
+export type {
+    BcsIndicatorKey,
+    BcsLabContext,
+    BcsRawSoilData,
+    BcsResult,
+    BcsScores,
+    OmCropCategory,
+    OmSoiltypeN,
+} from "./bcs/index"
+export { calcPhDelta } from "./bcs/ph-delta"
+export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
+export { deriveCropPlanFractions } from "./bcs/crop-plan"
+export type { CultivationForCropPlan, CropPlanFractions } from "./bcs/crop-plan"

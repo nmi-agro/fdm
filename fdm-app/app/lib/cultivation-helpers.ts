@@ -8,6 +8,13 @@ import type { Cultivation } from "@nmi-agro/fdm-core"
  * @param calendarYear - The calendar year (string) to check against.
  * @returns The cultivation active on May 15th, or undefined if none found.
  */
+function toDate(value: Date | string | null | undefined) {
+    if (!value) {
+        return undefined
+    }
+    return value instanceof Date ? value : new Date(value)
+}
+
 export function getDefaultCultivation(
     cultivations: Cultivation[],
     calendarYear: string,
@@ -19,14 +26,18 @@ export function getDefaultCultivation(
     // Sort by start date descending to prioritize newer ones if overlaps occur (though overlaps shouldn't happen ideally)
     const sortedCultivations = [...cultivations].sort((a, b) => {
         return (
-            new Date(b.b_lu_start).getTime() - new Date(a.b_lu_start).getTime()
+            (toDate(b.b_lu_start)?.getTime() ?? 0) -
+            (toDate(a.b_lu_start)?.getTime() ?? 0)
         )
     })
 
     return sortedCultivations.find((cultivation) => {
-        const start = new Date(cultivation.b_lu_start)
+        const start = toDate(cultivation.b_lu_start)
+        if (!start) {
+            return false
+        }
         // If no end date, it's assumed to be active indefinitely or until the end of the season/year context
-        const end = cultivation.b_lu_end ? new Date(cultivation.b_lu_end) : null
+        const end = toDate(cultivation.b_lu_end) ?? null
 
         // Check if target date is within [start, end]
         if (end) {

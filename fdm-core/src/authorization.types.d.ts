@@ -7,6 +7,7 @@ export type Resource =
     | "field"
     | "cultivation"
     | "soil_analysis"
+    | "soil_image"
     | "fertilizer_application"
     | "harvesting"
 export type Role = "owner" | "advisor" | "researcher"

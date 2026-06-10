@@ -98,7 +98,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * This component displays a sidebar that includes the farm header, navigation options, and a link to farm fields.
  * It also renders a main section containing the farm title, description, nested routes via an Outlet, and a notification toaster.
  */
-export default function FarmFertilizerBlock({ params }: Route.ComponentProps) {
+export default function FarmFertilizerBlock({
+    params: _params,
+}: Route.ComponentProps) {
     const [searchParams] = useSearchParams()
     const loaderData = useLoaderData<typeof loader>()
 

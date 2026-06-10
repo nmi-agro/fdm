@@ -64,13 +64,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 statusText: "Field is not found",
             })
         }
+        if (!field.b_geometry) {
+            throw data("Field geometry is missing", {
+                status: 500,
+                statusText: "Field geometry is missing",
+            })
+        }
+
         const feature = {
             type: "Feature" as const,
             properties: {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
-                b_lu_name: field.b_lu_name,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
                 b_id_source: field.b_id_source,
             },
             geometry: field.b_geometry,
@@ -173,7 +179,7 @@ export default function FarmFieldAtlasBlock() {
  *
  * @throws {Error} When the field identifier is missing.
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ params }: ActionFunctionArgs) {
     try {
         const b_id = params.b_id
 

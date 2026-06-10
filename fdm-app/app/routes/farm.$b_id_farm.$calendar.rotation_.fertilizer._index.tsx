@@ -7,8 +7,10 @@ import {
     getFertilizers,
     getFields,
 } from "@nmi-agro/fdm-core"
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { AlertTriangle, Info } from "lucide-react"
 import { useEffect, useState } from "react"
+import type { Navigation } from "react-router"
 import {
     type ActionFunctionArgs,
     data,
@@ -25,10 +27,8 @@ import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import {
-    FertilizerApplicationForm,
-    type FertilizerOption,
-} from "~/components/blocks/fertilizer-applications/form"
+import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
+import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { FormSchema } from "~/components/blocks/fertilizer-applications/formschema"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -202,7 +202,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             return {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
                 cultivations: field.cultivations, // Pass cultivations for each field
             }
         })
@@ -220,32 +220,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 x.parameter === "p_app_method_options",
         )
         if (!applicationMethods) throw new Error("Parameter metadata missing")
+        const availableApplicationMethodOptions = (
+            applicationMethods.options ?? []
+        )
+            .filter(
+                (
+                    option,
+                ): option is { value: ApplicationMethods; label: string } =>
+                    option.value !== null,
+            )
+            .map((option) => ({
+                value: option.value,
+                label: option.label,
+            }))
         // Map fertilizers to options for the combobox
         const fertilizerOptions: FertilizerOption[] = fertilizers.map(
-            (fertilizer) => {
-                const applicationMethodOptions = fertilizer.p_app_method_options
-                    .map((opt: string) => {
-                        const meta = applicationMethods.options.find(
-                            (x: { value: string }) => x.value === opt,
-                        )
-                        return meta
-                            ? { value: opt, label: meta.label }
-                            : undefined
-                    })
-                    .filter(
-                        (option: {
-                            value: string
-                            label: string
-                        }): option is { value: string; label: string } =>
-                            option !== undefined,
+            (fertilizer) => ({
+                value: fertilizer.p_id,
+                label: fertilizer.p_name_nl ?? "",
+                applicationMethodOptions: (
+                    fertilizer.p_app_method_options ?? []
+                )
+                    .map((opt) =>
+                        availableApplicationMethodOptions.find(
+                            (x) => x.value === opt,
+                        ),
                     )
-                return {
-                    value: fertilizer.p_id,
-                    label: fertilizer.p_name_nl,
-                    applicationMethodOptions: applicationMethodOptions,
-                    p_app_amount_unit: fertilizer.p_app_amount_unit,
-                }
-            },
+                    .filter(
+                        (
+                            option,
+                        ): option is {
+                            value: ApplicationMethods
+                            label: string
+                        } => option !== undefined,
+                    ),
+                p_app_amount_unit: fertilizer.p_app_amount_unit,
+            }),
         )
 
         // Return user information from loader
@@ -255,32 +265,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fieldAmount: selectedFields.length,
             fertilizerOptions: fertilizerOptions,
             calendar: calendar,
-            selectedFields: selectedFields.map(
-                (field: {
-                    b_id: string
-                    b_name: string
-                    b_area: number
-                    cultivations: string[]
-                }) => ({
-                    b_id: field.b_id,
-                    b_name: field.b_name,
-                    b_area: Math.round(field.b_area * 10) / 10,
-                    cultivations: field.cultivations,
-                }),
-            ),
-            fieldOptions: fieldOptions.map(
-                (field: {
-                    b_id: string
-                    b_name: string
-                    b_area: number
-                    cultivations: string[]
-                }) => ({
-                    b_id: field.b_id,
-                    b_name: field.b_name,
-                    b_area: field.b_area,
-                    cultivations: field.cultivations,
-                }),
-            ), // All fields for selection
+            selectedFields: selectedFields.map((field) => ({
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+                cultivations: field.cultivations,
+            })),
+            fieldOptions: fieldOptions.map((field) => ({
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area: field.b_area ?? 0,
+                cultivations: field.cultivations,
+            })), // All fields for selection
             cultivationName: cultivationName,
             cultivationIds: cultivationIds,
             create: url.searchParams.has("create"),
@@ -661,7 +657,7 @@ export default function FarmRotationFertilizerAddIndex() {
                                                         ),
                                                     ),
                                             )}
-                                            navigation={navigation}
+                                            navigation={navigation as unknown as Navigation}
                                             b_id_farm={loaderData.b_id_farm}
                                             b_id_or_b_lu_catalogue={
                                                 searchParams.get(
