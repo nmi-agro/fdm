@@ -33,8 +33,10 @@ const googleAuth = {
 }
 const microsoftAuth = {
     clientId: process.env.MICROSOFT_CLIENT_ID || "mock_ms_client_id",
-    clientSecret:
-        process.env.MICROSOFT_CLIENT_SECRET || "mock_ms_client_secret",
+    tenantId: process.env.MICROSOFT_TENANT_ID || "common",
+    privateKey: process.env.MICROSOFT_PRIVATE_KEY || "mock_ms_private_key",
+    certThumbprint:
+        process.env.MICROSOFT_CERT_THUMBPRINT || "mock_ms_thumbprint",
 }
 
 const fdm = createFdmServer(host, port, user, password, database)

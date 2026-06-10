@@ -15,10 +15,19 @@ export const serverConfig: ServerConfig = {
             clientId: String(process.env.GOOGLE_CLIENT_ID),
             clientSecret: String(process.env.GOOGLE_CLIENT_SECRET),
         },
-        microsoft: {
-            clientId: String(process.env.MS_CLIENT_ID),
-            clientSecret: String(process.env.MS_CLIENT_SECRET),
-        },
+        microsoft: process.env.MS_CLIENT_ID
+            ? {
+                  clientId: String(process.env.MS_CLIENT_ID),
+                  tenantId: process.env.MS_TENANT_ID || "common",
+                  privateKey: String(process.env.MS_PRIVATE_KEY),
+                  ...(process.env.MS_CERTIFICATE
+                      ? { certificate: process.env.MS_CERTIFICATE }
+                      : {}),
+                  ...(process.env.MS_CERT_THUMBPRINT
+                      ? { certThumbprint: process.env.MS_CERT_THUMBPRINT }
+                      : {}),
+              }
+            : undefined,
     },
 
     // Database

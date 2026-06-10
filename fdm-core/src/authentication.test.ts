@@ -16,7 +16,12 @@ describe("createFdmAuth", () => {
     let fdm: FdmType
     let fdmAuth: FdmAuth
     let googleAuth: { clientSecret: string; clientId: string }
-    let microsoftAuth: { clientSecret: string; clientId: string }
+    let microsoftAuth: {
+        clientId: string
+        tenantId: string
+        privateKey: string
+        certThumbprint: string
+    }
 
     beforeEach(() => {
         // Mock environment variables
@@ -26,7 +31,9 @@ describe("createFdmAuth", () => {
         }
         microsoftAuth = {
             clientId: "mock_ms_client_id",
-            clientSecret: "mock_ms_client_secret",
+            tenantId: "common",
+            privateKey: "mock_ms_private_key",
+            certThumbprint: "mock_ms_thumbprint",
         }
 
         // Create a mock FdmServer instance
@@ -45,7 +52,9 @@ describe("createFdmAuth", () => {
 
         // Verify auth providers are correctly configured
         expect(fdmAuth.options.socialProviders?.google).toBeDefined()
-        expect(fdmAuth.options.socialProviders?.microsoft).toBeDefined()
+        expect(
+            fdmAuth.options.plugins?.some((p: any) => p.id === "generic-oauth"),
+        ).toBe(true)
 
         // Verify database adapter is properly connected
         expect(fdmAuth.options.database).toBeDefined()

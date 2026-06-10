@@ -48,7 +48,9 @@ describe("Authorization Functions", () => {
         }
         const microsoftAuth = {
             clientId: "mock_ms_client_id",
-            clientSecret: "mock_ms_client_secret",
+            tenantId: "common",
+            privateKey: "mock_ms_private_key",
+            certThumbprint: "mock_ms_thumbprint",
         }
 
         fdm = createFdmServer(host, port, user, password, database, 10) // allow some connections
