@@ -4,25 +4,70 @@ import {
     getTags,
     getTicketCount,
     getTickets,
-    type TagSummary,
-    type Ticket,
     type TicketFilters,
 } from "@nmi-agro/fdm-helpdesk"
-import { data, redirect } from "react-router"
+import { data, redirect, useLoaderData } from "react-router"
 import { TicketFilterSchema } from "~/components/blocks/helpdesk/ticket-filter-schema"
-import { TICKET_VIEWER_PAGE_SIZE } from "~/components/blocks/helpdesk/ticket-viewer"
+import {
+    TICKET_VIEWER_PAGE_SIZE,
+    TicketViewer,
+} from "~/components/blocks/helpdesk/ticket-viewer"
 import { getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import type { HelpdeskUser } from "./types"
+import type { Route } from "./+types/support._ticketviewer"
 
-export type LoadPaginatedTicketsData = {
-    defaultFilterType: "all" | "inbox" | "unassigned" | null
-    tickets: Ticket[]
-    totalTicketCount: number
-    helpdeskReadPermission: boolean
-    principals: HelpdeskUser[]
-    availableTags: TagSummary[]
+// Meta
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+    const suffix = ` - Ondersteuning | ${clientConfig.name}`
+
+    if (loaderData.defaultFilterType === "all") {
+        return [
+            {
+                title: `Alle tickets${suffix}`,
+            },
+            {
+                name: "description",
+                content: "Bekijk en bewerk tickets.",
+            },
+        ]
+    }
+
+    if (loaderData.defaultFilterType === "inbox") {
+        return [
+            {
+                title: `Mijn inbox${suffix}`,
+            },
+            {
+                name: "description",
+                content: "Bekijk en bewerk jouw tickets.",
+            },
+        ]
+    }
+
+    if (loaderData.defaultFilterType === "unassigned") {
+        return [
+            {
+                title: `Niet toegewezen${suffix}`,
+            },
+            {
+                name: "description",
+                content:
+                    "Bekijk en bewerk de tickets die nog niet toegewezen zijn.",
+            },
+        ]
+    }
+
+    return [
+        {
+            title: `Mijn tickets${suffix}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk en bewerk jouw tickets.",
+        },
+    ]
 }
 
 function mergeFilters(...filters: TicketFilters[]): TicketFilters {
@@ -69,7 +114,7 @@ function mergeFiltersInner(
     return result
 }
 
-export async function loadPaginatedTickets(request: Request) {
+export async function loader({ request }: Route.LoaderArgs) {
     try {
         const url = new URL(request.url)
         let pageOffset: number | undefined
@@ -192,8 +237,32 @@ export async function loadPaginatedTickets(request: Request) {
             principals: principalsSummarized,
             helpdeskReadPermission: helpdeskReadPermission,
             availableTags: availableTags,
-        } satisfies LoadPaginatedTicketsData
+        }
     } catch (err) {
         throw handleLoaderError(err)
     }
+}
+
+export default function PersonalTicketViewer() {
+    const {
+        tickets,
+        totalTicketCount,
+        principals,
+        helpdeskReadPermission,
+        availableTags,
+    } = useLoaderData<typeof loader>()
+
+    const principalLookup = new Map(
+        principals.map((principal) => [principal.principal_id, principal]),
+    )
+    return (
+        <TicketViewer
+            tickets={tickets}
+            totalTicketCount={totalTicketCount}
+            principalLookup={principalLookup}
+            toPrefix="/support/ticket"
+            helpdeskReadPermission={helpdeskReadPermission}
+            availableTags={availableTags}
+        />
+    )
 }

@@ -17,6 +17,7 @@ import {
     unassignTicket,
     updateTicketStatus,
 } from "@nmi-agro/fdm-helpdesk"
+import { useLoaderData } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import z from "zod"
 import { getSession } from "@/app/lib/auth.server"
@@ -24,10 +25,14 @@ import { sendHelpdeskNewMessageEmail } from "@/app/lib/email.server"
 import { handleActionError, handleLoaderError } from "@/app/lib/error"
 import { fdm } from "@/app/lib/fdm.server"
 import { extractFormValuesFromRequest } from "@/app/lib/form"
-import { AssigneeSchema } from "./assignee-schema"
-import { makeHelpdeskUser } from "./helpdesk-user"
-import { MessageSchema } from "./message-schema"
-import { TagSchema, TicketTagsSchema } from "./tag-schema"
+import { AssigneeSchema } from "~/components/blocks/helpdesk/assignee-schema"
+import { makeHelpdeskUser } from "~/components/blocks/helpdesk/helpdesk-user"
+import { MessageSchema } from "~/components/blocks/helpdesk/message-schema"
+import {
+    TagSchema,
+    TicketTagsSchema,
+} from "~/components/blocks/helpdesk/tag-schema"
+import { Ticket } from "~/components/blocks/helpdesk/ticket"
 
 interface Args {
     params: { ticket_id: string }
@@ -423,4 +428,15 @@ export async function action({ params, request }: Args) {
     } catch (err) {
         throw handleActionError(err)
     }
+}
+
+export default function DisplayedTicket() {
+    const loaderData = useLoaderData<typeof loader>()
+    const principalLookup = new Map(
+        loaderData.principals.map((principal) => [
+            principal.principal_id,
+            principal,
+        ]),
+    )
+    return <Ticket {...loaderData} principalLookup={principalLookup} />
 }
