@@ -27,7 +27,7 @@ import { Spinner } from "~/components/ui/spinner"
 import { TagSchema } from "./tag-schema"
 
 // From GitHub
-const SWATCH = [
+export const SWATCH = [
     {
         value: "#b60205",
         label: "Rood",

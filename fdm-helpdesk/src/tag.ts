@@ -264,6 +264,46 @@ export async function updateTag(
 }
 
 /**
+ * Permanently deletes a tag.
+ *
+ * It first removes the tag from each ticket, ensuring the database contraints won't be violated.
+ * Then it deletes the tag.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have helpdesk write permission.
+ * @param tag_id ID of the tag to delete.
+ */
+export async function deleteTag(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+    tag_id: schema.TagTypeSelect["tag_id"],
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "write",
+            "",
+            principal_id,
+            "deleteTag",
+        )
+
+        await fdm.transaction(async (tx) => {
+            // Remove the tag from each ticket
+            await tx
+                .delete(schema.ticketTagsMap)
+                .where(eq(schema.ticketTagsMap.tag_id, tag_id))
+
+            // Delete the tag
+            await tx.delete(schema.tags).where(eq(schema.tags.tag_id, tag_id))
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for deleteTag")
+    }
+}
+
+/**
  * Attaches a tag to a ticket. No-op if the tag is already attached. Requires agent-side write permission.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
