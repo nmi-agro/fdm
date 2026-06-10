@@ -1,11 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Info } from "lucide-react"
 import { Controller } from "react-hook-form"
 import { Form, NavLink } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type z from "zod"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
-import { Alert, AlertDescription } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import {

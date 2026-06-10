@@ -1,5 +1,5 @@
 import type { Message as MessageT } from "@nmi-agro/fdm-helpdesk"
-import { formatDate, formatDistance, formatDistanceToNow } from "date-fns"
+import { formatDate, formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { User } from "lucide-react"
 import type { ReactNode } from "react"
