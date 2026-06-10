@@ -15,10 +15,24 @@ import {
     UpdateTagSchema,
 } from "~/components/blocks/helpdesk/tag-schema"
 import { getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/support.settings.tags"
+
+// Meta
+export const meta: Route.MetaFunction = () => {
+    return [
+        {
+            title: `Tags - Ondersteuning | ${clientConfig.name}`,
+        },
+        {
+            name: "description",
+            content: "Bekijk de beschikbare tags voor ondersteuningstickets.",
+        },
+    ]
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
     try {
@@ -148,8 +162,8 @@ export default function HelpdeskTagsSettings() {
                 title="Tags"
                 description={
                     helpdeskWritePermission
-                        ? "Beheer de tags die voor de ondersteuningstickets beschikbaar zijn. Gebruikers en medewerkers kunnen naar tickets met een tag zoeken."
-                        : "Bekijk de tags die voor de ondersteuningstickets beschikbaar zijn"
+                        ? "Beheer de beschikbare tags voor ondersteuningstickets. Gebruikers en medewerkers kunnen naar tickets met een tag zoeken."
+                        : "Bekijk de beschikbare tags voor ondersteuningstickets."
                 }
             />
             <HelpdeskTagManager

@@ -10,6 +10,9 @@ export function useCurrentHelpdeskPage() {
     const isAgents = matches.some(
         (match) => match.id === "routes/support.settings.agents",
     )
+    const isTags = matches.some(
+        (match) => match.id === "routes/support.settings.tags",
+    )
     const isNewTicket = matches.some(
         (match) => match.id === "routes/support.new",
     )
@@ -27,9 +30,11 @@ export function useCurrentHelpdeskPage() {
                 : "my_tickets"
         : isAgents
           ? "agents"
-          : isNewTicket
-            ? "new_ticket"
-            : isSavedReplies
-              ? "saved_replies"
-              : null
+          : isTags
+            ? "tags"
+            : isNewTicket
+              ? "new_ticket"
+              : isSavedReplies
+                ? "saved_replies"
+                : null
 }

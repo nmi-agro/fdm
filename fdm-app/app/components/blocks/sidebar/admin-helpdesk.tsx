@@ -1,4 +1,4 @@
-import { Asterisk, Inbox, MessageSquareDashed, Users } from "lucide-react"
+import { Asterisk, Inbox, MessageSquareDashed, Tag, Users } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
@@ -128,6 +128,17 @@ export function SidebarAdminHelpdesk() {
                             <NavLink to="/support/settings/agents">
                                 <Users />
                                 <span>Medewerkers</span>
+                            </NavLink>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={currentHelpdeskPage === "tags"}
+                        >
+                            <NavLink to="/support/settings/tags">
+                                <Tag />
+                                <span>Tags</span>
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
