@@ -20,6 +20,7 @@ import {
     EmptyDescription,
     EmptyTitle,
 } from "~/components/ui/empty"
+import { Input } from "~/components/ui/input"
 import {
     Popover,
     PopoverContent,
@@ -38,8 +39,9 @@ export const TICKET_VIEWER_PAGE_SIZE = 20
 /** Count how many user-facing filters are active (excludes pagination) */
 function countActiveFilters(filters: TicketFilters): number {
     const { pageOffset: _o, pageLimit: _l, ...userFilters } = filters
-    return Object.values(userFilters).filter((v) => {
-        if (v === undefined || v === null) return false
+    return Object.entries(userFilters).filter(([k, v]) => {
+        if (k === "maxPriority") return false
+        if (v === undefined || v === null || v === "") return false
         if (Array.isArray(v)) return v.length > 0
         return true
     }).length
@@ -109,7 +111,20 @@ function TicketList({
 
     return (
         <nav className="flex flex-col gap-2 h-full box-border">
-            <div>
+            <div className="flex flex-row items-center p-1">
+                <Input
+                    value={filters.text ?? ""}
+                    placeholder="Zoeken..."
+                    onInput={(e) => {
+                        handleNewFilters({
+                            ...filters,
+                            text:
+                                e.currentTarget.value.length === 0
+                                    ? undefined
+                                    : e.currentTarget.value,
+                        })
+                    }}
+                />
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button

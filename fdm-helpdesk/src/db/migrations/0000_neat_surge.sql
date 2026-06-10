@@ -111,6 +111,7 @@ CREATE INDEX "agent_tier_idx" ON "fdm-helpdesk"."agents" USING btree ("assignmen
 CREATE INDEX "message_ticket_idx" ON "fdm-helpdesk"."messages" USING btree ("ticket_id");--> statement-breakpoint
 CREATE INDEX "message_sender_idx" ON "fdm-helpdesk"."messages" USING btree ("sender_id");--> statement-breakpoint
 CREATE INDEX "message_created_idx" ON "fdm-helpdesk"."messages" USING btree ("ticket_id","created");--> statement-breakpoint
+CREATE INDEX "message_search_idx" ON "fdm-helpdesk"."messages" USING gin (to_tsvector('dutch', "body"));--> statement-breakpoint
 CREATE INDEX "saved_reply_category_idx" ON "fdm-helpdesk"."saved_replies" USING btree ("category");--> statement-breakpoint
 CREATE UNIQUE INDEX "tag_name_lower_idx" ON "fdm-helpdesk"."tags" USING btree ("name_lower");--> statement-breakpoint
 CREATE INDEX "activity_ticket_idx" ON "fdm-helpdesk"."ticket_activity" USING btree ("ticket_id");--> statement-breakpoint
@@ -125,4 +126,5 @@ CREATE INDEX "ticket_status_idx" ON "fdm-helpdesk"."tickets" USING btree ("statu
 CREATE INDEX "ticket_requester_idx" ON "fdm-helpdesk"."tickets" USING btree ("requester_id");--> statement-breakpoint
 CREATE INDEX "ticket_priority_idx" ON "fdm-helpdesk"."tickets" USING btree ("priority");--> statement-breakpoint
 CREATE INDEX "ticket_created_idx" ON "fdm-helpdesk"."tickets" USING btree ("created");--> statement-breakpoint
-CREATE INDEX "ticket_farm_idx" ON "fdm-helpdesk"."tickets" USING btree ("context_farm_id");
+CREATE INDEX "ticket_farm_idx" ON "fdm-helpdesk"."tickets" USING btree ("context_farm_id");--> statement-breakpoint
+CREATE INDEX "title_search_idx" ON "fdm-helpdesk"."tickets" USING gin (to_tsvector('dutch', "subject"));

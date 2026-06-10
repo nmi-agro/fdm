@@ -97,5 +97,8 @@ export type TicketFilters = AssigneeFilter &
     PriorityFilter &
     RequesterFilter &
     TagsFilter &
+    TextFilter &
     TimeframeFilter &
     ViewedByFilter
+
+export type TicketSorting = "created" | "priority" | "text_relevance"

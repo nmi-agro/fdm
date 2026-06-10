@@ -35,6 +35,7 @@ export const TicketFilterSchema = z.object({
     tags: z.array(z.string().min(1)).optional(),
     fromDate: DateSchema.optional(),
     toDate: DateSchema.optional(),
+    text: z.string().optional(),
 })
 
 //@ts-expect-error this is to confirm that the schema type matches TicketFilters

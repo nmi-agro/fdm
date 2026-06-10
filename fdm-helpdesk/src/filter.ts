@@ -9,6 +9,7 @@ import {
     isNull,
     lte,
     notExists,
+    or,
     type SQL,
     sql,
 } from "drizzle-orm"
@@ -174,6 +175,13 @@ export function getTicketWhereClause(
         Array.isArray(filters?.tags) && filters.tags.length > 0
             ? inArray(schema.ticketTagsMap.tag_id, filters.tags)
             : undefined,
+        // Text filter
+        filters.text
+            ? or(
+                  sql`to_tsvector('dutch', ${schema.tickets.subject}) @@ websearch_to_tsquery('dutch', ${filters.text})`,
+                  sql`to_tsvector('dutch', ${schema.messages.body}) @@ websearch_to_tsquery('dutch', ${filters.text})`,
+              )
+            : undefined,
         // Timeframe filter
         filters?.fromDate
             ? gte(schema.tickets.created, filters.fromDate)
@@ -181,6 +189,7 @@ export function getTicketWhereClause(
         filters?.toDate
             ? lte(schema.tickets.created, filters.toDate)
             : undefined,
+        // Viewed filter
         Array.isArray(filters.viewedBy) && filters.viewedBy.length > 0
             ? inArray(schema.ticketViews.actor_id, filters.viewedBy)
             : undefined,

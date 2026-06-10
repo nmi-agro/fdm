@@ -1,4 +1,14 @@
-import { and, desc, eq, inArray, isNull, max, sql } from "drizzle-orm"
+import {
+    and,
+    desc,
+    eq,
+    inArray,
+    isNull,
+    max,
+    not,
+    type SQL,
+    sql,
+} from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
@@ -6,7 +16,7 @@ import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getTicketWhereClause } from "./filter"
-import type { TicketFilters } from "./filter.types"
+import type { TicketFilters, TicketSorting } from "./filter.types"
 import { createId } from "./id"
 import { escapeHTML } from "./sanitization"
 import { getTagsForTickets, type TagSummary } from "./tag"
@@ -111,7 +121,10 @@ export async function getTicket(
 
         return { ...found[0], tags, assignees }
     } catch (err) {
-        throw handleError(err, "Error")
+        throw handleError(err, "Exception for getTicket", {
+            ticket_id,
+            principal_id,
+        })
     }
 }
 
@@ -122,18 +135,25 @@ export async function getTicket(
  * {@link createFdmServer} of fdm-core.
  * @param agent_id The agent whose inbox to load.
  * @param filters Optional filters to narrow the results further.
+ * @param sorting Sorting strategy to use.
  * @returns An array of tickets assigned to the agent that match the filters.
  */
 export async function getInbox(
     fdm: FdmHelpdeskType,
     agent_id: HelpdeskPrincipalId,
     filters: TicketFilters = {},
+    sorting?: TicketSorting,
 ) {
     const agent_ids = Array.isArray(agent_id) ? agent_id : [agent_id]
-    return await getTickets(fdm, agent_id, {
-        ...filters,
-        assignees: [...(filters.assignees ?? []), ...agent_ids],
-    })
+    return await getTickets(
+        fdm,
+        agent_id,
+        {
+            ...filters,
+            assignees: [...(filters.assignees ?? []), ...agent_ids],
+        },
+        sorting,
+    )
 }
 
 /**
@@ -143,13 +163,16 @@ export async function getInbox(
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s) performing the query.
- * @param filters Optional filters for status, priority, requester, tags, assignees, and pagination.
+ * @param filters Optional filters for status, priority, requester, tags, assignees, text search, and
+ * pagination.
+ * @param sorting Sorting strategy to use.
  * @returns An array of tickets matching the filters.
  */
 export async function getTickets(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
     filters: TicketFilters = {},
+    sorting?: TicketSorting,
 ): Promise<Ticket[]> {
     try {
         const tickets = (await selectTickets(
@@ -157,6 +180,7 @@ export async function getTickets(
             principal_id,
             false,
             filters,
+            sorting,
         )) as Omit<Ticket, "assignees" | "tags">[]
 
         const ticket_ids = tickets.map((ticket) => ticket.ticket_id)
@@ -172,11 +196,13 @@ export async function getTickets(
             ticket_ids,
         )
 
-        return tickets.map((ticket) => ({
-            ...ticket,
-            tags: tagsByTicket.get(ticket.ticket_id) ?? [],
-            assignees: assigneesByTicket.get(ticket.ticket_id) ?? [],
-        }))
+        return tickets.map((ticket) => {
+            return {
+                ...ticket,
+                tags: tagsByTicket.get(ticket.ticket_id) ?? [],
+                assignees: assigneesByTicket.get(ticket.ticket_id) ?? [],
+            }
+        })
     } catch (err) {
         throw handleError(err, "Exception for getTickets", {
             principal_id,
@@ -191,7 +217,8 @@ export async function getTickets(
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s) performing the query.
- * @param filters Optional filters to apply before counting.
+ * @param filters Optional filters for status, priority, requester, tags, assignees, text search, and
+ * pagination.
  * @returns The number of matching tickets.
  */
 export async function getTicketCount(
@@ -213,11 +240,25 @@ export async function getTicketCount(
     }
 }
 
+/**
+ * List tickets that match the given filters, sorted according to the sorting strategy.
+ * If `selectCount` is true the total number of results with the same filters will be returned instead.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing the query.
+ * @param selectCount Whether to return the total count instead
+ * @param filters Optional filters for status, priority, requester, tags, assignees, text search, and
+ * pagination.
+ * @param sorting Sorting strategy to use.
+ * @returns
+ */
 async function selectTickets(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
     selectCount: boolean,
     filters: TicketFilters = {},
+    sorting: TicketSorting = "created",
 ) {
     const principal_ids = Array.isArray(principal_id)
         ? principal_id
@@ -265,13 +306,43 @@ async function selectTickets(
                     inArray(schema.ticketViews.actor_id, principal_ids),
                 ),
             )
+            .leftJoin(
+                schema.messages,
+                and(
+                    eq(schema.messages.ticket_id, schema.tickets.ticket_id),
+                    helpdeskReadPermission
+                        ? undefined
+                        : not(schema.messages.is_internal),
+                ),
+            )
             .where(whereClause)
     }
+
+    // If actually returning tickets, ensure either priority, text relevance, or creation date ordering
+    const priorityRankQuery =
+        sorting === "priority"
+            ? sql<number>`CASE
+    WHEN ${schema.tickets.priority} = 'low' THEN -2
+    WHEN ${schema.tickets.priority} = 'normal' THEN -1
+    WHEN ${schema.tickets.priority} = 'high' THEN 1
+    WHEN ${schema.tickets.priority} = 'urgent' THEN 2
+    ELSE 0`
+            : undefined
+    const textRelevanceQuery =
+        sorting === "text_relevance" && filters.text
+            ? sql<number>`setweight(
+to_tsvector('dutch', ${schema.messages.body}), 'A'), to_tsquery('dutch', ${filters.text})`
+            : undefined
 
     let query = fdm
         .selectDistinct({
             ...ticketColumns,
             viewed_at: max(schema.ticketViews.viewed_at),
+            // Select columns necessary for the ordering
+            ...(priorityRankQuery ? { priority_rank: priorityRankQuery } : {}),
+            ...(textRelevanceQuery
+                ? { text_relevance: textRelevanceQuery }
+                : {}),
         })
         .from(schema.tickets)
         .leftJoin(
@@ -281,6 +352,15 @@ async function selectTickets(
         .leftJoin(
             schema.ticketTagsMap,
             eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
+        )
+        .leftJoin(
+            schema.messages,
+            and(
+                eq(schema.messages.ticket_id, schema.tickets.ticket_id),
+                helpdeskReadPermission
+                    ? undefined
+                    : not(schema.messages.is_internal),
+            ),
         )
         // TODO: check if each agent has viewed, not only one of them
         .leftJoin(
@@ -292,7 +372,17 @@ async function selectTickets(
         )
         .where(whereClause)
         .groupBy(schema.tickets.ticket_id)
-        .orderBy(desc(schema.tickets.priority), desc(schema.tickets.created))
+        .orderBy((t) => {
+            if (sorting === "priority") {
+                return [desc(t.priority_rank as SQL<number>), desc(t.created)]
+            }
+
+            if (sorting === "text_relevance") {
+                return [desc(t.text_relevance as SQL<number>), desc(t.created)]
+            }
+
+            return [desc(t.created)]
+        })
 
     if (filters.pageOffset) {
         query = query.offset(filters.pageOffset) as typeof query
@@ -302,7 +392,13 @@ async function selectTickets(
         query = query.limit(filters.pageLimit) as typeof query
     }
 
-    return await query
+    const tickets = await query
+
+    // Pick the necessary fields before returning
+    return tickets.map((ticket) => {
+        const { priority_rank, text_relevance, ...baseTicket } = ticket
+        return baseTicket
+    })
 }
 
 type CreateTicketOptions = {

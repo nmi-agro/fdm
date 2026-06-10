@@ -3,7 +3,7 @@ import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
-import { getMessagesForTicket } from "./message"
+import { addMessage, getMessagesForTicket } from "./message"
 import { addTagToTicket, createTag } from "./tag"
 import { test } from "./test-util"
 import {
@@ -121,13 +121,33 @@ test.describe("getTickets", () => {
         // Create requester_id
         requester_id = createId()
 
-        ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1", {
+        ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1. Apple", {
             context: { b_id_farm: b_id_farm },
             priority: "high",
         })
-        ticket_id_2 = await createTicket(fdm, requester_id, "Ticket 2", {
-            priority: "normal",
-        })
+        await addMessage(
+            fdm,
+            ticket_id_1,
+            requester_id,
+            "customer",
+            "Public Anchovy",
+        )
+        ticket_id_2 = await createTicket(
+            fdm,
+            requester_id,
+            "Ticket 2. Banana",
+            {
+                priority: "normal",
+            },
+        )
+        await addMessage(
+            fdm,
+            ticket_id_2,
+            agent_id,
+            "agent",
+            "Internal Bread",
+            true,
+        )
 
         blue_tag_name = `Blue${createId(8)}`
         blue_tag_id = await createTag(
@@ -244,6 +264,53 @@ test.describe("getTickets", () => {
         expect(
             tickets.some((t) => t.ticket_id === ticket_id_2),
             "Ticket 2 (normal priority) should not be in results",
+        ).toBe(false)
+    })
+
+    test("should search for text in subject", async ({ fdm }) => {
+        const tickets = await getTickets(fdm, agent_id, {
+            text: "banana",
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 (has no banana in it) should not be in the results",
+        ).toBe(false)
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_2),
+            "Ticket 2 (has banana in the subject) should be in the results",
+        ).toBe(true)
+    })
+
+    test("should search for text in messages", async ({ fdm }) => {
+        const tickets = await getTickets(fdm, agent_id, {
+            text: "bread",
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 (has no bread in it) should not be in the results",
+        ).toBe(false)
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_2),
+            "Ticket 2 (has bread in the messages) should be in the results",
+        ).toBe(true)
+    })
+
+    test("should not search for text in internal messages if the principal is not an agent", async ({
+        fdm,
+    }) => {
+        const tickets = await getTickets(fdm, requester_id, {
+            text: "internal bread",
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 (has no bread in it) should not be in the results",
+        ).toBe(false)
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_2),
+            "Ticket 2 (has no bread publicly visible) should not be in the results",
         ).toBe(false)
     })
 

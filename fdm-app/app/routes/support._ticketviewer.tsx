@@ -5,6 +5,7 @@ import {
     getTicketCount,
     getTickets,
     type TicketFilters,
+    type TicketSorting,
 } from "@nmi-agro/fdm-helpdesk"
 import { data, redirect, useLoaderData } from "react-router"
 import { TicketFilterSchema } from "~/components/blocks/helpdesk/ticket-filter-schema"
@@ -111,6 +112,9 @@ function mergeFiltersInner(
     if (base.tags || current.tags) {
         result.tags = [...(base.tags ?? []), ...(current.tags ?? [])]
     }
+    if (base.text || current.text) {
+        result.text = current.text ?? base.text
+    }
     return result
 }
 
@@ -130,7 +134,7 @@ export async function loader({ request }: Route.LoaderArgs) {
                 ? Number.parseInt(pageLimitStr, 10)
                 : undefined
         } catch (_) {
-            throw data(null, { status: 400, statusText: "Bad Page Input" })
+            throw data(null, { status: 400, statusText: "Bad page input" })
         }
 
         if (typeof pageOffset === "number" && pageOffset < 0) {
@@ -139,18 +143,6 @@ export async function loader({ request }: Route.LoaderArgs) {
             newSearchParams.set("pageLimit", TICKET_VIEWER_PAGE_SIZE.toString())
             return redirect(`?${newSearchParams.toString()}`)
         }
-
-        const session = await getSession(request)
-
-        const helpdeskReadPermission = await checkHelpdeskPermission(
-            fdm,
-            "helpdesk",
-            "read",
-            "",
-            session.principal_id,
-            "loadPaginatedTickets",
-            false,
-        )
 
         const {
             pageOffset: _pageOffset,
@@ -167,6 +159,32 @@ export async function loader({ request }: Route.LoaderArgs) {
               : url.searchParams.has("unassigned")
                 ? "unassigned"
                 : null
+
+        const sorting = (url.searchParams.get("sorting") ??
+            "created") as TicketSorting
+        if (
+            !(
+                [
+                    "created",
+                    "priority",
+                    "text_relevance",
+                ] satisfies TicketSorting[]
+            ).includes(sorting)
+        ) {
+            throw data(null, { status: 400, statusText: "Bad sorting input" })
+        }
+
+        const session = await getSession(request)
+
+        const helpdeskReadPermission = await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "read",
+            "",
+            session.principal_id,
+            "loadPaginatedTickets",
+            false,
+        )
 
         const defaultFilters: TicketFilters = !helpdeskReadPermission
             ? { requesterIds: [session.principal_id] }
@@ -205,11 +223,16 @@ export async function loader({ request }: Route.LoaderArgs) {
             return redirect(`?${newSearchParams.toString()}`)
         }
 
-        const tickets = await getTickets(fdm, session.principal_id, {
-            ...filters,
-            pageOffset,
-            pageLimit,
-        })
+        const tickets = await getTickets(
+            fdm,
+            session.principal_id,
+            {
+                ...filters,
+                pageOffset,
+                pageLimit,
+            },
+            sorting,
+        )
 
         const principals = await getPrincipals(
             fdm,

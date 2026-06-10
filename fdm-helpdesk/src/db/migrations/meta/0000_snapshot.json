@@ -1,5 +1,5 @@
 {
-  "id": "085362ef-1af1-43a5-9899-8ac1bbeb359e",
+  "id": "c23c89b3-cf18-4fb2-a303-5301589906ec",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -241,6 +241,21 @@
           "isUnique": false,
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "message_search_idx": {
+          "name": "message_search_idx",
+          "columns": [
+            {
+              "expression": "to_tsvector('dutch', \"body\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         }
       },
@@ -1009,6 +1024,21 @@
           "isUnique": false,
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "title_search_idx": {
+          "name": "title_search_idx",
+          "columns": [
+            {
+              "expression": "to_tsvector('dutch', \"subject\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         }
       },

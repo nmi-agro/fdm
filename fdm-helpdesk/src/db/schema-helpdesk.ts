@@ -1,4 +1,4 @@
-import { isNull } from "drizzle-orm"
+import { isNull, sql } from "drizzle-orm"
 import {
     boolean,
     index,
@@ -45,6 +45,10 @@ export const tickets = fdmHelpdeskSchema.table(
         index("ticket_priority_idx").on(table.priority),
         index("ticket_created_idx").on(table.created),
         index("ticket_farm_idx").on(table.context_farm_id),
+        index("title_search_idx").using(
+            "gin",
+            sql`to_tsvector('dutch', ${table.subject})`,
+        ),
     ],
 )
 export type TicketTypeSelect = typeof tickets.$inferSelect
@@ -228,6 +232,10 @@ export const messages = fdmHelpdeskSchema.table(
         index("message_ticket_idx").on(table.ticket_id),
         index("message_sender_idx").on(table.sender_id),
         index("message_created_idx").on(table.ticket_id, table.created),
+        index("message_search_idx").using(
+            "gin",
+            sql`to_tsvector('dutch', ${table.body})`,
+        ),
     ],
 )
 export type MessageTypeSelect = typeof messages.$inferSelect
