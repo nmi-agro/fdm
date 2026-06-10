@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai"
-import z from "zod"
+// zod-to-json-schema is only compatible with zod v3
+import z from "zod/v3"
 import { zodToJsonSchema } from "zod-to-json-schema"
 import { handleError } from "./error"
 
