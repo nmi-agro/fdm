@@ -33,12 +33,12 @@ Microsoft sign-in uses a **certificate credential** (`private_key_jwt`) rather t
 | Variable | Description |
 |---|---|
 | `MS_CLIENT_ID` | Azure app registration client ID |
-| `MS_TENANT_ID` | Tenant segment (`common`, `organizations`, a GUID). Defaults to `common`. |
+| `MS_TENANT_ID` | Tenant ID or authority segment (e.g. `common`, `organizations`, or a tenant GUID). Defaults to `common`, which allows any Microsoft account including personal accounts. |
 | `MS_PRIVATE_KEY` | PKCS#8 PEM private key — inline content **or** a file path. Never commit this. |
-| `MS_CERTIFICATE` | Full PEM certificate — inline content **or** a file path. **Recommended** — thumbprint is computed automatically. |
+| `MS_CERTIFICATE` | Full public certificate PEM — inline content **or** a file path. **Recommended** — thumbprint is computed automatically. This is the public half; it is not secret and may be stored in config. |
 | `MS_CERT_THUMBPRINT` | Alternative to `MS_CERTIFICATE`: pre-computed base64url SHA-1 thumbprint (see below). |
 
-Provide either `MS_CERTIFICATE` or `MS_CERT_THUMBPRINT`. Both `MS_PRIVATE_KEY` and `MS_CERTIFICATE` accept either the **inline PEM content** or a **file path** to the `.pem`/`.crt` file — the same flexibility as `RVO_PKIO_PRIVATE_KEY`. Using `MS_CERTIFICATE` (rather than `MS_CERT_THUMBPRINT`) is simpler — the Entra portal truncates the thumbprint display, making it difficult to copy.
+Provide either `MS_CERTIFICATE` or `MS_CERT_THUMBPRINT`. Both `MS_PRIVATE_KEY` and `MS_CERTIFICATE` accept either the **inline PEM content** or a **file path** to the `.pem`/`.crt` file. This mirrors the behaviour of `RVO_PKIO_PRIVATE_KEY` used in the RVO integration: if the value starts with a path prefix (`/`, `./`, `../`, or a Windows drive letter), the file is read at startup; otherwise the value is treated as inline PEM content. Using `MS_CERTIFICATE` (rather than `MS_CERT_THUMBPRINT`) is simpler — the Entra portal truncates the thumbprint display, making it difficult to copy.
 
 **Generating the key pair:**
 

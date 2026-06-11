@@ -52,8 +52,14 @@ describe("createFdmAuth", () => {
 
         // Verify auth providers are correctly configured
         expect(fdmAuth.options.socialProviders?.google).toBeDefined()
+        const genericOAuthPlugin = fdmAuth.options.plugins?.find(
+            (p: any) => p.id === "generic-oauth",
+        ) as any
+        expect(genericOAuthPlugin).toBeDefined()
         expect(
-            fdmAuth.options.plugins?.some((p: any) => p.id === "generic-oauth"),
+            genericOAuthPlugin?.options?.config?.some(
+                (c: any) => c.providerId === "microsoft",
+            ),
         ).toBe(true)
 
         // Verify database adapter is properly connected

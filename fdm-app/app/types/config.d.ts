@@ -17,8 +17,15 @@ export interface ServerConfig {
                   clientId: string
                   tenantId?: string
                   privateKey: string
-                  certificate?: string
+                  certificate: string
                   certThumbprint?: string
+              }
+            | {
+                  clientId: string
+                  tenantId?: string
+                  privateKey: string
+                  certificate?: string
+                  certThumbprint: string
               }
             | undefined
     }

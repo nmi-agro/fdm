@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-docs": minor
 ---
 
-Add section about setting up certificates for signing up with microsoft
+Add section about setting up certificates for signing in with Microsoft
