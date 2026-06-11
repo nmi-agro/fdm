@@ -22,6 +22,7 @@ import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
 import { getTimeframe } from "~/lib/calendar"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -89,6 +90,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             },
         )
 
+        const filteredSoilAnalyses = soilAnalyses.filter(
+            (analysis) => !isBcsAnalysis(analysis),
+        )
+
         // Get current soil data
         const currentSoilData = await getCurrentSoilData(
             fdm,
@@ -112,7 +117,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
 
         const soilAnalysisWritePermissionsEntries = await Promise.all(
-            soilAnalyses.map(async (analysis) => [
+            filteredSoilAnalyses.map(async (analysis) => [
                 analysis.a_id,
                 await checkPermission(
                     fdm,
@@ -135,7 +140,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fieldWritePermission: await fieldWritePermission,
             currentSoilData: currentSoilData,
             soilParameterDescription: soilParameterDescription,
-            soilAnalyses: soilAnalyses,
+            soilAnalyses: filteredSoilAnalyses,
             soilAnalysisWritePermissions: soilAnalysisWritePermissions,
         }
     } catch (error) {

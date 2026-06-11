@@ -1,23 +1,27 @@
-import MaplibreGeocoder from "@maplibre/maplibre-gl-geocoder"
+import MaplibreGeocoder, {
+    type CarmenGeojsonFeature,
+    type MaplibreGeocoderApiConfig,
+} from "@maplibre/maplibre-gl-geocoder"
 import "@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css"
-import type {
-    ControlPosition,
-    GeoJSONFeature,
-    Map as MapLibreMap,
-} from "maplibre-gl"
+import type { ControlPosition, Map as MapLibreMap } from "maplibre-gl"
 import maplibregl from "maplibre-gl"
 import { type IControl, useControl } from "react-map-gl/maplibre"
 import { clientConfig } from "~/lib/config"
 
-interface GeocoderResult extends GeoJSONFeature {
-    center: [number, number]
-    bbox?: [number, number, number, number]
+interface NominatimResult {
+    place_id: number
+    boundingbox?: [string, string, string, string]
+    lon: string
+    lat: string
+    display_name: string
+    type: string
+    [key: string]: unknown
 }
 
 type GeocoderControlProps = {
     marker?: boolean
     collapsed?: boolean
-    onResult?: (result: GeocoderResult) => void
+    onResult?: (result: CarmenGeojsonFeature) => void
     onViewportChange?: (viewport: {
         longitude: number
         latitude: number
@@ -34,10 +38,15 @@ class GeocoderControlClass implements IControl {
         const { provider, maptilerKey } = clientConfig.integrations.map
 
         const geocoderApi = {
-            forwardGeocode: async (config: any) => {
-                const features: any[] = []
+            forwardGeocode: async (config: MaplibreGeocoderApiConfig) => {
+                const features: CarmenGeojsonFeature[] = []
                 try {
-                    const query = config.query
+                    const query =
+                        typeof config.query === "string"
+                            ? config.query
+                            : Array.isArray(config.query)
+                              ? config.query.join(",")
+                              : ""
                     if (provider === "maptiler" && maptilerKey) {
                         const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(
                             query,
@@ -56,7 +65,7 @@ class GeocoderControlClass implements IControl {
                         const data = await res.json()
 
                         if (Array.isArray(data)) {
-                            const features = data.map((item: any) => {
+                            const features = data.map((item: NominatimResult) => {
                                 const bbox = item.boundingbox
                                     ? [
                                           Number.parseFloat(
@@ -119,7 +128,7 @@ class GeocoderControlClass implements IControl {
             showResultsWhileTyping: true,
         })
 
-        this._geocoder.on("result", (e: { result: GeocoderResult }) => {
+        this._geocoder.on("result", (e: { result: CarmenGeojsonFeature }) => {
             try {
                 if (!e.result?.center) {
                     console.warn("Invalid geocoder result:", e.result)

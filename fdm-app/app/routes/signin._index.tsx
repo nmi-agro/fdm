@@ -7,6 +7,7 @@ import {
     BadgeCheck,
     BookOpen,
     Calculator,
+    Camera,
     CheckCircle2,
     Droplets,
     ExternalLink,
@@ -29,7 +30,7 @@ import {
     Users,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { FormProvider } from "react-hook-form"
+import type { Resolver } from "react-hook-form"
 import type {
     ActionFunctionArgs,
     LinksFunction,
@@ -37,7 +38,7 @@ import type {
     MetaFunction,
 } from "react-router"
 import { Form, redirect, useSearchParams } from "react-router"
-import { useRemixForm } from "remix-hook-form"
+import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
 import {
@@ -176,31 +177,6 @@ function getSafeRedirect(address: string | null) {
         : "/farm"
 }
 
-const _UIPlaceholder = ({
-    className,
-    label,
-}: {
-    className?: string
-    label?: string
-}) => (
-    <div
-        className={cn(
-            "w-full h-32 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/10 flex flex-col items-center justify-center gap-2 overflow-hidden relative",
-            className,
-        )}
-    >
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/20" />
-        <div className="w-16 h-10 bg-background rounded shadow-sm border opacity-50 mb-1" />
-        <div className="w-20 h-2 bg-muted-foreground/20 rounded-full" />
-        <div className="w-12 h-2 bg-muted-foreground/20 rounded-full" />
-        {label && (
-            <span className="text-muted-foreground/50 text-xs font-medium z-10 mt-2">
-                {label}
-            </span>
-        )}
-    </div>
-)
-
 const StickyHeader = () => {
     const { scrollY } = useScroll()
     const [isVisible, setIsVisible] = useState(false)
@@ -318,7 +294,9 @@ export default function SignIn() {
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as Resolver<
+            z.infer<typeof FormSchema>
+        >,
         defaultValues: {
             email: "",
             timeZone: "",
@@ -529,11 +507,11 @@ export default function SignIn() {
                                             </span>
                                         </div>
                                     </div>
-                                    <FormProvider {...form}>
+                                    <RemixFormProvider {...form}>
                                         <Form
                                             id="formSigninMagicLink"
                                             onSubmit={form.handleSubmit}
-                                            method="POST"
+                                            method="post"
                                         >
                                             <fieldset
                                                 disabled={
@@ -601,7 +579,7 @@ export default function SignIn() {
                                                 </div>
                                             </fieldset>
                                         </Form>
-                                    </FormProvider>
+                                    </RemixFormProvider>
                                 </CardContent>
                                 <CardFooter className="flex flex-col gap-2">
                                     <p className="text-sm font-medium text-muted-foreground text-center">
@@ -1294,7 +1272,7 @@ export default function SignIn() {
                             </p>
                         </div>
 
-                        <div className="grid gap-12 lg:grid-cols-3">
+                        <div className="grid gap-12 md:grid-cols-2 xl:grid-cols-4">
                             {/* Feature 1: Import */}
                             <div className="flex flex-col items-center space-y-4 text-center">
                                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
@@ -1343,6 +1321,22 @@ export default function SignIn() {
                                     Beheer uw bouwplan, bemesting en oogst in
                                     overzichtelijke tabellen. Voer acties uit
                                     voor meerdere percelen of gewassen tegelijk.
+                                </p>
+                            </div>
+
+                            {/* Feature 4: BodemConditieScore */}
+                            <div className="flex flex-col items-center space-y-4 text-center">
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100 text-purple-700">
+                                    <Camera className="h-8 w-8" />
+                                </div>
+                                <h3 className="text-xl font-semibold">
+                                    BodemConditieScore
+                                </h3>
+                                <p className="text-muted-foreground">
+                                    Voer visuele bodemanalyses uit en bereken uw
+                                    BodemConditieScore. Maak foto's van uw
+                                    bodemkuil en voeg notities toe om
+                                    interessante bodemkenmerken vast te leggen.
                                 </p>
                             </div>
                         </div>

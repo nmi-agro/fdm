@@ -341,6 +341,13 @@ type FertilizerNutrientProps = {
     p_om?: number | null
 }
 
+type FertilizerApplication = {
+    p_id: string
+    p_app_date: Date | null
+    p_app_amount: number | null
+    p_app_method?: string | null
+}
+
 async function runDynaForPrefetchedField({
     field,
     soilDataArray,
@@ -356,11 +363,7 @@ async function runDynaForPrefetchedField({
     field: Awaited<ReturnType<typeof getField>>
     soilDataArray: Awaited<ReturnType<typeof getCurrentSoilData>>
     cultivations: Awaited<ReturnType<typeof getCultivations>>
-    applications: Awaited<
-        ReturnType<typeof getFertilizerApplicationsForFarm>
-    > extends Map<string, infer T>
-        ? T
-        : any
+    applications: FertilizerApplication[]
     fertilizerMap: Map<string, FertilizerNutrientProps>
     catalogueEntries: Awaited<ReturnType<typeof getCultivationsFromCatalogue>>
     harvestsMap: Awaited<ReturnType<typeof getHarvestsForFarm>>
@@ -401,7 +404,7 @@ async function runDynaForPrefetchedField({
             p_dm: props?.p_dm ?? null,
             p_om: props?.p_om ?? null,
             p_date: app.p_app_date,
-            p_dose: app.p_app_amount,
+            p_dose: app.p_app_amount ?? 0,
             p_app_method: app.p_app_method ?? null,
         }
     })

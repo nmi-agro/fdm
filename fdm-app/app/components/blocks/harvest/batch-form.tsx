@@ -10,7 +10,12 @@ import {
     useRef,
     useState,
 } from "react"
-import { Controller, useFieldArray, useWatch } from "react-hook-form"
+import {
+    Controller,
+    type Resolver,
+    useFieldArray,
+    useWatch,
+} from "react-hook-form"
 import { useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
@@ -203,6 +208,11 @@ const SchemaWithIntent = BatchFormSchema.extend({
     intent: z.literal("batch_harvest"),
 })
 
+type BatchHarvestFormValues = {
+    intent: "batch_harvest"
+    harvests: HarvestRow[]
+}
+
 /**
  * useRemixForm call used in `BatchHarvestFormDialog` and `BatchHarvestForm`
  * @param param0 batch harvest form props
@@ -216,10 +226,12 @@ function useBatchHarvestRemixForm({
     defaultHarvest,
     b_date_harvest_default,
 }: BatchHarvestFormProps) {
-    return useRemixForm<{ intent: "batch_harvest"; harvests: HarvestRow[] }>({
+    return useRemixForm<BatchHarvestFormValues>({
         mode: "onTouched",
         // We don't let batch deletion yet so no confirmation dialog logic is necessary
-        resolver: zodResolver(SchemaWithIntent),
+        resolver: zodResolver(
+            SchemaWithIntent,
+        ) as Resolver<BatchHarvestFormValues>,
         defaultValues: {
             intent: "batch_harvest",
             harvests:

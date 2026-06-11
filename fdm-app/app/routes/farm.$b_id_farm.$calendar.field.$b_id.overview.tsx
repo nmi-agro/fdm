@@ -6,7 +6,12 @@ import {
     updateField,
 } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
-import { Controller } from "react-hook-form"
+import {
+    Controller,
+    type ControllerRenderProps,
+    type FieldValues,
+    type Resolver,
+} from "react-hook-form"
 import type { MetaFunction } from "react-router"
 import {
     type ActionFunctionArgs,
@@ -122,7 +127,7 @@ export default function FarmFieldsOverviewBlock() {
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as Resolver<z.infer<typeof FormSchema>>,
         defaultValues: {
             b_name: loaderData.field.b_name,
             b_acquiring_method: loaderData.field.b_acquiring_method,
@@ -257,7 +262,7 @@ export default function FarmFieldsOverviewBlock() {
                                     render={({ field, fieldState }) => (
                                         <DatePicker
                                             label="Vanaf wanneer in gebruik?"
-                                            field={field}
+                                            field={field as unknown as ControllerRenderProps<FieldValues, string>}
                                             fieldState={fieldState}
                                             className="col-span-1"
                                         />
@@ -270,7 +275,7 @@ export default function FarmFieldsOverviewBlock() {
                                         <DatePicker
                                             label="Tot wanneer in gebruik?"
                                             description="Optioneel"
-                                            field={field}
+                                            field={field as unknown as ControllerRenderProps<FieldValues, string>}
                                             fieldState={fieldState}
                                             className="col-span-1"
                                         />

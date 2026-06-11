@@ -117,7 +117,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             return {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
             }
         })
 
@@ -150,6 +150,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             {
                 to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/soil`,
                 title: "Bodem",
+            },
+            {
+                to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`,
+                title: "BodemConditieScore",
             },
             {
                 to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/atlas`,

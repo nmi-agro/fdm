@@ -220,10 +220,12 @@ export function DataTable<TData extends FieldExtended, TValue>({
                                             b_name: "Naam",
                                             cultivations: "Gewassen",
                                             fertilizerApplications:
-                                                "Bemesting met:",
-                                            a_som_loi: "OS",
+                                                "Bemesting",
+                                            bcs: "BodemConditieScore",
+                                            a_som_loi: "Organische stof",
                                             b_soiltype_agr: "Bodemtype",
                                             b_area: "Oppervlakte",
+                                            b_bufferstrip: "Bufferstrook",
                                         }
                                     return (
                                         <DropdownMenuCheckboxItem

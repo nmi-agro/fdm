@@ -110,6 +110,26 @@ export type Bln3ScoreCollectedInputs = {
     /** Soil organic matter content (%) */
     a_som_loi?: number
 
+    // ── BCS visual soil assessment (BodemConditieScore) ──────────────────────
+    /** Soil structure BCS score (0–2) */
+    a_ss_bcs?: number
+    /** Subsoil compaction BCS score (0–2) */
+    a_sc_bcs?: number
+    /** Root development BCS score (0–2) */
+    a_rd_bcs?: number
+    /** Earthworm count BCS score (0–2) */
+    a_ew_bcs?: number
+    /** Crop cover BCS score (0–2) */
+    a_cc_bcs?: number
+    /** Coloured patches BCS score (0–2) */
+    a_gs_bcs?: number
+    /** Ponding BCS score, negative contribution (0–2) */
+    a_p_bcs?: number
+    /** Cracking BCS score, negative contribution (0–2) */
+    a_c_bcs?: number
+    /** Rutting/trampling BCS score, negative contribution (0–2) */
+    a_rt_bcs?: number
+
     // ── Measures ─────────────────────────────────────────────────────────────
     /** Implemented soil management measures */
     measures?: Bln3Measure[]

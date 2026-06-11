@@ -494,6 +494,144 @@ describe("collectInputForBln3Score", () => {
             ),
         ).toBeUndefined()
     })
+
+    it("should include BCS scores from a BCS-only analysis record", async () => {
+        const bcsAnalysis: SoilAnalysis = {
+            ...mockSoilAnalysis,
+            a_id: "sa-bcs",
+            a_source: "visual",
+            // Lab fields absent (null)
+            a_som_loi: null,
+            a_clay_mi: null,
+            a_p_cc: null,
+            a_p_al: null,
+            a_n_rt: null,
+            b_soiltype_agr: null,
+            b_gwl_class: null,
+            // BCS fields present
+            a_ss_bcs: 1,
+            a_sc_bcs: 2,
+            a_rd_bcs: 0,
+            a_ew_bcs: 1,
+            a_cc_bcs: 2,
+            a_gs_bcs: 1,
+            a_p_bcs: 0,
+            a_c_bcs: 1,
+            a_rt_bcs: 2,
+        } as unknown as SoilAnalysis
+
+        mockedGetField.mockResolvedValue(mockField)
+        // BCS record is most recent; lab record is older
+        mockedGetSoilAnalyses.mockResolvedValue([bcsAnalysis, mockSoilAnalysis])
+        mockedGetCultivations.mockResolvedValue([])
+        mockedGetMeasures.mockResolvedValue([])
+
+        const result = await collectInputForBln3Score(
+            mockFdm,
+            principal_id,
+            b_id,
+        )
+
+        // BCS scores from newest (BCS) record
+        expect(result.a_ss_bcs).toBe(1)
+        expect(result.a_sc_bcs).toBe(2)
+        expect(result.a_rd_bcs).toBe(0)
+        expect(result.a_ew_bcs).toBe(1)
+        expect(result.a_cc_bcs).toBe(2)
+        expect(result.a_gs_bcs).toBe(1)
+        expect(result.a_p_bcs).toBe(0)
+        expect(result.a_c_bcs).toBe(1)
+        expect(result.a_rt_bcs).toBe(2)
+        // Lab fields from older lab record (per-parameter selection)
+        expect(result.a_som_loi).toBe(4.5)
+        expect(result.a_p_cc).toBe(1.2)
+        expect(result.a_n_rt).toBe(2500)
+        // Categorical from older lab record
+        expect(result.b_soiltype_agr).toBe("dekzand")
+        expect(result.b_gwl_class).toBe("IIb")
+    })
+
+    it("should include BCS scores from an older BCS record when newest is lab-only", async () => {
+        const labAnalysis: SoilAnalysis = {
+            ...mockSoilAnalysis,
+            a_id: "sa-lab-new",
+            // No BCS scores
+            a_ss_bcs: null,
+            a_sc_bcs: null,
+        } as unknown as SoilAnalysis
+
+        const bcsAnalysis: SoilAnalysis = {
+            ...mockSoilAnalysis,
+            a_id: "sa-bcs-old",
+            a_source: "visual",
+            a_som_loi: null,
+            a_p_cc: null,
+            a_ss_bcs: 2,
+            a_ew_bcs: 1,
+        } as unknown as SoilAnalysis
+
+        mockedGetField.mockResolvedValue(mockField)
+        // Newest is lab-only; BCS record is older
+        mockedGetSoilAnalyses.mockResolvedValue([labAnalysis, bcsAnalysis])
+        mockedGetCultivations.mockResolvedValue([])
+        mockedGetMeasures.mockResolvedValue([])
+
+        const result = await collectInputForBln3Score(
+            mockFdm,
+            principal_id,
+            b_id,
+        )
+
+        // BCS scores from older BCS record
+        expect(result.a_ss_bcs).toBe(2)
+        expect(result.a_ew_bcs).toBe(1)
+        // Lab fields from newest lab record
+        expect(result.a_som_loi).toBe(4.5)
+        expect(result.a_p_cc).toBe(1.2)
+    })
+
+    it("should preserve BCS score of 0 (not treated as falsy)", async () => {
+        const bcsAnalysis: SoilAnalysis = {
+            ...mockSoilAnalysis,
+            a_id: "sa-bcs-zero",
+            a_source: "visual",
+            a_som_loi: null,
+            a_ss_bcs: 0,
+            a_p_bcs: 0,
+        } as unknown as SoilAnalysis
+
+        mockedGetField.mockResolvedValue(mockField)
+        mockedGetSoilAnalyses.mockResolvedValue([bcsAnalysis])
+        mockedGetCultivations.mockResolvedValue([])
+        mockedGetMeasures.mockResolvedValue([])
+
+        const result = await collectInputForBln3Score(
+            mockFdm,
+            principal_id,
+            b_id,
+        )
+
+        expect(result.a_ss_bcs).toBe(0)
+        expect(result.a_p_bcs).toBe(0)
+    })
+
+    it("should omit BCS fields entirely when no BCS analysis exists", async () => {
+        mockedGetField.mockResolvedValue(mockField)
+        // Only lab analysis, no BCS scores
+        mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+        mockedGetCultivations.mockResolvedValue([])
+        mockedGetMeasures.mockResolvedValue([])
+
+        const result = await collectInputForBln3Score(
+            mockFdm,
+            principal_id,
+            b_id,
+        )
+
+        expect(result).not.toHaveProperty("a_ss_bcs")
+        expect(result).not.toHaveProperty("a_sc_bcs")
+        expect(result).not.toHaveProperty("a_ew_bcs")
+    })
 })
 
 import { findHoofdteelt } from "../shared/hoofdteelt"

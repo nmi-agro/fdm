@@ -232,19 +232,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     )
                     if (harvests.length > 0) {
                         harvestApplication = harvests[0]
+                        harvestableAnalysis =
+                            harvestApplication.harvestable
+                                ?.harvestable_analyses[0] ?? {}
                         hasHarvest =
-                            harvestApplication.b_lu_yield !== undefined ||
-                            harvestApplication.b_lu_n_harvestable !==
+                            harvestableAnalysis.b_lu_yield !== undefined ||
+                            harvestableAnalysis.b_lu_n_harvestable !==
                                 undefined ||
                             harvestApplication.b_lu_harvest_date !== undefined
-                        if (
-                            harvestApplication?.harvestable
-                                ?.harvestable_analyses.length > 0
-                        ) {
-                            harvestableAnalysis =
-                                harvestApplication.harvestable
-                                    .harvestable_analyses[0]
-                        }
                     }
                 }
 
@@ -266,12 +261,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             | HarvestApplication
             | Partial<HarvestApplication> =
             firstFieldWithData?.harvestApplication ?? {
-                b_lu_yield: undefined,
-                b_lu_n_harvestable: undefined,
                 b_lu_harvest_date: undefined,
-                b_lu_start: undefined,
-                b_lu_end: undefined,
-                b_lu_harvestable: undefined,
             }
 
         let harvestableAnalysis: Partial<
@@ -320,7 +310,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             return {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
                 cultivations: field.cultivations.map((c) => c.b_lu_catalogue), // Pass cultivations for each field
             }
         })
@@ -343,7 +333,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             selectedFields: selectedFields.map((field) => ({
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
                 cultivations: field.cultivations.map(
                     (c: { b_lu_catalogue: string }) => c.b_lu_catalogue,
                 ),
@@ -791,47 +781,50 @@ export default function FarmRotationHarvestAddIndex() {
                                                 b_lu_yield={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_yield
+                                                        .b_lu_yield ?? undefined
                                                 }
                                                 b_lu_yield_fresh={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_yield_fresh
+                                                        .b_lu_yield_fresh ??
+                                                    undefined
                                                 }
                                                 b_lu_yield_bruto={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_yield_bruto
+                                                        .b_lu_yield_bruto ??
+                                                    undefined
                                                 }
                                                 b_lu_tarra={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_tarra
+                                                        .b_lu_tarra ?? undefined
                                                 }
                                                 b_lu_uww={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_uww
+                                                        .b_lu_uww ?? undefined
                                                 }
                                                 b_lu_moist={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_moist
+                                                        .b_lu_moist ?? undefined
                                                 }
                                                 b_lu_dm={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_dm
+                                                        .b_lu_dm ?? undefined
                                                 }
                                                 b_lu_cp={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_cp
+                                                        .b_lu_cp ?? undefined
                                                 }
                                                 b_lu_n_harvestable={
                                                     loaderData
                                                         .harvestableAnalysis
-                                                        .b_lu_n_harvestable
+                                                        .b_lu_n_harvestable ??
+                                                    undefined
                                                 }
                                                 b_lu_harvestable={
                                                     loaderData.cultivation

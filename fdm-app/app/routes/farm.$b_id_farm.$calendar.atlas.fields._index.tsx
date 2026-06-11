@@ -6,8 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import {
     Layer,
     Map as MapGL,
+    type LayerProps,
     type MapRef,
-    type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import type { MetaFunction } from "react-router"
@@ -21,7 +21,10 @@ import {
     FieldsSourceNotClickable,
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import {
+    type AtlasViewState,
+    getViewState,
+} from "~/components/blocks/atlas/atlas-viewstate"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -81,8 +84,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     properties: {
                         b_id: field.b_id,
                         b_name: field.b_name,
-                        b_area: Math.round(field.b_area * 10) / 10,
-                        b_lu_name: field.b_lu_name,
+                        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+                        b_lu_name: (field as { b_lu_name?: string }).b_lu_name ?? "",
                         b_id_source: field.b_id_source,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {
@@ -130,7 +133,7 @@ export default function FarmAtlasFieldsBlock() {
     const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
     // ViewState logic
     const initialViewState = getViewState(fields)
-    const [viewState, setViewState] = useState<ViewState>(() => {
+    const [viewState, setViewState] = useState<AtlasViewState>(() => {
         if (typeof window !== "undefined") {
             try {
                 const savedViewState = sessionStorage.getItem("mapViewState")
@@ -141,7 +144,7 @@ export default function FarmAtlasFieldsBlock() {
                 // ignore storage errors (e.g., private mode)
             }
         }
-        return initialViewState as ViewState
+        return initialViewState
     })
 
     const [showFields, setShowFields] = useState(true)
@@ -166,6 +169,19 @@ export default function FarmAtlasFieldsBlock() {
     }, [viewState])
 
     const layerLayout = { visibility: showFields ? "visible" : "none" } as const
+    const fieldsAvailableLayer = {
+        ...fieldsAvailableStyle,
+        layout: layerLayout,
+    } as LayerProps
+    const fieldsSavedOutlineLayer = {
+        ...fieldsSavedOutlineStyle,
+        layout: layerLayout,
+    } as LayerProps
+    const fieldsSavedLayer = {
+        ...fieldsSavedStyle,
+        layout: layerLayout,
+    } as LayerProps
+
     return (
         <MapGL
             {...viewState}
@@ -212,26 +228,13 @@ export default function FarmAtlasFieldsBlock() {
                 zoomLevelFields={ZOOM_LEVEL_FIELDS}
                 redirectToDetailsPage={true}
             >
-                <Layer
-                    {...({
-                        ...fieldsAvailableStyle,
-                        layout: layerLayout,
-                    } as any)}
-                />
+                <Layer {...fieldsAvailableLayer} />
             </FieldsSourceAvailable>
 
             {fields && (
                 <FieldsSourceNotClickable id={id} fieldsData={fields}>
-                    <Layer
-                        {...fieldsSavedOutlineStyle}
-                        source={id}
-                        layout={layerLayout}
-                    />
-                    <Layer
-                        {...fieldsSavedStyle}
-                        source={id}
-                        layout={layerLayout}
-                    />
+                    <Layer {...fieldsSavedOutlineLayer} />
+                    <Layer {...fieldsSavedLayer} />
                 </FieldsSourceNotClickable>
             )}
 

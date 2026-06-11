@@ -24,10 +24,30 @@ type SoilMeasurement = {
     value: number
 }
 
+type BcsScore = {
+    key: string
+    name: string
+    value: number
+    direction: "positive" | "negative"
+}
+
+const BCS_SCORE_LABELS_POSITIVE: Record<number, string> = {
+    0: "Slecht",
+    1: "Matig",
+    2: "Goed",
+}
+
+const BCS_SCORE_LABELS_NEGATIVE: Record<number, string> = {
+    0: "Goed",
+    1: "Matig",
+    2: "Slecht",
+}
+
 type SoilData = {
     soilType: string | null
     gwlClass: string | null
     measurements: SoilMeasurement[]
+    bcsScores: BcsScore[]
 }
 
 type FieldInputDialogProps = {
@@ -101,6 +121,34 @@ export function FieldInputDialog({
                             </div>
                         )}
                     </Section>
+
+                    {/* BCS indicator scores */}
+                    {soilData && soilData.bcsScores.length > 0 && (
+                        <Section
+                            label={`BodemConditieScore (${soilData.bcsScores.length} indicatoren)`}
+                        >
+                            <div className="space-y-0.5">
+                                {soilData.bcsScores.map(({ key, name, value, direction }) => (
+                                    <div
+                                        key={key}
+                                        className="flex items-baseline justify-between gap-2"
+                                    >
+                                        <span className="text-muted-foreground text-xs shrink-0">
+                                            {name}
+                                        </span>
+                                        <span className="text-foreground text-xs tabular-nums font-mono text-right">
+                                            {value}
+                                            <span className="text-muted-foreground ml-1 font-sans">
+                                                {direction === "negative"
+                                                    ? (BCS_SCORE_LABELS_NEGATIVE[value] ?? "")
+                                                    : (BCS_SCORE_LABELS_POSITIVE[value] ?? "")}
+                                            </span>
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </Section>
+                    )}
 
                     {/* Cultivations using Badge + getCultivationColor */}
                     <Section label={`Teelten (${cultivations.length})`}>

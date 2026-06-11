@@ -120,23 +120,34 @@ export default function HarvestNewBlock() {
         <HarvestFormDialog
             allowBatch={loaderData.cultivation.b_lu_croprotation === "grass"}
             harvestParameters={loaderData.harvestParameters}
-            b_lu_croprotation={loaderData.cultivation.b_lu_croprotation}
+            b_lu_croprotation={
+                loaderData.cultivation.b_lu_croprotation ?? undefined
+            }
             b_lu_harvest_date={undefined}
             b_date_harvest_default={loaderData.b_date_harvest_default}
-            b_lu_yield={loaderData.defaultHarvestParameters.b_lu_yield}
+            b_lu_yield={
+                loaderData.defaultHarvestParameters.b_lu_yield ?? undefined
+            }
             b_lu_yield_fresh={
-                loaderData.defaultHarvestParameters.b_lu_yield_fresh
+                loaderData.defaultHarvestParameters.b_lu_yield_fresh ??
+                undefined
             }
             b_lu_yield_bruto={
-                loaderData.defaultHarvestParameters.b_lu_yield_bruto
+                loaderData.defaultHarvestParameters.b_lu_yield_bruto ??
+                undefined
             }
-            b_lu_tarra={loaderData.defaultHarvestParameters.b_lu_tarra}
-            b_lu_uww={loaderData.defaultHarvestParameters.b_lu_uww}
-            b_lu_moist={loaderData.defaultHarvestParameters.b_lu_moist}
-            b_lu_dm={loaderData.defaultHarvestParameters.b_lu_dm}
-            b_lu_cp={loaderData.defaultHarvestParameters.b_lu_cp}
+            b_lu_tarra={
+                loaderData.defaultHarvestParameters.b_lu_tarra ?? undefined
+            }
+            b_lu_uww={loaderData.defaultHarvestParameters.b_lu_uww ?? undefined}
+            b_lu_moist={
+                loaderData.defaultHarvestParameters.b_lu_moist ?? undefined
+            }
+            b_lu_dm={loaderData.defaultHarvestParameters.b_lu_dm ?? undefined}
+            b_lu_cp={loaderData.defaultHarvestParameters.b_lu_cp ?? undefined}
             b_lu_n_harvestable={
-                loaderData.defaultHarvestParameters.b_lu_n_harvestable
+                loaderData.defaultHarvestParameters.b_lu_n_harvestable ??
+                undefined
             }
             b_lu_harvestable={loaderData.cultivation.b_lu_harvestable}
             b_lu_start={loaderData.cultivation.b_lu_start}

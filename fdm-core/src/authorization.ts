@@ -27,6 +27,7 @@ export const resources: Resource[] = [
     "cultivation",
     "fertilizer_application",
     "soil_analysis",
+    "soil_image",
     "harvesting",
 ] as const
 export const roles: Role[] = ["owner", "advisor", "researcher"] as const
@@ -105,6 +106,21 @@ export const permissions: Permission[] = [
     },
     {
         resource: "soil_analysis",
+        role: "researcher",
+        action: ["read"],
+    },
+    {
+        resource: "soil_image",
+        role: "owner",
+        action: ["read", "write", "list", "share"],
+    },
+    {
+        resource: "soil_image",
+        role: "advisor",
+        action: ["read", "list"],
+    },
+    {
+        resource: "soil_image",
         role: "researcher",
         action: ["read"],
     },
@@ -946,6 +962,7 @@ async function getResourceChain(
             "harvesting",
             "fertilizer_application",
             "soil_analysis",
+            "soil_image",
         ]
         const chain: ResourceBead[] = []
         if (resource === "farm") {
@@ -1089,6 +1106,35 @@ async function getResourceChain(
                 .limit(1)
             if (result.length === 0) {
                 // Resource not found, return empty chain
+                return []
+            }
+            chain.push(...buildBeadsFromRow(result[0]))
+        } else if (resource === "soil_image") {
+            const result = await fdm
+                .select({
+                    farm: schema.fieldAcquiring.b_id_farm,
+                    field: schema.soilSampling.b_id,
+                    soil_image: schema.soilImage.a_id_image,
+                })
+                .from(schema.soilImage)
+                .leftJoin(
+                    schema.soilSampling,
+                    eq(
+                        schema.soilImage.b_id_sampling,
+                        schema.soilSampling.b_id_sampling,
+                    ),
+                )
+                .leftJoin(
+                    schema.fields,
+                    eq(schema.soilSampling.b_id, schema.fields.b_id),
+                )
+                .leftJoin(
+                    schema.fieldAcquiring,
+                    eq(schema.fields.b_id, schema.fieldAcquiring.b_id),
+                )
+                .where(eq(schema.soilImage.a_id_image, resource_id))
+                .limit(1)
+            if (result.length === 0) {
                 return []
             }
             chain.push(...buildBeadsFromRow(result[0]))

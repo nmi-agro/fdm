@@ -23,16 +23,16 @@ export const CultivationDetailsFormSchema = z
             if (typeof value === "string") {
                 if (value.toLowerCase() === "false") return false
                 if (value.toLowerCase() === "true") return true
-                if (value.toLowerCase() === "null") return null
+                if (value.toLowerCase() === "null") return undefined
             }
             return value
-        }, z.coerce.boolean().optional().nullable()),
+        }, z.coerce.boolean().optional()),
         b_lu_variety: z.preprocess((value) => {
             if (typeof value === "string") {
-                if (value.toLowerCase() === "null") return null
+                if (value.toLowerCase() === "null") return undefined
             }
             return value
-        }, z.string().optional().nullable()),
+        }, z.string().optional()),
     })
     .refine(
         (data) => {

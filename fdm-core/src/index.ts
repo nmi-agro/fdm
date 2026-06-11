@@ -13,6 +13,7 @@
  */
 
 /** {@inheritDoc createFdmServer} */
+import type { MultiPolygon, Polygon } from "geojson"
 import * as fdmSchema from "./db/schema"
 
 export type { FdmAuth } from "./authentication"
@@ -72,8 +73,11 @@ export type {
 } from "./cultivation.types"
 export {
     acquiringMethodOptions,
+    annotationTypeOptions,
+    bcsIndicatorOptions,
     gwlClassesOptions,
     soilTypesOptions,
+    visualImageTypeOptions,
 } from "./db/schema"
 export { rateLimit } from "./db/schema-authn"
 export type {
@@ -147,6 +151,7 @@ export {
     updateField,
 } from "./field"
 export type { Field } from "./field.types"
+export type FieldGeometry = Polygon | MultiPolygon
 export {
     getGrazingIntention,
     getGrazingIntentions,
@@ -219,5 +224,20 @@ export type {
     SoilParameterDescription,
     SoilParameters,
 } from "./soil.types"
+export {
+    addSoilImage,
+    addSoilImageAnnotation,
+    getSoilImages,
+    removeSoilImage,
+    removeSoilImageAnnotation,
+    updateSoilImageAnnotation,
+} from "./soil-image"
+export type {
+    AddSoilImageAnnotationInput,
+    AddSoilImageInput,
+    SoilImage,
+    SoilImageAnnotation,
+    UpdateSoilImageAnnotationInput,
+} from "./soil-image.types"
 export type { Timeframe } from "./timeframe.d"
 export { fdmSchema }

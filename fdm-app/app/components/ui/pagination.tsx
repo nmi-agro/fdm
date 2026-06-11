@@ -1,10 +1,6 @@
-import {
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    DotsHorizontalIcon,
-} from "@radix-ui/react-icons"
+import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 import * as React from "react"
-import { type ButtonProps, buttonVariants } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
 
 const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
@@ -38,8 +34,8 @@ PaginationItem.displayName = "PaginationItem"
 
 type PaginationLinkProps = {
     isActive?: boolean
-} & Pick<ButtonProps, "size"> &
-    React.ComponentProps<"a">
+    size?: "default" | "sm" | "lg" | "icon"
+} & React.ComponentProps<"a">
 
 const PaginationLink = ({
     className,
@@ -64,14 +60,14 @@ PaginationLink.displayName = "PaginationLink"
 const PaginationPrevious = ({
     className,
     ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
+}: Omit<React.ComponentProps<typeof PaginationLink>, "size">) => (
     <PaginationLink
         aria-label="Go to previous page"
         size="default"
         className={cn("gap-1 pl-2.5", className)}
         {...props}
     >
-        <ChevronLeftIcon className="h-4 w-4" />
+        <ChevronLeft className="h-4 w-4" />
         <span>Previous</span>
     </PaginationLink>
 )
@@ -80,7 +76,7 @@ PaginationPrevious.displayName = "PaginationPrevious"
 const PaginationNext = ({
     className,
     ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
+}: Omit<React.ComponentProps<typeof PaginationLink>, "size">) => (
     <PaginationLink
         aria-label="Go to next page"
         size="default"
@@ -88,7 +84,7 @@ const PaginationNext = ({
         {...props}
     >
         <span>Next</span>
-        <ChevronRightIcon className="h-4 w-4" />
+        <ChevronRight className="h-4 w-4" />
     </PaginationLink>
 )
 PaginationNext.displayName = "PaginationNext"
@@ -102,7 +98,7 @@ const PaginationEllipsis = ({
         className={cn("flex h-9 w-9 items-center justify-center", className)}
         {...props}
     >
-        <DotsHorizontalIcon className="h-4 w-4" />
+        <MoreHorizontal className="h-4 w-4" />
         <span className="sr-only">More pages</span>
     </span>
 )

@@ -81,7 +81,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         mode: "onTouched",
         resolver: zodResolver(
             schema ?? (fertilizerApplication ? FormSchemaModify : FormSchema),
-        ),
+        ) as never,
         defaultValues: {
             p_app_id: fertilizerApplication?.p_app_ids
                 ? fertilizerApplication.p_app_ids.join(",")
