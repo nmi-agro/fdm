@@ -34,24 +34,41 @@ Microsoft sign-in uses a **certificate credential** (`private_key_jwt`) rather t
 |---|---|
 | `MS_CLIENT_ID` | Azure app registration client ID |
 | `MS_TENANT_ID` | Tenant segment (`common`, `organizations`, a GUID). Defaults to `common`. |
-| `MS_PRIVATE_KEY` | Inline PKCS#8 PEM private key (`-----BEGIN PRIVATE KEY-----`) |
-| `MS_CERTIFICATE` | PEM certificate (public; used to compute the `x5t` thumbprint). Provide this **or** `MS_CERT_THUMBPRINT`. |
-| `MS_CERT_THUMBPRINT` | Pre-computed SHA-1 thumbprint (base64url). Shown in Entra after uploading the certificate. |
+| `MS_PRIVATE_KEY` | PKCS#8 PEM private key — inline content **or** a file path. Never commit this. |
+| `MS_CERTIFICATE` | Full PEM certificate — inline content **or** a file path. **Recommended** — thumbprint is computed automatically. |
+| `MS_CERT_THUMBPRINT` | Alternative to `MS_CERTIFICATE`: pre-computed base64url SHA-1 thumbprint (see below). |
+
+Provide either `MS_CERTIFICATE` or `MS_CERT_THUMBPRINT`. Both `MS_PRIVATE_KEY` and `MS_CERTIFICATE` accept either the **inline PEM content** or a **file path** to the `.pem`/`.crt` file — the same flexibility as `RVO_PKIO_PRIVATE_KEY`. Using `MS_CERTIFICATE` (rather than `MS_CERT_THUMBPRINT`) is simpler — the Entra portal truncates the thumbprint display, making it difficult to copy.
 
 **Generating the key pair:**
 
 ```bash
+# Linux/macOS or PowerShell (recommended on Windows — no path expansion issues):
 openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout ms-signin-private.pem \
+  -out ms-signin-public.crt \
+  -days 730 \
+  -subj "/CN=fdm-microsoft-signin"
+
+# Git Bash on Windows — set MSYS_NO_PATHCONV=1 to prevent path expansion:
+MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes \
   -keyout ms-signin-private.pem \
   -out ms-signin-public.crt \
   -days 730 \
   -subj "/CN=fdm-microsoft-signin"
 ```
 
-Upload `ms-signin-public.crt` in Entra: **App registration → Certificates & secrets → Certificates → Upload certificate**.  
-Store the contents of `ms-signin-private.pem` as `MS_PRIVATE_KEY` in a secure place.
+Upload `ms-signin-public.crt` in Entra: **App registration → Certificates & secrets → Certificates → Upload certificate**.
 
-**Certificate rotation:** upload the new certificate in Entra (keep both valid during rollover), then update `MS_PRIVATE_KEY` and the thumbprint/cert env vars.
+Set `MS_CERTIFICATE` to the full contents of `ms-signin-public.crt` (including the `-----BEGIN CERTIFICATE-----` header/footer). Set `MS_PRIVATE_KEY` to the full contents of `ms-signin-private.pem` and store it in Google Secret Manager.
+
+If you prefer `MS_CERT_THUMBPRINT` over `MS_CERTIFICATE`, compute it locally (the portal display is truncated):
+
+```bash
+openssl x509 -in ms-signin-public.crt -outform DER | openssl dgst -sha1 -binary | base64 | tr '+/' '-_' | tr -d '='
+```
+
+**Certificate rotation:** upload the new certificate in Entra (keep both valid during rollover), then update `MS_PRIVATE_KEY` and the cert/thumbprint env vars.
 
 ## Session Management
 

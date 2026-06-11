@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto"
+import fs from "node:fs"
 import type { GenericOAuthConfig } from "better-auth/plugins"
 import { decodeJwt, SignJWT, importPKCS8 } from "jose"
 
@@ -41,6 +42,29 @@ function pemToDer(pem: string): Buffer {
 
 // Cache the x5t per certificate PEM so we don't re-hash on every request
 const thumbprintCache = new Map<string, string>()
+
+/**
+ * Resolves a value that is either an inline PEM string or a file path.
+ * If the value looks like a file path (absolute or relative) and the file
+ * exists, the file content is returned; otherwise the value is returned as-is.
+ * Mirrors the pattern used by fdm-rvo for `RVO_PKIO_PRIVATE_KEY`.
+ */
+function resolveFileOrInline(value: string, label: string): string {
+    const looksLikePath =
+        value.startsWith("/") ||
+        value.startsWith("./") ||
+        value.startsWith("../") ||
+        /^[a-zA-Z]:[/\\]/.test(value)
+
+    if (looksLikePath) {
+        if (fs.existsSync(value)) {
+            return fs.readFileSync(value, "utf8")
+        }
+        throw new Error(`Microsoft cert auth: ${label} file not found: ${value}`)
+    }
+
+    return value
+}
 
 // ---------------------------------------------------------------------------
 // Exported types
@@ -103,20 +127,22 @@ export async function createMicrosoftClientAssertion(
     const {
         clientId,
         tenantId = "common",
-        privateKey,
         certificate,
         certThumbprint,
     } = config
+
+    const privateKey = resolveFileOrInline(config.privateKey, "MS_PRIVATE_KEY")
 
     // Resolve the x5t thumbprint
     let x5t: string
     if (certThumbprint) {
         x5t = certThumbprint
     } else if (certificate) {
-        if (!thumbprintCache.has(certificate)) {
-            thumbprintCache.set(certificate, await computeX5t(certificate))
+        const certPem = resolveFileOrInline(certificate, "MS_CERTIFICATE")
+        if (!thumbprintCache.has(certPem)) {
+            thumbprintCache.set(certPem, await computeX5t(certPem))
         }
-        x5t = thumbprintCache.get(certificate)!
+        x5t = thumbprintCache.get(certPem)!
     } else {
         throw new Error(
             "Microsoft certificate auth: provide either 'certificate' (PEM) or 'certThumbprint'",
