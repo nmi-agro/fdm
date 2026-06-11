@@ -1,3 +1,4 @@
+import { generateTicketSubjectAndPriority } from "@nmi-agro/fdm-agents"
 import { getFarms, getPrincipal } from "@nmi-agro/fdm-core"
 import {
     assignTicketToAnAdmin,
@@ -5,7 +6,6 @@ import {
     getTicket,
     updateTicketSubjectAndPriority,
 } from "@nmi-agro/fdm-helpdesk"
-import { TriageAgent } from "@nmi-agro/fdm-helpdesk/triage"
 import { useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
@@ -119,7 +119,6 @@ export async function action({ request }: Route.ActionArgs) {
             // If it is slow you can remove the await in the beginning
             await performTriage(
                 serverConfig.integrations.gemini.api_key,
-                "gemini-3.1-flash-lite",
                 ticket_id,
                 ticketCreateInfo.body,
             )
@@ -134,17 +133,10 @@ export async function action({ request }: Route.ActionArgs) {
     }
 }
 
-async function performTriage(
-    apiKey: string,
-    model: string,
-    ticket_id: string,
-    body: string,
-) {
+async function performTriage(apiKey: string, ticket_id: string, body: string) {
     try {
-        const triageAgent = new TriageAgent({ apiKey, model })
-
         const { subject, priority, reasoning } =
-            await triageAgent.generateSubjectAndPriority(body)
+            await generateTicketSubjectAndPriority(body, apiKey)
 
         console.log(reasoning)
 

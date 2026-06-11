@@ -7,6 +7,7 @@ import { getMainCultivation } from "./tools/fertilizer-planner"
 export type { AgentGraph } from "./agents/gerrit/agent"
 export type { FertilizerPlanOutput } from "./agents/gerrit/schema"
 export { FertilizerPlanSchema } from "./agents/gerrit/schema"
+export { generateTicketSubjectAndPriority } from "./agents/ticket-triage/agent"
 export type { OneShotAgentResult } from "./runners/one-shot"
 export { AgentRecursionLimitError, AgentTimeoutError } from "./runners/one-shot"
 export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }

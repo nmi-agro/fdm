@@ -20,12 +20,6 @@
                 "types": "./dist/index.d.ts",
                 "default": "./dist/index.js"
             }
-        },
-        "./triage": {
-            "import": {
-                "types": "./dist/triage.d.ts",
-                "default": "./dist/triage.js"
-            }
         }
     },
     "files": [
@@ -66,9 +60,5 @@
     "packageManager": "pnpm@10.33.2",
     "publishConfig": {
         "registry": "https://npm.pkg.github.com"
-    },
-    "optionalDependencies": {
-        "@google/genai": "^2.8.0",
-        "zod-to-json-schema": "^3.25.2"
     }
 }
