@@ -23,7 +23,7 @@ import {
     useParams,
 } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
+import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { FieldInputDialog } from "~/components/blocks/indicators/field-input-dialog"
@@ -50,15 +50,13 @@ import {
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
+import { getFieldAggregationScore, type AggregationId } from "~/lib/aggregations"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
-    ECOSYSTEEMDIENST_FULL_NAME,
-    ECOSYSTEEMDIENST_INDICATOR_IDS,
-    ECOSYSTEEMDIENSTEN,
     type Ecosysteemdienst,
     INDICATORS,
     scoreToDisplay,
@@ -76,21 +74,51 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
         group: "Samenvatting",
         options: [
             { value: "avg", label: "Gemiddelde (alle indicatoren)" },
-            ...ECOSYSTEEMDIENSTEN.map((dienst) => ({
-                value: `eco_${dienst}`,
-                label: dienst,
-            })),
+            { value: "S_BLN", label: "BLN Bodemkwaliteit" },
+            { value: "S_BBWP", label: "BedrijfsBodemWaterPlan (BBWP)" },
+            { value: "S_WAT_BLN", label: "Water" },
+            { value: "S_NUT_BLN", label: "Nutriëntenkringloop" },
+            { value: "S_CLIM_BLN", label: "Klimaat" },
+            { value: "S_PROD_BLN", label: "Productie (OBI)" },
         ],
     },
-    ...ECOSYSTEEMDIENSTEN.map((dienst) => ({
-        group: dienst,
-        options: INDICATORS.filter((i) => i.ecosysteemdienst === dienst).map(
-            (i) => ({
-                value: i.id,
-                label: i.name,
-            }),
-        ),
-    })),
+    {
+        group: "Water Subaggregaties",
+        options: [
+            { value: "S_GW_QUANT_BLN", label: "Grondwaterkwantiteit" },
+            { value: "S_GW_QUAL_BLN", label: "Grondwaterkwaliteit" },
+            { value: "S_SW_QUAL_BLN", label: "Oppervlaktewaterkwaliteit" },
+        ],
+    },
+    {
+        group: "Productie Subaggregaties",
+        options: [
+            { value: "S_PROD_BIOL_BLN", label: "Biologische Bodemkwaliteit" },
+            { value: "S_PROD_CHEM_BLN", label: "Chemische Bodemkwaliteit" },
+            { value: "S_PROD_PHYS_BLN", label: "Fysische Bodemkwaliteit" },
+        ],
+    },
+    {
+        group: "Water Indicatoren",
+        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Waterkwaliteit").map((i) => ({
+            value: i.id,
+            label: i.name,
+        })),
+    },
+    {
+        group: "Nutriënten & Klimaat Indicatoren",
+        options: INDICATORS.filter((i) => ["Nutriëntenkringloop", "Koolstofvastlegging"].includes(i.ecosysteemdienst)).map((i) => ({
+            value: i.id,
+            label: i.name,
+        })),
+    },
+    {
+        group: "Productie (OBI) Indicatoren",
+        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Gewasproductie").map((i) => ({
+            value: i.id,
+            label: i.name,
+        })),
+    },
 ]
 
 function findScoreLabel(value: string): string {
@@ -118,8 +146,22 @@ function computeFieldScores(
     fs: FieldBln3Score | undefined,
 ): Record<string, number> {
     const result: Record<string, number> = { avg: -1 }
-    for (const dienst of ECOSYSTEEMDIENSTEN) {
-        result[`eco_${dienst}`] = -1
+    const aggIds: AggregationId[] = [
+        "S_BLN",
+        "S_BBWP",
+        "S_WAT_BLN",
+        "S_NUT_BLN",
+        "S_CLIM_BLN",
+        "S_PROD_BLN",
+        "S_GW_QUANT_BLN",
+        "S_GW_QUAL_BLN",
+        "S_SW_QUAL_BLN",
+        "S_PROD_BIOL_BLN",
+        "S_PROD_CHEM_BLN",
+        "S_PROD_PHYS_BLN",
+    ]
+    for (const aggId of aggIds) {
+        result[aggId] = -1
     }
     if (!fs?.score) return result
 
@@ -139,18 +181,9 @@ function computeFieldScores(
               )
             : -1
 
-    for (const dienst of ECOSYSTEEMDIENSTEN) {
-        const ids = ECOSYSTEEMDIENST_INDICATOR_IDS[dienst]
-        const vals = ids.flatMap((id) => {
-            const r = indicators.find((i) => i.indicator_id === id)
-            return r != null && Number.isFinite(r.score) ? [r.score] : []
-        })
-        result[`eco_${dienst}`] =
-            vals.length > 0
-                ? Math.round(
-                      (vals.reduce((a, b) => a + b, 0) / vals.length) * 100,
-                  )
-                : -1
+    for (const aggId of aggIds) {
+        const scoreVal = getFieldAggregationScore(fs.score, aggId)
+        result[aggId] = scoreVal !== null ? scoreToDisplay(scoreVal) : -1
     }
 
     return result
@@ -509,40 +542,16 @@ export default function IndicatorsFieldDetail() {
         })
     }, [fieldScore, visibleIndicatorInfos, withMeasures])
 
-    // Per-ecosystem-service aggregation scores for this field
-    const ecosysteemdienst_scores = useMemo(
-        () =>
-            ECOSYSTEEMDIENSTEN.map((dienst) => {
-                if (!fieldScore) return { dienst, score: null, index: null }
-                const ids = ECOSYSTEEMDIENST_INDICATOR_IDS[dienst]
-                const scoreVals = ids.flatMap((id) => {
-                    const r = fieldScore.indicators.find(
-                        (i) => i.indicator_id === id,
-                    )
-                    return r ? [r.score] : []
-                })
-                const indexVals = ids.flatMap((id) => {
-                    const r = fieldScore.indicators.find(
-                        (i) => i.indicator_id === id,
-                    )
-                    return r ? [r.index] : []
-                })
-                return {
-                    dienst,
-                    score:
-                        scoreVals.length > 0
-                            ? scoreVals.reduce((a, b) => a + b, 0) /
-                              scoreVals.length
-                            : null,
-                    index:
-                        indexVals.length > 0
-                            ? indexVals.reduce((a, b) => a + b, 0) /
-                              indexVals.length
-                            : null,
-                }
-            }),
-        [fieldScore],
-    )
+    const scoreOf = (aggId: AggregationId) => {
+        return getFieldAggregationScore(fieldScore, aggId)
+    }
+
+    const indicatorScoreOf = (indId: string) => {
+        if (!fieldScore) return null
+        const ind = fieldScore.indicators.find((i) => i.indicator_id === indId)
+        if (!ind) return null
+        return withMeasures ? ind.score : ind.index
+    }
 
     const measuresHref = `/farm/${b_id_farm}/${calendar}/measures/${b_id}`
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
@@ -584,35 +593,15 @@ export default function IndicatorsFieldDetail() {
                     <div className="flex-1 min-w-0 space-y-4">
                         <Bln3BetaBanner />
 
-                        {/* Aggregation cards + input dialog */}
+                        {/* Aggregations tree + input dialog */}
                         <div className="flex items-start justify-between gap-4 flex-wrap">
-                            {ecosysteemdienst_scores.some(
-                                (e) => e.score !== null,
-                            ) && (
+                            {fieldScore && (
                                 <div className="space-y-2 flex-1">
                                     <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                                        Ecosysteemdiensten
+                                        Bodemkwaliteit Aggregaties
                                     </p>
-                                    <div className="flex gap-3">
-                                        {ecosysteemdienst_scores.map(
-                                            ({ dienst, score, index }) =>
-                                                score !== null ? (
-                                                    <AggregationCard
-                                                        key={dienst}
-                                                        label={dienst}
-                                                        name={
-                                                            ECOSYSTEEMDIENST_FULL_NAME[
-                                                                dienst
-                                                            ]
-                                                        }
-                                                        score01={score}
-                                                        index01={index}
-                                                        showIndex={
-                                                            !withMeasures
-                                                        }
-                                                    />
-                                                ) : null,
-                                        )}
+                                    <div className="bg-card p-4 rounded-xl border shadow-sm">
+                                        <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
                                     </div>
                                 </div>
                             )}

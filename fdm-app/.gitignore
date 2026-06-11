@@ -9,3 +9,5 @@ node_modules
 .react-router/
 # Sentry Config File
 .env.sentry-build-plugin
+
+secrets/

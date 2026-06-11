@@ -27,16 +27,17 @@ import {
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
+import {
+    getFieldAggregationScore,
+    type AggregationId,
+    getAggregationInfo,
+    AGGREGATIONS,
+} from "~/lib/aggregations"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import {
-    ECOSYSTEEMDIENST_INDICATOR_IDS,
-    ECOSYSTEEMDIENST_MAP_PROP,
-    ECOSYSTEEMDIENSTEN,
-    INDICATORS,
-} from "~/lib/indicators"
+import { INDICATORS } from "~/lib/indicators"
 
 const IndicatorsMap = lazy(
     () => import("@/app/components/blocks/indicators/atlas"),
@@ -99,33 +100,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     (score) => score.b_id === field.b_id,
                 )
 
-                const groupAvg = (ids: string[]): number => {
-                    const scores = ids
-                        .map(
-                            (id) =>
-                                fs?.score?.indicators.find(
-                                    (indicator) =>
-                                        indicator.indicator_id === id,
-                                )?.score,
-                        )
-                        .filter((score): score is number => {
-                            return score != null && !Number.isNaN(score)
-                        })
-
-                    return scores.length > 0
-                        ? Math.round(
-                              (scores.reduce((sum, score) => sum + score, 0) /
-                                  scores.length) *
-                                  100,
-                          )
-                        : -1
-                }
-
-                const catProps: Record<string, number> = {}
-
-                for (const dienst of ECOSYSTEEMDIENSTEN) {
-                    const ids = ECOSYSTEEMDIENST_INDICATOR_IDS[dienst]
-                    catProps[ECOSYSTEEMDIENST_MAP_PROP[dienst]] = groupAvg(ids)
+                const aggProps: Record<string, number> = {}
+                const aggIds: AggregationId[] = [
+                    "S_BLN",
+                    "S_BBWP",
+                    "S_WAT_BLN",
+                    "S_NUT_BLN",
+                    "S_CLIM_BLN",
+                    "S_PROD_BLN",
+                    "S_GW_QUANT_BLN",
+                    "S_GW_QUAL_BLN",
+                    "S_SW_QUAL_BLN",
+                    "S_PROD_BIOL_BLN",
+                    "S_PROD_CHEM_BLN",
+                    "S_PROD_PHYS_BLN",
+                ]
+                for (const aggId of aggIds) {
+                    const scoreVal = getFieldAggregationScore(fs?.score, aggId)
+                    aggProps[aggId] = scoreVal !== null ? Math.round(scoreVal * 100) : -1
                 }
 
                 const indicatorProps: Record<string, number> = {}
@@ -146,7 +138,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         b_name: field.b_name ?? null,
                         b_area: field.b_area ?? null,
                         avgScore: computeFieldAvgScore(fs),
-                        ...catProps,
+                        ...aggProps,
                         ...indicatorProps,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {
@@ -176,11 +168,10 @@ export default function AtlasIndicatorsMap() {
     const selectedLabel =
         selectedProperty === "avgScore"
             ? "Gemiddelde score"
-            : (Object.entries(ECOSYSTEEMDIENST_MAP_PROP).find(
-                  ([, v]) => v === selectedProperty,
-              )?.[0] ??
-              INDICATORS.find((i) => i.id === selectedProperty)?.name ??
-              selectedProperty)
+            : (Object.keys(AGGREGATIONS).includes(selectedProperty)
+                  ? getAggregationInfo(selectedProperty as AggregationId).name
+                  : (INDICATORS.find((i) => i.id === selectedProperty)?.name ??
+                    selectedProperty))
 
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
@@ -194,41 +185,73 @@ export default function AtlasIndicatorsMap() {
                         <SelectTrigger className="w-full text-xs h-8">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[380px] overflow-y-auto">
                             <SelectItem value="avgScore">
                                 Gemiddelde score
                             </SelectItem>
                             <SelectSeparator />
                             <SelectGroup>
                                 <SelectLabel className="text-xs text-muted-foreground">
-                                    Ecosysteemdiensten
+                                    Hoofdaggregaties
                                 </SelectLabel>
-                                {ECOSYSTEEMDIENSTEN.map((dienst) => (
-                                    <SelectItem
-                                        key={dienst}
-                                        value={
-                                            ECOSYSTEEMDIENST_MAP_PROP[dienst]
-                                        }
-                                    >
-                                        {dienst}
+                                <SelectItem value="S_BLN">BLN Bodemkwaliteit</SelectItem>
+                                <SelectItem value="S_BBWP">BedrijfsBodemWaterPlan (BBWP)</SelectItem>
+                                <SelectItem value="S_WAT_BLN">Water</SelectItem>
+                                <SelectItem value="S_NUT_BLN">Nutriëntenkringloop</SelectItem>
+                                <SelectItem value="S_CLIM_BLN">Klimaat</SelectItem>
+                                <SelectItem value="S_PROD_BLN">Productie (OBI)</SelectItem>
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel className="text-xs text-muted-foreground">
+                                    Water Subaggregaties
+                                </SelectLabel>
+                                <SelectItem value="S_GW_QUANT_BLN">Grondwaterkwantiteit</SelectItem>
+                                <SelectItem value="S_GW_QUAL_BLN">Grondwaterkwaliteit</SelectItem>
+                                <SelectItem value="S_SW_QUAL_BLN">Oppervlaktewaterkwaliteit</SelectItem>
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel className="text-xs text-muted-foreground">
+                                    Productie Subaggregaties
+                                </SelectLabel>
+                                <SelectItem value="S_PROD_BIOL_BLN">Biologische Bodemkwaliteit</SelectItem>
+                                <SelectItem value="S_PROD_CHEM_BLN">Chemische Bodemkwaliteit</SelectItem>
+                                <SelectItem value="S_PROD_PHYS_BLN">Fysische Bodemkwaliteit</SelectItem>
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel className="text-xs text-muted-foreground">
+                                    Water Indicatoren
+                                </SelectLabel>
+                                {INDICATORS.filter((i) => i.ecosysteemdienst === "Waterkwaliteit").map((i) => (
+                                    <SelectItem key={i.id} value={i.id}>
+                                        {i.name}
                                     </SelectItem>
                                 ))}
                             </SelectGroup>
                             <SelectSeparator />
-                            {ECOSYSTEEMDIENSTEN.map((dienst) => (
-                                <SelectGroup key={dienst}>
-                                    <SelectLabel className="text-xs text-muted-foreground">
-                                        {dienst}
-                                    </SelectLabel>
-                                    {INDICATORS.filter(
-                                        (i) => i.ecosysteemdienst === dienst,
-                                    ).map((i) => (
-                                        <SelectItem key={i.id} value={i.id}>
-                                            {i.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            ))}
+                            <SelectGroup>
+                                <SelectLabel className="text-xs text-muted-foreground">
+                                    Nutriënten & Klimaat Indicatoren
+                                </SelectLabel>
+                                {INDICATORS.filter((i) => ["Nutriëntenkringloop", "Koolstofvastlegging"].includes(i.ecosysteemdienst)).map((i) => (
+                                    <SelectItem key={i.id} value={i.id}>
+                                        {i.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel className="text-xs text-muted-foreground">
+                                    Productie (OBI) Indicatoren
+                                </SelectLabel>
+                                {INDICATORS.filter((i) => i.ecosysteemdienst === "Gewasproductie").map((i) => (
+                                    <SelectItem key={i.id} value={i.id}>
+                                        {i.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
                         </SelectContent>
                     </Select>
                     <Bln3BetaBanner />

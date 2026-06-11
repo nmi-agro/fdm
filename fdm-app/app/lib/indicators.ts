@@ -288,36 +288,6 @@ export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
     "Nutriëntenkringloop",
 ]
 
-/** ID lists per ecosystem service, keyed by Ecosysteemdienst name */
-export const ECOSYSTEEMDIENST_INDICATOR_IDS: Record<
-    Ecosysteemdienst,
-    string[]
-> = {
-    Gewasproductie: GEWASPRODUCTIE_INDICATOR_IDS,
-    Koolstofvastlegging: KOOLSTOFVASTLEGGING_INDICATOR_IDS,
-    Waterkwaliteit: WATERKWALITEIT_INDICATOR_IDS,
-    Nutriëntenkringloop: NUTRIENTENKRINGLOOP_INDICATOR_IDS,
-}
-
-/**
- * Short GeoJSON property names for per-ecosystem-service average scores stored on map features.
- * Used to drive dynamic map colouring when an ecosystem service filter is active.
- */
-export const ECOSYSTEEMDIENST_MAP_PROP: Record<Ecosysteemdienst, string> = {
-    Gewasproductie: "avg_gew",
-    Koolstofvastlegging: "avg_kool",
-    Waterkwaliteit: "avg_wat",
-    Nutriëntenkringloop: "avg_nut",
-}
-
-/** Full descriptive name shown as subtitle in AggregationCards */
-export const ECOSYSTEEMDIENST_FULL_NAME: Record<Ecosysteemdienst, string> = {
-    Gewasproductie: "Open Bodem Index",
-    Koolstofvastlegging: "Open Bodem Index",
-    Waterkwaliteit: "BedrijfsBodemWaterPlan",
-    Nutriëntenkringloop: "Open Bodem Index",
-}
-
 /** Convert 0–1 API score to 0–100 display value. */
 export function scoreToDisplay(score01: number): number {
     return Math.round(score01 * 100)

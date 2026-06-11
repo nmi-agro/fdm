@@ -41,35 +41,44 @@ export function Bln3HelpDialog() {
 
                     <div className="space-y-1.5">
                         <p className="font-medium text-foreground">
-                            4 ecosysteemdiensten
+                            De BLN3 Structuur (4 hoofdbranches)
                         </p>
-                        <ul className="space-y-1 list-none">
+                        <ul className="space-y-2 list-none pl-0">
                             {[
                                 [
-                                    "Gewasproductie",
-                                    "bodemvruchtbaarheid, structuur en bodemleven (18 indicatoren)",
-                                ],
-                                [
-                                    "Koolstofvastlegging",
-                                    "potentie van de bodem om koolstof op te slaan (1 indicator)",
-                                ],
-                                [
-                                    "Waterkwaliteit",
-                                    "bescherming van grond- en oppervlaktewater (5 indicatoren)",
+                                    "Water",
+                                    "Beoordeelt de infiltratie (grondwaterkwantiteit), uitspoelingsweerstand (grondwaterkwaliteit) en oppervlakkige afspoelingsweerstand (oppervlaktewaterkwaliteit).",
                                 ],
                                 [
                                     "Nutriëntenkringloop",
-                                    "efficiëntie van nutriëntopname door het gewas (3 indicatoren)",
+                                    "Beoordeelt de efficiëntie waarmee de bodem stikstof, fosfaat en kalium vasthoudt en benut.",
+                                ],
+                                [
+                                    "Klimaat",
+                                    "De potentie van de bodem om koolstof op te slaan (koolstofvastlegging).",
+                                ],
+                                [
+                                    "Productie (Open Bodem Index / OBI)",
+                                    "Focust op gewasproductie, onderverdeeld in biologische, chemische en fysische bodemvruchtbaarheid en -structuur.",
                                 ],
                             ].map(([dienst, desc]) => (
-                                <li key={dienst} className="flex gap-2">
-                                    <span className="font-medium text-foreground shrink-0">
+                                <li key={dienst} className="text-xs">
+                                    <strong className="text-foreground shrink-0 block">
                                         {dienst}:
-                                    </span>
+                                    </strong>
                                     <span>{desc}</span>
                                 </li>
                             ))}
                         </ul>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <p className="font-medium text-foreground">
+                            Bedrijfsscore
+                        </p>
+                        <p className="text-xs">
+                            Op de bedrijfspagina worden alle scores opgebouwd als een <strong>oppervlaktegewogen gemiddelde</strong> van de individuele percelen. Percelen zonder geregistreerde oppervlakte of geldige bodemanalyse worden hierbij automatisch uitgesloten om vertekening te voorkomen.
+                        </p>
                     </div>
 
                     <div className="space-y-1.5">
