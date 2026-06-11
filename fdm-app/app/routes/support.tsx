@@ -1,4 +1,9 @@
-import { checkHelpdeskPermission } from "@nmi-agro/fdm-helpdesk"
+import {
+    checkHelpdeskPermission,
+    getUnassignedTicketCount,
+    getUnreadAssignedTicketCount,
+    getUnreadRequestedTicketCount,
+} from "@nmi-agro/fdm-helpdesk"
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import { useLoaderData } from "react-router"
@@ -52,12 +57,26 @@ export async function loader({ request }: Route.LoaderArgs) {
             false,
         )
 
+        const [numUnreadAssigned, numUnreadRequested, numUnassigned] =
+            await Promise.all([
+                helpdeskReadPermission
+                    ? getUnreadAssignedTicketCount(fdm, session.principal_id)
+                    : 0,
+                getUnreadRequestedTicketCount(fdm, session.principal_id),
+                helpdeskReadPermission
+                    ? getUnassignedTicketCount(fdm, session.principal_id)
+                    : 0,
+            ])
+
         // Return user information from loader
         return {
             user: session.user,
             userName: session.userName,
             initials: session.initials,
             helpdeskReadPermission: helpdeskReadPermission,
+            numUnreadAssigned: numUnreadAssigned,
+            numUnreadRequested: numUnreadRequested,
+            numUnassigned: numUnassigned,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -88,9 +107,14 @@ export default function App() {
             <Sidebar>
                 <SidebarTitle />
                 <SidebarContent>
-                    <SidebarHelpdesk />
+                    <SidebarHelpdesk
+                        numUnreadRequested={loaderData.numUnreadRequested}
+                    />
                     {loaderData.helpdeskReadPermission && (
-                        <SidebarAdminHelpdesk />
+                        <SidebarAdminHelpdesk
+                            numUnreadAssigned={loaderData.numUnreadAssigned}
+                            numUnassigned={loaderData.numUnassigned}
+                        />
                     )}
                 </SidebarContent>
                 <SidebarUser

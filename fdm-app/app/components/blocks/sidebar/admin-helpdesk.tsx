@@ -10,8 +10,15 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "~/components/ui/sidebar"
+import { NumberBadge } from "./number-badge"
 
-export function SidebarAdminHelpdesk() {
+export function SidebarAdminHelpdesk({
+    numUnreadAssigned,
+    numUnassigned,
+}: {
+    numUnreadAssigned: number
+    numUnassigned: number
+}) {
     const currentHelpdeskPage = useCurrentHelpdeskPage()
     const location = useLocation()
     const ticketViewerPages = {
@@ -57,6 +64,7 @@ export function SidebarAdminHelpdesk() {
                             >
                                 <Inbox />
                                 <span>Mijn inbox</span>
+                                <NumberBadge number={numUnreadAssigned} />
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -84,6 +92,7 @@ export function SidebarAdminHelpdesk() {
                             >
                                 <Asterisk />
                                 <span>Niet toegewezen</span>
+                                <NumberBadge number={numUnassigned} />
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

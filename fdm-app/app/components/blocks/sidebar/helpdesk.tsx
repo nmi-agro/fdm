@@ -11,8 +11,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "~/components/ui/sidebar"
+import { NumberBadge } from "./number-badge"
 
-export function SidebarHelpdesk() {
+export function SidebarHelpdesk({
+    numUnreadRequested,
+}: {
+    numUnreadRequested: number
+}) {
     const currentHelpdeskPage = useCurrentHelpdeskPage()
     const location = useLocation()
     const ticketViewerPages = {
@@ -83,6 +88,7 @@ export function SidebarHelpdesk() {
                                 >
                                     <MessageSquareCheck />
                                     <span>Mijn tickets</span>
+                                    <NumberBadge number={numUnreadRequested} />
                                 </NavLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

@@ -5,7 +5,7 @@ import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
 import { addMessage, getMessagesForTicket } from "./message"
 import { addTagToTicket, createTag } from "./tag"
-import { test } from "./test-util"
+import { test, truncateAllTables } from "./test-util"
 import {
     createTicket,
     getDefaultSubjectLine,
@@ -13,6 +13,9 @@ import {
     getTicket,
     getTicketCount,
     getTickets,
+    getUnassignedTicketCount,
+    getUnreadAssignedTicketCount,
+    getUnreadRequestedTicketCount,
     markTicketAsViewed,
     updateTicketStatus,
     validateTicketStatusTransition,
@@ -665,6 +668,49 @@ describe("getTicketCount", () => {
         })
 
         expect(ticketCount).toBe(3)
+    })
+})
+
+describe("getTicketCount wrappers", async () => {
+    let admin_id: string
+    let requester_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        await truncateAllTables(fdm)
+        admin_id = createId()
+        await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+        requester_id = createId()
+        await createTicket(fdm, requester_id, "Ticket 1")
+        await createTicket(fdm, admin_id, "Ticket 2")
+        const assigned_ticket = await createTicket(
+            fdm,
+            requester_id,
+            "Ticket 3",
+        )
+        await assignTicket(fdm, assigned_ticket, admin_id, admin_id, true)
+    })
+
+    test("should get the number of unassigned tickets", async ({ fdm }) => {
+        const ticketCount = await getUnassignedTicketCount(fdm, admin_id)
+        expect(ticketCount).toBe(2)
+    })
+
+    test("should get the number of unread and requested tickets", async ({
+        fdm,
+    }) => {
+        const ticketCount = await getUnreadRequestedTicketCount(
+            fdm,
+            requester_id,
+        )
+        expect(ticketCount).toBe(2)
+    })
+
+    test("should get the number of unread and assigned tickets", async ({
+        fdm,
+    }) => {
+        const ticketCount = await getUnreadAssignedTicketCount(fdm, admin_id)
+        expect(ticketCount).toBe(1)
     })
 })
 

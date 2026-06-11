@@ -1,12 +1,11 @@
 import * as Sentry from "@sentry/react-router"
-import { Asterisk, Dot, LifeBuoy, Send } from "lucide-react"
+import { LifeBuoy, Send } from "lucide-react"
 import { useEffect, useState } from "react"
 import { NavLink, useParams } from "react-router"
 import { toast } from "sonner"
 import { clientConfig } from "@/app/lib/config"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { ChangelogNotification } from "~/components/custom/changelog-notification"
-import { Badge } from "~/components/ui/badge"
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -23,13 +22,11 @@ import {
 export function SidebarSupport({
     name,
     email,
-    numNotViewed,
-    numUnassigned,
+    hasNotification,
 }: {
     name: string | undefined
     email: string | undefined
-    numNotViewed?: number
-    numUnassigned?: number
+    hasNotification?: boolean
 }) {
     const params = useParams()
 
@@ -113,65 +110,26 @@ export function SidebarSupport({
                                 )}
                             >
                                 <LifeBuoy />
-                                <span className="me-auto">Ondersteuning</span>
-                                {typeof numUnassigned === "number" &&
-                                    numUnassigned > 0 && (
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Badge
-                                                    variant="default"
-                                                    className="p-0 ps-1 pe-2 h-6 bg-orange-400 hover:bg-orange-400 color-white"
-                                                >
-                                                    <Asterisk
-                                                        className="m-0 size-4"
-                                                        aria-hidden="true"
-                                                    />
-                                                    <span className="sr-only">
-                                                        {numUnassigned === 1
-                                                            ? "1 ticket toe te wijzen"
-                                                            : `${numUnassigned} tickets toe te wijzen`}
-                                                    </span>
-                                                    <span aria-hidden="true">
-                                                        {numUnassigned}
-                                                    </span>
-                                                </Badge>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                {numUnassigned === 1
-                                                    ? "Er is een nieuw ticket toe te wijzen."
-                                                    : `Er zijn ${numUnassigned} nieuwe tickets toe te wijzen.`}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    )}
-                                {typeof numNotViewed === "number" &&
-                                    numNotViewed > 0 && (
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Badge
-                                                    variant="default"
-                                                    className="p-0 ps-1 pe-2 h-6 bg-blue-600 hover:bg-blue-600"
-                                                >
-                                                    <Dot
-                                                        className="m-0 size-4 scale-200"
-                                                        aria-hidden="true"
-                                                    />
-                                                    <span className="sr-only">
-                                                        {numNotViewed === 1
-                                                            ? "1 nieuw bericht te bekijken"
-                                                            : `${numNotViewed} nieuwe berichten te bekijken`}
-                                                    </span>
-                                                    <span aria-hidden="true">
-                                                        {numNotViewed}
-                                                    </span>
-                                                </Badge>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                {numNotViewed === 1
-                                                    ? "U hebt een nieuw bericht te bekijken."
-                                                    : `U hebt ${numNotViewed} nieuwe berichten te bekijken.`}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    )}
+                                {hasNotification ? (
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span className="relative">
+                                                Ondersteuning
+                                                <span className="sr-only">
+                                                    , Er is wat nieuwe berichten
+                                                    te bekijken.
+                                                </span>
+                                                <div className="absolute size-2 -right-2 -top-1 rounded-full bg-destructive" />
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Er is wat nieuwe berichten te
+                                            bekijken.
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ) : (
+                                    <span>Ondersteuning</span>
+                                )}
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

@@ -212,7 +212,70 @@ export async function getTickets(
 }
 
 /**
+ * Returns the number of active tickets, assigned to the principal, with new content not viewed by them.
+ *
+ * It will also increase whenever someone sends a new message under the ticket, and decrease when the
+ * principal views the ticket again.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing the query.
+ */
+const ACTIVE_TICKET_STATUSES = ["open", "in_progress", "waiting_on_customer"]
+export async function getUnreadAssignedTicketCount(
+    fdm: FdmHelpdeskType,
+    principal_id: string,
+) {
+    return getTicketCount(fdm, principal_id, {
+        notViewedBy: [principal_id],
+        assignees: [principal_id],
+        statuses: ACTIVE_TICKET_STATUSES,
+    })
+}
+
+/**
+ * Returns the number of active tickets that the user has requested, with new content not viewed by them.
+ *
+ * It is limited to tickets that the principal is able to view.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing the query.
+ */
+export async function getUnreadRequestedTicketCount(
+    fdm: FdmHelpdeskType,
+    principal_id: string,
+) {
+    return getTicketCount(fdm, principal_id, {
+        notViewedBy: [principal_id],
+        requesterIds: [principal_id],
+        statuses: ACTIVE_TICKET_STATUSES,
+    })
+}
+
+/**
+ * Returns the number of active tickets that are not yet assigned to anyone.
+ *
+ * It is limited to tickets that the principal is able to view.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s) performing the query.
+ */
+export async function getUnassignedTicketCount(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+) {
+    return getTicketCount(fdm, principal_id, {
+        assigned: false,
+        statuses: ACTIVE_TICKET_STATUSES,
+    })
+}
+
+/**
  * Returns the total count of tickets visible to the principal after applying filters.
+ *
+ * It is limited to tickets that the principal is able to view.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
