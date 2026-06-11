@@ -13,7 +13,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { writeFileSync, unlinkSync } from "node:fs"
 import { SignJWT, importPKCS8 } from "jose"
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import {
     createMicrosoftClientAssertion,
     createMicrosoftOAuthConfig,
@@ -261,6 +261,16 @@ describe("createMicrosoftOAuthConfig", () => {
                 ok,
                 arrayBuffer: async () => body ?? new ArrayBuffer(0),
             } as unknown as Response)
+
+        let originalFetch: typeof global.fetch
+
+        beforeEach(() => {
+            originalFetch = global.fetch
+        })
+
+        afterEach(() => {
+            global.fetch = originalFetch
+        })
 
         it("returns null when idToken is missing", async () => {
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
