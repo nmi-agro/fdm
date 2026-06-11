@@ -3,6 +3,7 @@ import z from "zod/v3"
 import { createDefaultModel } from "../../models/default"
 import { runOneShotAgent } from "../../runners/one-shot"
 
+/** Default Gemini model used by the ticket-triage agent. Optimised for low-latency triage tasks. */
 export const DEFAULT_MODEL_CODE = "gemini-3.1-flash-lite"
 
 export interface TriageAgentConfig {
@@ -34,6 +35,12 @@ const SubjectAndPrioritySchema = z
 
 type SubjectAndPriority = z.infer<typeof SubjectAndPrioritySchema>
 
+/**
+ * System/user prompt injected before the raw ticket body.
+ * Instructs the LLM to classify the message and produce a structured
+ * `SubjectAndPriority` response. Append the ticket body directly after
+ * this string.
+ */
 export const SUBJECT_AND_PRIORITY_PROMPT = `You are a support ticket triage assistant for FDM (Farm Data Model), 
 an agricultural data management platform used by Dutch farmers and advisors.
 
@@ -64,10 +71,11 @@ function isAgentGraph(obj: unknown): obj is ReactAgent {
 }
 
 /**
- * Creates the helpdesk ticket triage agent
- * @param apiKey Optional API key for the Gemini model.
- * @param model Optional model name override.
- * @param toolRoundLimit Soft limit on tool roundtrips before the agent is warned to finalize (default: 40).
+ * Creates the helpdesk ticket triage agent.
+ * @param apiKey - Optional Gemini API key. Falls back to the `GEMINI_API_KEY` environment variable.
+ * @param modelName Optional model name override. Defaults to {@link DEFAULT_MODEL_CODE}.
+ * @throws {Error} When no API key is available.
+ * @throws {Error} When `createAgent` does not return a valid agent graph.
  */
 export function createTicketTriageAgent(apiKey?: string, modelName?: string) {
     const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
@@ -92,6 +100,17 @@ export function createTicketTriageAgent(apiKey?: string, modelName?: string) {
     return result
 }
 
+/**
+ * Analyses a support ticket and returns a concise subject line and priority level.
+ *
+ * Passes an empty-body shortcut directly (returns `{ subject: "Empty Message", priority: "low" }`)
+ * without calling the LLM.
+ *
+ * @param body - Raw text of the support ticket message.
+ * @param geminiApiKey - Optional Gemini API key. Falls back to the `GEMINI_API_KEY` environment variable.
+ * @returns A promise resolving to `{ subject, priority, reasoning }`.
+ * @throws {Error} When the agent produces no structured response.
+ */
 export async function generateTicketSubjectAndPriority(
     body: string,
     geminiApiKey?: string,
