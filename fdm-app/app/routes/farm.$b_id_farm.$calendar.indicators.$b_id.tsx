@@ -31,6 +31,7 @@ import { IndicatorCard } from "~/components/blocks/indicators/indicator-card"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"
 import {
     Select,
     SelectContent,
@@ -100,21 +101,21 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
     },
     {
         group: "Water Indicatoren",
-        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Waterkwaliteit").map((i) => ({
+        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Water").map((i) => ({
             value: i.id,
             label: i.name,
         })),
     },
     {
         group: "Nutriënten & Klimaat Indicatoren",
-        options: INDICATORS.filter((i) => ["Nutriëntenkringloop", "Koolstofvastlegging"].includes(i.ecosysteemdienst)).map((i) => ({
+        options: INDICATORS.filter((i) => ["Nutriëntenkringloop", "Klimaat"].includes(i.ecosysteemdienst)).map((i) => ({
             value: i.id,
             label: i.name,
         })),
     },
     {
         group: "Productie (OBI) Indicatoren",
-        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Gewasproductie").map((i) => ({
+        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Productie").map((i) => ({
             value: i.id,
             label: i.name,
         })),
@@ -440,7 +441,7 @@ function readSessionMeasures(): boolean {
 function readSessionMapScore(): string {
     if (typeof window === "undefined") return "avg"
     try {
-        return sessionStorage.getItem(SESSION_KEY_MAP_SCORE) ?? "avg"
+        return sessionStorage.getItem(SESSION_KEY_MAP_SCORE) ?? "S_BLN"
     } catch {
         return "avg"
     }
@@ -585,31 +586,39 @@ export default function IndicatorsFieldDetail() {
                         </p>
                     )
                 }
+                rightNode={<Bln3BetaBanner />}
             />
 
             <div className="px-4 sm:px-6 lg:px-8 pb-16">
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* ── Main content column ──────────────────────────── */}
                     <div className="flex-1 min-w-0 space-y-4">
-                        <Bln3BetaBanner />
-
                         {/* Aggregations tree + input dialog */}
-                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div className="flex flex-col gap-4">
                             {fieldScore && (
-                                <div className="space-y-2 flex-1">
-                                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                                        Bodemkwaliteit Aggregaties
-                                    </p>
-                                    <div className="bg-card p-4 rounded-xl border shadow-sm">
+                                <Card className="shadow-sm border-border">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                                            <div>
+                                                <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
+                                                <CardDescription className="text-xs mt-1.5">
+                                                    Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie voor dit perceel. Klik op de knoppen om in te zoomen.
+                                                </CardDescription>
+                                            </div>
+                                            <div className="shrink-0">
+                                                <FieldInputDialog
+                                                    cultivations={cultivationSummaries}
+                                                    fieldMeasures={fieldMeasures}
+                                                    soilData={soilData}
+                                                />
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
                                         <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
-                                    </div>
-                                </div>
+                                    </CardContent>
+                                </Card>
                             )}
-                            <FieldInputDialog
-                                cultivations={cultivationSummaries}
-                                fieldMeasures={fieldMeasures}
-                                soilData={soilData}
-                            />
                         </div>
 
                         <Separator />

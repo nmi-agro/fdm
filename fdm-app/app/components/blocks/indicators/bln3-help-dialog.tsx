@@ -41,7 +41,7 @@ export function Bln3HelpDialog() {
 
                     <div className="space-y-1.5">
                         <p className="font-medium text-foreground">
-                            De BLN3 Structuur (4 hoofdbranches)
+                            De BLN3 structuur
                         </p>
                         <ul className="space-y-2 list-none pl-0">
                             {[
@@ -60,6 +60,10 @@ export function Bln3HelpDialog() {
                                 [
                                     "Productie (Open Bodem Index / OBI)",
                                     "Focust op gewasproductie, onderverdeeld in biologische, chemische en fysische bodemvruchtbaarheid en -structuur.",
+                                ],
+                                [
+                                    "BedrijfsBodemWaterPlan (BBWP)",
+                                    "Een parallelle index gericht op actuele beleidsdoelen rond bodem en water (uitspoeling en afspoeling).",
                                 ],
                             ].map(([dienst, desc]) => (
                                 <li key={dienst} className="text-xs">

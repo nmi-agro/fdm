@@ -88,21 +88,21 @@ export const AGGREGATIONS: Record<AggregationId, AggregationInfo> = {
     },
     S_PROD_BIOL_BLN: {
         id: "S_PROD_BIOL_BLN",
-        name: "Biologische Bodemkwaliteit",
+        name: "Biologische bodemkwaliteit",
         description: "De biologische gezondheid van de bodem, bepaald door het bodemleven en ziektewerend vermogen.",
         parent: "S_PROD_BLN",
         color: "#22c55e", // Green-500
     },
     S_PROD_CHEM_BLN: {
         id: "S_PROD_CHEM_BLN",
-        name: "Chemische Bodemkwaliteit",
+        name: "Chemische bodemkwaliteit",
         description: "De chemische bodemvruchtbaarheid, bepaald door de zuurgraad en de beschikbaarheid van hoofd- en spoorelementen.",
         parent: "S_PROD_BLN",
         color: "#eab308", // Yellow-500
     },
     S_PROD_PHYS_BLN: {
         id: "S_PROD_PHYS_BLN",
-        name: "Fysische Bodemkwaliteit",
+        name: "Fysische bodemkwaliteit",
         description: "De fysische bodemstructuur, bepaald door de aggregaatstabiliteit, bewerkbaarheid, bewortelbaarheid en weerstand tegen verdichting of verslemping.",
         parent: "S_PROD_BLN",
         color: "#ea580c", // Orange-600

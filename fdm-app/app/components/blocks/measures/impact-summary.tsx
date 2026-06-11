@@ -5,9 +5,11 @@
  * displaying their pre-measure vs post-measure scores and the positive delta.
  */
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
-import { Sparkles, TrendingUp } from "lucide-react"
+import { TrendingUp, Plus } from "lucide-react"
 import { getIndicatorInfo, scoreToDisplay } from "~/lib/indicators"
 import { Badge } from "~/components/ui/badge"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "~/components/ui/card"
+import { ScrollArea } from "~/components/ui/scroll-area"
 
 type ImpactSummaryProps = {
     indicators: Bln3IndicatorResult[]
@@ -40,40 +42,46 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
     }
 
     return (
-        <div className="space-y-3 bg-card p-4 rounded-xl border shadow-sm">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b pb-2">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-                <span>Invloed op Bodemindicatoren</span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-                De geselecteerde maatregelen zorgen voor een directe verbetering van de volgende bodemindicatoren op dit perceel:
-            </p>
-            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                {improvedIndicators.map((ind) => (
-                    <div
-                        key={ind.id}
-                        className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/30 border border-border text-xs"
-                    >
-                        <div className="flex items-center gap-2 min-w-0">
-                            <Sparkles className="h-3 w-3 text-teal-500 shrink-0" />
-                            <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border">
-                                {ind.id}
-                            </span>
-                            <span className="font-medium truncate text-foreground">
-                                {ind.name}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] text-muted-foreground">
-                                {ind.index} → {ind.score}
-                            </span>
-                            <Badge className="bg-teal-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full">
-                                +{ind.impact}
-                            </Badge>
-                        </div>
+        <Card className="shadow-sm border-border">
+            <CardHeader className="pb-3 border-b">
+                <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-base font-bold">Invloed op bodemindicatoren</CardTitle>
+                </div>
+                <CardDescription className="text-xs">
+                    De geselecteerde maatregelen zorgen voor een directe verbetering van de volgende bodemindicatoren op dit perceel.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+                <ScrollArea className="h-[220px] w-full pr-3">
+                    <div className="space-y-2">
+                        {improvedIndicators.map((ind) => (
+                            <div
+                                key={ind.id}
+                                className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/30 border border-border text-xs"
+                            >
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5">
+                                        {ind.id}
+                                    </Badge>
+                                    <span className="font-medium truncate text-foreground">
+                                        {ind.name}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {ind.index} → {ind.score}
+                                    </span>
+                                    <Badge variant="default" className="font-bold text-[10px] px-1.5 py-0 h-5">
+                                        <Plus className="w-3 h-3 mr-0.5" />
+                                        {ind.impact}
+                                    </Badge>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
-        </div>
+                </ScrollArea>
+            </CardContent>
+        </Card>
     )
 }

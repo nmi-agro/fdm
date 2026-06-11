@@ -19,6 +19,7 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
 import { Switch } from "~/components/ui/switch"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { getSession } from "~/lib/auth.server"
 import { computeAreaWeightedAggregation, type AggregationId } from "~/lib/aggregations"
@@ -28,6 +29,7 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
     type Ecosysteemdienst,
+    INDICATORS
 } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 
@@ -104,7 +106,6 @@ export default function IndicatorsFarmIndex() {
     const [activeCategories, setActiveCategories] = useState<
         Ecosysteemdienst[]
     >([])
-    const [showHeatmap, setShowHeatmap] = useState(false)
     const [withMeasures, setWithMeasures] = useState(true)
     const [hideBufferstrips, setHideBufferstrips] = useState(true)
     const [fieldSearch, setFieldSearch] = useState("")
@@ -183,27 +184,28 @@ export default function IndicatorsFarmIndex() {
             <FarmTitle
                 title="Indicatoren"
                 description="BLN3 bodemkwaliteitsindicatoren voor alle percelen op dit bedrijf."
+                rightNode={<Bln3BetaBanner />}
             />
 
             <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
-                <Bln3BetaBanner />
-
                 {/* Aggregations hierarchy tree */}
                 <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                            Bodemkwaliteit Aggregaties (Bedrijfsgemiddelde)
-                        </h3>
-                        <Bln3HelpDialog />
-                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        <div className="lg:col-span-7 bg-card p-4 rounded-xl border shadow-sm space-y-4">
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 
-                                <strong> gewogen gemiddelden op basis van perceeloppervlakte</strong>. Klik op de pijltjes om verder in te zoomen op branches en onderliggende indicatoren.
-                            </p>
-                            <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
-                        </div>
+                        <Card className="lg:col-span-7 shadow-sm border-border">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base font-bold">Bedrijfsgemiddelde score</CardTitle>
+                                    <Bln3HelpDialog />
+                                </div>
+                                {/* <CardDescription className="text-xs">
+                                    Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 
+                                    <strong> gewogen gemiddelden op basis van perceeloppervlakte</strong>. Klik op de knoppen om verder in te zoomen op branches en onderliggende indicatoren.
+                                </CardDescription> */}
+                            </CardHeader>
+                            <CardContent>
+                                <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
+                            </CardContent>
+                        </Card>
                         <div className="lg:col-span-5">
                             <AggregationPainpoints
                                 fields={filteredFields}
@@ -216,31 +218,27 @@ export default function IndicatorsFarmIndex() {
 
                 <Separator />
 
-                {/* Collapsible Indicator table section */}
-                <div className="flex justify-center py-2">
-                    <button
-                        type="button"
-                        onClick={() => setShowHeatmap((prev) => !prev)}
-                        className="inline-flex items-center gap-2 px-4 py-2 border rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all cursor-pointer"
-                    >
-                        {showHeatmap ? "Verberg detailweergave per perceel" : "Toon detailweergave per perceel (28 indicatoren x percelen)"}
-                    </button>
-                </div>
-
-                {showHeatmap && (
-                    <section
-                        className={cn(
-                            "space-y-3 transition-opacity duration-150 border rounded-xl p-4 bg-muted/10",
-                            showPending && "opacity-50 pointer-events-none",
-                        )}
-                    >
+                {/* Indicator table section */}
+                <Card
+                    className={cn(
+                        "transition-opacity duration-150 bg-muted/10",
+                        showPending && "opacity-50 pointer-events-none",
+                    )}
+                >
+                    <CardHeader className="pb-3 border-b">
+                        <CardTitle className="text-base font-bold">Detailweergave per perceel</CardTitle>
+                        <CardDescription className="text-xs">
+                            Alle {INDICATORS.length} indicatoren voor alle percelen, met filters en zoekmogelijkheden.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
                         <div className="flex items-center justify-between gap-4 flex-wrap">
                             <CategoryFilter
                                 activeCategories={activeCategories}
                                 onToggle={handleToggleCategory}
                                 onClearAll={handleClearCategories}
                             />
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 flex-wrap">
                                 <Input
                                     placeholder="Zoek perceel…"
                                     value={fieldSearch}
@@ -278,8 +276,8 @@ export default function IndicatorsFarmIndex() {
                             showIndex={showIndex}
                             basePath={basePath}
                         />
-                    </section>
-                )}
+                    </CardContent>
+                </Card>
             </div>
         </>
     )

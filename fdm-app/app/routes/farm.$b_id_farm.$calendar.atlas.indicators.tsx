@@ -163,7 +163,7 @@ export default function AtlasIndicatorsMap() {
     const { fieldsGeoJSON, mapStyle } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
-    const [selectedProperty, setSelectedProperty] = useState("avgScore")
+    const [selectedProperty, setSelectedProperty] = useState("S_BLN")
 
     const selectedLabel =
         selectedProperty === "avgScore"
@@ -224,7 +224,7 @@ export default function AtlasIndicatorsMap() {
                                 <SelectLabel className="text-xs text-muted-foreground">
                                     Water Indicatoren
                                 </SelectLabel>
-                                {INDICATORS.filter((i) => i.ecosysteemdienst === "Waterkwaliteit").map((i) => (
+                                {INDICATORS.filter((i) => i.ecosysteemdienst === "Water").map((i) => (
                                     <SelectItem key={i.id} value={i.id}>
                                         {i.name}
                                     </SelectItem>
@@ -235,7 +235,7 @@ export default function AtlasIndicatorsMap() {
                                 <SelectLabel className="text-xs text-muted-foreground">
                                     Nutriënten & Klimaat Indicatoren
                                 </SelectLabel>
-                                {INDICATORS.filter((i) => ["Nutriëntenkringloop", "Koolstofvastlegging"].includes(i.ecosysteemdienst)).map((i) => (
+                                {INDICATORS.filter((i) => ["Nutriëntenkringloop", "Klimaat"].includes(i.ecosysteemdienst)).map((i) => (
                                     <SelectItem key={i.id} value={i.id}>
                                         {i.name}
                                     </SelectItem>
@@ -246,7 +246,7 @@ export default function AtlasIndicatorsMap() {
                                 <SelectLabel className="text-xs text-muted-foreground">
                                     Productie (OBI) Indicatoren
                                 </SelectLabel>
-                                {INDICATORS.filter((i) => i.ecosysteemdienst === "Gewasproductie").map((i) => (
+                                {INDICATORS.filter((i) => i.ecosysteemdienst === "Productie").map((i) => (
                                     <SelectItem key={i.id} value={i.id}>
                                         {i.name}
                                     </SelectItem>
