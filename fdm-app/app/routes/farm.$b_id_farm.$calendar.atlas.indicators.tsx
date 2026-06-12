@@ -32,6 +32,7 @@ import {
     type AggregationId,
     getAggregationInfo,
     AGGREGATIONS,
+    AGG_IDS,
 } from "~/lib/aggregations"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -101,21 +102,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 )
 
                 const aggProps: Record<string, number> = {}
-                const aggIds: AggregationId[] = [
-                    "S_BLN",
-                    "S_BBWP",
-                    "S_WAT_BLN",
-                    "S_NUT_BLN",
-                    "S_CLIM_BLN",
-                    "S_PROD_BLN",
-                    "S_GW_QUANT_BLN",
-                    "S_GW_QUAL_BLN",
-                    "S_SW_QUAL_BLN",
-                    "S_PROD_BIOL_BLN",
-                    "S_PROD_CHEM_BLN",
-                    "S_PROD_PHYS_BLN",
-                ]
-                for (const aggId of aggIds) {
+                for (const aggId of AGG_IDS) {
                     const scoreVal = getFieldAggregationScore(fs?.score, aggId)
                     aggProps[aggId] = scoreVal !== null ? Math.round(scoreVal * 100) : -1
                 }

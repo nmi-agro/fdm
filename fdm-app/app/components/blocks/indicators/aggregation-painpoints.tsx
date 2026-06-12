@@ -50,9 +50,11 @@ export function AggregationPainpoints({ fields, fieldScores, basePath }: Aggrega
     const worstFieldsForActiveAgg = useMemo(() => {
         if (!activeAggId) return []
 
+        const fieldScoresById = new Map(fieldScores.map(fs => [fs.b_id, fs]))
+
         const list = fields
             .map((field) => {
-                const fs = fieldScores.find((s) => s.b_id === field.b_id)
+                const fs = fieldScoresById.get(field.b_id)
                 const score01 = fs ? getFieldAggregationScore(fs.score, activeAggId) : null
                 return {
                     b_id: field.b_id,

@@ -209,11 +209,12 @@ export function AggregationTree({
                                         )
 
                                 return (
-                                    <div
+                                    <button
+                                        type="button"
                                         key={indId}
                                         onClick={() => onIndicatorClick?.(indId)}
                                         className={cn(
-                                            "flex items-center justify-between gap-3 p-2 rounded-md border border-dashed bg-card hover:bg-muted/40 transition-colors text-xs",
+                                            "w-full flex items-center justify-between gap-3 p-2 rounded-md border border-dashed bg-card hover:bg-muted/40 transition-colors text-xs text-left",
                                             onIndicatorClick ? "cursor-pointer" : "",
                                         )}
                                         style={{
@@ -267,7 +268,7 @@ export function AggregationTree({
                                                 </span>
                                             )}
                                         </div>
-                                    </div>
+                                    </button>
                                 )
                             })}
                         </div>

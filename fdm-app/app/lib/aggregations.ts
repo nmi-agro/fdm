@@ -1,5 +1,20 @@
 import type { Bln3Score } from "@nmi-agro/fdm-calculator"
 
+export const AGG_IDS: AggregationId[] = [
+    "S_BLN",
+    "S_BBWP",
+    "S_WAT_BLN",
+    "S_NUT_BLN",
+    "S_CLIM_BLN",
+    "S_PROD_BLN",
+    "S_GW_QUANT_BLN",
+    "S_GW_QUAL_BLN",
+    "S_SW_QUAL_BLN",
+    "S_PROD_BIOL_BLN",
+    "S_PROD_CHEM_BLN",
+    "S_PROD_PHYS_BLN",
+]
+
 export type AggregationId =
     | "S_BLN"
     | "S_BBWP"

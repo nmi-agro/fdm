@@ -51,7 +51,7 @@ import {
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
-import { getFieldAggregationScore, type AggregationId } from "~/lib/aggregations"
+import { getFieldAggregationScore, type AggregationId, AGG_IDS } from "~/lib/aggregations"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
@@ -147,21 +147,7 @@ function computeFieldScores(
     fs: FieldBln3Score | undefined,
 ): Record<string, number> {
     const result: Record<string, number> = { avg: -1 }
-    const aggIds: AggregationId[] = [
-        "S_BLN",
-        "S_BBWP",
-        "S_WAT_BLN",
-        "S_NUT_BLN",
-        "S_CLIM_BLN",
-        "S_PROD_BLN",
-        "S_GW_QUANT_BLN",
-        "S_GW_QUAL_BLN",
-        "S_SW_QUAL_BLN",
-        "S_PROD_BIOL_BLN",
-        "S_PROD_CHEM_BLN",
-        "S_PROD_PHYS_BLN",
-    ]
-    for (const aggId of aggIds) {
+    for (const aggId of AGG_IDS) {
         result[aggId] = -1
     }
     if (!fs?.score) return result
@@ -182,7 +168,7 @@ function computeFieldScores(
               )
             : -1
 
-    for (const aggId of aggIds) {
+    for (const aggId of AGG_IDS) {
         const scoreVal = getFieldAggregationScore(fs.score, aggId)
         result[aggId] = scoreVal !== null ? scoreToDisplay(scoreVal) : -1
     }
@@ -439,11 +425,11 @@ function readSessionMeasures(): boolean {
 }
 
 function readSessionMapScore(): string {
-    if (typeof window === "undefined") return "avg"
+    if (typeof window === "undefined") return "S_BLN"
     try {
         return sessionStorage.getItem(SESSION_KEY_MAP_SCORE) ?? "S_BLN"
     } catch {
-        return "avg"
+        return "S_BLN"
     }
 }
 

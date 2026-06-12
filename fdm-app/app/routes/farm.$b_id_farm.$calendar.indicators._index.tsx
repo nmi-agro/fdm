@@ -173,10 +173,20 @@ export default function IndicatorsFarmIndex() {
     }
 
     const indicatorScoreOf = (indId: string) => {
-        const vals = filteredScores
-            .map((s) => s.score?.indicators.find((i) => i.indicator_id === indId)?.score)
-            .filter((v): v is number => v !== undefined && v !== null && !Number.isNaN(v))
-        return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+        let totalScore = 0
+        let totalWeight = 0
+        for (const s of filteredScores) {
+            const scoreVal = s.score?.indicators.find((i) => i.indicator_id === indId)?.score
+            if (scoreVal !== undefined && scoreVal !== null && !Number.isNaN(scoreVal)) {
+                const field = filteredFields.find((f) => f.b_id === s.b_id)
+                const weight = field?.b_area ?? 0
+                if (weight > 0) {
+                    totalScore += scoreVal * weight
+                    totalWeight += weight
+                }
+            }
+        }
+        return totalWeight > 0 ? totalScore / totalWeight : null
     }
 
     return (
