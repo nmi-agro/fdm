@@ -50,20 +50,21 @@ const thumbprintCache = new Map<string, string>()
  * Mirrors the pattern used by fdm-rvo for `RVO_PKIO_PRIVATE_KEY`.
  */
 function resolveFileOrInline(value: string, label: string): string {
-    const looksLikePath =
-        value.startsWith("/") ||
-        value.startsWith("./") ||
-        value.startsWith("../") ||
-        /^[a-zA-Z]:[/\\]/.test(value)
-
-    if (looksLikePath) {
-        if (fs.existsSync(value)) {
-            return fs.readFileSync(value, "utf8")
-        }
-        throw new Error(`Microsoft cert auth: ${label} file not found: ${value}`)
+    // If the value contains PEM headers, it's inline
+    if (value.includes("-----BEGIN")) {
+        let key = value.replace(/\\n/g, "\n").trim()
+        key = key.replace(/^["']|["']$/g, "").trim()
+        key = key.replace(/\\r/g, "")
+        return key
     }
 
-    return value
+    // Otherwise, treat it as a file path
+    if (fs.existsSync(value)) {
+        return fs.readFileSync(value, "utf8").replace(/^\uFEFF/, "").trim()
+    }
+    
+    // If it doesn't exist but has no PEM headers, it's likely a missing file
+    throw new Error(`Microsoft cert auth: ${label} file not found: ${value}`)
 }
 
 // ---------------------------------------------------------------------------
