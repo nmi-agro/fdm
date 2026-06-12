@@ -164,7 +164,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                                 getHarvestabilityFromCatalogue(
                                     cultivation.b_lu_catalogue,
                                 ),
-                                cultivation.b_lu_croprotation
+                                cultivation.b_lu_croprotation ?? ""
                             )
 
                             return getHarvests(

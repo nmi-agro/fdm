@@ -824,8 +824,7 @@ export default function FarmRotationHarvestAddIndex() {
                                                     undefined
                                                 }
                                                 b_lu_harvestable={
-                                                    loaderData.cultivation
-                                                        .b_lu_harvestable
+                                                    loaderData.b_lu_harvestable
                                                 }
                                                 b_lu_start={
                                                     loaderData.b_lu_start

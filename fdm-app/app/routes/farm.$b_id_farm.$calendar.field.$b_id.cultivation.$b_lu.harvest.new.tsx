@@ -250,8 +250,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             const term = formValues.harvests.length === 1 
                 ? getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
                 : getHarvestCapitalizedTerm(cultivation.b_lu_croprotation, true)
+            const verb = formValues.harvests.length === 1 ? "is" : "zijn"
             return redirectWithSuccess("..", {
-                message: `${term} zijn succesvol toegevoegd! 🎉`,
+                message: `${term} ${verb} succesvol toegevoegd! 🎉`,
             })
         }
 
