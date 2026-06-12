@@ -130,7 +130,7 @@ export function TicketStatusSelector({
     const fetcher = useFetcher()
 
     const statusEntry = TICKET_STATUS.find((item) => item.value === status)
-    const statusColor = statusEntry?.color ?? "#777777"
+    const statusColor = statusEntry?.color ?? "#6b7280"
     const statusLabel = statusEntry?.label ?? status
     const StatusIcon = statusEntry?.icon ?? CircleDot
     const allowedStatusTransitions =

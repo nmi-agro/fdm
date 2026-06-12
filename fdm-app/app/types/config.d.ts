@@ -64,7 +64,7 @@ export interface ServerConfig {
             helpdesk_sender_name?: string
         }
     }
-    helpdesk?: {
+    helpdesk: {
         enableTicketTriage: boolean
     }
 }
