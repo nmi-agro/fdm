@@ -70,7 +70,7 @@ function isNameCollisionError(err: unknown) {
     const MESSAGE = "Another tag with name already exists"
     return (
         (err as Error)?.message === MESSAGE ||
-        ((err as Error)?.cause as Error).message === MESSAGE
+        ((err as Error)?.cause as Error)?.message === MESSAGE
     )
 }
 const nameCollisionMessageNL = "Er bestaat nog een tag met dezelfde naam."

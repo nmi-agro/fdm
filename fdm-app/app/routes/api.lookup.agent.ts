@@ -1,5 +1,5 @@
 import { type Agent, getAgents } from "@nmi-agro/fdm-helpdesk"
-import type { LoaderFunctionArgs } from "react-router-dom"
+import { data, type LoaderFunctionArgs } from "react-router-dom"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -27,7 +27,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
         const usePrincipalId = url.searchParams.has("principal_id")
 
         if (!usePrincipalId) {
-            throw new Error("You must request ?principal_id")
+            return data("You must request ?principal_id", {
+                status: 400,
+                statusText: "You must request ?principal_id",
+            })
         }
 
         if (!identifier) {

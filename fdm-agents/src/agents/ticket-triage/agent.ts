@@ -1,5 +1,5 @@
 import { createAgent, type ReactAgent } from "langchain"
-import z from "zod/v3"
+import z from "zod"
 import { createDefaultModel } from "../../models/default"
 import { runOneShotAgent } from "../../runners/one-shot"
 
@@ -114,6 +114,8 @@ export function createTicketTriageAgent(apiKey?: string, modelName?: string) {
 export async function generateTicketSubjectAndPriority(
     body: string,
     geminiApiKey?: string,
+    posthog?: { client: any; distinctId: string },
+    modelName?: string,
 ): Promise<SubjectAndPriority> {
     if (body.trim().length === 0) {
         return {
@@ -123,11 +125,13 @@ export async function generateTicketSubjectAndPriority(
                 "The message was empty, so the agents can probably ignore it.",
         }
     }
-    const agent = createTicketTriageAgent(geminiApiKey, "gemini-3.1-flash-lite")
+    const agent = createTicketTriageAgent(geminiApiKey, modelName)
     // TODO: Use a dynamicSystemPromptMiddleware when tool calls are introduced
     const result = await runOneShotAgent(
         agent,
         `${SUBJECT_AND_PRIORITY_PROMPT}${body}`,
+        undefined,
+        posthog,
     )
     if (typeof result.structuredResponse === "undefined") {
         throw new Error("No structured response was generated")

@@ -99,6 +99,8 @@ describe("generateTicketSubjectAndPriority", () => {
         expect(runOneShotAgent).toHaveBeenCalledWith(
             expect.anything(),
             expect.stringContaining(SUBJECT_AND_PRIORITY_PROMPT),
+            undefined,
+            undefined,
         )
     })
 
@@ -109,6 +111,8 @@ describe("generateTicketSubjectAndPriority", () => {
         expect(runOneShotAgent).toHaveBeenCalledWith(
             expect.anything(),
             expect.stringContaining(body),
+            undefined,
+            undefined,
         )
     })
 

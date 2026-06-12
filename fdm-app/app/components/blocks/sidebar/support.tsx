@@ -116,14 +116,14 @@ export function SidebarSupport({
                                             <span className="relative">
                                                 Ondersteuning
                                                 <span className="sr-only">
-                                                    , Er is wat nieuwe berichten
+                                                    , Er zijn nieuwe berichten
                                                     te bekijken.
                                                 </span>
                                                 <div className="absolute size-2 -right-2 -top-1 rounded-full bg-destructive" />
                                             </span>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            Er is wat nieuwe berichten te
+                                            Er zijn nieuwe berichten te
                                             bekijken.
                                         </TooltipContent>
                                     </Tooltip>

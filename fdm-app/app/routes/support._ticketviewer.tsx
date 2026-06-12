@@ -7,7 +7,7 @@ import {
     type TicketFilters,
     type TicketSorting,
 } from "@nmi-agro/fdm-helpdesk"
-import { data, redirect, useLoaderData } from "react-router"
+import { redirect, useLoaderData } from "react-router"
 import { TicketFilterSchema } from "~/components/blocks/helpdesk/ticket-filter-schema"
 import {
     TICKET_VIEWER_PAGE_SIZE,
@@ -124,18 +124,13 @@ export async function loader({ request }: Route.LoaderArgs) {
         let pageOffset: number | undefined
         let pageLimit: number | undefined
 
-        try {
-            const pageOffsetStr = url.searchParams.get("pageOffset")
-            pageOffset = pageOffsetStr
-                ? Number.parseInt(pageOffsetStr, 10)
-                : undefined
-            const pageLimitStr = url.searchParams.get("pageLimit")
-            pageLimit = pageLimitStr
-                ? Number.parseInt(pageLimitStr, 10)
-                : undefined
-        } catch (_) {
-            throw data(null, { status: 400, statusText: "Bad page input" })
-        }
+        const pageOffsetStr = url.searchParams.get("pageOffset")
+        pageOffset = pageOffsetStr
+            ? Number.parseInt(pageOffsetStr, 10)
+            : undefined
+        const pageLimitStr = url.searchParams.get("pageLimit")
+        pageLimit = pageLimitStr ? Number.parseInt(pageLimitStr, 10) : undefined
+        if (!Number.isFinite(pageLimit)) pageLimit = TICKET_VIEWER_PAGE_SIZE
 
         if (typeof pageOffset === "number" && pageOffset < 0) {
             const newSearchParams = new URLSearchParams(url.searchParams)

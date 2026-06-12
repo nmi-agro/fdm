@@ -51,6 +51,7 @@ export function Ticket({
     const submit = useSubmit()
 
     const assigneeSelectId = useId()
+    const prioritySelectId = useId()
 
     const statusEntry = TICKET_STATUS.find(
         (item) => item.value === ticket.status,
@@ -136,12 +137,13 @@ export function Ticket({
                                 principalLookup={principalLookup}
                             />
                             <label
-                                htmlFor={assigneeSelectId}
+                                htmlFor={prioritySelectId}
                                 className="ms-6 text-sm text-muted-foreground"
                             >
                                 Prioriteit:
                             </label>
                             <TicketPrioritySelector
+                                triggerId={prioritySelectId}
                                 canModify={isAgent}
                                 priority={ticket.priority as PriorityString}
                             />
@@ -204,7 +206,7 @@ export function Ticket({
                     >
                         <p
                             className="whitespace-pre-wrap text-sm"
-                            // biome-ignore lint/security/noDangerouslySetInnerHtml: message bodies are sanitized server-side before being written to the database
+                            // biome-ignore lint/security/noDangerouslySetInnerHtml: message bodies are sanitized server-side via fdm-helpdesk's `escapeHTML` before being written to the database
                             dangerouslySetInnerHTML={{ __html: msg.body }}
                         />
                     </Message>

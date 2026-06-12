@@ -31,9 +31,7 @@ export const TICKET_PRIORITY = [
 ]
 
 /**
- * A dropdown where an agent can select a new ticket status
- *
- * The options are filtered based on the allowed status transitions from the current state.
+ * A dropdown where an agent can select a new ticket priority.
  */
 export function TicketPrioritySelector({
     triggerId,

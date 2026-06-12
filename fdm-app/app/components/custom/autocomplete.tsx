@@ -362,7 +362,7 @@ export function AutoComplete<
                 <input
                     type="hidden"
                     name={name}
-                    value={selectedValue}
+                    value={selectedValue ?? ""}
                     readOnly
                 />
             )}
