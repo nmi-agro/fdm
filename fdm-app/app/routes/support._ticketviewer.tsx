@@ -160,20 +160,6 @@ export async function loader({ request }: Route.LoaderArgs) {
                 ? "unassigned"
                 : null
 
-        const sorting = (url.searchParams.get("sorting") ??
-            "created") as TicketSorting
-        if (
-            !(
-                [
-                    "created",
-                    "priority",
-                    "text_relevance",
-                ] satisfies TicketSorting[]
-            ).includes(sorting)
-        ) {
-            throw data(null, { status: 400, statusText: "Bad sorting input" })
-        }
-
         const session = await getSession(request)
 
         const helpdeskReadPermission = await checkHelpdeskPermission(
@@ -197,6 +183,18 @@ export async function loader({ request }: Route.LoaderArgs) {
                   : { requesterIds: [session.principal_id] }
 
         const filters: TicketFilters = mergeFilters(defaultFilters, userFilters)
+
+        const defaultSorting =
+            filters.text && filters.text.length > 0
+                ? "text_relevance"
+                : "created"
+        const searchParamSorting = (url.searchParams.get("sorting") ??
+            defaultSorting) as TicketSorting
+        const sorting = (
+            ["created", "priority", "text_relevance"] satisfies TicketSorting[]
+        ).includes(searchParamSorting)
+            ? searchParamSorting
+            : defaultSorting
 
         const totalTicketCount = await getTicketCount(
             fdm,

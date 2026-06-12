@@ -389,7 +389,7 @@ async function selectTickets(
     WHEN ${schema.tickets.priority} = 'normal' THEN -1
     WHEN ${schema.tickets.priority} = 'high' THEN 1
     WHEN ${schema.tickets.priority} = 'urgent' THEN 2
-    ELSE 0`
+    ELSE 0 END`
             : undefined
     const textRelevanceQuery =
         sorting === "text_relevance" && filters.text

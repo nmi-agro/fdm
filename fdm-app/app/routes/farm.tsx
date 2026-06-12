@@ -85,8 +85,6 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         ])
         const hasNotification = numUnread > 0 || numUnassigned > 0
 
-        console.log(hasNotification)
-
         // Return user information from loader
         return {
             farm: farm,

@@ -1,4 +1,4 @@
-import type { TicketFilters } from "@nmi-agro/fdm-helpdesk"
+import type { TicketFilters, TicketSorting } from "@nmi-agro/fdm-helpdesk"
 import z from "zod"
 
 const BooleanSchema = z.coerce
@@ -39,4 +39,12 @@ export const TicketFilterSchema = z.object({
 })
 
 //@ts-expect-error this is to confirm that the schema type matches TicketFilters
-const _ = {} as z.infer<typeof TicketFilterSchema> satisfies TicketFilters
+const _TicketFilterSchema = {} as z.infer<
+    typeof TicketFilterSchema
+> satisfies TicketFilters
+
+export const TicketSortingSchema = z.enum([
+    "created",
+    "priority",
+    "text_relevance",
+] satisfies TicketSorting[])

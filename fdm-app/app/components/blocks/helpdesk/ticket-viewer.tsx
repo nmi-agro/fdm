@@ -1,6 +1,11 @@
-import type { TagSummary, Ticket, TicketFilters } from "@nmi-agro/fdm-helpdesk"
+import type {
+    TagSummary,
+    Ticket,
+    TicketFilters,
+    TicketSorting,
+} from "@nmi-agro/fdm-helpdesk"
 import throttle from "lodash.throttle"
-import { ChevronLeft, Filter, Plus, X } from "lucide-react"
+import { ArrowUpDown, ChevronLeft, Filter, Plus, X } from "lucide-react"
 import { Dialog } from "radix-ui"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -14,6 +19,13 @@ import { cn } from "@/app/lib/utils"
 import { getPageSearch, Paginator } from "~/components/custom/paginator"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 import {
     Empty,
     EmptyContent,
@@ -31,7 +43,8 @@ import { useIsXl } from "~/hooks/use-is-xl"
 import { useCurrentHelpdeskPage } from "./navigation"
 import { TicketSearch } from "./search"
 import { TicketCard } from "./ticket-card"
-import { TicketFilterSchema } from "./ticket-filter-schema"
+import { TicketFilterSchema, TicketSortingSchema } from "./ticket-filter-schema"
+import { TICKET_PRIORITY } from "./ticket-priority"
 import type { HelpdeskUser } from "./types"
 
 export const TICKET_VIEWER_PAGE_SIZE = 20
@@ -40,7 +53,7 @@ export const TICKET_VIEWER_PAGE_SIZE = 20
 function countActiveFilters(filters: TicketFilters): number {
     const { pageOffset: _o, pageLimit: _l, ...userFilters } = filters
     return Object.entries(userFilters).filter(([k, v]) => {
-        if (k === "maxPriority") return false
+        if (k === "maxPriority" || k === "text") return false
         if (v === undefined || v === null || v === "") return false
         if (Array.isArray(v)) return v.length > 0
         return true
@@ -82,8 +95,26 @@ function TicketList({
         }
     })
 
+    // For controlling the sorting
+    const [sorting, setSorting] = useState<TicketSorting>(() => {
+        const defaultSorting =
+            filters.text && filters.text.length > 0
+                ? "text_relevance"
+                : "created"
+        try {
+            const initialSorting = searchParams.get("sorting") ?? defaultSorting
+            return TicketSortingSchema.parse(initialSorting)
+        } catch (err) {
+            console.error(err)
+            return defaultSorting
+        }
+    })
+
     // For setting search params in a debounced manner
-    const searchParamsToNavigateTo = useRef<TicketFilters>({})
+    const searchParamsToNavigateTo = useRef({
+        filters: {} as TicketFilters,
+        sorting: "created" as TicketSorting,
+    })
 
     const navigateWithFilters = useMemo(
         () =>
@@ -92,7 +123,13 @@ function TicketList({
                     setSearchParams((searchParams) => {
                         searchParams.set(
                             "filters",
-                            JSON.stringify(searchParamsToNavigateTo.current),
+                            JSON.stringify(
+                                searchParamsToNavigateTo.current.filters,
+                            ),
+                        )
+                        searchParams.set(
+                            "sorting",
+                            searchParamsToNavigateTo.current.sorting,
                         )
                         return searchParams
                     })
@@ -105,13 +142,19 @@ function TicketList({
 
     function handleNewFilters(filters: TicketFilters) {
         setFilters(filters)
-        searchParamsToNavigateTo.current = filters
+        searchParamsToNavigateTo.current.filters = filters
+        navigateWithFilters()
+    }
+
+    function handleNewSorting(sorting: TicketSorting) {
+        setSorting(sorting)
+        searchParamsToNavigateTo.current.sorting = sorting
         navigateWithFilters()
     }
 
     return (
         <nav className="flex flex-col gap-2 h-full box-border">
-            <div className="flex flex-row items-center p-1">
+            <div className="flex flex-row items-center p-1 gap-1">
                 <Input
                     value={filters.text ?? ""}
                     placeholder="Zoeken..."
@@ -128,10 +171,13 @@ function TicketList({
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
+                            type="button"
+                            size="icon"
                             variant="ghost"
-                            className="relative block ml-auto"
+                            title="Filters"
+                            className="relative block ml-auto has-[>svg]:p-2 size-auto"
                         >
-                            <Filter />
+                            <Filter className="mx-auto" />
                             {countActiveFilters(filters) > 0 && (
                                 <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center p-0 text-[10px]">
                                     {countActiveFilters(filters)}
@@ -151,6 +197,36 @@ function TicketList({
                         />
                     </PopoverContent>
                 </Popover>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            title="Sorteren"
+                            className="relative block ml-auto has-[>svg]:p-2 size-auto"
+                        >
+                            <ArrowUpDown className="mx-auto" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="p-2">
+                        <DropdownMenuLabel className="text-sm font-semibold mb-3">
+                            Sorteren
+                        </DropdownMenuLabel>
+                        <DropdownMenuCheckboxItem
+                            checked={sorting === "created"}
+                            onClick={() => handleNewSorting("created")}
+                        >
+                            Aangemaakt op
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={sorting === "priority"}
+                            onClick={() => handleNewSorting("priority")}
+                        >
+                            Prioriteit
+                        </DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             <div className="overflow-auto grow">
                 {tickets.length === 0 ? (
@@ -191,6 +267,19 @@ function TicketList({
                             }
                             href={`${toPrefix}/${ticket.ticket_id}${getPageSearch(location.search, TICKET_VIEWER_PAGE_SIZE, 0)}`}
                             showAssignees={isAgentView}
+                            badge={
+                                sorting === "priority" ? (
+                                    <Badge
+                                        variant="outline"
+                                        className="text-muted-foreground"
+                                    >
+                                        {TICKET_PRIORITY.find(
+                                            (item) =>
+                                                item.value === ticket.priority,
+                                        )?.label ?? ticket.priority}
+                                    </Badge>
+                                ) : null
+                            }
                         />
                     ))
                 )}

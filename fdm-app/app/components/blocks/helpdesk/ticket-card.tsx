@@ -1,6 +1,7 @@
 import type { Ticket } from "@nmi-agro/fdm-helpdesk"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
+import type { ReactNode } from "react"
 import { NavLink, useLocation } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { TICKET_STATUS, TicketStatusDot } from "./ticket-status"
@@ -11,11 +12,13 @@ export function TicketCard({
     principal,
     href,
     showAssignees = false,
+    badge = null,
 }: {
     ticket: Ticket
     principal: HelpdeskUser | undefined
     href: string
     showAssignees?: boolean
+    badge?: ReactNode
 }) {
     const { pathname, search } = useLocation()
     const domainUrl = `${pathname}${search}`
@@ -85,6 +88,7 @@ export function TicketCard({
                             <span>Toegewezen: {assigneeText}</span>
                         </>
                     )}
+                    <span className="ms-auto">{badge}</span>
                 </div>
             </div>
         </NavLink>
