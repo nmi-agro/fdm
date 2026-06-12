@@ -3,17 +3,20 @@ import { NavLink } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { HarvestsList } from "~/components/blocks/harvest/list"
 import type { HarvestableType } from "~/components/blocks/harvest/types"
+import { getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 
 export function CultivationHarvestsCard({
     harvests,
     b_lu_harvestable,
+    b_lu_croprotation,
     harvestParameters,
     editable = true,
 }: {
     harvests: Harvest[]
     b_lu_harvestable: HarvestableType
+    b_lu_croprotation?: string
     harvestParameters: HarvestParameters
     editable?: boolean
 }) {
@@ -30,7 +33,7 @@ export function CultivationHarvestsCard({
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl font-semibold tracking-tight text-gray-900">
-                    {b_lu_harvestable === "multiple" ? "Oogsten" : "Oogst"}
+                    {getHarvestCapitalizedTerm(b_lu_croprotation, b_lu_harvestable === "multiple")}
                 </CardTitle>
                 <div className="flex justify-between">
                     <Button
@@ -49,7 +52,7 @@ export function CultivationHarvestsCard({
                                 !canAddHarvest ? "cursor-not-allowed" : ""
                             }
                         >
-                            Oogst toevoegen
+                            {getHarvestCapitalizedTerm(b_lu_croprotation)} toevoegen
                         </NavLink>
                     </Button>
                 </div>
@@ -58,6 +61,7 @@ export function CultivationHarvestsCard({
                 <HarvestsList
                     harvests={harvests}
                     b_lu_harvestable={b_lu_harvestable}
+                    b_lu_croprotation={b_lu_croprotation}
                     harvestParameters={harvestParameters}
                 />
             </CardContent>

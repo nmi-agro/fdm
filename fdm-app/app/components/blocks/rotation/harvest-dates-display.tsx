@@ -6,6 +6,7 @@ import { Link } from "react-router-dom"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { Button } from "~/components/ui/button"
 import type { FieldRow, RotationExtended } from "./columns"
+import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 
 type HarvestDatesDisplayProps = {
     row: Row<RotationExtended>
@@ -148,7 +149,7 @@ export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({
                                 key={record.id}
                                 record={record}
                             >
-                                {`${idx + 1}e ${row.original.b_lu_croprotation === "grass" ? "snede" : "oogst"}:`}
+                                {`${idx + 1}e ${getHarvestTerm(row.original.b_lu_croprotation)}:`}
                                 <br />
                                 {formatDateRange(record.dates)}
                             </HarvestDatesDisplayButton>

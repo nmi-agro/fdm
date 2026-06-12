@@ -1,12 +1,12 @@
 import {
     addHarvest,
+    type Cultivation,
     getCultivations,
     getCultivationsFromCatalogue,
     getDefaultsForHarvestParameters,
     getFarms,
     getFields,
     getHarvests,
-    type HarvestParameters,
     getParametersForHarvestCat,
     removeHarvest,
 } from "@nmi-agro/fdm-core"
@@ -32,8 +32,11 @@ import {
 import { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { BatchHarvestForm } from "~/components/blocks/harvest/batch-form"
 import { HarvestForm } from "~/components/blocks/harvest/form"
-import { FormSchema } from "~/components/blocks/harvest/schema"
+import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
+import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
+import { getEffectiveHarvestable, getHarvestTerm, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -73,11 +76,11 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { modifySearchParams } from "~/lib/url-utils"
-import { getHarvestParameterLabel } from "../components/blocks/harvest/parameters"
 
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
     return [
-        { title: `Oogst toevoegen | ${clientConfig.name}` },
+        { title: `${term} toevoegen | ${clientConfig.name}` },
         {
             name: "description",
             content: "",
@@ -342,7 +345,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             cultivation: targetCultivation,
             cultivationName: targetCultivation?.b_lu_name ?? "onbekend gewas",
             cultivationIds: cultivationIds,
-            b_lu_harvestable: targetCultivation.b_lu_harvestable ?? "once",
+            b_lu_harvestable: getEffectiveHarvestable(targetCultivation.b_lu_harvestable ?? "once", targetCultivation.b_lu_croprotation),
             harvestApplication: harvestApplication,
             harvestableAnalysis: harvestableAnalysis,
             harvestParameters: harvestParameters,
@@ -388,6 +391,11 @@ export default function FarmRotationHarvestAddIndex() {
 
     const isSelected = (fieldId: string) => selectedFieldIds.includes(fieldId)
 
+    const getTermSingular = getHarvestTerm(loaderData.cultivation.b_lu_croprotation)
+    const getTermPlural = getHarvestTerm(loaderData.cultivation.b_lu_croprotation, true)
+    const getCapitalizedTerm = getHarvestCapitalizedTerm(loaderData.cultivation.b_lu_croprotation)
+    const getCapitalizedTermPlural = getHarvestCapitalizedTerm(loaderData.cultivation.b_lu_croprotation, true)
+
     const toggleSelection = (fieldId: string) => {
         setSelectedFieldIds((prev) =>
             isSelected(fieldId)
@@ -401,6 +409,16 @@ export default function FarmRotationHarvestAddIndex() {
     )
 
     const isHarvestUpdate = loaderData.harvestApplication.b_lu_harvest_date
+    const canBatchAdd =
+        !isHarvestUpdate && loaderData.b_lu_harvestable === "multiple"
+    const [isBatchAdd, setIsBatchAdd] = useState(false)
+
+    // Switch back to the single harvest form if the conditions for batch harvest no longer hold
+    useEffect(() => {
+        if (!canBatchAdd && isBatchAdd) {
+            setIsBatchAdd(false)
+        }
+    }, [canBatchAdd, isBatchAdd])
 
     function handleSelectionDialogOpenChange(open: boolean) {
         if (!open) {
@@ -482,20 +500,20 @@ export default function FarmRotationHarvestAddIndex() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem className="hidden md:block">
-                    {isHarvestUpdate ? "Oogst bijwerken" : "Oogst toevoegen"}
+                    {isHarvestUpdate ? `${getCapitalizedTerm} bijwerken` : `${getCapitalizedTerm} toevoegen`}
                 </BreadcrumbItem>
             </Header>
             <main>
                 <FarmTitle
                     title={
                         isHarvestUpdate
-                            ? `Oogst bijwerken in ${loaderData.cultivationName}`
-                            : `Oogst toevoegen aan ${loaderData.cultivationName}`
+                            ? `${getCapitalizedTerm} bijwerken in ${loaderData.cultivationName}`
+                            : `${getCapitalizedTerm} toevoegen aan ${loaderData.cultivationName}`
                     }
                     description={
                         isHarvestUpdate
-                            ? "Kies 1 of meerdere percelen om hun oogst bij te werken of te verwijderen"
-                            : "Kies 1 of meerdere percelen om een oogst toe te voegen"
+                            ? `Kies 1 of meerdere percelen om hun ${getTermPlural} bij te werken of te verwijderen`
+                            : `Kies 1 of meerdere percelen om een ${getTermSingular} toe te voegen`
                     }
                 />
                 <div className="relative">
@@ -503,7 +521,7 @@ export default function FarmRotationHarvestAddIndex() {
                         <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                             <div className="flex items-center text-sm text-muted-foreground">
                                 <Spinner className="mr-2" />
-                                <span>Oogst wordt toegevoegd...</span>
+                                <span>{getCapitalizedTerm} wordt toegevoegd...</span>
                             </div>
                         </div>
                     )}
@@ -515,7 +533,7 @@ export default function FarmRotationHarvestAddIndex() {
                                         Geselecteerde percelen
                                     </CardTitle>
                                     <CardDescription>
-                                        De oogst wordt toegepast op de volgende
+                                        De {getTermSingular} wordt toegepast op de volgende
                                         percelen.
                                     </CardDescription>
                                 </CardHeader>
@@ -682,23 +700,26 @@ export default function FarmRotationHarvestAddIndex() {
                                 </CardFooter>
                             </Card>
                             <Card className="flex-1">
-                                <CardHeader>
-                                    <CardTitle>
-                                        {isHarvestUpdate
-                                            ? "Oogst bijwerken"
-                                            : "Oogst toevoegen"}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {loaderData.fieldAmount === 0
-                                            ? "Selecteer eerst een of meerdere percelen."
-                                            : loaderData.fieldAmount === 1
-                                              ? isHarvestUpdate
-                                                  ? "Werk oogst bij van het geselecteerde perceel."
-                                                  : "Voeg een nieuwe oogst toe aan de geselecteerde perceel."
-                                              : isHarvestUpdate
-                                                ? "Werk oogst bij van de geselecteerde percelen."
-                                                : `Voeg een nieuwe oogst toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
-                                    </CardDescription>
+                                <CardHeader className="flex flex-row items-start">
+                                    <div className="grow">
+                                        <CardTitle>
+                                            {isBatchAdd ? getCapitalizedTermPlural : getCapitalizedTerm}{" "}
+                                            {isHarvestUpdate
+                                                ? "bijwerken"
+                                                : "toevoegen"}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {loaderData.fieldAmount === 0
+                                                ? "Selecteer eerst een of meerdere percelen."
+                                                : loaderData.fieldAmount === 1
+                                                  ? isHarvestUpdate
+                                                      ? `Werk de ${isBatchAdd ? getTermPlural : getTermSingular} bij van het geselecteerde perceel.`
+                                                      : `Voeg ${isBatchAdd ? `nieuwe ${getTermPlural}` : `een nieuwe ${getTermSingular}`} toe aan het geselecteerde perceel.`
+                                                  : isHarvestUpdate
+                                                    ? `Werk de ${isBatchAdd ? getTermPlural : getTermSingular} bij van de geselecteerde percelen.`
+                                                    : `Voeg ${isBatchAdd ? `nieuwe ${getTermPlural}` : `een nieuwe ${getTermSingular}`} toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
+                                        </CardDescription>
+                                    </div>
                                 </CardHeader>
                                 <CardContent>
                                     {loaderData.b_lu_harvestable === "none" ? (
@@ -708,74 +729,122 @@ export default function FarmRotationHarvestAddIndex() {
                                             </p>
                                         </div>
                                     ) : loaderData.fieldAmount > 0 ? (
-                                        <HarvestForm
-                                            key={selectedFieldIds.join(",")}
-                                            harvestParameters={
-                                                loaderData.harvestParameters
-                                            }
-                                            b_lu_harvest_date={
-                                                loaderData.harvestApplication
-                                                    .b_lu_harvest_date
-                                            }
-                                            b_date_harvest_default={
-                                                loaderData.b_date_harvest_default
-                                            }
-                                            b_lu_yield={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_yield ?? undefined
-                                            }
-                                            b_lu_yield_fresh={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_yield_fresh ?? undefined
-                                            }
-                                            b_lu_yield_bruto={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_yield_bruto ?? undefined
-                                            }
-                                            b_lu_tarra={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_tarra ?? undefined
-                                            }
-                                            b_lu_uww={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_uww ?? undefined
-                                            }
-                                            b_lu_moist={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_moist ?? undefined
-                                            }
-                                            b_lu_dm={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_dm ?? undefined
-                                            }
-                                            b_lu_cp={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_cp ?? undefined
-                                            }
-                                            b_lu_n_harvestable={
-                                                loaderData.harvestableAnalysis
-                                                    .b_lu_n_harvestable ?? undefined
-                                            }
-                                            b_lu_harvestable={
-                                                loaderData.cultivation
-                                                    .b_lu_harvestable
-                                            }
-                                            b_lu_start={loaderData.b_lu_start}
-                                            b_lu_end={loaderData.b_lu_end}
-                                            action={modifySearchParams(
-                                                `${location.pathname}${location.search}`,
-                                                (searchParams) =>
-                                                    searchParams.set(
-                                                        "fieldIds",
-                                                        selectedFieldIds.join(
-                                                            ",",
+                                        isBatchAdd ? (
+                                            <BatchHarvestForm
+                                                calendar={loaderData.calendar}
+                                                b_lu_croprotation={
+                                                    loaderData.cultivation
+                                                        .b_lu_croprotation
+                                                }
+                                                onBack={() => setIsBatchAdd(false)}
+                                                b_lu_start={
+                                                    loaderData.b_lu_start ??
+                                                    null
+                                                }
+                                                b_lu_end={
+                                                    loaderData.b_lu_end ?? null
+                                                }
+                                                harvestParameters={
+                                                    loaderData.harvestParameters
+                                                }
+                                                b_date_harvest_default={
+                                                    loaderData.b_date_harvest_default
+                                                }
+                                                defaultHarvest={{
+                                                    ...loaderData.harvestableAnalysis,
+                                                }}
+                                            />
+                                        ) : (
+                                            <HarvestForm
+                                                key={selectedFieldIds.join(",")}
+                                                allowBatch={canBatchAdd}
+                                                onBatchClick={() => setIsBatchAdd(true)}
+                                                b_lu_croprotation={
+                                                    loaderData.cultivation
+                                                        .b_lu_croprotation ??
+                                                    undefined
+                                                }
+                                                harvestParameters={
+                                                    loaderData.harvestParameters
+                                                }
+                                                b_lu_harvest_date={
+                                                    loaderData
+                                                        .harvestApplication
+                                                        .b_lu_harvest_date
+                                                }
+                                                b_date_harvest_default={
+                                                    loaderData.b_date_harvest_default
+                                                }
+                                                b_lu_yield={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_yield ?? undefined
+                                                }
+                                                b_lu_yield_fresh={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_yield_fresh ??
+                                                    undefined
+                                                }
+                                                b_lu_yield_bruto={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_yield_bruto ??
+                                                    undefined
+                                                }
+                                                b_lu_tarra={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_tarra ?? undefined
+                                                }
+                                                b_lu_uww={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_uww ?? undefined
+                                                }
+                                                b_lu_moist={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_moist ?? undefined
+                                                }
+                                                b_lu_dm={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_dm ?? undefined
+                                                }
+                                                b_lu_cp={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_cp ?? undefined
+                                                }
+                                                b_lu_n_harvestable={
+                                                    loaderData
+                                                        .harvestableAnalysis
+                                                        .b_lu_n_harvestable ??
+                                                    undefined
+                                                }
+                                                b_lu_harvestable={
+                                                    loaderData.b_lu_harvestable
+                                                }
+                                                b_lu_start={
+                                                    loaderData.b_lu_start
+                                                }
+                                                b_lu_end={loaderData.b_lu_end}
+                                                action={modifySearchParams(
+                                                    `${location.pathname}${location.search}`,
+                                                    (searchParams) =>
+                                                        searchParams.set(
+                                                            "fieldIds",
+                                                            selectedFieldIds.join(
+                                                                ",",
+                                                            ),
                                                         ),
-                                                    ),
-                                            )}
-                                            handleConfirmation={
-                                                handleConfirmation
-                                            }
-                                        />
+                                                )}
+                                                handleConfirmation={
+                                                    handleConfirmation
+                                                }
+                                            />
+                                        )
                                     ) : (
                                         <div className="flex h-full min-h-60 items-center justify-center rounded-md border border-dashed">
                                             <p className="text-sm text-muted-foreground">
@@ -801,12 +870,12 @@ export default function FarmRotationHarvestAddIndex() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>
-                                    Bestaande oogst overschrijven?
+                                    Bestaande {getTermSingular} overschrijven?
                                 </DialogTitle>
                                 <DialogDescription>
-                                    Er is al een oogst geregistreerd voor één of
+                                    Er is al een {getTermSingular} geregistreerd voor één of
                                     meerdere van de geselecteerde percelen. Als
-                                    u doorgaat, worden de opgeslagen oogsten
+                                    u doorgaat, worden de opgeslagen {getTermPlural}
                                     overschreven.
                                 </DialogDescription>
                             </DialogHeader>
@@ -831,6 +900,10 @@ export default function FarmRotationHarvestAddIndex() {
     )
 }
 
+const ActionSchema = z.discriminatedUnion("intent", [
+    FormSchema.extend({ intent: z.literal("single_harvest") }),
+    BatchFormSchema.extend({ intent: z.literal("batch_harvest") }),
+])
 export async function action({ request, params }: ActionFunctionArgs) {
     try {
         const { b_id_farm, calendar = "all" } = params
@@ -840,6 +913,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const session = await getSession(request)
         const url = new URL(request.url)
+        const timeframe = getTimeframe(params)
+
         const fieldIds =
             url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
         const cultivationIds =
@@ -873,9 +948,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             return dataWithError(null, "Gewas niet gevonden.")
         }
 
-        const b_lu_harvestable = targetCultivation.b_lu_harvestable
+        const effectiveHarvestable = getEffectiveHarvestable(targetCultivation.b_lu_harvestable ?? "once", targetCultivation.b_lu_croprotation)
 
-        if (b_lu_harvestable === "none") {
+        if (effectiveHarvestable === "none") {
             return dataWithError(null, "Dit gewas is niet oogstbaar.")
         }
 
@@ -883,12 +958,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
             ? `/farm/create/${b_id_farm}/${calendar}/rotation`
             : `/farm/${b_id_farm}/${calendar}/rotation`
 
+        const termCapitalizedSingular = getHarvestCapitalizedTerm(targetCultivation.b_lu_croprotation)
+        const termCapitalizedPlural = getHarvestCapitalizedTerm(targetCultivation.b_lu_croprotation, true)
+
         if (request.method === "DELETE") {
             for (const fieldId of fieldIds) {
                 const cultivationsForField = await getCultivations(
                     fdm,
                     session.principal_id,
                     fieldId,
+                    timeframe,
                 )
 
                 const targetCultivationInstance = cultivationsForField.find(
@@ -921,126 +1000,225 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
 
             return redirectWithSuccess(redirectURL, {
-                message: `Oogst succesvol verwijderd van ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+                message: `${termCapitalizedSingular} succesvol verwijderd van ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
             })
         }
 
         const formValues = await extractFormValuesFromRequest(
             request,
-            FormSchema,
+            ActionSchema,
         )
-        if (!formValues.b_lu_harvest_date) {
-            const errors = [
-                {
-                    path: "b_lu_harvest_date",
-                    message: "Selecteer een oogstdatum",
-                },
-            ]
 
-            throw new Error(JSON.stringify(errors))
-        }
-
-        for (const fieldId of fieldIds) {
-            const cultivationsForField = await getCultivations(
+        const firstTargetCultivation = (
+            await getCultivations(
                 fdm,
                 session.principal_id,
-                fieldId,
+                fieldIds[0],
+                timeframe,
+            )
+        ).find((c) => c.b_lu_catalogue === cultivationIds[0])
+
+        if (!firstTargetCultivation) {
+            return dataWithError(
+                null,
+                `Gewas niet gevonden voor perceel ${fieldIds[0]}.`,
+            )
+        }
+
+        const firstEffectiveHarvestable = getEffectiveHarvestable(firstTargetCultivation.b_lu_harvestable ?? "once", firstTargetCultivation.b_lu_croprotation)
+
+        // Batch harvest only works when the effective harvestable type allows it
+        if (
+            formValues.intent === "batch_harvest" &&
+            firstEffectiveHarvestable !== "multiple"
+        ) {
+            return dataWithError(
+                {
+                    warning: `Je kunt bij ${firstTargetCultivation.b_lu_catalogue} geen sneden in batches toevoegen. Alleen gras is toegestaan.`,
+                },
+                `Je kunt bij ${firstTargetCultivation.b_lu_name} geen sneden in batches toevoegen. Alleen gras is toegestaan.`,
+            )
+        }
+
+        // Batch harvest must not add multiple harvests to a cultivation that can only be harvested once
+        if (
+            formValues.intent === "batch_harvest" &&
+            formValues.harvests.length > 1 &&
+            firstEffectiveHarvestable !== "multiple"
+        ) {
+            return dataWithWarning(
+                null,
+                "Dit gewas kan niet meer dan één keer geoogst worden.",
+            )
+        }
+
+        if (formValues.intent === "batch_harvest") {
+            const errors = formValues.harvests.map((row) =>
+                validateRow(firstTargetCultivation, row),
             )
 
-            const targetCultivationInstance = cultivationsForField.find(
-                (c) => c.b_lu_catalogue === cultivationIds[0],
-            )
-
-            if (!targetCultivationInstance) {
-                return dataWithError(
-                    null,
-                    `Gewas niet gevonden voor perceel ${fieldId}.`,
-                )
-            }
-
-            const b_lu = targetCultivationInstance.b_lu
-
-            // Get required harvest parameters for the cultivation's harvest category
-            const requiredHarvestParameters = getParametersForHarvestCat(
-                targetCultivationInstance.b_lu_harvestcat,
-            )
-
-            // Check if all required parameters are present
-            const missingParameters: HarvestParameters[number][] = []
-            for (const param of requiredHarvestParameters) {
-                if (
-                    (formValues as Record<string, any>)[param] === undefined ||
-                    (formValues as Record<string, any>)[param] === null
-                ) {
-                    missingParameters.push(param)
-                }
-            }
-            const missingParameterLabels = missingParameters.map((param) => {
-                return getHarvestParameterLabel(param)
-            })
-
-            if (missingParameters.length > 0) {
+            if (errors.some((error) => Object.keys(error).length > 0))
                 return dataWithWarning(
-                    {
-                        warning: `Missing required harvest parameters: ${missingParameters.join(
-                            ", ",
-                        )}`,
-                    },
-                    `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(
-                        ", ",
-                    )}`,
+                    { errors: { harvests: errors } },
+                    "Invoer is ongeldig. Controleer het formulier.",
+                )
+        }
+
+        if (formValues.intent === "single_harvest") {
+            const errors = validateRow(firstTargetCultivation, formValues)
+            if (Object.keys(errors).length > 0) {
+                return dataWithWarning(
+                    { errors },
+                    "Invoer is ongeldig. Controleer het formulier.",
                 )
             }
+        }
 
-            // Filter form values to include only required parameters for updateHarvest
-            const harvestProperties: Record<string, any> = {}
-            for (const param of requiredHarvestParameters) {
-                if ((formValues as Record<string, any>)[param] !== undefined) {
-                    harvestProperties[param] = (
-                        formValues as Record<string, any>
-                    )[param]
-                }
-            }
+        const targetCultivationInstances = [firstTargetCultivation].concat(
+            await Promise.all(
+                fieldIds.slice(1).map(async (fieldId) => {
+                    const cultivationsForField = await getCultivations(
+                        fdm,
+                        session.principal_id,
+                        fieldId,
+                        timeframe,
+                    )
 
-            if (b_lu_harvestable === "once") {
-                // Check for existing harvests for this specific cultivation instance
-                const existingHarvests = await getHarvests(
-                    fdm,
-                    session.principal_id,
-                    b_lu,
-                )
+                    const targetCultivationInstance = cultivationsForField.find(
+                        (c) => c.b_lu_catalogue === cultivationIds[0],
+                    )
 
-                if (existingHarvests.length > 0) {
-                    // If there are existing harvests, remove them before adding new ones
-                    for (const harvest of existingHarvests) {
-                        await removeHarvest(
-                            fdm,
-                            session.principal_id,
-                            harvest.b_id_harvesting,
+                    if (!targetCultivationInstance) {
+                        throw dataWithError(
+                            null,
+                            `Gewas niet gevonden voor perceel ${fieldId}.`,
                         )
                     }
-                }
-            }
 
-            await addHarvest(
-                fdm,
-                session.principal_id,
-                b_lu,
-                formValues.b_lu_harvest_date,
-                harvestProperties,
-            )
+                    return targetCultivationInstance
+                }),
+            ),
+        )
+
+        if (formValues.intent === "batch_harvest") {
+            await fdm.transaction(async (tx) => {
+                for (let f = 0; f < fieldIds.length; f++) {
+                    await Promise.all(
+                        formValues.harvests.map((row, h) =>
+                            addHarvestFromRow(
+                                tx,
+                                session.principal_id,
+                                targetCultivationInstances[f],
+                                row,
+                                h === 0,
+                            ),
+                        ),
+                    )
+                }
+            })
+            return redirectWithSuccess(redirectURL, {
+                message: `${termCapitalizedPlural} zijn succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+            })
         }
 
-        return redirectWithSuccess(redirectURL, {
-            message: `Oogst succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
-        })
+        if (formValues.intent === "single_harvest") {
+            await fdm.transaction(async (tx) => {
+                for (let f = 0; f < fieldIds.length; f++) {
+                    await addHarvestFromRow(
+                        tx,
+                        session.principal_id,
+                        targetCultivationInstances[f],
+                        formValues,
+                        true,
+                    )
+                }
+            })
+            return redirectWithSuccess(redirectURL, {
+                message: `${termCapitalizedSingular} succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+            })
+        }
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return dataWithError(
+            return dataWithWarning(
                 null,
                 "Invoer is ongeldig. Controleer het formulier.",
             )
         }
         throw handleActionError(error)
     }
+}
+
+function validateRow(
+    targetCultivationInstance: Cultivation,
+    row: z.infer<typeof FormSchema>,
+) {
+    const errors: Partial<
+        Record<keyof z.infer<typeof FormSchema>, { message: string }>
+    > = {}
+
+    if (!row.b_lu_harvest_date) {
+        errors.b_lu_harvest_date = { message: "Selecteer een oogstdatum" }
+    }
+
+    // Get required harvest parameters for the cultivation's harvest category
+    const requiredHarvestParameters = getParametersForHarvestCat(
+        targetCultivationInstance.b_lu_harvestcat,
+    )
+
+    // Check if all required parameters are present
+    for (const param of requiredHarvestParameters) {
+        if (row[param] === undefined || row[param] === null) {
+            errors[param] = {
+                message: `${getHarvestParameterLabel(param)} is nodig voor dit gewas.`,
+            }
+        }
+    }
+
+    return errors
+}
+
+async function addHarvestFromRow(
+    tx: Omit<typeof fdm, "$client">,
+    principal_id: string,
+    targetCultivationInstance: Cultivation,
+    formValues: z.infer<typeof FormSchema>,
+    first: boolean,
+) {
+    // Get required harvest parameters for the cultivation's harvest category
+    const requiredHarvestParameters = getParametersForHarvestCat(
+        targetCultivationInstance.b_lu_harvestcat,
+    )
+
+    // Filter form values to include only required parameters for updateHarvest
+    const harvestProperties: Record<string, number> = {}
+    for (const param of requiredHarvestParameters) {
+        if (formValues[param] !== undefined) {
+            harvestProperties[param] = formValues[param]
+        }
+    }
+
+    const effectiveHarvestable = getEffectiveHarvestable(targetCultivationInstance.b_lu_harvestable ?? "once", targetCultivationInstance.b_lu_croprotation)
+    if (first && effectiveHarvestable === "once") {
+        // Check for existing harvests for this specific cultivation instance
+        const existingHarvests = await getHarvests(
+            tx,
+            principal_id,
+            targetCultivationInstance.b_lu,
+        )
+
+        if (existingHarvests.length > 0) {
+            // If there are existing harvests, remove them before adding new ones
+            for (const harvest of existingHarvests) {
+                await removeHarvest(tx, principal_id, harvest.b_id_harvesting)
+            }
+        }
+    }
+
+    await addHarvest(
+        tx,
+        principal_id,
+        targetCultivationInstance.b_lu,
+        formValues.b_lu_harvest_date,
+        harvestProperties,
+    )
 }
