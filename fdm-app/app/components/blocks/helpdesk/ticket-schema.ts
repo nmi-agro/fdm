@@ -9,3 +9,5 @@ export const TicketSchema = z.object({
         .optional(),
     body: MessageBodySchema,
 })
+
+export const TicketPrioritySchema = z.enum(["low", "normal", "high", "urgent"])

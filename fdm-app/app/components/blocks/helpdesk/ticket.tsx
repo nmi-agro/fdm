@@ -1,6 +1,7 @@
 import type {
     Agent,
     Message as MessageT,
+    PriorityString,
     TagSummary,
     Ticket as TicketT,
 } from "@nmi-agro/fdm-helpdesk"
@@ -11,10 +12,10 @@ import { useEffect, useId } from "react"
 import { useNavigation, useSubmit } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { Message } from "~/components/blocks/helpdesk/message"
-import { Badge } from "~/components/ui/badge"
 import { Spinner } from "~/components/ui/spinner"
 import { AssignmentSelector } from "./assignee-dialog"
 import { MessageComposer } from "./message-composer"
+import { TICKET_PRIORITY, TicketPrioritySelector } from "./ticket-priority"
 import {
     TICKET_STATUS,
     TICKET_STATUS_DESCRIPTIONS,
@@ -22,13 +23,6 @@ import {
 } from "./ticket-status"
 import { TicketTags } from "./ticket-tags"
 import type { HelpdeskUser } from "./types"
-
-const PRIORITY_LABELS: Record<string, string> = {
-    low: "Laag",
-    normal: "Normaal",
-    high: "Hoog",
-    urgent: "Urgent",
-}
 
 export function Ticket({
     ticket,
@@ -112,13 +106,6 @@ export function Ticket({
                             <span>Bedrijf: {contextFarmName}</span>
                         </>
                     )}
-                    {isAgent && ticket.priority && (
-                        <Badge variant="outline" className="ms-1">
-                            Prioriteit:{" "}
-                            {PRIORITY_LABELS[ticket.priority] ??
-                                ticket.priority}
-                        </Badge>
-                    )}
                 </div>
 
                 {/* 2. Title */}
@@ -148,15 +135,33 @@ export function Ticket({
                                 agents={agents}
                                 principalLookup={principalLookup}
                             />
+                            <label
+                                htmlFor={assigneeSelectId}
+                                className="ms-6 text-sm text-muted-foreground"
+                            >
+                                Prioriteit:
+                            </label>
+                            <TicketPrioritySelector
+                                canModify={isAgent}
+                                priority={ticket.priority as PriorityString}
+                            />
                         </>
                     ) : (
-                        <span className="inline-flex items-center gap-1.5 text-sm font-medium border rounded-md px-2.5 py-1">
-                            <StatusIcon
-                                className="size-4 shrink-0"
-                                style={{ color: statusColor }}
-                            />
-                            {statusLabel}
-                        </span>
+                        <>
+                            <span className="inline-flex items-center gap-1.5 text-sm font-medium border rounded-md px-2.5 py-1">
+                                <StatusIcon
+                                    className="size-4 shrink-0"
+                                    style={{ color: statusColor }}
+                                />
+                                {statusLabel}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 text-sm font-medium border rounded-md px-2.5 py-1">
+                                Prioriteit:{" "}
+                                {TICKET_PRIORITY.find(
+                                    (item) => item.value === ticket.priority,
+                                )?.label ?? ticket.priority}
+                            </span>
+                        </>
                     )}
                     <Spinner
                         className={cn(
@@ -167,16 +172,18 @@ export function Ticket({
                 </div>
 
                 {/* 4. Ticket Tags */}
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-                    <div className="text-muted-foreground text-sm py-1">
-                        Tags:
+                {isAgent || ticket.tags.length > 0 ? (
+                    <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+                        <div className="text-muted-foreground text-sm py-1">
+                            Tags:
+                        </div>
+                        <TicketTags
+                            tags={ticket.tags}
+                            availableTags={availableTags}
+                            isAgent={isAgent}
+                        />
                     </div>
-                    <TicketTags
-                        tags={ticket.tags}
-                        availableTags={availableTags}
-                        isAgent={isAgent}
-                    />
-                </div>
+                ) : null}
 
                 {/* 5. Customer status description */}
                 {!isAgent && TICKET_STATUS_DESCRIPTIONS[ticket.status] && (
@@ -190,6 +197,7 @@ export function Ticket({
                     <Message
                         key={msg.message_id}
                         principal={principalLookup.get(msg.sender_id) ?? null}
+                        senderType={msg.sender_type}
                         isInternal={msg.is_internal}
                         date={msg.created}
                         todayDate={todayDate}
@@ -203,6 +211,7 @@ export function Ticket({
                 ))}
                 {canAddMessages && (
                     <MessageComposer
+                        className="mt-8"
                         intent="add_message"
                         principal={principalLookup.get(principal_id) ?? null}
                         showAgentControls={isAgent}

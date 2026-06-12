@@ -15,6 +15,7 @@ import {
     markTicketAsViewed,
     removeTagFromTicket,
     unassignTicket,
+    updateTicketPriority,
     updateTicketStatus,
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
@@ -33,6 +34,7 @@ import {
     TicketTagsSchema,
 } from "~/components/blocks/helpdesk/tag-schema"
 import { Ticket } from "~/components/blocks/helpdesk/ticket"
+import { TicketPrioritySchema } from "~/components/blocks/helpdesk/ticket-schema"
 
 interface Args {
     params: { ticket_id: string }
@@ -157,6 +159,10 @@ export async function loader({ params, request }: Args) {
 export const ActionSchema = z.discriminatedUnion("intent", [
     z.object({ intent: z.literal("mark_ticket_as_viewed") }),
     z.object({ intent: z.literal("set_ticket_status"), status: z.string() }),
+    z.object({
+        intent: z.literal("update_priority"),
+        priority: TicketPrioritySchema,
+    }),
     AssigneeSchema.extend({ intent: z.literal("change_assignment") }),
     MessageSchema.extend({ intent: z.literal("add_message") }),
     TagSchema.extend({ intent: z.literal("create_tag") }),
@@ -189,6 +195,19 @@ export async function action({ params, request }: Args) {
 
             return dataWithSuccess("De status is successvol bijgewerkt!", {
                 message: "De status is successvol bijgewerkt!",
+            })
+        }
+
+        if (formValues.intent === "update_priority") {
+            await updateTicketPriority(
+                fdm,
+                session.principal_id,
+                params.ticket_id,
+                formValues.priority,
+            )
+
+            return dataWithSuccess("De prioriteit is successvol bijgewerkt!", {
+                message: "De prioriteit is successvol bijgewerkt!",
             })
         }
 

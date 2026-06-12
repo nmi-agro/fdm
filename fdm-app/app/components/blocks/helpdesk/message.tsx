@@ -14,6 +14,7 @@ export function Message({
     principal,
     date,
     todayDate,
+    senderType,
     isInternal = false,
     className,
     children,
@@ -22,6 +23,7 @@ export function Message({
     principal: HelpdeskUser | null
     date?: Date
     todayDate?: Date
+    senderType?: string
     isInternal?: boolean
     className?: string
     children: ReactNode
@@ -36,7 +38,7 @@ export function Message({
     return (
         <Card
             className={cn(
-                "md:ms-10 px-2 py-4 space-y-4",
+                "md:ms-10 px-2 py-4",
                 isInternal && "border-amber-100 bg-amber-100/35",
                 className,
             )}
@@ -71,7 +73,12 @@ export function Message({
                     )}
                 </div>
             </div>
-            {children}
+            {senderType === "agent" && (
+                <div className="text-[0.8rem] text-muted-foreground">
+                    Medewerker
+                </div>
+            )}
+            <div className="mt-4">{children}</div>
         </Card>
     )
 }

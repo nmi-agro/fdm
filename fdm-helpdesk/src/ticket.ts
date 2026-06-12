@@ -581,7 +581,16 @@ export async function createTicket(
     }
 }
 
-export async function updateTicketSubjectAndPriority(
+/**
+ * Updates the ticket subject and priority without doing any permission checks.
+ * Intended for use during AI triage.
+ *
+ * @param fdm
+ * @param ticket_id
+ * @param subject
+ * @param priority
+ */
+export async function updateTicketSubjectAndPriorityUnchecked(
     fdm: FdmHelpdeskType,
     ticket_id: schema.TicketTypeSelect["ticket_id"],
     subject?: string,
@@ -590,10 +599,51 @@ export async function updateTicketSubjectAndPriority(
     try {
         await fdm
             .update(schema.tickets)
-            .set({ subject: subject, priority: priority })
+            .set({ subject: subject, priority: priority, updated: sql`now()` })
             .where(eq(schema.tickets.ticket_id, ticket_id))
     } catch (e) {
-        throw handleError(e, "Exception for updateTicketSubjectAndPriority", {
+        throw handleError(
+            e,
+            "Exception for updateTicketSubjectAndPriorityUnchecked",
+            {
+                ticket_id,
+                priority,
+            },
+        )
+    }
+}
+
+/**
+ * Updates the ticket priority.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have agent-side write access to the ticket.
+ * @param ticket_id ID of the ticket to update.
+ * @param priority The new priority.
+ */
+export async function updateTicketPriority(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+    ticket_id: schema.TicketTypeSelect["ticket_id"],
+    priority?: string,
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "ticket-agent-side",
+            "write",
+            ticket_id,
+            principal_id,
+            "updateTicketPriority",
+        )
+
+        await fdm
+            .update(schema.tickets)
+            .set({ priority: priority, updated: sql`now()` })
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+    } catch (e) {
+        throw handleError(e, "Exception for updateTicketPriority", {
             ticket_id,
             priority,
         })

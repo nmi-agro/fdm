@@ -4,7 +4,7 @@ import {
     assignTicketToAnAdmin,
     createTicket,
     getTicket,
-    updateTicketSubjectAndPriority,
+    updateTicketSubjectAndPriorityUnchecked,
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
@@ -140,7 +140,12 @@ async function performTriage(apiKey: string, ticket_id: string, body: string) {
 
         console.log(reasoning)
 
-        await updateTicketSubjectAndPriority(fdm, ticket_id, subject, priority)
+        await updateTicketSubjectAndPriorityUnchecked(
+            fdm,
+            ticket_id,
+            subject,
+            priority,
+        )
     } catch (triageError) {
         handleActionError(triageError)
     }

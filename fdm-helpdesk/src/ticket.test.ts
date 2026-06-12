@@ -17,7 +17,9 @@ import {
     getUnreadAssignedTicketCount,
     getUnreadRequestedTicketCount,
     markTicketAsViewed,
+    updateTicketPriority,
     updateTicketStatus,
+    updateTicketSubjectAndPriorityUnchecked,
     validateTicketStatusTransition,
 } from "./ticket"
 import { assignTicket } from "./ticket-assignment"
@@ -343,6 +345,95 @@ test.describe("getTickets", () => {
             inbox.some((ticket) => ticket.ticket_id === new_ticket_id),
             "New ticket created by other user found in inbox but shouldn't be",
         ).toBe(false)
+    })
+})
+
+describe("updateTicketSubjectAndPriorityUnchecked", () => {
+    let agent_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        agent_id = createId()
+        await addAdminAgent(fdm, agent_id, "Support Agent")
+    })
+
+    test("should update without any permission checks", async ({ fdm }) => {
+        const ticket_id = await createTicket(fdm, agent_id, "Ticket 1")
+        await updateTicketSubjectAndPriorityUnchecked(
+            fdm,
+            ticket_id,
+            "Ticket 1 Subject",
+            "high",
+        )
+        const ticket = await getTicket(fdm, agent_id, ticket_id)
+        expect(ticket.subject).toBe("Ticket 1 Subject")
+        expect(ticket.priority).toBe("high")
+        expect(ticket.updated).not.toBeNull()
+    })
+
+    test("should be able to update subject only", async ({ fdm }) => {
+        const ticket_id = await createTicket(fdm, agent_id, "Ticket 1", {
+            priority: "high",
+        })
+        await updateTicketSubjectAndPriorityUnchecked(
+            fdm,
+            ticket_id,
+            "Ticket 1 Subject",
+        )
+        const ticket = await getTicket(fdm, agent_id, ticket_id)
+        expect(ticket.subject).toBe("Ticket 1 Subject")
+        expect(ticket.priority).toBe("high")
+        expect(ticket.updated).not.toBeNull()
+    })
+
+    test("should be able to update priority only", async ({ fdm }) => {
+        const ticket_id = await createTicket(fdm, agent_id, "Ticket 1", {
+            priority: "high",
+        })
+        await updateTicketSubjectAndPriorityUnchecked(
+            fdm,
+            ticket_id,
+            undefined,
+            "low",
+        )
+        const ticket = await getTicket(fdm, agent_id, ticket_id)
+        expect(ticket.subject).toBe("Ticket 1")
+        expect(ticket.priority).toBe("low")
+        expect(ticket.updated).not.toBeNull()
+    })
+})
+
+describe("updateTicketPriority", () => {
+    let agent_id: string
+    let requester_id: string
+    let ticket_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        agent_id = createId()
+        requester_id = createId()
+        await addAdminAgent(fdm, agent_id, "Support Agent")
+        ticket_id = await createTicket(fdm, requester_id, "Ticket 1")
+    })
+
+    test("should let agents update the priority", async ({ fdm }) => {
+        await updateTicketPriority(fdm, agent_id, ticket_id, "high")
+        const ticket = await getTicket(fdm, agent_id, ticket_id)
+        expect(ticket.priority).toBe("high")
+        expect(ticket.updated).not.toBeNull()
+    })
+
+    test("should not let regular users update the priority", async ({
+        fdm,
+    }) => {
+        try {
+            await updateTicketPriority(fdm, requester_id, ticket_id, "high")
+        } catch (_err) {
+            const ticket = await getTicket(fdm, requester_id, ticket_id)
+            expect(ticket.priority).toBe("normal")
+            expect(ticket.updated).toBeNull()
+            return
+        }
+
+        throw new Error("Should have thrown")
     })
 })
 
