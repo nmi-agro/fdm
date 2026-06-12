@@ -34,6 +34,9 @@ import {
 import { makeHelpdeskUser } from "./helpdesk-user"
 import type { HelpdeskUser } from "./types"
 
+// How many assignees to display, before saying "en meer/and more"
+const ASSIGNEE_DISPLAY_CUTOFF = 3
+
 export function AssignmentSelector({
     triggerId,
     formIntent,
@@ -62,7 +65,6 @@ export function AssignmentSelector({
             .map((assignee) => assignee.agent_id),
     )
 
-    const ASSIGNEE_DISPLAY_CUTOFF = 3
     const assigneeNames = assignees.map((assignee) => assignee.display_name)
 
     const alreadyAssigned = new Set(

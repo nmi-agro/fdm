@@ -1,5 +1,5 @@
 import { describe, expect } from "vitest"
-import { addAdminAgent, addAgent } from "./agent"
+import { addAdminAgent, addAgent, updateAgentRole } from "./agent"
 import { createId } from "./id"
 import { addTagToTicket, createTag } from "./tag"
 import { test, truncateAllTables } from "./test-util"
@@ -337,14 +337,12 @@ describe("assignTicketToAnAdmin", () => {
 
         const admin_id_2 = createId()
         await addAgent(fdm, admin_id_1, admin_id_2, "Admin Agent 2")
+        await updateAgentRole(fdm, admin_id_1, admin_id_2, "admin")
 
         expect(await assignTicketToAnAdmin(fdm, ticket_id)).toBe(admin_id_1)
     })
 
-    test(
-        "should fail and return null if the ticket cannot be assigned to an admin",
-    )
-    test("should assign the ticket to the earliest created admin", async ({
+    test("should fail and return null if the ticket cannot be assigned to an admin", async ({
         fdm,
     }) => {
         expect(await assignTicketToAnAdmin(fdm, ticket_id)).toBeNull()

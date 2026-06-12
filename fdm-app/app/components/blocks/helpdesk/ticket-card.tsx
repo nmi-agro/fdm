@@ -2,7 +2,7 @@ import type { Ticket } from "@nmi-agro/fdm-helpdesk"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import type { ReactNode } from "react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { TICKET_STATUS, TicketStatusDot } from "./ticket-status"
 import type { HelpdeskUser } from "./types"
@@ -20,9 +20,8 @@ export function TicketCard({
     showAssignees?: boolean
     badge?: ReactNode
 }) {
-    const { pathname, search } = useLocation()
-    const domainUrl = `${pathname}${search}`
-    const isSelected = domainUrl.startsWith(href)
+    const params = useParams()
+    const isSelected = params.ticket_id === ticket.ticket_id
 
     const label = ticket.subject ?? "Ticket"
 

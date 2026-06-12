@@ -217,6 +217,8 @@ export async function assignTicket(
 /**
  * Assigns the ticket to the first helpdesk admin found. The admin created the earliest has priority.
  *
+ * If the ticket is already assigned with a primary assignee this function doesn't do anything.
+ *
  * This is intended as a workaround until the triage system is implemented.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
@@ -231,6 +233,22 @@ export async function assignTicketToAnAdmin(
     ticket_id: schema.TicketAssignmentTypeInsert["ticket_id"],
 ) {
     return await fdm.transaction(async (tx) => {
+        const foundAssignees = await tx
+            .select({ agent_id: schema.ticketAssignments.agent_id })
+            .from(schema.ticketAssignments)
+            .where(
+                and(
+                    schema.ticketAssignments.is_primary,
+                    eq(schema.ticketAssignments.ticket_id, ticket_id),
+                    isNull(schema.ticketAssignments.unassigned_at),
+                ),
+            )
+            .limit(1)
+
+        if (foundAssignees.length > 0) {
+            return null
+        }
+
         const foundAdmins = await tx
             .select({ agent_id: schema.agents.agent_id })
             .from(schema.agents)
