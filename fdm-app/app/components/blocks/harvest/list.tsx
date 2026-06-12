@@ -13,14 +13,17 @@ import {
 import { Label } from "~/components/ui/label"
 import { getHarvestParameterLabel } from "./parameters"
 import type { HarvestableType } from "./types"
+import { getHarvestTerm } from "./utils"
 
 export function HarvestsList({
     harvests,
     b_lu_harvestable,
+    b_lu_croprotation,
     harvestParameters,
 }: {
     harvests: Harvest[]
     b_lu_harvestable: HarvestableType
+    b_lu_croprotation?: string
     harvestParameters: HarvestParameters
 }) {
     const canAddHarvest =
@@ -137,9 +140,9 @@ export function HarvestsList({
         return (
             <Empty>
                 <EmptyHeader>
-                    <EmptyTitle>Nog geen oogst</EmptyTitle>
+                    <EmptyTitle>Nog geen {getHarvestTerm(b_lu_croprotation)}</EmptyTitle>
                     <EmptyDescription>
-                        Voeg een oogst toe om belangrijke gegevens zoals
+                        Voeg een {getHarvestTerm(b_lu_croprotation)} toe om belangrijke gegevens zoals
                         opbrengst, datum en gehaltes bij te houden.
                     </EmptyDescription>
                 </EmptyHeader>

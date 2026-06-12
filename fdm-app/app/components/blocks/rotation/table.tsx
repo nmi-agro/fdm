@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, useLocation, useParams } from "react-router-dom"
 import { toast as notify } from "sonner"
 import { modifySearchParams } from "@/app/lib/url-utils"
+import { getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useRotationSelectionStore } from "@/app/store/rotation-selection"
@@ -375,10 +376,10 @@ export function DataTable<TData extends RotationExtended, TValue>({
             : null
     const harvestTooltipContent =
         selectedCultivationIds.length !== 1
-            ? "Selecteer één gewas om oogst toe te voegen"
+            ? "Selecteer één gewas om oogst/snede toe te voegen"
             : harvestErrorMessage
               ? harvestErrorMessage
-              : "Oogst toevoegen aan geselecteerd gewas"
+              : `${getHarvestCapitalizedTerm(selectedCultivations[0].b_lu_croprotation)} toevoegen aan geselecteerd gewas`
 
     function makeWizardUrl(url: string) {
         return modifySearchParams(url, (searchParams) => {
@@ -434,7 +435,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                                             b_lu_name: "Gewas",
                                             b_lu_start: "Zaaidatum",
                                             b_lu_end: "Einddatum",
-                                            b_harvest_date: "Oogstdata",
+                                            b_harvest_date: "Oogst/Maaidata",
                                             b_lu_variety: "Variëteit",
                                             m_cropresidue: "Gewasresten",
                                             fertilizers: "Bemesting",
@@ -503,7 +504,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                                             disabled={isHarvestButtonDisabled}
                                         >
                                             <Plus className="mr-2 h-4 w-4" />
-                                            Oogst toevoegen
+                                            {selectedCultivations.length === 1 ? getHarvestCapitalizedTerm(selectedCultivations[0].b_lu_croprotation) : "Oogst"} toevoegen
                                         </Button>
                                     ) : harvestErrorMessage ? (
                                         <Button
@@ -514,7 +515,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                                             }
                                         >
                                             <Plus className="mr-2 h-4 w-4" />
-                                            Oogst toevoegen
+                                            {selectedCultivations.length === 1 ? getHarvestCapitalizedTerm(selectedCultivations[0].b_lu_croprotation) : "Oogst"} toevoegen
                                         </Button>
                                     ) : (
                                         <NavLink
@@ -524,7 +525,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                                         >
                                             <Button>
                                                 <Plus className="mr-2 h-4 w-4" />
-                                                Oogst toevoegen
+                                                {selectedCultivations.length === 1 ? getHarvestCapitalizedTerm(selectedCultivations[0].b_lu_croprotation) : "Oogst"} toevoegen
                                             </Button>
                                         </NavLink>
                                     )}

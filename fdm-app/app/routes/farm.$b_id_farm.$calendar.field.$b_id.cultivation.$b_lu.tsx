@@ -24,6 +24,7 @@ import {
 } from "remix-toast"
 import { CultivationDetailsCard } from "~/components/blocks/cultivation/card-details"
 import { CultivationHarvestsCard } from "~/components/blocks/cultivation/card-harvests"
+import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
 import { CultivationDetailsFormSchema } from "~/components/blocks/cultivation/schema"
 import type { HarvestableType } from "~/components/blocks/harvest/types"
 import { getSession } from "~/lib/auth.server"
@@ -162,7 +163,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 return item.b_lu_catalogue === cultivation.b_lu_catalogue
             })
         if (cultivationCatalogueItem) {
-            b_lu_harvestable = cultivationCatalogueItem.b_lu_harvestable
+            b_lu_harvestable = getEffectiveHarvestable(
+                cultivationCatalogueItem.b_lu_harvestable,
+                cultivation.b_lu_croprotation,
+            )
             if (cultivationCatalogueItem.b_lu_variety_options) {
                 b_lu_variety_options =
                     cultivationCatalogueItem.b_lu_variety_options.map(
@@ -214,6 +218,7 @@ export default function FarmFieldsOverviewBlock() {
             <CultivationHarvestsCard
                 harvests={loaderData.harvests}
                 b_lu_harvestable={loaderData.b_lu_harvestable}
+                b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
                 harvestParameters={loaderData.harvestParameters}
                 editable={loaderData.cultivationWritePermission}
             />
