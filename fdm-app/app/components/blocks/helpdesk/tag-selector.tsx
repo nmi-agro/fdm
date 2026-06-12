@@ -7,9 +7,11 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { Spinner } from "~/components/ui/spinner"
+import { DEFAULT_TAG_COLOR } from "./tag-creator"
 
 export function TagSelector({
     availableTags,
@@ -46,7 +48,8 @@ export function TagSelector({
                             <div
                                 className="size-2 rounded-full"
                                 style={{
-                                    backgroundColor: tag?.color ?? "#777777",
+                                    backgroundColor:
+                                        tag?.color ?? DEFAULT_TAG_COLOR,
                                 }}
                             />
                             {tag?.name ?? "Onbekend"}
@@ -101,12 +104,18 @@ export function TagSelector({
                                             className="size-2 rounded-full"
                                             style={{
                                                 backgroundColor:
-                                                    tag?.color ?? "#777777",
+                                                    tag?.color ??
+                                                    DEFAULT_TAG_COLOR,
                                             }}
                                         />
                                         {tag.name}
                                     </DropdownMenuItem>
                                 ))}
+                            {!canCreateTag && availableTags.length === 0 && (
+                                <DropdownMenuLabel>
+                                    Geen tags beschikbaar
+                                </DropdownMenuLabel>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}

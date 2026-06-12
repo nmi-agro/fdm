@@ -25,7 +25,18 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
-import { SWATCH, TagCreator } from "./tag-creator"
+import {
+    DEFAULT_TAG_COLOR,
+    DEFAULT_TAG_COLOR_LABEL,
+    SWATCH,
+    TagCreator,
+} from "./tag-creator"
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyTitle,
+} from "../../ui/empty"
 
 type TagExtended = Tag
 
@@ -59,19 +70,32 @@ export function HelpdeskTagManager({
                 </CardHeader>
             )}
             <CardContent className="first:pt-6">
-                <Table className="w-full">
-                    <TableBody>
-                        {availableTags.map((tag) => (
-                            <TagRow
-                                key={tag.tag_id}
-                                tag={tag}
-                                canModify={canModify}
-                                activeTableCell={activeTableCell}
-                                setActiveTableCell={setActiveTableCell}
-                            />
-                        ))}
-                    </TableBody>
-                </Table>
+                {availableTags.length > 0 ? (
+                    <Table className="w-full">
+                        <TableBody>
+                            {availableTags.map((tag) => (
+                                <TagRow
+                                    key={tag.tag_id}
+                                    tag={tag}
+                                    canModify={canModify}
+                                    activeTableCell={activeTableCell}
+                                    setActiveTableCell={setActiveTableCell}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyTitle>Geen tags gevonden</EmptyTitle>
+                            <EmptyDescription>
+                                {canModify
+                                    ? "Maak nieuwe tags aan om ze te kunnen gebruiken."
+                                    : "Je kunt nieuwe tags zien zodra ze worden aangemaakt."}
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                )}
             </CardContent>
         </Card>
     )
@@ -93,7 +117,11 @@ export function TagRow({
     const fetcher = useFetcher()
     const isSubmitting = fetcher.state !== "idle"
 
-    const activeColorOption = SWATCH.find((color) => color.value === tag.color)
+    const activeColorOption =
+        SWATCH.find((color) => color.value === tag.color) ??
+        (tag.color
+            ? { value: tag.color, label: tag.color }
+            : { value: DEFAULT_TAG_COLOR, label: DEFAULT_TAG_COLOR_LABEL })
 
     return (
         <TableRow>
@@ -122,23 +150,19 @@ export function TagRow({
                             fetcher.submit(formData, { method: "post" })
                         }}
                     >
-                        <SelectTrigger className="text-start gap-2">
-                            {activeColorOption ? (
-                                <>
-                                    <div
-                                        className="size-4 rounded-sm"
-                                        style={{
-                                            backgroundColor:
-                                                activeColorOption.value,
-                                        }}
-                                    />
-                                    <div className="grow">
-                                        {activeColorOption.label}
-                                    </div>
-                                </>
-                            ) : (
-                                tag.color
-                            )}
+                        <SelectTrigger
+                            className="text-start gap-2"
+                            title="Kleur"
+                        >
+                            <div
+                                className="size-4 rounded-sm"
+                                style={{
+                                    backgroundColor: activeColorOption.value,
+                                }}
+                            />
+                            <div className="grow">
+                                {activeColorOption.label}
+                            </div>
                         </SelectTrigger>
                         <SelectContent>
                             {SWATCH.map((color) => (
@@ -172,6 +196,7 @@ export function TagRow({
                                 type="button"
                                 variant="ghost"
                                 disabled={isSubmitting}
+                                title="Verwijderen"
                             >
                                 <Trash2 />
                             </Button>
@@ -282,7 +307,9 @@ function TagNameCell({
             </div>
         ) : (
             <Button
+                type="button"
                 variant="link"
+                title="Klik om te wijzigen"
                 onClick={() => setActiveTableCell(nameCellId)}
             >
                 {tag.name}

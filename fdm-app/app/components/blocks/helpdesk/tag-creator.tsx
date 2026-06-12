@@ -26,6 +26,9 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { TagSchema } from "./tag-schema"
 
+export const DEFAULT_TAG_COLOR = "#6b7280"
+export const DEFAULT_TAG_COLOR_LABEL = "Grijs"
+
 // From GitHub
 export const SWATCH = [
     {
@@ -33,7 +36,7 @@ export const SWATCH = [
         label: "Rood",
     },
     {
-        value: "#d93f0b",
+        value: "#d47126",
         label: "Oranje",
     },
     {
@@ -49,12 +52,12 @@ export const SWATCH = [
         label: "Teal",
     },
     {
-        value: "#1d76db",
-        label: "Licht Blauw",
+        value: "#1d85db",
+        label: "Blauw",
     },
     {
         value: "#0052cc",
-        label: "Blauw",
+        label: "Indigo",
     },
     {
         value: "#5319e7",
@@ -83,6 +86,10 @@ export const SWATCH = [
     {
         value: "#d4c5f9",
         label: "Lila",
+    },
+    {
+        value: DEFAULT_TAG_COLOR,
+        label: DEFAULT_TAG_COLOR_LABEL,
     },
 ]
 
@@ -254,7 +261,11 @@ export function TagCreator({
                             }}
                         />
                         <DialogFooter>
-                            <DialogClose>Terug</DialogClose>
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">
+                                    Terug
+                                </Button>
+                            </DialogClose>
                             <Button
                                 type="submit"
                                 disabled={fetcher.state !== "idle"}
