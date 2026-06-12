@@ -274,3 +274,5 @@ export const FormSchema = z
             })
         }
     })
+
+export const BatchFormSchema = z.object({ harvests: z.array(FormSchema) })

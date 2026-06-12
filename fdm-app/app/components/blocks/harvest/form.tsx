@@ -3,12 +3,12 @@ import type { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"
-import { useEffect, useState } from "react"
+import { type MouseEventHandler, useEffect, useMemo, useState } from "react"
 import { Controller, type Resolver } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
 import type { UseRemixFormReturn } from "remix-hook-form"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type { z } from "zod"
+import { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -38,15 +38,15 @@ import { Spinner } from "~/components/ui/spinner"
 import { useCalendarStore } from "~/store/calendar"
 import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
-
-type HarvestFormValues = z.infer<typeof FormSchema>
-type HarvestFormInput = z.input<typeof FormSchema>
+import { getHarvestCapitalizedTerm, getHarvestDateTerm, getHarvestTerm } from "./utils"
+import { HarvestModeSwitchAlert } from "./mode-switch"
 
 function toDate(value: Date | string) {
     return value instanceof Date ? value : new Date(value)
 }
 
 type HarvestFormDialogProps = {
+    b_lu_croprotation?: string
     harvestParameters: HarvestParameters
     exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
     example_b_lu_harvest_date?: Date | null
@@ -67,7 +67,15 @@ type HarvestFormDialogProps = {
     action?: string
     handleConfirmation?: (data: HarvestFormValues) => Promise<boolean>
     editable?: boolean
+    allowBatch?: boolean
+    onBatchClick?: MouseEventHandler
 }
+
+const SchemaWithIntent = FormSchema.extend({
+    intent: z.literal("single_harvest"),
+})
+
+type HarvestFormValues = z.infer<typeof SchemaWithIntent>
 
 function useHarvestRemixForm({
     harvestParameters,
@@ -97,17 +105,17 @@ function useHarvestRemixForm({
 
     // Compute default harvest date from catalogue's MM-dd + calendar year
     // Only apply when creating a new harvest (no existing date) and not in current year
-    function getDefaultHarvestDate(): Date | undefined {
+    const defaultHarvestDate = useMemo(() => {
         if (b_lu_harvest_date) {
             return toDate(b_lu_harvest_date)
         }
         if (example_b_lu_harvest_date) {
             // Bulk edit: leave empty
-            return undefined
+            return null
         }
         if (calendarYear === currentYear) {
             // Current year: leave empty (calendar opens at today)
-            return undefined
+            return null
         }
         if (b_date_harvest_default) {
             // Parse MM-dd and combine with calendar year
@@ -116,18 +124,22 @@ function useHarvestRemixForm({
                 return new Date(calendarYear, month - 1, day)
             }
         }
-        return undefined
-    }
+        return null
+    }, [
+        b_lu_harvest_date,
+        example_b_lu_harvest_date,
+        b_date_harvest_default,
+        calendarYear,
+        currentYear,
+    ])
 
     const form = useRemixForm<HarvestFormValues>({
         mode: "onSubmit",
         resolver: (async (values, bypass, options) => {
             // Do the validation using Zod
-            const validation = (await (zodResolver(FormSchema) as any)(
-                values as HarvestFormInput,
-                bypass,
-                options as any,
-            )) as any
+            const validation = (
+                zodResolver(SchemaWithIntent) as Resolver<HarvestFormValues>
+            )(values, bypass, options) as any
             // If there are validation errors anyways, just return them
             if (
                 validation.errors &&
@@ -157,7 +169,8 @@ function useHarvestRemixForm({
             return validation as any
         }) as Resolver<HarvestFormValues>,
         defaultValues: {
-            b_lu_harvest_date: getDefaultHarvestDate() ?? null,
+            intent: "single_harvest",
+            b_lu_harvest_date: defaultHarvestDate,
             b_lu_yield: harvestParameters.includes("b_lu_yield")
                 ? b_lu_yield
                 : undefined,
@@ -202,13 +215,13 @@ function useHarvestRemixForm({
             !currentValue &&
             !isDirty
         ) {
-            form.setValue("b_lu_harvest_date", getDefaultHarvestDate() ?? null)
+            form.setValue("b_lu_harvest_date", defaultHarvestDate ?? null)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         form.setValue,
         example_b_lu_harvest_date,
-        getDefaultHarvestDate,
+        defaultHarvestDate,
         form.getFieldState,
         form.getValues,
         b_lu_harvest_date,
@@ -220,6 +233,7 @@ function useHarvestRemixForm({
 function HarvestFields({
     form,
     className,
+    b_lu_croprotation,
     harvestParameters,
     exampleHarvestableAnalysis,
     example_b_lu_harvest_date,
@@ -233,12 +247,13 @@ function HarvestFields({
         : undefined
     return (
         <FieldGroup className={cn("gap-5", className)}>
+            <input type="hidden" name="intent" value="single_harvest" />
             <Controller
                 name="b_lu_harvest_date"
                 control={form.control}
                 render={({ field, fieldState }) => (
                     <DatePicker
-                        label="Oogstdatum"
+                        label={getHarvestDateTerm(b_lu_croprotation)}
                         placeholder={
                             example_b_lu_harvest_date !== undefined &&
                             example_b_lu_harvest_date !== null
@@ -589,7 +604,7 @@ function HarvestFields({
     )
 }
 
-function HarvestFormExplainer() {
+export function HarvestFormExplainer() {
     const [hostname, setHostname] = useState("")
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -655,15 +670,22 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                         <DialogHeader>
                             <DialogTitle>
                                 {isHarvestUpdate
-                                    ? "Oogst bijwerken"
-                                    : "Oogst toevoegen"}
+                                    ? `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} bijwerken`
+                                    : `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} toevoegen`}
                             </DialogTitle>
                             <DialogDescription>
                                 {isHarvestUpdate
-                                    ? "Werk de oogst bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen."
-                                    : "Voeg een oogst toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen."}
+                                    ? `Werk de ${getHarvestTerm(props.b_lu_croprotation)} bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`
+                                    : `Voeg een ${getHarvestTerm(props.b_lu_croprotation)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
                             </DialogDescription>
                         </DialogHeader>
+                        {props.allowBatch && props.onBatchClick && (
+                            <HarvestModeSwitchAlert 
+                                isBatchMode={false} 
+                                b_lu_croprotation={props.b_lu_croprotation} 
+                                onSwitch={props.onBatchClick} 
+                            />
+                        )}
                         <FieldSet
                             disabled={
                                 !editable ||
@@ -671,7 +693,16 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                 fetcher.state !== "idle"
                             }
                         >
-                            <HarvestFields {...props} form={form as unknown as UseRemixFormReturn<HarvestFormValues, any, any>} />
+                            <HarvestFields
+                                {...props}
+                                form={
+                                    form as unknown as UseRemixFormReturn<
+                                        HarvestFormValues,
+                                        any,
+                                        any
+                                    >
+                                }
+                            />
                         </FieldSet>
                         <HarvestFormExplainer />
                         <DialogFooter>
@@ -753,6 +784,13 @@ export function HarvestForm(props: HarvestFormDialogProps) {
 
     return (
         <div className="space-y-6">
+            {props.allowBatch && props.onBatchClick && (
+                <HarvestModeSwitchAlert 
+                    isBatchMode={false} 
+                    b_lu_croprotation={props.b_lu_croprotation} 
+                    onSwitch={props.onBatchClick} 
+                />
+            )}
             <RemixFormProvider {...form}>
                 <Form
                     id="formHarvest"
@@ -770,7 +808,13 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                     >
                         <HarvestFields
                             {...props}
-                            form={form as unknown as UseRemixFormReturn<HarvestFormValues, any, any>}
+                            form={
+                                form as unknown as UseRemixFormReturn<
+                                    HarvestFormValues,
+                                    any,
+                                    any
+                                >
+                            }
                             className="grid lg:grid-cols-2 items-center gap-y-6 gap-x-8"
                         />
                         <HarvestFormExplainer />

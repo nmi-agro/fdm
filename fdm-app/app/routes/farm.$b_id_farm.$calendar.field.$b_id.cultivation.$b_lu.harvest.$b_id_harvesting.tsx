@@ -17,6 +17,7 @@ import {
 import { dataWithWarning, redirectWithSuccess } from "remix-toast"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { FormSchema } from "~/components/blocks/harvest/schema"
+import { getEffectiveHarvestable, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -28,12 +29,13 @@ import { getHarvestParameterLabel } from "../components/blocks/harvest/parameter
 type HarvestParameter = HarvestParameters[number]
 
 // Meta
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
     return [
-        { title: `Oogst - Gewas - Perceel | ${clientConfig.name}` },
+        { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
         {
             name: "description",
-            content: "Bekijk en bewerk de oogst van je gewas.",
+            content: `Bekijk en bewerk de ${term.toLowerCase()} van je gewas.`,
         },
     ]
 }
@@ -126,6 +128,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             cultivation.b_lu_harvestcat,
         )
 
+        const effectiveHarvestable = getEffectiveHarvestable(
+            cultivation.b_lu_harvestable,
+            cultivation.b_lu_croprotation,
+        )
+
         // Return user information from loader
         return {
             cultivation: cultivation,
@@ -135,6 +142,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             calendar: calendar,
             harvestParameters: harvestParameters,
             harvestingWritePermission: await harvestingWritePermission,
+            effectiveHarvestable,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -172,7 +180,7 @@ export default function FarmFieldsOverviewBlock() {
             b_lu_n_harvestable={
                 loaderData.harvestableAnalysis.b_lu_n_harvestable ?? undefined
             }
-            b_lu_harvestable={loaderData.cultivation.b_lu_harvestable}
+            b_lu_harvestable={loaderData.effectiveHarvestable}
             b_lu_start={loaderData.cultivation.b_lu_start}
             b_lu_end={loaderData.cultivation.b_lu_end}
             editable={loaderData.harvestingWritePermission}
@@ -294,10 +302,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 harvestProperties,
             )
 
+            const term = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
             return redirectWithSuccess(
                 `/farm/${b_id_farm}/${calendar}/field/${b_id}/cultivation/${b_lu}`,
                 {
-                    message: "Oogst is gewijzigd! 🎉",
+                    message: `${term} is gewijzigd! 🎉`,
                 },
             )
         }
@@ -306,11 +315,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
             if (!b_id_harvesting) {
                 throw new Error("missing: b_id_harvesting")
             }
+            
+            // To get croprotation for delete message, we might need cultivation
+            // Just use a generic or fetch cultivation if we want the exact term.
+            // Let's just fetch it quickly since it's a small read:
+            const cultivation = await getCultivation(
+                fdm,
+                session.principal_id,
+                b_lu,
+            )
+            const term = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation)
+            
             await removeHarvest(fdm, session.principal_id, b_id_harvesting)
             return redirectWithSuccess(
                 `/farm/${b_id_farm}/${calendar}/field/${b_id}/cultivation/${b_lu}`,
                 {
-                    message: "Oogst is verwijderd! 🎉",
+                    message: `${term} is verwijderd! 🎉`,
                 },
             )
         }
