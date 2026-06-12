@@ -21,13 +21,16 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_harvest"
+import { getEffectiveHarvestable, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
+
 // Meta
-export const meta: Route.MetaFunction = () => {
+export const meta: Route.MetaFunction = ({ data }) => {
+    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
     return [
-        { title: `Oogst - Gewas - Perceel | ${clientConfig.name}` },
+        { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
         {
             name: "description",
-            content: "Bekijk en bewerk de oogst van je gewas.",
+            content: `Bekijk en bewerk de ${term?.toLowerCase()} van je gewas.`,
         },
     ]
 }
@@ -178,6 +181,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             }
         }
 
+        const effectiveHarvestable = getEffectiveHarvestable(
+            cultivation.b_lu_harvestable,
+            cultivation.b_lu_croprotation,
+        )
+
         // Return user information from loader
         return {
             cultivation: cultivation,
@@ -188,6 +196,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             harvestParameters: harvestParameters,
             harvestingWritePermission: modifiableHarvestingIds.length > 0,
             partial: modifiableHarvestingIds.length > 1,
+            effectiveHarvestable,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -228,7 +237,7 @@ export default function ModifyHarvestingDialog() {
             b_lu_n_harvestable={
                 loaderData.initialHarvestableAnalysis.b_lu_n_harvestable ?? undefined
             }
-            b_lu_harvestable={loaderData.cultivation.b_lu_harvestable}
+            b_lu_harvestable={loaderData.effectiveHarvestable}
             b_lu_start={loaderData.cultivation.b_lu_start}
             b_lu_end={loaderData.cultivation.b_lu_end}
             editable={loaderData.harvestingWritePermission}
@@ -369,14 +378,29 @@ export async function action({ request, params }: Route.ActionArgs) {
                 ),
             )
 
+            const termSingular = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
+            const termPlural = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation, true)
             return redirectWithSuccess("..", {
                 message:
                     harvestingIds.length > 1
-                        ? "Oogsten zijn gewijzigd! 🎉"
-                        : "Oogst is gewijzigd! 🎉",
+                        ? `${termPlural} zijn gewijzigd! 🎉`
+                        : `${termSingular} is gewijzigd! 🎉`,
             })
         }
         if (request.method === "DELETE") {
+            const firstHarvest = await getHarvest(
+                fdm,
+                session.principal_id,
+                harvestingIds[0],
+            )
+            const cultivation = await getCultivation(
+                fdm,
+                session.principal_id,
+                firstHarvest.b_lu,
+            )
+            const termSingular = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation)
+            const termPlural = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation, true)
+
             await fdm.transaction((tx) =>
                 Promise.all(
                     harvestingIds.map((b_id_harvesting) =>
@@ -391,8 +415,8 @@ export async function action({ request, params }: Route.ActionArgs) {
             return redirectWithSuccess("..", {
                 message:
                     harvestingIds.length > 1
-                        ? "Oogsten zijn verwijderd! 🎉"
-                        : "Oogst is verwijderd! 🎉",
+                        ? `${termPlural} zijn verwijderd! 🎉`
+                        : `${termSingular} is verwijderd! 🎉`,
             })
         }
         throw data("Method not allowed", {

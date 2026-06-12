@@ -36,6 +36,7 @@ import { BatchHarvestForm } from "~/components/blocks/harvest/batch-form"
 import { HarvestForm } from "~/components/blocks/harvest/form"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
+import { getEffectiveHarvestable, getHarvestTerm, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -76,9 +77,10 @@ import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { modifySearchParams } from "~/lib/url-utils"
 
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
     return [
-        { title: `Oogst toevoegen | ${clientConfig.name}` },
+        { title: `${term} toevoegen | ${clientConfig.name}` },
         {
             name: "description",
             content: "",
@@ -343,7 +345,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             cultivation: targetCultivation,
             cultivationName: targetCultivation?.b_lu_name ?? "onbekend gewas",
             cultivationIds: cultivationIds,
-            b_lu_harvestable: targetCultivation.b_lu_harvestable ?? "once",
+            b_lu_harvestable: getEffectiveHarvestable(targetCultivation.b_lu_harvestable ?? "once", targetCultivation.b_lu_croprotation),
             harvestApplication: harvestApplication,
             harvestableAnalysis: harvestableAnalysis,
             harvestParameters: harvestParameters,
@@ -389,6 +391,11 @@ export default function FarmRotationHarvestAddIndex() {
 
     const isSelected = (fieldId: string) => selectedFieldIds.includes(fieldId)
 
+    const getTermSingular = getHarvestTerm(loaderData.cultivation.b_lu_croprotation)
+    const getTermPlural = getHarvestTerm(loaderData.cultivation.b_lu_croprotation, true)
+    const getCapitalizedTerm = getHarvestCapitalizedTerm(loaderData.cultivation.b_lu_croprotation)
+    const getCapitalizedTermPlural = getHarvestCapitalizedTerm(loaderData.cultivation.b_lu_croprotation, true)
+
     const toggleSelection = (fieldId: string) => {
         setSelectedFieldIds((prev) =>
             isSelected(fieldId)
@@ -403,7 +410,7 @@ export default function FarmRotationHarvestAddIndex() {
 
     const isHarvestUpdate = loaderData.harvestApplication.b_lu_harvest_date
     const canBatchAdd =
-        !isHarvestUpdate && loaderData.cultivation.b_lu_croprotation === "grass"
+        !isHarvestUpdate && loaderData.b_lu_harvestable === "multiple"
     const [isBatchAdd, setIsBatchAdd] = useState(false)
 
     // Switch back to the single harvest form if the conditions for batch harvest no longer hold
@@ -493,20 +500,20 @@ export default function FarmRotationHarvestAddIndex() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem className="hidden md:block">
-                    {isHarvestUpdate ? "Oogst bijwerken" : "Oogst toevoegen"}
+                    {isHarvestUpdate ? `${getCapitalizedTerm} bijwerken` : `${getCapitalizedTerm} toevoegen`}
                 </BreadcrumbItem>
             </Header>
             <main>
                 <FarmTitle
                     title={
                         isHarvestUpdate
-                            ? `Oogst bijwerken in ${loaderData.cultivationName}`
-                            : `Oogst toevoegen aan ${loaderData.cultivationName}`
+                            ? `${getCapitalizedTerm} bijwerken in ${loaderData.cultivationName}`
+                            : `${getCapitalizedTerm} toevoegen aan ${loaderData.cultivationName}`
                     }
                     description={
                         isHarvestUpdate
-                            ? "Kies 1 of meerdere percelen om hun oogst bij te werken of te verwijderen"
-                            : "Kies 1 of meerdere percelen om een oogst toe te voegen"
+                            ? `Kies 1 of meerdere percelen om hun ${getTermPlural} bij te werken of te verwijderen`
+                            : `Kies 1 of meerdere percelen om een ${getTermSingular} toe te voegen`
                     }
                 />
                 <div className="relative">
@@ -514,7 +521,7 @@ export default function FarmRotationHarvestAddIndex() {
                         <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                             <div className="flex items-center text-sm text-muted-foreground">
                                 <Spinner className="mr-2" />
-                                <span>Oogst wordt toegevoegd...</span>
+                                <span>{getCapitalizedTerm} wordt toegevoegd...</span>
                             </div>
                         </div>
                     )}
@@ -526,7 +533,7 @@ export default function FarmRotationHarvestAddIndex() {
                                         Geselecteerde percelen
                                     </CardTitle>
                                     <CardDescription>
-                                        De oogst wordt toegepast op de volgende
+                                        De {getTermSingular} wordt toegepast op de volgende
                                         percelen.
                                     </CardDescription>
                                 </CardHeader>
@@ -696,7 +703,7 @@ export default function FarmRotationHarvestAddIndex() {
                                 <CardHeader className="flex flex-row items-start">
                                     <div className="grow">
                                         <CardTitle>
-                                            {isBatchAdd ? "Oogsten" : "Oogst"}{" "}
+                                            {isBatchAdd ? getCapitalizedTermPlural : getCapitalizedTerm}{" "}
                                             {isHarvestUpdate
                                                 ? "bijwerken"
                                                 : "toevoegen"}
@@ -706,24 +713,24 @@ export default function FarmRotationHarvestAddIndex() {
                                                 ? "Selecteer eerst een of meerdere percelen."
                                                 : loaderData.fieldAmount === 1
                                                   ? isHarvestUpdate
-                                                      ? `Werk ${isBatchAdd ? "oogsten" : "oogst"} bij van het geselecteerde perceel.`
-                                                      : `Voeg ${isBatchAdd ? "nieuwe oogsten" : "een nieuwe oogst"} toe aan de geselecteerde perceel.`
+                                                      ? `Werk de ${isBatchAdd ? getTermPlural : getTermSingular} bij van het geselecteerde perceel.`
+                                                      : `Voeg ${isBatchAdd ? `nieuwe ${getTermPlural}` : `een nieuwe ${getTermSingular}`} toe aan het geselecteerde perceel.`
                                                   : isHarvestUpdate
-                                                    ? `Werk ${isBatchAdd ? "oogsten" : "oogst"} bij van de geselecteerde percelen.`
-                                                    : `Voeg ${isBatchAdd ? "nieuwe oogsten" : "een nieuwe oogst"} toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
+                                                    ? `Werk de ${isBatchAdd ? getTermPlural : getTermSingular} bij van de geselecteerde percelen.`
+                                                    : `Voeg ${isBatchAdd ? `nieuwe ${getTermPlural}` : `een nieuwe ${getTermSingular}`} toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
                                         </CardDescription>
                                     </div>
                                     {canBatchAdd && (
                                         <Button
                                             type="button"
-                                            variant="outline"
+                                            variant="secondary"
                                             onClick={() =>
                                                 setIsBatchAdd(!isBatchAdd)
                                             }
                                         >
                                             {isBatchAdd
-                                                ? "Een oogst toevoegen"
-                                                : "Meerdere oogsten toevoegen"}
+                                                ? `Enkele ${getTermSingular} toevoegen`
+                                                : `Meerdere ${getTermPlural} toevoegen`}
                                         </Button>
                                     )}
                                 </CardHeader>
@@ -874,12 +881,12 @@ export default function FarmRotationHarvestAddIndex() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>
-                                    Bestaande oogst overschrijven?
+                                    Bestaande {getTermSingular} overschrijven?
                                 </DialogTitle>
                                 <DialogDescription>
-                                    Er is al een oogst geregistreerd voor één of
+                                    Er is al een {getTermSingular} geregistreerd voor één of
                                     meerdere van de geselecteerde percelen. Als
-                                    u doorgaat, worden de opgeslagen oogsten
+                                    u doorgaat, worden de opgeslagen {getTermPlural}
                                     overschreven.
                                 </DialogDescription>
                             </DialogHeader>
@@ -952,15 +959,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
             return dataWithError(null, "Gewas niet gevonden.")
         }
 
-        const b_lu_harvestable = targetCultivation.b_lu_harvestable
+        const effectiveHarvestable = getEffectiveHarvestable(targetCultivation.b_lu_harvestable ?? "once", targetCultivation.b_lu_croprotation)
 
-        if (b_lu_harvestable === "none") {
+        if (effectiveHarvestable === "none") {
             return dataWithError(null, "Dit gewas is niet oogstbaar.")
         }
 
         const redirectURL = url.searchParams.has("create")
             ? `/farm/create/${b_id_farm}/${calendar}/rotation`
             : `/farm/${b_id_farm}/${calendar}/rotation`
+
+        const termCapitalizedSingular = getHarvestCapitalizedTerm(targetCultivation.b_lu_croprotation)
+        const termCapitalizedPlural = getHarvestCapitalizedTerm(targetCultivation.b_lu_croprotation, true)
 
         if (request.method === "DELETE") {
             for (const fieldId of fieldIds) {
@@ -1001,7 +1011,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
 
             return redirectWithSuccess(redirectURL, {
-                message: `Oogst succesvol verwijderd van ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+                message: `${termCapitalizedSingular} succesvol verwijderd van ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
             })
         }
 
@@ -1026,16 +1036,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
             )
         }
 
-        // Batch harvest only works for grass
+        const firstEffectiveHarvestable = getEffectiveHarvestable(firstTargetCultivation.b_lu_harvestable ?? "once", firstTargetCultivation.b_lu_croprotation)
+
+        // Batch harvest only works when the effective harvestable type allows it
         if (
             formValues.intent === "batch_harvest" &&
-            firstTargetCultivation.b_lu_croprotation !== "grass"
+            firstEffectiveHarvestable !== "multiple"
         ) {
             return dataWithError(
                 {
-                    warning: `Je kunt bij ${firstTargetCultivation.b_lu_catalogue} geen oogsten in batches toevoegen. Alleen gras is toegestaan.`,
+                    warning: `Je kunt bij ${firstTargetCultivation.b_lu_catalogue} geen sneden in batches toevoegen. Alleen gras is toegestaan.`,
                 },
-                `Je kunt bij ${firstTargetCultivation.b_lu_name} geen oogsten in batches toevoegen. Alleen gras is toegestaan.`,
+                `Je kunt bij ${firstTargetCultivation.b_lu_name} geen sneden in batches toevoegen. Alleen gras is toegestaan.`,
             )
         }
 
@@ -1043,7 +1055,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         if (
             formValues.intent === "batch_harvest" &&
             formValues.harvests.length > 1 &&
-            firstTargetCultivation.b_lu_harvestable !== "multiple"
+            firstEffectiveHarvestable !== "multiple"
         ) {
             return dataWithWarning(
                 null,
@@ -1116,7 +1128,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 }
             })
             return redirectWithSuccess(redirectURL, {
-                message: `Oogsten zijn succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+                message: `${termCapitalizedPlural} zijn succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
             })
         }
 
@@ -1133,7 +1145,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 }
             })
             return redirectWithSuccess(redirectURL, {
-                message: `Oogst succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
+                message: `${termCapitalizedSingular} succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
             })
         }
     } catch (error) {
@@ -1196,7 +1208,8 @@ async function addHarvestFromRow(
         }
     }
 
-    if (first && targetCultivationInstance.b_lu_harvestable === "once") {
+    const effectiveHarvestable = getEffectiveHarvestable(targetCultivationInstance.b_lu_harvestable ?? "once", targetCultivationInstance.b_lu_croprotation)
+    if (first && effectiveHarvestable === "once") {
         // Check for existing harvests for this specific cultivation instance
         const existingHarvests = await getHarvests(
             tx,

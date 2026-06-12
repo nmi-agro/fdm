@@ -47,6 +47,7 @@ import { HarvestFormExplainer } from "./form"
 import { getHarvestParameterLabel } from "./parameters"
 import { BatchFormSchema } from "./schema"
 import type { HarvestableType } from "./types"
+import { getHarvestDateTerm, getHarvestTerm } from "./utils"
 
 type TableColumnName =
     | HarvestParameters[number]
@@ -162,11 +163,11 @@ function createNewRow(
  * consistency
  * @returns the column title/field label
  */
-function getColumnTitle(columnName: TableColumnName) {
+function getColumnTitle(columnName: TableColumnName, croprotation?: string | null) {
     return columnName === "cutting"
         ? "#"
         : columnName === "b_lu_harvest_date"
-          ? "Oogstdatum"
+          ? getHarvestDateTerm(croprotation)
           : columnName === "delete"
             ? null
             : getHarvestParameterLabel(columnName)
@@ -338,6 +339,7 @@ function BatchHarvestFormRow({
     exampleRow,
     onDelete,
     onAdd,
+    croprotation,
 }: {
     /** Row index */
     index: number
@@ -353,6 +355,8 @@ function BatchHarvestFormRow({
     onDelete: MouseEventHandler
     /** Callback for when a new row addition is triggered via keyboard */
     onAdd: () => void
+    /** Crop rotation for context-aware terminology */
+    croprotation?: string | null
 }) {
     const rowRef = useRef<HTMLTableRowElement>(null)
     return (
@@ -361,7 +365,7 @@ function BatchHarvestFormRow({
                 const columnTitle =
                     columnName === "delete" || columnName === "cutting"
                         ? undefined
-                        : getColumnTitle(columnName)
+                        : getColumnTitle(columnName, croprotation)
 
                 return (
                     <TableCell
@@ -422,6 +426,7 @@ function BatchHarvestFormItemCard({
     harvestRow,
     exampleRow,
     onDelete,
+    croprotation,
 }: {
     /** Row index */
     index: number
@@ -433,11 +438,13 @@ function BatchHarvestFormItemCard({
     exampleRow: HarvestRow | undefined
     /** Event handler callback for when the delete button is clicked */
     onDelete: MouseEventHandler
+    /** Crop rotation */
+    croprotation?: string | null
 }) {
     return (
         <Card className="p-2 space-y-2">
             <CardHeader className="flex flex-row items-center p-0">
-                <CardTitle className="grow">{index + 1}e oogst</CardTitle>
+                <CardTitle className="grow">{index + 1}e {getHarvestTerm(croprotation)}</CardTitle>
                 <Button
                     type="button"
                     variant="ghost"
@@ -454,7 +461,7 @@ function BatchHarvestFormItemCard({
                     <BatchHarvestDataCell
                         key={columnName}
                         index={index}
-                        label={getColumnTitle(columnName) ?? undefined}
+                        label={getColumnTitle(columnName, croprotation) ?? undefined}
                         columnName={columnName}
                         harvestRow={harvestRow}
                         exampleRow={exampleRow}
@@ -482,6 +489,7 @@ function BatchHarvestFormFields({
     defaultHarvest,
     b_date_harvest_default,
     harvestPairs,
+    b_lu_croprotation,
 }: BatchHarvestFormProps & {
     /** Remix Hook Form object */
     form: ReturnType<typeof useBatchHarvestRemixForm>
@@ -586,6 +594,7 @@ function BatchHarvestFormFields({
                         exampleRow={harvestExamplesMap.get(id)}
                         columnNames={columnNames}
                         onDelete={() => deleteRow(index)}
+                        croprotation={b_lu_croprotation}
                     />
                 ))}
                 <Button
@@ -596,7 +605,7 @@ function BatchHarvestFormFields({
                     className="w-full flex mt-2 items-center"
                 >
                     <Plus />
-                    Nieuwe oogst toevoegen
+                    Nieuwe {getHarvestTerm(b_lu_croprotation)} toevoegen
                 </Button>
             </div>
         )
@@ -625,7 +634,7 @@ function BatchHarvestFormFields({
                     <TableRow>
                         {columnNames.map((columnName) => (
                             <TableHead key={columnName}>
-                                {getColumnTitle(columnName)}
+                                {getColumnTitle(columnName, b_lu_croprotation)}
                             </TableHead>
                         ))}
                     </TableRow>
@@ -641,6 +650,7 @@ function BatchHarvestFormFields({
                             columnNames={columnNames}
                             onDelete={() => deleteRow(index)}
                             onAdd={addRow}
+                            croprotation={b_lu_croprotation}
                         />
                     ))}
                 </TableBody>
@@ -652,7 +662,7 @@ function BatchHarvestFormFields({
                 onClick={addRow}
             >
                 <Plus />
-                Nieuwe rij toevoegen
+                Extra {getHarvestTerm(b_lu_croprotation)} toevoegen
             </Button>
         </div>
     )
@@ -676,16 +686,12 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
             <DialogContent className="flex flex-col max-w-2xl max-h-svh">
                 <DialogHeader>
                     <DialogTitle>
-                        Meerdere{" "}
-                        {props.b_lu_croprotation === "grass"
-                            ? "sneden"
-                            : "oogsten"}{" "}
-                        toevoegen
+                        Meerdere {getHarvestTerm(props.b_lu_croprotation, true)} toevoegen
                     </DialogTitle>
                     <DialogDescription>
                         {props.isHarvestUpdate
-                            ? "Werk de oogst bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen."
-                            : "Voeg een oogst toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen."}
+                            ? `Werk de ${getHarvestTerm(props.b_lu_croprotation)} bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`
+                            : `Voeg een ${getHarvestTerm(props.b_lu_croprotation)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
                     </DialogDescription>
                 </DialogHeader>
                 <RemixFormProvider {...form}>

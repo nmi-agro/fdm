@@ -20,6 +20,7 @@ import { BatchHarvestFormDialog } from "~/components/blocks/harvest/batch-form"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
+import { getEffectiveHarvestable, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -28,12 +29,13 @@ import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 
 // Meta
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
     return [
-        { title: `Oogst toevoegen - Gewas | ${clientConfig.name}` },
+        { title: `${term} toevoegen - Gewas | ${clientConfig.name}` },
         {
             name: "description",
-            content: "Voeg een oogst toe aan dit gewas.",
+            content: `Voeg een ${term.toLowerCase()} toe aan dit gewas.`,
         },
     ]
 }
@@ -81,6 +83,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 (item) => item.b_lu_catalogue === cultivation.b_lu_catalogue,
             )?.b_date_harvest_default ?? null
 
+        const effectiveHarvestable = getEffectiveHarvestable(
+            cultivation.b_lu_harvestable,
+            cultivation.b_lu_croprotation,
+        )
+
         return {
             calendar,
             b_id_farm,
@@ -89,6 +96,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             harvestParameters,
             defaultHarvestParameters,
             b_date_harvest_default,
+            effectiveHarvestable,
         }
     } catch (error) {
         throw handleLoaderError(error)
@@ -118,7 +126,7 @@ export default function HarvestNewBlock() {
 
     return (
         <HarvestFormDialog
-            allowBatch={loaderData.cultivation.b_lu_croprotation === "grass"}
+            allowBatch={loaderData.effectiveHarvestable === "multiple"}
             harvestParameters={loaderData.harvestParameters}
             b_lu_croprotation={
                 loaderData.cultivation.b_lu_croprotation ?? undefined
@@ -149,7 +157,7 @@ export default function HarvestNewBlock() {
                 loaderData.defaultHarvestParameters.b_lu_n_harvestable ??
                 undefined
             }
-            b_lu_harvestable={loaderData.cultivation.b_lu_harvestable}
+            b_lu_harvestable={loaderData.effectiveHarvestable}
             b_lu_start={loaderData.cultivation.b_lu_start}
             b_lu_end={loaderData.cultivation.b_lu_end}
             onBatchClick={() => setIsBatch(true)}
@@ -183,16 +191,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
             ActionSchema,
         )
 
+        // Batch harvest only works when the effective harvestable type allows it
+        const effectiveHarvestable = getEffectiveHarvestable(
+            cultivation.b_lu_harvestable,
+            cultivation.b_lu_croprotation,
+        )
+
         // Batch harvest only works for grass
         if (
             formValues.intent === "batch_harvest" &&
-            cultivation.b_lu_croprotation !== "grass"
+            effectiveHarvestable !== "multiple"
         ) {
             return dataWithWarning(
                 {
-                    warning: `Je kunt bij ${cultivation.b_lu_catalogue} geen oogsten in batches toevoegen. Alleen gras is toegestaan.`,
+                    warning: `Je kunt bij ${cultivation.b_lu_catalogue} geen sneden in batches toevoegen. Alleen gras is toegestaan.`,
                 },
-                `Je kunt bij ${cultivation.b_lu_name} geen oogsten in batches toevoegen. Alleen gras is toegestaan.`,
+                `Je kunt bij ${cultivation.b_lu_name} geen sneden in batches toevoegen. Alleen gras is toegestaan.`,
             )
         }
 
@@ -200,7 +214,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         if (
             formValues.intent === "batch_harvest" &&
             formValues.harvests.length > 1 &&
-            cultivation.b_lu_harvestable !== "multiple"
+            effectiveHarvestable !== "multiple"
         ) {
             return dataWithWarning(
                 null,
@@ -233,8 +247,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 ),
             )
 
+            const term = formValues.harvests.length === 1 
+                ? getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
+                : getHarvestCapitalizedTerm(cultivation.b_lu_croprotation, true)
             return redirectWithSuccess("..", {
-                message: "Oogsten zijn succesvol toegevoegd! 🎉",
+                message: `${term} zijn succesvol toegevoegd! 🎉`,
             })
         }
 
@@ -256,8 +273,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             ),
         )
 
+        const term = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
         return redirectWithSuccess("..", {
-            message: "Oogst succesvol toegevoegd! 🎉",
+            message: `${term} succesvol toegevoegd! 🎉`,
         })
     } catch (error) {
         throw handleActionError(error)

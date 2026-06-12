@@ -38,6 +38,7 @@ import { Spinner } from "~/components/ui/spinner"
 import { useCalendarStore } from "~/store/calendar"
 import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
+import { getHarvestCapitalizedTerm, getHarvestDateTerm, getHarvestTerm } from "./utils"
 
 function toDate(value: Date | string) {
     return value instanceof Date ? value : new Date(value)
@@ -253,7 +254,7 @@ function HarvestFields({
                 control={form.control}
                 render={({ field, fieldState }) => (
                     <DatePicker
-                        label="Oogstdatum"
+                        label={getHarvestDateTerm(b_lu_croprotation)}
                         placeholder={
                             example_b_lu_harvest_date !== undefined &&
                             example_b_lu_harvest_date !== null
@@ -276,9 +277,7 @@ function HarvestFields({
             />
             {allowBatch && (
                 <Button type="button" onClick={onBatchClick}>
-                    {b_lu_croprotation === "grass"
-                        ? "Meerdere sneden toevoegen"
-                        : "Meerdere oogsten toevoegen"}
+                    Meerdere {getHarvestTerm(b_lu_croprotation, true)} toevoegen
                 </Button>
             )}
             <Controller
@@ -677,13 +676,13 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                         <DialogHeader>
                             <DialogTitle>
                                 {isHarvestUpdate
-                                    ? "Oogst bijwerken"
-                                    : "Oogst toevoegen"}
+                                    ? `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} bijwerken`
+                                    : `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} toevoegen`}
                             </DialogTitle>
                             <DialogDescription>
                                 {isHarvestUpdate
-                                    ? "Werk de oogst bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen."
-                                    : "Voeg een oogst toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen."}
+                                    ? `Werk de ${getHarvestTerm(props.b_lu_croprotation)} bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`
+                                    : `Voeg een ${getHarvestTerm(props.b_lu_croprotation)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
                             </DialogDescription>
                         </DialogHeader>
                         <FieldSet
