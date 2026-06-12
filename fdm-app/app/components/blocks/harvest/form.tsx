@@ -39,6 +39,7 @@ import { useCalendarStore } from "~/store/calendar"
 import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
 import { getHarvestCapitalizedTerm, getHarvestDateTerm, getHarvestTerm } from "./utils"
+import { HarvestModeSwitchAlert } from "./mode-switch"
 
 function toDate(value: Date | string) {
     return value instanceof Date ? value : new Date(value)
@@ -237,8 +238,6 @@ function HarvestFields({
     exampleHarvestableAnalysis,
     example_b_lu_harvest_date,
     b_lu_harvest_date,
-    allowBatch,
-    onBatchClick,
 }: HarvestFormDialogProps & {
     form: UseRemixFormReturn<HarvestFormValues, any, any>
     className?: React.ComponentProps<typeof FieldGroup>["className"]
@@ -275,11 +274,6 @@ function HarvestFields({
                     />
                 )}
             />
-            {allowBatch && (
-                <Button type="button" onClick={onBatchClick}>
-                    Meerdere {getHarvestTerm(b_lu_croprotation, true)} toevoegen
-                </Button>
-            )}
             <Controller
                 name="b_lu_yield"
                 control={form.control}
@@ -685,6 +679,13 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                                     : `Voeg een ${getHarvestTerm(props.b_lu_croprotation)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
                             </DialogDescription>
                         </DialogHeader>
+                        {props.allowBatch && props.onBatchClick && (
+                            <HarvestModeSwitchAlert 
+                                isBatchMode={false} 
+                                b_lu_croprotation={props.b_lu_croprotation} 
+                                onSwitch={props.onBatchClick} 
+                            />
+                        )}
                         <FieldSet
                             disabled={
                                 !editable ||
@@ -783,6 +784,13 @@ export function HarvestForm(props: HarvestFormDialogProps) {
 
     return (
         <div className="space-y-6">
+            {props.allowBatch && props.onBatchClick && (
+                <HarvestModeSwitchAlert 
+                    isBatchMode={false} 
+                    b_lu_croprotation={props.b_lu_croprotation} 
+                    onSwitch={props.onBatchClick} 
+                />
+            )}
             <RemixFormProvider {...form}>
                 <Form
                     id="formHarvest"

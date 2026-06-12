@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { HarvestParameters } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { ChevronLeft, Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import {
     type MouseEventHandler,
     useCallback,
@@ -48,6 +48,7 @@ import { getHarvestParameterLabel } from "./parameters"
 import { BatchFormSchema } from "./schema"
 import type { HarvestableType } from "./types"
 import { getHarvestDateTerm, getHarvestTerm } from "./utils"
+import { HarvestModeSwitchAlert } from "./mode-switch"
 
 type TableColumnName =
     | HarvestParameters[number]
@@ -694,6 +695,13 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                             : `Voeg een ${getHarvestTerm(props.b_lu_croprotation)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
                     </DialogDescription>
                 </DialogHeader>
+                {props.onBack && (
+                    <HarvestModeSwitchAlert 
+                        isBatchMode={true} 
+                        b_lu_croprotation={props.b_lu_croprotation} 
+                        onSwitch={props.onBack} 
+                    />
+                )}
                 <RemixFormProvider {...form}>
                     <fetcher.Form
                         method="post"
@@ -710,16 +718,6 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                             <BatchHarvestFormFields {...props} form={form} />
                             <HarvestFormExplainer />
                             <DialogFooter>
-                                {props.onBack && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={props.onBack}
-                                    >
-                                        <ChevronLeft />
-                                        Terug
-                                    </Button>
-                                )}
                                 <Button
                                     type="submit"
                                     disabled={
@@ -758,7 +756,15 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
     const harvests = useWatch({ control: form.control, name: "harvests" })
 
     return (
-        <RemixFormProvider {...form}>
+        <div className="space-y-6">
+            {props.onBack && (
+                <HarvestModeSwitchAlert 
+                    isBatchMode={true} 
+                    b_lu_croprotation={props.b_lu_croprotation} 
+                    onSwitch={props.onBack} 
+                />
+            )}
+            <RemixFormProvider {...form}>
             <fetcher.Form
                 id="formHarvest"
                 onSubmit={form.handleSubmit}
@@ -775,16 +781,6 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
                     </div>
                     <HarvestFormExplainer />
                     <div className="flex justify-end gap-4">
-                        {props.onBack && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={props.onBack}
-                            >
-                                <ChevronLeft />
-                                Terug
-                            </Button>
-                        )}
                         <Button
                             type="submit"
                             className="flex ml-auto"
@@ -807,5 +803,6 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
                 </fieldset>
             </fetcher.Form>
         </RemixFormProvider>
+        </div>
     )
 }

@@ -720,19 +720,6 @@ export default function FarmRotationHarvestAddIndex() {
                                                     : `Voeg ${isBatchAdd ? `nieuwe ${getTermPlural}` : `een nieuwe ${getTermSingular}`} toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
                                         </CardDescription>
                                     </div>
-                                    {canBatchAdd && (
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={() =>
-                                                setIsBatchAdd(!isBatchAdd)
-                                            }
-                                        >
-                                            {isBatchAdd
-                                                ? `Enkele ${getTermSingular} toevoegen`
-                                                : `Meerdere ${getTermPlural} toevoegen`}
-                                        </Button>
-                                    )}
                                 </CardHeader>
                                 <CardContent>
                                     {loaderData.b_lu_harvestable === "none" ? (
@@ -749,6 +736,7 @@ export default function FarmRotationHarvestAddIndex() {
                                                     loaderData.cultivation
                                                         .b_lu_croprotation
                                                 }
+                                                onBack={() => setIsBatchAdd(false)}
                                                 b_lu_start={
                                                     loaderData.b_lu_start ??
                                                     null
@@ -769,6 +757,8 @@ export default function FarmRotationHarvestAddIndex() {
                                         ) : (
                                             <HarvestForm
                                                 key={selectedFieldIds.join(",")}
+                                                allowBatch={canBatchAdd}
+                                                onBatchClick={() => setIsBatchAdd(true)}
                                                 b_lu_croprotation={
                                                     loaderData.cultivation
                                                         .b_lu_croprotation ??
