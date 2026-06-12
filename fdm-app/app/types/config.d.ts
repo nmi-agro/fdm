@@ -64,6 +64,9 @@ export interface ServerConfig {
             helpdesk_sender_name?: string
         }
     }
+    helpdesk?: {
+        enableTicketTriage: boolean
+    }
 }
 
 // Define the structure for client-safe configuration

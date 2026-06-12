@@ -86,4 +86,10 @@ export const serverConfig: ServerConfig = {
                 : {}),
         },
     },
+
+    helpdesk: {
+        enableTicketTriage: ["1", "true", "on"].includes(
+            process.env.ENABLE_TICKET_TRIAGE?.toLowerCase() ?? "",
+        ),
+    },
 }

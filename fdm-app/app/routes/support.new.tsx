@@ -115,7 +115,10 @@ export async function action({ request }: Route.ActionArgs) {
         }
 
         // Generate subject and priority if Gemini is configured
-        if (serverConfig.integrations.gemini) {
+        if (
+            serverConfig.helpdesk?.enableTicketTriage &&
+            serverConfig.integrations.gemini
+        ) {
             // If it is slow you can remove the await in the beginning
             await performTriage(
                 serverConfig.integrations.gemini.api_key,
