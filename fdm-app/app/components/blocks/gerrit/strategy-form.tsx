@@ -1,6 +1,5 @@
 import { Bot } from "lucide-react"
 import { Controller, type UseFormReturn } from "react-hook-form"
-import { Form } from "react-router"
 import { RemixFormProvider } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
 import {
@@ -53,8 +52,10 @@ export function StrategyForm({
             </CardHeader>
             <CardContent>
                 <RemixFormProvider {...form}>
-                    <Form method="post" className="space-y-8">
-                        <input type="hidden" name="intent" value="generate" />
+                    {/* form.handleSubmit from useRemixForm is (e) => … at runtime;
+                        cast needed because RHF types it as UseFormHandleSubmit */}
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    <form onSubmit={form.handleSubmit as any} className="space-y-8">
                         <div className="space-y-6">
                             {[
                                 "isOrganic",
@@ -218,7 +219,7 @@ export function StrategyForm({
                                 "Bemestingsplan genereren"
                             )}
                         </Button>
-                    </Form>
+                    </form>
                 </RemixFormProvider>
             </CardContent>
         </Card>

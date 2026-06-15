@@ -115,6 +115,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         b_bufferstrip: f.b_bufferstrip,
                         b_lu_catalogue: mainLu?.b_lu_catalogue || null,
                         b_lu_name: mainLu?.b_lu_name || null,
+                        b_lu_croprotation: mainLu?.b_lu_croprotation || null,
                         b_lu_start: mainLu?.b_lu_start
                             ? new Date(mainLu.b_lu_start)
                                   .toISOString()
@@ -202,6 +203,17 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                 b_id,
                                 advice: null,
                                 skipped: `Invalid crop catalogue for NMI nutrient advice: ${mainLu.b_lu_catalogue}`,
+                            }
+                        }
+
+                        // Skip NMI for fields with no known agricultural crop type.
+                        // This covers unknown BRP codes (null croprotation) and
+                        // nature/landscape fields which the NMI API does not support.
+                        if (!mainLu.b_lu_croprotation || mainLu.b_lu_croprotation === "nature") {
+                            return {
+                                b_id,
+                                advice: null,
+                                skipped: `Crop type not suitable for NMI nutrient advice: ${mainLu.b_lu_croprotation ?? "unknown"}`,
                             }
                         }
 
@@ -623,28 +635,39 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             nmiApiKey &&
                             isValidDutchCropCatalogue(fieldData.b_lu_catalogue)
                         ) {
-                            try {
-                                const currentSoilData =
-                                    await getCurrentSoilData(
-                                        fdm,
-                                        principalId,
-                                        fieldData.b_id,
-                                    )
-                                advice = await getNutrientAdvice(fdm, {
-                                    b_lu_catalogue:
-                                        fieldData.b_lu_catalogue || "",
-                                    b_centroid: fieldInfo.b_centroid ?? [0, 0],
-                                    currentSoilData,
-                                    nmiApiKey,
-                                    b_bufferstrip: fieldInfo.b_bufferstrip,
-                                })
-                            } catch (err) {
-                                // advice remains null if the fetch fails
-                                console.debug(
-                                    "Failed to fetch nutrient advice for field",
-                                    fieldData.b_id,
-                                    err,
-                                )
+                            // Fetch the cultivation's crop type to guard against
+                            // unknown/non-agricultural BRP codes that NMI doesn't support.
+                            const simCultivations = await getCultivations(
+                                fdm,
+                                principalId,
+                                fieldData.b_id,
+                                timeframe,
+                            )
+                            const simMainLu = getMainCultivation(simCultivations, calendar)
+                            const croprotation = simMainLu?.b_lu_croprotation
+
+                            if (!croprotation || croprotation === "nature") {
+                                adviceSkipped = `Crop type not suitable for NMI nutrient advice: ${croprotation ?? "unknown"}`
+                            } else {
+                                try {
+                                    const currentSoilData =
+                                        await getCurrentSoilData(
+                                            fdm,
+                                            principalId,
+                                            fieldData.b_id,
+                                        )
+                                    advice = await getNutrientAdvice(fdm, {
+                                        b_lu_catalogue:
+                                            fieldData.b_lu_catalogue || "",
+                                        b_centroid: fieldInfo.b_centroid ?? [0, 0],
+                                        currentSoilData,
+                                        nmiApiKey,
+                                        b_bufferstrip: fieldInfo.b_bufferstrip,
+                                    })
+                                } catch (err) {
+                                    // advice remains null if the fetch fails; not an error
+                                    adviceSkipped = `Could not fetch NMI nutrient advice for field ${fieldData.b_id}`
+                                }
                             }
                         } else if (
                             nmiApiKey &&

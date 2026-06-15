@@ -10,6 +10,8 @@ export { FertilizerPlanSchema } from "./agents/gerrit/schema"
 export type { OneShotAgentResult } from "./runners/one-shot"
 export { AgentRecursionLimitError, AgentTimeoutError } from "./runners/one-shot"
 export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
+export { runStreamAgent } from "./runners/stream"
+export type { StreamEvent } from "./runners/stream"
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */

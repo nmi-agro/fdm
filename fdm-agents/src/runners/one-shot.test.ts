@@ -30,12 +30,26 @@ function createMockAgent(chunks: Array<[string, Record<string, any>]>): any {
                 }
             })(),
         ),
+        streamEvents: vi.fn().mockResolvedValue(
+            (async function* () {
+                for (const chunk of chunks) {
+                    yield chunk
+                }
+            })(),
+        ),
     }
 }
 
 function createThrowingAgent(error: Error): any {
     return {
         stream: vi.fn().mockResolvedValue(
+            (async function* () {
+                throw error
+                // biome-ignore lint: unreachable but needed for generator type
+                yield ["updates", {}] as any
+            })(),
+        ),
+        streamEvents: vi.fn().mockResolvedValue(
             (async function* () {
                 throw error
                 // biome-ignore lint: unreachable but needed for generator type
@@ -246,6 +260,12 @@ describe("runOneShotAgent", () => {
                 (async function* () {
                     await new Promise(() => {})
                     yield ["updates", {}] as any
+                })(),
+            ),
+            streamEvents: vi.fn().mockResolvedValue(
+                (async function* () {
+                    await new Promise(() => {})
+                    yield {} as any
                 })(),
             ),
         }
