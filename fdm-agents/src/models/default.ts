@@ -11,5 +11,10 @@ export function createDefaultModel(apiKey?: string, model?: string) {
         model: model ?? "gemini-3.1-pro-preview",
         apiKey: apiKey,
         maxOutputTokens: 65536,
+        // Surface the model's reasoning ("thoughts") so the streaming UI can
+        // show Gerrit's agronomic thinking steps in real time.
+        thinkingConfig: {
+            includeThoughts: true,
+        },
     })
 }

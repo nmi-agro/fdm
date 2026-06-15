@@ -3,7 +3,7 @@ import type { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import type { AgentGraph } from "../agents/gerrit/agent"
 
 export interface StreamEvent {
-    event: "on_chat_model_stream" | "on_tool_start" | "on_tool_end" | "on_chain_end" | "complete" | "error"
+    event: "on_chat_model_stream" | "reasoning" | "on_tool_start" | "on_tool_end" | "on_chain_end" | "complete" | "error"
     data?: any
 }
 
@@ -78,17 +78,20 @@ export async function* runStreamAgent(
 
             if (eventType === "on_chat_model_stream") {
                 const content = data?.chunk?.content
-                if (content && typeof content === "string") {
-                    yield {
-                        event: "on_chat_model_stream",
-                        data: { chunk: content },
-                    }
-                } else if (Array.isArray(content)) {
+                // With reasoning enabled, streamed content is an array of parts.
+                // Surface only "thinking" parts as reasoning; the final answer
+                // text (plan JSON / structured response) is intentionally not
+                // shown in the live feed — it is delivered via on_chain_end.
+                if (Array.isArray(content)) {
                     for (const part of content) {
-                        if (part?.type === "text" && typeof part.text === "string") {
+                        if (
+                            part?.type === "thinking" &&
+                            typeof part.thinking === "string" &&
+                            part.thinking
+                        ) {
                             yield {
-                                event: "on_chat_model_stream",
-                                data: { chunk: part.text },
+                                event: "reasoning",
+                                data: { chunk: part.thinking },
                             }
                         }
                     }

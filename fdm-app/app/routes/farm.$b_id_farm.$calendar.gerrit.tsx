@@ -282,16 +282,17 @@ export default function GerritApp() {
 
     const addEvent = useCallback((type: string, payload: any) => {
         setEvents((prev) => {
-            // Coalesce consecutive on_chat_model_stream chunks into one entry
+            // Coalesce consecutive reasoning chunks into one entry so the
+            // accumulated thinking text grows in place instead of spawning rows.
             if (
-                type === "on_chat_model_stream" &&
+                type === "reasoning" &&
                 prev.length > 0 &&
-                prev[prev.length - 1].type === "on_chat_model_stream"
+                prev[prev.length - 1].type === "reasoning"
             ) {
                 const next = [...prev]
                 const last = next[next.length - 1]
                 next[next.length - 1] = {
-                    type: "on_chat_model_stream",
+                    type: "reasoning",
                     data: { chunk: (last.data?.chunk ?? "") + (payload?.chunk ?? "") },
                 }
                 return next
@@ -323,8 +324,8 @@ export default function GerritApp() {
             try { addEvent("status", JSON.parse(e.data)) } catch {}
         }) as EventListener)
 
-        es.addEventListener("on_chat_model_stream", ((e: MessageEvent) => {
-            try { addEvent("on_chat_model_stream", JSON.parse(e.data)) } catch {}
+        es.addEventListener("reasoning", ((e: MessageEvent) => {
+            try { addEvent("reasoning", JSON.parse(e.data)) } catch {}
         }) as EventListener)
 
         es.addEventListener("on_tool_start", ((e: MessageEvent) => {
