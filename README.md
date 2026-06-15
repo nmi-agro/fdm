@@ -28,6 +28,8 @@ FDM comprises several interconnected packages, each serving a distinct purpose:
 
 * **`fdm-agents`**: Provides a framework for strategic decision support using Agentic AI. It combines Large Language Models (LLMs) with the FDM's deterministic calculation engine to assist in making complex farm management decisions, starting with Gerrit, the fertilizer application planner.
 
+* **`fdm-helpdesk`**: A helpdesk back-end that works independently of `fdm-core` that can be used to implement a support helpdesk. A TypeScript library designed for seamless integration into various applications. Manages the CRUD functionality specific to the helpdesk and has an extensive authorization system specific to the helpdesk's needs. It uses its own data and migration database schemas therefore it can easily be added onto the same database as `fdm-core`.
+
 * **`fdm-app`**: A React application offering a user-friendly interface for visualizing and managing farm data.  Utilizes `fdm-core` for database interaction and provides a practical demonstration of FDM's capabilities.
 
 * **`fdm-docs`:** Houses the comprehensive documentation for the entire FDM project.
