@@ -23,6 +23,7 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
 import {
     type CropRow,
     columns,
@@ -159,10 +160,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                 const harvests = (
                     await Promise.all(
                         cultivations.map(async (cultivation) => {
-                            const b_lu_harvestable =
+                            const b_lu_harvestable = getEffectiveHarvestable(
                                 getHarvestabilityFromCatalogue(
                                     cultivation.b_lu_catalogue,
-                                )
+                                ),
+                                cultivation.b_lu_croprotation ?? ""
+                            )
 
                             return getHarvests(
                                 fdm,
@@ -284,8 +287,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
                 const b_lu_eom_residue =
                     cultivationsForCatalogue[0]?.b_lu_eom_residue
-                const b_lu_harvestable =
-                    getHarvestabilityFromCatalogue(b_lu_catalogue)
+                const b_lu_croprotation =
+                    cultivationsForCatalogue[0]?.b_lu_croprotation ?? ""
+                const b_lu_harvestable = getEffectiveHarvestable(
+                    getHarvestabilityFromCatalogue(b_lu_catalogue),
+                    b_lu_croprotation
+                )
                 return {
                     type: "crop",
                     canModify: farmWritePermission,
@@ -302,8 +309,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                                 value: option,
                                 label: option,
                             })) ?? null,
-                    b_lu_croprotation:
-                        cultivationsForCatalogue[0]?.b_lu_croprotation ?? "",
+                    b_lu_croprotation: b_lu_croprotation,
                     b_lu_eom_residue: b_lu_eom_residue,
                     b_lu_harvestable: b_lu_harvestable,
                     calendar: calendar,
