@@ -6,7 +6,9 @@ import {
     type MetaFunction,
     useLoaderData,
     useParams,
+    NavLink,
 } from "react-router"
+import { Map } from "lucide-react"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
 import { AggregationPainpoints } from "~/components/blocks/indicators/aggregation-painpoints"
@@ -19,6 +21,7 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
 import { Switch } from "~/components/ui/switch"
+import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { getSession } from "~/lib/auth.server"
@@ -194,7 +197,12 @@ export default function IndicatorsFarmIndex() {
             <FarmTitle
                 title="Indicatoren"
                 description="BLN3 bodemkwaliteitsindicatoren voor alle percelen op dit bedrijf."
-                rightNode={<Bln3BetaBanner />}
+                rightNode={
+                    <div className="flex items-center gap-2">
+                        <Bln3BetaBanner />
+                        <Bln3HelpDialog />
+                    </div>
+                }
             />
 
             <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
@@ -205,7 +213,12 @@ export default function IndicatorsFarmIndex() {
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-base font-bold">Bedrijfsgemiddelde score</CardTitle>
-                                    <Bln3HelpDialog />
+                                    <Button asChild variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                                        <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}>
+                                            <Map className="h-3.5 w-3.5" />
+                                            Kaartweergave
+                                        </NavLink>
+                                    </Button>
                                 </div>
                                 {/* <CardDescription className="text-xs">
                                     Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 

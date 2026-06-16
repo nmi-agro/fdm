@@ -8,9 +8,12 @@ import {
     type MetaFunction,
     useLoaderData,
     useParams,
+    Link,
 } from "react-router"
+import { LayoutList } from "lucide-react"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { Card, CardContent } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
 import {
     Select,
     SelectContent,
@@ -178,13 +181,14 @@ export default function AtlasIndicatorsMap() {
             {/* Floating indicator selector + info banner */}
             <Card className="absolute top-3 left-3 z-10 w-64 shadow-md bg-background/90 backdrop-blur-sm">
                 <CardContent className="p-2 space-y-2">
-                    <Select
-                        value={selectedProperty}
-                        onValueChange={setSelectedProperty}
-                    >
-                        <SelectTrigger className="w-full text-xs h-8">
-                            <SelectValue />
-                        </SelectTrigger>
+                    <div className="flex items-center gap-2">
+                        <Select
+                            value={selectedProperty}
+                            onValueChange={setSelectedProperty}
+                        >
+                            <SelectTrigger className="flex-1 text-xs h-8">
+                                <SelectValue />
+                            </SelectTrigger>
                         <SelectContent className="max-h-[380px] overflow-y-auto">
                             <SelectItem value="avgScore">
                                 Gemiddelde score
@@ -282,6 +286,12 @@ export default function AtlasIndicatorsMap() {
                             </SelectGroup>
                         </SelectContent>
                     </Select>
+                        <Button asChild variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Tabelweergave">
+                            <Link to={basePath}>
+                                <LayoutList className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </div>
                     <Bln3BetaBanner />
                 </CardContent>
             </Card>
