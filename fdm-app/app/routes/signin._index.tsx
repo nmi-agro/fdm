@@ -360,8 +360,8 @@ export default function SignIn() {
                                                         "microsoft",
                                                     )
                                                     try {
-                                                        await signIn.social({
-                                                            provider:
+                                                        await signIn.oauth2({
+                                                            providerId:
                                                                 "microsoft",
                                                             callbackURL:
                                                                 redirectTo,
