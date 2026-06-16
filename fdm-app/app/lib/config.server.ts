@@ -1,5 +1,45 @@
 import type { ServerConfig } from "~/types/config.d"
 
+// ---------------------------------------------------------------------------
+// Microsoft cert config — validated at startup so misconfigurations surface
+// immediately rather than during the first sign-in attempt.
+// ---------------------------------------------------------------------------
+function buildMicrosoftConfig(): ServerConfig["auth"]["microsoft"] {
+    if (!process.env.MS_CLIENT_ID) return undefined
+
+    if (!process.env.MS_PRIVATE_KEY) {
+        throw new Error(
+            "MS_PRIVATE_KEY is required when MS_CLIENT_ID is set. " +
+                "Set MS_PRIVATE_KEY to the PKCS#8 PEM private key or a path to the PEM file.",
+        )
+    }
+
+    const base = {
+        clientId: process.env.MS_CLIENT_ID,
+        tenantId: process.env.MS_TENANT_ID || "common",
+        privateKey: process.env.MS_PRIVATE_KEY,
+    }
+
+    if (process.env.MS_CERTIFICATE) {
+        return {
+            ...base,
+            certificate: process.env.MS_CERTIFICATE,
+            ...(process.env.MS_CERT_THUMBPRINT && {
+                certThumbprint: process.env.MS_CERT_THUMBPRINT,
+            }),
+        }
+    }
+
+    if (process.env.MS_CERT_THUMBPRINT) {
+        return { ...base, certThumbprint: process.env.MS_CERT_THUMBPRINT }
+    }
+
+    throw new Error(
+        "Either MS_CERTIFICATE (public certificate PEM or path) or " +
+            "MS_CERT_THUMBPRINT (base64url SHA-1 thumbprint) is required when MS_CLIENT_ID is set.",
+    )
+}
+
 // Export the full config for server-side use
 export const serverConfig: ServerConfig = {
     name: String(process.env.PUBLIC_FDM_NAME),
@@ -15,10 +55,7 @@ export const serverConfig: ServerConfig = {
             clientId: String(process.env.GOOGLE_CLIENT_ID),
             clientSecret: String(process.env.GOOGLE_CLIENT_SECRET),
         },
-        microsoft: {
-            clientId: String(process.env.MS_CLIENT_ID),
-            clientSecret: String(process.env.MS_CLIENT_SECRET),
-        },
+        microsoft: buildMicrosoftConfig(),
     },
 
     // Database

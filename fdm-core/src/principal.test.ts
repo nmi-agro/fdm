@@ -30,7 +30,9 @@ describe("Principals", () => {
         }
         const microsoftAuth = {
             clientId: "mock_ms_client_id",
-            clientSecret: "mock_ms_client_secret",
+            tenantId: "common",
+            privateKey: "mock_ms_private_key",
+            certThumbprint: "mock_ms_thumbprint",
         }
 
         fdmAuth = createFdmAuth(fdm, googleAuth, microsoftAuth, undefined, true)
