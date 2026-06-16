@@ -69,6 +69,10 @@ function buildCallbacks(
             new LangChainCallbackHandler({
                 client: posthog.client,
                 distinctId: posthog.distinctId,
+                // Avoid sending the (very large) LLM input/output payloads to
+                // PostHog — reasoning + tool results exceed the event size limit
+                // and cause 413 errors. Usage and metadata are still captured.
+                privacyMode: true,
                 properties: {
                     b_id_farm: context?.b_id_farm,
                 },

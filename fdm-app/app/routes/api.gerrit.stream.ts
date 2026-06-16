@@ -146,7 +146,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                     return
                 }
 
-                sendEvent("status", { message: "Gerrit start met het berekenen van het plan..." })
+                sendEvent("status", { message: "Gerrit start met het berekenen van het plan...", phase: "planning" })
 
                 const agent = createFertilizerPlannerAgent(fdm, serverConfig.integrations.gemini?.api_key, modelName)
                 const prompt = buildFertilizerPlanPrompt({ b_id_farm }, strategies, calendar, additionalContext, fieldsSummary)
@@ -159,7 +159,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
                     additionalContext: additionalContext ?? "",
                 }
 
-                const agentStream = runStreamAgent(agent, prompt, agentContext)
+                const agentStream = runStreamAgent(
+                    agent,
+                    prompt,
+                    agentContext,
+                    posthog
+                        ? { client: posthog, distinctId: session.principal_id }
+                        : undefined,
+                )
 
                 let rawResult = ""
                 let structuredResponse: Record<string, unknown> | undefined
@@ -262,7 +269,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                     }
                 })
 
-                sendEvent("status", { message: "Plan berekenen en doorrekenen..." })
+                sendEvent("status", { message: "Plan berekenen en doorrekenen...", phase: "finalize" })
 
                 const serverMetrics = await computePlanMetrics(
                     session.principal_id,

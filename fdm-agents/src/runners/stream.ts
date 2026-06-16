@@ -2,6 +2,25 @@ import { randomUUID } from "node:crypto"
 import type { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import type { AgentGraph } from "../agents/gerrit/agent"
 
+/**
+ * Extracts the final text string from an AI message content value.
+ * @langchain/google-genai can return content as an array of parts
+ * (e.g. [{type:"thinking",...},{type:"text",text:"..."}]) instead of a plain
+ * string. This returns the last text part, ignoring thinking parts.
+ */
+function extractTextContent(content: unknown): string {
+    if (typeof content === "string") return content
+    if (Array.isArray(content)) {
+        for (let i = content.length - 1; i >= 0; i--) {
+            const part = content[i] as Record<string, unknown>
+            if (part?.type === "text" && typeof part.text === "string")
+                return part.text
+            if (typeof part === "string") return part
+        }
+    }
+    return ""
+}
+
 export interface StreamEvent {
     event: "on_chat_model_stream" | "reasoning" | "on_tool_start" | "on_tool_end" | "on_chain_end" | "complete" | "error"
     data?: any
@@ -24,6 +43,10 @@ function buildCallbacks(
             new LangChainCallbackHandler({
                 client: posthog.client,
                 distinctId: posthog.distinctId,
+                // Avoid sending the (very large) LLM input/output payloads to
+                // PostHog — reasoning + tool results exceed the event size limit
+                // and cause 413 errors. Usage and metadata are still captured.
+                privacyMode: true,
                 properties: {
                     b_id_farm: context?.b_id_farm,
                 },
@@ -73,15 +96,21 @@ export async function* runStreamAgent(
             },
         ) as AsyncIterable<Record<string, any>>
 
-        for await (const event of stream) {
-            const { event: eventType, name, data } = event
+        // Robustly capture the final plan payload. The agent state exposes
+        // `structuredResponse` (from the responseFormat tool) and `messages`.
+        // We capture from ANY on_chain_end that carries them (last one wins)
+        // rather than matching a specific chain name, which is brittle.
+        let structuredResponse: Record<string, unknown> | undefined
+        let finalText = ""
 
-            if (eventType === "on_chat_model_stream") {
-                const content = data?.chunk?.content
-                // With reasoning enabled, streamed content is an array of parts.
-                // Surface only "thinking" parts as reasoning; the final answer
-                // text (plan JSON / structured response) is intentionally not
-                // shown in the live feed — it is delivered via on_chain_end.
+        for await (const event of stream) {
+            const { event: eventType, data } = event
+
+            if (eventType === "on_chat_model_end") {
+                // Inside the agent graph, "thinking" (reasoning) parts are only
+                // present on the completed message, NOT on the streamed chunks.
+                // Emit one reasoning event per thinking part of each model turn.
+                const content = data?.output?.content
                 if (Array.isArray(content)) {
                     for (const part of content) {
                         if (
@@ -91,7 +120,7 @@ export async function* runStreamAgent(
                         ) {
                             yield {
                                 event: "reasoning",
-                                data: { chunk: part.thinking },
+                                data: { chunk: `${part.thinking}\n\n` },
                             }
                         }
                     }
@@ -99,22 +128,29 @@ export async function* runStreamAgent(
             } else if (eventType === "on_tool_start") {
                 yield {
                     event: "on_tool_start",
-                    data: { name, inputs: data?.input },
+                    data: { name: event.name, inputs: data?.input },
                 }
             } else if (eventType === "on_tool_end") {
                 yield {
                     event: "on_tool_end",
-                    data: { name, output: data?.output },
+                    data: { name: event.name, output: data?.output },
                 }
             } else if (eventType === "on_chain_end") {
-                // Return structuredResponse if it's the main agent graph
-                if (name === "Gerrit" && data?.output?.structuredResponse) {
-                    yield {
-                        event: "on_chain_end",
-                        data: { structuredResponse: data.output.structuredResponse, result: data.output.result },
-                    }
+                const output = data?.output
+                if (output?.structuredResponse) {
+                    structuredResponse = output.structuredResponse
+                }
+                if (Array.isArray(output?.messages)) {
+                    const lastMessage = output.messages.at(-1)
+                    const text = extractTextContent(lastMessage?.content)
+                    if (text) finalText = text
                 }
             }
+        }
+
+        yield {
+            event: "on_chain_end",
+            data: { structuredResponse, result: finalText },
         }
     } catch (err: unknown) {
         let message = "Unknown error"

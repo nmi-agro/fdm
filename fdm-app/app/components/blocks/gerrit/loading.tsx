@@ -53,6 +53,7 @@ interface DerivedState {
     reasoning: string
     statusMessage: string | null
     hasStarted: boolean
+    finalizing: boolean
 }
 
 function deriveState(events: StreamEvent[]): DerivedState {
@@ -60,6 +61,7 @@ function deriveState(events: StreamEvent[]): DerivedState {
     let reasoning = ""
     let statusMessage: string | null = null
     let hasStarted = false
+    let finalizing = false
 
     for (const event of events) {
         if (event.type === "on_tool_start") {
@@ -83,55 +85,90 @@ function deriveState(events: StreamEvent[]): DerivedState {
         } else if (event.type === "status" || event.type === "start") {
             statusMessage = event.data?.message ?? statusMessage
             hasStarted = true
+            if (event.data?.phase === "finalize") finalizing = true
         }
     }
 
-    return { steps, reasoning, statusMessage, hasStarted }
+    return { steps, reasoning, statusMessage, hasStarted, finalizing }
 }
 
-function phaseState(
-    phase: { id: string; tools: string[] },
+function phaseCount(
+    phase: { tools: string[] },
     derived: DerivedState,
-    anyToolRunning: boolean,
-    allKnownToolsDone: boolean,
-): { status: PhaseStatus; count: number } {
-    // Connect phase: active until the first tool starts, then done.
-    if (phase.id === "connect") {
-        const toolStep = derived.steps.get("getFarmFields")
-        const otherToolStarted = [...derived.steps.keys()].some(
-            (k) => k !== "getFarmFields",
-        )
-        if (toolStep?.status === "done" || otherToolStarted) {
-            return { status: "done", count: toolStep?.count ?? 0 }
-        }
-        if (derived.hasStarted) {
-            return { status: "active", count: toolStep?.count ?? 0 }
-        }
-        return { status: "pending", count: 0 }
-    }
-
-    // Finalize phase: active once the core tools are done and Gerrit is wrapping
-    // up (no tool currently running), otherwise pending.
-    if (phase.id === "finalize") {
-        if (allKnownToolsDone && !anyToolRunning && derived.steps.size > 0) {
-            return { status: "active", count: 0 }
-        }
-        return { status: "pending", count: 0 }
-    }
-
+): number {
     let count = 0
-    let running = false
-    let done = false
     for (const tool of phase.tools) {
         const step = derived.steps.get(tool)
-        if (!step) continue
-        count += step.count
-        if (step.status === "running") running = true
-        if (step.status === "done") done = true
+        if (step) count += step.count
     }
-    if (running) return { status: "active", count }
-    if (done) return { status: "done", count }
-    return { status: "pending", count }
+    return count
+}
+
+/**
+ * Computes monotonic phase statuses from the live events. Progress only ever
+ * moves forward: a phase is `done` once a later phase has begun (or once the
+ * server signals finalization), the single furthest-reached phase is `active`
+ * (it stays active during inter-tool "thinking" gaps so the UI never flickers
+ * back to "Plan afronden"), and the rest are `pending`. The `finalize` phase
+ * activates only on the explicit server `phase: "finalize"` signal.
+ */
+function computePhases(
+    derived: DerivedState,
+): { id: string; label: string; status: PhaseStatus; count: number }[] {
+    // Tool-bearing phases are indices 1..(PHASES.length - 2); index 0 is the
+    // connect phase and the last index is finalize.
+    const lastToolIndex = PHASES.length - 2
+
+    let reachedIndex = -1
+    for (let i = 1; i <= lastToolIndex; i++) {
+        const reached = PHASES[i].tools.some((t) => derived.steps.has(t))
+        if (reached) reachedIndex = i
+    }
+
+    return PHASES.map((phase, index) => {
+        const count = phaseCount(phase, derived)
+
+        // Connect phase.
+        if (index === 0) {
+            if (derived.finalizing || reachedIndex >= 1) {
+                return { ...phase, status: "done" as PhaseStatus, count }
+            }
+            if (derived.hasStarted) {
+                return { ...phase, status: "active" as PhaseStatus, count }
+            }
+            return { ...phase, status: "pending" as PhaseStatus, count }
+        }
+
+        // Finalize phase (last).
+        if (index === PHASES.length - 1) {
+            return {
+                ...phase,
+                status: (derived.finalizing
+                    ? "active"
+                    : "pending") as PhaseStatus,
+                count,
+            }
+        }
+
+        // Tool phases: active only while the tool is actually running. During
+        // the "thinking" gap after a tool ends (before the next one starts) the
+        // phase shows as done and a separate "denkt na" indicator conveys that
+        // Gerrit is reasoning — so a long wait never looks like a hung tool.
+        if (derived.finalizing || index < reachedIndex) {
+            return { ...phase, status: "done" as PhaseStatus, count }
+        }
+        if (index === reachedIndex) {
+            const running = phase.tools.some(
+                (t) => derived.steps.get(t)?.status === "running",
+            )
+            return {
+                ...phase,
+                status: (running ? "active" : "done") as PhaseStatus,
+                count,
+            }
+        }
+        return { ...phase, status: "pending" as PhaseStatus, count }
+    })
 }
 
 export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
@@ -158,24 +195,21 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
         }
     }, [derived.reasoning, reasoningOpen])
 
-    const anyToolRunning = [...derived.steps.values()].some(
-        (s) => s.status === "running",
-    )
-    const knownTools = PHASES.flatMap((p) => p.tools)
-    const startedKnownTools = knownTools.filter((t) => derived.steps.has(t))
-    const allKnownToolsDone =
-        startedKnownTools.length > 0 &&
-        startedKnownTools.every(
-            (t) => derived.steps.get(t)?.status === "done",
-        )
-
-    const phases = PHASES.map((p) => ({
-        ...p,
-        ...phaseState(p, derived, anyToolRunning, allKnownToolsDone),
-    }))
+    const phases = useMemo(() => computePhases(derived), [derived])
 
     const doneCount = phases.filter((p) => p.status === "done").length
     const progressValue = Math.round((doneCount / phases.length) * 100)
+
+    const anyToolRunning = [...derived.steps.values()].some(
+        (s) => s.status === "running",
+    )
+    // Gerrit is "thinking" when at least one tool has run, none is currently
+    // running, and we are not yet finalizing — i.e. an inter-tool reasoning gap.
+    const isThinking =
+        derived.hasStarted &&
+        !anyToolRunning &&
+        !derived.finalizing &&
+        derived.steps.size > 0
 
     const elapsedStr =
         elapsed >= 60
@@ -185,6 +219,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
     const reasoningPreview = derived.reasoning
         .trim()
         .split("\n")
+        .map((l) => l.replace(/[*#`]/g, "").trim())
         .filter(Boolean)
         .pop()
 
@@ -258,29 +293,45 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
                     ))}
                 </ol>
 
-                {/* Reasoning (Gerrit's thinking) */}
+                {/* Reasoning (Gerrit's thinking) — collapsed by default. While
+                    Gerrit reasons between tools the trigger turns into a pulsing
+                    "denkt na" indicator + live preview, doubling as the obvious
+                    click target to reveal the full thoughts. */}
                 {derived.reasoning.trim() && (
                     <Collapsible
                         open={reasoningOpen}
                         onOpenChange={setReasoningOpen}
-                        className="rounded-md border bg-muted/30"
+                        className={cn(
+                            "rounded-md border bg-muted/30",
+                            isThinking && "border-primary/40 bg-primary/5",
+                        )}
                     >
-                        <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm">
-                            <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-                            <span className="font-medium text-foreground">
-                                Gerrit's overwegingen
-                            </span>
-                            <span className="flex-1 truncate text-muted-foreground">
-                                {!reasoningOpen && reasoningPreview
-                                    ? `— ${reasoningPreview}`
-                                    : ""}
-                            </span>
-                            <ChevronDown
+                        <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors rounded-md">
+                            <Sparkles
                                 className={cn(
-                                    "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                                    reasoningOpen && "rotate-180",
+                                    "h-4 w-4 shrink-0 text-primary",
+                                    isThinking && "animate-pulse",
                                 )}
                             />
+                            <span className="font-medium text-foreground shrink-0">
+                                {isThinking
+                                    ? "Gerrit denkt na over de resultaten…"
+                                    : "Gerrit's overwegingen"}
+                            </span>
+                            {!reasoningOpen && reasoningPreview && (
+                                <span className="flex-1 truncate text-muted-foreground/80 italic">
+                                    {reasoningPreview}
+                                </span>
+                            )}
+                            <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-primary">
+                                {reasoningOpen ? "Verbergen" : "Bekijken"}
+                                <ChevronDown
+                                    className={cn(
+                                        "h-4 w-4 transition-transform",
+                                        reasoningOpen && "rotate-180",
+                                    )}
+                                />
+                            </span>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <div
