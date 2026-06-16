@@ -14,7 +14,7 @@ catalogs:
       version: 1.69.1
     '@types/node':
       specifier: ^25.9.1
-      version: 25.9.1
+      version: 25.7.0
     '@vitest/coverage-v8':
       specifier: 4.1.7
       version: 4.1.7
@@ -27,6 +27,9 @@ catalogs:
     drizzle-orm:
       specifier: ^0.45.2
       version: 0.45.2
+    jose:
+      specifier: ^6.2.3
+      version: 6.2.3
     tsdown:
       specifier: ^0.22.0
       version: 0.22.0
@@ -41,7 +44,7 @@ catalogs:
       version: 6.0.3
     vitest:
       specifier: ^4.1.7
-      version: 4.1.7
+      version: 4.1.6
 
 importers:
 
@@ -531,6 +534,9 @@ importers:
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(kysely@0.28.17)(postgres@3.4.9)
+      jose:
+        specifier: 'catalog:'
+        version: 6.2.3
       nanoid:
         specifier: ^5.1.11
         version: 5.1.11

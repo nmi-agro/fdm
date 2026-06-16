@@ -38,7 +38,9 @@ describe("autoAcceptInvitationsForNewUser", () => {
         }
         const microsoftAuth = {
             clientId: "mock_ms_client_id",
-            clientSecret: "mock_ms_client_secret",
+            tenantId: "common",
+            privateKey: "mock_ms_private_key",
+            certThumbprint: "mock_ms_thumbprint",
         }
         fdmAuth = createFdmAuth(fdm, googleAuth, microsoftAuth, undefined, true)
 
@@ -267,7 +269,9 @@ describe("acceptInvitation", () => {
             },
             {
                 clientId: "mock_ms_client_id",
-                clientSecret: "mock_ms_client_secret",
+                tenantId: "common",
+                privateKey: "mock_ms_private_key",
+                certThumbprint: "mock_ms_thumbprint",
             },
             undefined,
             true,
@@ -508,7 +512,9 @@ describe("declineInvitation", () => {
             },
             {
                 clientId: "mock_ms_client_id",
-                clientSecret: "mock_ms_client_secret",
+                tenantId: "common",
+                privateKey: "mock_ms_private_key",
+                certThumbprint: "mock_ms_thumbprint",
             },
             undefined,
             true,
@@ -766,7 +772,9 @@ describe("listPendingInvitationsForPrincipal", () => {
             },
             {
                 clientId: "mock_ms_client_id",
-                clientSecret: "mock_ms_client_secret",
+                tenantId: "common",
+                privateKey: "mock_ms_private_key",
+                certThumbprint: "mock_ms_thumbprint",
             },
             undefined,
             true,
@@ -903,7 +911,9 @@ describe("createInvitation spam prevention", () => {
         }
         const microsoftAuth = {
             clientId: "mock_ms_client_id",
-            clientSecret: "mock_ms_client_secret",
+            tenantId: "common",
+            privateKey: "mock_ms_private_key",
+            certThumbprint: "mock_ms_thumbprint",
         }
         fdmAuth = createFdmAuth(fdm, googleAuth, microsoftAuth, undefined, true)
 
