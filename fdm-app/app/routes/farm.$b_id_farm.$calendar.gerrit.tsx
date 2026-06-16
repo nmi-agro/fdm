@@ -597,8 +597,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // If Gerrit is explicitly disabled for this user reject the request
     const isGerritEnabled =
-        (await posthog?.isFeatureEnabled("gerrit", session.principal_id)) ??
-        true
+        (
+            await posthog?.evaluateFlags(session.principal_id, {
+                flagKeys: ["gerrit"],
+            })
+        )?.isEnabled("gerrit") ?? true
     if (!isGerritEnabled) {
         throw data(null, {
             status: 403,
