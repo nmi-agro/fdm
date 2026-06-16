@@ -26,7 +26,7 @@ export const auth: FdmAuth = createFdmAuth(
 // Strip .data and _.data suffixes that v8_passThroughRequests leaves on data
 // request pathnames so they are not included in redirectTo parameters.
 function normalizePathname(pathname: string): string {
-    return pathname.replace(/\/_.data$/, "/").replace(/\.data$/, "")
+    return pathname.replace(/\/_\.data$/, "/").replace(/\.data$/, "")
 }
 
 // Get the session
