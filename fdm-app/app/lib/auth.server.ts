@@ -23,6 +23,12 @@ export const auth: FdmAuth = createFdmAuth(
     sendWelcomeEmailToUser,
 )
 
+// Strip .data and _.data suffixes that v8_passThroughRequests leaves on data
+// request pathnames so they are not included in redirectTo parameters.
+function normalizePathname(pathname: string): string {
+    return pathname.replace(/\/_.data$/, "/").replace(/\.data$/, "")
+}
+
 // Get the session
 export async function getSession(request: Request): Promise<FdmSession> {
     const session = await auth.api.getSession({
@@ -77,8 +83,9 @@ export async function checkSession(
     request: Request,
 ): Promise<undefined | Response> {
     if (!session?.user) {
-        // Get the original URL the user tried to access
-        const currentPath = new URL(request.url).pathname
+        // Get the original URL the user tried to access, stripping any .data
+        // suffix that v8_passThroughRequests leaves on data-request pathnames.
+        const currentPath = normalizePathname(new URL(request.url).pathname)
         // Construct the sign-in URL with the redirectTo parameter
         const signInUrl = `/signin?redirectTo=${encodeURIComponent(currentPath)}`
         // Perform the redirect
@@ -87,7 +94,7 @@ export async function checkSession(
     // Check if profile is complete, otherwise redirect to welcome page
     if (!session.user.firstname || !session.user.surname) {
         // Get the original URL the user tried to access
-        const currentPath = new URL(request.url).pathname
+        const currentPath = normalizePathname(new URL(request.url).pathname)
         // Construct the welcome URL with the redirectTo parameter
         const welcomeUrl = `/welcome?redirectTo=${encodeURIComponent(currentPath)}`
         console.log(`Redirecting to ${welcomeUrl}`)
