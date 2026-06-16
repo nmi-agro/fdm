@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { ChevronDown, ChevronRight, Info } from "lucide-react"
+import { Link } from "react-router"
+import { ChevronDown, ChevronRight, Info, CornerDownRight } from "lucide-react"
 import { cn } from "~/lib/utils"
 import {
     type AggregationId,
@@ -12,6 +13,7 @@ import {
     getScoreBarClass,
     getScoreBadgeClass,
     getScoreDotClass,
+    getScoreTextClass,
     getScoreVerdict,
     scoreToDisplay,
     getIndicatorInfo,
@@ -30,6 +32,12 @@ import {
 import { Progress } from "~/components/ui/progress"
 import { Badge } from "~/components/ui/badge"
 
+type FieldEntry = {
+    b_id: string
+    b_name: string | null | undefined
+    b_area: number | null
+}
+
 type AggregationTreeProps = {
     /** Accessor to get aggregation score (0-1) */
     scoreOf: (id: AggregationId) => number | null
@@ -37,12 +45,21 @@ type AggregationTreeProps = {
     indicatorScoreOf?: (id: string) => number | null
     /** Optional callback when an indicator is clicked */
     onIndicatorClick?: (id: string) => void
+    /** List of fields for drill-down (top-5 worst fields per indicator) */
+    fields?: FieldEntry[]
+    /** Raw field scores for per-field indicator lookup */
+    fieldScores?: Array<{ b_id: string; score: { indicators: Array<{ indicator_id: string; score: number | null }> } | null }>
+    /** Base path for field links, e.g. /farm/123/2026/indicators */
+    basePath?: string
 }
 
 export function AggregationTree({
     scoreOf,
     indicatorScoreOf,
     onIndicatorClick,
+    fields,
+    fieldScores,
+    basePath,
 }: AggregationTreeProps) {
     // Keep track of expanded state for branches and leaves
     const [expanded, setExpanded] = useState<Record<string, boolean>>({
@@ -194,7 +211,7 @@ export function AggregationTree({
                             {indicatorIds.map((indId) => {
                                 const indInfo = getIndicatorInfo(indId)
                                 if (!indInfo) return null
-                                const indScoreVal = indicatorScoreOf(indId)
+                                const indScoreVal = indicatorScoreOf!(indId)
                                 const indDisplay =
                                     indScoreVal !== null
                                         ? scoreToDisplay(indScoreVal)
@@ -208,67 +225,152 @@ export function AggregationTree({
                                                 getAggregationInfo(aId).name.split(" ")[0],
                                         )
 
+                                // Top-5 worst-impact fields for this indicator
+                                const hasFieldData = !!(fields && fieldScores && basePath)
+                                const indKey = `ind:${indId}`
+                                const isIndExpanded = !!expanded[indKey]
+
+                                const worstFields = hasFieldData
+                                    ? fields!
+                                        .map((field) => {
+                                            const fs = fieldScores!.find((s) => s.b_id === field.b_id)
+                                            const rawScore = fs?.score?.indicators.find(
+                                                (i) => i.indicator_id === indId,
+                                            )?.score
+                                            if (rawScore == null || Number.isNaN(rawScore)) return null
+                                            const display = scoreToDisplay(rawScore)
+                                            const impact =
+                                                field.b_area != null && field.b_area > 0
+                                                    ? (100 - display) * field.b_area
+                                                    : null
+                                            return { ...field, display, impact }
+                                        })
+                                        .filter((f): f is NonNullable<typeof f> & { impact: number } =>
+                                            f !== null && f.impact !== null,
+                                        )
+                                        .sort((a, b) => b.impact - a.impact)
+                                        .slice(0, 5)
+                                    : []
+
+                                const indHeaderPl = `${Math.max(10, (depth + 1) * 16 + 10)}px`
+
                                 return (
-                                    <button
-                                        type="button"
+                                    <Collapsible
                                         key={indId}
-                                        onClick={() => onIndicatorClick?.(indId)}
-                                        className={cn(
-                                            "w-full flex items-center justify-between gap-3 p-2 rounded-md border border-dashed bg-card hover:bg-muted/40 transition-colors text-xs text-left",
-                                            onIndicatorClick ? "cursor-pointer" : "",
-                                        )}
-                                        style={{
-                                            paddingLeft: `${Math.max(10, (depth + 1) * 16 + 10)}px`,
-                                        }}
+                                        open={isIndExpanded}
+                                        onOpenChange={(open) => toggleNode(indKey, open)}
+                                        className="space-y-0.5"
                                     >
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5">
-                                                {indId}
-                                            </Badge>
-                                            <span className="font-medium truncate text-foreground/90">
-                                                {indInfo.name}
-                                            </span>
-
-                                            {otherImpacted.length > 0 && (
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 text-muted-foreground cursor-help font-medium">
-                                                                + {otherImpacted.length} {otherImpacted.length === 1 ? "ander thema" : "andere thema's"}
-                                                            </Badge>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent className="bg-popover text-popover-foreground border shadow-md">
-                                                            <p className="font-semibold text-xs mb-1">Heeft ook invloed op:</p>
-                                                            <ul className="list-disc pl-4 text-muted-foreground">
-                                                                {otherImpacted.map(oi => <li key={oi}>{oi}</li>)}
-                                                            </ul>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center gap-3 shrink-0">
-                                            {indDisplay !== null ? (
-                                                <>
-                                                    <span className="font-semibold tabular-nums w-6 text-right">
-                                                        {indDisplay}
+                                        <CollapsibleTrigger asChild>
+                                            <button
+                                                type="button"
+                                                onClick={() => onIndicatorClick?.(indId)}
+                                                className={cn(
+                                                    "w-full flex items-center justify-between gap-3 p-2 rounded-md border border-dashed bg-card hover:bg-muted/40 transition-colors text-xs text-left",
+                                                    hasFieldData ? "cursor-pointer" : "",
+                                                )}
+                                                style={{ paddingLeft: indHeaderPl }}
+                                            >
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    {hasFieldData ? (
+                                                        isIndExpanded
+                                                            ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                            : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                    ) : (
+                                                        <div className="w-3.5 shrink-0" />
+                                                    )}
+                                                    <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5">
+                                                        {indId}
+                                                    </Badge>
+                                                    <span className="font-medium truncate text-foreground/90">
+                                                        {indInfo.name}
                                                     </span>
-                                                    {renderScoreBar(indDisplay)}
-                                                    <span
-                                                        className={cn(
-                                                            "w-2 h-2 rounded-full",
-                                                            getScoreDotClass(indDisplay)
-                                                        )}
-                                                    />
-                                                </>
-                                            ) : (
-                                                <span className="text-muted-foreground italic text-[10px]">
-                                                    geen data
-                                                </span>
-                                            )}
-                                        </div>
-                                    </button>
+
+                                                    {otherImpacted.length > 0 && (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 text-muted-foreground cursor-help font-medium">
+                                                                        + {otherImpacted.length} {otherImpacted.length === 1 ? "ander thema" : "andere thema's"}
+                                                                    </Badge>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="bg-popover text-popover-foreground border shadow-md">
+                                                                    <p className="font-semibold text-xs mb-1">Heeft ook invloed op:</p>
+                                                                    <ul className="list-disc pl-4 text-muted-foreground">
+                                                                        {otherImpacted.map(oi => <li key={oi}>{oi}</li>)}
+                                                                    </ul>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                    {indDisplay !== null ? (
+                                                        <>
+                                                            <span className="font-semibold tabular-nums w-6 text-right">
+                                                                {indDisplay}
+                                                            </span>
+                                                            {renderScoreBar(indDisplay)}
+                                                            <span
+                                                                className={cn(
+                                                                    "w-2 h-2 rounded-full",
+                                                                    getScoreDotClass(indDisplay)
+                                                                )}
+                                                            />
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-muted-foreground italic text-[10px]">
+                                                            geen data
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        </CollapsibleTrigger>
+
+                                        {hasFieldData && (
+                                            <CollapsibleContent>
+                                                <div
+                                                    className="space-y-0.5 pt-0.5 pb-1"
+                                                    style={{ paddingLeft: `${Math.max(10, (depth + 2) * 16 + 10)}px` }}
+                                                >
+                                                    {worstFields.length === 0 ? (
+                                                        <p className="text-[10px] text-muted-foreground italic py-1 px-2">
+                                                            Geen perceelsdata beschikbaar.
+                                                        </p>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide pb-0.5">
+                                                                Top {worstFields.length} percelen met hoogste negatieve impact
+                                                            </p>
+                                                            {worstFields.map((field) => (
+                                                                <Link
+                                                                    key={field.b_id}
+                                                                    to={`${basePath}/${field.b_id}`}
+                                                                    className="flex items-center justify-between gap-2 px-2 py-1 rounded border border-dashed border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-xs group"
+                                                                >
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        <CornerDownRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                                                        <span className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                                                                            {field.b_name || `Perceel ${field.b_id}`}
+                                                                        </span>
+                                                                        {field.b_area != null && (
+                                                                            <span className="text-[10px] text-muted-foreground shrink-0">
+                                                                                ({field.b_area.toFixed(1)} ha)
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className={cn("font-bold tabular-nums shrink-0", getScoreTextClass(field.display))}>
+                                                                        {field.display}
+                                                                    </span>
+                                                                </Link>
+                                                            ))}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </CollapsibleContent>
+                                        )}
+                                    </Collapsible>
                                 )
                             })}
                         </div>

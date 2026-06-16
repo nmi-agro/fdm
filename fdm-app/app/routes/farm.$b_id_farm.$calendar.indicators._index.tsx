@@ -200,8 +200,8 @@ export default function IndicatorsFarmIndex() {
             <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
                 {/* Aggregations hierarchy tree */}
                 <section className="space-y-3">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        <Card className="lg:col-span-7 shadow-sm border-border">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+                        <Card className="shadow-sm border-border">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-base font-bold">Bedrijfsgemiddelde score</CardTitle>
@@ -213,10 +213,16 @@ export default function IndicatorsFarmIndex() {
                                 </CardDescription> */}
                             </CardHeader>
                             <CardContent>
-                                <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
+                                <AggregationTree
+                                    scoreOf={scoreOf}
+                                    indicatorScoreOf={indicatorScoreOf}
+                                    fields={filteredFields}
+                                    fieldScores={filteredScores}
+                                    basePath={basePath}
+                                />
                             </CardContent>
                         </Card>
-                        <div className="lg:col-span-5">
+                        <div>
                             <AggregationPainpoints
                                 fields={filteredFields}
                                 fieldScores={filteredScores}

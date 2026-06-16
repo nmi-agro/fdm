@@ -1,7 +1,7 @@
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
-import { lazy, Suspense, useState } from "react"
+import { lazy, Suspense, useMemo, useState } from "react"
 import {
     data,
     type LoaderFunctionArgs,
@@ -31,6 +31,7 @@ import {
     getFieldAggregationScore,
     type AggregationId,
     getAggregationInfo,
+    getChildren,
     AGGREGATIONS,
     AGG_IDS,
 } from "~/lib/aggregations"
@@ -104,7 +105,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 const aggProps: Record<string, number> = {}
                 for (const aggId of AGG_IDS) {
                     const scoreVal = getFieldAggregationScore(fs?.score, aggId)
-                    aggProps[aggId] = scoreVal !== null ? Math.round(scoreVal * 100) : -1
+                    aggProps[aggId] =
+                        scoreVal !== null ? Math.round(scoreVal * 100) : -1
                 }
 
                 const indicatorProps: Record<string, number> = {}
@@ -155,10 +157,21 @@ export default function AtlasIndicatorsMap() {
     const selectedLabel =
         selectedProperty === "avgScore"
             ? "Gemiddelde score"
-            : (Object.keys(AGGREGATIONS).includes(selectedProperty)
-                  ? getAggregationInfo(selectedProperty as AggregationId).name
-                  : (INDICATORS.find((i) => i.id === selectedProperty)?.name ??
-                    selectedProperty))
+            : Object.keys(AGGREGATIONS).includes(selectedProperty)
+              ? getAggregationInfo(selectedProperty as AggregationId).name
+              : (INDICATORS.find((i) => i.id === selectedProperty)?.name ??
+                selectedProperty)
+
+    // Compute child entries (one level down) for the currently selected property
+    const childEntries = useMemo(() => {
+        if (!Object.keys(AGGREGATIONS).includes(selectedProperty)) return []
+        const childIds = getChildren(selectedProperty as AggregationId)
+        return childIds.map((childId) => ({
+            id: childId,
+            label: getAggregationInfo(childId).name,
+            score: null as number | null, // score is read per-field from feature properties
+        }))
+    }, [selectedProperty])
 
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
@@ -179,39 +192,61 @@ export default function AtlasIndicatorsMap() {
                             <SelectSeparator />
                             <SelectGroup>
                                 <SelectLabel className="text-xs text-muted-foreground">
-                                    Hoofdaggregaties
+                                    Hoofdthema's
                                 </SelectLabel>
-                                <SelectItem value="S_BLN">BLN Bodemkwaliteit</SelectItem>
-                                <SelectItem value="S_BBWP">BedrijfsBodemWaterPlan (BBWP)</SelectItem>
+                                <SelectItem value="S_BLN">BLN</SelectItem>
+                                <SelectItem value="S_BBWP">
+                                    BedrijfsBodemWaterPlan (BBWP)
+                                </SelectItem>
                                 <SelectItem value="S_WAT_BLN">Water</SelectItem>
-                                <SelectItem value="S_NUT_BLN">Nutriëntenkringloop</SelectItem>
-                                <SelectItem value="S_CLIM_BLN">Klimaat</SelectItem>
-                                <SelectItem value="S_PROD_BLN">Productie (OBI)</SelectItem>
+                                <SelectItem value="S_NUT_BLN">
+                                    Nutriëntenkringloop
+                                </SelectItem>
+                                <SelectItem value="S_CLIM_BLN">
+                                    Klimaat
+                                </SelectItem>
+                                <SelectItem value="S_PROD_BLN">
+                                    Productie (OBI)
+                                </SelectItem>
                             </SelectGroup>
                             <SelectSeparator />
                             <SelectGroup>
                                 <SelectLabel className="text-xs text-muted-foreground">
-                                    Water Subaggregaties
+                                    Waterthema's
                                 </SelectLabel>
-                                <SelectItem value="S_GW_QUANT_BLN">Grondwaterkwantiteit</SelectItem>
-                                <SelectItem value="S_GW_QUAL_BLN">Grondwaterkwaliteit</SelectItem>
-                                <SelectItem value="S_SW_QUAL_BLN">Oppervlaktewaterkwaliteit</SelectItem>
+                                <SelectItem value="S_GW_QUANT_BLN">
+                                    Grondwaterkwantiteit
+                                </SelectItem>
+                                <SelectItem value="S_GW_QUAL_BLN">
+                                    Grondwaterkwaliteit
+                                </SelectItem>
+                                <SelectItem value="S_SW_QUAL_BLN">
+                                    Oppervlaktewaterkwaliteit
+                                </SelectItem>
                             </SelectGroup>
                             <SelectSeparator />
                             <SelectGroup>
                                 <SelectLabel className="text-xs text-muted-foreground">
-                                    Productie Subaggregaties
+                                    Productiethema's
                                 </SelectLabel>
-                                <SelectItem value="S_PROD_BIOL_BLN">Biologische Bodemkwaliteit</SelectItem>
-                                <SelectItem value="S_PROD_CHEM_BLN">Chemische Bodemkwaliteit</SelectItem>
-                                <SelectItem value="S_PROD_PHYS_BLN">Fysische Bodemkwaliteit</SelectItem>
+                                <SelectItem value="S_PROD_BIOL_BLN">
+                                    Biologische bodemkwaliteit
+                                </SelectItem>
+                                <SelectItem value="S_PROD_CHEM_BLN">
+                                    Chemische bodemkwaliteit
+                                </SelectItem>
+                                <SelectItem value="S_PROD_PHYS_BLN">
+                                    Fysische bodemkwaliteit
+                                </SelectItem>
                             </SelectGroup>
                             <SelectSeparator />
                             <SelectGroup>
                                 <SelectLabel className="text-xs text-muted-foreground">
-                                    Water Indicatoren
+                                    Water indicatoren
                                 </SelectLabel>
-                                {INDICATORS.filter((i) => i.ecosysteemdienst === "Water").map((i) => (
+                                {INDICATORS.filter(
+                                    (i) => i.ecosysteemdienst === "Water",
+                                ).map((i) => (
                                     <SelectItem key={i.id} value={i.id}>
                                         {i.name}
                                     </SelectItem>
@@ -220,9 +255,13 @@ export default function AtlasIndicatorsMap() {
                             <SelectSeparator />
                             <SelectGroup>
                                 <SelectLabel className="text-xs text-muted-foreground">
-                                    Nutriënten & Klimaat Indicatoren
+                                    Nutriënten & klimaat indicatoren
                                 </SelectLabel>
-                                {INDICATORS.filter((i) => ["Nutriëntenkringloop", "Klimaat"].includes(i.ecosysteemdienst)).map((i) => (
+                                {INDICATORS.filter((i) =>
+                                    ["Nutriëntenkringloop", "Klimaat"].includes(
+                                        i.ecosysteemdienst,
+                                    ),
+                                ).map((i) => (
                                     <SelectItem key={i.id} value={i.id}>
                                         {i.name}
                                     </SelectItem>
@@ -231,9 +270,11 @@ export default function AtlasIndicatorsMap() {
                             <SelectSeparator />
                             <SelectGroup>
                                 <SelectLabel className="text-xs text-muted-foreground">
-                                    Productie (OBI) Indicatoren
+                                    Productie (OBI) indicatoren
                                 </SelectLabel>
-                                {INDICATORS.filter((i) => i.ecosysteemdienst === "Productie").map((i) => (
+                                {INDICATORS.filter(
+                                    (i) => i.ecosysteemdienst === "Productie",
+                                ).map((i) => (
                                     <SelectItem key={i.id} value={i.id}>
                                         {i.name}
                                     </SelectItem>
@@ -257,6 +298,7 @@ export default function AtlasIndicatorsMap() {
                     selectedProperty={selectedProperty}
                     label={selectedLabel}
                     height="100%"
+                    childEntries={childEntries}
                 />
             </Suspense>
         </div>
