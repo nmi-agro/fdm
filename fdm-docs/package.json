@@ -35,7 +35,6 @@
         "@docusaurus/module-type-aliases": "3.10.1",
         "@docusaurus/tsconfig": "3.10.1",
         "@docusaurus/types": "3.10.1",
-        "docusaurus-plugin-typedoc": "^1.4.2",
         "markdownlint-cli2": "^0.22.1",
         "typedoc": "catalog:",
         "typedoc-plugin-markdown": "^4.12.0",
