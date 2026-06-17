@@ -64,6 +64,7 @@
         "@better-auth/api-key": "catalog:",
         "@types/geojson": "^7946.0.16",
         "better-auth": "catalog:",
+        "jose": "catalog:",
         "decimal.js": "^10.6.0",
         "drizzle-orm": "catalog:",
         "nanoid": "^5.1.11",

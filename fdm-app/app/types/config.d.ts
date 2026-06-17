@@ -15,7 +15,17 @@ export interface ServerConfig {
         microsoft?:
             | {
                   clientId: string
-                  clientSecret: string
+                  tenantId?: string
+                  privateKey: string
+                  certificate: string
+                  certThumbprint?: string
+              }
+            | {
+                  clientId: string
+                  tenantId?: string
+                  privateKey: string
+                  certificate?: string
+                  certThumbprint: string
               }
             | undefined
     }
