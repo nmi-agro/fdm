@@ -138,10 +138,14 @@ export async function loader({ params, request }: Args) {
             todayDate: new Date(),
             contextFarmName: ticket.context_farm_id
                 ? await (async () => {
+                      // This leaks the farm info to the agent, but it should be fine as long as the helpdesk permission checks are run properly.
+                      const principal_id = [session.principal_id]
+                      if (ticket.requester_id)
+                          principal_id.push(ticket.requester_id)
                       try {
                           const farm = await getFarm(
                               fdm,
-                              session.principal_id,
+                              principal_id,
                               ticket.context_farm_id as string,
                           )
                           return farm.b_name_farm ?? null

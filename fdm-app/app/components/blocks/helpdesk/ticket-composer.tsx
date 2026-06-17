@@ -40,7 +40,11 @@ export function TicketComposer({
 
     return (
         <RemixFormProvider {...form}>
-            <Form method="post" className="mx-auto max-w-5xl space-y-6">
+            <Form
+                method="post"
+                className="mx-auto max-w-5xl space-y-6"
+                onSubmit={form.handleSubmit}
+            >
                 <Card>
                     <CardContent className="pt-6 space-y-4">
                         <Controller
