@@ -45,7 +45,7 @@ export function Message({
             <div className="relative flex flex-row gap-2 items-center text-muted-foreground">
                 <HelpdeskUserAvatar
                     className="static size-6 md:absolute! md:-left-10 md: md:top-1/2 md:-translate-y-1/2"
-                    type={senderType as "agent" | "customer"}
+                    type={senderType}
                     user={principal}
                 />
                 {title ?? (

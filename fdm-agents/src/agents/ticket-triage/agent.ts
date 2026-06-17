@@ -1,8 +1,8 @@
 import { createAgent, type ReactAgent } from "langchain"
 import z from "zod"
+import { sanitizeAdditionalContext } from "../.."
 import { createDefaultModel } from "../../models/default"
 import { runOneShotAgent } from "../../runners/one-shot"
-import { sanitizeAdditionalContext } from "../.."
 
 /** Default Gemini model used by the ticket-triage agent. Optimised for low-latency triage tasks. */
 export const DEFAULT_MODEL_CODE = "gemini-3.1-flash-lite"

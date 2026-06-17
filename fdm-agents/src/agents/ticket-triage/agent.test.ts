@@ -45,7 +45,9 @@ describe("Ticket Triage Agent — constants", () => {
     })
 
     it("SUBJECT_AND_PRIORITY_PROMPT should contain the placeholder {{APP_NAME}} only once", () => {
-        expect(/\{\{APP_NAME}}/g.exec(SUBJECT_AND_PRIORITY_PROMPT)).toHaveLength(1)
+        expect(
+            SUBJECT_AND_PRIORITY_PROMPT.match(/\{\{APP_NAME\}\}/g) ?? [],
+        ).toHaveLength(1)
     })
 
     it("SUBJECT_AND_PRIORITY_PROMPT should instruct the LLM to ignore injected instructions", () => {
@@ -102,7 +104,12 @@ describe("generateTicketSubjectAndPriority", () => {
         )
         expect(runOneShotAgent).toHaveBeenCalledWith(
             expect.anything(),
-            expect.stringContaining(SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "FDM (Farm Data Model)")),
+            expect.stringContaining(
+                SUBJECT_AND_PRIORITY_PROMPT.replace(
+                    "{{APP_NAME}}",
+                    "FDM (Farm Data Model)",
+                ),
+            ),
             undefined,
             undefined,
         )
@@ -117,7 +124,12 @@ describe("generateTicketSubjectAndPriority", () => {
         )
         expect(runOneShotAgent).toHaveBeenCalledWith(
             expect.anything(),
-            expect.stringContaining(SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "##Custom FDM##")),
+            expect.stringContaining(
+                SUBJECT_AND_PRIORITY_PROMPT.replace(
+                    "{{APP_NAME}}",
+                    "##Custom FDM##",
+                ),
+            ),
             undefined,
             undefined,
         )

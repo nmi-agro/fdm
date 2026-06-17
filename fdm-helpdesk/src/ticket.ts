@@ -790,7 +790,7 @@ export async function markTicketAsViewed(
 }
 
 /**
- * Removes all records of a ticket being viewing, indicating to those who have read it before that there are
+ * Removes all records of a ticket being viewed, indicating to those who have read it before that there are
  * new things to check out.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with

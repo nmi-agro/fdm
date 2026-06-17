@@ -32,9 +32,11 @@ export function HelpdeskUserAvatar({
     className,
 }: {
     user?: HelpdeskUser | null
-    type?: "customer" | "agent"
+    type?: string
     className?: string
 }) {
+    const agentIcon = <Headset className="size-3/4" />
+    const customerIcon = <User />
     return (
         <Avatar className={cn("size-6 text-muted-foreground", className)}>
             <AvatarImage
@@ -47,13 +49,12 @@ export function HelpdeskUserAvatar({
                 }
             />
             <AvatarFallback>
-                {user?.icon === "agent" ? (
-                    <Headset className="size-3/4" />
-                ) : user?.icon === "customer" || !user?.initials ? (
-                    <User />
-                ) : (
-                    user.initials
-                )}
+                {user?.icon
+                    ? user.icon === "agent"
+                        ? agentIcon
+                        : customerIcon
+                    : (user?.initials ??
+                      (type === "agent" ? agentIcon : customerIcon))}
             </AvatarFallback>
         </Avatar>
     )
