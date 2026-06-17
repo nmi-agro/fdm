@@ -26,9 +26,9 @@ import {
 
 // Hex colours matching ecosystem service chip colours
 const ECOSYSTEEMDIENST_COLORS: Record<Ecosysteemdienst, string> = {
-    Gewasproductie: "#f97316", // orange-500
-    Koolstofvastlegging: "#78716c", // stone-500
-    Waterkwaliteit: "#3b82f6", // blue-500
+    Productie: "#f97316", // orange-500
+    Klimaat: "#78716c", // stone-500
+    Water: "#3b82f6", // blue-500
     Nutriëntenkringloop: "#8b5cf6", // violet-500
 }
 

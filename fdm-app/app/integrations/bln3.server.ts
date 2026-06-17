@@ -136,11 +136,3 @@ export async function getFieldMeasuresForIndicators({
         m_end: m.m_end ? m.m_end.toISOString() : null,
     }))
 }
-
-/**
- * Computes a farm-level average score for a given set of indicator IDs.
- * Only fields with available scores contribute to the average.
- *
- * Re-exported from ~/lib/bln3.ts for backwards compatibility with server-side callers.
- */
-export { computeFarmAggregation } from "~/lib/bln3"

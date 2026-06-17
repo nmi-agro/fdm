@@ -32,16 +32,16 @@ type FieldRow = {
 }
 
 const CATEGORY_TEXT: Record<Ecosysteemdienst, string> = {
-    Gewasproductie: "text-orange-600 dark:text-orange-400",
-    Koolstofvastlegging: "text-stone-600 dark:text-stone-400",
-    Waterkwaliteit: "text-blue-600 dark:text-blue-400",
+    Productie: "text-orange-600 dark:text-orange-400",
+    Klimaat: "text-stone-600 dark:text-stone-400",
+    Water: "text-blue-600 dark:text-blue-400",
     Nutriëntenkringloop: "text-violet-600 dark:text-violet-400",
 }
 
 const CATEGORY_BORDER: Record<Ecosysteemdienst, string> = {
-    Gewasproductie: "border-b-orange-400",
-    Koolstofvastlegging: "border-b-stone-400",
-    Waterkwaliteit: "border-b-blue-400",
+    Productie: "border-b-orange-400",
+    Klimaat: "border-b-stone-400",
+    Water: "border-b-blue-400",
     Nutriëntenkringloop: "border-b-violet-400",
 }
 
@@ -136,24 +136,11 @@ export function HeatmapTable({
                     </TooltipTrigger>
                     <TooltipContent
                         side="right"
-                        className="max-w-[220px] text-xs"
+                        className="max-w-[220px] text-xs bg-popover text-popover-foreground border shadow-md"
                     >
                         Aantal knelpunten voor dit perceel
                     </TooltipContent>
                 </Tooltip>
-                // <Tooltip>
-                //     <TooltipTrigger asChild>
-                //         <span className="vertical-header text-[11px] font-medium text-foreground cursor-default items-center text-red-600 dark:text-red-400">
-
-                //         </span>
-                //     </TooltipTrigger>
-                //     <TooltipContent
-                //         side="right"
-                //         className="max-w-[180px] text-xs"
-                //     >
-                //         Aantal knelpunten voor dit perceel
-                //     </TooltipContent>
-                // </Tooltip>
             ),
             cell: ({ row }) => {
                 const count = row.original.knelpuntCount
@@ -183,7 +170,7 @@ export function HeatmapTable({
                             </TooltipTrigger>
                             <TooltipContent
                                 side="right"
-                                className="max-w-[220px] text-xs"
+                                className="max-w-[220px] text-xs bg-popover text-popover-foreground border shadow-md"
                             >
                                 {ind.name}
                             </TooltipContent>
