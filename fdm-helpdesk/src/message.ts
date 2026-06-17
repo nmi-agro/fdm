@@ -30,6 +30,15 @@ const messageColumns = {
     deleted_at: schema.messages.deleted_at,
 }
 
+/**
+ * Whether the principal can read internal messages in the helpdesk.
+ * This requires the ability to read everything on the helpdesk.
+ * 
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have read permission for the helpdesk.
+ * @returns a permission grant object if the principal has permission, otherwise null.
+ */
 async function getCanReadInternalMessages(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
@@ -42,6 +51,7 @@ async function getCanReadInternalMessages(
         principal_id,
     )
 }
+
 const PERMISSION_ERROR_MESSAGE =
     "Principal does not have permission to perform this action"
 

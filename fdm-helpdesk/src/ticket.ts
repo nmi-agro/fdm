@@ -34,7 +34,22 @@ export type Ticket = schema.TicketTypeSelect & {
 
 const TICKET_ALPHABET = "23456789ABCDFGHJKLMNPQRSTVWXYZ" // Uppercase, no lookalikes
 const ticketAlphabet = customAlphabet(TICKET_ALPHABET, 6)
+
+/**
+ * Creates a ticket reference in the form "TK-ABC123", intended for easily referencing to a ticket.
+ * @returns A ticket reference.
+ */
 const generateTicketRef = () => `TK-${ticketAlphabet()}` // ~530 million combinations
+
+/**
+ * Creates a ticket reference in the form "TK-ABC123" and retries until finding a unique reference.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param maxRetries Max retries to fail afterwards. `3` by default.
+ * @returns A ticket reference that is unique among all helpdesk tickets.
+ * @throws if a unique ticket reference cannot be obtained after `maxRetries`.
+ */
 async function createTicketRefWithRetry(
     fdm: FdmHelpdeskType,
     maxRetries = 3,
@@ -314,7 +329,6 @@ export async function getTicketCount(
  * @param filters Optional filters for status, priority, requester, tags, assignees, text search, and
  * pagination.
  * @param sorting Sorting strategy to use.
- * @returns
  */
 async function selectTickets(
     fdm: FdmHelpdeskType,
@@ -585,10 +599,11 @@ export async function createTicket(
  * Updates the ticket subject and priority without doing any permission checks.
  * Intended for use during AI triage.
  *
- * @param fdm
- * @param ticket_id
- * @param subject
- * @param priority
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_id ID of the ticket to update.
+ * @param subject The new ticket subject.
+ * @param priority The new priority.
  */
 export async function updateTicketSubjectAndPriorityUnchecked(
     fdm: FdmHelpdeskType,
@@ -774,6 +789,14 @@ export async function markTicketAsViewed(
     }
 }
 
+/**
+ * Removes all records of a ticket being viewing, indicating to those who have read it before that there are
+ * new things to check out.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_id ID of the ticket to mark as not viewed.
+ */
 export async function markTicketAsNotViewedByAll(
     fdm: FdmHelpdeskType,
     ticket_id: schema.TicketViewTypeSelect["ticket_id"],

@@ -42,6 +42,14 @@ export async function getTag(fdm: FdmHelpdeskType, tag_id: string) {
     }
 }
 
+/**
+ * Gets the tag with the specified name, case insensitive. Returns null if not found.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param tag_name The tag name to look for.
+ * @returns A Tag object if the tag is found, otherwise null.
+ */
 async function tryGetTagByName(fdm: FdmHelpdeskType, tag_name: string) {
     try {
         const found = await fdm
@@ -63,7 +71,8 @@ async function tryGetTagByName(fdm: FdmHelpdeskType, tag_name: string) {
 /**
  * Retrieves all tags in the helpdesk.
  *
- * @param fdm The FDM instance providing the connection to the database.
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
  * @returns An array of all tag records.
  */
 export async function getTags(fdm: FdmHelpdeskType) {
@@ -140,6 +149,12 @@ export async function getTagsForTickets(
     }
 }
 
+/**
+ * Validates the given tag name and throws exceptions if the name is not valid.
+ *
+ * @param name Name for a tag.
+ * @throws if the name is not valid.
+ */
 function validateName(name: string) {
     if (name.length === 0) {
         throw new Error("Tag name cannot be empty")

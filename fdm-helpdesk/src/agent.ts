@@ -163,6 +163,14 @@ export async function getAgentCount(
     }
 }
 
+/**
+ * List agents that match the given filters, sorted according to the agent creation date.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param selectCount Whether to return the total count instead.
+ * @param filters Optional filters for agent activity and pagination.
+ */
 async function selectAgents(
     fdm: FdmHelpdeskType,
     selectCount: boolean,
