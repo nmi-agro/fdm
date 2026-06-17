@@ -208,7 +208,7 @@ export function TagRow({
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
                                     Deze actie kan niet ongedaan worden gemaakt.
-                                    Het tag wordt van alle tickets verwijderd.
+                                    De tag wordt van alle tickets verwijderd.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

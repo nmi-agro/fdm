@@ -111,7 +111,7 @@ export async function loader({ params, request }: Args) {
                     }
                     return {
                         principal_id: principal.id,
-                        displayUserName: "Onbekende Medewerker",
+                        displayUserName: "Onbekende medewerker",
                         initials: "OM",
                         image: null,
                     }
@@ -440,8 +440,8 @@ export async function action({ params, request }: Args) {
                 handleActionError(unreadError)
             }
 
-            return dataWithSuccess("Bericht ontgevangen!", {
-                message: "Bericht ontgevangen!",
+            return dataWithSuccess("Bericht ontvangen!", {
+                message: "Bericht ontvangen!",
             })
         }
     } catch (err) {

@@ -52,7 +52,7 @@ export function Message({
                 </Avatar>
                 {title ?? (
                     <span>
-                        {principal?.displayUserName ?? "Onbekende Verzender"}{" "}
+                        {principal?.displayUserName ?? "Onbekende verzender"}{" "}
                         {isInternal && (
                             <i className="italic text-sm">(Intern)</i>
                         )}

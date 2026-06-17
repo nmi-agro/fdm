@@ -63,8 +63,8 @@ export const TICKET_STATUS_DESCRIPTIONS: Record<string, string> = {
     in_progress: "Een medewerker is bezig met uw vraag.",
     pending: "We zijn aanvullende informatie aan het opvragen.",
     waiting_on_customer:
-        "We wachten op een reactie van u. Voeg een bericht toe hieronder.",
-    resolved: "Uw vraag is beantwoord. Neem contact op als u nog vragen heeft.",
+        "We wachten op een reactie van u. Voeg een bericht hieronder toe.",
+    resolved: "Uw vraag is beantwoord. Maak een nieuwe ticket aan als u een nieuwe vraag heeft.",
     closed: "Dit ticket is gesloten.",
 }
 
