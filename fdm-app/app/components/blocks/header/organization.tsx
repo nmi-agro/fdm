@@ -49,6 +49,10 @@ export function HeaderOrganization({
                 `routes/organization.$slug.$calendar.balance.${type}._index`,
         ),
     )
+    const isIndicatorsRoute = !!matches.find(
+        (match) =>
+            match.id === "routes/organization.$slug.$calendar.indicators",
+    )
 
     return (
         <>
@@ -183,6 +187,11 @@ export function HeaderOrganization({
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </BreadcrumbItem>
+                        </>
+                    ) : isIndicatorsRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Indicatoren</BreadcrumbItem>
                         </>
                     ) : isFarmsRoute ? (
                         <>

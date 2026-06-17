@@ -50,7 +50,8 @@ type HeatmapTableProps = {
     fieldScores: FieldBln3Score[]
     activeCategories: Ecosysteemdienst[]
     showIndex: boolean
-    basePath: string
+    basePath?: string
+    basePathFormatter?: (b_id: string) => string
     /** Called when the user clicks a column header to pin/unpin that indicator on the map. */
     onIndicatorClick?: (indicatorId: string | null) => void
     /** ID of the currently pinned indicator (highlights the column). */
@@ -70,6 +71,7 @@ export function HeatmapTable({
     activeCategories,
     showIndex,
     basePath,
+    basePathFormatter,
     onIndicatorClick,
     selectedIndicatorId,
 }: HeatmapTableProps) {
@@ -117,7 +119,11 @@ export function HeatmapTable({
             header: "Perceel",
             cell: ({ row }) => (
                 <NavLink
-                    to={`${basePath}/${row.original.b_id}`}
+                    to={
+                        basePathFormatter
+                            ? basePathFormatter(row.original.b_id)
+                            : `${basePath}/${row.original.b_id}`
+                    }
                     className="hover:underline font-medium"
                 >
                     {row.original.b_name ?? row.original.b_id}
@@ -192,7 +198,7 @@ export function HeatmapTable({
         }))
 
         return [fieldCol, knelpuntCol, ...groups]
-    }, [activeCategories, showIndex, basePath])
+    }, [activeCategories, showIndex, basePath, basePathFormatter])
 
     const table = useReactTable({
         data,

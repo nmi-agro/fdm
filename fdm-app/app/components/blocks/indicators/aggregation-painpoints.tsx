@@ -1,31 +1,33 @@
-import { useState, useMemo } from "react"
+import { AlertCircle, ArrowRight, CheckCircle2, CornerDownRight } from "lucide-react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router"
-import { AlertCircle, ArrowRight, CornerDownRight, CheckCircle2 } from "lucide-react"
-import { cn } from "~/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { ScrollArea } from "~/components/ui/scroll-area"
 import {
     type AggregationId,
-    LEAF_AGGREGATION_IDS,
+    computeAreaWeightedAggregation,
+    type FieldAreaInput,
+    type FieldScoreInput,
     getAggregationInfo,
     getFieldAggregationScore,
-    computeAreaWeightedAggregation,
-    type FieldScoreInput,
-    type FieldAreaInput,
+    LEAF_AGGREGATION_IDS,
 } from "~/lib/aggregations"
-import { INDICATORS, getScoreTextClass, getScoreDotClass, getScoreVerdict, scoreToDisplay, getScoreBadgeClass } from "~/lib/indicators"
+import { getScoreBadgeClass, getScoreDotClass, getScoreTextClass, getScoreVerdict, INDICATORS, scoreToDisplay } from "~/lib/indicators"
+import { cn } from "~/lib/utils"
 
 type LeftMode = "themes" | "indicators"
 
 type AggregationPainpointsProps = {
+    domain?: "organization" | "farm"
     fields: (FieldAreaInput & { b_name: string | null | undefined })[]
     fieldScores: FieldScoreInput[]
-    basePath: string // e.g. /farm/123/2026/indicators
+    basePath?: string // e.g. /farm/123/2026/indicators
+    basePathFormatter?: (b_id: string) => string
 }
 
-export function AggregationPainpoints({ fields, fieldScores, basePath }: AggregationPainpointsProps) {
+export function AggregationPainpoints({ domain = "farm", fields, fieldScores, basePath, basePathFormatter }: AggregationPainpointsProps) {
     const [selectedAggId, setSelectedAggId] = useState<AggregationId | null>(null)
     const [selectedIndId, setSelectedIndId] = useState<string | null>(null)
     const [leftMode, setLeftMode] = useState<LeftMode>("themes")
@@ -139,9 +141,10 @@ export function AggregationPainpoints({ fields, fieldScores, basePath }: Aggrega
     const warningCount = rankedLeaves.filter((l) => l.displayScore !== null && l.displayScore >= 40 && l.displayScore < 70).length
 
     const worstFields = leftMode === "themes" ? worstFieldsForTheme : worstFieldsForIndicator
-    const rightHeading = leftMode === "themes"
-        ? `Top 5 percelen met hoogste negatieve impact voor ${activeAggInfo?.name}`
-        : `Top 5 percelen met hoogste negatieve impact voor ${activeIndName}`
+    const rightHeading =
+        leftMode === "themes"
+            ? `Top 5 ${domain === "organization" ? "bedrijven" : "percelen"} met hoogste negatieve impact voor ${activeAggInfo?.name}`
+            : `Top 5 ${domain === "organization" ? "bedrijven" : "percelen"} met hoogste negatieve impact voor ${activeIndName}`
 
     return (
         <Card className="border border-border shadow-sm">
@@ -151,7 +154,7 @@ export function AggregationPainpoints({ fields, fieldScores, basePath }: Aggrega
                     <CardTitle className="text-base font-bold">Knelpunten</CardTitle>
                 </div>
                 <CardDescription className="text-xs">
-                    In één oogopslag de grootste knelpunten van het bedrijf en de percelen die deze veroorzaken.
+                    In één oogopslag de grootste knelpunten van { domain === "organization" ? "de organisatie en de bedrijven" : "het bedrijf en de percelen"} die deze veroorzaken.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -175,7 +178,7 @@ export function AggregationPainpoints({ fields, fieldScores, basePath }: Aggrega
                         <>
                             <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
                             <span className="font-semibold text-green-600 dark:text-green-400">
-                                Alle thema's op uw bedrijf scoren goed (70+).
+                                Alle thema's {domain === "organization" ? "voor uw organisatie" : "op uw bedrijf"} scoren goed (70+).
                             </span>
                         </>
                     )}
@@ -215,7 +218,7 @@ export function AggregationPainpoints({ fields, fieldScores, basePath }: Aggrega
                         {leftMode === "themes" ? (
                             <>
                                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                                    Zwakste thema's (bedrijfsgemiddelde)
+                                    Zwakste thema's ({ domain === "organization" ? "gemiddelde van de organisatie": "bedrijfsgemiddelde" })
                                 </h4>
                                 <ScrollArea className="h-[280px] w-full rounded-md border p-1 bg-card">
                                     <div className="space-y-1 p-1">
@@ -255,7 +258,7 @@ export function AggregationPainpoints({ fields, fieldScores, basePath }: Aggrega
                         ) : (
                             <>
                                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                                    Zwakste indicatoren (bedrijfsgemiddelde)
+                                    Zwakste indicatoren ({ domain === "organization" ? "gemiddelde van de organisatie" : "bedrijfsgemiddelde"})
                                 </h4>
                                 <ScrollArea className="h-[280px] w-full rounded-md border p-1 bg-card">
                                     <div className="space-y-1 p-1">
@@ -316,7 +319,13 @@ export function AggregationPainpoints({ fields, fieldScores, basePath }: Aggrega
                                                 <div className="flex items-center gap-2 min-w-0 flex-1">
                                                     <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden sm:block" />
                                                     <Link
-                                                        to={`${basePath}/${field.b_id}`}
+                                                        to={
+                                                            basePathFormatter
+                                                                ? basePathFormatter(
+                                                                      field.b_id,
+                                                                  )
+                                                                : `${basePath}/${field.b_id}`
+                                                        }
                                                         className="font-medium text-foreground hover:underline hover:text-primary transition-colors truncate min-w-0"
                                                         title={field.b_name || undefined}
                                                     >
