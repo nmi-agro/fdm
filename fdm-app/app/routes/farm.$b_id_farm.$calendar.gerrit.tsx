@@ -1083,7 +1083,7 @@ export default function GerritApp() {
 
     const supportedYears = ["2025", "2026"]
     const isSupportedYear = supportedYears.includes(calendar)
-    const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
+    const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
 
     const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
         mode: "onTouched",
