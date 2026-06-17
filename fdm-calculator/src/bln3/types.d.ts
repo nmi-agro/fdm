@@ -163,11 +163,11 @@ export type Bln3IndicatorResult = {
 }
 
 /**
- * An aggregated score (e.g. OBI, BBWP) combining multiple indicator scores.
- * Not yet implemented in the NMI API — the `aggregations` field is optional.
+ * An aggregated score (e.g. S_BLN, OBI) combining multiple indicator scores.
+ * Returned by the NMI API in the response data.
  */
 export type Bln3AggregationResult = {
-    /** Aggregation identifier (e.g. "OBI", "BBWP") */
+    /** Aggregation identifier (e.g. "S_BLN", "S_PROD_BIOL_BLN") */
     aggregation_id: string
     /** Aggregated score */
     score: number
@@ -178,7 +178,7 @@ export type Bln3AggregationResult = {
  */
 export type Bln3Score = {
     indicators: Bln3IndicatorResult[]
-    /** Aggregation scores — not yet implemented by the NMI API */
+    /** Aggregation scores returned by the NMI API */
     aggregations?: Bln3AggregationResult[]
 }
 

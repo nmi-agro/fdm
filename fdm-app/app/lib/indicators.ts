@@ -6,9 +6,9 @@
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type Ecosysteemdienst =
-    | "Gewasproductie"
-    | "Koolstofvastlegging"
-    | "Waterkwaliteit"
+    | "Productie"
+    | "Klimaat"
+    | "Water"
     | "Nutriëntenkringloop"
 
 export type IndicatorInfo = {
@@ -39,13 +39,13 @@ export type FieldMeasure = {
 // ── Indicator taxonomy ──────────────────────────────────────────────────────
 
 export const INDICATORS: IndicatorInfo[] = [
-    // Gewasproductie
+    // Productie
     {
         id: "B_DI",
         name: "Ziektewerendheid",
         description:
             "Het vermogen van de bodem om bodemgebonden ziekten en plagen te voorkomen",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -53,7 +53,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Microbiele activiteit",
         description:
             "De mate van activiteit van het micro-organismen (zoals bacteriën en schimmels) in de bodem",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: "mg N/kg",
     },
     {
@@ -61,7 +61,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Kaliumbeschikbaarheid",
         description:
             "De beschikbaarheid van kalium vanuit de bodem voor het gewas",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -69,7 +69,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Magnesiumbeschikbaarheid",
         description:
             "De beschikbaarheid van magnesium vanuit de bodem voor het gewas",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -77,7 +77,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Stikstofbeschikbaarheid",
         description:
             "De beschikbaarheid van stikstof vanuit de bodem voor het gewas",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: "kg N/ha",
     },
     {
@@ -85,7 +85,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Fosfaatbeschikbaarheid",
         description:
             "De beschikbaarheid van fosfaat vanuit de bodem voor het gewas",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -93,7 +93,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Zuurgraad",
         description:
             "De zuurgraad van de bodem, belangrijk voor de beschikbaarheid van nutriënten en een actief bodemleven",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -101,7 +101,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Zwavelbeschikbaarheid",
         description:
             "De beschikbaarheid van zwavel vanuit de bodem voor het gewas",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: "kg S/ha",
     },
     {
@@ -109,7 +109,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Aggregaatstabiliteit",
         description:
             "De stevigheid van bodemaggregaten wat de bodem beter bestand maakt tegen verdichting en zware regenval",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -117,7 +117,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Weerstand tegen bodemverdichting",
         description:
             "De mate waarin de bodem bestand is tegen bodemverdichting",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -125,7 +125,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Verkruimelbaarheid",
         description:
             "De mate waarin de bodem is te verkruimelen om een goed zaaibed aan te leggen",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -133,14 +133,14 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Weerstand tegen droogte",
         description:
             "Het vermogen van de bodem om voldoende vocht vast te houden en te leveren tijdens droge perioden",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: "%",
     },
     {
         id: "P_DU",
         name: "Weerstand tegen verstuiving",
         description: "De weerbaarheid van de bodem tegen winderosie",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -148,7 +148,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Bewortelbaarheid",
         description:
             "De mate waarin de bodem gemakkelijk te bewortelen is voor het gewas",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: "kg/m³",
     },
     {
@@ -156,14 +156,14 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Weerstand tegen verslemping",
         description:
             "De weerbaarheid van de bodem tegen het vormen van een slempkorst",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
         id: "P_WRET",
         name: "Waterbergend vermogen",
         description: "Het vermogen van de bodem om water vast te houden",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -171,7 +171,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Bewerkbaarheid",
         description:
             "De mate waarin de bodem bewerkbaar is en voldoende draagkracht heeft",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: null,
     },
     {
@@ -179,24 +179,24 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Weerstand tegen wateroverlast",
         description:
             "Het vermogen van de bodem om overtollig water snel af te voeren, zodat zuurstoftekort bij de wortels wordt voorkomen",
-        ecosysteemdienst: "Gewasproductie",
+        ecosysteemdienst: "Productie",
         unit: "%",
     },
-    // Koolstofvastlegging
+    // Klimaat
     {
         id: "C_SEQ",
-        name: "Koolstofvastlegging",
+        name: "Klimaat",
         description: "De potentie van de bodem om koolstof vast te leggen",
-        ecosysteemdienst: "Koolstofvastlegging",
+        ecosysteemdienst: "Klimaat",
         unit: null,
     },
-    // Waterkwaliteit
+    // Water
     {
         id: "GW_GWR",
         name: "Grondwateraanvulling",
         description:
             "De mate waarin regenwater kan infiltreren naar het diepere grondwater in plaats van oppervlakkig af te stromen naar de sloten",
-        ecosysteemdienst: "Waterkwaliteit",
+        ecosysteemdienst: "Water",
         unit: null,
     },
     {
@@ -204,7 +204,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Weerstand tegen stikstofuitspoeling",
         description:
             "Het vermogen van de bodem om stikstof in de bodem vast te houden in plaats van dat het uitspoelt naar het grondwater",
-        ecosysteemdienst: "Waterkwaliteit",
+        ecosysteemdienst: "Water",
         unit: null,
     },
     {
@@ -212,7 +212,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Weerstand tegen middeluitspoeling",
         description:
             "Het vermogen van de bodem om gewasbeschermingsmiddelen te binden en af te breken, zodat ze niet in het grondwater terechtkomen",
-        ecosysteemdienst: "Waterkwaliteit",
+        ecosysteemdienst: "Water",
         unit: null,
     },
     {
@@ -220,7 +220,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Weerstand tegen stikstofafspoeling",
         description:
             "Het vermogen van de bodem om afstroming van stikstof naar het oppervlaktewater te voorkomen na hevige neerslag",
-        ecosysteemdienst: "Waterkwaliteit",
+        ecosysteemdienst: "Water",
         unit: null,
     },
     {
@@ -228,7 +228,7 @@ export const INDICATORS: IndicatorInfo[] = [
         name: "Weerstand tegen fosfaatafspoeling",
         description:
             "Het vermogen van de bodem om fosfaat te binden en afstroming naar het oppervlaktewater te voorkomen na hevige neerslag",
-        ecosysteemdienst: "Waterkwaliteit",
+        ecosysteemdienst: "Water",
         unit: null,
     },
     // Nutriëntenkringloop
@@ -263,17 +263,17 @@ export const INDICATORS: IndicatorInfo[] = [
 
 /** Crop production: all indicators that drive agronomic soil quality */
 export const GEWASPRODUCTIE_INDICATOR_IDS = INDICATORS.filter(
-    (i) => i.ecosysteemdienst === "Gewasproductie",
+    (i) => i.ecosysteemdienst === "Productie",
 ).map((i) => i.id)
 
 /** Carbon sequestration: soil carbon storage potential */
 export const KOOLSTOFVASTLEGGING_INDICATOR_IDS = INDICATORS.filter(
-    (i) => i.ecosysteemdienst === "Koolstofvastlegging",
+    (i) => i.ecosysteemdienst === "Klimaat",
 ).map((i) => i.id)
 
 /** Water quality & quantity: groundwater and surface water protection */
 export const WATERKWALITEIT_INDICATOR_IDS = INDICATORS.filter(
-    (i) => i.ecosysteemdienst === "Waterkwaliteit",
+    (i) => i.ecosysteemdienst === "Water",
 ).map((i) => i.id)
 
 /** Nutrient recycling efficiency: how effectively crops utilise applied nutrients */
@@ -282,41 +282,11 @@ export const NUTRIENTENKRINGLOOP_INDICATOR_IDS = INDICATORS.filter(
 ).map((i) => i.id)
 
 export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
-    "Gewasproductie",
-    "Koolstofvastlegging",
-    "Waterkwaliteit",
+    "Productie",
+    "Klimaat",
+    "Water",
     "Nutriëntenkringloop",
 ]
-
-/** ID lists per ecosystem service, keyed by Ecosysteemdienst name */
-export const ECOSYSTEEMDIENST_INDICATOR_IDS: Record<
-    Ecosysteemdienst,
-    string[]
-> = {
-    Gewasproductie: GEWASPRODUCTIE_INDICATOR_IDS,
-    Koolstofvastlegging: KOOLSTOFVASTLEGGING_INDICATOR_IDS,
-    Waterkwaliteit: WATERKWALITEIT_INDICATOR_IDS,
-    Nutriëntenkringloop: NUTRIENTENKRINGLOOP_INDICATOR_IDS,
-}
-
-/**
- * Short GeoJSON property names for per-ecosystem-service average scores stored on map features.
- * Used to drive dynamic map colouring when an ecosystem service filter is active.
- */
-export const ECOSYSTEEMDIENST_MAP_PROP: Record<Ecosysteemdienst, string> = {
-    Gewasproductie: "avg_gew",
-    Koolstofvastlegging: "avg_kool",
-    Waterkwaliteit: "avg_wat",
-    Nutriëntenkringloop: "avg_nut",
-}
-
-/** Full descriptive name shown as subtitle in AggregationCards */
-export const ECOSYSTEEMDIENST_FULL_NAME: Record<Ecosysteemdienst, string> = {
-    Gewasproductie: "Open Bodem Index",
-    Koolstofvastlegging: "Open Bodem Index",
-    Waterkwaliteit: "BedrijfsBodemWaterPlan",
-    Nutriëntenkringloop: "Open Bodem Index",
-}
 
 /** Convert 0–1 API score to 0–100 display value. */
 export function scoreToDisplay(score01: number): number {
@@ -330,12 +300,44 @@ export function getScoreTier(score100: number): ScoreTier {
     return "red"
 }
 
-/** Returns a hex fill colour for a 0–100 display score. */
+/** Returns a hex fill colour for a 0–100 display score (used by MapLibre). */
 export function getScoreColor(score100: number): string {
     const tier = getScoreTier(score100)
     if (tier === "green") return "#22c55e"
     if (tier === "yellow") return "#eab308"
     return "#ef4444"
+}
+
+/** Returns Tailwind classes for the score bar background based on score tier. */
+export function getScoreBarClass(score100: number): string {
+    const tier = getScoreTier(score100)
+    if (tier === "green") return "bg-emerald-500"
+    if (tier === "yellow") return "bg-amber-500"
+    return "bg-red-500"
+}
+
+/** Returns Tailwind classes for a status dot based on score tier. */
+export function getScoreDotClass(score100: number): string {
+    const tier = getScoreTier(score100)
+    if (tier === "green") return "bg-emerald-500"
+    if (tier === "yellow") return "bg-amber-500"
+    return "bg-red-500"
+}
+
+/** Returns Tailwind classes for text colored by score tier. */
+export function getScoreTextClass(score100: number): string {
+    const tier = getScoreTier(score100)
+    if (tier === "green") return "text-emerald-600 dark:text-emerald-500"
+    if (tier === "yellow") return "text-amber-600 dark:text-amber-500"
+    return "text-red-600 dark:text-red-500"
+}
+
+/** Returns Tailwind classes for the badge variant based on score tier. */
+export function getScoreBadgeClass(score100: number): string {
+    const tier = getScoreTier(score100)
+    if (tier === "green") return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 border-transparent hover:bg-emerald-200 dark:hover:bg-emerald-800"
+    if (tier === "yellow") return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 border-transparent hover:bg-amber-200 dark:hover:bg-amber-800"
+    return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 border-transparent hover:bg-red-200 dark:hover:bg-red-900"
 }
 
 /** Returns a Dutch text verdict for a 0–100 display score. */

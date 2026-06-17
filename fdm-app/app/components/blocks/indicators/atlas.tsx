@@ -28,6 +28,12 @@ import {
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { getScoreColor, getScoreVerdict } from "~/lib/indicators"
 
+type ChildScoreEntry = {
+    id: string
+    label: string
+    score: number | null
+}
+
 type IndicatorsMapProps = {
     fieldsGeoJSON: FeatureCollection
     mapStyle: string | StyleSpecification
@@ -37,6 +43,8 @@ type IndicatorsMapProps = {
     /** Human-readable label shown in the map legend. */
     label?: string
     height?: string
+    /** Child aggregation/indicator entries to show in hover tooltip (one level below selected). */
+    childEntries?: ChildScoreEntry[]
 }
 
 type HoverInfo = {
@@ -57,6 +65,7 @@ export default function IndicatorsMap({
     selectedProperty = "avgScore",
     label,
     height = "380px",
+    childEntries,
 }: IndicatorsMapProps) {
     const navigate = useNavigate()
     const mapRef = useRef<MapRef>(null)
@@ -177,7 +186,7 @@ export default function IndicatorsMap({
             {/* Hover tooltip */}
             {hoverInfo && (
                 <div
-                    className="absolute z-20 pointer-events-none bg-background/95 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-md text-xs min-w-[160px]"
+                    className="absolute z-20 pointer-events-none bg-background/95 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-md text-xs min-w-[180px] max-w-[260px]"
                     style={{
                         left: hoverInfo.x + 12,
                         top: hoverInfo.y - 8,
@@ -199,7 +208,7 @@ export default function IndicatorsMap({
                             </span>
                             {hoverScore != null ? (
                                 <span
-                                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white shrink-0"
                                     style={{
                                         backgroundColor:
                                             getScoreColor(hoverScore),
@@ -234,6 +243,35 @@ export default function IndicatorsMap({
                                 "Geen data"
                             )}
                         </p>
+                    )}
+                    {/* Child sub-scores (one level below the selected layer) */}
+                    {childEntries && childEntries.length > 0 && (
+                        <div className="mt-1.5 pt-1.5 border-t space-y-1">
+                            {childEntries.map((child) => {
+                                const childScore =
+                                    typeof hoverInfo.properties[child.id] === "number" &&
+                                    (hoverInfo.properties[child.id] as number) >= 0
+                                        ? (hoverInfo.properties[child.id] as number)
+                                        : null
+                                return (
+                                    <div key={child.id} className="flex items-center justify-between gap-2">
+                                        <span className="text-muted-foreground truncate text-[10px]">
+                                            {child.label}
+                                        </span>
+                                        {childScore != null ? (
+                                            <span
+                                                className="text-[10px] font-semibold tabular-nums shrink-0"
+                                                style={{ color: getScoreColor(childScore) }}
+                                            >
+                                                {childScore}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-muted-foreground italic shrink-0">–</span>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
                     )}
                 </div>
             )}
