@@ -7,7 +7,6 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type z from "zod"
 import { cn } from "@/app/lib/utils"
 import { AutoComplete } from "~/components/custom/autocomplete"
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Field, FieldContent } from "~/components/ui/field"
@@ -21,6 +20,7 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
 import { AddAgentSchema } from "./agent-schema"
+import { HelpdeskUserAvatar } from "./helpdesk-user"
 import type { HelpdeskUser } from "./types"
 
 export type HelpdeskUserExtended = HelpdeskUser & {
@@ -174,10 +174,7 @@ export function PrincipalRow({
     return (
         <TableRow>
             <TableCell className="align-middle">
-                <Avatar>
-                    <AvatarImage src={principal.image ?? undefined} />
-                    <AvatarFallback>{principal.initials}</AvatarFallback>
-                </Avatar>
+                <HelpdeskUserAvatar user={principal} type="agent" />
             </TableCell>
             <TableCell className="align-middle" width="99%">
                 {principal.displayUserName}

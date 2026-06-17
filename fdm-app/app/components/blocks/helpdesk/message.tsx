@@ -1,11 +1,10 @@
 import type { Message as MessageT } from "@nmi-agro/fdm-helpdesk"
 import { formatDate, formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import { User } from "lucide-react"
 import type { ReactNode } from "react"
 import { cn } from "@/app/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Card } from "~/components/ui/card"
+import { HelpdeskUserAvatar } from "./helpdesk-user"
 import type { HelpdeskUser } from "./types"
 
 export type MessageExtended = MessageT & { principal: HelpdeskUser | null }
@@ -44,12 +43,11 @@ export function Message({
             )}
         >
             <div className="relative flex flex-row gap-2 items-center text-muted-foreground">
-                <Avatar className="static size-6 md:absolute! md:-left-10 md: md:top-1/2 md:-translate-y-1/2">
-                    <AvatarImage src={principal?.image ?? undefined} />
-                    <AvatarFallback>
-                        {principal?.initials ?? <User />}
-                    </AvatarFallback>
-                </Avatar>
+                <HelpdeskUserAvatar
+                    className="static size-6 md:absolute! md:-left-10 md: md:top-1/2 md:-translate-y-1/2"
+                    type={senderType as "agent" | "customer"}
+                    user={principal}
+                />
                 {title ?? (
                     <span>
                         {principal?.displayUserName ?? "Onbekende verzender"}{" "}

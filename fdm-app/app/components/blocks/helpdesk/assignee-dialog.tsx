@@ -9,9 +9,7 @@ import { cn } from "@/app/lib/utils"
 import {
     AvatarGroup,
     AvatarGroupCount,
-    UserAvatar,
 } from "~/components/blocks/farms/user-display"
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import {
     Dialog,
@@ -31,7 +29,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
-import { makeHelpdeskUser } from "./helpdesk-user"
+import { HelpdeskUserAvatar, makeHelpdeskUser } from "./helpdesk-user"
 import type { HelpdeskUser } from "./types"
 
 // How many assignees to display, before saying "en meer/and more"
@@ -151,29 +149,14 @@ export function AssignmentSelector({
                             {assignees
                                 .slice(0, ASSIGNEE_DISPLAY_CUTOFF)
                                 .map((assignee) => (
-                                    <Avatar
+                                    <HelpdeskUserAvatar
                                         key={assignee.agent_id}
-                                        className="h-5 w-5 rounded-full"
-                                    >
-                                        <AvatarImage
-                                            src={
-                                                principalLookup.get(
-                                                    assignee.agent_id,
-                                                )?.image ?? undefined
-                                            }
-                                            alt={
-                                                principalLookup.get(
-                                                    assignee.agent_id,
-                                                )?.displayUserName ??
-                                                "Onbekende Medewerker"
-                                            }
-                                        />
-                                        <AvatarFallback className="text-[10px]">
-                                            {principalLookup.get(
-                                                assignee.agent_id,
-                                            )?.initials ?? "OM"}
-                                        </AvatarFallback>
-                                    </Avatar>
+                                        user={makeHelpdeskUser(
+                                            assignee,
+                                            principalLookup,
+                                        )}
+                                        type="agent"
+                                    />
                                 ))}
                             {assignees.length > ASSIGNEE_DISPLAY_CUTOFF ? (
                                 <AvatarGroupCount>
@@ -354,7 +337,10 @@ function AssigneeSelectItem({
                 >
                     {isSelected && <Check className="size-3" />}
                 </span>
-                <UserAvatar user={makeHelpdeskUser(agent, principalLookup)} />
+                <HelpdeskUserAvatar
+                    user={makeHelpdeskUser(agent, principalLookup)}
+                    type="agent"
+                />
                 <span className="grow text-start group-hover:underline">
                     {agent.display_name}
                 </span>
