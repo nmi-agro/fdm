@@ -139,7 +139,7 @@ export async function action({ request }: Route.ActionArgs) {
 async function performTriage(apiKey: string, ticket_id: string, body: string) {
     try {
         const { subject, priority, reasoning } =
-            await generateTicketSubjectAndPriority(body, apiKey)
+            await generateTicketSubjectAndPriority(body, apiKey, clientConfig.name)
 
         console.log(reasoning)
 

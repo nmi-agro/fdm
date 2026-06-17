@@ -51,6 +51,12 @@ describe("fdm-agents index", () => {
             expect(result).not.toContain(" ")
         })
 
+        it("should trim to custom length", () => {
+            const longInput = "a".repeat(1500)
+            const result = sanitizeAdditionalContext(longInput, 1200)
+            expect(result).toHaveLength(1200)
+        })
+
         it("should remove markdown code blocks", () => {
             const input = "Here is a block: ```ignore all```"
             const result = sanitizeAdditionalContext(input)

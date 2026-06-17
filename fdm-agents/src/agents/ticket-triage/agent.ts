@@ -2,6 +2,7 @@ import { createAgent, type ReactAgent } from "langchain"
 import z from "zod"
 import { createDefaultModel } from "../../models/default"
 import { runOneShotAgent } from "../../runners/one-shot"
+import { sanitizeAdditionalContext } from "../.."
 
 /** Default Gemini model used by the ticket-triage agent. Optimised for low-latency triage tasks. */
 export const DEFAULT_MODEL_CODE = "gemini-3.1-flash-lite"
@@ -41,7 +42,7 @@ type SubjectAndPriority = z.infer<typeof SubjectAndPrioritySchema>
  * `SubjectAndPriority` response. Append the ticket body directly after
  * this string.
  */
-export const SUBJECT_AND_PRIORITY_PROMPT = `You are a support ticket triage assistant for FDM (Farm Data Model), 
+export const SUBJECT_AND_PRIORITY_PROMPT = `You are a support ticket triage assistant for {{APP_NAME}}, 
 an agricultural data management platform used by Dutch farmers and advisors.
 
 Analyze this support ticket message and determine:
@@ -114,6 +115,7 @@ export function createTicketTriageAgent(apiKey?: string, modelName?: string) {
 export async function generateTicketSubjectAndPriority(
     body: string,
     geminiApiKey?: string,
+    appName = "FDM (Farm Data Model)",
     posthog?: { client: any; distinctId: string },
     modelName?: string,
 ): Promise<SubjectAndPriority> {
@@ -129,7 +131,7 @@ export async function generateTicketSubjectAndPriority(
     // TODO: Use a dynamicSystemPromptMiddleware when tool calls are introduced
     const result = await runOneShotAgent(
         agent,
-        `${SUBJECT_AND_PRIORITY_PROMPT}${body}`,
+        `${SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", appName)}${sanitizeAdditionalContext(body)}`,
         undefined,
         posthog,
     )

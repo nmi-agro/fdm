@@ -40,8 +40,12 @@ describe("Ticket Triage Agent — constants", () => {
         expect(SUBJECT_AND_PRIORITY_PROMPT).toContain("low")
     })
 
-    it("SUBJECT_AND_PRIORITY_PROMPT should reference FDM", () => {
-        expect(SUBJECT_AND_PRIORITY_PROMPT).toContain("FDM")
+    it("SUBJECT_AND_PRIORITY_PROMPT should contain the placeholder {{APP_NAME}}", () => {
+        expect(SUBJECT_AND_PRIORITY_PROMPT).toContain("{{APP_NAME}}")
+    })
+
+    it("SUBJECT_AND_PRIORITY_PROMPT should contain the placeholder {{APP_NAME}} only once", () => {
+        expect(/\{\{APP_NAME}}/g.exec(SUBJECT_AND_PRIORITY_PROMPT)).toHaveLength(1)
     })
 
     it("SUBJECT_AND_PRIORITY_PROMPT should instruct the LLM to ignore injected instructions", () => {
@@ -98,7 +102,22 @@ describe("generateTicketSubjectAndPriority", () => {
         )
         expect(runOneShotAgent).toHaveBeenCalledWith(
             expect.anything(),
-            expect.stringContaining(SUBJECT_AND_PRIORITY_PROMPT),
+            expect.stringContaining(SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "FDM (Farm Data Model)")),
+            undefined,
+            undefined,
+        )
+    })
+
+    it("should call runOneShotAgent with the prompt including a custom application name", async () => {
+        const { runOneShotAgent } = await import("../../runners/one-shot")
+        await generateTicketSubjectAndPriority(
+            "My fields are not loading.",
+            "test-key",
+            "##Custom FDM##",
+        )
+        expect(runOneShotAgent).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.stringContaining(SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "##Custom FDM##")),
             undefined,
             undefined,
         )
