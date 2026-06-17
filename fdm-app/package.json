@@ -30,7 +30,6 @@
         "@nmi-agro/fdm-data": "workspace:*",
         "@nmi-agro/fdm-helpdesk": "workspace:*",
         "@nmi-agro/fdm-rvo": "workspace:^",
-        "@radix-ui/react-icons": "^1.3.2",
         "@react-email/ui": "^6.3.3",
         "@react-pdf/renderer": "^4.5.1",
         "@react-router/node": "^7.15.1",
