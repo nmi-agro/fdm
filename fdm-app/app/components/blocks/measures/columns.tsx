@@ -31,6 +31,7 @@ export type MeasureTableRow = {
         m_start: Date | null
         m_end: Date | null
     }[]
+    actualFieldCount?: number
 }
 
 function formatDate(d: Date | null): string {
@@ -39,9 +40,9 @@ function formatDate(d: Date | null): string {
 }
 
 export function getColumns(
-    basePath: string,
-    onEdit: (row: MeasureTableRow) => void,
-    onClose: (row: MeasureTableRow) => void,
+    basePathFormatter: (b_id: string) => string,
+    onEdit?: (row: MeasureTableRow) => void,
+    onClose?: (row: MeasureTableRow) => void,
 ): ColumnDef<MeasureTableRow>[] {
     return [
         {
@@ -100,7 +101,7 @@ export function getColumns(
                             variant="outline"
                             size="sm"
                             className="h-7 px-2.5 text-xs"
-                            onClick={() => onClose(row.original)}
+                            onClick={() => onClose?.(row.original)}
                         >
                             Afsluiten
                         </Button>
@@ -140,7 +141,7 @@ export function getColumns(
                                 {fields.map((f) => (
                                     <li key={f.b_id}>
                                         <NavLink
-                                            to={`${basePath}/${f.b_id}`}
+                                            to={basePathFormatter(f.b_id)}
                                             className="block text-sm px-2 py-1 rounded hover:bg-muted transition-colors"
                                         >
                                             {f.b_name ?? f.b_id}
@@ -163,7 +164,7 @@ export function getColumns(
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         title="Bewerken / afsluiten"
-                        onClick={() => onEdit(row.original)}
+                        onClick={() => onEdit?.(row.original)}
                     >
                         <Pencil className="h-4 w-4" />
                     </Button>
@@ -203,7 +204,7 @@ export function getColumns(
                                 <AlertDialogCancel>Annuleren</AlertDialogCancel>
                                 <Form
                                     method="post"
-                                    action={`${basePath}?index`}
+                                    action={basePathFormatter("")}
                                 >
                                     <input
                                         type="hidden"
@@ -230,6 +231,63 @@ export function getColumns(
                     </AlertDialog>
                 </div>
             ),
+        },
+    ]
+}
+
+export function getOrganizationCustomColumns(
+    basePathFormatter: (b_id: string) => string,
+): ColumnDef<MeasureTableRow>[] {
+    return [
+        {
+            id: "farms",
+            header: "Bedrijven",
+            cell: ({ row }) => {
+                const fields = row.original.fields
+                if (fields.length === 0) return null
+                return (
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs gap-1.5"
+                            >
+                                {fields.length}{" "}
+                                {fields.length === 1 ? "bedrijf" : "bedrijven"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56 p-2" align="start">
+                            <ul className="space-y-1">
+                                {fields.map((f) => (
+                                    <li key={f.b_id}>
+                                        <NavLink
+                                            to={basePathFormatter(f.b_id)}
+                                            className="block text-sm px-2 py-1 rounded hover:bg-muted transition-colors"
+                                        >
+                                            {f.b_name ?? f.b_id}
+                                        </NavLink>
+                                    </li>
+                                ))}
+                            </ul>
+                        </PopoverContent>
+                    </Popover>
+                )
+            },
+        },
+        {
+            id: "actualFieldCount",
+            header: "Totaal percelen",
+            cell: ({ row }) => {
+                const actualFieldCount = row.original.actualFieldCount
+                return actualFieldCount ? (
+                    <span className="text-muted-foreground">
+                        {actualFieldCount === 1
+                            ? "1 perceel"
+                            : `${actualFieldCount} percelen`}
+                    </span>
+                ) : null
+            },
         },
     ]
 }

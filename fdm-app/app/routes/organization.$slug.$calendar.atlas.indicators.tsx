@@ -26,7 +26,7 @@ const IndicatorsMap = lazy(
     () => import("@/app/components/blocks/indicators/atlas"),
 )
 
-function buildFarmMultiPolygon(
+export function buildFarmMultiPolygon(
     fields: Array<{
         b_geometry:
             | {

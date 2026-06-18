@@ -31,14 +31,14 @@ declare module "@tanstack/react-table" {
 interface MeasuresDataTableProps {
     columns: ColumnDef<MeasureTableRow>[]
     data: MeasureTableRow[]
-    onAddClick: () => void
+    onAddClick?: () => void
     canModify?: boolean
 }
 
 export function MeasuresDataTable({
     columns,
     data,
-    onAddClick,
+    onAddClick = () => {},
     canModify = true,
 }: MeasuresDataTableProps) {
     const [sorting, setSorting] = useState<SortingState>([])

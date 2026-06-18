@@ -11,10 +11,13 @@ export type FieldSummaryRow = {
     b_name: string | null
     b_area: number | null
     b_bufferstrip: boolean
-    mainCultivation: {
-        b_lu_name: string | null
-        b_lu_croprotation: string | null
-    } | null
+    mainCultivations:
+        | {
+              b_lu_catalogue: string
+              b_lu_name: string | null
+              b_lu_croprotation: string | null
+          }[]
+        | null
     measures: { m_name: string }[]
     /** href to the field's measures detail page */
     href: string
@@ -71,31 +74,44 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
             accessorKey: "mainCultivation",
             enableSorting: true,
             sortingFn: (a, b) => {
-                const nameA = a.original.mainCultivation?.b_lu_name ?? ""
-                const nameB = b.original.mainCultivation?.b_lu_name ?? ""
+                const nameA =
+                    a.original.mainCultivations &&
+                    a.original.mainCultivations.length > 0
+                        ? (a.original.mainCultivations[0].b_lu_name ?? "")
+                        : ""
+                const nameB =
+                    b.original.mainCultivations &&
+                    b.original.mainCultivations.length > 0
+                        ? (b.original.mainCultivations[0].b_lu_name ?? "")
+                        : ""
                 return nameA.localeCompare(nameB, "nl")
             },
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Gewas" />
             ),
             cell: ({ row }) => {
-                const cult = row.original.mainCultivation
-                if (!cult?.b_lu_name) {
+                const cults = row.original.mainCultivations
+                if (!cults || cults.length === 0) {
                     return (
                         <span className="text-xs text-muted-foreground">—</span>
                     )
                 }
                 return (
-                    <Badge
-                        style={{
-                            backgroundColor: getCultivationColor(
-                                cult.b_lu_croprotation ?? undefined,
-                            ),
-                        }}
-                        className="text-white text-xs"
-                    >
-                        {cult.b_lu_name}
-                    </Badge>
+                    <div className="flex items-start flex-col space-y-2">
+                        {cults.map((cult) => (
+                            <Badge
+                                key={cult.b_lu_catalogue}
+                                style={{
+                                    backgroundColor: getCultivationColor(
+                                        cult.b_lu_croprotation ?? undefined,
+                                    ),
+                                }}
+                                className="text-white text-xs"
+                            >
+                                {cult.b_lu_name}
+                            </Badge>
+                        ))}
+                    </div>
                 )
             },
         },
