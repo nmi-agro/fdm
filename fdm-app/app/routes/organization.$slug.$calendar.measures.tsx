@@ -49,7 +49,7 @@ const MeasuresMap = lazy(
 export const meta: MetaFunction = () => {
     return [
         {
-            title: `Maatregelen | Bedrijfsoverzicht | ${clientConfig.name}`,
+            title: `Maatregelen | Organisatieoverzicht | ${clientConfig.name}`,
         },
         {
             name: "description",
