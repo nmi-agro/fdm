@@ -807,6 +807,46 @@ describe("getTicketCount", () => {
 
         expect(ticketCount).toBe(3)
     })
+
+    test("should not count tickets multiple times", async ({ fdm }) => {
+        const requester_id = createId()
+
+        const ticket_id = await createTicket(fdm, requester_id, "Ticket")
+        await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "customer",
+            "I have a question I would like to ask.",
+        )
+        await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "agent",
+            "Please don't hesitate to ask.",
+        )
+        const tag_id_1 = await createTag(
+            fdm,
+            admin_id,
+            `Blue${createId(8)}`,
+            "#0000ff",
+        )
+        const tag_id_2 = await createTag(
+            fdm,
+            admin_id,
+            `Red${createId(8)}`,
+            "#ff0000",
+        )
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id_1)
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id_2)
+
+        const count = await getTicketCount(fdm, admin_id, {
+            tags: [tag_id_1, tag_id_2],
+            text: "ask",
+        })
+        expect(count).toBe(1)
+    })
 })
 
 describe("getTicketCount wrappers", async () => {

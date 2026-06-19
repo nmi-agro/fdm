@@ -356,13 +356,29 @@ async function selectTickets(
 
     const whereClause = getTicketWhereClause(fdm, { ...filters, requesterIds })
 
+    const shouldJoinTicketAssignments =
+        Array.isArray(filters.assignees) && filters.assignees.length > 0
+    const shouldJoinTags =
+        Array.isArray(filters.tags) && filters.tags.length > 0
+    const shouldJoinMessages =
+        typeof filters.text === "string" && filters.text.length > 0
+
     if (selectCount) {
-        return await fdm
+        let query = fdm
             .select({
                 count: sql<number>`cast(count(distinct ${schema.tickets.ticket_id}) as integer)`,
             })
             .from(schema.tickets)
             .leftJoin(
+                schema.ticketViews,
+                and(
+                    eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+                    inArray(schema.ticketViews.actor_id, principal_ids),
+                ),
+            )
+
+        if (shouldJoinTicketAssignments) {
+            query = query.leftJoin(
                 schema.ticketAssignments,
                 and(
                     eq(
@@ -372,18 +388,16 @@ async function selectTickets(
                     isNull(schema.ticketAssignments.unassigned_at),
                 ),
             )
-            .leftJoin(
+        }
+        if (shouldJoinTags) {
+            query = query.leftJoin(
                 schema.ticketTagsMap,
                 eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
             )
-            .leftJoin(
-                schema.ticketViews,
-                and(
-                    eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
-                    inArray(schema.ticketViews.actor_id, principal_ids),
-                ),
-            )
-            .leftJoin(
+        }
+
+        if (shouldJoinMessages) {
+            query = query.leftJoin(
                 schema.messages,
                 and(
                     eq(schema.messages.ticket_id, schema.tickets.ticket_id),
@@ -392,7 +406,9 @@ async function selectTickets(
                         : not(schema.messages.is_internal),
                 ),
             )
-            .where(whereClause)
+        }
+
+        return await query.where(whereClause)
     }
 
     // If actually returning tickets, ensure either priority, text relevance, or creation date ordering
@@ -421,23 +437,6 @@ async function selectTickets(
                 : {}),
         })
         .from(schema.tickets)
-        .leftJoin(
-            schema.ticketAssignments,
-            eq(schema.ticketAssignments.ticket_id, schema.tickets.ticket_id),
-        )
-        .leftJoin(
-            schema.ticketTagsMap,
-            eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
-        )
-        .leftJoin(
-            schema.messages,
-            and(
-                eq(schema.messages.ticket_id, schema.tickets.ticket_id),
-                helpdeskReadPermission
-                    ? undefined
-                    : not(schema.messages.is_internal),
-            ),
-        )
         // TODO: check if each agent has viewed, not only one of them
         .leftJoin(
             schema.ticketViews,
@@ -446,6 +445,34 @@ async function selectTickets(
                 inArray(schema.ticketViews.actor_id, principal_ids),
             ),
         )
+
+    if (shouldJoinTicketAssignments) {
+        query = query.leftJoin(
+            schema.ticketAssignments,
+            eq(schema.ticketAssignments.ticket_id, schema.tickets.ticket_id),
+        )
+    }
+
+    if (shouldJoinTags) {
+        query = query.leftJoin(
+            schema.ticketTagsMap,
+            eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
+        )
+    }
+
+    if (shouldJoinMessages || sorting === "text_relevance") {
+        query = query.leftJoin(
+            schema.messages,
+            and(
+                eq(schema.messages.ticket_id, schema.tickets.ticket_id),
+                helpdeskReadPermission
+                    ? undefined
+                    : not(schema.messages.is_internal),
+            ),
+        )
+    }
+
+    query = query
         .where(whereClause)
         .groupBy(schema.tickets.ticket_id)
         .orderBy((t) => {
@@ -458,7 +485,7 @@ async function selectTickets(
             }
 
             return [desc(t.created)]
-        })
+        }) as typeof query
 
     if (filters.pageOffset) {
         query = query.offset(filters.pageOffset) as typeof query
