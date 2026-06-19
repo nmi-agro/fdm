@@ -67,7 +67,7 @@ type IndicatorsMapProps = {
     childEntries?: ChildScoreEntry[]
 } & (
     | { basePath: string; basePathFormatter?: undefined }
-    | { basePath?: undefined; basePathFormatter?: (b_id: string) => string }
+    | { basePath?: undefined; basePathFormatter: (b_id: string) => string }
 )
 
 type HoverInfo = {

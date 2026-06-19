@@ -147,26 +147,38 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             const { b_id_farm } = farm
             const scorePromise: Promise<FieldBln3Score> = lastPromise.then(
                 async () => {
-                    const fieldScores = await getIndicatorsForFarm({
-                        principal_id: organization.id,
-                        b_id_farm,
-                        timeframe,
-                    })
-                    for (const result of fieldScores) {
-                        if (result.error) {
-                            reportError(
-                                new Error(
-                                    `BLN3 score failed for field ${result.b_id}: ${result.error}`,
-                                ),
-                            )
+                    try {
+                        const fieldScores = await getIndicatorsForFarm({
+                            principal_id: organization.id,
+                            b_id_farm,
+                            timeframe,
+                        })
+                        for (const result of fieldScores) {
+                            if (result.error) {
+                                reportError(
+                                    new Error(
+                                        `BLN3 score failed for field ${result.b_id}: ${result.error}`,
+                                    ),
+                                )
+                            }
                         }
-                    }
-                    const minScores = computeFarmMinScores(fieldScores)
+                        const minScores = computeFarmMinScores(fieldScores)
 
-                    return {
-                        b_id: b_id_farm,
-                        score: minScores,
-                        error: null,
+                        return {
+                            b_id: b_id_farm,
+                            score: minScores,
+                            error: null,
+                        }
+                    } catch (err) {
+                        handleLoaderError(err)
+                        return {
+                            b_id: b_id_farm,
+                            score: null,
+                            error:
+                                err instanceof Error
+                                    ? err.message
+                                    : "Iets is fout gegaan.",
+                        }
                     }
                 },
             )
@@ -174,7 +186,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             lastPromise = scorePromise.then(() => undefined)
         }
 
-        // Now do the synchronous fetches
         const farmsExtended = await Promise.all(
             farms.map(async (farm) => {
                 const fields = await getFields(
@@ -185,7 +196,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                 return {
                     b_id: farm.b_id_farm,
                     b_name: farm.b_name_farm,
-                    b_area: await fields.reduce(
+                    b_area: fields.reduce(
                         (total, field) => total + (field.b_area ?? 0),
                         0,
                     ),
@@ -206,7 +217,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export default function IndicatorsFarmIndex() {
     const { farms, farmScoreStreams } = useLoaderData<typeof loader>()
-    const { b_id_farm, calendar } = useParams()
+    const { slug, calendar } = useParams()
 
     const [activeCategories, setActiveCategories] = useState<
         Ecosysteemdienst[]
@@ -220,16 +231,19 @@ export default function IndicatorsFarmIndex() {
         let active = true
         setFieldScores([])
         for (const stream of farmScoreStreams) {
-            stream.then((scores) => {
-                if (active) {
-                    setFieldScores((current) => {
-                        if (active) {
-                            return [...current, scores]
-                        }
-                        return current
-                    })
-                }
-            })
+            stream.then(
+                (scores) => {
+                    if (active) {
+                        setFieldScores((current) => {
+                            if (active) {
+                                return [...current, scores]
+                            }
+                            return current
+                        })
+                    }
+                },
+                () => {},
+            )
         }
         return () => {
             active = false
@@ -353,7 +367,7 @@ export default function IndicatorsFarmIndex() {
                                         className="h-7 text-xs gap-1.5"
                                     >
                                         <NavLink
-                                            to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}
+                                            to={`/organization/${slug}/${calendar}/atlas/indicators`}
                                         >
                                             <MapIcon className="h-3.5 w-3.5" />
                                             Kaartweergave

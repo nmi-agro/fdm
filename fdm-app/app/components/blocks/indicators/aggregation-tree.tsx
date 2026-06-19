@@ -56,11 +56,19 @@ type AggregationTreeProps = {
             indicators: Array<{ indicator_id: string; score: number | null }>
         } | null
     }>
-    /** Base path for field links, e.g. /farm/123/2026/indicators */
-    basePath?: string
-    /** Base path formatter for field links, e.g. (b_id: string) => "/farm/123/2026/indicators/" + b_id */
-    basePathFormatter?: (b_id: string) => string
-}
+} & (
+        {
+            /** Base path for field links, e.g. /farm/123/2026/indicators */
+            basePath: string
+            /** Base path formatter for field links, e.g. (b_id: string) => "/farm/123/2026/indicators/" + b_id */
+            basePathFormatter?: undefined
+        } | {
+            /** Base path for field links, e.g. /farm/123/2026/indicators */
+            basePath?: undefined
+            /** Base path formatter for field links, e.g. (b_id: string) => "/farm/123/2026/indicators/" + b_id */
+            basePathFormatter: (b_id: string) => string
+        }
+    )
 
 export function AggregationTree({
     domain = "farm",

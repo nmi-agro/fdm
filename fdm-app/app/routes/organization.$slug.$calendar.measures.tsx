@@ -19,7 +19,6 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
 import {
     getColumns,
-    getOrganizationCustomColumns,
     type MeasureTableRow,
 } from "~/components/blocks/measures/columns"
 import { getFieldSummaryColumns } from "~/components/blocks/measures/field-summary-columns"
@@ -328,10 +327,7 @@ export default function MeasuresOrganizationIndex() {
     const basePathFormatter = (b_id: string) =>
         `/farm/${b_id}/${calendar}/measures`
 
-    const columns = getColumns(basePathFormatter).filter(
-        (c) => c.id !== "actions" && c.id !== "fields",
-    )
-    columns.push(...getOrganizationCustomColumns(basePathFormatter))
+    const columns = getColumns(basePathFormatter, "organization")
     const fieldSummaryColumns = useMemo(() => {
         const columns = getFieldSummaryColumns()
         const cultivationColumn = columns.find(

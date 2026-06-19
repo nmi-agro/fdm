@@ -41,10 +41,12 @@ function formatDate(d: Date | null): string {
 
 export function getColumns(
     basePathFormatter: (b_id: string) => string,
+    domain: "organization" | "farm",
     onEdit?: (row: MeasureTableRow) => void,
     onClose?: (row: MeasureTableRow) => void,
+    deleteAction?: string,
 ): ColumnDef<MeasureTableRow>[] {
-    return [
+    const columns: ColumnDef<MeasureTableRow>[] = [
         {
             accessorKey: "m_name",
             header: "Maatregel",
@@ -133,7 +135,13 @@ export function getColumns(
                                 className="h-7 px-2 text-xs gap-1.5"
                             >
                                 {fields.length}{" "}
-                                {fields.length === 1 ? "perceel" : "percelen"}
+                                {domain === "organization"
+                                    ? fields.length === 1
+                                        ? "bedrijf"
+                                        : "bedrijven"
+                                    : fields.length === 1
+                                      ? "perceel"
+                                      : "percelen"}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-56 p-2" align="start">
@@ -154,7 +162,27 @@ export function getColumns(
                 )
             },
         },
-        {
+    ]
+
+    if (domain === "organization") {
+        columns.push({
+            id: "actualFieldCount",
+            header: "Totaal percelen",
+            cell: ({ row }) => {
+                const actualFieldCount = row.original.actualFieldCount
+                return actualFieldCount ? (
+                    <span className="text-muted-foreground">
+                        {actualFieldCount === 1
+                            ? "1 perceel"
+                            : `${actualFieldCount} percelen`}
+                    </span>
+                ) : null
+            },
+        })
+    }
+
+    if (onEdit && onClose && deleteAction) {
+        columns.push({
             id: "actions",
             header: "",
             cell: ({ row }) => (
@@ -202,10 +230,7 @@ export function getColumns(
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                                <Form
-                                    method="post"
-                                    action={basePathFormatter("")}
-                                >
+                                <Form method="post" action={deleteAction}>
                                     <input
                                         type="hidden"
                                         name="intent"
@@ -231,63 +256,8 @@ export function getColumns(
                     </AlertDialog>
                 </div>
             ),
-        },
-    ]
-}
+        })
+    }
 
-export function getOrganizationCustomColumns(
-    basePathFormatter: (b_id: string) => string,
-): ColumnDef<MeasureTableRow>[] {
-    return [
-        {
-            id: "farms",
-            header: "Bedrijven",
-            cell: ({ row }) => {
-                const fields = row.original.fields
-                if (fields.length === 0) return null
-                return (
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 px-2 text-xs gap-1.5"
-                            >
-                                {fields.length}{" "}
-                                {fields.length === 1 ? "bedrijf" : "bedrijven"}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-56 p-2" align="start">
-                            <ul className="space-y-1">
-                                {fields.map((f) => (
-                                    <li key={f.b_id}>
-                                        <NavLink
-                                            to={basePathFormatter(f.b_id)}
-                                            className="block text-sm px-2 py-1 rounded hover:bg-muted transition-colors"
-                                        >
-                                            {f.b_name ?? f.b_id}
-                                        </NavLink>
-                                    </li>
-                                ))}
-                            </ul>
-                        </PopoverContent>
-                    </Popover>
-                )
-            },
-        },
-        {
-            id: "actualFieldCount",
-            header: "Totaal percelen",
-            cell: ({ row }) => {
-                const actualFieldCount = row.original.actualFieldCount
-                return actualFieldCount ? (
-                    <span className="text-muted-foreground">
-                        {actualFieldCount === 1
-                            ? "1 perceel"
-                            : `${actualFieldCount} percelen`}
-                    </span>
-                ) : null
-            },
-        },
-    ]
+    return columns
 }

@@ -23,9 +23,15 @@ type AggregationPainpointsProps = {
     domain?: "organization" | "farm"
     fields: (FieldAreaInput & { b_name: string | null | undefined })[]
     fieldScores: FieldScoreInput[]
-    basePath?: string // e.g. /farm/123/2026/indicators
-    basePathFormatter?: (b_id: string) => string
-}
+} & (
+        {
+            basePath: string // e.g. /farm/123/2026/indicators
+            basePathFormatter?: undefined
+        } | {
+            basePath?: undefined
+            basePathFormatter: (b_id: string) => string
+        }
+    )
 
 export function AggregationPainpoints({ domain = "farm", fields, fieldScores, basePath, basePathFormatter }: AggregationPainpointsProps) {
     const [selectedAggId, setSelectedAggId] = useState<AggregationId | null>(null)

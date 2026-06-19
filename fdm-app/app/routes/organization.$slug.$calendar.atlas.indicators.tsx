@@ -3,6 +3,7 @@ import type { FeatureCollection, MultiPolygon } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { data, type MetaFunction, useLoaderData } from "react-router"
 import { ScoreSelect } from "~/components/blocks/indicators/atlas"
+import { Badge } from "~/components/ui/badge"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import {
@@ -58,11 +59,17 @@ export const meta: MetaFunction = () => {
 }
 
 type FlattenedScores = Record<string, number | null>
-type FarmFlattenedScores = {
-    b_id_farm: string
-    flattenedScores: FlattenedScores
-    error: unknown
-}
+type FarmFlattenedScores =
+    | {
+          b_id_farm: string
+          flattenedScores: FlattenedScores
+          error: null
+      }
+    | {
+          b_id_farm: string
+          flattenedScores: null
+          error: string
+      }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
     try {
@@ -92,57 +99,71 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             const { b_id_farm } = farm
             const scorePromise: Promise<FarmFlattenedScores> = lastPromise.then(
                 async () => {
-                    const fieldScores = await getIndicatorsForFarm({
-                        principal_id: organization.id,
-                        b_id_farm,
-                        timeframe,
-                    })
-                    for (const result of fieldScores) {
-                        if (result.error) {
-                            reportError(
-                                new Error(
-                                    `BLN3 score failed for field ${result.b_id}: ${result.error}`,
-                                ),
-                            )
+                    try {
+                        const fieldScores = await getIndicatorsForFarm({
+                            principal_id: organization.id,
+                            b_id_farm,
+                            timeframe,
+                        })
+                        for (const result of fieldScores) {
+                            if (result.error) {
+                                reportError(
+                                    new Error(
+                                        `BLN3 score failed for field ${result.b_id}: ${result.error}`,
+                                    ),
+                                )
+                            }
                         }
-                    }
-                    const minScores = computeFarmMinScores(fieldScores)
+                        const minScores = computeFarmMinScores(fieldScores)
 
-                    const aggProps: Record<string, number> = {}
-                    for (const aggId of AGG_IDS) {
-                        const scoreVal = getFieldAggregationScore(
-                            minScores,
-                            aggId,
-                        )
-                        aggProps[aggId] =
-                            scoreVal !== null ? Math.round(scoreVal * 100) : -1
-                    }
+                        const aggProps: Record<string, number> = {}
+                        for (const aggId of AGG_IDS) {
+                            const scoreVal = getFieldAggregationScore(
+                                minScores,
+                                aggId,
+                            )
+                            aggProps[aggId] =
+                                scoreVal !== null
+                                    ? Math.round(scoreVal * 100)
+                                    : -1
+                        }
 
-                    const indicatorProps: Record<string, number> = {}
-                    for (const indicator of INDICATORS) {
-                        const rawScore = minScores?.indicators.find(
-                            (item) => item.indicator_id === indicator.id,
-                        )?.score
-                        indicatorProps[indicator.id] =
-                            rawScore != null && !Number.isNaN(rawScore)
-                                ? Math.round(rawScore * 100)
-                                : -1
-                    }
+                        const indicatorProps: Record<string, number> = {}
+                        for (const indicator of INDICATORS) {
+                            const rawScore = minScores?.indicators.find(
+                                (item) => item.indicator_id === indicator.id,
+                            )?.score
+                            indicatorProps[indicator.id] =
+                                rawScore != null && !Number.isNaN(rawScore)
+                                    ? Math.round(rawScore * 100)
+                                    : -1
+                        }
 
-                    const avgScore = computeFieldAvgScore({
-                        b_id: b_id_farm,
-                        score: minScores,
-                        error: null,
-                    })
+                        const avgScore = computeFieldAvgScore({
+                            b_id: b_id_farm,
+                            score: minScores,
+                            error: null,
+                        })
 
-                    return {
-                        b_id_farm: b_id_farm,
-                        flattenedScores: {
-                            avgScore,
-                            ...aggProps,
-                            ...indicatorProps,
-                        },
-                        error: null,
+                        return {
+                            b_id_farm: b_id_farm,
+                            flattenedScores: {
+                                avgScore,
+                                ...aggProps,
+                                ...indicatorProps,
+                            },
+                            error: null,
+                        }
+                    } catch (err) {
+                        handleLoaderError(err)
+                        return {
+                            b_id_farm: b_id_farm,
+                            flattenedScores: null,
+                            error:
+                                err instanceof Error
+                                    ? err.message
+                                    : "Iets is fout gegaan.",
+                        }
                     }
                 },
             )
@@ -210,25 +231,38 @@ export default function OrgAtlasIndicatorsMap() {
     const [fieldScoresMap, setFieldScoresMap] = useState(
         new Map<string, FlattenedScores>(),
     )
+    const [erroredFarms, setErroredFarms] = useState<string[]>([])
 
     useEffect(() => {
         let active = true
         setFieldScoresMap(new Map())
+        setErroredFarms([])
         for (const stream of farmScoreStreams) {
-            stream.then(({ b_id_farm, flattenedScores }) => {
-                if (active) {
-                    setFieldScoresMap((current) => {
-                        if (active) {
-                            const newMap = new Map<string, FlattenedScores>(
-                                current,
-                            )
-                            newMap.set(b_id_farm, flattenedScores)
-                            return newMap
+            stream.then(
+                ({ b_id_farm, flattenedScores }) => {
+                    if (active) {
+                        if (flattenedScores) {
+                            setFieldScoresMap((current) => {
+                                if (active) {
+                                    const newMap = new Map<
+                                        string,
+                                        FlattenedScores
+                                    >(current)
+                                    newMap.set(b_id_farm, flattenedScores)
+                                    return newMap
+                                }
+                                return current
+                            })
+                        } else {
+                            setErroredFarms((current) => [
+                                ...current,
+                                b_id_farm,
+                            ])
                         }
-                        return current
-                    })
-                }
-            })
+                    }
+                },
+                () => {},
+            )
         }
         return () => {
             active = false
@@ -260,6 +294,10 @@ export default function OrgAtlasIndicatorsMap() {
               : (INDICATORS.find((i) => i.id === selectedProperty)?.name ??
                 selectedProperty)
 
+    const numTotal = farmScoreStreams.length
+    const numErrored = erroredFarms.length
+    const numDone = fieldScoresMap.size + numErrored
+
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
             {/* Floating indicator selector + info banner */}
@@ -268,6 +306,24 @@ export default function OrgAtlasIndicatorsMap() {
                 setSelectedProperty={setSelectedProperty}
                 detailPath={tablePath}
             />
+
+            <div className="absolute right-4 bottom-12 z-10 flex flex-col items-end gap-2">
+                {numDone < numTotal && (
+                    <Badge
+                        variant="outline"
+                        className="bg-orange-200 border-orange-400"
+                    >
+                        Even geduld... {numDone}/{numTotal} bedrijven
+                    </Badge>
+                )}
+                {numErrored > 0 && (
+                    <Badge variant="destructive">
+                        {numErrored}{" "}
+                        {numErrored === 1 ? "bedrijf" : "bedrijven"} hebben iets
+                        fout gegaan met de berekening.
+                    </Badge>
+                )}
+            </div>
 
             <Suspense
                 fallback={

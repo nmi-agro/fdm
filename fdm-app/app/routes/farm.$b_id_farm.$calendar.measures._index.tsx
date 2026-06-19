@@ -627,8 +627,10 @@ export default function MeasuresFarmIndex() {
 
     const columns = getColumns(
         (b_id) => `${basePath}/${b_id}`,
+        "farm",
         setEditingRow,
         setClosingRow,
+        `${basePath}?index`,
     )
     const fieldSummaryColumns = useMemo(() => getFieldSummaryColumns(), [])
 
