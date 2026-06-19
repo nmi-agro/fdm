@@ -16,6 +16,7 @@ import {
     getUnassignedTicketCount,
     getUnreadAssignedTicketCount,
     getUnreadRequestedTicketCount,
+    markTicketAsNotViewedByAll,
     markTicketAsViewed,
     updateTicketPriority,
     updateTicketStatus,
@@ -345,6 +346,52 @@ test.describe("getTickets", () => {
             inbox.some((ticket) => ticket.ticket_id === new_ticket_id),
             "New ticket created by other user found in inbox but shouldn't be",
         ).toBe(false)
+    })
+
+    test("should sort by priority", async ({ fdm }) => {
+        await assignTicket(fdm, ticket_id_1, agent_id, agent_id, true)
+        await assignTicket(fdm, ticket_id_2, agent_id, agent_id, true)
+        const tickets = await getTickets(
+            fdm,
+            agent_id,
+            { assignees: [agent_id] },
+            "priority",
+        )
+
+        expect(
+            tickets[0].ticket_id,
+            "Ticket 1 has a higher priority than Ticket 2",
+        ).toBe(ticket_id_1)
+        expect(tickets[1].ticket_id).toBe(ticket_id_2)
+    })
+
+    test("should sort by text relevance", async ({ fdm }) => {
+        const specific_ticket_id_1 = await createTicket(
+            fdm,
+            requester_id,
+            "New helpdesk feature",
+        )
+        const specific_ticket_id_2 = await createTicket(
+            fdm,
+            requester_id,
+            "New feature",
+        )
+        await assignTicket(fdm, specific_ticket_id_1, agent_id, agent_id, true)
+        await assignTicket(fdm, specific_ticket_id_2, agent_id, agent_id, true)
+
+        // "New feature" should score higher than "New helpdesk feature" since it is the exact same phrase
+        const tickets = await getTickets(
+            fdm,
+            agent_id,
+            { assignees: [agent_id], text: "New feature" },
+            "text_relevance",
+        )
+
+        expect(
+            tickets[0].ticket_id,
+            "Ticket 2 contains the search terms as is while Ticket 1 doesnt",
+        ).toBe(specific_ticket_id_2)
+        expect(tickets[1].ticket_id).toBe(specific_ticket_id_1)
     })
 })
 
@@ -883,5 +930,20 @@ describe("markTicketAsViewed", () => {
         ).rejects.toThrow(
             "Principal does not have permission to perform this action",
         )
+    })
+})
+
+describe("markTicketAsNotViewedByAll", () => {
+    test("should mark ticket as not viewed by all", async ({ fdm }) => {
+        const requester_id = createId()
+        const ticket_id = await createTicket(fdm, requester_id, "Ticket")
+        await markTicketAsViewed(fdm, requester_id, ticket_id)
+        await markTicketAsNotViewedByAll(fdm, ticket_id)
+
+        const ticket = await getTicket(fdm, requester_id, ticket_id)
+        expect(
+            ticket.viewed_at,
+            "Ticket viewed date must be null after un-viewing",
+        ).toBeNull()
     })
 })

@@ -4,6 +4,7 @@ import { createId } from "./id"
 import {
     addTagToTicket,
     createTag,
+    deleteTag,
     getTag,
     getTags,
     getTagsForTickets,
@@ -259,6 +260,27 @@ describe("Ticket Tags", () => {
             )
         }
     })
+
+    test("should remove tag from all tickets then delete it", async ({
+        fdm,
+    }) => {
+        const tag_to_delete_id = await createTag(
+            fdm,
+            admin_id,
+            `Purple${createId(8)}`,
+            "#aa00ff",
+        )
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_to_delete_id)
+        await deleteTag(fdm, admin_id, tag_to_delete_id)
+
+        const ticketTags =
+            (await getTagsForTickets(fdm, admin_id, [ticket_id])).get(
+                ticket_id,
+            ) ?? []
+        expect(ticketTags.some((tag) => tag.tag_id === tag_to_delete_id)).toBe(
+            false,
+        )
+    })
 })
 
 describe("getTags", () => {
@@ -308,11 +330,7 @@ describe("Tag authorization and edge cases", () => {
         await addAgent(fdm, admin_id, regular_agent_id, "Regular Agent")
 
         const requester_id = createId()
-        const ticket_id = await createTicket(
-            fdm,
-            requester_id,
-            "Tagged Ticket",
-        )
+        const ticket_id = await createTicket(fdm, requester_id, "Tagged Ticket")
 
         const tag_id = await createTag(
             fdm,
@@ -320,15 +338,25 @@ describe("Tag authorization and edge cases", () => {
             `AgentTag${createId(8)}`,
             "#aabbcc",
         )
+        const tag_id_2 = await createTag(
+            fdm,
+            admin_id,
+            `AgentTag${createId(8)}`,
+            "#ddeeff",
+        )
+        // Create another tag to see if it is excluded properly
+        await createTag(fdm, admin_id, `AgentTag${createId(8)}`, "#ddeeff")
         await addTagToTicket(fdm, admin_id, ticket_id, tag_id)
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id_2)
 
         const tagsMap = await getTagsForTickets(fdm, regular_agent_id, [
             ticket_id,
         ])
         const tags = tagsMap.get(ticket_id)
-
         expect(tags).toBeDefined()
+        expect(tags).toHaveLength(2)
         expect(tags?.some((t) => t.tag_id === tag_id)).toBe(true)
+        expect(tags?.some((t) => t.tag_id === tag_id_2)).toBe(true)
     })
 
     test("regular user cannot create a tag", async ({ fdm }) => {

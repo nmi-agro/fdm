@@ -39,6 +39,14 @@ export const test = baseTest.extend(
             password: inject("password"),
             database: inject("database"),
             max: 1,
+            onnotice(item) {
+                // Do not log truncation warnings (truncation happens a lot due to how some tests are set up)
+                if (item?.message?.startsWith("truncate cascades to")) {
+                    return
+                }
+
+                console.log("NOTICE NOTICE", item)
+            },
         })
 
         const fdm = drizzle(client)

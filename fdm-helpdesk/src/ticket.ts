@@ -407,12 +407,11 @@ async function selectTickets(
             : undefined
     const textRelevanceQuery =
         sorting === "text_relevance" && filters.text
-            ? sql<number>`setweight(
-to_tsvector('dutch', ${schema.messages.body}), 'A'), to_tsquery('dutch', ${filters.text})`
+            ? sql<number>`max(ts_rank(setweight(to_tsvector('dutch', ${schema.messages.body}), 'A'), websearch_to_tsquery('dutch', ${filters.text})))`
             : undefined
 
     let query = fdm
-        .selectDistinct({
+        .select({
             ...ticketColumns,
             viewed_at: max(schema.ticketViews.viewed_at),
             // Select columns necessary for the ordering
@@ -450,11 +449,11 @@ to_tsvector('dutch', ${schema.messages.body}), 'A'), to_tsquery('dutch', ${filte
         .where(whereClause)
         .groupBy(schema.tickets.ticket_id)
         .orderBy((t) => {
-            if (sorting === "priority") {
-                return [desc(t.priority_rank as SQL<number>), desc(t.created)]
+            if (sorting === "priority" && t.priority_rank) {
+                return [desc(t.priority_rank), desc(t.created)]
             }
 
-            if (sorting === "text_relevance") {
+            if (sorting === "text_relevance" && t.text_relevance) {
                 return [desc(t.text_relevance as SQL<number>), desc(t.created)]
             }
 
@@ -504,18 +503,6 @@ export function getDefaultSubjectLine(body: string) {
                 (x) => x !== -1,
             ),
         )
-        if (bodyNextIndex === -1) {
-            const word = ` ${body.slice(bodyCurrentIndex)}`
-            if (subject.length + word.length <= MAX_SUBJECT_LENGTH + 1) {
-                subject += word
-            } else if (subject.length < MIN_SUBJECT_LENGTH) {
-                subject += word.slice(
-                    0,
-                    MIN_SUBJECT_LENGTH - subject.length + 1,
-                )
-            }
-            break
-        }
         const word = ` ${body.slice(bodyCurrentIndex, bodyNextIndex)}`
         if (subject.length + word.length <= MAX_SUBJECT_LENGTH + 1) {
             subject += word
