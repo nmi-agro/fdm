@@ -122,7 +122,7 @@ export function getColumns(
         },
         {
             id: "fields",
-            header: "Percelen",
+            header: domain === "organization" ? "Bedrijven" : "Percelen",
             cell: ({ row }) => {
                 const fields = row.original.fields
                 if (fields.length === 0) return null
