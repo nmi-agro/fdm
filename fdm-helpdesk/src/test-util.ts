@@ -45,7 +45,7 @@ export const test = baseTest.extend(
                     return
                 }
 
-                console.log("NOTICE NOTICE", item)
+                console.log(item)
             },
         })
 
