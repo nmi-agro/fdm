@@ -37,6 +37,7 @@ import {
     getRvoFieldsFromShapefile,
     processRvoImport,
     RvoImportReviewStatus,
+    validateShapefileYear,
 } from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
@@ -192,6 +193,16 @@ export async function genericAction(
                 dbf_file,
                 prj_file,
             )
+
+            // Validate that no field has a BeginDate year greater than the selected calendar year
+            const yearValidation = validateShapefileYear(rvoFields, year)
+            if (!yearValidation.valid) {
+                return {
+                    success: false,
+                    message: `Het shapefile bevat percelen met een ingangsdatum in ${yearValidation.maxYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar in de applicatie heeft gekozen.`,
+                    RvoImportReviewData: undefined,
+                }
+            }
 
             /** Calculates the perimeter of the given polygon geometry in meters */
             function perimeter(geometry: FieldGeometry) {

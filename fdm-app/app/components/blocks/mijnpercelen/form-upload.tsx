@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
     AlertCircle,
+    Calendar as CalendarIcon,
     CheckCircle,
     Circle,
     FileUp,
@@ -66,6 +67,7 @@ export function MijnPercelenUploadForm({
 
     const actionData = useActionData<{
         message?: string
+        success?: boolean
         fieldErrors?: Record<string, string[]>
         formErrors?: string[]
     } | null>()
@@ -89,7 +91,7 @@ export function MijnPercelenUploadForm({
             const remainingTime = Math.max(0, minAnimationTime - elapsedTime)
 
             const timer = setTimeout(() => {
-                if (actionData.message) {
+                if (actionData.message && actionData.success !== false) {
                     setUploadState("success")
                 } else {
                     setUploadState("error")
@@ -100,9 +102,9 @@ export function MijnPercelenUploadForm({
         }
     }, [actionData, uploadState])
 
-    // Effect to reset the form after success/error message
+    // Effect to reset the form after success message (errors stay visible until the user tries again)
     useEffect(() => {
-        if (uploadState === "success" || uploadState === "error") {
+        if (uploadState === "success") {
             const timer = setTimeout(() => {
                 setUploadState("idle")
                 form.reset()
@@ -145,6 +147,14 @@ export function MijnPercelenUploadForm({
                     <AlertDescription className="text-muted-foreground">
                         Deze functie is nog in ontwikkeling. Laat ons het weten
                         als je feedback hebt!
+                    </AlertDescription>
+                </Alert>
+                <Alert variant="default">
+                    <CalendarIcon className="h-4 w-4" />
+                    <AlertTitle>Kalenderjaar {calendar}</AlertTitle>
+                    <AlertDescription>
+                        U uploadt percelen voor kalenderjaar {calendar}. Zorg
+                        ervoor dat het shapefile voor dit jaar is geëxporteerd.
                     </AlertDescription>
                 </Alert>
                 <CardDescription>
@@ -236,6 +246,15 @@ export function MijnPercelenUploadForm({
                             <AlertDescription className="text-muted-foreground">
                                 Deze functie is nog in ontwikkeling. Laat ons
                                 het weten als je feedback hebt!
+                            </AlertDescription>
+                        </Alert>
+                        <Alert variant="default">
+                            <CalendarIcon className="h-4 w-4" />
+                            <AlertTitle>Kalenderjaar {calendar}</AlertTitle>
+                            <AlertDescription>
+                                U uploadt percelen voor kalenderjaar {calendar}.
+                                Zorg ervoor dat het shapefile voor dit jaar is
+                                geëxporteerd.
                             </AlertDescription>
                         </Alert>
                         <CardDescription>
@@ -396,6 +415,19 @@ export function MijnPercelenUploadForm({
                                                     Terug
                                                 </Button>
                                             </NavLink>
+                                            {uploadState === "error" &&
+                                                actionData?.success === false &&
+                                                actionData.message && (
+                                                    <Alert variant="destructive">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <AlertTitle>
+                                                            Fout bij uploaden
+                                                        </AlertTitle>
+                                                        <AlertDescription>
+                                                            {actionData.message}
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                )}
                                         </div>
                                     </div>
                                 </fieldset>
