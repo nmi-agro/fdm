@@ -596,9 +596,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const posthog = PostHogClient()
 
     // If Gerrit is explicitly disabled for this user reject the request
-    const isGerritEnabled =
-        (await posthog?.isFeatureEnabled("gerrit", session.principal_id)) ??
-        true
+    let isGerritEnabled = false
+    try {
+        isGerritEnabled =
+            (
+                await posthog?.evaluateFlags(session.principal_id, {
+                    flagKeys: ["gerrit"],
+                })
+            )?.isEnabled("gerrit") ?? false
+    } catch {
+        // PostHog unavailable — default to blocked (fail-closed)
+    }
     if (!isGerritEnabled) {
         throw data(null, {
             status: 403,
@@ -1075,7 +1083,7 @@ export default function GerritApp() {
 
     const supportedYears = ["2025", "2026"]
     const isSupportedYear = supportedYears.includes(calendar)
-    const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
+    const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
 
     const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
         mode: "onTouched",

@@ -54,10 +54,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Check if Mineralization is enabled for this user
         const isMineralizationEnabled =
-            (await posthog?.isFeatureEnabled(
-                "mineralization",
-                session.principal_id,
-            )) ?? true
+            (
+                await posthog?.evaluateFlags(session.principal_id, {
+                    flagKeys: ["mineralization"],
+                })
+            )?.isEnabled("mineralization") ?? true
 
         const timeframe = getTimeframe(params)
 

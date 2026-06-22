@@ -65,7 +65,7 @@ export interface Fertilizer extends FertilizerCatalogue {
     p_app_amount: number | null
 }
 
-type FertilizerType = "manure" | "mineral" | "compost"
+export type FertilizerType = "manure" | "mineral" | "compost"
 
 export interface FertilizerApplication {
     p_id: string

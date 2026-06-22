@@ -135,6 +135,7 @@ export type {
     FertilizerParameterDescription,
     FertilizerParameterDescriptionItem,
     FertilizerParameters,
+    FertilizerType,
 } from "./fertilizer.types"
 export type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
 export {
