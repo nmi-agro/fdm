@@ -172,6 +172,31 @@ export function convertShapefileFeatureIntoRvoField(
 }
 
 /**
+ * Validates that none of the parsed RVO fields have a `BeginDate` year greater than the selected calendar year.
+ *
+ * A field first registered in a prior year (e.g. 2024) may legitimately appear in a 2025 shapefile,
+ * but a field with a `BeginDate` of 2026 cannot belong to a 2025 import.
+ *
+ * @param rvoFields Parsed list of RVO fields (output of `getRvoFieldsFromShapefile`)
+ * @param year The selected calendar year
+ * @returns `{ valid: true }` when all fields are within the selected year, or
+ *          `{ valid: false, maxYear: <highest offending year> }` when at least one field is from the future
+ */
+export function validateShapefileYear(
+    rvoFields: RvoField[],
+    year: number,
+): { valid: true } | { valid: false; maxYear: number } {
+    const offendingYears = rvoFields
+        .map((field) => new Date(field.properties.BeginDate).getUTCFullYear())
+        .filter((beginYear) => beginYear > year)
+
+    if (offendingYears.length > 0) {
+        return { valid: false, maxYear: Math.max(...offendingYears) }
+    }
+    return { valid: true }
+}
+
+/**
  * Parses the files found in a MijnPercelen Shapefile export and compiles a GeoJSON feature collection where each feature's properties represent the field properties registered by RVO.
  *
  * `mestData` is not available in Shapefiles and will not be available in the result, thus no buffer strip information

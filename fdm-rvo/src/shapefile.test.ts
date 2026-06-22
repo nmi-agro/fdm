@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
     convertShapefileFeatureIntoRvoField,
     getRvoFieldsFromShapefile,
+    validateShapefileYear,
 } from "./shapefile"
 
 vi.mock("shpjs", async (importOriginal) => {
@@ -312,5 +313,55 @@ describe("convertShapefileFeatureIntoRvoField", () => {
                 properties: { ...MOCK_PROPERTIES, EINDDAT: -1e20 },
             }),
         ).toThrow("Field does not have the required attributes")
+    })
+})
+
+const makeFieldWithBeginYear = (year: number) =>
+    convertShapefileFeatureIntoRvoField({
+        type: "Feature",
+        geometry: createMockGeometry(),
+        properties: {
+            ...MOCK_PROPERTIES,
+            BEGINDAT: new Date(`${year}-01-01`).getTime(),
+        },
+    })
+
+describe("validateShapefileYear", () => {
+    it("scenario A: allows fields with BeginDate years all within or before the selected year", () => {
+        const fields = [2023, 2024, 2025].map(makeFieldWithBeginYear)
+        expect(validateShapefileYear(fields, 2025)).toEqual({ valid: true })
+    })
+
+    it("scenario B: allows fields whose BeginDate year exactly matches the selected year", () => {
+        const fields = [2025, 2025].map(makeFieldWithBeginYear)
+        expect(validateShapefileYear(fields, 2025)).toEqual({ valid: true })
+    })
+
+    it("scenario C: blocks a shapefile where all fields are from a future year", () => {
+        const fields = [2026, 2026].map(makeFieldWithBeginYear)
+        expect(validateShapefileYear(fields, 2025)).toEqual({
+            valid: false,
+            maxYear: 2026,
+        })
+    })
+
+    it("scenario D: blocks a mixed shapefile where some fields are from a future year", () => {
+        const fields = [2024, 2025, 2026].map(makeFieldWithBeginYear)
+        expect(validateShapefileYear(fields, 2025)).toEqual({
+            valid: false,
+            maxYear: 2026,
+        })
+    })
+
+    it("returns the highest offending year when multiple future years are present", () => {
+        const fields = [2025, 2026, 2027].map(makeFieldWithBeginYear)
+        expect(validateShapefileYear(fields, 2025)).toEqual({
+            valid: false,
+            maxYear: 2027,
+        })
+    })
+
+    it("returns valid for an empty field list", () => {
+        expect(validateShapefileYear([], 2025)).toEqual({ valid: true })
     })
 })
