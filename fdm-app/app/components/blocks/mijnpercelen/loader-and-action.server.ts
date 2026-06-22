@@ -101,6 +101,7 @@ export async function genericAction(
     | {
           success?: boolean
           message?: string
+          suggestedYear?: number
           RvoImportReviewData?: RvoImportReviewItem<Field>[]
       }
 > {
@@ -200,6 +201,7 @@ export async function genericAction(
                 return {
                     success: false,
                     message: `Het shapefile bevat percelen met een ingangsdatum in ${yearValidation.maxYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar in de applicatie heeft gekozen.`,
+                    suggestedYear: yearValidation.maxYear,
                     RvoImportReviewData: undefined,
                 }
             }

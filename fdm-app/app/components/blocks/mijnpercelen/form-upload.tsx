@@ -9,7 +9,7 @@ import {
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useWatch } from "react-hook-form"
-import { Form, NavLink, useActionData, useNavigation } from "react-router"
+import { Form, NavLink, useActionData, useLocation, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
@@ -68,10 +68,12 @@ export function MijnPercelenUploadForm({
     const actionData = useActionData<{
         message?: string
         success?: boolean
+        suggestedYear?: number
         fieldErrors?: Record<string, string[]>
         formErrors?: string[]
     } | null>()
     const navigation = useNavigation()
+    const location = useLocation()
     const isSubmitting = navigation.state !== "idle"
 
     // Effect to start the animation
@@ -426,6 +428,27 @@ export function MijnPercelenUploadForm({
                                                         <AlertDescription>
                                                             {actionData.message}
                                                         </AlertDescription>
+                                                        {actionData.suggestedYear && (
+                                                            <NavLink
+                                                                to={location.pathname.replace(
+                                                                    `/${calendar}/`,
+                                                                    `/${actionData.suggestedYear}/`,
+                                                                )}
+                                                                className="mt-2 block"
+                                                            >
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="w-full"
+                                                                >
+                                                                    Ga naar
+                                                                    kalenderjaar{" "}
+                                                                    {
+                                                                        actionData.suggestedYear
+                                                                    }
+                                                                </Button>
+                                                            </NavLink>
+                                                        )}
                                                     </Alert>
                                                 )}
                                         </div>
