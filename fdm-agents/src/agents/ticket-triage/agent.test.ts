@@ -151,6 +151,7 @@ describe("generateTicketSubjectAndPriority", () => {
         const { runOneShotAgent } = await import("../../runners/one-shot")
         vi.mocked(runOneShotAgent).mockResolvedValueOnce({
             runId: "",
+            threadId: "",
             result: "",
             structuredResponse: undefined,
             usage: null,
