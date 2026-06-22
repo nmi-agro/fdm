@@ -55,11 +55,13 @@ cataloguscodes overeenkomen met het perceel, *niet* de eerste sectie in het best
 Als die secundaire context ontbreekt, vraag dan het veld op bij de gebruiker of kies bij
 wijze van terugval die dubbelzinnige subsectie niet.
 
-- **`aardappelen.md`** — aparte secties voor zetmeelaardappelen, fritesaardappelen,
-  tafelaardappelen en pootaardappelen. De generieke "consumptie"-codes worden gerouteerd
-  naar `consumptieaardappelen.md` en de vroege codes naar `vroegeaardappelen.md`. Als
-  subsectiekeuze dubbelzinnig is door gedeelde codes, gebruik dan het secundaire
-  contextveld (destination of use type) om te desambigueren.
+- **`aardappelen.md`** — aparte secties voor consumptieaardappelen (generieke codes, bestemming
+  onbekend), zetmeelaardappelen, fritesaardappelen, tafelaardappelen en pootaardappelen.
+  De generieke "consumptie"-codes (nl_2014, nl_1909, nl_1910, nl_2951, nl_3792) worden gerouteerd
+  naar `aardappelen.md` (sectie "Consumptieaardappelen — generieke codes") en de vroege codes
+  (nl_1911, nl_1912) naar `vroegeaardappelen.md`. Als de bestemming (frites/tafel) bekend is,
+  navigeer dan naar de bijbehorende subsectie; anders gebruik de conservatieve gedeelde regels in de
+  generieke sectie.
 - **`koolgewassen.md`** — algemene regels voor alle brassicas plus subsecties voor
   spruitkool, bloemkool/broccoli en sluitkool. Wanneer cataloguscodes in meerdere
   subsecties voorkomen, match dan de secundaire context vóór selectie.

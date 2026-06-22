@@ -31,12 +31,54 @@ bepaald via **onderwatergewicht (OWG)** — de belangrijkste uitbetalingsparamet
   `advice.d_mn_req`; bladbespuiting met Mn wanneer symptomen optreden.
 - Borium: nodig voor de schilkwaliteit van de knol; neem B op wanneer `advice.d_b_req > 0`.
 
-## Fritesaardappelen (verwerking / frites) — nl_2014, nl_1909, nl_1910, nl_2951, nl_3792
+## Consumptieaardappelen — generieke codes (bestemming onbekend) — nl_2014, nl_1909, nl_1910, nl_2951, nl_3792
 
-> **Opmerking**: de cataloguscodes nl_2014, nl_1909, nl_1910, nl_2951, nl_3792 zijn generieke
+De BRP-codes nl_2014, nl_1909, nl_1910, nl_2951 en nl_3792 zijn generieke "consumptie"-codes die zowel
+frites- als tafelbestemmingen omvatten. Het bemestingsregime verschilt per bestemming.
+
+**Eerste stap: bepaal de bestemming**
+
+Vraag vóór toepassing van segmentspecifieke regels aan de teler (of zoek het contract op) voor welke
+markt het perceel wordt geteeld:
+
+- **Verwerking / frites** → pas de regels in de sectie **Fritesaardappelen** hieronder toe.
+- **Versmarkt / tafel** → pas de regels in de sectie **Tafelaardappelen** hieronder toe.
+
+Signaleer deze verduidelijking altijd in de samenvatting van het plan.
+
+**Wanneer de bestemming niet bekend is — conservatieve gedeelde regels**
+
+Als de bestemming vóór de planning niet kan worden vastgesteld, val dan terug op onderstaande regels.
+Deze zijn conservatief en werken voor beide segmenten; signaleer de onduidelijke bestemming aan de teler.
+
+**Vermijden:**
+- KCl (kali-60): zowel verwerkings- als tafelaardappelen profiteren van K in sulfaatvorm.
+  Gebruik K₂SO₄ of patentkali.
+- Late N (na eind juli): ongunstig voor beide segmenten — verwerkingsaardappelen verliezen drogestof
+  en bakkleur; tafelaardappelen worden waterig en verliezen drogestof en kookkwaliteit.
+- N-giften boven `advice.d_n_req`.
+
+**Voorkeur:**
+- Gesplitste N-gift met nadruk aan het begin: ongeveer de helft vóór het poten, een kwart bij knolaanleg
+  en een kwart tijdens knolgroei. De totale N volgt `advice.d_n_req`.
+- Patentkali voor gecombineerde aanvoer van K + Mg + S.
+- Borium wanneer `advice.d_b_req > 0` (schilkwaliteit is in beide segmenten belangrijk).
+- Magnesium wanneer de Mg-toestand van de bodem laag is (kieseriet of patentkali).
+
+**Extra aandacht:**
+- Het drogestofgehalte is in beide segmenten belangrijk (typische contractband 19–24 % voor
+  verwerking; bij de versmarkt bepaalt het mede de kookkwaliteit). Te veel N verlaagt drogestof.
+- pH-risico voor gewone schurft op zand bij versmarktbestemmingen — zie de schurftopmerking in
+  de sectie **Tafelaardappelen** hieronder.
+- Algemene aardappelnotities (Mg, B, timing van mest, ammonium-N vroeg op zand) gelden voor
+  alle consumptieaardappelen — zie de sectie **Alle aardappeltypen** onderaan.
+
+## Fritesaardappelen (verwerking / frites)
+
+> **Opmerking**: de cataloguscodes nl_2014, nl_1909, nl_1910, nl_2951 en nl_3792 zijn generieke
 > "consumptie"-codes die zowel frites- als tafelbestemmingen omvatten. De segmentspecifieke
 > regels hieronder gelden wanneer het perceel is gecontracteerd voor **frites**. Wanneer de bestemming
-> niet bekend is, gebruik dan `consumptieaardappelen.md` en vraag de teler.
+> niet bekend is, pas dan de sectie **Consumptieaardappelen — generieke codes** hierboven toe.
 
 Geteeld voor de fritesindustrie (bijv. Aviko, LambWeston, Farm Frites). De kwaliteit wordt beoordeeld op
 **bakkleur** en **drogestof** (streefwaarde 19–24 %).
