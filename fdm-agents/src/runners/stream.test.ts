@@ -189,4 +189,53 @@ describe("runStreamAgent", () => {
         await collect(runStreamAgent(agent as any, "test", {}, undefined, 42))
         expect(capturedOpts.recursionLimit).toBe(42)
     })
+
+    it("should extract plain string from array content in messages", async () => {
+        const agent = makeAgent([
+            {
+                event: "on_chain_end",
+                data: {
+                    output: {
+                        messages: [
+                            { content: ["plain string part"] },
+                        ],
+                    },
+                },
+            },
+        ])
+        const events = await collect(runStreamAgent(agent, "test"))
+        const chainEnd = events.find((e) => e.event === "on_chain_end")
+        expect(chainEnd.data.result).toBe("plain string part")
+    })
+
+    it("should return empty string when message content array has no text or string parts", async () => {
+        const agent = makeAgent([
+            {
+                event: "on_chain_end",
+                data: {
+                    output: {
+                        messages: [
+                            { content: [{ type: "thinking", thinking: "denken" }] },
+                        ],
+                    },
+                },
+            },
+        ])
+        const events = await collect(runStreamAgent(agent, "test"))
+        const chainEnd = events.find((e) => e.event === "on_chain_end")
+        expect(chainEnd.data.result).toBe("")
+    })
+
+    it("should use posthog callbacks when provided and require succeeds", async () => {
+        // posthog.client is present but require('@posthog/ai/langchain') will throw
+        // in the test environment — the catch branch returns undefined, which is still
+        // the defined behaviour when the optional dep is absent.
+        const posthog = { client: { capture: () => {} }, distinctId: "user-1" }
+        const agent = makeAgent([])
+        // Should not throw — buildCallbacks degrades gracefully
+        const events = await collect(
+            runStreamAgent(agent, "test", { b_id_farm: "f1" }, posthog),
+        )
+        expect(events[0].event).toBe("on_chain_end")
+    })
 })

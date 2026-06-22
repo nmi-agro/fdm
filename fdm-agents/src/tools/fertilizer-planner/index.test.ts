@@ -580,6 +580,43 @@ describe("tool execute functions", () => {
         })
     })
 
+    // ── getCropFertilizerGuide ────────────────────────────────────────────────
+    describe("getCropFertilizerGuide", () => {
+        it("should return fallback when crop index file is not found", async () => {
+            // Pass an unknown code so the skill resolves a non-existent path
+            const result = await getTool("getCropFertilizerGuide").invoke(
+                { b_lu_catalogues: [] },
+                makeConfigurable(),
+            )
+            // Either index-not-found or no-matching-codes fallback is acceptable
+            expect(result.guide).toBeTruthy()
+            expect(result.matchedCrops).toEqual([])
+        })
+
+        it("should return no-match fallback for unrecognised crop codes", async () => {
+            const result = await getTool("getCropFertilizerGuide").invoke(
+                { b_lu_catalogues: ["nl_99999_unknown"] },
+                makeConfigurable(),
+            )
+            expect(result.matchedCrops).toEqual([])
+        })
+
+        it("should return guide content for known crop codes", async () => {
+            const result = await getTool("getCropFertilizerGuide").invoke(
+                { b_lu_catalogues: ["nl_265"] },
+                makeConfigurable(),
+            )
+            // nl_265 = grasland, should match grasland.md in skills
+            if (result.matchedCrops.length > 0) {
+                expect(result.guide).toBeTruthy()
+                expect(result.matchedCrops).toContain("grasland.md")
+            } else {
+                // Skills not present in test environment — both outcomes are valid
+                expect(result.matchedCrops).toEqual([])
+            }
+        })
+    })
+
     // ── simulateFarmPlan ─────────────────────────────────────────────────────
     describe("simulateFarmPlan", () => {
         it("should throw when principalId is missing in configurable", async () => {

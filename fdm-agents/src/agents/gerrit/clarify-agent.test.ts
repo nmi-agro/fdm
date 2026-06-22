@@ -57,6 +57,18 @@ describe("clarify agent", () => {
         expect(typeof agent.streamEvents).toBe("function")
     })
 
+    it("should pass CLARIFY_INSTRUCTION as the system prompt via middleware callback", async () => {
+        const { dynamicSystemPromptMiddleware } = await import("langchain")
+        let capturedCallback: (() => string) | undefined
+        vi.mocked(dynamicSystemPromptMiddleware).mockImplementationOnce((cb: any) => {
+            capturedCallback = cb
+            return {}
+        })
+        createClarifyAgent({} as any, "test-api-key")
+        expect(capturedCallback).toBeDefined()
+        expect(capturedCallback!()).toBe(CLARIFY_INSTRUCTION)
+    })
+
     it("should throw when createAgent returns a non-graph object", async () => {
         const { createAgent } = await import("langchain")
         vi.mocked(createAgent).mockReturnValueOnce(null as any)
