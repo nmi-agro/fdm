@@ -200,7 +200,7 @@ export async function genericAction(
             if (!yearValidation.valid) {
                 return {
                     success: false,
-                    message: `Het shapefile bevat percelen met een ingangsdatum in ${yearValidation.maxYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar in de applicatie heeft gekozen.`,
+                    message: `Het shapefile bevat percelen met een ingangsdatum in ${yearValidation.maxYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar heeft gekozen.`,
                     suggestedYear: yearValidation.maxYear,
                     RvoImportReviewData: undefined,
                 }

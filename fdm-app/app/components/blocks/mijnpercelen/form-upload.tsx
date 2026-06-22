@@ -5,7 +5,6 @@ import {
     CheckCircle,
     Circle,
     FileUp,
-    FlaskConical,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useWatch } from "react-hook-form"
@@ -29,6 +28,12 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 import {
     FormDescription,
     FormField,
@@ -74,7 +79,8 @@ export function MijnPercelenUploadForm({
     } | null>()
     const navigation = useNavigation()
     const location = useLocation()
-    const isSubmitting = navigation.state !== "idle"
+    const isSubmitting =
+        navigation.state !== "idle" && navigation.formMethod != null
 
     // Effect to start the animation
     useEffect(() => {
@@ -143,20 +149,16 @@ export function MijnPercelenUploadForm({
         <Card className="w-full max-w-lg mx-auto">
             <CardHeader className="space-y-6">
                 <CardTitle>Shapefile uploaden</CardTitle>
-                <Alert>
-                    <FlaskConical className="h-4 w-4" />
-                    <AlertTitle>Experimentele functie</AlertTitle>
-                    <AlertDescription className="text-muted-foreground">
-                        Deze functie is nog in ontwikkeling. Laat ons het weten
-                        als je feedback hebt!
-                    </AlertDescription>
-                </Alert>
                 <Alert variant="default">
                     <CalendarIcon className="h-4 w-4" />
                     <AlertTitle>Kalenderjaar {calendar}</AlertTitle>
                     <AlertDescription>
                         U uploadt percelen voor kalenderjaar {calendar}. Zorg
                         ervoor dat het shapefile voor dit jaar is geëxporteerd.
+                        <YearSwitcher
+                            calendar={calendar}
+                            pathname={location.pathname}
+                        />
                     </AlertDescription>
                 </Alert>
                 <CardDescription>
@@ -242,21 +244,17 @@ export function MijnPercelenUploadForm({
                 <Card className="w-full max-w-lg mx-auto">
                     <CardHeader className="space-y-6">
                         <CardTitle>Shapefile uploaden</CardTitle>
-                        <Alert>
-                            <FlaskConical className="h-4 w-4" />
-                            <AlertTitle>Experimentele functie</AlertTitle>
-                            <AlertDescription className="text-muted-foreground">
-                                Deze functie is nog in ontwikkeling. Laat ons
-                                het weten als je feedback hebt!
-                            </AlertDescription>
-                        </Alert>
                         <Alert variant="default">
                             <CalendarIcon className="h-4 w-4" />
                             <AlertTitle>Kalenderjaar {calendar}</AlertTitle>
-                            <AlertDescription>
+                            <AlertDescription className="text-muted-foreground">
                                 U uploadt percelen voor kalenderjaar {calendar}.
                                 Zorg ervoor dat het shapefile voor dit jaar is
                                 geëxporteerd.
+                                <YearSwitcher
+                                    calendar={calendar}
+                                    pathname={location.pathname}
+                                />
                             </AlertDescription>
                         </Alert>
                         <CardDescription>
@@ -460,6 +458,47 @@ export function MijnPercelenUploadForm({
                 </Card>
             )}
         </div>
+    )
+}
+
+function YearSwitcher({
+    calendar,
+    pathname,
+}: {
+    calendar: string
+    pathname: string
+}) {
+    const currentYear = Number(calendar)
+    const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i).filter(
+        (y) => y !== currentYear,
+    )
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full"
+                >
+                    Kies een ander jaar
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+                {years.map((year) => (
+                    <DropdownMenuItem key={year} asChild>
+                        <NavLink
+                            to={pathname.replace(
+                                `/${calendar}/`,
+                                `/${year}/`,
+                            )}
+                        >
+                            {year}
+                        </NavLink>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }
 
