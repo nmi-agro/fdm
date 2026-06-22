@@ -161,6 +161,7 @@ function setupDefaultMocks() {
             b_lu_name: "Gras",
             b_lu_start: "2025-01-01",
             b_lu_end: null,
+            b_lu_croprotation: "grass",
         },
     ])
     ;(getCurrentSoilData as any).mockResolvedValue([
