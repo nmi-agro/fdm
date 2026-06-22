@@ -34,12 +34,12 @@ allowBuilds:
   '@geomatico/maplibre-cog-protocol': true
   '@geomatico/maplibre-cog-protocol@https://codeload.github.com/SvenVw/maplibre-cog-protocol/tar.gz/fd6765830cd1453c3d20d290d6c40684153c5b7d': true
   '@google/genai': true
-  '@nmi-agro/fdm-agents': true
-  '@nmi-agro/fdm-calculator': true
-  '@nmi-agro/fdm-core': true
-  '@nmi-agro/fdm-data': true
-  '@nmi-agro/fdm-helpdesk': true
-  '@nmi-agro/fdm-rvo': true
+  '@nmi-agro/fdm-agents@file:fdm-agents': true
+  '@nmi-agro/fdm-calculator@file:fdm-calculator': true
+  '@nmi-agro/fdm-core@file:fdm-core': true
+  '@nmi-agro/fdm-data@file:fdm-data': true
+  '@nmi-agro/fdm-helpdesk@file:fdm-helpdesk': true
+  '@nmi-agro/fdm-rvo@file:fdm-rvo': true
   '@sentry-internal/node-cpu-profiler': true
   '@sentry/cli': true
   '@sentry/node-cpu-profiler': true
