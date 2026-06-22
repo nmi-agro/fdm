@@ -38,6 +38,7 @@ allowBuilds:
   '@nmi-agro/fdm-calculator': true
   '@nmi-agro/fdm-core': true
   '@nmi-agro/fdm-data': true
+  '@nmi-agro/fdm-helpdesk': true
   '@nmi-agro/fdm-rvo': true
   '@sentry-internal/node-cpu-profiler': true
   '@sentry/cli': true
