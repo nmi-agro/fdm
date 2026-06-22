@@ -138,6 +138,7 @@ export function buildFertilizerPlanPrompt(
         selectedOptionLabels: string[]
         other?: string
     }>,
+    selectedFertilizerIds?: string[],
 ): string {
     const validatedStrategies = FertilizerPlanStrategiesSchema.parse(strategies)
     const safeContext = additionalContext
@@ -166,6 +167,12 @@ export function buildFertilizerPlanPrompt(
 
     const clarificationsBlock = buildClarificationsBlock(clarifications ?? [])
 
+    // Only add a fertilizer restriction note when the user has explicitly limited the selection.
+    const fertilizersBlock =
+        selectedFertilizerIds && selectedFertilizerIds.length > 0
+            ? `\nGESELECTEERDE MESTSTOFFEN (alleen deze gebruiken):\n${selectedFertilizerIds.map((id) => `- ${id}`).join("\n")}\nGebruik uitsluitend meststoffen uit bovenstaande lijst. Sla meststoffen die hier niet in staan over, ook als ze beschikbaar zijn in de inventaris.\n`
+            : ""
+
     return `Stel een bemestingsplan op voor bedrijf "${farmData.b_id_farm}" voor het jaar "${calendar}".
 ${fieldsBlock}
 TE HANDHAVEN STRATEGIEËN:
@@ -175,7 +182,7 @@ TE HANDHAVEN STRATEGIEËN:
 - Stikstofbalans onder streefwaarde houden: ${validatedStrategies.keepNitrogenBalanceBelowTarget ? "JA (Zorg dat het stikstofbalansoverschot op bedrijfsniveau onder het bedrijfsomgevingsdoel blijft. Individuele percelen mogen hun doel overschrijden als dit door andere percelen wordt gecompenseerd)" : "NEE"}
 - Werken op bouwplanniveau: ${validatedStrategies.workOnRotationLevel ? "JA (Alle percelen met hetzelfde b_lu_catalogue MOETEN identieke giften ontvangen — dezelfde producten, hoeveelheden, data en methoden)" : "NEE"}
 - Derogatie: ${validatedStrategies.isDerogation ? "JA (Geen minerale meststoffen met fosfaat toegestaan)" : "NEE"}
-${clarificationsBlock}
+${fertilizersBlock}${clarificationsBlock}
 --- BEGIN ADDITIONAL USER CONTEXT ---
 ${safeContext}
 --- END ADDITIONAL USER CONTEXT ---

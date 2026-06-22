@@ -14,12 +14,24 @@ export const GerritFormSchema = z.object({
         .string()
         .optional()
         .transform((val) => val === "true"),
+    /** Catalogue IDs of fertilizers to consider. Undefined = use all; empty array = invalid. */
+    selectedFertilizerIds: z
+        .array(z.string())
+        .optional(),
     additionalContext: z
         .string()
         .max(1000, "Maximaal 1000 karakters toegestaan.")
         .optional()
         .default(""),
     geminiModel: z.string().optional().default("gemini-3.5-flash"),
+}).superRefine((data, ctx) => {
+    if (Array.isArray(data.selectedFertilizerIds) && data.selectedFertilizerIds.length === 0) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["selectedFertilizerIds"],
+            message: "Selecteer minimaal 1 meststof om een plan te genereren.",
+        })
+    }
 })
 
 export type GerritFormValues = z.infer<typeof GerritFormSchema>

@@ -53,7 +53,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const additionalContext = url.searchParams.get("additionalContext") || ""
     const modelName = url.searchParams.get("geminiModel") || "gemini-3-flash-preview"
 
-    // Parse clarifications from the question form (if any)
+    // Parse selectedFertilizerIds (allow only safe catalogue ID chars: alphanumeric, _, -)
+    const SAFE_ID = /^[A-Za-z0-9_-]+$/
+    const selectedFertilizerIdsRaw = url.searchParams.get("selectedFertilizerIds")
+    let selectedFertilizerIds: string[] | undefined
+    if (selectedFertilizerIdsRaw) {
+        try {
+            const parsed = JSON.parse(selectedFertilizerIdsRaw)
+            if (Array.isArray(parsed)) {
+                selectedFertilizerIds = parsed
+                    .filter((id): id is string => typeof id === "string" && SAFE_ID.test(id))
+                    .slice(0, 200)
+            }
+        } catch {}
+    }
+    // Empty array = treat as "use all"
+    const allowedFertilizerCatalogueIds =
+        selectedFertilizerIds && selectedFertilizerIds.length > 0
+            ? selectedFertilizerIds
+            : undefined
     let clarifications: Array<{ question: string; selectedOptionLabels: string[]; other?: string }> = []
     const clarificationsRaw = url.searchParams.get("clarifications")
     if (clarificationsRaw) {
@@ -170,7 +188,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 sendEvent("status", { message: "Gerrit start met het berekenen van het plan...", phase: "planning" })
 
                 const agent = createFertilizerPlannerAgent(fdm, serverConfig.integrations.gemini?.api_key, modelName)
-                const prompt = buildFertilizerPlanPrompt({ b_id_farm }, strategies, calendar, additionalContext, fieldsSummary, clarifications)
+                const prompt = buildFertilizerPlanPrompt({ b_id_farm }, strategies, calendar, additionalContext, fieldsSummary, clarifications, allowedFertilizerCatalogueIds)
                 const agentContext = {
                     principalId: session.principal_id,
                     b_id_farm,
@@ -178,6 +196,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                     nmiApiKey: serverConfig.integrations.nmi?.api_key,
                     strategies,
                     additionalContext: additionalContext ?? "",
+                    ...(allowedFertilizerCatalogueIds ? { allowedFertilizerCatalogueIds } : {}),
                 }
 
                 const agentStream = runStreamAgent(

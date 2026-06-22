@@ -37,6 +37,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const modelName = url.searchParams.get("geminiModel") || "gemini-3-flash-preview"
 
+    // Parse selectedFertilizerIds (allow only safe catalogue ID chars)
+    const SAFE_ID = /^[A-Za-z0-9_-]+$/
+    const selectedFertilizerIdsRaw = url.searchParams.get("selectedFertilizerIds")
+    let allowedFertilizerCatalogueIds: string[] | undefined
+    if (selectedFertilizerIdsRaw) {
+        try {
+            const parsed = JSON.parse(selectedFertilizerIdsRaw)
+            if (Array.isArray(parsed)) {
+                const filtered = parsed.filter(
+                    (id): id is string => typeof id === "string" && SAFE_ID.test(id),
+                ).slice(0, 200)
+                if (filtered.length > 0) allowedFertilizerCatalogueIds = filtered
+            }
+        } catch {}
+    }
+
     const stream = new ReadableStream({
         async start(controller) {
             const encoder = new TextEncoder()
@@ -155,6 +171,7 @@ Gebruik de beschikbare tools voor een volledige analyse en stel daarna 0–5 ver
                     b_id_farm,
                     calendar,
                     nmiApiKey: serverConfig.integrations.nmi?.api_key,
+                    ...(allowedFertilizerCatalogueIds ? { allowedFertilizerCatalogueIds } : {}),
                 }
 
                 const agentStream = runStreamAgent(

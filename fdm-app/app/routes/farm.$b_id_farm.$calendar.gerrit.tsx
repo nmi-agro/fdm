@@ -115,6 +115,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         Number.parseInt(calendar, 10),
     ).catch(() => false)
 
+    const farmFertilizers = await getFertilizers(fdm, session.principal_id, b_id_farm).catch(() => [])
+    const fertilizerOptions = farmFertilizers.map((f: any) => ({
+        p_id_catalogue: f.p_id_catalogue as string,
+        p_name_nl: (f.p_name_nl ?? f.p_id_catalogue) as string,
+        p_type: (f.p_type ?? "mineral") as "manure" | "mineral" | "compost",
+    }))
+
     return {
         farm: {
             b_id_farm: farm.b_id_farm,
@@ -127,6 +134,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fillManureSpace: !isOrganicFarm,
             isDerogation: isDerogationFarm,
         },
+        fertilizerOptions,
     }
 }
 
@@ -269,7 +277,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function GerritApp() {
-    const { farm, farmOptions, defaultStrategies, calendar } =
+    const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions } =
         useLoaderData<typeof loader>()
     const navigation = useNavigation()
 
@@ -332,7 +340,15 @@ export default function GerritApp() {
             searchParams.set("b_id_farm", farm.b_id_farm)
             searchParams.set("calendar", calendar)
             Object.entries(formData).forEach(([key, value]) => {
-                if (value !== undefined) searchParams.set(key, String(value))
+                if (value === undefined) return
+                if (key === "selectedFertilizerIds") {
+                    // Serialise as JSON; skip if all fertilizers are selected (no restriction)
+                    if (Array.isArray(value) && value.length < fertilizerOptions.length) {
+                        searchParams.set(key, JSON.stringify(value))
+                    }
+                } else {
+                    searchParams.set(key, String(value))
+                }
             })
             if (clarifications && clarifications.length > 0) {
                 const payload = clarifications.map((a) => ({
@@ -345,7 +361,7 @@ export default function GerritApp() {
             }
             return searchParams
         },
-        [farm.b_id_farm, calendar],
+        [farm.b_id_farm, calendar, fertilizerOptions.length],
     )
 
     /** Opens the plan-generation SSE stream */
@@ -464,6 +480,7 @@ export default function GerritApp() {
             reduceAmmoniaEmissions: false,
             keepNitrogenBalanceBelowTarget: false,
             workOnRotationLevel: false,
+            selectedFertilizerIds: fertilizerOptions.map((f) => f.p_id_catalogue) as any,
             additionalContext: "",
             geminiModel: GEMINI_MODELS[0].value,
         },
@@ -724,6 +741,7 @@ export default function GerritApp() {
                                         additionalContextValue
                                     }
                                     calendar={calendar}
+                                    fertilizerOptions={fertilizerOptions}
                                 />
                             ) : (
                                 <SummaryCards

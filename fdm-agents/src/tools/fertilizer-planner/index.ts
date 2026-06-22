@@ -342,6 +342,15 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             )
             let results = [...farmFertilizers]
 
+            // Restrict to the user-selected fertilizers if provided (non-empty list only).
+            const allowedIds = config?.configurable
+                ?.allowedFertilizerCatalogueIds as string[] | undefined
+            if (allowedIds && allowedIds.length > 0) {
+                results = results.filter((f) =>
+                    allowedIds.includes(f.p_id_catalogue),
+                )
+            }
+
             if (args.p_type) {
                 results = results.filter((f) => f.p_type === args.p_type)
             }

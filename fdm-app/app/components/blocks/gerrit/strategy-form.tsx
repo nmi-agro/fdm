@@ -1,7 +1,10 @@
+import { ChevronDown } from "lucide-react"
 import { Bot } from "lucide-react"
+import { useState } from "react"
 import { Controller, type UseFormReturn } from "react-hook-form"
 import { RemixFormProvider } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
+import { Checkbox } from "~/components/ui/checkbox"
 import {
     Card,
     CardContent,
@@ -9,6 +12,11 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "~/components/ui/collapsible"
 import { Label } from "~/components/ui/label"
 import {
     Select,
@@ -20,13 +28,27 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
+import { cn } from "~/lib/utils"
 import { GEMINI_MODELS, type GerritFormValues, STRATEGY_LABELS } from "./schema"
+
+const TYPE_LABELS: Record<string, string> = {
+    manure: "Dierlijke mest",
+    mineral: "Minerale meststoffen",
+    compost: "Compost & organisch",
+}
+
+interface FertilizerOption {
+    p_id_catalogue: string
+    p_name_nl: string
+    p_type: "manure" | "mineral" | "compost"
+}
 
 interface StrategyFormProps {
     form: UseFormReturn<GerritFormValues>
     isGenerating: boolean
     additionalContextValue: string | undefined
     calendar: string
+    fertilizerOptions?: FertilizerOption[]
 }
 
 export function StrategyForm({
@@ -34,9 +56,55 @@ export function StrategyForm({
     isGenerating,
     additionalContextValue,
     calendar,
+    fertilizerOptions = [],
 }: StrategyFormProps) {
     const additionalContextLength = additionalContextValue?.length ?? 0
     const showDerogation = Number.parseInt(calendar, 10) < 2026
+    const [fertOpen, setFertOpen] = useState(false)
+    const [fertSearch, setFertSearch] = useState("")
+
+    // All available IDs; default = all selected
+    const allIds = fertilizerOptions.map((f) => f.p_id_catalogue)
+    const currentSelected = (form.watch("selectedFertilizerIds") as string[] | undefined) ?? allIds
+    const selectedSet = new Set(currentSelected)
+
+    const groupedByType = fertilizerOptions.reduce<Record<string, FertilizerOption[]>>(
+        (acc, f) => {
+            const key = f.p_type ?? "mineral"
+            if (!acc[key]) acc[key] = []
+            acc[key].push(f)
+            return acc
+        },
+        {},
+    )
+
+    const toggleFertilizer = (id: string, checked: boolean) => {
+        const next = checked
+            ? [...selectedSet, id]
+            : [...selectedSet].filter((x) => x !== id)
+        // If all selected, store undefined (= use all, no restriction)
+        form.setValue(
+            "selectedFertilizerIds" as any,
+            next.length === allIds.length ? (allIds as any) : (next as any),
+            { shouldDirty: true },
+        )
+    }
+
+    const toggleGroup = (type: string, selectAll: boolean) => {
+        const groupIds = (groupedByType[type] ?? []).map((f) => f.p_id_catalogue)
+        const next = selectAll
+            ? [...new Set([...selectedSet, ...groupIds])]
+            : [...selectedSet].filter((id) => !groupIds.includes(id))
+        form.setValue("selectedFertilizerIds" as any, next as any, { shouldDirty: true })
+    }
+
+    const selectedCount = selectedSet.size
+    const totalCount = allIds.length
+    const isRestricted = selectedCount < totalCount
+    const fertError = (form.formState.errors as any)?.selectedFertilizerIds?.message as string | undefined
+
+    // Auto-open picker when there's a validation error on fertilizers
+    if (fertError && !fertOpen) setFertOpen(true)
 
     return (
         <Card className="h-fit sticky top-6">
@@ -133,6 +201,125 @@ export function StrategyForm({
                                     </div>
                                 ))}
                         </div>
+                        {/* Fertilizer picker */}
+                        {fertilizerOptions.length > 0 && (
+                            <div className="pt-2 border-t">
+                                <Collapsible open={fertOpen} onOpenChange={setFertOpen}>
+                                    <CollapsibleTrigger
+                                        className="flex w-full items-center justify-between py-2 text-left"
+                                        disabled={isGenerating}
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="text-base font-medium">
+                                                Meststoffenselectie
+                                            </p>
+                                            {fertError ? (
+                                                <p className="text-sm text-red-500">{fertError}</p>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">
+                                                    {isRestricted
+                                                        ? `${selectedCount} van ${totalCount} meststoffen geselecteerd`
+                                                        : "Alle meststoffen geselecteerd"}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <ChevronDown
+                                            className={cn(
+                                                "h-4 w-4 text-muted-foreground transition-transform shrink-0 ml-2",
+                                                fertOpen && "rotate-180",
+                                            )}
+                                        />
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="space-y-3 pt-2">
+                                        {/* Hidden input carries the serialized value */}
+                                        <input
+                                            type="hidden"
+                                            name="selectedFertilizerIds"
+                                            value={JSON.stringify([...selectedSet])}
+                                        />
+                                        {/* Search + global toggle */}
+                                        <div className="flex gap-2 items-center">
+                                            <input
+                                                type="text"
+                                                placeholder="Zoeken…"
+                                                value={fertSearch}
+                                                onChange={(e) => setFertSearch(e.target.value)}
+                                                disabled={isGenerating}
+                                                className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                                            />
+                                            <button
+                                                type="button"
+                                                disabled={isGenerating}
+                                                className="text-xs text-primary hover:underline disabled:opacity-50 shrink-0"
+                                                onClick={() => {
+                                                    if (selectedCount === totalCount) {
+                                                        // Deselect all
+                                                        form.setValue("selectedFertilizerIds" as any, [] as any, { shouldDirty: true })
+                                                    } else {
+                                                        form.setValue("selectedFertilizerIds" as any, allIds as any, { shouldDirty: true })
+                                                    }
+                                                }}
+                                            >
+                                                {selectedCount === totalCount ? "Geen" : "Alle"}
+                                            </button>
+                                        </div>
+                                        {/* Scrollable list — grouped, each group collapsible */}
+                                        <div className="max-h-56 overflow-y-auto rounded-md border bg-muted/20 px-2 py-2 space-y-1">
+                                            {Object.entries(groupedByType).map(([type, ferts]) => {
+                                                const filtered = fertSearch.trim()
+                                                    ? ferts.filter((f) =>
+                                                          f.p_name_nl.toLowerCase().includes(fertSearch.toLowerCase()),
+                                                      )
+                                                    : ferts
+                                                if (filtered.length === 0) return null
+                                                const groupIds = filtered.map((f) => f.p_id_catalogue)
+                                                const selectedInGroup = groupIds.filter((id) => selectedSet.has(id)).length
+                                                const allGroupSelected = selectedInGroup === groupIds.length
+                                                return (
+                                                    <div key={type}>
+                                                        <div className="flex items-center justify-between gap-2 px-1 py-1 sticky top-0 z-10 bg-background border-b rounded-t">
+                                                            <span className="text-xs font-semibold text-muted-foreground min-w-0 truncate">
+                                                                {TYPE_LABELS[type] ?? type}{" "}
+                                                                <span className="font-normal text-muted-foreground/70">({selectedInGroup}/{filtered.length})</span>
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                disabled={isGenerating}
+                                                                className="text-xs text-primary hover:underline disabled:opacity-50 shrink-0"
+                                                                onClick={() => toggleGroup(type, !allGroupSelected)}
+                                                            >
+                                                                {allGroupSelected ? "Geen" : "Alle"}
+                                                            </button>
+                                                        </div>
+                                                        <div className="space-y-0.5 mt-1 mb-2">
+                                                            {filtered.map((f) => (
+                                                                <div key={f.p_id_catalogue} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-muted/60">
+                                                                    <Checkbox
+                                                                        id={`fert-${f.p_id_catalogue}`}
+                                                                        checked={selectedSet.has(f.p_id_catalogue)}
+                                                                        disabled={isGenerating}
+                                                                        onCheckedChange={(checked) =>
+                                                                            toggleFertilizer(f.p_id_catalogue, !!checked)
+                                                                        }
+                                                                    />
+                                                                    <Label
+                                                                        htmlFor={`fert-${f.p_id_catalogue}`}
+                                                                        className="text-sm font-normal cursor-pointer leading-tight"
+                                                                    >
+                                                                        {f.p_name_nl}
+                                                                    </Label>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </div>
+                        )}
+
                         <div className="space-y-3 pt-2">
                             <div className="flex justify-between items-end">
                                 <Label
