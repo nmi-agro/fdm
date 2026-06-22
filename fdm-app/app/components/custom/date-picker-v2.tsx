@@ -186,7 +186,7 @@ function formatDate(date: Date | undefined) {
     return format(date, "PPP", { locale: nl })
 }
 
-function parseDateText(
+export function parseDateText(
     date: string | Date | undefined,
     calendarYear?: number,
 ): Date | undefined {

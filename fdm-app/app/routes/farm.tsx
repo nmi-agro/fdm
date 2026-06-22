@@ -1,4 +1,10 @@
 import { getFarm } from "@nmi-agro/fdm-core"
+import {
+    checkHelpdeskPermission,
+    getUnassignedTicketCount,
+    getUnreadAssignedTicketCount,
+    getUnreadRequestedTicketCount,
+} from "@nmi-agro/fdm-helpdesk"
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
@@ -60,12 +66,32 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
                 ? await getFarm(fdm, session.principal_id, params.b_id_farm)
                 : undefined
 
+        const helpdeskReadPermission = await checkHelpdeskPermission(
+            fdm,
+            "helpdesk",
+            "read",
+            "",
+            session.principal_id,
+            "routes/farm",
+            false,
+        )
+        const [numUnread, numUnassigned] = await Promise.all([
+            helpdeskReadPermission
+                ? getUnreadAssignedTicketCount(fdm, session.principal_id)
+                : getUnreadRequestedTicketCount(fdm, session.principal_id),
+            helpdeskReadPermission
+                ? getUnassignedTicketCount(fdm, session.principal_id)
+                : 0,
+        ])
+        const hasNotification = numUnread > 0 || numUnassigned > 0
+
         // Return user information from loader
         return {
             farm: farm,
             user: session.user,
             userName: session.userName,
             initials: session.initials,
+            hasNotification: hasNotification,
         }
     } catch (error) {
         // If getSession throws (e.g., invalid token), it might result in a 401
@@ -134,6 +160,7 @@ export default function App() {
                 <SidebarSupport
                     name={loaderData.userName}
                     email={loaderData.user.email}
+                    hasNotification={loaderData.hasNotification}
                 />
                 <SidebarUser
                     name={loaderData.userName}

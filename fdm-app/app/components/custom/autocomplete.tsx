@@ -1,5 +1,5 @@
 import { Command as CommandPrimitive } from "cmdk"
-import { Check, User, Users } from "lucide-react"
+import { Check, User, Users, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import type {
     FieldPathValue,
@@ -8,6 +8,7 @@ import type {
     UseFormSetValue,
 } from "react-hook-form"
 import { useFetcher } from "react-router-dom"
+import { modifySearchParams } from "@/app/lib/url-utils"
 import {
     Command,
     CommandEmpty,
@@ -19,6 +20,9 @@ import { Input } from "~/components/ui/input"
 import { Popover, PopoverAnchor, PopoverContent } from "~/components/ui/popover"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
+
+// Stable empty array
+const EMPTY_EXCLUDE_VALUES: readonly string[] = []
 
 // Expected shape of items returned by the lookup API
 type LookupItem<T extends string> = {
@@ -34,11 +38,11 @@ type Props<
     TFieldValues extends FieldValues = FieldValues,
     TName extends Path<TFieldValues> = Path<TFieldValues>,
 > = {
-    selectedValue: T
-    onSelectedValueChange: (value: T) => void
+    selectedValue: T | undefined
+    onSelectedValueChange: (value: T | undefined) => void
     lookupUrl: string // API endpoint for lookup
     searchParamName?: string // Query parameter name for search term (default: 'identifier')
-    excludeValues?: T[] // Optional array of values to filter out
+    excludeValues?: readonly string[] // Optional array of values to filter out
     iconMap?: IconMap // Optional map of icon identifiers to components
     emptyMessage?: string | ((inputValue: string) => React.ReactNode)
     placeholder?: string
@@ -61,7 +65,7 @@ export function AutoComplete<
     onSelectedValueChange,
     lookupUrl,
     searchParamName = "identifier", // Default search param name
-    excludeValues = [],
+    excludeValues = EMPTY_EXCLUDE_VALUES,
     iconMap = { user: User, organization: Users }, // Default icon map
     emptyMessage = "No items.",
     placeholder = "Search...",
@@ -74,19 +78,22 @@ export function AutoComplete<
     const fetcher = useFetcher<LookupItem<T>[]>()
     const [open, setOpen] = useState(false)
     const openRef = useRef(open)
-    const [inputValue, setInputValue] = useState("") // Internal input state
+    const [inputValue, setInputValue] = useState<string | undefined>("") // Internal input state
     const [items, setItems] = useState<LookupItem<T>[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
     const prevInputValue = useRef<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null) // Ref for the input element
+    // Guards the sync effect from overriding the input while the user is actively typing
+    const preventSyncRef = useRef(false)
 
     // Derive display label for the currently selected value.
     // Falls back to selectedValue for free-form entries (when allowValuesOutsideList is true).
     const selectedLabel = useMemo(() => {
         const selectedItem = items.find((item) => item.value === selectedValue)
         return (
-            selectedItem?.label ?? (allowValuesOutsideList ? selectedValue : "")
+            selectedItem?.label ??
+            (allowValuesOutsideList && selectedValue ? selectedValue : "")
         )
     }, [selectedValue, items, allowValuesOutsideList])
 
@@ -97,14 +104,20 @@ export function AutoComplete<
         }
 
         // Only fetch if input has changed and is not empty
-        if (inputValue.length >= 1 && prevInputValue.current !== inputValue) {
+        if (
+            inputValue &&
+            inputValue.length >= 1 &&
+            prevInputValue.current !== inputValue
+        ) {
             debounceTimeout.current = setTimeout(() => {
                 prevInputValue.current = inputValue
                 setIsLoading(true)
-                const url = `${lookupUrl}?${searchParamName}=${encodeURIComponent(inputValue)}`
+                const url = modifySearchParams(lookupUrl, (searchParams) => {
+                    searchParams.set(searchParamName, inputValue)
+                })
                 fetcher.load(url) // Use GET request via fetcher.load
             }, 300)
-        } else if (inputValue.length < 1) {
+        } else if (!inputValue || inputValue.length < 1) {
             setItems([]) // Clear items if input is empty
             setIsLoading(false)
         }
@@ -139,6 +152,11 @@ export function AutoComplete<
 
     // Effect to sync input field when selectedValue changes externally
     useEffect(() => {
+        // Skip when we the input is cleared by code but the user was still typing
+        if (preventSyncRef.current) {
+            preventSyncRef.current = false
+            return
+        }
         // If a value is selected externally, update the input field to its label
         // This handles cases where the form is reset or pre-populated
         if (selectedValue && selectedLabel) {
@@ -155,7 +173,8 @@ export function AutoComplete<
         setInputValue(value)
         // If user types something different than the selected label, clear the selection
         if (selectedValue && value !== selectedLabel) {
-            onSelectedValueChange("" as T) // Clear parent state
+            preventSyncRef.current = true // Don't let the sync effect clear the user's input
+            onSelectedValueChange(undefined) // Clear parent state
             if (form && name) {
                 form.setValue(name, "" as FieldPathValue<TFieldValues, TName>)
             }
@@ -177,6 +196,16 @@ export function AutoComplete<
         }
         setOpen(false)
         openRef.current = false
+    }
+
+    const handleClear = () => {
+        onSelectedValueChange(undefined)
+        setInputValue("")
+        prevInputValue.current = null
+        setItems([])
+        if (form && name) {
+            form.setValue(name, undefined as any)
+        }
     }
 
     // Keep input if it matches a valid item, otherwise use typed value as-is (if allowFreeform).
@@ -216,34 +245,54 @@ export function AutoComplete<
             >
                 <Command shouldFilter={false} className="w-full">
                     <PopoverAnchor asChild>
-                        <CommandPrimitive.Input
-                            asChild
-                            value={inputValue}
-                            onValueChange={handleInputChange}
-                            onKeyDown={(e) => {
-                                const next = e.key !== "Escape"
-                                setOpen(next)
-                                openRef.current = next
-                            }}
-                            onMouseDown={() => {
-                                const next = !!inputValue || !open
-                                setOpen(next)
-                                openRef.current = next
-                            }}
-                            onFocus={() => {
-                                setOpen(true)
-                                openRef.current = true
-                            }}
-                            onBlur={handleInputBlur}
-                        >
-                            <Input
-                                ref={inputRef} // Assign ref to the input
-                                placeholder={placeholder}
-                                className="w-full"
-                                autoComplete="off" // Prevent browser autocomplete
-                                disabled={disabled}
-                            />
-                        </CommandPrimitive.Input>
+                        <div className="relative w-full">
+                            <CommandPrimitive.Input
+                                asChild
+                                value={inputValue}
+                                onValueChange={handleInputChange}
+                                onKeyDown={(e) => {
+                                    const next = e.key !== "Escape"
+                                    setOpen(next)
+                                    openRef.current = next
+                                }}
+                                onMouseDown={() => {
+                                    const next = !!inputValue || !open
+                                    setOpen(next)
+                                    openRef.current = next
+                                }}
+                                onFocus={() => {
+                                    setOpen(true)
+                                    openRef.current = true
+                                }}
+                                onBlur={handleInputBlur}
+                            >
+                                <Input
+                                    ref={inputRef}
+                                    placeholder={placeholder}
+                                    className={cn(
+                                        "w-full",
+                                        selectedValue &&
+                                            !allowValuesOutsideList &&
+                                            "pr-8",
+                                    )}
+                                    autoComplete="off"
+                                    disabled={disabled}
+                                />
+                            </CommandPrimitive.Input>
+                            {selectedValue && !allowValuesOutsideList && (
+                                <button
+                                    type="button"
+                                    aria-label="Wis selectie"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault()
+                                        handleClear()
+                                    }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="size-3.5" />
+                                </button>
+                            )}
+                        </div>
                     </PopoverAnchor>
                     {!open && (
                         <CommandList aria-hidden="true" className="hidden" />
@@ -309,7 +358,14 @@ export function AutoComplete<
                     </PopoverContent>
                 </Command>
             </Popover>
-            {name && <input type="hidden" name={name} value={selectedValue} readOnly />}
+            {name && (
+                <input
+                    type="hidden"
+                    name={name}
+                    value={selectedValue ?? ""}
+                    readOnly
+                />
+            )}
         </div>
     )
 }

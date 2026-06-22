@@ -3,6 +3,7 @@ import {
     fdmSchema as schema,
     syncCatalogues,
 } from "@nmi-agro/fdm-core"
+import { runHelpdeskMigration } from "@nmi-agro/fdm-helpdesk"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 
@@ -48,6 +49,7 @@ async function main() {
     // Run the schema migrations and sync catalogues; always close the connection.
     try {
         await runMigration(client)
+        await runHelpdeskMigration(client)
 
         const fdm = drizzle(client, {
             mode: "postgres",
