@@ -88,9 +88,9 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                         iconMap={iconMap}
                         selectedValue={selectedValue}
                         onSelectedValueChange={(value) => {
-                            setSelectedValue(value)
+                            setSelectedValue(value ?? "")
                             // Update form value when selected
-                            form.setValue("username", value, {
+                            form.setValue("username", value ?? "", {
                                 shouldTouch: true,
                             })
                         }}

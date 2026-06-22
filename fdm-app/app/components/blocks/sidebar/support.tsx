@@ -1,8 +1,11 @@
 import * as Sentry from "@sentry/react-router"
 import { LifeBuoy, Send } from "lucide-react"
 import { useEffect, useState } from "react"
+import { NavLink, useParams } from "react-router"
 import { toast } from "sonner"
 import { clientConfig } from "@/app/lib/config"
+import { modifySearchParams } from "@/app/lib/url-utils"
+import { ChangelogNotification } from "~/components/custom/changelog-notification"
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -10,15 +13,23 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "~/components/ui/sidebar"
-import { ChangelogNotification } from "../../custom/changelog-notification"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 
 export function SidebarSupport({
     name,
     email,
+    hasNotification,
 }: {
     name: string | undefined
     email: string | undefined
+    hasNotification?: boolean
 }) {
+    const params = useParams()
+
     useEffect(() => {
         if (clientConfig.analytics.sentry) {
             try {
@@ -78,23 +89,48 @@ export function SidebarSupport({
         }
     }
 
-    const handleSupportClick = () => {
-        const supportEmail = `support@${window.location.hostname}`
-        window.location.href = `mailto:${supportEmail}`
-    }
-
     return (
         <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
                 <SidebarMenu>
                     <ChangelogNotification />
                     <SidebarMenuItem key="support">
-                        <SidebarMenuButton
-                            size="sm"
-                            onClick={handleSupportClick}
-                        >
-                            <LifeBuoy />
-                            <span>Ondersteuning</span>
+                        <SidebarMenuButton size="sm" asChild>
+                            <NavLink
+                                to={modifySearchParams(
+                                    "/support/new",
+                                    (searchParams) => {
+                                        if (params.b_id_farm) {
+                                            searchParams.set(
+                                                "context_farm_id",
+                                                params.b_id_farm,
+                                            )
+                                        }
+                                    },
+                                )}
+                            >
+                                <LifeBuoy />
+                                {hasNotification ? (
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span className="relative">
+                                                Ondersteuning
+                                                <span className="sr-only">
+                                                    , Er zijn nieuwe berichten
+                                                    te bekijken.
+                                                </span>
+                                                <div className="absolute size-2 -right-2 -top-1 rounded-full bg-destructive" />
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Er zijn nieuwe berichten te
+                                            bekijken.
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ) : (
+                                    <span>Ondersteuning</span>
+                                )}
+                            </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     {clientConfig.analytics.sentry ? (

@@ -88,7 +88,10 @@ export function UserAvatar({ user }: { user: DisplayUser }) {
 }
 
 // TODO: Use the shadcn-provided component when it becomes available
-function AvatarGroup({ className, ...props }: React.ComponentProps<"div">) {
+export function AvatarGroup({
+    className,
+    ...props
+}: React.ComponentProps<"div">) {
     return (
         <div
             data-slot="avatar-group"
@@ -102,7 +105,7 @@ function AvatarGroup({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 // TODO: Use the shadcn-provided component when it becomes available
-function AvatarGroupCount({
+export function AvatarGroupCount({
     className,
     ...props
 }: React.ComponentProps<"div">) {

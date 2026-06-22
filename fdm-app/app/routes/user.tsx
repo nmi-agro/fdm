@@ -78,6 +78,7 @@ export default function App() {
                 <SidebarSupport
                     name={loaderData.userName}
                     email={loaderData.user.email}
+                    hasNotification={false}
                 />
                 <SidebarUser
                     name={loaderData.userName}
