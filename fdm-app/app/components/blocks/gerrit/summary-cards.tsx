@@ -98,6 +98,29 @@ export function SummaryCards({
                                             : "Boven doel"}
                                     </span>
                                 </div>
+                                {farmTotals.nBalance.emission && (
+                                    <div className="pt-2 space-y-1.5 border-t">
+                                        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                            Emissies
+                                        </span>
+                                        <div className="flex justify-between items-baseline gap-2">
+                                            <span className="text-xs text-muted-foreground">
+                                                Ammoniakemissie
+                                            </span>
+                                            <span className="text-xs tabular-nums text-muted-foreground">
+                                                {Math.abs(farmTotals.nBalance.emission.ammonia.total).toFixed(1)} kg N/ha
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline gap-2">
+                                            <span className="text-xs text-muted-foreground">
+                                                Nitraatuitspoeling
+                                            </span>
+                                            <span className="text-xs tabular-nums text-muted-foreground">
+                                                {Math.abs(farmTotals.nBalance.emission.nitrate.total).toFixed(1)} kg N/ha
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </CardContent>
