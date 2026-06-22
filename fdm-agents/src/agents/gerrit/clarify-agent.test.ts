@@ -49,6 +49,21 @@ describe("clarify agent", () => {
         expect(() => createClarifyAgent({} as any)).toThrow("Missing Gemini API key")
         vi.unstubAllEnvs()
     })
+
+    it("should create an agent graph when API key is provided", () => {
+        const agent = createClarifyAgent({} as any, "test-api-key")
+        expect(agent).toBeDefined()
+        expect(typeof agent.stream).toBe("function")
+        expect(typeof agent.streamEvents).toBe("function")
+    })
+
+    it("should throw when createAgent returns a non-graph object", async () => {
+        const { createAgent } = await import("langchain")
+        vi.mocked(createAgent).mockReturnValueOnce(null as any)
+        expect(() => createClarifyAgent({} as any, "test-api-key")).toThrow(
+            "createAgent did not return an object with a callable stream method.",
+        )
+    })
 })
 
 describe("ClarifyingQuestionsSchema", () => {

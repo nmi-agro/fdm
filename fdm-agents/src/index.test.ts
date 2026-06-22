@@ -324,6 +324,44 @@ describe("buildClarificationsBlock", () => {
         )
         expect(prompt).not.toContain("VERDUIDELIJKINGEN")
     })
+
+    it("should include GESELECTEERDE MESTSTOFFEN block when selectedFertilizerIds provided", () => {
+        const prompt = buildFertilizerPlanPrompt(
+            { b_id_farm: "farm-1" },
+            {
+                isOrganic: false,
+                fillManureSpace: false,
+                reduceAmmoniaEmissions: false,
+                keepNitrogenBalanceBelowTarget: false,
+                workOnRotationLevel: false,
+                isDerogation: false,
+            },
+            "2025",
+            undefined,
+            undefined,
+            undefined,
+            ["fert-1", "fert-2"],
+        )
+        expect(prompt).toContain("GESELECTEERDE MESTSTOFFEN")
+        expect(prompt).toContain("- fert-1")
+        expect(prompt).toContain("- fert-2")
+    })
+
+    it("should omit GESELECTEERDE MESTSTOFFEN block when selectedFertilizerIds is undefined", () => {
+        const prompt = buildFertilizerPlanPrompt(
+            { b_id_farm: "farm-1" },
+            {
+                isOrganic: false,
+                fillManureSpace: false,
+                reduceAmmoniaEmissions: false,
+                keepNitrogenBalanceBelowTarget: false,
+                workOnRotationLevel: false,
+                isDerogation: false,
+            },
+            "2025",
+        )
+        expect(prompt).not.toContain("GESELECTEERDE MESTSTOFFEN")
+    })
 })
 
 describe("generateFarmFertilizerPlan", () => {

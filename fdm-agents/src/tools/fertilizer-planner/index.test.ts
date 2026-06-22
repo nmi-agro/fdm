@@ -542,6 +542,42 @@ describe("tool execute functions", () => {
             )
             expect(result.fertilizers).toEqual([])
         })
+
+        it("should filter by allowedFertilizerCatalogueIds from configurable", async () => {
+            ;(getFertilizers as any).mockResolvedValue([
+                mockFertilizer,
+                {
+                    ...mockFertilizer,
+                    p_id_catalogue: "fert-2",
+                    p_name_nl: "KAS",
+                    p_type: "mineral",
+                },
+            ])
+            const result = await getTool("searchFertilizers").invoke(
+                { b_id_farm: "farm-1" },
+                {
+                    configurable: {
+                        ...makeConfigurable().configurable,
+                        allowedFertilizerCatalogueIds: ["fert-2"],
+                    },
+                },
+            )
+            expect(result.fertilizers).toHaveLength(1)
+            expect(result.fertilizers[0].p_id_catalogue).toBe("fert-2")
+        })
+
+        it("should return all fertilizers when allowedFertilizerCatalogueIds is empty", async () => {
+            const result = await getTool("searchFertilizers").invoke(
+                { b_id_farm: "farm-1" },
+                {
+                    configurable: {
+                        ...makeConfigurable().configurable,
+                        allowedFertilizerCatalogueIds: [],
+                    },
+                },
+            )
+            expect(result.fertilizers).toHaveLength(1)
+        })
     })
 
     // ── simulateFarmPlan ─────────────────────────────────────────────────────
