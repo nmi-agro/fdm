@@ -136,12 +136,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "getFarmFields",
             description:
-                "Get the list of all fields belonging to the farm for the current year, including their main cultivation details and key soil properties (agricultural soil type, texture, groundwater class, organic matter).",
+                "Haal de lijst op van alle percelen die bij het bedrijf horen voor het huidige jaar, inclusief de hoofdteeltgegevens en belangrijkste bodemeigenschappen (landbouwgrondsoort, textuur, grondwaterklasse, organische stof).",
             schema: z.object({
-                b_id_farm: z.string().describe("The ID of the farm"),
+                b_id_farm: z.string().describe("Het ID van het bedrijf"),
                 calendar: z
                     .string()
-                    .describe('The calendar year (e.g. "2025")'),
+                    .describe('Het kalenderjaar (bijv. "2025")'),
             }),
         },
     )
@@ -240,11 +240,11 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "getFarmNutrientAdvice",
             description:
-                "Get the full nutrient advice (N, P, K, Ca, Mg, S, micro-nutrients) for specific fields based on soil samples and crop rotation.",
+                "Haal het volledige bemestingsadvies op (N, P, K, Ca, Mg, S, micronutriënten) voor specifieke percelen op basis van bodemmonsters en teeltrotatie.",
             schema: z.object({
                 b_ids: z
                     .array(z.string())
-                    .describe("List of field IDs (b_id) to fetch advice for"),
+                    .describe("Lijst van perceel-ID's (b_id) om advies voor op te halen"),
             }),
         },
     )
@@ -313,12 +313,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "getFarmLegalNorms",
             description:
-                "Get the three legal limits (Animal Manure Nitrogen, Total Workable Nitrogen, and Phosphate) for fields.",
+                "Haal de drie wettelijke grenzen op (dierlijke mest stikstof, werkzame stikstof totaal en fosfaat) voor percelen.",
             schema: z.object({
-                b_id_farm: z.string().describe("The ID of the farm"),
+                b_id_farm: z.string().describe("Het ID van het bedrijf"),
                 b_ids: z
                     .array(z.string())
-                    .describe("List of field IDs (b_id) to check"),
+                    .describe("Lijst van perceel-ID's (b_id) om te controleren"),
             }),
         },
     )
@@ -385,19 +385,19 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "searchFertilizers",
             description:
-                "Search for fertilizer products available in the farm inventory (including custom ones) by name or type.",
+                "Zoek naar meststofproducten beschikbaar in de bedrijfsvoorraad (inclusief eigen producten) op naam of type.",
             schema: z.object({
                 b_id_farm: z
                     .string()
-                    .describe("The ID of the farm to search inventory for"),
+                    .describe("Het ID van het bedrijf om de voorraad voor te doorzoeken"),
                 query: z
                     .string()
                     .optional()
-                    .describe('Search term (e.g. "pig manure", "KAS")'),
+                    .describe('Zoekterm (bijv. "varkensdrijfmest", "KAS")'),
                 p_type: z
                     .enum(["manure", "mineral", "compost"])
                     .optional()
-                    .describe("Filter by fertilizer type"),
+                    .describe("Filter op meststoftype"),
             }),
         },
     )
@@ -1072,9 +1072,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "simulateFarmPlan",
             description:
-                "Simulates a proposed fertilizer plan to check compliance against all 3 legal norms, organic matter balance, and nitrogen balance.",
+                "Simuleert een voorgesteld bemestingsplan om de conformiteit met alle 3 wettelijke normen, de organische stofbalans en de stikstofbalans te controleren.",
             schema: z.object({
-                b_id_farm: z.string().describe("The ID of the farm"),
+                b_id_farm: z.string().describe("Het ID van het bedrijf"),
                 strategies: z
                     .object({
                         isOrganic: z.boolean().optional(),
@@ -1085,25 +1085,25 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         isDerogation: z.boolean().optional(),
                     })
                     .optional()
-                    .describe("User strategies to enforce in warnings"),
+                    .describe("Door de gebruiker in te stellen strategieën voor waarschuwingen"),
                 fields: z
                     .array(
                         z.object({
-                            b_id: z.string().describe("The field ID"),
+                            b_id: z.string().describe("Het perceel-ID"),
                             b_lu_catalogue: z
                                 .string()
                                 .describe(
-                                    "The crop catalogue ID (e.g., nl_265) for this field",
+                                    "Het gewascatalogus-ID (bijv. nl_265) voor dit perceel",
                                 ),
                             b_lu_name: z
                                 .string()
                                 .describe(
-                                    "The name of the crop (e.g., Wintertarwe)",
+                                    "De naam van het gewas (bijv. Wintertarwe)",
                                 ),
                             b_lu_start: z
                                 .string()
                                 .describe(
-                                    "The sowing or start date of the crop (YYYY-MM-DD)",
+                                    "De zaai- of startdatum van het gewas (YYYY-MM-DD)",
                                 ),
                             applications: z.array(
                                 z.object({
@@ -1111,31 +1111,31 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                     p_app_amount: z
                                         .number()
                                         .describe(
-                                            "Application amount in kg/ha",
+                                            "Gifthoeveelheid in kg/ha",
                                         ),
                                     p_app_amount_unit: z
                                         .string()
                                         .optional()
                                         .describe(
-                                            "The unit of the application amount (e.g., m3/ha, kg/ha, l/ha, t/ha)",
+                                            "De eenheid van de gifthoeveelheid (bijv. m3/ha, kg/ha, l/ha, t/ha)",
                                         ),
                                     p_app_amount_display: z
                                         .number()
                                         .optional()
                                         .describe(
-                                            "The numeric application amount (unit is carried separately in p_app_amount_unit)",
+                                            "De numerieke gifthoeveelheid (de eenheid staat apart in p_app_amount_unit)",
                                         ),
                                     p_app_date: z
                                         .string()
                                         .describe(
-                                            "Application date in YYYY-MM-DD format",
+                                            "Toedieningsdatum in formaat YYYY-MM-DD",
                                         ),
                                     p_app_method: z.string().optional(),
                                 }),
                             ),
                         }),
                     )
-                    .describe("Proposed applications per field"),
+                    .describe("Voorgestelde giften per perceel"),
             }),
         },
     )
@@ -1206,12 +1206,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "getCropFertilizerGuide",
             description:
-                "Load crop-specific fertilizer preferences and restrictions for the crops on this farm. Call this once after getFarmFields, passing all unique b_lu_catalogue values found on the farm. Returns agronomic rules (preferred products, split timings, nutrients to avoid) per crop group.",
+                "Laad de gewasspecifieke bemestingsvoorkeuren en -beperkingen voor de gewassen op dit bedrijf. Roep dit één keer aan na getFarmFields en geef alle unieke b_lu_catalogue-waarden op die op het bedrijf voorkomen. Geeft agronomische regels (gewenste producten, gedeelde timing, te vermijden nutriënten) per gewasgroep terug.",
             schema: z.object({
                 b_lu_catalogues: z
                     .array(z.string())
                     .describe(
-                        "List of unique crop catalogue codes present on the farm (e.g. ['nl_2014', 'nl_259', 'nl_265'])",
+                        "Lijst van unieke gewascataloguscodes die op het bedrijf voorkomen (bijv. ['nl_2014', 'nl_259', 'nl_265'])",
                     ),
             }),
         },
