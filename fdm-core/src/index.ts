@@ -135,6 +135,7 @@ export type {
     FertilizerParameterDescription,
     FertilizerParameterDescriptionItem,
     FertilizerParameters,
+    FertilizerType,
 } from "./fertilizer.types"
 export type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
 export {
@@ -206,7 +207,7 @@ export {
     removeOrganicCertification,
 } from "./organic"
 export type { OrganicCertification } from "./organic.types"
-export { lookupPrincipal } from "./principal"
+export { getPrincipal, getPrincipals, lookupPrincipal } from "./principal"
 export {
     addSoilAnalysis,
     getCurrentSoilData,

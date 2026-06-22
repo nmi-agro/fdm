@@ -24,6 +24,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         // Get identifier from URL query parameters
         const url = new URL(request.url)
         const identifier = url.searchParams.get("identifier") // Read 'identifier' param
+        const usePrincipalId = url.searchParams.has("principal_id")
 
         if (!identifier) {
             return [] // Return empty array directly
@@ -40,10 +41,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
         const principals = await lookupPrincipal(fdm, identifier)
 
+        const valueSubscript = usePrincipalId ? "id" : "username"
+
         // Map the result to the format expected by AutoComplete
         const autocompletePrincipals: AutocompletePrincipal[] = principals.map(
             (p) => ({
-                value: p.username,
+                value: p[valueSubscript],
                 label: p.displayUserName ?? p.username,
                 icon: p.type, // Pass the type as the icon identifier
             }),

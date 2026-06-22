@@ -265,7 +265,7 @@ function isAgentGraph(obj: unknown): obj is AgentGraph {
  * Creates the Fertilizer Application Planner Agent: "Gerrit"
  * @param fdm The non-serializable FDM database instance.
  * @param apiKey Optional API key for the Gemini model.
- * @param model Optional model name override.
+ * @param modelName Optional model name override.
  * @param toolRoundLimit Soft limit on tool roundtrips before the agent is warned to finalize (default: 40).
  */
 export function createFertilizerPlannerAgent(
