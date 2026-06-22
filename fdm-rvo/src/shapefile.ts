@@ -187,7 +187,7 @@ export function validateShapefileYear(
     year: number,
 ): { valid: true } | { valid: false; maxYear: number } {
     const offendingYears = rvoFields
-        .map((field) => new Date(field.properties.BeginDate).getFullYear())
+        .map((field) => new Date(field.properties.BeginDate).getUTCFullYear())
         .filter((beginYear) => beginYear > year)
 
     if (offendingYears.length > 0) {
