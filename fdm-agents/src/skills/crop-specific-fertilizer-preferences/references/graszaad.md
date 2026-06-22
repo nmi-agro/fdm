@@ -1,52 +1,52 @@
-# Grass seed crops — nl_383, nl_1914–nl_1920, nl_2030, nl_2031, nl_2653, nl_6746–nl_6790
+# Graszaadteelten — nl_383, nl_1914–nl_1920, nl_2030, nl_2031, nl_2653, nl_6746–nl_6790
 
-Grass seed (graszaad) is grown for certified seed (perennial ryegrass, smooth-stalked
-meadow grass, red fescue, tall fescue, Italian / Westerwolds ryegrass, timothy,
-festulolium, etc.). The fertilizer regime differs sharply from forage-grassland
-fertilization: the crop is harvested for **seed**, not biomass, and the agronomy targets
-uniform straw, lodging-free flowering, and full grain fill.
+Graszaad (graszaad) wordt geteeld voor gecertificeerd zaad (Engels raaigras, veldbeemdgras,
+roodzwenkgras, rietzwenkgras, Italiaans / Westerwolds raaigras, timothee,
+festulolium, etc.). Het bemestingsregime verschilt sterk van de bemesting van voedergrasland:
+het gewas wordt geoogst voor **zaad**, niet voor biomassa, en de teelt stuurt op
+uniform stro, bloei zonder legering en volledige korrelvulling.
 
-> nl_2653 is "graszaad inclusief klaverzaad" (grass seed including clover seed). When the
-> field is actually clover seed (or grass/clover mix), use `klaver.md` for the legume
+> nl_2653 is "graszaad inclusief klaverzaad" (graszaad inclusief klaverzaad). Wanneer het
+> perceel in werkelijkheid klaverzaad (of een gras/klavermengsel) betreft, gebruik dan `klaver.md` voor de vlinderbloemige
 > component.
 
-**Prefer:**
-- Split N: a typical regime is **two splits in spring** — at the start of growth (T1) and
-  at the start of stem extension (T2). Total N follows `advice.d_n_req`.
-- **Late-autumn N for perennial stands** (e.g. smooth-stalked meadow grass, red fescue,
-  perennial ryegrass second-year): a small N application in September / early October
-  supports tillering and inflorescence initiation for next season's seed yield. Allocate
-  this within `advice.d_n_req`; do not add it on top.
-- KAS / CAN as the main N source. Urea is acceptable only with a urease inhibitor (NBPT)
-  or with incorporation (Besluit emissiearme aanwending).
-- Sulphur per `advice.d_s_req` — grass seed responds well to S on light soils.
-- Plant growth regulators (chlormequat, trinexapac-ethyl) timed to N applications to
-  limit lodging — an agronomic decision, not a fertilizer one, but flag it in the plan
-  because the N regime above only works with effective growth regulation.
+**Voorkeur:**
+- Gesplitste N: een typisch regime bestaat uit **twee giften in het voorjaar** — bij de start van de groei (T1) en
+  bij het begin van de stengelstrekking (T2). De totale N volgt `advice.d_n_req`.
+- **Late-herfst-N voor meerjarige bestanden** (bijv. veldbeemdgras, roodzwenkgras,
+  Engels raaigras tweedejaars): een kleine N-gift in september / begin oktober
+  ondersteunt uitstoeling en aanleg van bloeiwijzen voor de zaadopbrengst van het volgende seizoen. Reken
+  dit binnen `advice.d_n_req`; voeg het er niet bovenop toe.
+- KAS / CAN als belangrijkste N-bron. Ureum is alleen acceptabel met een ureaseremmer (NBPT)
+  of met inwerking (Besluit emissiearme aanwending).
+- Zwavel volgens `advice.d_s_req` — graszaad reageert goed op S op lichte gronden.
+- Plantgroeiregulatoren (chlormequat, trinexapac-ethyl) afgestemd op N-giften om
+  legering te beperken — dit is een teeltkundige beslissing, geen bemestingsbeslissing, maar signaleer dit in het plan
+  omdat het N-regime hierboven alleen werkt met effectieve groeiregulatie.
 
-**Avoid:**
-- Single large N doses: lodging is the primary yield-limiter in grass seed. Lodged crops
-  give shrivelled seed and harvest losses.
-- Late-spring N (after T2 / flag-leaf): increases vegetative regrowth without seed-yield
-  benefit and worsens lodging.
-- Slurry in spring on grass seed: uneven N release and tracking damage. If used at all,
-  apply in late autumn on perennial stands.
+**Vermijden:**
+- Eén grote N-gift: legering is de belangrijkste opbrengstbeperker in graszaad. Gelegerde gewassen
+  geven verschrompeld zaad en oogstverliezen.
+- Late voorjaars-N (na T2 / vlagblad): verhoogt vegetatieve hergroei zonder voordeel voor de zaadopbrengst
+  en verergert legering.
+- Drijfmest in het voorjaar op graszaad: ongelijkmatige N-vrijgave en rijschade. Als het al wordt gebruikt,
+  dien het dan in de late herfst toe op meerjarige bestanden.
 
-**Per species — points to flag:**
-- **Perennial ryegrass (nl_2030, nl_2031, nl_6750)** — the standard reference; the regime
-  above fits.
-- **Italian ryegrass (nl_1920, nl_6754) / Westerwolds (nl_1919, nl_6790)** — short cycle,
-  often a single-year stand; one spring split usually suffices.
-- **Smooth-stalked meadow grass (nl_1916, nl_6788) / red fescue (nl_1917, nl_1918,
-  nl_6784)** — perennial; autumn N is part of the regime; lodging-prone, so cap top
-  spring N strictly.
-- **Tall fescue (nl_1915, nl_6782), festulolium (nl_6752), timothy (nl_6786), meadow
-  fescue (nl_6746)** — relatively robust stems, but follow the same split logic.
-- **Clover seed (nl_804, nl_1570, nl_6757, nl_6759, nl_6761, nl_6763, nl_6765, nl_6769)**
-  — see `klaver.md`; the rules above do not apply.
+**Per soort — aandachtspunten om te signaleren:**
+- **Engels raaigras (nl_2030, nl_2031, nl_6750)** — de standaardreferentie; het regime
+  hierboven past.
+- **Italiaans raaigras (nl_1920, nl_6754) / Westerwolds (nl_1919, nl_6790)** — korte cyclus,
+  vaak een eenjarig bestand; één voorjaarssplitsing volstaat meestal.
+- **Veldbeemdgras (nl_1916, nl_6788) / roodzwenkgras (nl_1917, nl_1918,
+  nl_6784)** — meerjarig; herfst-N is onderdeel van het regime; legeringsgevoelig, dus beperk de hoogste
+  N-gift in het voorjaar strikt.
+- **Rietzwenkgras (nl_1915, nl_6782), festulolium (nl_6752), timothee (nl_6786), beemdlangbloem
+  (nl_6746)** — relatief stevige stengels, maar volg dezelfde splitsingslogica.
+- **Klaverzaad (nl_804, nl_1570, nl_6757, nl_6759, nl_6761, nl_6763, nl_6765, nl_6769)**
+  — zie `klaver.md`; de regels hierboven gelden niet.
 
-**Extra attention:**
-- Cl tolerance: most grasses tolerate KCl, but use K₂SO₄ / patentkali when S is also a
-  target.
-- After the seed harvest, the stubble (with regrowth and straw) often becomes a catch
-  crop; factor residual N into the following crop's plan.
+**Extra aandacht:**
+- Cl-tolerantie: de meeste grassen verdragen KCl, maar gebruik K₂SO₄ / patentkali wanneer S ook een
+  doel is.
+- Na de zaadoogst wordt de stoppel (met hergroei en stro) vaak een vanggewas;
+  neem rest-N mee in het plan voor het volggewas.

@@ -1,44 +1,43 @@
-# Ware potatoes — generic codes (nl_2014, nl_1909, nl_1910, nl_2951, nl_3792)
+# Consumptieaardappelen — generieke codes (nl_2014, nl_1909, nl_1910, nl_2951, nl_3792)
 
-These BRP codes cover **ware potatoes** (consumptieaardappelen) without distinguishing the end
-market. In Dutch practice the field can be contracted for either **processing** (frites,
-chips) or **fresh market** (tafel), and the fertilizer regime differs between the two.
+Deze BRP-codes omvatten **consumptieaardappelen** zonder onderscheid naar eindmarkt.
+In de Nederlandse praktijk kan het perceel gecontracteerd zijn voor **verwerking** (frites,
+chips) of voor de **versmarkt** (tafel), en het bemestingsregime verschilt tussen die twee.
 
-## First step: identify the destination
+## Eerste stap: bepaal de bestemming
 
-Before applying segment-specific rules, ask the farmer (or look up the contract) which
-market the field is grown for:
+Vraag vóór toepassing van segmentspecifieke regels aan de teler (of zoek het contract op) voor welke
+markt het perceel wordt geteeld:
 
-- **Processing / frites** — apply the rules in `aardappelen.md` → "Fritesaardappelen".
-- **Fresh market / tafel** — apply the rules in `aardappelen.md` → "Tafelaardappelen".
+- **Verwerking / frites** — pas de regels in `aardappelen.md` → "Fritesaardappelen" toe.
+- **Versmarkt / tafel** — pas de regels in `aardappelen.md` → "Tafelaardappelen" toe.
 
-Flag this disambiguation in the plan summary.
+Signaleer deze verduidelijking in de samenvatting van het plan.
 
-## When the destination is not known — conservative shared rules
+## Wanneer de bestemming niet bekend is — conservatieve gedeelde regels
 
-If the destination cannot be established before planning, fall back to the rules below.
-These are conservative and work for both segments without harming either; flag the
-unresolved destination to the farmer.
+Als de bestemming vóór de planning niet kan worden vastgesteld, val dan terug op de regels hieronder.
+Deze zijn conservatief en werken voor beide segmenten zonder een van beide te schaden; signaleer de
+onduidelijke bestemming aan de teler.
 
-**Avoid:**
-- KCl (kali-60): both processing and fresh-market potatoes benefit from sulphate-form K.
-  Use K₂SO₄ or patentkali.
-- Late N (after end of July): bad for both segments — processing potatoes lose dry matter
-  and frying colour; fresh-market potatoes become watery and lose dry matter and cooking
-  quality.
-- N applications beyond `advice.d_n_req`.
+**Vermijden:**
+- KCl (kali-60): zowel verwerkings- als tafelaardappelen profiteren van K in sulfaatvorm.
+  Gebruik K₂SO₄ of patentkali.
+- Late N (na eind juli): ongunstig voor beide segmenten — verwerkingsaardappelen verliezen drogestof
+  en bakkleur; tafelaardappelen worden waterig en verliezen drogestof en kookkwaliteit.
+- N-giften boven `advice.d_n_req`.
 
-**Prefer:**
-- Front-loaded split N: roughly half pre-plant, a quarter at tuber initiation, and a
-  quarter during tuber bulking. Total N follows `advice.d_n_req`.
-- Patentkali for combined K + Mg + S supply.
-- Boron when `advice.d_b_req > 0` (skin quality matters in both segments).
-- Magnesium when soil Mg is low (kieseriet or patentkali).
+**Voorkeur:**
+- Gesplitste N-gift met nadruk aan het begin: ongeveer de helft vóór het poten, een kwart bij knolaanleg en een
+  kwart tijdens knolgroei. De totale N volgt `advice.d_n_req`.
+- Patentkali voor gecombineerde aanvoer van K + Mg + S.
+- Borium wanneer `advice.d_b_req > 0` (schilkwaliteit is in beide segmenten belangrijk).
+- Magnesium wanneer de Mg-toestand van de bodem laag is (kieseriet of patentkali).
 
-**Extra attention:**
-- Dry matter content matters in both segments (typical contract band 19–24 % for
-  processing; for fresh market it drives cooking quality). Excess N lowers dry matter.
-- Common scab pH risk on sand for fresh-market destinations — see the scab note in
+**Extra aandacht:**
+- Het drogestofgehalte is in beide segmenten belangrijk (typische contractband 19–24 % voor
+  verwerking; bij de versmarkt bepaalt het mede de kookkwaliteit). Te veel N verlaagt drogestof.
+- pH-risico voor gewone schurft op zand bij versmarktbestemmingen — zie de schurftopmerking in
   `aardappelen.md`.
-- Cross-cutting potato notes (Mg, B, manure timing, ammonium-N early on sand) in
-  `aardappelen.md` apply to all ware potatoes.
+- Algemene aardappelnotities (Mg, B, timing van mest, ammonium-N vroeg op zand) in
+  `aardappelen.md` gelden voor alle consumptieaardappelen.

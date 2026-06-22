@@ -587,7 +587,7 @@ describe("tool execute functions", () => {
             )
             expect(result.isValid).toBe(false)
             expect(result.complianceIssues[0]).toContain(
-                "Buffer strip violation",
+                "Bufferstrook-overtreding",
             )
             expect(result.fieldResults[0].isBufferStripViolation).toBe(true)
         })
@@ -672,7 +672,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Manure N"),
+                    i.includes("Mest-N"),
                 ),
             ).toBe(true)
         })
@@ -690,7 +690,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Workable N"),
+                    i.includes("Werkzame N"),
                 ),
             ).toBe(true)
         })
@@ -708,7 +708,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Phosphate"),
+                    i.includes("Fosfaat"),
                 ),
             ).toBe(true)
         })
@@ -721,7 +721,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Organic Farming"),
+                    i.includes("Biologische teelt"),
                 ),
             ).toBe(true)
         })
@@ -737,7 +737,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Derogation"),
+                    i.includes("Derogatie"),
                 ),
             ).toBe(true)
         })
@@ -755,7 +755,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Nitrogen Target"),
+                    w.includes("Stikstofdoel"),
                 ),
             ).toBe(true)
         })
@@ -808,7 +808,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Rotation Level"),
+                    w.includes("Bouwplanniveau"),
                 ),
             ).toBe(true)
         })
@@ -862,7 +862,7 @@ describe("tool execute functions", () => {
             // Same applications → no rotation mismatch warning
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Rotation Level"),
+                    w.includes("Bouwplanniveau"),
                 ),
             ).toBe(false)
         })
@@ -880,7 +880,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Reduce Ammonia Emissions"),
+                    w.includes("Ammoniakreductie"),
                 ),
             ).toBe(true)
         })
@@ -893,7 +893,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Reduce Ammonia Emissions"),
+                    w.includes("Ammoniakreductie"),
                 ),
             ).toBe(false)
         })
@@ -910,7 +910,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Fill Manure Space"),
+                    w.includes("Mestruimte vullen"),
                 ),
             ).toBe(true)
         })
@@ -926,7 +926,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Organic Matter"),
+                    w.includes("Organische stof"),
                 ),
             ).toBe(true)
         })

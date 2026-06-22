@@ -828,7 +828,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             if (failedNormFields.length > 0) {
                 agronomicWarnings.push(
-                    `Norm computation failed for ${failedNormFields.length} field(s): [${failedNormFields.join(", ")}]. Farm-level norms may be slightly understated.`,
+                    `Normberekening mislukt voor ${failedNormFields.length} perceel(en): [${failedNormFields.join(", ")}]. Normen op bedrijfsniveau kunnen iets te laag zijn weergegeven.`,
                 )
             }
 
@@ -837,7 +837,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     .filter((r: any) => r.isBufferStripViolation === true)
                     .map((r: any) => r.b_id)
                 complianceIssues.push(
-                    `Buffer strip violation: Fields [${bufferFields.join(", ")}] are buffer strips and cannot receive fertilizers.`,
+                    `Bufferstrook-overtreding: Percelen [${bufferFields.join(", ")}] zijn bufferstroken en mogen geen meststoffen ontvangen.`,
                 )
             }
 
@@ -846,7 +846,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     farmFillingsKg.manure - farmNormsKg.manure,
                 )
                 complianceIssues.push(
-                    `Legal norm violation (Manure N): Farm exceeds the limit by ${excess} kg N. Total applied: ${farmFillingsKg.manure} kg, Limit: ${farmNormsKg.manure} kg.`,
+                    `Wettelijke normoverschrijding (Mest-N): Bedrijf overschrijdt de grens met ${excess} kg N. Totaal toegediend: ${farmFillingsKg.manure} kg, Grens: ${farmNormsKg.manure} kg.`,
                 )
             }
 
@@ -855,7 +855,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     farmFillingsKg.nitrogen - farmNormsKg.nitrogen,
                 )
                 complianceIssues.push(
-                    `Legal norm violation (Workable N): Farm exceeds the limit by ${excess} kg N. Total applied: ${farmFillingsKg.nitrogen} kg, Limit: ${farmNormsKg.nitrogen} kg.`,
+                    `Wettelijke normoverschrijding (Werkzame N): Bedrijf overschrijdt de grens met ${excess} kg N. Totaal toegediend: ${farmFillingsKg.nitrogen} kg, Grens: ${farmNormsKg.nitrogen} kg.`,
                 )
             }
 
@@ -864,7 +864,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     farmFillingsKg.phosphate - farmNormsKg.phosphate,
                 )
                 complianceIssues.push(
-                    `Legal norm violation (Phosphate): Farm exceeds the limit by ${excess} kg P2O5. Total applied: ${farmFillingsKg.phosphate} kg, Limit: ${farmNormsKg.phosphate} kg.`,
+                    `Wettelijke normoverschrijding (Fosfaat): Bedrijf overschrijdt de grens met ${excess} kg P2O5. Totaal toegediend: ${farmFillingsKg.phosphate} kg, Grens: ${farmNormsKg.phosphate} kg.`,
                 )
             }
 
@@ -877,7 +877,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         )
                         if (fert?.p_type === "mineral") {
                             complianceIssues.push(
-                                `Strategy violation (Organic Farming): Plan includes mineral fertilizer (${fert.p_id_catalogue} on field ${field.b_id}), which is not allowed.`,
+                                `Strategie-overtreding (Biologische teelt): Plan bevat een minerale meststof (${fert.p_id_catalogue} op perceel ${field.b_id}), wat niet is toegestaan.`,
                             )
                         }
                     }
@@ -897,7 +897,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             fert.p_p_rt > 0
                         ) {
                             complianceIssues.push(
-                                `Strategy violation (Derogation): Plan includes a mineral fertilizer with phosphate (${fert.p_id_catalogue} on field ${field.b_id}), which is not allowed under derogation rules.`,
+                                `Strategie-overtreding (Derogatie): Plan bevat een minerale meststof met fosfaat (${fert.p_id_catalogue} op perceel ${field.b_id}), wat onder derogatieregels niet is toegestaan.`,
                             )
                         }
                     }
@@ -914,7 +914,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         farmNBalance.balance - farmNBalance.target,
                     )
                     agronomicWarnings.push(
-                        `Strategy warning (Nitrogen Target): The farm-level nitrogen balance (${Math.round(farmNBalance.balance)} kg N/ha) exceeds the target (${Math.round(farmNBalance.target)} kg N/ha) by ${excess} kg N/ha.`,
+                        `Strategiewaarschuwing (Stikstofdoel): De stikstofbalans op bedrijfsniveau (${Math.round(farmNBalance.balance)} kg N/ha) overschrijdt het doel (${Math.round(farmNBalance.target)} kg N/ha) met ${excess} kg N/ha.`,
                     )
                 }
             }
@@ -984,7 +984,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
                         if (mismatch) {
                             agronomicWarnings.push(
-                                `Strategy warning (Rotation Level): Field ${currentField.b_id} (Crop: ${currentField.b_lu_name}) has different applications than other fields in the same group. For the "Work on Rotation Level" strategy, all fields with the same crop must receive identical applications.`,
+                                `Strategiewaarschuwing (Bouwplanniveau): Perceel ${currentField.b_id} (Gewas: ${currentField.b_lu_name}) heeft andere giften dan andere percelen in dezelfde groep. Voor de strategie "Werken op bouwplanniveau" moeten alle percelen met hetzelfde gewas identieke giften ontvangen.`,
                             )
                         }
                     }
@@ -1016,7 +1016,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                 (f: SimulationField) => f.b_id === result.b_id,
                             )
                             agronomicWarnings.push(
-                                `Strategy warning (Reduce Ammonia Emissions): Field ${result.b_id}${fieldData ? ` (${fieldData.b_lu_name})` : ""} has a high weighted-average NH3 emission factor (${Math.round(avgEmissionFactor * 100)}%, threshold: ${NH3_EMISSION_FACTOR_THRESHOLD * 100}%). Consider switching to low-emission application methods (e.g., injection or incorporation) instead of broadcasting or spraying.`,
+                                `Strategiewaarschuwing (Ammoniakreductie): Perceel ${result.b_id}${fieldData ? ` (${fieldData.b_lu_name})` : ""} heeft een hoge gewogen gemiddelde NH3-emissiefactor (${Math.round(avgEmissionFactor * 100)}%, drempel: ${NH3_EMISSION_FACTOR_THRESHOLD * 100}%). Overweeg emissiearme toedieningsmethoden (bijv. injectie of inwerken) in plaats van breedwerpig strooien of spuiten.`,
                             )
                         }
                     }
@@ -1038,11 +1038,11 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         phosphateHeadroom <= farmNormsKg.phosphate * 0.05
                     ) {
                         agronomicWarnings.push(
-                            `Strategy warning (Fill Manure Space): The farm has unused manure space (${remaining} kg N), but workable N and/or phosphate space is limiting. First check whether high-workability mineral N can be partly replaced by an agronomically suitable manure with a lower p_n_wc, so animal-manure space is filled without exceeding workable N or phosphate. If substitution is not feasible because of crop-specific guidance, product availability, or phosphate, explain that constraint instead of simply adding manure.`,
+                            `Strategiewaarschuwing (Mestruimte vullen): Het bedrijf heeft ongebruikte mestruimte (${remaining} kg N), maar de ruimte voor werkzame N en/of fosfaat is beperkend. Controleer eerst of minerale N met hoge werkzaamheid deels vervangen kan worden door een agronomisch geschikte mest met een lagere p_n_wc, zodat de dierlijke-mestruimte gevuld wordt zonder werkzame N of fosfaat te overschrijden. Als vervanging niet haalbaar is vanwege gewasspecifieke richtlijnen, productbeschikbaarheid of fosfaat, leg die beperking dan uit in plaats van simpelweg mest toe te voegen.`,
                         )
                     } else {
                         agronomicWarnings.push(
-                            `Strategy warning (Fill Manure Space): The farm has unused manure space (${remaining} kg N available). Consider adding more manure to maximize usage.`,
+                            `Strategiewaarschuwing (Mestruimte vullen): Het bedrijf heeft ongebruikte mestruimte (${remaining} kg N beschikbaar). Overweeg meer mest toe te voegen om het gebruik te maximaliseren.`,
                         )
                     }
                 }
@@ -1051,7 +1051,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             for (const r of validFieldResults) {
                 if (r.fieldMetrics?.omBalance && r.fieldMetrics.omBalance < 0) {
                     agronomicWarnings.push(
-                        `Strategy warning (Organic Matter): Field ${r.b_id} has a negative organic matter balance (${Math.round(r.fieldMetrics.omBalance)} kg EOM/ha). Consider applying compost or other fertilizer with a high EOM content.`,
+                        `Strategiewaarschuwing (Organische stof): Perceel ${r.b_id} heeft een negatieve organische stofbalans (${Math.round(r.fieldMetrics.omBalance)} kg EOS/ha). Overweeg compost of een andere meststof met een hoog EOS-gehalte toe te passen.`,
                     )
                 }
             }
@@ -1171,7 +1171,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 cropIndex = JSON.parse(readFileSync(indexPath, "utf-8"))
             } catch {
                 return {
-                    guide: "No crop-specific fertilizer guidance available (index not found).",
+                    guide: "Geen gewasspecifieke bemestingsrichtlijnen beschikbaar (index niet gevonden).",
                     matchedCrops: [],
                 }
             }
@@ -1185,7 +1185,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             if (filesToLoad.size === 0) {
                 return {
-                    guide: "No crop-specific fertilizer guidance found for the provided crop codes.",
+                    guide: "Geen gewasspecifieke bemestingsrichtlijnen gevonden voor de opgegeven gewascodes.",
                     matchedCrops: [],
                 }
             }
