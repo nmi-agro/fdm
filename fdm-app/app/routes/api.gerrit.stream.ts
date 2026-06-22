@@ -8,6 +8,7 @@ import {
     createFertilizerPlannerAgent,
     runStreamAgent,
     FertilizerPlanSchema,
+    sanitizeAdditionalContext,
     type FarmFieldSummary
 } from "@nmi-agro/fdm-agents"
 import {
@@ -51,6 +52,26 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
     const additionalContext = url.searchParams.get("additionalContext") || ""
     const modelName = url.searchParams.get("geminiModel") || "gemini-3-flash-preview"
+
+    // Parse clarifications from the question form (if any)
+    let clarifications: Array<{ question: string; selectedOptionLabels: string[]; other?: string }> = []
+    const clarificationsRaw = url.searchParams.get("clarifications")
+    if (clarificationsRaw) {
+        try {
+            const parsed = JSON.parse(clarificationsRaw)
+            if (Array.isArray(parsed)) {
+                clarifications = parsed.map((c: any) => ({
+                    question: sanitizeAdditionalContext(String(c.question ?? ""), 200),
+                    selectedOptionLabels: (c.selectedOptionLabels ?? []).map((l: string) =>
+                        sanitizeAdditionalContext(String(l), 120),
+                    ),
+                    other: c.other ? sanitizeAdditionalContext(String(c.other), 200) : undefined,
+                }))
+            }
+        } catch {
+            // Ignore malformed clarifications — treat as none
+        }
+    }
 
     const stream = new ReadableStream({
         async start(controller) {
@@ -149,7 +170,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 sendEvent("status", { message: "Gerrit start met het berekenen van het plan...", phase: "planning" })
 
                 const agent = createFertilizerPlannerAgent(fdm, serverConfig.integrations.gemini?.api_key, modelName)
-                const prompt = buildFertilizerPlanPrompt({ b_id_farm }, strategies, calendar, additionalContext, fieldsSummary)
+                const prompt = buildFertilizerPlanPrompt({ b_id_farm }, strategies, calendar, additionalContext, fieldsSummary, clarifications)
                 const agentContext = {
                     principalId: session.principal_id,
                     b_id_farm,

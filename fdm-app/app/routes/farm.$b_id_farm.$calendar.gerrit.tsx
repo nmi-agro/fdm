@@ -11,6 +11,7 @@ import {
     removeFertilizerApplication,
     type Fertilizer,
 } from "@nmi-agro/fdm-core"
+import type { ClarifyingQuestion } from "@nmi-agro/fdm-agents"
 import { Bot } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -29,9 +30,14 @@ import { useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import type { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
+import { ClarifyLoading } from "~/components/blocks/gerrit/clarify-loading"
 import { GerritLoading } from "~/components/blocks/gerrit/loading"
 import { GerritOnboarding } from "~/components/blocks/gerrit/onboarding"
 import { PlanTable } from "~/components/blocks/gerrit/plan-table"
+import {
+    QuestionsForm,
+    type ClarificationAnswerValue,
+} from "~/components/blocks/gerrit/questions-form"
 import {
     GEMINI_MODELS,
     GerritFormSchema,
@@ -271,12 +277,22 @@ export default function GerritApp() {
     const isSupportedYear = supportedYears.includes(calendar)
     const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
 
+    // Phase state machine: idle → clarifying → questions → generating → (idle with plan)
+    type Phase = "idle" | "clarifying" | "questions" | "generating"
+    const [phase, setPhase] = useState<Phase>("idle")
+
+    // Events for the active streaming phase (clarify or plan)
     const [events, setEvents] = useState<Array<{ type: string; data: any }>>([])
     const [planData, setPlanData] = useState<any>(null)
-    const [isAIGenerating, setIsAIGenerating] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+    // Clarify-phase state
+    const [clarifyingQuestions, setClarifyingQuestions] = useState<ClarifyingQuestion[]>([])
+    const [pendingFormData, setPendingFormData] = useState<z.infer<typeof GerritFormSchema> | null>(null)
+
     const eventSourceRef = useRef<EventSource | null>(null)
+
+    const isAIGenerating = phase === "clarifying" || phase === "generating"
 
     const closeEventSource = useCallback(() => {
         if (eventSourceRef.current) {
@@ -285,13 +301,10 @@ export default function GerritApp() {
         }
     }, [])
 
-    // Close on unmount
     useEffect(() => () => closeEventSource(), [closeEventSource])
 
     const addEvent = useCallback((type: string, payload: any) => {
         setEvents((prev) => {
-            // Coalesce consecutive reasoning chunks into one entry so the
-            // accumulated thinking text grows in place instead of spawning rows.
             if (
                 type === "reasoning" &&
                 prev.length > 0 &&
@@ -309,75 +322,139 @@ export default function GerritApp() {
         })
     }, [])
 
-    const handleSubmit = useCallback(async (data: z.infer<typeof GerritFormSchema>) => {
-        closeEventSource()
-        setEvents([])
-        setPlanData(null)
-        setErrorMessage(null)
-        setIsAIGenerating(true)
-
-        const searchParams = new URLSearchParams()
-        searchParams.set("b_id_farm", farm.b_id_farm)
-        searchParams.set("calendar", calendar)
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined) {
-                searchParams.set(key, String(value))
+    /** Builds the strategy+clarifications URL search params shared by both SSE endpoints */
+    const buildSearchParams = useCallback(
+        (
+            formData: z.infer<typeof GerritFormSchema>,
+            clarifications?: ClarificationAnswerValue[],
+        ) => {
+            const searchParams = new URLSearchParams()
+            searchParams.set("b_id_farm", farm.b_id_farm)
+            searchParams.set("calendar", calendar)
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value !== undefined) searchParams.set(key, String(value))
+            })
+            if (clarifications && clarifications.length > 0) {
+                const payload = clarifications.map((a) => ({
+                    question: a.question,
+                    selectedOptionLabels: a.selectedOptionLabels,
+                    other: a.other,
+                }))
+                const json = JSON.stringify(payload)
+                if (json.length <= 4000) searchParams.set("clarifications", json)
             }
-        })
+            return searchParams
+        },
+        [farm.b_id_farm, calendar],
+    )
 
-        const es = new EventSource(`/api/gerrit/stream?${searchParams.toString()}`)
-        eventSourceRef.current = es
-
-        es.addEventListener("start", ((e: MessageEvent) => {
-            try { addEvent("status", JSON.parse(e.data)) } catch {}
-        }) as EventListener)
-
-        es.addEventListener("reasoning", ((e: MessageEvent) => {
-            try { addEvent("reasoning", JSON.parse(e.data)) } catch {}
-        }) as EventListener)
-
-        es.addEventListener("on_tool_start", ((e: MessageEvent) => {
-            try { addEvent("on_tool_start", JSON.parse(e.data)) } catch {}
-        }) as EventListener)
-
-        es.addEventListener("on_tool_end", ((e: MessageEvent) => {
-            try { addEvent("on_tool_end", JSON.parse(e.data)) } catch {}
-        }) as EventListener)
-
-        es.addEventListener("status", ((e: MessageEvent) => {
-            try { addEvent("status", JSON.parse(e.data)) } catch {}
-        }) as EventListener)
-
-        es.addEventListener("complete", ((e: MessageEvent) => {
-            try {
-                const payload = JSON.parse(e.data)
-                setPlanData({
-                    plan: payload.plan,
-                    strategies: payload.strategies,
-                })
-            } catch {}
+    /** Opens the plan-generation SSE stream */
+    const startPlanStream = useCallback(
+        (formData: z.infer<typeof GerritFormSchema>, clarifications?: ClarificationAnswerValue[]) => {
             closeEventSource()
-            setIsAIGenerating(false)
-        }) as EventListener)
+            setEvents([])
+            setPhase("generating")
 
-        es.addEventListener("error", ((e: MessageEvent) => {
-            // Distinguish our app-level error event (has e.data) from a native
-            // SSE connection error (no e.data, e.g. network drop / server closed)
-            if ((e as any).data) {
+            const searchParams = buildSearchParams(formData, clarifications)
+            const es = new EventSource(`/api/gerrit/stream?${searchParams.toString()}`)
+            eventSourceRef.current = es
+
+            es.addEventListener("start", ((e: MessageEvent) => {
+                try { addEvent("status", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("reasoning", ((e: MessageEvent) => {
+                try { addEvent("reasoning", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("on_tool_start", ((e: MessageEvent) => {
+                try { addEvent("on_tool_start", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("on_tool_end", ((e: MessageEvent) => {
+                try { addEvent("on_tool_end", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("status", ((e: MessageEvent) => {
+                try { addEvent("status", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("complete", ((e: MessageEvent) => {
                 try {
-                    const payload = JSON.parse((e as any).data)
-                    setErrorMessage(payload.message || "Gerrit kon geen plan genereren.")
-                } catch {
-                    setErrorMessage("Gerrit kon geen plan genereren.")
+                    const payload = JSON.parse(e.data)
+                    setPlanData({ plan: payload.plan, strategies: payload.strategies })
+                } catch {}
+                closeEventSource()
+                setPhase("idle")
+            }) as EventListener)
+            es.addEventListener("error", ((e: MessageEvent) => {
+                if ((e as any).data) {
+                    try {
+                        const payload = JSON.parse((e as any).data)
+                        setErrorMessage(payload.message || "Gerrit kon geen plan genereren.")
+                    } catch {
+                        setErrorMessage("Gerrit kon geen plan genereren.")
+                    }
+                } else {
+                    setErrorMessage("Verbinding met Gerrit verbroken.")
                 }
-            } else {
-                setErrorMessage("Verbinding met Gerrit verbroken.")
-            }
+                closeEventSource()
+                setPhase("idle")
+            }) as EventListener)
+        },
+        [addEvent, buildSearchParams, closeEventSource],
+    )
+
+    /** On form submit: start the clarify stream first */
+    const handleSubmit = useCallback(
+        async (formData: z.infer<typeof GerritFormSchema>) => {
             closeEventSource()
-            setIsAIGenerating(false)
-        }) as EventListener)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [addEvent, closeEventSource, farm.b_id_farm, calendar])
+            setEvents([])
+            setPlanData(null)
+            setErrorMessage(null)
+            setClarifyingQuestions([])
+            setPendingFormData(formData)
+            setPhase("clarifying")
+
+            const searchParams = buildSearchParams(formData)
+            const es = new EventSource(`/api/gerrit/clarify?${searchParams.toString()}`)
+            eventSourceRef.current = es
+
+            es.addEventListener("start", ((e: MessageEvent) => {
+                try { addEvent("status", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("reasoning", ((e: MessageEvent) => {
+                try { addEvent("reasoning", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("on_tool_start", ((e: MessageEvent) => {
+                try { addEvent("on_tool_start", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("on_tool_end", ((e: MessageEvent) => {
+                try { addEvent("on_tool_end", JSON.parse(e.data)) } catch {}
+            }) as EventListener)
+            es.addEventListener("questions", ((e: MessageEvent) => {
+                try {
+                    const payload = JSON.parse(e.data)
+                    const questions: ClarifyingQuestion[] = payload.questions ?? []
+                    closeEventSource()
+                    if (questions.length === 0) {
+                        // No questions — go straight to plan
+                        startPlanStream(formData)
+                    } else {
+                        setClarifyingQuestions(questions)
+                        setPhase("questions")
+                    }
+                } catch {
+                    // Parse error — degrade gracefully
+                    closeEventSource()
+                    startPlanStream(formData)
+                }
+            }) as EventListener)
+            es.addEventListener("error", ((_e: Event) => {
+                // Connection error during clarify — degrade gracefully
+                closeEventSource()
+                if (pendingFormData) startPlanStream(pendingFormData)
+                else setPhase("idle")
+            }) as EventListener)
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [addEvent, buildSearchParams, closeEventSource, startPlanStream],
+    )
 
     const form = useRemixForm<z.infer<typeof GerritFormSchema>>({
         mode: "onTouched",
@@ -420,7 +497,7 @@ export default function GerritApp() {
     useEffect(() => {
         if (blocker.state === "proceeding") {
             closeEventSource()
-            setIsAIGenerating(false)
+            setPhase("idle")
         }
     }, [blocker.state, closeEventSource])
 
@@ -642,7 +719,7 @@ export default function GerritApp() {
                             {showStrategyForm ? (
                                 <StrategyForm
                                     form={form as any}
-                                    isGenerating={isAIGenerating}
+                                    isGenerating={isAIGenerating || phase === "questions"}
                                     additionalContextValue={
                                         additionalContextValue
                                     }
@@ -672,7 +749,19 @@ export default function GerritApp() {
                                         Probeer opnieuw
                                     </Button>
                                 </div>
-                            ) : isAIGenerating ? (
+                            ) : phase === "clarifying" ? (
+                                <ClarifyLoading events={events} />
+                            ) : phase === "questions" ? (
+                                <QuestionsForm
+                                    questions={clarifyingQuestions}
+                                    onSubmit={(answers) => {
+                                        if (pendingFormData) startPlanStream(pendingFormData, answers)
+                                    }}
+                                    onSkip={() => {
+                                        if (pendingFormData) startPlanStream(pendingFormData)
+                                    }}
+                                />
+                            ) : phase === "generating" ? (
                                 <GerritLoading events={events} />
                             ) : plan ? (
                                 <PlanTable

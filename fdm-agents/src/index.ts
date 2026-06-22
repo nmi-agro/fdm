@@ -1,6 +1,7 @@
 import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
 import { z } from "zod"
 import { createFertilizerPlannerAgent } from "./agents/gerrit/agent"
+import { createClarifyAgent } from "./agents/gerrit/clarify-agent"
 import { runOneShotAgent } from "./runners/one-shot"
 import { getMainCultivation } from "./tools/fertilizer-planner"
 
@@ -10,9 +11,19 @@ export { FertilizerPlanSchema } from "./agents/gerrit/schema"
 export { generateTicketSubjectAndPriority } from "./agents/ticket-triage/agent"
 export type { OneShotAgentResult } from "./runners/one-shot"
 export { AgentRecursionLimitError, AgentTimeoutError } from "./runners/one-shot"
-export { createFertilizerPlannerAgent, getMainCultivation, runOneShotAgent }
+export { createFertilizerPlannerAgent, createClarifyAgent, getMainCultivation, runOneShotAgent }
 export { runStreamAgent } from "./runners/stream"
 export type { StreamEvent } from "./runners/stream"
+export type {
+    ClarifyingQuestion,
+    ClarifyingQuestionOption,
+    ClarifyingQuestions,
+    ClarificationAnswer,
+} from "./agents/gerrit/clarify-schema"
+export {
+    ClarifyingQuestionsSchema,
+    ClarificationAnswerSchema,
+} from "./agents/gerrit/clarify-schema"
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */
@@ -91,6 +102,28 @@ export function sanitizeAdditionalContext(raw: string, charLimit = 1000): string
  * @param fieldsSummary Optional pre-fetched field list to include in the prompt context.
  */
 /**
+ * Builds a sanitized Dutch "VERDUIDELIJKINGEN" block from clarification answers
+ * to include in the planner prompt.
+ */
+export function buildClarificationsBlock(
+    clarifications: Array<{
+        question: string
+        selectedOptionLabels: string[]
+        other?: string
+    }>,
+): string {
+    if (!clarifications || clarifications.length === 0) return ""
+    const lines = clarifications.map((c) => {
+        const answers = c.selectedOptionLabels.map((l) => sanitizeAdditionalContext(l, 120))
+        if (c.other) {
+            answers.push(`Anders: ${sanitizeAdditionalContext(c.other, 200)}`)
+        }
+        return `- ${sanitizeAdditionalContext(c.question, 200)}: ${answers.join("; ")}`
+    })
+    return `\nVERDUIDELIJKINGEN VAN DE TELER/ADVISEUR:\n${lines.join("\n")}\n`
+}
+
+/**
  * Builds the prompt string for the fertilizer planning agent.
  * Shared between the one-shot and streaming entry points.
  */
@@ -100,6 +133,11 @@ export function buildFertilizerPlanPrompt(
     calendar: string,
     additionalContext?: string,
     fieldsSummary?: FarmFieldSummary[],
+    clarifications?: Array<{
+        question: string
+        selectedOptionLabels: string[]
+        other?: string
+    }>,
 ): string {
     const validatedStrategies = FertilizerPlanStrategiesSchema.parse(strategies)
     const safeContext = additionalContext
@@ -126,6 +164,8 @@ export function buildFertilizerPlanPrompt(
                   .join("\n")}\n`
             : ""
 
+    const clarificationsBlock = buildClarificationsBlock(clarifications ?? [])
+
     return `Stel een bemestingsplan op voor bedrijf "${farmData.b_id_farm}" voor het jaar "${calendar}".
 ${fieldsBlock}
 TE HANDHAVEN STRATEGIEËN:
@@ -135,7 +175,7 @@ TE HANDHAVEN STRATEGIEËN:
 - Stikstofbalans onder streefwaarde houden: ${validatedStrategies.keepNitrogenBalanceBelowTarget ? "JA (Zorg dat het stikstofbalansoverschot op bedrijfsniveau onder het bedrijfsomgevingsdoel blijft. Individuele percelen mogen hun doel overschrijden als dit door andere percelen wordt gecompenseerd)" : "NEE"}
 - Werken op bouwplanniveau: ${validatedStrategies.workOnRotationLevel ? "JA (Alle percelen met hetzelfde b_lu_catalogue MOETEN identieke giften ontvangen — dezelfde producten, hoeveelheden, data en methoden)" : "NEE"}
 - Derogatie: ${validatedStrategies.isDerogation ? "JA (Geen minerale meststoffen met fosfaat toegestaan)" : "NEE"}
-
+${clarificationsBlock}
 --- BEGIN ADDITIONAL USER CONTEXT ---
 ${safeContext}
 --- END ADDITIONAL USER CONTEXT ---

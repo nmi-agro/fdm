@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import {
+    buildClarificationsBlock,
     buildFertilizerPlanPrompt,
     FertilizerPlanStrategiesSchema,
     generateFarmFertilizerPlan,
@@ -8,6 +9,10 @@ import {
 
 vi.mock("./agents/gerrit/agent", () => ({
     createFertilizerPlannerAgent: vi.fn().mockReturnValue({ name: "Gerrit" }),
+}))
+
+vi.mock("./agents/gerrit/clarify-agent", () => ({
+    createClarifyAgent: vi.fn().mockReturnValue({ name: "GerritClarify" }),
 }))
 
 vi.mock("./runners/one-shot", () => ({
@@ -249,6 +254,75 @@ describe("fdm-agents index", () => {
             expect(prompt).not.toContain("zero-1")
             expect(prompt).not.toContain("buffer-1")
         })
+    })
+})
+
+describe("buildClarificationsBlock", () => {
+    it("should return empty string for no clarifications", () => {
+        expect(buildClarificationsBlock([])).toBe("")
+    })
+
+    it("should format single-answer clarification correctly", () => {
+        const block = buildClarificationsBlock([
+            {
+                question: "Welk mesttype heeft de voorkeur?",
+                selectedOptionLabels: ["Rundveedrijfmest"],
+            },
+        ])
+        expect(block).toContain("VERDUIDELIJKINGEN VAN DE TELER/ADVISEUR:")
+        expect(block).toContain("Rundveedrijfmest")
+    })
+
+    it("should include 'Anders' free-text when provided", () => {
+        const block = buildClarificationsBlock([
+            {
+                question: "Welk mesttype?",
+                selectedOptionLabels: [],
+                other: "Kippenmost",
+            },
+        ])
+        expect(block).toContain("Anders: Kippenmost")
+    })
+
+    it("should include the block in buildFertilizerPlanPrompt when clarifications are passed", () => {
+        const prompt = buildFertilizerPlanPrompt(
+            { b_id_farm: "farm-1" },
+            {
+                isOrganic: false,
+                fillManureSpace: false,
+                reduceAmmoniaEmissions: false,
+                keepNitrogenBalanceBelowTarget: false,
+                workOnRotationLevel: false,
+                isDerogation: false,
+            },
+            "2025",
+            undefined,
+            undefined,
+            [
+                {
+                    question: "Welk mesttype?",
+                    selectedOptionLabels: ["Rundveedrijfmest"],
+                },
+            ],
+        )
+        expect(prompt).toContain("VERDUIDELIJKINGEN VAN DE TELER/ADVISEUR:")
+        expect(prompt).toContain("Rundveedrijfmest")
+    })
+
+    it("should omit the block from buildFertilizerPlanPrompt when no clarifications are passed", () => {
+        const prompt = buildFertilizerPlanPrompt(
+            { b_id_farm: "farm-1" },
+            {
+                isOrganic: false,
+                fillManureSpace: false,
+                reduceAmmoniaEmissions: false,
+                keepNitrogenBalanceBelowTarget: false,
+                workOnRotationLevel: false,
+                isDerogation: false,
+            },
+            "2025",
+        )
+        expect(prompt).not.toContain("VERDUIDELIJKINGEN")
     })
 })
 
