@@ -1,14 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
     AlertCircle,
+    Calendar as CalendarIcon,
     CheckCircle,
     Circle,
     FileUp,
-    FlaskConical,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useWatch } from "react-hook-form"
-import { Form, NavLink, useActionData, useNavigation } from "react-router"
+import { Form, NavLink, useActionData, useLocation, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
@@ -28,6 +28,12 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 import {
     FormDescription,
     FormField,
@@ -66,11 +72,15 @@ export function MijnPercelenUploadForm({
 
     const actionData = useActionData<{
         message?: string
+        success?: boolean
+        suggestedYear?: number
         fieldErrors?: Record<string, string[]>
         formErrors?: string[]
     } | null>()
     const navigation = useNavigation()
-    const isSubmitting = navigation.state !== "idle"
+    const location = useLocation()
+    const isSubmitting =
+        navigation.state !== "idle" && navigation.formMethod != null
 
     // Effect to start the animation
     useEffect(() => {
@@ -89,7 +99,7 @@ export function MijnPercelenUploadForm({
             const remainingTime = Math.max(0, minAnimationTime - elapsedTime)
 
             const timer = setTimeout(() => {
-                if (actionData.message) {
+                if (actionData.message && actionData.success !== false) {
                     setUploadState("success")
                 } else {
                     setUploadState("error")
@@ -100,9 +110,9 @@ export function MijnPercelenUploadForm({
         }
     }, [actionData, uploadState])
 
-    // Effect to reset the form after success/error message
+    // Effect to reset the form after success message (errors stay visible until the user tries again)
     useEffect(() => {
-        if (uploadState === "success" || uploadState === "error") {
+        if (uploadState === "success") {
             const timer = setTimeout(() => {
                 setUploadState("idle")
                 form.reset()
@@ -139,12 +149,16 @@ export function MijnPercelenUploadForm({
         <Card className="w-full max-w-lg mx-auto">
             <CardHeader className="space-y-6">
                 <CardTitle>Shapefile uploaden</CardTitle>
-                <Alert>
-                    <FlaskConical className="h-4 w-4" />
-                    <AlertTitle>Experimentele functie</AlertTitle>
-                    <AlertDescription className="text-muted-foreground">
-                        Deze functie is nog in ontwikkeling. Laat ons het weten
-                        als je feedback hebt!
+                <Alert variant="default">
+                    <CalendarIcon className="h-4 w-4" />
+                    <AlertTitle>Kalenderjaar {calendar}</AlertTitle>
+                    <AlertDescription>
+                        U uploadt percelen voor kalenderjaar {calendar}. Zorg
+                        ervoor dat het shapefile voor dit jaar is geëxporteerd.
+                        <YearSwitcher
+                            calendar={calendar}
+                            pathname={location.pathname}
+                        />
                     </AlertDescription>
                 </Alert>
                 <CardDescription>
@@ -230,12 +244,17 @@ export function MijnPercelenUploadForm({
                 <Card className="w-full max-w-lg mx-auto">
                     <CardHeader className="space-y-6">
                         <CardTitle>Shapefile uploaden</CardTitle>
-                        <Alert>
-                            <FlaskConical className="h-4 w-4" />
-                            <AlertTitle>Experimentele functie</AlertTitle>
+                        <Alert variant="default">
+                            <CalendarIcon className="h-4 w-4" />
+                            <AlertTitle>Kalenderjaar {calendar}</AlertTitle>
                             <AlertDescription className="text-muted-foreground">
-                                Deze functie is nog in ontwikkeling. Laat ons
-                                het weten als je feedback hebt!
+                                U uploadt percelen voor kalenderjaar {calendar}.
+                                Zorg ervoor dat het shapefile voor dit jaar is
+                                geëxporteerd.
+                                <YearSwitcher
+                                    calendar={calendar}
+                                    pathname={location.pathname}
+                                />
                             </AlertDescription>
                         </Alert>
                         <CardDescription>
@@ -396,6 +415,40 @@ export function MijnPercelenUploadForm({
                                                     Terug
                                                 </Button>
                                             </NavLink>
+                                            {uploadState === "error" &&
+                                                actionData?.success === false &&
+                                                actionData.message && (
+                                                    <Alert variant="destructive">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <AlertTitle>
+                                                            Fout bij uploaden
+                                                        </AlertTitle>
+                                                        <AlertDescription>
+                                                            {actionData.message}
+                                                        </AlertDescription>
+                                                        {actionData.suggestedYear && (
+                                                            <NavLink
+                                                                to={location.pathname.replace(
+                                                                    `/${calendar}/`,
+                                                                    `/${actionData.suggestedYear}/`,
+                                                                )}
+                                                                className="mt-2 block"
+                                                            >
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="w-full"
+                                                                >
+                                                                    Ga naar
+                                                                    kalenderjaar{" "}
+                                                                    {
+                                                                        actionData.suggestedYear
+                                                                    }
+                                                                </Button>
+                                                            </NavLink>
+                                                        )}
+                                                    </Alert>
+                                                )}
                                         </div>
                                     </div>
                                 </fieldset>
@@ -405,6 +458,47 @@ export function MijnPercelenUploadForm({
                 </Card>
             )}
         </div>
+    )
+}
+
+function YearSwitcher({
+    calendar,
+    pathname,
+}: {
+    calendar: string
+    pathname: string
+}) {
+    const currentYear = Number(calendar)
+    const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i).filter(
+        (y) => y !== currentYear,
+    )
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full"
+                >
+                    Kies een ander jaar
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+                {years.map((year) => (
+                    <DropdownMenuItem key={year} asChild>
+                        <NavLink
+                            to={pathname.replace(
+                                `/${calendar}/`,
+                                `/${year}/`,
+                            )}
+                        >
+                            {year}
+                        </NavLink>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }
 
