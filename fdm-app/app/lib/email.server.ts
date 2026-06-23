@@ -294,7 +294,7 @@ export async function renderHelpdeskNewMessageEmail(
     const email: Email = {
         From: `"${helpdeskSenderName}" <${helpdeskSenderAddress}>`,
         To: recipientEmail,
-        Subject: `Nieuw bericht op ticket ${ticketRef}${ticketSubject ? ` – ${ticketSubject}` : ""}`,
+        Subject: `Nieuw bericht op ticket: ${ticketSubject ? ticketSubject : ticketRef}`,
         HtmlBody: emailHtml,
         Tag: "helpdesk-new-message",
     }
