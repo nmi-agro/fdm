@@ -5,7 +5,7 @@ import {
     getMeasuresForFarm,
     type Measure,
 } from "@nmi-agro/fdm-core"
-import type { FeatureCollection } from "geojson"
+import type { FeatureCollection, MultiPolygon } from "geojson"
 import { ClipboardList } from "lucide-react"
 import { lazy, Suspense, useMemo } from "react"
 import {
@@ -40,7 +40,6 @@ import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import type { Route } from "./+types/organization.$slug.$calendar.measures"
-import { buildFarmMultiPolygon } from "./organization.$slug.$calendar.atlas.indicators"
 
 const MeasuresMap = lazy(
     () => import("@/app/components/blocks/measures/measures-atlas"),
@@ -71,6 +70,31 @@ type MainCultivation = {
     b_lu_catalogue: string
     b_lu_name: string
     b_lu_croprotation: string | null
+}
+
+export function buildFarmMultiPolygon(
+    fields: Array<{
+        b_geometry:
+            | {
+                  type: "Polygon"
+                  coordinates: MultiPolygon["coordinates"][number]
+              }
+            | {
+                  type: "MultiPolygon"
+                  coordinates: MultiPolygon["coordinates"]
+              }
+            | null
+    }>,
+): MultiPolygon {
+    return {
+        type: "MultiPolygon",
+        coordinates: fields.flatMap((field) => {
+            if (!field.b_geometry) return []
+            return field.b_geometry.type === "MultiPolygon"
+                ? field.b_geometry.coordinates
+                : [field.b_geometry.coordinates]
+        }),
+    }
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {

@@ -1,6 +1,6 @@
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import { featureCollection } from "@turf/helpers"
-import type { FeatureCollection, Geometry, MultiPolygon } from "geojson"
+import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { data, type MetaFunction, useLoaderData } from "react-router"
 import { ScoreSelect } from "~/components/blocks/indicators/atlas"
@@ -171,7 +171,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             lastPromise = scorePromise.then(() => undefined)
         }
 
-        // Now do the synchronous fetches
         const fieldsArray = await Promise.all(
             farms.map(async (farm) => {
                 return {
@@ -235,11 +234,13 @@ export default function OrgAtlasIndicatorsMap() {
     const [fieldScoresMap, setFieldScoresMap] = useState(
         new Map<string, FlattenedScores>(),
     )
+    const [completedFarmIds, setCompletedFarmIds] = useState<string[]>([])
     const [erroredFarms, setErroredFarms] = useState<string[]>([])
 
     useEffect(() => {
         let active = true
         setFieldScoresMap(new Map())
+        setCompletedFarmIds([])
         setErroredFarms([])
         for (const stream of farmScoreStreams) {
             stream.then(
@@ -248,6 +249,10 @@ export default function OrgAtlasIndicatorsMap() {
                         if (flattenedScores) {
                             setFieldScoresMap((current) => {
                                 if (active) {
+                                    setCompletedFarmIds((current) => [
+                                        ...current,
+                                        b_id_farm,
+                                    ])
                                     const newMap = new Map<
                                         string,
                                         FlattenedScores
@@ -307,7 +312,7 @@ export default function OrgAtlasIndicatorsMap() {
 
     const numTotal = farmScoreStreams.length
     const numErrored = erroredFarms.length
-    const numDone = fieldScoresMap.size + numErrored
+    const numDone = completedFarmIds.length + numErrored
 
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
