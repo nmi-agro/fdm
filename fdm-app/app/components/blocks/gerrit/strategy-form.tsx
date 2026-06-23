@@ -18,18 +18,11 @@ import {
     CollapsibleTrigger,
 } from "~/components/ui/collapsible"
 import { Label } from "~/components/ui/label"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
 import { cn } from "~/lib/utils"
-import { GEMINI_MODELS, type GerritFormValues, STRATEGY_LABELS } from "./schema"
+import { type GerritFormValues, STRATEGY_LABELS } from "./schema"
 
 const TYPE_LABELS: Record<string, string> = {
     manure: "Dierlijke mest",
@@ -355,47 +348,6 @@ export function StrategyForm({
                                     }
                                 </p>
                             )}
-                        </div>
-                        <div className="space-y-2 pt-2">
-                            <Label
-                                htmlFor="geminiModel"
-                                className="text-sm font-medium text-muted-foreground"
-                            >
-                                AI-model
-                            </Label>
-                            <Controller
-                                name="geminiModel"
-                                control={form.control}
-                                render={({ field }) => (
-                                    <Select
-                                        value={field.value as string}
-                                        onValueChange={field.onChange}
-                                        disabled={isGenerating}
-                                    >
-                                        <SelectTrigger
-                                            id="geminiModel"
-                                            className="w-full text-sm"
-                                        >
-                                            <SelectValue />
-                                            <input
-                                                type="hidden"
-                                                name="geminiModel"
-                                                value={field.value as string}
-                                            />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {GEMINI_MODELS.map((m) => (
-                                                <SelectItem
-                                                    key={m.value}
-                                                    value={m.value}
-                                                >
-                                                    {m.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            />
                         </div>
                         <Button
                             type="submit"

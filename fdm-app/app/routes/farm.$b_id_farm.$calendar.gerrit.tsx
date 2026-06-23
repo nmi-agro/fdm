@@ -32,14 +32,12 @@ import type { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { ClarifyLoading } from "~/components/blocks/gerrit/clarify-loading"
 import { GerritLoading } from "~/components/blocks/gerrit/loading"
-import { GerritOnboarding } from "~/components/blocks/gerrit/onboarding"
 import { PlanTable } from "~/components/blocks/gerrit/plan-table"
 import {
     QuestionsForm,
     type ClarificationAnswerValue,
 } from "~/components/blocks/gerrit/questions-form"
 import {
-    GEMINI_MODELS,
     GerritFormSchema,
     STRATEGY_LABELS,
 } from "~/components/blocks/gerrit/schema"
@@ -60,6 +58,13 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -481,7 +486,7 @@ export default function GerritApp() {
             workOnRotationLevel: false,
             selectedFertilizerIds: fertilizerOptions.length > 0 ? fertilizerOptions.map((f) => f.p_id_catalogue) as any : undefined,
             additionalContext: "",
-            geminiModel: GEMINI_MODELS[0].value,
+            geminiModel: "gemini-3.5-flash",
         },
         submitHandlers: {
             onValid: handleSubmit,
@@ -542,34 +547,7 @@ export default function GerritApp() {
               .map(([k]) => STRATEGY_LABELS[k] ?? k)
         : []
 
-    const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState<
-        boolean | null
-    >(null)
-    const [isCheckboxChecked, setIsCheckboxChecked] = useState(false)
-
-    useEffect(() => {
-        const key = `gerrit_disclaimer_accepted_${farm.b_id_farm}`
-        try {
-            const accepted = localStorage.getItem(key) === "true"
-            setHasAcceptedDisclaimer(accepted)
-        } catch {
-            setHasAcceptedDisclaimer(false)
-        }
-    }, [farm.b_id_farm])
-
-    const handleAcceptDisclaimer = () => {
-        if (!isCheckboxChecked) return
-        const key = `gerrit_disclaimer_accepted_${farm.b_id_farm}`
-        try {
-            localStorage.setItem(key, "true")
-        } catch (err) {
-            console.warn(
-                "[Gerrit] Could not persist disclaimer acceptance:",
-                err,
-            )
-        }
-        setHasAcceptedDisclaimer(true)
-    }
+    const [showInfoDialog, setShowInfoDialog] = useState(false)
 
     const blockerDialog = (
         <AlertDialog open={blocker.state === "blocked"}>
@@ -624,48 +602,6 @@ export default function GerritApp() {
                     </div>
                 </FarmContent>
             </SidebarInset>
-        )
-    }
-
-    if (hasAcceptedDisclaimer === null) {
-        return (
-            <>
-                <SidebarInset>
-                    <Header action={undefined}>
-                        <HeaderFarm
-                            b_id_farm={farm.b_id_farm}
-                            farmOptions={farmOptions}
-                        />
-                    </Header>
-                    <FarmContent>
-                        <div className="min-h-[50vh]" />
-                    </FarmContent>
-                </SidebarInset>
-                {blockerDialog}
-            </>
-        )
-    }
-
-    if (hasAcceptedDisclaimer === false) {
-        return (
-            <>
-                <SidebarInset>
-                    <Header action={undefined}>
-                        <HeaderFarm
-                            b_id_farm={farm.b_id_farm}
-                            farmOptions={farmOptions}
-                        />
-                    </Header>
-                    <FarmContent>
-                        <GerritOnboarding
-                            isCheckboxChecked={isCheckboxChecked}
-                            setIsCheckboxChecked={setIsCheckboxChecked}
-                            onAccept={handleAcceptDisclaimer}
-                        />
-                    </FarmContent>
-                </SidebarInset>
-                {blockerDialog}
-            </>
         )
     }
 
@@ -728,7 +664,18 @@ export default function GerritApp() {
                     />
                 </Header>
                 <FarmContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    {/* Experimental notice */}
+                    <div className="mt-4 mb-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowInfoDialog(true)}
+                            className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 hover:bg-amber-100 transition-colors"
+                        >
+                            <Bot className="w-3.5 h-3.5" />
+                            Experimentele functie — meer informatie
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
                         {/* ── Left column ── */}
                         <div className="lg:col-span-1 flex flex-col gap-6">
                             {/* Strategy form OR compact summary */}
@@ -812,6 +759,57 @@ export default function GerritApp() {
                 </FarmContent>
             </SidebarInset>
             {blockerDialog}
+            <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Bot className="w-5 h-5 text-primary" />
+                            Hoe werkt Gerrit?
+                        </DialogTitle>
+                        <DialogDescription>
+                            Gerrit stelt een bemestingsplan op op basis van jouw gekozen strategie. Elk voorstel wordt direct getoetst en doorloopt een cyclus van verbeteringen tot het plan optimaal is.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <ol className="space-y-4 mt-2">
+                        <li className="flex items-start gap-3">
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                1
+                            </div>
+                            <div>
+                                <p className="font-semibold text-sm">Inventarisatie</p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                    Eerst worden alle gegevens verzameld: je percelen, de gewassen, de bodemanalyses en welke meststoffen beschikbaar zijn.
+                                </p>
+                            </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                2
+                            </div>
+                            <div>
+                                <p className="font-semibold text-sm">Ontwerpen en controleren</p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                    Gerrit maakt een eerste bemestingsplan en rekent dit direct door. Er wordt getoetst of het plan past binnen de gebruiksruimte en of de gewassen voldoende krijgen.
+                                </p>
+                            </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                3
+                            </div>
+                            <div>
+                                <p className="font-semibold text-sm">Bijsturen tot het klopt</p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                    Als het eerste ontwerp niet voldoet, past Gerrit het plan zelfstandig aan. Dit herhaalt zich tot er een agronomisch en wettelijk correct voorstel ligt.
+                                </p>
+                            </div>
+                        </li>
+                    </ol>
+                    <p className="text-xs italic text-muted-foreground mt-2">
+                        Het uiteindelijke voorstel zie je op je scherm. Pas als je op 'Plan toepassen' klikt, worden de bemestingen opgeslagen.
+                    </p>
+                </DialogContent>
+            </Dialog>
         </>
     )
 }
