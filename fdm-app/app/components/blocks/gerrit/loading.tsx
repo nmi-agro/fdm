@@ -115,8 +115,6 @@ function phaseCount(
 function computePhases(
     derived: DerivedState,
 ): { id: string; label: string; status: PhaseStatus; count: number }[] {
-    // Tool-bearing phases are indices 1..(PHASES.length - 2); index 0 is the
-    // connect phase and the last index is finalize.
     const lastToolIndex = PHASES.length - 2
 
     let reachedIndex = -1
@@ -125,10 +123,21 @@ function computePhases(
         if (reached) reachedIndex = i
     }
 
+    // Thinking gap: at least one tool ran, none is currently running, not yet
+    // finalizing. During this gap the last-reached phase stays "active" so the
+    // UI always shows a spinner while Gerrit is working.
+    const anyToolRunning = [...derived.steps.values()].some(
+        (s) => s.status === "running",
+    )
+    const isThinkingGap =
+        derived.hasStarted &&
+        !anyToolRunning &&
+        !derived.finalizing &&
+        derived.steps.size > 0
+
     return PHASES.map((phase, index) => {
         const count = phaseCount(phase, derived)
 
-        // Connect phase.
         if (index === 0) {
             if (derived.finalizing || reachedIndex >= 1) {
                 return { ...phase, status: "done" as PhaseStatus, count }
@@ -139,7 +148,6 @@ function computePhases(
             return { ...phase, status: "pending" as PhaseStatus, count }
         }
 
-        // Finalize phase (last).
         if (index === PHASES.length - 1) {
             return {
                 ...phase,
@@ -150,10 +158,6 @@ function computePhases(
             }
         }
 
-        // Tool phases: active only while the tool is actually running. During
-        // the "thinking" gap after a tool ends (before the next one starts) the
-        // phase shows as done and a separate "denkt na" indicator conveys that
-        // Gerrit is reasoning — so a long wait never looks like a hung tool.
         if (derived.finalizing || index < reachedIndex) {
             return { ...phase, status: "done" as PhaseStatus, count }
         }
@@ -161,9 +165,13 @@ function computePhases(
             const running = phase.tools.some(
                 (t) => derived.steps.get(t)?.status === "running",
             )
+            // Stay active during inter-tool thinking gaps so the spinner never
+            // disappears between tool calls.
             return {
                 ...phase,
-                status: (running ? "active" : "done") as PhaseStatus,
+                status: (running || isThinkingGap
+                    ? "active"
+                    : "done") as PhaseStatus,
                 count,
             }
         }
@@ -200,16 +208,11 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
     const doneCount = phases.filter((p) => p.status === "done").length
     const progressValue = Math.round((doneCount / phases.length) * 100)
 
-    const anyToolRunning = [...derived.steps.values()].some(
-        (s) => s.status === "running",
-    )
     // Gerrit is "thinking" when at least one tool has run, none is currently
     // running, and we are not yet finalizing — i.e. an inter-tool reasoning gap.
-    const isThinking =
-        derived.hasStarted &&
-        !anyToolRunning &&
-        !derived.finalizing &&
-        derived.steps.size > 0
+    const isThinking = phases.some((p) => p.status === "active") &&
+        [...derived.steps.values()].every((s) => s.status === "done") &&
+        !derived.finalizing
 
     const elapsedStr =
         elapsed >= 60

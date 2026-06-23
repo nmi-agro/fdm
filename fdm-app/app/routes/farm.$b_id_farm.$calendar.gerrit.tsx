@@ -12,7 +12,7 @@ import {
     type Fertilizer,
 } from "@nmi-agro/fdm-core"
 import type { ClarifyingQuestion } from "@nmi-agro/fdm-agents"
-import { Bot } from "lucide-react"
+import { Bot, FlaskConical } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
@@ -71,6 +71,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
+import { getGerritUsage } from "~/lib/gerrit-limit.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -127,6 +128,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         p_type: (f.p_type ?? "mineral") as "manure" | "mineral" | "compost",
     }))
 
+    const gerritUsage = await getGerritUsage(session.principal_id)
+
     return {
         farm: {
             b_id_farm: farm.b_id_farm,
@@ -140,6 +143,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             isDerogation: isDerogationFarm,
         },
         fertilizerOptions,
+        gerritUsage: {
+            limit: gerritUsage.limit === Infinity ? null : gerritUsage.limit,
+            used: gerritUsage.used,
+            remaining: gerritUsage.remaining === Infinity ? null : gerritUsage.remaining,
+        },
     }
 }
 
@@ -282,13 +290,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function GerritApp() {
-    const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions } =
+    const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions, gerritUsage } =
         useLoaderData<typeof loader>()
     const navigation = useNavigation()
 
     const supportedYears = ["2025", "2026"]
     const isSupportedYear = supportedYears.includes(calendar)
     const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
+
+    // Optimistic usage counter: increments when generation starts, reverts on
+    // error. This makes the counter immediately reflect an in-flight request
+    // without waiting for PostHog ingestion + page reload.
+    const [optimisticUsed, setOptimisticUsed] = useState(gerritUsage.used)
 
     // Phase state machine: idle → clarifying → questions → generating → (idle with plan)
     type Phase = "idle" | "clarifying" | "questions" | "generating"
@@ -376,6 +389,10 @@ export default function GerritApp() {
             setEvents([])
             setPhase("generating")
 
+            // Optimistically count this attempt immediately so the counter
+            // reflects the in-flight request. Reverted on error/abort.
+            setOptimisticUsed((n) => n + 1)
+
             const searchParams = buildSearchParams(formData, clarifications)
             const es = new EventSource(`/api/gerrit/stream?${searchParams.toString()}`)
             eventSourceRef.current = es
@@ -404,6 +421,8 @@ export default function GerritApp() {
                 setPhase("idle")
             }) as EventListener)
             es.addEventListener("error", ((e: MessageEvent) => {
+                // Revert the optimistic increment — this run didn't count.
+                setOptimisticUsed((n) => Math.max(0, n - 1))
                 if ((e as any).data) {
                     try {
                         const payload = JSON.parse((e as any).data)
@@ -525,6 +544,10 @@ export default function GerritApp() {
     const plan = planData?.plan ?? null
     const strategies = planData?.strategies ?? null
     const farmTotals = plan?.metrics?.farmTotals
+
+    const isRateLimited =
+        gerritUsage.limit !== null &&
+        optimisticUsed >= (gerritUsage.limit ?? Infinity)
 
     const [showStrategyForm, setShowStrategyForm] = useState(true)
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
@@ -667,17 +690,54 @@ export default function GerritApp() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                         {/* ── Left column ── */}
                         <div className="lg:col-span-1 flex flex-col gap-6">
+                            {/* Research preview notice + daily usage counter */}
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <FlaskConical className="w-4 h-4 text-amber-600 shrink-0" />
+                                        <p className="text-sm font-semibold text-amber-800">
+                                            Experimenteel
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowInfoDialog(true)}
+                                        className="text-[11px] text-amber-700 hover:underline shrink-0"
+                                    >
+                                        Meer info
+                                    </button>
+                                </div>
+                                <p className="text-xs text-amber-700 leading-relaxed">
+                                    Gerrit is een vroege onderzoeksversie. De
+                                    uitkomsten kunnen onjuist zijn — controleer
+                                    altijd het gegenereerde plan.
+                                </p>
+                                {gerritUsage.limit !== null && (
+                                    <p className="text-xs text-amber-700 font-medium">
+                                        Gebruikt vandaag:{" "}
+                                        <span className={isRateLimited ? "text-red-600 font-bold" : ""}>
+                                            {optimisticUsed} / {gerritUsage.limit}
+                                        </span>
+                                        {isRateLimited && (
+                                            <span className="block mt-1 text-red-600">
+                                                Dagelijks limiet bereikt. Probeer morgen opnieuw.
+                                            </span>
+                                        )}
+                                    </p>
+                                )}
+                            </div>
+
                             {/* Strategy form OR compact summary */}
                             {showStrategyForm ? (
                                 <StrategyForm
                                     form={form as any}
                                     isGenerating={isAIGenerating || phase === "questions"}
+                                    isRateLimited={isRateLimited}
                                     additionalContextValue={
                                         additionalContextValue
                                     }
                                     calendar={calendar}
                                     fertilizerOptions={fertilizerOptions}
-                                    onInfoClick={() => setShowInfoDialog(true)}
                                 />
                             ) : (
                                 <SummaryCards

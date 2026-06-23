@@ -3,6 +3,7 @@ import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
 import { serverConfig } from "~/lib/config.server"
 import PostHogClient from "~/posthog.server"
+import { getGerritDailyLimit, countGerritRequestsToday } from "~/lib/gerrit-limit.server"
 import {
     buildFertilizerPlanPrompt,
     createFertilizerPlannerAgent,
@@ -36,11 +37,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     const posthog = PostHogClient()
-    const isGerritEnabled =
-        (await posthog?.isFeatureEnabled("gerrit", session.principal_id)) ?? true
+    const flags = posthog
+        ? await posthog.evaluateFlags(session.principal_id)
+        : null
+    const isGerritEnabled = flags ? flags.isEnabled("gerrit") : true
     if (!isGerritEnabled) {
         return new Response("Feature is not enabled for this user", { status: 403 })
     }
+
+    // Rate-limit check: enforce daily cap before opening the SSE stream.
+    // Because EventSource cannot read non-2xx response bodies, over-limit is
+    // signalled as an in-stream SSE error event rather than a 429 response.
+    const [dailyLimit, usedToday] = await Promise.all([
+        getGerritDailyLimit(session.principal_id),
+        countGerritRequestsToday(session.principal_id),
+    ])
 
     const strategies = {
         isOrganic: url.searchParams.get("isOrganic") === "true",
@@ -121,6 +132,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
             // Send start event immediately so the client can show feedback
             // before the (potentially slow) database setup completes.
             sendEvent("start", { message: "Verbinding gemaakt, gegevens ophalen..." })
+
+            // Reject if the user has reached their daily limit.
+            if (dailyLimit !== Infinity && usedToday >= dailyLimit) {
+                sendEvent("error", {
+                    message: `Je hebt het dagelijkse limiet van ${dailyLimit} plannen bereikt. Probeer het morgen opnieuw.`,
+                    code: "RATE_LIMIT_EXCEEDED",
+                })
+                closeStream()
+                return
+            }
 
             try {
                 const timeframe = {
@@ -325,6 +346,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 for (const field of enrichedPlan) {
                     field.fieldMetrics = serverMetrics?.fieldMetricsMap?.[field.b_id] ?? null
                 }
+
+                // Track successful plan generation for rate limiting.
+                posthog?.capture({
+                    distinctId: session.principal_id,
+                    event: "gerrit_plan_generated",
+                    properties: { b_id_farm, calendar },
+                })
 
                 sendEvent("complete", {
                     plan: {
