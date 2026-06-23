@@ -664,18 +664,7 @@ export default function GerritApp() {
                     />
                 </Header>
                 <FarmContent>
-                    {/* Experimental notice */}
-                    <div className="mt-4 mb-2">
-                        <button
-                            type="button"
-                            onClick={() => setShowInfoDialog(true)}
-                            className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 hover:bg-amber-100 transition-colors"
-                        >
-                            <Bot className="w-3.5 h-3.5" />
-                            Experimentele functie — meer informatie
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                         {/* ── Left column ── */}
                         <div className="lg:col-span-1 flex flex-col gap-6">
                             {/* Strategy form OR compact summary */}
@@ -688,6 +677,7 @@ export default function GerritApp() {
                                     }
                                     calendar={calendar}
                                     fertilizerOptions={fertilizerOptions}
+                                    onInfoClick={() => setShowInfoDialog(true)}
                                 />
                             ) : (
                                 <SummaryCards
@@ -787,6 +777,17 @@ export default function GerritApp() {
                                 2
                             </div>
                             <div>
+                                <p className="font-semibold text-sm">Verduidelijkende vragen</p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                    Als er onduidelijkheden zijn over je strategie of percelen, stelt Gerrit een paar gerichte vragen. Je kunt deze beantwoorden of overslaan.
+                                </p>
+                            </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                3
+                            </div>
+                            <div>
                                 <p className="font-semibold text-sm">Ontwerpen en controleren</p>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
                                     Gerrit maakt een eerste bemestingsplan en rekent dit direct door. Er wordt getoetst of het plan past binnen de gebruiksruimte en of de gewassen voldoende krijgen.
@@ -795,7 +796,7 @@ export default function GerritApp() {
                         </li>
                         <li className="flex items-start gap-3">
                             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                                3
+                                4
                             </div>
                             <div>
                                 <p className="font-semibold text-sm">Bijsturen tot het klopt</p>

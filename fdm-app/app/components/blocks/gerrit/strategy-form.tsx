@@ -42,6 +42,7 @@ interface StrategyFormProps {
     additionalContextValue: string | undefined
     calendar: string
     fertilizerOptions?: FertilizerOption[]
+    onInfoClick?: () => void
 }
 
 export function StrategyForm({
@@ -50,6 +51,7 @@ export function StrategyForm({
     additionalContextValue,
     calendar,
     fertilizerOptions = [],
+    onInfoClick,
 }: StrategyFormProps) {
     const additionalContextLength = additionalContextValue?.length ?? 0
     const showDerogation = Number.parseInt(calendar, 10) < 2026
@@ -107,10 +109,21 @@ export function StrategyForm({
     return (
         <Card className="h-fit sticky top-6">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-                    <Bot className="w-6 h-6 text-primary" />
-                    Bedrijfsstrategie & voorkeuren
-                </CardTitle>
+                <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="flex items-center gap-2 text-xl font-semibold">
+                        <Bot className="w-6 h-6 text-primary" />
+                        Bedrijfsstrategie & voorkeuren
+                    </CardTitle>
+                    {onInfoClick && (
+                        <button
+                            type="button"
+                            onClick={onInfoClick}
+                            className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5 hover:bg-amber-100 transition-colors shrink-0 mt-0.5"
+                        >
+                            Experimenteel
+                        </button>
+                    )}
+                </div>
                 <CardDescription>
                     Stel de kaders in waarbinnen Gerrit het optimale
                     bemestingsplan berekent.
