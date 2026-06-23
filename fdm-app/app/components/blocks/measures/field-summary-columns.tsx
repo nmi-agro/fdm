@@ -16,6 +16,7 @@ export type FieldSummaryRow = {
               b_lu_catalogue: string
               b_lu_name: string | null
               b_lu_croprotation: string | null
+              b_area?: number | null
           }[]
         | null
     measures: { m_name: string }[]
@@ -99,17 +100,28 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
                 return (
                     <div className="flex items-start flex-col space-y-2">
                         {cults.map((cult) => (
-                            <Badge
+                            <div
                                 key={cult.b_lu_catalogue}
-                                style={{
-                                    backgroundColor: getCultivationColor(
-                                        cult.b_lu_croprotation ?? undefined,
-                                    ),
-                                }}
-                                className="text-white text-xs"
+                                className="flex flex-row items-center gap-2"
                             >
-                                {cult.b_lu_name}
-                            </Badge>
+                                <Badge
+                                    style={{
+                                        backgroundColor: getCultivationColor(
+                                            cult.b_lu_croprotation ?? undefined,
+                                        ),
+                                    }}
+                                    className="text-white text-xs"
+                                >
+                                    {cult.b_lu_name}
+                                </Badge>
+                                {cults.length > 1 &&
+                                    typeof cult.b_area === "number" && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {Math.round(cult.b_area * 10) / 10}{" "}
+                                            ha
+                                        </span>
+                                    )}
+                            </div>
                         ))}
                     </div>
                 )

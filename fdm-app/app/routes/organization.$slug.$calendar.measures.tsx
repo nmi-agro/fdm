@@ -203,36 +203,53 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                     }
                 }
 
-                const collectedCultivations: MainCultivation[] = []
-
-                const b_lu_catalogue_added = new Set<string>()
-                for (const fieldCultivations of farmCultivations.values()) {
+                const collectedCultivations = new Map<
+                    string,
+                    {
+                        b_lu_catalogue: string
+                        b_lu_name: string
+                        b_lu_croprotation: string | null
+                        b_area: number
+                    }
+                >()
+                for (const field of farmFields.get(farm.b_id_farm) ?? []) {
+                    const fieldCultivations = farmCultivations.get(field.b_id)
+                    if (!fieldCultivations || fieldCultivations.length === 0)
+                        continue
                     const defaultCultivation = getDefaultCultivation(
                         fieldCultivations,
                         calendar,
                     )
 
-                    if (
-                        defaultCultivation?.b_lu_catalogue &&
-                        !b_lu_catalogue_added.has(
+                    if (defaultCultivation?.b_lu_catalogue) {
+                        const existing = collectedCultivations.get(
                             defaultCultivation.b_lu_catalogue,
                         )
-                    ) {
-                        b_lu_catalogue_added.add(
-                            defaultCultivation.b_lu_catalogue,
-                        )
-                        collectedCultivations.push({
-                            b_lu_catalogue: defaultCultivation.b_lu_catalogue,
-                            b_lu_name: defaultCultivation.b_lu_name ?? null,
-                            b_lu_croprotation:
-                                defaultCultivation.b_lu_croprotation ?? null,
-                        })
+                        if (existing) {
+                            existing.b_area += field.b_area ?? 0
+                        } else {
+                            collectedCultivations.set(
+                                defaultCultivation.b_lu_catalogue,
+                                {
+                                    b_lu_catalogue:
+                                        defaultCultivation.b_lu_catalogue,
+                                    b_lu_name: defaultCultivation.b_lu_name,
+                                    b_lu_croprotation:
+                                        defaultCultivation.b_lu_croprotation,
+                                    b_area: field.b_area ?? 0,
+                                },
+                            )
+                        }
                     }
                 }
 
+                const mainCultivations = [
+                    ...collectedCultivations.values(),
+                ].sort((a, b) => b.b_area - a.b_area)
+
                 farmMeasures.set(farm.b_id_farm, {
                     measures: [...collectedMeasures.values()],
-                    mainCultivations: collectedCultivations,
+                    mainCultivations: mainCultivations,
                 })
             }),
         )
