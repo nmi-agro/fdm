@@ -464,8 +464,7 @@ export default function GerritApp() {
             es.addEventListener("error", ((_e: Event) => {
                 // Connection error during clarify — degrade gracefully
                 closeEventSource()
-                if (pendingFormData) startPlanStream(pendingFormData)
-                else setPhase("idle")
+                startPlanStream(formData)
             }) as EventListener)
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -480,7 +479,7 @@ export default function GerritApp() {
             reduceAmmoniaEmissions: false,
             keepNitrogenBalanceBelowTarget: false,
             workOnRotationLevel: false,
-            selectedFertilizerIds: fertilizerOptions.map((f) => f.p_id_catalogue) as any,
+            selectedFertilizerIds: fertilizerOptions.length > 0 ? fertilizerOptions.map((f) => f.p_id_catalogue) as any : undefined,
             additionalContext: "",
             geminiModel: GEMINI_MODELS[0].value,
         },

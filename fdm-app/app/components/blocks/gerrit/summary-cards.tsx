@@ -13,6 +13,11 @@ import { GerritFeedback } from "./feedback"
 import { NormBar } from "./norm-bar"
 import type { FarmTotals } from "./types"
 
+const nlNumberFormat = new Intl.NumberFormat("nl-NL", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+})
+
 interface SummaryCardsProps {
     farmTotals?: FarmTotals
     planSummary?: string
@@ -108,7 +113,7 @@ export function SummaryCards({
                                                 Ammoniakemissie
                                             </span>
                                             <span className="text-xs tabular-nums text-muted-foreground">
-                                                {Math.abs(farmTotals.nBalance.emission.ammonia.total).toFixed(1)} kg N/ha
+                                                {nlNumberFormat.format(Math.abs(farmTotals.nBalance.emission.ammonia.total))} kg N/ha
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-baseline gap-2">
@@ -116,7 +121,7 @@ export function SummaryCards({
                                                 Nitraatuitspoeling
                                             </span>
                                             <span className="text-xs tabular-nums text-muted-foreground">
-                                                {Math.abs(farmTotals.nBalance.emission.nitrate.total).toFixed(1)} kg N/ha
+                                                {nlNumberFormat.format(Math.abs(farmTotals.nBalance.emission.nitrate.total))} kg N/ha
                                             </span>
                                         </div>
                                     </div>

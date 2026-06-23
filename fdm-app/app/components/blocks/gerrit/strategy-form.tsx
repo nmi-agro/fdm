@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react"
 import { Bot } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Controller, type UseFormReturn } from "react-hook-form"
 import { RemixFormProvider } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
@@ -90,8 +90,11 @@ export function StrategyForm({
         )
     }
 
-    const toggleGroup = (type: string, selectAll: boolean) => {
-        const groupIds = (groupedByType[type] ?? []).map((f) => f.p_id_catalogue)
+    const toggleGroup = (type: string, selectAll: boolean, visibleIds?: string[]) => {
+        const allGroupIds = (groupedByType[type] ?? []).map((f) => f.p_id_catalogue)
+        const groupIds = visibleIds
+            ? allGroupIds.filter((id) => visibleIds.includes(id))
+            : allGroupIds
         const next = selectAll
             ? [...new Set([...selectedSet, ...groupIds])]
             : [...selectedSet].filter((id) => !groupIds.includes(id))
@@ -104,7 +107,9 @@ export function StrategyForm({
     const fertError = (form.formState.errors as any)?.selectedFertilizerIds?.message as string | undefined
 
     // Auto-open picker when there's a validation error on fertilizers
-    if (fertError && !fertOpen) setFertOpen(true)
+    useEffect(() => {
+        if (fertError) setFertOpen(true)
+    }, [fertError])
 
     return (
         <Card className="h-fit sticky top-6">
@@ -286,7 +291,7 @@ export function StrategyForm({
                                                                 type="button"
                                                                 disabled={isGenerating}
                                                                 className="text-xs text-primary hover:underline disabled:opacity-50 shrink-0"
-                                                                onClick={() => toggleGroup(type, !allGroupSelected)}
+                                                                onClick={() => toggleGroup(type, !allGroupSelected, filtered.map((f) => f.p_id_catalogue))}
                                                             >
                                                                 {allGroupSelected ? "Geen" : "Alle"}
                                                             </button>

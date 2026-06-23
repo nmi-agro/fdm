@@ -61,7 +61,11 @@ Geef een JSON-object terug met een "questions"-lijst (0–5 vragen). Geef een le
 `
 
 function isAgentGraph(obj: unknown): obj is { stream: Function; streamEvents: Function } {
-    return obj != null && typeof (obj as any).stream === "function"
+    return (
+        obj != null &&
+        typeof (obj as any).stream === "function" &&
+        typeof (obj as any).streamEvents === "function"
+    )
 }
 
 /**

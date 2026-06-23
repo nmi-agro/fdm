@@ -89,6 +89,15 @@ export function sanitizeAdditionalContext(raw: string, charLimit = 1000): string
 }
 
 /**
+ * Sanitizes a short field value (e.g. a user-entered field name) for safe
+ * interpolation into a structured prompt line. Strips newlines and carriage
+ * returns to prevent line-breaking out of the intended prompt structure.
+ */
+function sanitizeFieldValue(value: string): string {
+    return value.replace(/[\r\n]+/g, " ").trim()
+}
+
+/**
  * Fertilizer-specific high-level API.
  * @param fdm The FDM instance.
  * @param principalId The ID of the principal.
@@ -160,7 +169,7 @@ export function buildFertilizerPlanPrompt(
             ? `\nBEDRIJFSPERCELEN (${productiveFields.length} productieve percelen, vooraf geladen ter referentie${excludedCount > 0 ? `; ${excludedCount} natuur-/landschapselementen uitgesloten` : ""}):\n${productiveFields
                   .map(
                       (f) =>
-                          `- b_id: ${f.b_id} | Naam: ${f.b_name} | Oppervlakte: ${f.b_area != null ? f.b_area.toFixed(2) : "onbekend"} ha | Gewas: ${f.b_lu_name} (${f.b_lu_catalogue}) | Bufferstrook: ${f.b_bufferstrip} | Grondsoort: ${f.b_soiltype_agr ?? "onbekend"} | GWG: ${f.b_gwl_class ?? "onbekend"} | OSG: ${f.a_som_loi != null ? `${f.a_som_loi}%` : "onbekend"}`,
+                          `- b_id: ${f.b_id} | Naam: ${sanitizeFieldValue(f.b_name)} | Oppervlakte: ${f.b_area != null ? f.b_area.toFixed(2) : "onbekend"} ha | Gewas: ${f.b_lu_name} (${f.b_lu_catalogue}) | Bufferstrook: ${f.b_bufferstrip} | Grondsoort: ${f.b_soiltype_agr ?? "onbekend"} | GWG: ${f.b_gwl_class ?? "onbekend"} | OSG: ${f.a_som_loi != null ? `${f.a_som_loi}%` : "onbekend"}`,
                   )
                   .join("\n")}\n`
             : ""

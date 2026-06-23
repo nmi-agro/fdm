@@ -260,7 +260,11 @@ export type AgentGraph = {
 }
 
 function isAgentGraph(obj: unknown): obj is AgentGraph {
-    return obj != null && typeof (obj as AgentGraph).stream === "function"
+    return (
+        obj != null &&
+        typeof (obj as AgentGraph).stream === "function" &&
+        typeof (obj as AgentGraph).streamEvents === "function"
+    )
 }
 
 /**
@@ -299,7 +303,7 @@ export function createFertilizerPlannerAgent(
     })
     if (!isAgentGraph(result)) {
         throw new Error(
-            "createAgent did not return an object with a callable stream method.",
+            "createAgent did not return an object with callable stream and streamEvents methods.",
         )
     }
     return result

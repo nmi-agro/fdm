@@ -38,6 +38,11 @@ import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
 import { FertilizerIcon } from "./fertilizer-icon"
 import type { ParsedPlan, PlanRow } from "./types"
 
+const nlNumberFormat = new Intl.NumberFormat("nl-NL", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+})
+
 const columnHelper = createColumnHelper<PlanRow>()
 
 const columns = [
@@ -606,7 +611,7 @@ export function PlanTable({
                                                                                             NH₃-emissie (kg N/ha)
                                                                                         </span>
                                                                                         <span className="tabular-nums text-muted-foreground">
-                                                                                            {Math.abs(nBalance.emission.ammonia.total).toFixed(1)}
+                                                                                            {nlNumberFormat.format(Math.abs(nBalance.emission.ammonia.total))}
                                                                                         </span>
                                                                                     </div>
                                                                                     <div className="flex justify-between text-sm items-center">
@@ -614,7 +619,7 @@ export function PlanTable({
                                                                                             NO₃-uitspoeling (kg N/ha)
                                                                                         </span>
                                                                                         <span className="tabular-nums text-muted-foreground">
-                                                                                            {Math.abs(nBalance.emission.nitrate.total).toFixed(1)}
+                                                                                            {nlNumberFormat.format(Math.abs(nBalance.emission.nitrate.total))}
                                                                                         </span>
                                                                                     </div>
                                                                                 </div>

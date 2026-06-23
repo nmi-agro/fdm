@@ -667,7 +667,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                         )
                                     advice = await getNutrientAdvice(fdm, {
                                         b_lu_catalogue:
-                                            fieldData.b_lu_catalogue || "",
+                                            simMainLu?.b_lu_catalogue ?? "",
                                         b_centroid: fieldInfo.b_centroid ?? [0, 0],
                                         currentSoilData,
                                         nmiApiKey,

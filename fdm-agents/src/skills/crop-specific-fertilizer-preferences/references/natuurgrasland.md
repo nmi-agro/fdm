@@ -1,6 +1,6 @@
 # Natuurgrasland (natuurlijk grasland, natuurfunctie) — nl_332
 
-nl_332 is grasland met natuur als primaire functie. **Pas de regels voor productiegrasland
+Dit is grasland met natuur als primaire functie. **Pas de regels voor productiegrasland
 hierboven niet toe.** Bemestingsinputs op natuurgrasland zijn bewust minimaal.
 
 - Bemest alleen als het perceelsspecifieke `advice.d_n_req` dit expliciet ondersteunt en wettelijke

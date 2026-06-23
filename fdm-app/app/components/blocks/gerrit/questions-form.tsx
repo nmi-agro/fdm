@@ -38,6 +38,8 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
             if (q.selection === "single") {
                 cur.selectedOptionIds = checked ? [optionId] : []
                 cur.selectedOptionLabels = checked ? [optionLabel] : []
+                // Clear stale other text when switching to a normal option
+                cur.other = undefined
             } else {
                 if (checked) {
                     cur.selectedOptionIds = [...cur.selectedOptionIds, optionId]
@@ -73,12 +75,13 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
             <CardContent className="p-6 space-y-8">
                 {questions.map((q, qi) => (
                     <div key={q.id} className="space-y-3">
-                        <p className="text-sm font-medium text-foreground">
+                        <p id={`question-${q.id}`} className="text-sm font-medium text-foreground">
                             {qi + 1}. {q.question}
                         </p>
                         <div className="space-y-2 pl-1">
                             {q.selection === "single" ? (
                                 <RadioGroup
+                                    aria-labelledby={`question-${q.id}`}
                                     value={answers[q.id]?.selectedOptionIds[0] ?? ""}
                                     onValueChange={(val) => {
                                         if (val === "__other__") {
@@ -125,7 +128,7 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
                                     </div>
                                 </RadioGroup>
                             ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-2" role="group" aria-labelledby={`question-${q.id}`}>
                                     {q.options.map((opt) => (
                                         <div key={opt.id} className="flex items-center gap-2">
                                             <Checkbox

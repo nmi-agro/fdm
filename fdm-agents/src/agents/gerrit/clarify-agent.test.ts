@@ -62,7 +62,7 @@ describe("clarify agent", () => {
         let capturedCallback: (() => string) | undefined
         vi.mocked(dynamicSystemPromptMiddleware).mockImplementationOnce((cb: any) => {
             capturedCallback = cb
-            return {}
+            return {} as any
         })
         createClarifyAgent({} as any, "test-api-key")
         expect(capturedCallback).toBeDefined()
@@ -72,6 +72,14 @@ describe("clarify agent", () => {
     it("should throw when createAgent returns a non-graph object", async () => {
         const { createAgent } = await import("langchain")
         vi.mocked(createAgent).mockReturnValueOnce(null as any)
+        expect(() => createClarifyAgent({} as any, "test-api-key")).toThrow(
+            "createAgent did not return an object with a callable stream method.",
+        )
+    })
+
+    it("should throw when createAgent returns an object missing streamEvents", async () => {
+        const { createAgent } = await import("langchain")
+        vi.mocked(createAgent).mockReturnValueOnce({ stream: vi.fn() } as any)
         expect(() => createClarifyAgent({} as any, "test-api-key")).toThrow(
             "createAgent did not return an object with a callable stream method.",
         )

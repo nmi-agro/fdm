@@ -64,6 +64,7 @@ function buildCallbacks(
  * @param context Extra context to provide via config.configurable.
  * @param posthog Optional PostHog client and distinctId for tracking.
  * @param recursionLimit Maximum number of graph steps before LangGraph aborts.
+ * @param timeoutMs Maximum milliseconds before the stream is aborted (default: 20 minutes).
  * @returns An AsyncGenerator yielding structured events.
  */
 export async function* runStreamAgent(
@@ -72,12 +73,18 @@ export async function* runStreamAgent(
     context: Record<string, any> = {},
     posthog?: { client: any; distinctId: string },
     recursionLimit = 100,
+    timeoutMs = 20 * 60 * 1000,
 ): AsyncGenerator<StreamEvent, void, unknown> {
+    const abortController = new AbortController()
     const callbacks = buildCallbacks(posthog, context)
     const runId = randomUUID()
     // Unique thread ID per invocation so all LLM and tool runs for this request
     // are grouped under a single thread in LangSmith.
     const threadId = randomUUID()
+
+    const timeoutHandle = setTimeout(() => {
+        abortController.abort()
+    }, timeoutMs)
 
     try {
         const stream = agent.streamEvents(
@@ -88,6 +95,7 @@ export async function* runStreamAgent(
                 recursionLimit,
                 runId,
                 runName: "gerrit-stream",
+                signal: abortController.signal,
                 metadata: {
                     b_id_farm: context.b_id_farm,
                     thread_id: threadId,
@@ -158,5 +166,7 @@ export async function* runStreamAgent(
             message = err.message
         }
         yield { event: "error", data: { message } }
+    } finally {
+        clearTimeout(timeoutHandle)
     }
 }

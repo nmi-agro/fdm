@@ -167,7 +167,7 @@ describe("runStreamAgent", () => {
         const agent = {
             stream: () => {},
             streamEvents: () => {
-                // biome-ignore lint/style/noThrowLiteral: intentional for test coverage
+                // biome-ignore lint/style/useThrowOnlyError: intentional for test coverage
                 throw "string error"
             },
         }
