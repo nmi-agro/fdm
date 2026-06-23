@@ -409,9 +409,11 @@ test.describe("getTickets", () => {
         expect(tickets[1].ticket_id).toBe(specific_ticket_id_1)
     })
 
-    test("should sort by text relevance without a text filter", async ({
+    test("should sort by creation date without a text filter", async ({
         fdm,
     }) => {
+        const specific_agent_id = createId()
+        await addAgent(fdm, agent_id, specific_agent_id, "Specific Agent")
         const specific_ticket_id_1 = await createTicket(
             fdm,
             requester_id,
@@ -422,13 +424,34 @@ test.describe("getTickets", () => {
             requester_id,
             "New feature",
         )
-        await assignTicket(fdm, specific_ticket_id_1, agent_id, agent_id, true)
-        await assignTicket(fdm, specific_ticket_id_2, agent_id, agent_id, true)
+        await assignTicket(
+            fdm,
+            specific_ticket_id_1,
+            specific_agent_id,
+            specific_agent_id,
+            true,
+        )
+        await assignTicket(
+            fdm,
+            specific_ticket_id_2,
+            specific_agent_id,
+            specific_agent_id,
+            true,
+        )
+
+        await fdm
+            .update(schema.tickets)
+            .set({ created: new Date("2023-01-02T00:00:00.000Z") })
+            .where(eq(schema.tickets.ticket_id, specific_ticket_id_1))
+        await fdm
+            .update(schema.tickets)
+            .set({ created: new Date("2023-01-03T00:00:00.000Z") })
+            .where(eq(schema.tickets.ticket_id, specific_ticket_id_2))
 
         const tickets = await getTickets(
             fdm,
-            agent_id,
-            { assignees: [agent_id] },
+            specific_agent_id,
+            { assignees: [specific_agent_id] },
             "text_relevance",
         )
 

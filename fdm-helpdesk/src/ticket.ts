@@ -423,7 +423,7 @@ async function selectTickets(
             ),
         )
 
-    if (isFilteringText || sorting === "text_relevance") {
+    if (isFilteringText) {
         query = query.leftJoin(
             schema.messages,
             and(
