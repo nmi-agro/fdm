@@ -1,11 +1,4 @@
-import {
-    ArrowRightLeft,
-    ClipboardList,
-    Gauge,
-    MapIcon,
-    Minus,
-    Plus,
-} from "lucide-react"
+import { ArrowRightLeft, Gauge, MapIcon, Minus, Plus } from "lucide-react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import {
@@ -48,9 +41,6 @@ export function SidebarOrganizationApps() {
         : undefined
     const indicatorsAtlasLink = params.slug
         ? `/organization/${params.slug}/${calendar}/atlas/indicators`
-        : undefined
-    const measuresLink = params.slug
-        ? `/organization/${params.slug}/${calendar}/measures`
         : undefined
     const activeAtlasTab = location.pathname.includes("/atlas")
         ? "indicators"
@@ -97,17 +87,6 @@ export function SidebarOrganizationApps() {
                         </Collapsible>
                     ) : null}
 
-                    {measuresLink && (
-                        <SidebarMenuButton
-                            asChild
-                            isActive={location.pathname.includes("/measures")}
-                        >
-                            <NavLink to={measuresLink}>
-                                <ClipboardList />
-                                <span>Maatregelen</span>
-                            </NavLink>
-                        </SidebarMenuButton>
-                    )}
                     <Collapsible
                         defaultOpen={!!nitrogenBalanceLink}
                         className="group/collapsible"
