@@ -356,12 +356,8 @@ async function selectTickets(
 
     const whereClause = getTicketWhereClause(fdm, { ...filters, requesterIds })
 
-    const shouldJoinTicketAssignments =
-        Array.isArray(filters.assignees) && filters.assignees.length > 0
-    const shouldJoinTags =
-        Array.isArray(filters.tags) && filters.tags.length > 0
-    const shouldJoinMessages =
-        typeof filters.text === "string" && filters.text.length > 0
+    const isFilteringText =
+        typeof filters.text === "string" && filters.text.trim().length > 0
 
     if (selectCount) {
         let query = fdm
@@ -377,26 +373,7 @@ async function selectTickets(
                 ),
             )
 
-        if (shouldJoinTicketAssignments) {
-            query = query.leftJoin(
-                schema.ticketAssignments,
-                and(
-                    eq(
-                        schema.ticketAssignments.ticket_id,
-                        schema.tickets.ticket_id,
-                    ),
-                    isNull(schema.ticketAssignments.unassigned_at),
-                ),
-            )
-        }
-        if (shouldJoinTags) {
-            query = query.leftJoin(
-                schema.ticketTagsMap,
-                eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
-            )
-        }
-
-        if (shouldJoinMessages) {
+        if (isFilteringText) {
             query = query.leftJoin(
                 schema.messages,
                 and(
@@ -422,7 +399,7 @@ async function selectTickets(
     ELSE 0 END`
             : undefined
     const textRelevanceQuery =
-        sorting === "text_relevance" && filters.text
+        sorting === "text_relevance" && isFilteringText
             ? sql<number>`max(ts_rank(setweight(to_tsvector('dutch', ${schema.messages.body}), 'A'), websearch_to_tsquery('dutch', ${filters.text})))`
             : undefined
 
@@ -446,21 +423,7 @@ async function selectTickets(
             ),
         )
 
-    if (shouldJoinTicketAssignments) {
-        query = query.leftJoin(
-            schema.ticketAssignments,
-            eq(schema.ticketAssignments.ticket_id, schema.tickets.ticket_id),
-        )
-    }
-
-    if (shouldJoinTags) {
-        query = query.leftJoin(
-            schema.ticketTagsMap,
-            eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
-        )
-    }
-
-    if (shouldJoinMessages || sorting === "text_relevance") {
+    if (isFilteringText || sorting === "text_relevance") {
         query = query.leftJoin(
             schema.messages,
             and(

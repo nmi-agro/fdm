@@ -320,6 +320,21 @@ test.describe("getTickets", () => {
         ).toBe(false)
     })
 
+    test("should not filter by whitespace search text", async ({ fdm }) => {
+        const tickets = await getTickets(fdm, agent_id, {
+            text: "       ",
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 should be in the results",
+        ).toBe(true)
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_2),
+            "Ticket 2 should be in the results",
+        ).toBe(true)
+    })
+
     test("should only list regular user's own tickets", async ({ fdm }) => {
         const new_ticket_id = await createTicket(
             fdm,
@@ -384,6 +399,36 @@ test.describe("getTickets", () => {
             fdm,
             agent_id,
             { assignees: [agent_id], text: "New feature" },
+            "text_relevance",
+        )
+
+        expect(
+            tickets[0].ticket_id,
+            "Ticket 2 contains the search terms as is while Ticket 1 doesnt",
+        ).toBe(specific_ticket_id_2)
+        expect(tickets[1].ticket_id).toBe(specific_ticket_id_1)
+    })
+
+    test("should sort by text relevance without a text filter", async ({
+        fdm,
+    }) => {
+        const specific_ticket_id_1 = await createTicket(
+            fdm,
+            requester_id,
+            "New helpdesk feature",
+        )
+        const specific_ticket_id_2 = await createTicket(
+            fdm,
+            requester_id,
+            "New feature",
+        )
+        await assignTicket(fdm, specific_ticket_id_1, agent_id, agent_id, true)
+        await assignTicket(fdm, specific_ticket_id_2, agent_id, agent_id, true)
+
+        const tickets = await getTickets(
+            fdm,
+            agent_id,
+            { assignees: [agent_id] },
             "text_relevance",
         )
 
