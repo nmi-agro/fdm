@@ -1,10 +1,14 @@
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
-import type { FeatureCollection, MultiPolygon } from "geojson"
+import { featureCollection } from "@turf/helpers"
+import type { FeatureCollection, Geometry, MultiPolygon } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { data, type MetaFunction, useLoaderData } from "react-router"
 import { ScoreSelect } from "~/components/blocks/indicators/atlas"
 import { Badge } from "~/components/ui/badge"
-import { getIndicatorsForFarm } from "~/integrations/bln3.server"
+import {
+    type Bln3Score,
+    getIndicatorsForFarm,
+} from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import {
     AGG_IDS,
@@ -21,36 +25,10 @@ import { fdm } from "~/lib/fdm.server"
 import { INDICATORS } from "~/lib/indicators"
 import type { Route } from "./+types/organization.$slug.$calendar.atlas.indicators"
 import { computeFieldAvgScore } from "./farm.$b_id_farm.$calendar.atlas.indicators"
-import { computeFarmMinScores } from "./organization.$slug.$calendar.indicators"
 
 const IndicatorsMap = lazy(
     () => import("@/app/components/blocks/indicators/atlas"),
 )
-
-export function buildFarmMultiPolygon(
-    fields: Array<{
-        b_geometry:
-            | {
-                  type: "Polygon"
-                  coordinates: MultiPolygon["coordinates"][number]
-              }
-            | {
-                  type: "MultiPolygon"
-                  coordinates: MultiPolygon["coordinates"]
-              }
-            | null
-    }>,
-): MultiPolygon {
-    return {
-        type: "MultiPolygon",
-        coordinates: fields.flatMap((field) => {
-            if (!field.b_geometry) return []
-            return field.b_geometry.type === "MultiPolygon"
-                ? field.b_geometry.coordinates
-                : [field.b_geometry.coordinates]
-        }),
-    }
-}
 
 export const meta: MetaFunction = () => {
     return [
@@ -59,10 +37,21 @@ export const meta: MetaFunction = () => {
 }
 
 type FlattenedScores = Record<string, number | null>
+type FieldFlattenedScores =
+    | {
+          b_id: string
+          flattenedScores: FlattenedScores
+          error: null
+      }
+    | {
+          b_id: string
+          flattenedScores: null
+          error: string
+      }
 type FarmFlattenedScores =
     | {
           b_id_farm: string
-          flattenedScores: FlattenedScores
+          flattenedScores: FieldFlattenedScores[]
           error: null
       }
     | {
@@ -114,44 +103,55 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                                 )
                             }
                         }
-                        const minScores = computeFarmMinScores(fieldScores)
 
-                        const aggProps: Record<string, number> = {}
-                        for (const aggId of AGG_IDS) {
-                            const scoreVal = getFieldAggregationScore(
-                                minScores,
-                                aggId,
-                            )
-                            aggProps[aggId] =
-                                scoreVal !== null
-                                    ? Math.round(scoreVal * 100)
-                                    : -1
-                        }
+                        const fieldFlattenedScores = fieldScores
+                            .filter((fieldScore) => fieldScore.score !== null)
+                            .map((fieldScore) => {
+                                const aggProps: Record<string, number> = {}
+                                for (const aggId of AGG_IDS) {
+                                    const scoreVal = getFieldAggregationScore(
+                                        fieldScore.score as Bln3Score,
+                                        aggId,
+                                    )
+                                    aggProps[aggId] =
+                                        scoreVal !== null
+                                            ? Math.round(scoreVal * 100)
+                                            : -1
+                                }
 
-                        const indicatorProps: Record<string, number> = {}
-                        for (const indicator of INDICATORS) {
-                            const rawScore = minScores?.indicators.find(
-                                (item) => item.indicator_id === indicator.id,
-                            )?.score
-                            indicatorProps[indicator.id] =
-                                rawScore != null && !Number.isNaN(rawScore)
-                                    ? Math.round(rawScore * 100)
-                                    : -1
-                        }
+                                const indicatorProps: Record<string, number> =
+                                    {}
+                                for (const indicator of INDICATORS) {
+                                    const rawScore =
+                                        fieldScore.score?.indicators.find(
+                                            (item) =>
+                                                item.indicator_id ===
+                                                indicator.id,
+                                        )?.score
+                                    indicatorProps[indicator.id] =
+                                        rawScore != null &&
+                                        !Number.isNaN(rawScore)
+                                            ? Math.round(rawScore * 100)
+                                            : -1
+                                }
 
-                        const avgScore = computeFieldAvgScore({
-                            b_id: b_id_farm,
-                            score: minScores,
-                            error: null,
-                        })
+                                const avgScore =
+                                    computeFieldAvgScore(fieldScore)
+
+                                return {
+                                    b_id: fieldScore.b_id,
+                                    flattenedScores: {
+                                        avgScore,
+                                        ...aggProps,
+                                        ...indicatorProps,
+                                    },
+                                    error: null,
+                                } satisfies FieldFlattenedScores
+                            })
 
                         return {
                             b_id_farm: b_id_farm,
-                            flattenedScores: {
-                                avgScore,
-                                ...aggProps,
-                                ...indicatorProps,
-                            },
+                            flattenedScores: fieldFlattenedScores,
                             error: null,
                         }
                     } catch (err) {
@@ -186,21 +186,25 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             }),
         )
 
-        const fieldsGeoJson: FeatureCollection = {
-            type: "FeatureCollection",
-            features: fieldsArray.map(({ b_id_farm, b_name_farm, fields }) => ({
-                type: "Feature",
-                geometry: buildFarmMultiPolygon(fields),
-                properties: {
-                    b_id: b_id_farm,
-                    b_name: b_name_farm,
-                    b_area: fields.reduce(
-                        (total, field) => total + (field.b_area ?? 0),
-                        0,
-                    ),
-                },
-            })),
-        }
+        const fieldsGeoJson: FeatureCollection = featureCollection(
+            fieldsArray.flatMap(({ b_id_farm, b_name_farm, fields }) => {
+                return fields
+                    .filter((field) => field.b_geometry)
+                    .map((field) => {
+                        return {
+                            type: "Feature",
+                            geometry: field.b_geometry as Geometry,
+                            properties: {
+                                b_id_farm: b_id_farm,
+                                b_name_farm: b_name_farm,
+                                b_id: field.b_id,
+                                b_name: field.b_name,
+                                b_area: field.b_area,
+                            },
+                        }
+                    })
+            }),
+        )
 
         const mapStyle = getMapStyle("satellite")
 
@@ -248,7 +252,14 @@ export default function OrgAtlasIndicatorsMap() {
                                         string,
                                         FlattenedScores
                                     >(current)
-                                    newMap.set(b_id_farm, flattenedScores)
+                                    for (const fieldScore of flattenedScores) {
+                                        if (fieldScore.flattenedScores) {
+                                            newMap.set(
+                                                fieldScore.b_id,
+                                                fieldScore.flattenedScores,
+                                            )
+                                        }
+                                    }
                                     return newMap
                                 }
                                 return current
@@ -333,8 +344,8 @@ export default function OrgAtlasIndicatorsMap() {
                 <IndicatorsMap
                     fieldsGeoJSON={displayedFieldsGeoJSON}
                     mapStyle={mapStyle}
-                    basePathFormatter={(b_id_farm) =>
-                        `/farm/${b_id_farm}/${calendar}/atlas/indicators`
+                    basePathFormatter={(props) =>
+                        `/farm/${props?.b_id_farm}/${calendar}/indicators/${props?.b_id}`
                     }
                     selectedProperty={selectedProperty}
                     label={selectedLabel}

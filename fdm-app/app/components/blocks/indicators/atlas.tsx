@@ -6,7 +6,7 @@
  * Import with React.lazy to avoid SSR issues with maplibre-gl.
  */
 
-import type { FeatureCollection } from "geojson"
+import type { FeatureCollection, GeoJsonProperties } from "geojson"
 import { LayoutList } from "lucide-react"
 import maplibregl, { type StyleSpecification } from "maplibre-gl"
 import {
@@ -67,7 +67,10 @@ type IndicatorsMapProps = {
     childEntries?: ChildScoreEntry[]
 } & (
     | { basePath: string; basePathFormatter?: undefined }
-    | { basePath?: undefined; basePathFormatter: (b_id: string) => string }
+    | {
+          basePath?: undefined
+          basePathFormatter: (props: GeoJsonProperties | undefined) => string
+      }
 )
 
 type HoverInfo = {
@@ -161,15 +164,18 @@ export default function IndicatorsMap({
                 onMouseMove={onMouseMove}
                 onMouseLeave={onMouseLeave}
                 onClick={(e) => {
+                    if (!e.features || e.features.length === 0) return
+                    if (basePathFormatter) {
+                        const b_id = e.features?.[0]?.properties
+                        navigate(basePathFormatter(b_id))
+                        return
+                    }
                     const b_id = e.features?.[0]?.properties?.b_id as
                         | string
                         | undefined
-                    if (b_id)
-                        navigate(
-                            basePathFormatter
-                                ? basePathFormatter(b_id)
-                                : `${basePath}/${b_id}`,
-                        )
+                    if (b_id) {
+                        navigate(`${basePath}/${b_id}`)
+                    }
                 }}
             >
                 <Controls
@@ -228,6 +234,11 @@ export default function IndicatorsMap({
                     {hoverInfo.properties.b_area != null && (
                         <p className="text-muted-foreground mt-0.5">
                             {Number(hoverInfo.properties.b_area).toFixed(2)} ha
+                        </p>
+                    )}
+                    {hoverInfo.properties.b_name_farm != null && (
+                        <p className="text-muted-foreground mt-0.5">
+                            {hoverInfo.properties.b_name_farm}
                         </p>
                     )}
                     {label && (
