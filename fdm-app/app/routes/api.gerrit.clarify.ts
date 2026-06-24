@@ -192,6 +192,7 @@ Gebruik de beschikbare tools voor een volledige analyse en stel daarna 0–5 ver
                     if (event.event === "on_chain_end") {
                         structuredResponse = event.data?.structuredResponse
                     } else if (event.event === "error") {
+                        console.error("[clarify] agent error event:", event.data?.message)
                         // On clarify errors, emit empty questions (graceful degradation)
                         sendEvent("questions", { questions: [] })
                         closeStream()
@@ -203,9 +204,17 @@ Gebruik de beschikbare tools voor een volledige analyse en stel daarna 0–5 ver
 
                 if (isClosed) return
 
+                if (!structuredResponse) {
+                    console.warn("[clarify] structuredResponse is undefined after agent run")
+                }
+
                 const parsed = structuredResponse
                     ? ClarifyingQuestionsSchema.safeParse(structuredResponse)
                     : null
+
+                if (parsed && !parsed.success) {
+                    console.warn("[clarify] schema parse failed:", JSON.stringify(parsed.error.issues))
+                }
 
                 if (parsed?.success) {
                     sendEvent("questions", { questions: parsed.data.questions })
