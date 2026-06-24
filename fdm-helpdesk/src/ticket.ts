@@ -356,26 +356,15 @@ async function selectTickets(
 
     const whereClause = getTicketWhereClause(fdm, { ...filters, requesterIds })
 
+    const isFilteringText =
+        typeof filters.text === "string" && filters.text.trim().length > 0
+
     if (selectCount) {
-        return await fdm
+        let query = fdm
             .select({
                 count: sql<number>`cast(count(distinct ${schema.tickets.ticket_id}) as integer)`,
             })
             .from(schema.tickets)
-            .leftJoin(
-                schema.ticketAssignments,
-                and(
-                    eq(
-                        schema.ticketAssignments.ticket_id,
-                        schema.tickets.ticket_id,
-                    ),
-                    isNull(schema.ticketAssignments.unassigned_at),
-                ),
-            )
-            .leftJoin(
-                schema.ticketTagsMap,
-                eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
-            )
             .leftJoin(
                 schema.ticketViews,
                 and(
@@ -383,7 +372,9 @@ async function selectTickets(
                     inArray(schema.ticketViews.actor_id, principal_ids),
                 ),
             )
-            .leftJoin(
+
+        if (isFilteringText) {
+            query = query.leftJoin(
                 schema.messages,
                 and(
                     eq(schema.messages.ticket_id, schema.tickets.ticket_id),
@@ -392,7 +383,9 @@ async function selectTickets(
                         : not(schema.messages.is_internal),
                 ),
             )
-            .where(whereClause)
+        }
+
+        return await query.where(whereClause)
     }
 
     // If actually returning tickets, ensure either priority, text relevance, or creation date ordering
@@ -406,7 +399,7 @@ async function selectTickets(
     ELSE 0 END`
             : undefined
     const textRelevanceQuery =
-        sorting === "text_relevance" && filters.text
+        sorting === "text_relevance" && isFilteringText
             ? sql<number>`max(ts_rank(setweight(to_tsvector('dutch', ${schema.messages.body}), 'A'), websearch_to_tsquery('dutch', ${filters.text})))`
             : undefined
 
@@ -421,23 +414,6 @@ async function selectTickets(
                 : {}),
         })
         .from(schema.tickets)
-        .leftJoin(
-            schema.ticketAssignments,
-            eq(schema.ticketAssignments.ticket_id, schema.tickets.ticket_id),
-        )
-        .leftJoin(
-            schema.ticketTagsMap,
-            eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
-        )
-        .leftJoin(
-            schema.messages,
-            and(
-                eq(schema.messages.ticket_id, schema.tickets.ticket_id),
-                helpdeskReadPermission
-                    ? undefined
-                    : not(schema.messages.is_internal),
-            ),
-        )
         // TODO: check if each agent has viewed, not only one of them
         .leftJoin(
             schema.ticketViews,
@@ -446,6 +422,20 @@ async function selectTickets(
                 inArray(schema.ticketViews.actor_id, principal_ids),
             ),
         )
+
+    if (isFilteringText) {
+        query = query.leftJoin(
+            schema.messages,
+            and(
+                eq(schema.messages.ticket_id, schema.tickets.ticket_id),
+                helpdeskReadPermission
+                    ? undefined
+                    : not(schema.messages.is_internal),
+            ),
+        )
+    }
+
+    query = query
         .where(whereClause)
         .groupBy(schema.tickets.ticket_id)
         .orderBy((t) => {
@@ -458,7 +448,7 @@ async function selectTickets(
             }
 
             return [desc(t.created)]
-        })
+        }) as typeof query
 
     if (filters.pageOffset) {
         query = query.offset(filters.pageOffset) as typeof query
