@@ -18,7 +18,6 @@ import {
     type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
-import { useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
@@ -79,8 +78,6 @@ type MeasuresMapProps = {
     /** GeoJSON with the currently-selected field (for yellow highlight). Empty for farm overview. */
     selectedFieldGeoJSON: FeatureCollection
     mapStyle: string | StyleSpecification
-    /** Base path to navigate to — b_id is appended: `${basePath}/${b_id}` */
-    basePath: string
     height?: string
     /**
      * When provided, the initial view is fitted to this GeoJSON instead of `fieldsGeoJSON`.
@@ -98,12 +95,10 @@ export default function MeasuresMap({
     fieldsGeoJSON,
     selectedFieldGeoJSON,
     mapStyle,
-    basePath,
     height = "320px",
     initialFitGeoJSON,
     onFieldClick,
 }: MeasuresMapProps) {
-    const navigate = useNavigate()
     const fitTarget =
         initialFitGeoJSON && initialFitGeoJSON.features.length > 0
             ? initialFitGeoJSON
@@ -134,11 +129,9 @@ export default function MeasuresMap({
             if (!b_id) return
             if (onFieldClick) {
                 onFieldClick(b_id)
-            } else {
-                navigate(`${basePath}/${b_id}`)
             }
         },
-        [navigate, basePath, onFieldClick],
+        [onFieldClick],
     )
 
     const fillStyle = useMemo(() => getMeasureCountFillStyle(FIELDS_LAYER), [])

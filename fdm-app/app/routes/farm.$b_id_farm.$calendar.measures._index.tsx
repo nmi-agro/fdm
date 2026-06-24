@@ -228,12 +228,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_name: f.b_name ?? null,
                 b_area: f.b_area ?? null,
                 b_bufferstrip: f.b_bufferstrip ?? false,
-                mainCultivation: main
-                    ? {
-                          b_lu_name: main.b_lu_name ?? null,
-                          b_lu_croprotation: main.b_lu_croprotation ?? null,
-                      }
-                    : null,
+                mainCultivations: main
+                    ? [
+                          {
+                              b_lu_catalogue: main.b_lu_catalogue,
+                              b_lu_name: main.b_lu_name ?? null,
+                              b_lu_croprotation: main.b_lu_croprotation ?? null,
+                          },
+                      ]
+                    : [],
                 measures: fieldMeasures.map((m) => ({
                     m_name: m.m_name,
                 })),
@@ -622,7 +625,13 @@ export default function MeasuresFarmIndex() {
         setAddDialogOpen(true)
     }, [])
 
-    const columns = getColumns(basePath, setEditingRow, setClosingRow)
+    const columns = getColumns(
+        (b_id) => `${basePath}/${b_id}`,
+        "farm",
+        setEditingRow,
+        setClosingRow,
+        `${basePath}?index`,
+    )
     const fieldSummaryColumns = useMemo(() => getFieldSummaryColumns(), [])
 
     // Enrich fieldSummaries with the href for each field
@@ -724,7 +733,6 @@ export default function MeasuresFarmIndex() {
                                 fieldsGeoJSON={fieldsGeoJSON}
                                 selectedFieldGeoJSON={emptyGeoJSON}
                                 mapStyle={mapStyle}
-                                basePath={basePath}
                                 height="480px"
                                 onFieldClick={handleFieldClick}
                             />

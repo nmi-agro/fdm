@@ -8,36 +8,22 @@ import {
     type MetaFunction,
     useLoaderData,
     useParams,
-    Link,
 } from "react-router"
-import { LayoutList } from "lucide-react"
-import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
-import { Card, CardContent } from "~/components/ui/card"
-import { Button } from "~/components/ui/button"
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectSeparator,
-    SelectTrigger,
-    SelectValue,
-} from "~/components/ui/select"
+import { ScoreSelect } from "~/components/blocks/indicators/atlas"
 import {
     type FieldBln3Score,
     getIndicatorsForFarm,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
-import { getSession } from "~/lib/auth.server"
 import {
-    getFieldAggregationScore,
+    AGG_IDS,
+    AGGREGATIONS,
     type AggregationId,
     getAggregationInfo,
     getChildren,
-    AGGREGATIONS,
-    AGG_IDS,
+    getFieldAggregationScore,
 } from "~/lib/aggregations"
+import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
@@ -52,7 +38,7 @@ export const meta: MetaFunction = () => {
     return [{ title: `Indicatoren | Atlas | ${clientConfig.name}` }]
 }
 
-function computeFieldAvgScore(fs: FieldBln3Score | undefined): number {
+export function computeFieldAvgScore(fs: FieldBln3Score | undefined): number {
     if (!fs?.score) return -1
     const vals = fs.score.indicators
         .map((ind) => ind.score)
@@ -178,124 +164,11 @@ export default function AtlasIndicatorsMap() {
 
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
-            {/* Floating indicator selector + info banner */}
-            <Card className="absolute top-3 left-3 z-10 w-64 shadow-md bg-background/90 backdrop-blur-sm">
-                <CardContent className="p-2 space-y-2">
-                    <div className="flex items-center gap-2">
-                        <Select
-                            value={selectedProperty}
-                            onValueChange={setSelectedProperty}
-                        >
-                            <SelectTrigger className="flex-1 text-xs h-8">
-                                <SelectValue />
-                            </SelectTrigger>
-                        <SelectContent className="max-h-[380px] overflow-y-auto">
-                            <SelectItem value="avgScore">
-                                Gemiddelde score
-                            </SelectItem>
-                            <SelectSeparator />
-                            <SelectGroup>
-                                <SelectLabel className="text-xs text-muted-foreground">
-                                    Hoofdthema's
-                                </SelectLabel>
-                                <SelectItem value="S_BLN">BLN</SelectItem>
-                                <SelectItem value="S_BBWP">
-                                    BedrijfsBodemWaterPlan (BBWP)
-                                </SelectItem>
-                                <SelectItem value="S_WAT_BLN">Water</SelectItem>
-                                <SelectItem value="S_NUT_BLN">
-                                    Nutriëntenkringloop
-                                </SelectItem>
-                                <SelectItem value="S_CLIM_BLN">
-                                    Klimaat
-                                </SelectItem>
-                                <SelectItem value="S_PROD_BLN">
-                                    Productie (OBI)
-                                </SelectItem>
-                            </SelectGroup>
-                            <SelectSeparator />
-                            <SelectGroup>
-                                <SelectLabel className="text-xs text-muted-foreground">
-                                    Waterthema's
-                                </SelectLabel>
-                                <SelectItem value="S_GW_QUANT_BLN">
-                                    Grondwaterkwantiteit
-                                </SelectItem>
-                                <SelectItem value="S_GW_QUAL_BLN">
-                                    Grondwaterkwaliteit
-                                </SelectItem>
-                                <SelectItem value="S_SW_QUAL_BLN">
-                                    Oppervlaktewaterkwaliteit
-                                </SelectItem>
-                            </SelectGroup>
-                            <SelectSeparator />
-                            <SelectGroup>
-                                <SelectLabel className="text-xs text-muted-foreground">
-                                    Productiethema's
-                                </SelectLabel>
-                                <SelectItem value="S_PROD_BIOL_BLN">
-                                    Biologische bodemkwaliteit
-                                </SelectItem>
-                                <SelectItem value="S_PROD_CHEM_BLN">
-                                    Chemische bodemkwaliteit
-                                </SelectItem>
-                                <SelectItem value="S_PROD_PHYS_BLN">
-                                    Fysische bodemkwaliteit
-                                </SelectItem>
-                            </SelectGroup>
-                            <SelectSeparator />
-                            <SelectGroup>
-                                <SelectLabel className="text-xs text-muted-foreground">
-                                    Water indicatoren
-                                </SelectLabel>
-                                {INDICATORS.filter(
-                                    (i) => i.ecosysteemdienst === "Water",
-                                ).map((i) => (
-                                    <SelectItem key={i.id} value={i.id}>
-                                        {i.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                            <SelectSeparator />
-                            <SelectGroup>
-                                <SelectLabel className="text-xs text-muted-foreground">
-                                    Nutriënten & klimaat indicatoren
-                                </SelectLabel>
-                                {INDICATORS.filter((i) =>
-                                    ["Nutriëntenkringloop", "Klimaat"].includes(
-                                        i.ecosysteemdienst,
-                                    ),
-                                ).map((i) => (
-                                    <SelectItem key={i.id} value={i.id}>
-                                        {i.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                            <SelectSeparator />
-                            <SelectGroup>
-                                <SelectLabel className="text-xs text-muted-foreground">
-                                    Productie (OBI) indicatoren
-                                </SelectLabel>
-                                {INDICATORS.filter(
-                                    (i) => i.ecosysteemdienst === "Productie",
-                                ).map((i) => (
-                                    <SelectItem key={i.id} value={i.id}>
-                                        {i.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                        <Button asChild variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Tabelweergave">
-                            <Link to={basePath}>
-                                <LayoutList className="h-4 w-4" />
-                            </Link>
-                        </Button>
-                    </div>
-                    <Bln3BetaBanner />
-                </CardContent>
-            </Card>
-
+            <ScoreSelect
+                selectedProperty={selectedProperty}
+                setSelectedProperty={setSelectedProperty}
+                detailPath={basePath}
+            />
             <Suspense
                 fallback={
                     <div className="absolute inset-0 bg-muted animate-pulse" />
