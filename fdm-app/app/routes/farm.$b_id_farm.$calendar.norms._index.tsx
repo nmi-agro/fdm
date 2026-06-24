@@ -281,9 +281,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmNormsBlock() {
     const loaderData = useLoaderData<typeof loader>()
 
+    const action = {
+        to: `/farm/${loaderData.b_id_farm}`,
+        label: "Terug naar bedrijf",
+        disabled: false,
+    }
+
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

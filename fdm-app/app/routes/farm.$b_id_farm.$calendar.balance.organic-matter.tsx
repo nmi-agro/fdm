@@ -5,6 +5,7 @@ import {
     type MetaFunction,
     Outlet,
     useLoaderData,
+    useParams,
 } from "react-router"
 import { HeaderBalance } from "~/components/blocks/header/balance"
 import { Header } from "~/components/blocks/header/base"
@@ -127,10 +128,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmBalanceOrganicMatterBlock() {
     const loaderData = useLoaderData<typeof loader>()
+    const { b_id, calendar } = useParams()
+
+    const action = b_id
+        ? {
+              to: `/farm/${loaderData.b_id_farm}/${calendar}/balance/organic-matter`,
+              label: "Terug naar organische stof",
+              disabled: false,
+          }
+        : {
+              to: `/farm/${loaderData.b_id_farm}`,
+              label: "Terug naar bedrijf",
+              disabled: false,
+          }
 
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}
