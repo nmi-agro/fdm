@@ -557,7 +557,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const encodedName = encodeURIComponent(baseFilename)
 
         return new Response(
-            Readable.toWeb(stream) as unknown as ReadableStream,
+            Readable.toWeb(stream as any) as any,
             {
                 headers: {
                     "Content-Type": "application/pdf",

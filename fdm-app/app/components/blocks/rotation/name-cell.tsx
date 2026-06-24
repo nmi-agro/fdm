@@ -1,6 +1,6 @@
 import type { CellContext } from "@tanstack/react-table"
 import { ArrowUpRightFromSquare } from "lucide-react"
-import { NavLink, useLocation, useParams } from "react-router-dom"
+import { NavLink, useLocation, useParams } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import type { RotationExtended } from "./columns"

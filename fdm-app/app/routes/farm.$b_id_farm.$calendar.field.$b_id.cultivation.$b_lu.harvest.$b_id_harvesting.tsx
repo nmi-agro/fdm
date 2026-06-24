@@ -29,8 +29,8 @@ import { getHarvestParameterLabel } from "../components/blocks/harvest/parameter
 type HarvestParameter = HarvestParameters[number]
 
 // Meta
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+    const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
     return [
         { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
         {

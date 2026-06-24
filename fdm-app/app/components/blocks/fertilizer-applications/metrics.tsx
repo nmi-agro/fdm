@@ -8,7 +8,7 @@ import type {
 import type { Cultivation } from "@nmi-agro/fdm-core"
 import { CircleAlert, CircleCheck, CircleX, Sprout } from "lucide-react"
 import { Suspense } from "react"
-import { Await, NavLink } from "react-router-dom"
+import { Await, NavLink } from "react-router"
 import { CultivationSelector } from "~/components/custom/cultivation-selector"
 import { Button } from "~/components/ui/button"
 import {

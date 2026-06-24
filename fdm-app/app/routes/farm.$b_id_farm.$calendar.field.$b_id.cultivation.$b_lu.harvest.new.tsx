@@ -29,8 +29,8 @@ import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 
 // Meta
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+    const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
     return [
         { title: `${term} toevoegen - Gewas | ${clientConfig.name}` },
         {

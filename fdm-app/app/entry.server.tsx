@@ -14,7 +14,6 @@ import {
 import { isbot } from "isbot"
 import { renderToPipeableStream } from "react-dom/server"
 import type {
-    AppLoadContext,
     EntryContext,
     HandleErrorFunction,
 } from "react-router"
@@ -32,7 +31,7 @@ const handleRequest = async function handleRequest(
     // This is ignored so we can keep it in the template for visibility.  Feel
     // free to delete this parameter in your app if you're not using it!
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _loadContext: AppLoadContext,
+    _loadContext: any,
 ): Promise<Response> {
     const url = new URL(request.url)
     const { hostname } = url

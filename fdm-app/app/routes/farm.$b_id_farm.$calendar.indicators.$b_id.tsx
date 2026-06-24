@@ -130,8 +130,8 @@ function findScoreLabel(value: string): string {
     return value
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-    const fieldName = data?.field?.b_name ?? "Perceel"
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+    const fieldName = loaderData?.field?.b_name ?? "Perceel"
     return [
         {
             title: `${fieldName} | Indicatoren | ${clientConfig.name}`,
