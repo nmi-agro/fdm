@@ -142,6 +142,7 @@ export async function getAssignmentHistoryForTicket(
  * @param agent_id ID of the agent to assign.
  * @param assigned_by ID of the principal performing the assignment; must have agent-side write permission.
  * @param is_primary Whether to make this agent the primary assignee. Defaults to `false`.
+ * @throws if the principal is not allowed to assign the ticket.
  */
 export async function assignTicket(
     fdm: FdmHelpdeskType,
@@ -150,10 +151,10 @@ export async function assignTicket(
     assigned_by: schema.TicketAssignmentTypeInsert["assigned_by"],
     is_primary = false,
 ) {
-    await fdm.transaction(async (tx) => {
+    try {
         // Check if the agent is allowed to modify this ticket
         await checkHelpdeskPermission(
-            tx,
+            fdm,
             "ticket-agent-side",
             "write",
             ticket_id,
@@ -161,6 +162,79 @@ export async function assignTicket(
             "assignTicket",
         )
 
+        await assignTicketInner(
+            fdm,
+            ticket_id,
+            agent_id,
+            assigned_by,
+            is_primary,
+        )
+    } catch (err) {
+        throw handleError(err, "Exception for assignTicket", {
+            ticket_id,
+            agent_id,
+            assigned_by,
+            is_primary,
+        })
+    }
+}
+
+/**
+ * Assigns an agent to a ticket. If the agent is already assigned, updates the `is_primary` flag.
+ * When `is_primary` is `true`, all other current assignees are demoted to non-primary.
+ * Unlike {@link assignTicket}, this function does not perform any permission checks. Use with caution.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_id ID of the ticket to assign the agent to.
+ * @param agent_id ID of the agent to assign.
+ * @param assigned_by ID of the principal performing the assignment; must have agent-side write permission.
+ * @param is_primary Whether to make this agent the primary assignee. Defaults to `false`.
+ */
+export async function assignTicketUnchecked(
+    fdm: FdmHelpdeskType,
+    ticket_id: schema.TicketAssignmentTypeInsert["ticket_id"],
+    agent_id: schema.TicketAssignmentTypeInsert["agent_id"],
+    assigned_by: schema.TicketAssignmentTypeInsert["assigned_by"],
+    is_primary = false,
+) {
+    try {
+        await assignTicketInner(
+            fdm,
+            ticket_id,
+            agent_id,
+            assigned_by,
+            is_primary,
+        )
+    } catch (err) {
+        throw handleError(err, "Exception for assignTicketUnchecked", {
+            ticket_id,
+            agent_id,
+            assigned_by,
+            is_primary,
+        })
+    }
+}
+
+/**
+ * Assigns an agent to a ticket. If the agent is already assigned, updates the `is_primary` flag.
+ * When `is_primary` is `true`, all other current assignees are demoted to non-primary.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_id ID of the ticket to assign the agent to.
+ * @param agent_id ID of the agent to assign.
+ * @param assigned_by ID of the principal performing the assignment; must have agent-side write permission.
+ * @param is_primary Whether to make this agent the primary assignee. Defaults to `false`.
+ */
+async function assignTicketInner(
+    fdm: FdmHelpdeskType,
+    ticket_id: schema.TicketAssignmentTypeInsert["ticket_id"],
+    agent_id: schema.TicketAssignmentTypeInsert["agent_id"],
+    assigned_by: schema.TicketAssignmentTypeInsert["assigned_by"],
+    is_primary = false,
+) {
+    await fdm.transaction(async (tx) => {
         // If a new primary assignee is set, make other assignments non-primary
         if (is_primary) {
             await tx

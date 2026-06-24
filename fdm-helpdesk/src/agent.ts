@@ -40,7 +40,7 @@ export async function getAgent(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
     agent_id: schema.AgentTypeSelect["agent_id"],
-) {
+): Promise<Agent> {
     try {
         await checkHelpdeskPermission(
             fdm,
@@ -78,7 +78,7 @@ export async function getAgents(
     fdm: FdmHelpdeskType,
     principal_id: HelpdeskPrincipalId,
     filters: AgentFilters = {},
-): Promise<schema.AgentTypeSelect[]> {
+): Promise<Agent[]> {
     try {
         await checkHelpdeskPermission(
             fdm,
@@ -103,7 +103,7 @@ export async function getAgents(
             ...filters,
             ...(helpdeskWritePermission ? {} : { isActive: true }),
             ...getPageOffsetAndLimit(filters, 0),
-        })) as schema.AgentTypeSelect[]
+        })) as Agent[]
     } catch (err) {
         throw handleError(err, "Exception for getAgents", {
             principal_id,

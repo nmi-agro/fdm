@@ -236,7 +236,11 @@ export async function getTickets(
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s) performing the query.
  */
-const ACTIVE_TICKET_STATUSES = ["open", "in_progress", "waiting_on_customer"]
+export const ACTIVE_TICKET_STATUSES = [
+    "open",
+    "in_progress",
+    "waiting_on_customer",
+]
 export async function getUnreadAssignedTicketCount(
     fdm: FdmHelpdeskType,
     principal_id: string,
