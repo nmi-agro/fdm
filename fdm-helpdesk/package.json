@@ -40,9 +40,9 @@
     },
     "dependencies": {
         "drizzle-orm": "catalog:",
-        "nanoid": "^5.1.9",
+        "nanoid": "^5.1.15",
         "postgres": "^3.4.9",
-        "zod": "^4.3.6"
+        "zod": "^4.4.3"
     },
     "devDependencies": {
         "@dotenvx/dotenvx": "catalog:",
