@@ -20,7 +20,7 @@ import {
     updateTicketSubject,
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
-import { dataWithError, dataWithSuccess } from "remix-toast"
+import { dataWithSuccess } from "remix-toast"
 import z from "zod"
 import { getSession } from "@/app/lib/auth.server"
 import { sendHelpdeskNewMessageEmail } from "@/app/lib/email.server"
