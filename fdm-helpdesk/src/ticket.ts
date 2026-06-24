@@ -400,7 +400,16 @@ async function selectTickets(
             : undefined
     const textRelevanceQuery =
         sorting === "text_relevance" && isFilteringText
-            ? sql<number>`max(ts_rank(setweight(to_tsvector('dutch', ${schema.messages.body}), 'A'), websearch_to_tsquery('dutch', ${filters.text})))`
+            ? sql<number>`GREATEST(
+                ts_rank(
+                    setweight(to_tsvector('dutch', ${schema.tickets.ticket_ref} || ' ' || coalesce(${schema.tickets.subject}, '')), 'A'),
+                    websearch_to_tsquery('dutch', ${filters.text})
+                ),
+                max(ts_rank(
+                    setweight(to_tsvector('dutch', coalesce(${schema.messages.body}, '')), 'B'),
+                    websearch_to_tsquery('dutch', ${filters.text})
+                ))
+            )`
             : undefined
 
     let query = fdm
