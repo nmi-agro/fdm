@@ -18,6 +18,10 @@ export function getSafeFarmPath(currentPath: string, newFarmId: string) {
         return `/farm/${newFarmId}`
     }
 
+    if (segments[1] === newFarmId) {
+        return currentPath
+    }
+
     // Replace the farm ID (which is at index 1)
     segments[1] = newFarmId
 
