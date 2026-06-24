@@ -36,7 +36,10 @@ export function getAmsterdamDayStartISO(now: Date = new Date()): string {
     const day = Number(parts.find((p) => p.type === "day")!.value)
 
     // Find what UTC timestamp corresponds to Amsterdam midnight for this date.
-    const amsterdamOffset = getAmsterdamOffsetMinutes(now)
+    // Use the approximate UTC midnight of the target date so DST offset is
+    // computed at the correct point in time rather than at `now`.
+    const midnightApprox = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+    const amsterdamOffset = getAmsterdamOffsetMinutes(midnightApprox)
     const utcMs =
         Date.UTC(year, month - 1, day, 0, 0, 0, 0) -
         amsterdamOffset * 60_000
@@ -130,10 +133,13 @@ export async function countGerritRequestsToday(
     // ClickHouse expects 'YYYY-MM-DD HH:MM:SS', not ISO 8601 with T/Z.
     const dayStartCH = dayStart.replace("T", " ").slice(0, 19)
 
+    const escapedPrincipalId = principalId
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
     const query = {
         query: {
             kind: "HogQLQuery",
-            query: `SELECT count() FROM events WHERE event = '${EVENT_NAME}' AND distinct_id = '${principalId.replace(/'/g, "\\'")}' AND timestamp >= toDateTime('${dayStartCH}', 'UTC')`,
+            query: `SELECT count() FROM events WHERE event = '${EVENT_NAME}' AND distinct_id = '${escapedPrincipalId}' AND timestamp >= toDateTime('${dayStartCH}', 'UTC')`,
         },
     }
 
@@ -156,9 +162,6 @@ export async function countGerritRequestsToday(
             console.error("[gerrit-limit] HogQL query failed", response.status, text)
             return 0
         }
-
-        console.debug("[gerrit-limit] HogQL query:", query.query)
-        console.debug("[gerrit-limit] HogQL response:", text)
 
         const json = JSON.parse(text) as { results?: [[number]] }
         return json.results?.[0]?.[0] ?? 0

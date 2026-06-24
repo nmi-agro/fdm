@@ -375,7 +375,12 @@ export default function GerritApp() {
                     other: a.other,
                 }))
                 const json = JSON.stringify(payload)
-                if (json.length <= 4000) searchParams.set("clarifications", json)
+                if (json.length > 4000) {
+                    throw new Error(
+                        "De antwoorden zijn te lang om te versturen. Verkort uw antwoorden en probeer opnieuw.",
+                    )
+                }
+                searchParams.set("clarifications", json)
             }
             return searchParams
         },
@@ -393,7 +398,21 @@ export default function GerritApp() {
             // reflects the in-flight request. Reverted on error/abort.
             setOptimisticUsed((n) => n + 1)
 
-            const searchParams = buildSearchParams(formData, clarifications)
+            const searchParams = (() => {
+                try {
+                    return buildSearchParams(formData, clarifications)
+                } catch (err) {
+                    setErrorMessage(
+                        err instanceof Error
+                            ? err.message
+                            : "Gerrit kon geen plan genereren.",
+                    )
+                    setOptimisticUsed((n) => Math.max(0, n - 1))
+                    setPhase("idle")
+                    return null
+                }
+            })()
+            if (!searchParams) return
             const es = new EventSource(`/api/gerrit/stream?${searchParams.toString()}`)
             eventSourceRef.current = es
 
@@ -415,10 +434,17 @@ export default function GerritApp() {
             es.addEventListener("complete", ((e: MessageEvent) => {
                 try {
                     const payload = JSON.parse(e.data)
+                    if (!payload.plan || !payload.strategies) {
+                        throw new Error("Incomplete payload")
+                    }
                     setPlanData({ plan: payload.plan, strategies: payload.strategies })
-                } catch {}
-                closeEventSource()
-                setPhase("idle")
+                    closeEventSource()
+                    setPhase("idle")
+                } catch {
+                    setErrorMessage("Gerrit kon geen plan genereren.")
+                    closeEventSource()
+                    setPhase("idle")
+                }
             }) as EventListener)
             es.addEventListener("error", ((e: MessageEvent) => {
                 // Revert the optimistic increment — this run didn't count.

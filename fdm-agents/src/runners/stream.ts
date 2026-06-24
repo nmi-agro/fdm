@@ -6,17 +6,18 @@ import type { AgentGraph } from "../agents/gerrit/agent"
  * Extracts the final text string from an AI message content value.
  * @langchain/google-genai can return content as an array of parts
  * (e.g. [{type:"thinking",...},{type:"text",text:"..."}]) instead of a plain
- * string. This returns the last text part, ignoring thinking parts.
+ * string. All text parts are concatenated in order; thinking parts are ignored.
  */
 function extractTextContent(content: unknown): string {
     if (typeof content === "string") return content
     if (Array.isArray(content)) {
-        for (let i = content.length - 1; i >= 0; i--) {
-            const part = content[i] as Record<string, unknown>
-            if (part?.type === "text" && typeof part.text === "string")
-                return part.text
-            if (typeof part === "string") return part
+        const texts: string[] = []
+        for (const part of content) {
+            const p = part as Record<string, unknown>
+            if (p?.type === "text" && typeof p.text === "string") texts.push(p.text)
+            else if (typeof part === "string") texts.push(part)
         }
+        return texts.join("")
     }
     return ""
 }
