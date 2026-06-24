@@ -4,6 +4,7 @@ import {
     Calendar,
     Check,
     ChevronRight,
+    ClipboardList,
     Cog,
     House,
     LayoutGrid,
@@ -86,6 +87,7 @@ export function SidebarOrganization({
             if (subPath.includes("settings")) activeTab = "settings"
             if (subPath.includes("members")) activeTab = "members"
             if (subPath.includes("farms")) activeTab = "farms"
+            if (subPath.includes("measures")) activeTab = "measures"
         }
     }
 
@@ -272,6 +274,39 @@ export function SidebarOrganization({
                                 <TooltipContent side="right">
                                     Selecteer een organisatie om de bedrijven te
                                     beheren
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        {organization ? (
+                            <SidebarMenuButton
+                                asChild
+                                isActive={activeTab === "measures"}
+                            >
+                                <NavLink
+                                    to={`/organization/${organization.slug}/${selectedCalendar}/measures`}
+                                >
+                                    <ClipboardList />
+                                    <span>Maatregelen</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        ) : (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <SidebarMenuButton
+                                        asChild
+                                        className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <ClipboardList />
+                                            <span>Maatregelen</span>
+                                        </span>
+                                    </SidebarMenuButton>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                    Selecteer een organisatie om de maatregelen
+                                    in bedrijven te bekijken
                                 </TooltipContent>
                             </Tooltip>
                         )}

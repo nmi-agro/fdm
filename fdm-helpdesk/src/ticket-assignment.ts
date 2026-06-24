@@ -38,56 +38,63 @@ export async function getAssigneesForTickets(
 ): Promise<
     Map<schema.TicketTypeSelect["ticket_id"], TicketAssignmentSummary[]>
 > {
-    await Promise.all(
-        ticket_ids.map((ticket_id) =>
-            checkHelpdeskPermission(
-                fdm,
-                "ticket-user-side",
-                "read",
-                ticket_id,
-                principal_id,
-                "getAssigneesForTickets",
-            ),
-        ),
-    )
-
-    const allAssignees = await fdm
-        .select({
-            ticket_id: schema.ticketAssignments.ticket_id,
-            ...ticketAssignmentSummaryColumns,
-        })
-        .from(schema.ticketAssignments)
-        .innerJoin(
-            schema.agents,
-            eq(schema.ticketAssignments.agent_id, schema.agents.agent_id),
-        )
-        .where(
-            and(
-                inArray(schema.ticketAssignments.ticket_id, ticket_ids),
-                isNull(schema.ticketAssignments.unassigned_at),
+    try {
+        await Promise.all(
+            ticket_ids.map((ticket_id) =>
+                checkHelpdeskPermission(
+                    fdm,
+                    "ticket-user-side",
+                    "read",
+                    ticket_id,
+                    principal_id,
+                    "getAssigneesForTickets",
+                ),
             ),
         )
-        .orderBy(
-            schema.ticketAssignments.ticket_id,
-            asc(schema.agents.display_name),
-        )
 
-    const result = new Map<
-        schema.TicketTypeSelect["ticket_id"],
-        TicketAssignmentSummary[]
-    >()
+        const allAssignees = await fdm
+            .select({
+                ticket_id: schema.ticketAssignments.ticket_id,
+                ...ticketAssignmentSummaryColumns,
+            })
+            .from(schema.ticketAssignments)
+            .innerJoin(
+                schema.agents,
+                eq(schema.ticketAssignments.agent_id, schema.agents.agent_id),
+            )
+            .where(
+                and(
+                    inArray(schema.ticketAssignments.ticket_id, ticket_ids),
+                    isNull(schema.ticketAssignments.unassigned_at),
+                ),
+            )
+            .orderBy(
+                schema.ticketAssignments.ticket_id,
+                asc(schema.agents.display_name),
+            )
 
-    for (const relatedAssignee of allAssignees) {
-        const { ticket_id, ...assignment } = relatedAssignee
-        const existing = result.get(ticket_id)
-        if (existing) {
-            existing.push(assignment)
-        } else {
-            result.set(ticket_id, [assignment])
+        const result = new Map<
+            schema.TicketTypeSelect["ticket_id"],
+            TicketAssignmentSummary[]
+        >()
+
+        for (const relatedAssignee of allAssignees) {
+            const { ticket_id, ...assignment } = relatedAssignee
+            const existing = result.get(ticket_id)
+            if (existing) {
+                existing.push(assignment)
+            } else {
+                result.set(ticket_id, [assignment])
+            }
         }
-    }
 
-    return result
+        return result
+    } catch (err) {
+        throw handleError(err, "Exception for getAssigneesForTickets", {
+            principal_id,
+            ticket_ids,
+        })
+    }
 }
 
 /**
@@ -150,68 +157,79 @@ export async function assignTicket(
     assigned_by: schema.TicketAssignmentTypeInsert["assigned_by"],
     is_primary = false,
 ) {
-    await fdm.transaction(async (tx) => {
-        // Check if the agent is allowed to modify this ticket
-        await checkHelpdeskPermission(
-            tx,
-            "ticket-agent-side",
-            "write",
-            ticket_id,
-            assigned_by,
-            "assignTicket",
-        )
+    try {
+        await fdm.transaction(async (tx) => {
+            // Check if the agent is allowed to modify this ticket
+            await checkHelpdeskPermission(
+                tx,
+                "ticket-agent-side",
+                "write",
+                ticket_id,
+                assigned_by,
+                "assignTicket",
+            )
 
-        // If a new primary assignee is set, make other assignments non-primary
-        if (is_primary) {
-            await tx
-                .update(schema.ticketAssignments)
-                .set({ is_primary: false, updated_at: sql`now()` })
+            // If a new primary assignee is set, make other assignments non-primary
+            if (is_primary) {
+                await tx
+                    .update(schema.ticketAssignments)
+                    .set({ is_primary: false, updated_at: sql`now()` })
+                    .where(
+                        and(
+                            eq(schema.ticketAssignments.ticket_id, ticket_id),
+                            isNull(schema.ticketAssignments.unassigned_at),
+                            not(
+                                eq(schema.ticketAssignments.agent_id, agent_id),
+                            ),
+                        ),
+                    )
+            }
+
+            const existing = await tx
+                .select()
+                .from(schema.ticketAssignments)
                 .where(
                     and(
                         eq(schema.ticketAssignments.ticket_id, ticket_id),
+                        eq(schema.ticketAssignments.agent_id, agent_id),
                         isNull(schema.ticketAssignments.unassigned_at),
-                        not(eq(schema.ticketAssignments.agent_id, agent_id)),
                     ),
                 )
-        }
 
-        const existing = await tx
-            .select()
-            .from(schema.ticketAssignments)
-            .where(
-                and(
-                    eq(schema.ticketAssignments.ticket_id, ticket_id),
-                    eq(schema.ticketAssignments.agent_id, agent_id),
-                    isNull(schema.ticketAssignments.unassigned_at),
-                ),
-            )
-
-        if (existing.length > 0) {
-            await tx
-                .update(schema.ticketAssignments)
-                .set({
-                    is_primary: is_primary,
-                    updated_at: sql`now()`,
-                })
-                .where(
-                    eq(
-                        schema.ticketAssignments.assignment_id,
-                        existing[0].assignment_id,
-                    ),
-                )
-        } else {
-            const assignment_id = createId()
-            await tx.insert(schema.ticketAssignments).values([
-                {
-                    assignment_id: assignment_id,
-                    ticket_id: ticket_id,
-                    agent_id: agent_id,
-                    assigned_by: assigned_by,
-                    is_primary: is_primary,
-                },
-            ])
-        }
-    })
+            if (existing.length > 0) {
+                await tx
+                    .update(schema.ticketAssignments)
+                    .set({
+                        is_primary: is_primary,
+                        updated_at: sql`now()`,
+                    })
+                    .where(
+                        eq(
+                            schema.ticketAssignments.assignment_id,
+                            existing[0].assignment_id,
+                        ),
+                    )
+            } else {
+                const assignment_id = createId()
+                await tx.insert(schema.ticketAssignments).values([
+                    {
+                        assignment_id: assignment_id,
+                        ticket_id: ticket_id,
+                        agent_id: agent_id,
+                        assigned_by: assigned_by,
+                        is_primary: is_primary,
+                    },
+                ])
+            }
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for assignTicket", {
+            ticket_id,
+            agent_id,
+            assigned_by,
+            is_primary,
+        })
+    }
 }
 
 /**
@@ -294,34 +312,45 @@ export async function unassignTicket(
     agent_id: schema.TicketAssignmentTypeInsert["agent_id"],
     unassigned_by: schema.TicketAssignmentTypeInsert["assigned_by"],
 ) {
-    return await fdm.transaction(async (tx) => {
-        // Check if the agent is allowed to modify this ticket
-        await checkHelpdeskPermission(
-            tx,
-            "ticket-agent-side",
-            "write",
-            ticket_id,
-            unassigned_by,
-            "unassignTicket",
-        )
-
-        // Mark the assignment as unassigned by setting the unassigned_at timestamp
-        const deleted = await tx
-            .update(schema.ticketAssignments)
-            .set({ unassigned_at: sql`now()`, unassigned_by: unassigned_by })
-            .where(
-                and(
-                    eq(schema.ticketAssignments.ticket_id, ticket_id),
-                    eq(schema.ticketAssignments.agent_id, agent_id),
-                    isNull(schema.ticketAssignments.unassigned_at),
-                ),
+    try {
+        return await fdm.transaction(async (tx) => {
+            // Check if the agent is allowed to modify this ticket
+            await checkHelpdeskPermission(
+                tx,
+                "ticket-agent-side",
+                "write",
+                ticket_id,
+                unassigned_by,
+                "unassignTicket",
             )
-            .returning({
-                assignment_id: schema.ticketAssignments.assignment_id,
-            })
 
-        return deleted.length > 0
-    })
+            // Mark the assignment as unassigned by setting the unassigned_at timestamp
+            const deleted = await tx
+                .update(schema.ticketAssignments)
+                .set({
+                    unassigned_at: sql`now()`,
+                    unassigned_by: unassigned_by,
+                })
+                .where(
+                    and(
+                        eq(schema.ticketAssignments.ticket_id, ticket_id),
+                        eq(schema.ticketAssignments.agent_id, agent_id),
+                        isNull(schema.ticketAssignments.unassigned_at),
+                    ),
+                )
+                .returning({
+                    assignment_id: schema.ticketAssignments.assignment_id,
+                })
+
+            return deleted.length > 0
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for unassignTicket", {
+            ticket_id,
+            agent_id,
+            unassigned_by,
+        })
+    }
 }
 
 /**
