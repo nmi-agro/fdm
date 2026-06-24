@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom"
+import { NavLink } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { cn } from "~/lib/utils"

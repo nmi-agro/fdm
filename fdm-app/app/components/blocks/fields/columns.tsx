@@ -7,7 +7,7 @@ import {
     Square,
     Triangle,
 } from "lucide-react"
-import { NavLink } from "react-router-dom"
+import { NavLink } from "react-router"
 import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import type { BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"

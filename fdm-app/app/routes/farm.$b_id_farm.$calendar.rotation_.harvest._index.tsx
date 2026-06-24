@@ -77,8 +77,8 @@ import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { modifySearchParams } from "~/lib/url-utils"
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+    const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
     return [
         { title: `${term} toevoegen | ${clientConfig.name}` },
         {
