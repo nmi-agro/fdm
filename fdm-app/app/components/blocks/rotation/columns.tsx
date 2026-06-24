@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { ChevronRight } from "lucide-react"
 import React from "react"
-import { NavLink } from "react-router-dom"
+import { NavLink } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"

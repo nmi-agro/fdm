@@ -1,4 +1,4 @@
-import { data, type LoaderFunctionArgs, redirect } from "react-router-dom"
+import { data, type LoaderFunctionArgs, redirect } from "react-router"
 import { getCalendar } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
 

@@ -50,7 +50,7 @@ import { fdm } from "~/lib/fdm.server"
 
 const METHODS: NSupplyMethod[] = ["minip", "pmn", "century"]
 
-export const meta: MetaFunction<typeof loader> = ({ data: loaderData }) => {
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
     const name = loaderData?.field?.b_name ?? "Perceel"
     return [
         {
