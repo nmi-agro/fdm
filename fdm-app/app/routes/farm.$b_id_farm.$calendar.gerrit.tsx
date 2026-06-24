@@ -294,6 +294,12 @@ export default function GerritApp() {
         useLoaderData<typeof loader>()
     const navigation = useNavigation()
 
+    const headerAction = {
+        to: `/farm/${farm.b_id_farm}`,
+        label: "Terug naar bedrijf",
+        disabled: false,
+    }
+
     const supportedYears = ["2025", "2026"]
     const isSupportedYear = supportedYears.includes(calendar)
     const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
@@ -626,7 +632,7 @@ export default function GerritApp() {
     if (isGerritEnabled === false) {
         return (
             <SidebarInset>
-                <Header action={undefined}>
+                <Header action={headerAction}>
                     <HeaderFarm
                         b_id_farm={farm.b_id_farm}
                         farmOptions={farmOptions}
@@ -658,7 +664,7 @@ export default function GerritApp() {
         return (
             <>
                 <SidebarInset>
-                    <Header action={undefined}>
+                    <Header action={headerAction}>
                         <HeaderFarm
                             b_id_farm={farm.b_id_farm}
                             farmOptions={farmOptions}
@@ -706,7 +712,7 @@ export default function GerritApp() {
     return (
         <>
             <SidebarInset>
-                <Header action={undefined}>
+                <Header action={headerAction}>
                     <HeaderFarm
                         b_id_farm={farm.b_id_farm}
                         farmOptions={farmOptions}
@@ -900,3 +906,5 @@ export default function GerritApp() {
         </>
     )
 }
+
+
