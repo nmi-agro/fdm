@@ -13,7 +13,7 @@ catalog:
   '@better-auth/api-key': ^1.6.20
   jose: ^6.2.3
   '@dotenvx/dotenvx': ^1.75.1
-  '@types/node': ^25.9.4
+  '@types/node': ^24.x
   '@vitest/coverage-v8': 4.1.9
   better-auth: ^1.6.20
   drizzle-kit: ^0.31.10
