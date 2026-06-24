@@ -417,7 +417,7 @@ export default function RvoImportCreatePage() {
     )
 }
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
     const { b_id_farm, calendar: yearString } = params
     if (!b_id_farm || !yearString) {
         throw new Response("b_id_farm and calendar are required", {
@@ -452,7 +452,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         const { state, cookieHeader } = await createRvoState(
             b_id_farm,
-            request.url,
+            url.toString(),
         )
 
         const authUrl = generateAuthUrl(rvoClient, state)

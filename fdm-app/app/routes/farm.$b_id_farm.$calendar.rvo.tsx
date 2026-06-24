@@ -549,7 +549,7 @@ export default function RvoImportReviewPage() {
     )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, url }: Route.ActionArgs) {
     const { b_id_farm, calendar: yearString } = params
     if (!b_id_farm || !yearString) {
         throw data("Farm ID is required", {
@@ -588,7 +588,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
         const { state, cookieHeader } = await createRvoState(
             b_id_farm,
-            request.url,
+            url.toString(),
         )
 
         const authUrl = generateAuthUrl(rvoClient, state)
