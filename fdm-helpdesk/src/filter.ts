@@ -209,7 +209,7 @@ export function getTicketWhereClause(
         // Text filter
         filters.text && filters.text.trim().length > 0
             ? or(
-                  sql`to_tsvector('dutch', ${schema.tickets.subject}) @@ websearch_to_tsquery('dutch', ${filters.text})`,
+                  sql`to_tsvector('dutch', ${schema.tickets.ticket_ref} || ' ' || coalesce(${schema.tickets.subject}, '')) @@ websearch_to_tsquery('dutch', ${filters.text})`,
                   sql`to_tsvector('dutch', ${schema.messages.body}) @@ websearch_to_tsquery('dutch', ${filters.text})`,
               )
             : undefined,

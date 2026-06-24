@@ -1,0 +1,2 @@
+DROP INDEX "fdm-helpdesk"."title_search_idx";--> statement-breakpoint
+CREATE INDEX "ticket_ref_subject_idx" ON "fdm-helpdesk"."tickets" USING gin (to_tsvector('dutch', "ticket_ref" || ' ' || coalesce("subject", '')));
