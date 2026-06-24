@@ -37,7 +37,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         return new Response("Functie niet ingeschakeld voor deze gebruiker", { status: 403 })
     }
 
-    const modelName = url.searchParams.get("geminiModel") || "gemini-3-flash-preview"
+    const modelName = url.searchParams.get("geminiModel") || "gemini-3.5-flash"
 
     // Parse selectedFertilizerIds (allow only safe catalogue ID chars)
     const SAFE_ID = /^[A-Za-z0-9_-]+$/

@@ -62,7 +62,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         isDerogation: url.searchParams.get("isDerogation") === "true",
     }
     const additionalContext = url.searchParams.get("additionalContext") || ""
-    const modelName = url.searchParams.get("geminiModel") || "gemini-3-flash-preview"
+    const modelName = url.searchParams.get("geminiModel") || "gemini-3.5-flash"
 
     // Parse selectedFertilizerIds (allow only safe catalogue ID chars: alphanumeric, _, -)
     const SAFE_ID = /^[A-Za-z0-9_-]+$/
