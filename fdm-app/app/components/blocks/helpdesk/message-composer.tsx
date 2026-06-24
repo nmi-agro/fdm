@@ -1,5 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useId } from "react"
+import type {
+    SavedReplyContext,
+    SavedReplySummary,
+} from "@nmi-agro/fdm-helpdesk"
+import { useEffect, useId } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -25,7 +29,7 @@ import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
 import { Message } from "./message"
 import { MessageSchema } from "./message-schema"
-import type { HelpdeskUser } from "./types"
+import type { HelpdeskUser } from "./types.d"
 
 const formDefaultValues = {
     body: "",
@@ -37,16 +41,21 @@ export function MessageComposer({
     intent,
     principal,
     showAgentControls,
+    savedReplies,
+    savedReplyContext,
     defaultValues = { ...formDefaultValues },
     className,
 }: {
     intent: string
     principal: HelpdeskUser | null
     showAgentControls?: boolean
+    savedReplies?: SavedReplySummary[]
+    savedReplyContext?: SavedReplyContext
     defaultValues?: z.infer<typeof MessageSchema>
     className?: string
 }) {
     const fetcher = useFetcher()
+    const savedReplyFetcher = useFetcher()
 
     const form = useRemixForm({
         mode: "onTouched",
@@ -58,11 +67,28 @@ export function MessageComposer({
             ...defaultValues,
         },
     })
+
     const sender_role = useWatch({ name: "sender_role", control: form.control })
     const is_internal = useWatch({ name: "is_internal", control: form.control })
     const messageInputId = useId()
 
+    useEffect(() => {
+        if (typeof savedReplyFetcher.data?.body === "string") {
+            const current = form.getValues("body")
+            if (current) {
+                form.setValue(
+                    "body",
+                    `${current}\n\n${savedReplyFetcher.data.body}`,
+                )
+            } else {
+                form.setValue("body", savedReplyFetcher.data.body)
+            }
+        }
+    }, [form.getValues, form.setValue, savedReplyFetcher.data])
+
     const isSubmitting = fetcher.state !== "idle"
+    const isFetchingSavedReply = savedReplyFetcher.state !== "idle"
+    const isDisabled = isSubmitting || isFetchingSavedReply
 
     return (
         <RemixFormProvider {...form}>
@@ -77,7 +103,7 @@ export function MessageComposer({
                     isInternal={is_internal}
                     title={
                         <fieldset
-                            disabled={isSubmitting}
+                            disabled={isDisabled}
                             className="w-full flex flex-row items-center gap-2 md:gap-4"
                         >
                             <span className="min-w-0 flex-1">
@@ -118,7 +144,7 @@ export function MessageComposer({
                                                             field.onChange
                                                         }
                                                         className="mt-1"
-                                                        disabled={isSubmitting}
+                                                        disabled={isDisabled}
                                                     />
                                                 </div>
                                                 <FieldError
@@ -176,41 +202,87 @@ export function MessageComposer({
                         </fieldset>
                     }
                 >
-                    <fieldset disabled={isSubmitting}>
+                    <fieldset disabled={isDisabled}>
+                        {savedReplies && savedReplies.length > 0 ? (
+                            <Field orientation="horizontal">
+                                <FieldLabel>Gebruik een sjabloon: </FieldLabel>
+                                <Select
+                                    onValueChange={(reply_id) => {
+                                        const formData = new FormData()
+                                        formData.append(
+                                            "intent",
+                                            "apply_saved_reply",
+                                        )
+                                        formData.append("reply_id", reply_id)
+                                        for (const [k, v] of Object.entries(
+                                            savedReplyContext ?? {},
+                                        )) {
+                                            if (typeof v === "string")
+                                                formData.append(k, v)
+                                        }
+                                        savedReplyFetcher.submit(formData, {
+                                            method: "post",
+                                        })
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                        <Spinner
+                                            className={cn(
+                                                !isFetchingSavedReply &&
+                                                    "invisible",
+                                            )}
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {savedReplies.map((reply) => (
+                                            <SelectItem
+                                                key={reply.reply_id}
+                                                value={reply.reply_id}
+                                            >
+                                                {reply.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </Field>
+                        ) : undefined}
                         <Controller
                             name="body"
-                            render={({ field, fieldState }) => (
-                                <Field data-invalid={fieldState.invalid}>
-                                    <FieldContent>
-                                        <Textarea
-                                            {...field}
-                                            className="bg-card"
-                                            id={messageInputId}
-                                            placeholder={
-                                                "Schrijf uw bericht hier..."
-                                            }
-                                        />
-                                        <FieldDescription>
-                                            {showAgentControls
-                                                ? sender_role === "agent"
-                                                    ? is_internal
-                                                        ? "Intern bericht — alleen zichtbaar voor medewerkers."
-                                                        : "Dit bericht wordt als medewerker verstuurd en is zichtbaar voor de gebruiker."
-                                                    : "Dit bericht wordt verstuurd als de gebruiker."
-                                                : "Voeg aanvullende informatie toe of stel een vervolgvraag. U ontvangt een kopie per e-mail."}
-                                        </FieldDescription>
-                                        <FieldError
-                                            errors={[fieldState.error]}
-                                        />
-                                    </FieldContent>
-                                </Field>
-                            )}
+                            render={({ field, fieldState }) => {
+                                return (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldContent>
+                                            <Textarea
+                                                {...field}
+                                                className="bg-card"
+                                                id={messageInputId}
+                                                placeholder={
+                                                    "Schrijf uw bericht hier..."
+                                                }
+                                            />
+                                            <FieldDescription>
+                                                {showAgentControls
+                                                    ? sender_role === "agent"
+                                                        ? is_internal
+                                                            ? "Intern bericht — alleen zichtbaar voor medewerkers."
+                                                            : "Dit bericht wordt als medewerker verstuurd en is zichtbaar voor de gebruiker."
+                                                        : "Dit bericht wordt verstuurd als de gebruiker."
+                                                    : "Voeg aanvullende informatie toe of stel een vervolgvraag. U ontvangt een kopie per e-mail."}
+                                            </FieldDescription>
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        </FieldContent>
+                                    </Field>
+                                )
+                            }}
                         />
                     </fieldset>
                     <Button
                         type="submit"
                         className="block ms-auto min-w-0"
-                        disabled={isSubmitting}
+                        disabled={isDisabled}
                     >
                         Versturen
                         {isSubmitting && <Spinner />}

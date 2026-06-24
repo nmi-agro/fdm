@@ -2,15 +2,20 @@ import { getFarm, getPrincipals } from "@nmi-agro/fdm-core"
 import {
     addMessage,
     addTagToTicket,
+    applySavedReply,
     assignTicket,
     checkHelpdeskPermission,
+    createSavedReply,
     createTag,
     getAgents,
     getAssigneesForTickets,
     getMessagesForTicket,
+    getSavedReplies,
+    getSavedReply,
     getTags,
     getTagsForTickets,
     getTicket,
+    makeSavedReplyBodySimple,
     markTicketAsNotViewedByAll,
     markTicketAsViewed,
     removeTagFromTicket,
@@ -19,7 +24,7 @@ import {
     updateTicketStatus,
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
-import { dataWithSuccess } from "remix-toast"
+import { dataWithSuccess, dataWithWarning } from "remix-toast"
 import z from "zod"
 import { getSession } from "@/app/lib/auth.server"
 import { sendHelpdeskNewMessageEmail } from "@/app/lib/email.server"
@@ -29,6 +34,12 @@ import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "~/components/blocks/helpdesk/assignee-schema"
 import { makeHelpdeskUser } from "~/components/blocks/helpdesk/helpdesk-user"
 import { MessageSchema } from "~/components/blocks/helpdesk/message-schema"
+import {
+    ApplySavedReplySchema,
+    CreateSavedReplySchema,
+    type FdmSavedReplyContext,
+    MakeSavedReplySchema,
+} from "~/components/blocks/helpdesk/saved-reply-schema"
 import {
     TagSchema,
     TicketTagsSchema,
@@ -78,7 +89,12 @@ export async function loader({ params, request }: Args) {
             ])
 
         // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
-        const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
+        const [agents, savedReplies] = isAgent
+            ? await Promise.all([
+                  getAgents(fdm, session.principal_id),
+                  getSavedReplies(fdm, session.principal_id),
+              ])
+            : [[], []]
 
         // Message sender's profile pictures are shown
         const principal_ids = messages.map((msg) => msg.sender_id)
@@ -129,6 +145,36 @@ export async function loader({ params, request }: Args) {
             },
         )
 
+        const contextFarmName = ticket.context_farm_id
+            ? await (async () => {
+                  // This leaks the farm info to the agent, but it should be fine as long as the helpdesk permission checks are run properly.
+                  const principal_id = [session.principal_id]
+                  if (ticket.requester_id)
+                      principal_id.push(ticket.requester_id)
+                  try {
+                      const farm = await getFarm(
+                          fdm,
+                          principal_id,
+                          ticket.context_farm_id as string,
+                      )
+                      return farm.b_name_farm ?? null
+                  } catch {
+                      return null
+                  }
+              })()
+            : null
+
+        // We could also make it an empty object for non-agents but it doesn't matter.
+        const savedReplyContext: Partial<FdmSavedReplyContext> = {
+            farm_name: contextFarmName ?? undefined,
+            customer_name:
+                principalsSummarized.find(
+                    (p) => p.principal_id === ticket.requester_id,
+                )?.displayUserName ?? undefined,
+            agent_name: session.user.name ?? undefined,
+            ticket_ref: ticket.ticket_ref,
+        }
+
         return {
             principal_id: session.principal_id,
             ticket: ticket,
@@ -140,24 +186,9 @@ export async function loader({ params, request }: Args) {
             agents: agents,
             // To prevent hydration failed errors
             todayDate: new Date(),
-            contextFarmName: ticket.context_farm_id
-                ? await (async () => {
-                      // This leaks the farm info to the agent, but it should be fine as long as the helpdesk permission checks are run properly.
-                      const principal_id = [session.principal_id]
-                      if (ticket.requester_id)
-                          principal_id.push(ticket.requester_id)
-                      try {
-                          const farm = await getFarm(
-                              fdm,
-                              principal_id,
-                              ticket.context_farm_id as string,
-                          )
-                          return farm.b_name_farm ?? null
-                      } catch {
-                          return null
-                      }
-                  })()
-                : null,
+            contextFarmName: contextFarmName,
+            savedReplies: savedReplies,
+            savedReplyContext: savedReplyContext,
         }
     } catch (err) {
         throw handleLoaderError(err)
@@ -171,6 +202,9 @@ export const ActionSchema = z.discriminatedUnion("intent", [
         intent: z.literal("update_priority"),
         priority: TicketPrioritySchema,
     }),
+    MakeSavedReplySchema.extend({ intent: z.literal("make_saved_reply") }),
+    CreateSavedReplySchema.extend({ intent: z.literal("create_saved_reply") }),
+    ApplySavedReplySchema.extend({ intent: z.literal("apply_saved_reply") }),
     AssigneeSchema.extend({ intent: z.literal("change_assignment") }),
     MessageSchema.extend({ intent: z.literal("add_message") }),
     TagSchema.extend({ intent: z.literal("create_tag") }),
@@ -451,6 +485,49 @@ export async function action({ params, request }: Args) {
             return dataWithSuccess("Bericht ontvangen!", {
                 message: "Bericht ontvangen!",
             })
+        }
+
+        if (formValues.intent === "make_saved_reply") {
+            const { intent, body, ...context } = formValues
+
+            return {
+                body: makeSavedReplyBodySimple(body, context),
+            }
+        }
+
+        if (formValues.intent === "create_saved_reply") {
+            console.log(formValues)
+            await createSavedReply(
+                fdm,
+                formValues.title,
+                formValues.body,
+                session.principal_id,
+                "generic",
+                formValues.is_shared,
+            )
+
+            return dataWithSuccess("Sjabloon is succesvol aangemaakt!", {
+                message: "Sjabloon is succesvol aangemaakt!",
+            })
+        }
+
+        if (formValues.intent === "apply_saved_reply") {
+            const { intent, reply_id, ...context } = formValues
+            const savedReply = await getSavedReply(
+                fdm,
+                session.principal_id,
+                reply_id,
+            )
+            const applied = applySavedReply(savedReply.body, context)
+            return dataWithWarning(
+                {
+                    body: applied,
+                },
+                {
+                    message:
+                        "Hier is jouw berichtstext. Wees voorzichtig dat wat automatisch-ingevuld info onjuist kan zijn.",
+                },
+            )
         }
     } catch (err) {
         throw handleActionError(err)

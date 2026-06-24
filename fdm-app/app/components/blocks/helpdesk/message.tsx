@@ -1,10 +1,14 @@
-import type { Message as MessageT } from "@nmi-agro/fdm-helpdesk"
+import type {
+    Message as MessageT,
+    SavedReplyContext,
+} from "@nmi-agro/fdm-helpdesk"
 import { formatDate, formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import type { ReactNode } from "react"
 import { cn } from "@/app/lib/utils"
 import { Card } from "~/components/ui/card"
 import { HelpdeskUserAvatar } from "./helpdesk-user"
+import { CreateSavedReplyDialog } from "./saved-reply-dialog"
 import type { HelpdeskUser } from "./types"
 
 export type MessageExtended = MessageT & { principal: HelpdeskUser | null }
@@ -17,6 +21,9 @@ export function Message({
     isInternal = false,
     className,
     children,
+    canSaveReply = false,
+    replyContext,
+    replyBody,
 }: {
     title?: ReactNode
     principal: HelpdeskUser | null
@@ -26,6 +33,9 @@ export function Message({
     isInternal?: boolean
     className?: string
     children: ReactNode
+    canSaveReply?: boolean
+    replyContext?: SavedReplyContext
+    replyBody?: string
 }) {
     const formattedDateTooltip = date
         ? formatDate(date, "PP HH:mm", { locale: nl })
@@ -37,7 +47,7 @@ export function Message({
     return (
         <Card
             className={cn(
-                "md:ms-10 px-2 py-4",
+                "group/message md:ms-10 px-2 py-4",
                 isInternal && "border-amber-100 bg-amber-100/35",
                 className,
             )}
@@ -57,6 +67,13 @@ export function Message({
                     </span>
                 )}
                 <div className="ms-auto">
+                    {canSaveReply && replyBody && (
+                        <CreateSavedReplyDialog
+                            body={replyBody}
+                            context={replyContext}
+                            isInternal={isInternal}
+                        />
+                    )}
                     {formattedDateTooltip && (
                         <span
                             className="text-sm"

@@ -2,6 +2,8 @@ import type {
     Agent,
     Message as MessageT,
     PriorityString,
+    SavedReplyContext,
+    SavedReplySummary,
     TagSummary,
     Ticket as TicketT,
 } from "@nmi-agro/fdm-helpdesk"
@@ -35,6 +37,8 @@ export function Ticket({
     todayDate,
     contextFarmName,
     principalLookup,
+    savedReplies,
+    savedReplyContext,
 }: {
     ticket: TicketT
     messages: MessageT[]
@@ -46,6 +50,8 @@ export function Ticket({
     todayDate: Date
     contextFarmName?: string | null
     principalLookup: Map<string, HelpdeskUser>
+    savedReplies?: SavedReplySummary[]
+    savedReplyContext?: SavedReplyContext
 }) {
     const navigation = useNavigation()
     const submit = useSubmit()
@@ -203,6 +209,9 @@ export function Ticket({
                         isInternal={msg.is_internal}
                         date={msg.created}
                         todayDate={todayDate}
+                        canSaveReply={isAgent}
+                        replyBody={msg.body}
+                        replyContext={savedReplyContext}
                     >
                         <p
                             className="whitespace-pre-wrap text-sm"
@@ -217,6 +226,8 @@ export function Ticket({
                         intent="add_message"
                         principal={principalLookup.get(principal_id) ?? null}
                         showAgentControls={isAgent}
+                        savedReplies={savedReplies}
+                        savedReplyContext={savedReplyContext}
                         defaultValues={{
                             sender_role: isAgent ? "agent" : "customer",
                             is_internal: false,
