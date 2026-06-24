@@ -53,7 +53,6 @@ Elke vraag moet:
 - In duidelijk Nederlands gesteld zijn (CEFR B2, landbouwterminologie).
 - 2 tot 4 keuzemogelijkheden hebben die direct van toepassing zijn.
 - Het type opgeven: "single" als slechts één optie van toepassing is, "multi" als meerdere tegelijk mogelijk zijn.
-- allowOther altijd true laten (de "Anders, namelijk…"-optie is altijd beschikbaar).
 
 ## UITVOER
 

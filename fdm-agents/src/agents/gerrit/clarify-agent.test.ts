@@ -103,7 +103,6 @@ describe("ClarifyingQuestionsSchema", () => {
                         { id: "a", label: "Rundveedrijfmest" },
                         { id: "b", label: "Varkensdrijfmest" },
                     ],
-                    allowOther: true,
                 },
             ],
         })
@@ -119,7 +118,6 @@ describe("ClarifyingQuestionsSchema", () => {
                 { id: "a", label: "Optie A" },
                 { id: "b", label: "Optie B" },
             ],
-            allowOther: true,
         }
         const result = ClarifyingQuestionsSchema.safeParse({
             questions: [q, q, q, q, q, q],
@@ -135,7 +133,6 @@ describe("ClarifyingQuestionsSchema", () => {
                     question: "Vraag?",
                     selection: "single",
                     options: [{ id: "a", label: "Optie A" }],
-                    allowOther: true,
                 },
             ],
         })
@@ -156,7 +153,6 @@ describe("ClarifyingQuestionsSchema", () => {
                         { id: "d", label: "D" },
                         { id: "e", label: "E" },
                     ],
-                    allowOther: true,
                 },
             ],
         })

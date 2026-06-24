@@ -21,7 +21,6 @@ export const ClarifyingQuestionSchema = z.object({
         .min(2)
         .max(4)
         .describe("2 tot 4 antwoordopties (exclusief het vrije 'Anders'-veld)"),
-    allowOther: z.literal(true).describe("Altijd true — er is altijd een vrije 'Anders, namelijk…'-optie"),
 })
 
 /**
