@@ -110,6 +110,9 @@ export default defineConfig((env) => {
             ],
         },
         resolve: {
+            alias: {
+                "react-router$": path.resolve(__dirname, "node_modules/react-router"),
+            },
             tsconfigPaths: true,
         },
     }
