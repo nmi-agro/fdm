@@ -39,9 +39,15 @@ export function action(ctx: Route.LoaderArgs) {
 export default function UpdateWithMijnPercelenPage() {
     const loaderData = useLoaderData<typeof loader>()
 
+    const action = {
+        to: `/farm/${loaderData.b_id_farm}`,
+        label: "Terug naar bedrijf",
+        disabled: false,
+    }
+
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <BreadcrumbItem className="hidden xl:block">
                     Bedrijf
                 </BreadcrumbItem>

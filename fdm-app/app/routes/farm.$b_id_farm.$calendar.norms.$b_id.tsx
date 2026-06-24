@@ -229,9 +229,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FieldNormsBlock() {
     const loaderData = useLoaderData<typeof loader>()
 
+    const action = {
+        to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/norms`,
+        label: "Terug naar gebruiksruimte",
+        disabled: false,
+    }
+
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}
