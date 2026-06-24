@@ -20,6 +20,7 @@ import {
     markTicketAsViewed,
     updateTicketPriority,
     updateTicketStatus,
+    updateTicketSubject,
     updateTicketSubjectAndPriorityUnchecked,
     validateTicketStatusTransition,
 } from "./ticket"
@@ -556,6 +557,41 @@ describe("updateTicketSubjectAndPriorityUnchecked", () => {
         expect(ticket.subject).toBe("Ticket 1")
         expect(ticket.priority).toBe("low")
         expect(ticket.updated).not.toBeNull()
+    })
+})
+
+describe("updateTicketSubject", () => {
+    let agent_id: string
+    let requester_id: string
+    let ticket_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        agent_id = createId()
+        requester_id = createId()
+        await addAdminAgent(fdm, agent_id, "Support Agent")
+        ticket_id = await createTicket(fdm, requester_id, "Ticket 1")
+    })
+
+    test("should let agents update the subject", async ({ fdm }) => {
+        await updateTicketSubject(fdm, agent_id, ticket_id, "Ticket 1 Subject")
+        const ticket = await getTicket(fdm, agent_id, ticket_id)
+        expect(ticket.subject).toBe("Ticket 1 Subject")
+        expect(ticket.updated).not.toBeNull()
+    })
+
+    test("should not let regular users update the subject", async ({
+        fdm,
+    }) => {
+        try {
+            await updateTicketSubject(fdm, requester_id, ticket_id, "Ticket 1 Subject")
+        } catch (_err) {
+            const ticket = await getTicket(fdm, requester_id, ticket_id)
+            expect(ticket.subject).toBe("Ticket 1")
+            expect(ticket.updated).toBeNull()
+            return
+        }
+
+        throw new Error("Should have thrown")
     })
 })
 

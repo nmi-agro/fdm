@@ -23,6 +23,7 @@ import {
 } from "./ticket-status"
 import { TicketTags } from "./ticket-tags"
 import type { HelpdeskUser } from "./types"
+import { TicketSubjectEditor } from "./ticket-subject"
 
 export function Ticket({
     ticket,
@@ -110,9 +111,10 @@ export function Ticket({
                 </div>
 
                 {/* 2. Title */}
-                <h1 className="text-3xl font-bold">
-                    {ticket.subject ?? "Ticket"}
-                </h1>
+                <TicketSubjectEditor
+                    subject={ticket.subject ?? undefined}
+                    canModify={isAgent}
+                />
 
                 {/* 3. State row */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">

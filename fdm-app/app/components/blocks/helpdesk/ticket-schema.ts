@@ -10,4 +10,9 @@ export const TicketSchema = z.object({
     body: MessageBodySchema,
 })
 
+export const TicketSubjectSchema = z
+    .string("Ongeldig onderwerp")
+    .trim()
+    .min(1, "Ongeldig onderwerp")
+
 export const TicketPrioritySchema = z.enum(["low", "normal", "high", "urgent"])
