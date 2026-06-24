@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react"
 import { useFetcher } from "react-router"
-import { Input } from "~/components/ui/input"
-import { Button } from "../../ui/button"
-import { Spinner } from "../../ui/spinner"
 import { cn } from "@/app/lib/utils"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Spinner } from "~/components/ui/spinner"
 
 export function TicketSubjectEditor({
     subject = "Ticket",
@@ -32,18 +32,20 @@ export function TicketSubjectEditor({
 
     if (!isEditing && fetcher.state === "idle") {
         return (
-            <Button
-                variant="link"
-                className="text-3xl font-bold"
-                onClick={() => setIsEditing(true)}
-            >
-                {subject ?? "Ticket"}
-            </Button>
+            <h1 className="text-3xl font-bold">
+                <Button
+                    variant="link"
+                    className="h-auto p-0 text-3xl font-bold"
+                    onClick={() => setIsEditing(true)}
+                >
+                    {subject ?? "Ticket"}
+                </Button>
+            </h1>
         )
     }
 
     return (
-        <div className="relative">
+        <h1 className="relative text-3xl font-bold">
             <Input
                 type="text"
                 value={value}
@@ -58,6 +60,7 @@ export function TicketSubjectEditor({
                             formData.set("subject", value)
                             fetcher.submit(formData, { method: "POST" })
                         } else {
+                            setValue(subject)
                             setIsEditing(false)
                         }
                     }
@@ -67,6 +70,7 @@ export function TicketSubjectEditor({
                         e.currentTarget.blur()
                     }
                     if (e.key === "Escape") {
+                        setValue(subject)
                         setIsEditing(false)
                     }
                 }}
@@ -77,6 +81,6 @@ export function TicketSubjectEditor({
                     fetcher.state === "idle" && "invisible",
                 )}
             />
-        </div>
+        </h1>
     )
 }
