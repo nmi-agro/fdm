@@ -333,6 +333,35 @@ test.describe("getTickets", () => {
         ).toBe(true)
     })
 
+    test("should search for ticket ref when subject is null", async ({
+        fdm,
+    }) => {
+        const ticket_id = await createTicket(
+            fdm,
+            requester_id,
+            "Very mysterious ticket",
+        )
+
+        const updated = await fdm
+            .update(schema.tickets)
+            .set({ subject: null })
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+            .returning({ ticket_ref: schema.tickets.ticket_ref })
+
+        if (!updated[0]) {
+            throw new Error("Failed to update ticket subject to null")
+        }
+
+        const tickets = await getTickets(fdm, agent_id, {
+            text: updated[0].ticket_ref,
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id),
+            "Ticket with this ticket ref should be in the results even if subject is null",
+        ).toBe(true)
+    })
+
     test("should only list regular user's own tickets", async ({ fdm }) => {
         const new_ticket_id = await createTicket(
             fdm,

@@ -1,5 +1,5 @@
 {
-  "id": "43e525e2-48fc-4fdd-94dc-aeee62f6d0e6",
+  "id": "8c548f2b-3a36-4b98-8927-cb56de61701a",
   "prevId": "c23c89b3-cf18-4fb2-a303-5301589906ec",
   "version": "7",
   "dialect": "postgresql",
@@ -1030,7 +1030,7 @@
           "name": "title_search_idx",
           "columns": [
             {
-              "expression": "to_tsvector('dutch', \"ticket_ref\" || ' ' || \"subject\")",
+              "expression": "to_tsvector('dutch', \"ticket_ref\" || ' ' || coalesce(\"subject\", ''))",
               "asc": true,
               "isExpression": true,
               "nulls": "last"
