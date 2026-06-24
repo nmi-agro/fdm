@@ -25,6 +25,7 @@ import {
     type MetaFunction,
     useFetcher,
     useLoaderData,
+    useNavigate,
     useNavigation,
     useParams,
 } from "react-router"
@@ -561,6 +562,7 @@ export default function MeasuresFieldDetail() {
     } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar, b_id } = useParams()
     const navigation = useNavigation()
+    const navigate = useNavigate()
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editingMeasure, setEditingMeasure] = useState<EditingMeasure | null>(
         null,
@@ -569,7 +571,6 @@ export default function MeasuresFieldDetail() {
         null,
     )
 
-    const basePath = `/farm/${b_id_farm}/${calendar}/measures`
     const indicatorsHref = `/farm/${b_id_farm}/${calendar}/indicators/${b_id}`
 
     return (
@@ -788,8 +789,8 @@ export default function MeasuresFieldDetail() {
                             selectedFieldGeoJSON={selectedFieldGeoJSON}
                             initialFitGeoJSON={selectedFieldGeoJSON}
                             mapStyle={mapStyle}
-                            basePath={basePath}
                             height="400px"
+                            onFieldClick={(b_id) => navigate(`/farm/${b_id_farm}/${calendar}/measures/${b_id}`)}
                         />
                     </Suspense>
                 </div>

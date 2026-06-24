@@ -165,7 +165,7 @@ export default function App() {
                     userName={loaderData.userName}
                 />
             </Sidebar>
-            <SidebarInset>
+            <SidebarInset className="min-w-0">
                 <Header action={undefined}>
                     <HeaderOrganization
                         selectedOrganizationSlug={

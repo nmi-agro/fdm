@@ -320,6 +320,21 @@ test.describe("getTickets", () => {
         ).toBe(false)
     })
 
+    test("should not filter by whitespace search text", async ({ fdm }) => {
+        const tickets = await getTickets(fdm, agent_id, {
+            text: "       ",
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 should be in the results",
+        ).toBe(true)
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_2),
+            "Ticket 2 should be in the results",
+        ).toBe(true)
+    })
+
     test("should only list regular user's own tickets", async ({ fdm }) => {
         const new_ticket_id = await createTicket(
             fdm,
@@ -384,6 +399,59 @@ test.describe("getTickets", () => {
             fdm,
             agent_id,
             { assignees: [agent_id], text: "New feature" },
+            "text_relevance",
+        )
+
+        expect(
+            tickets[0].ticket_id,
+            "Ticket 2 contains the search terms as is while Ticket 1 doesnt",
+        ).toBe(specific_ticket_id_2)
+        expect(tickets[1].ticket_id).toBe(specific_ticket_id_1)
+    })
+
+    test("should sort by creation date without a text filter", async ({
+        fdm,
+    }) => {
+        const specific_agent_id = createId()
+        await addAgent(fdm, agent_id, specific_agent_id, "Specific Agent")
+        const specific_ticket_id_1 = await createTicket(
+            fdm,
+            requester_id,
+            "New helpdesk feature",
+        )
+        const specific_ticket_id_2 = await createTicket(
+            fdm,
+            requester_id,
+            "New feature",
+        )
+        await assignTicket(
+            fdm,
+            specific_ticket_id_1,
+            specific_agent_id,
+            specific_agent_id,
+            true,
+        )
+        await assignTicket(
+            fdm,
+            specific_ticket_id_2,
+            specific_agent_id,
+            specific_agent_id,
+            true,
+        )
+
+        await fdm
+            .update(schema.tickets)
+            .set({ created: new Date("2023-01-02T00:00:00.000Z") })
+            .where(eq(schema.tickets.ticket_id, specific_ticket_id_1))
+        await fdm
+            .update(schema.tickets)
+            .set({ created: new Date("2023-01-03T00:00:00.000Z") })
+            .where(eq(schema.tickets.ticket_id, specific_ticket_id_2))
+
+        const tickets = await getTickets(
+            fdm,
+            specific_agent_id,
+            { assignees: [specific_agent_id] },
             "text_relevance",
         )
 
@@ -806,6 +874,46 @@ describe("getTicketCount", () => {
         })
 
         expect(ticketCount).toBe(3)
+    })
+
+    test("should not count tickets multiple times", async ({ fdm }) => {
+        const requester_id = createId()
+
+        const ticket_id = await createTicket(fdm, requester_id, "Ticket")
+        await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "customer",
+            "I have a question I would like to ask.",
+        )
+        await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "agent",
+            "Please don't hesitate to ask.",
+        )
+        const tag_id_1 = await createTag(
+            fdm,
+            admin_id,
+            `Blue${createId(8)}`,
+            "#0000ff",
+        )
+        const tag_id_2 = await createTag(
+            fdm,
+            admin_id,
+            `Red${createId(8)}`,
+            "#ff0000",
+        )
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id_1)
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id_2)
+
+        const count = await getTicketCount(fdm, admin_id, {
+            tags: [tag_id_1, tag_id_2],
+            text: "ask",
+        })
+        expect(count).toBe(1)
     })
 })
 

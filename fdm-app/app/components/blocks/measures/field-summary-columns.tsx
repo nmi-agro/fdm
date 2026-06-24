@@ -11,11 +11,15 @@ export type FieldSummaryRow = {
     b_name: string | null
     b_area: number | null
     b_bufferstrip: boolean
-    mainCultivation: {
-        b_lu_name: string | null
-        b_lu_croprotation: string | null
-    } | null
-    measures: { m_name: string }[]
+    mainCultivations:
+        | {
+              b_lu_catalogue: string
+              b_lu_name: string | null
+              b_lu_croprotation: string | null
+              b_area?: number | null
+          }[]
+        | null
+    measures: { m_name: string; num_fields?: number }[]
     /** href to the field's measures detail page */
     href: string
 }
@@ -71,31 +75,55 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
             accessorKey: "mainCultivation",
             enableSorting: true,
             sortingFn: (a, b) => {
-                const nameA = a.original.mainCultivation?.b_lu_name ?? ""
-                const nameB = b.original.mainCultivation?.b_lu_name ?? ""
+                const nameA =
+                    a.original.mainCultivations &&
+                    a.original.mainCultivations.length > 0
+                        ? (a.original.mainCultivations[0].b_lu_name ?? "")
+                        : ""
+                const nameB =
+                    b.original.mainCultivations &&
+                    b.original.mainCultivations.length > 0
+                        ? (b.original.mainCultivations[0].b_lu_name ?? "")
+                        : ""
                 return nameA.localeCompare(nameB, "nl")
             },
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Gewas" />
             ),
             cell: ({ row }) => {
-                const cult = row.original.mainCultivation
-                if (!cult?.b_lu_name) {
+                const cults = row.original.mainCultivations
+                if (!cults || cults.length === 0) {
                     return (
                         <span className="text-xs text-muted-foreground">—</span>
                     )
                 }
                 return (
-                    <Badge
-                        style={{
-                            backgroundColor: getCultivationColor(
-                                cult.b_lu_croprotation ?? undefined,
-                            ),
-                        }}
-                        className="text-white text-xs"
-                    >
-                        {cult.b_lu_name}
-                    </Badge>
+                    <div className="flex items-start flex-col space-y-2">
+                        {cults.map((cult) => (
+                            <div
+                                key={cult.b_lu_catalogue}
+                                className="flex flex-row items-center gap-2"
+                            >
+                                <Badge
+                                    style={{
+                                        backgroundColor: getCultivationColor(
+                                            cult.b_lu_croprotation ?? undefined,
+                                        ),
+                                    }}
+                                    className="text-white text-xs"
+                                >
+                                    {cult.b_lu_name}
+                                </Badge>
+                                {cults.length > 1 &&
+                                    typeof cult.b_area === "number" && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {Math.round(cult.b_area * 10) / 10}{" "}
+                                            ha
+                                        </span>
+                                    )}
+                            </div>
+                        ))}
+                    </div>
                 )
             },
         },
@@ -145,7 +173,11 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
                                 key={i}
                                 className="text-xs text-muted-foreground"
                             >
-                                · {m.m_name}
+                                · {m.m_name}{" "}
+                                {typeof m.num_fields === "number" &&
+                                m.num_fields > 0
+                                    ? `(${m.num_fields} ${m.num_fields === 1 ? "perceel" : "percelen"})`
+                                    : ""}
                             </span>
                         ))}
                         {measures.length > 2 && (

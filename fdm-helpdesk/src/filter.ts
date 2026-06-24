@@ -165,18 +165,49 @@ export function getTicketWhereClause(
             : undefined,
         // Assignees
         Array.isArray(filters?.assignees) && filters.assignees.length > 0
-            ? and(
-                  isNotNull(schema.ticketAssignments.agent_id),
-                  isNull(schema.ticketAssignments.unassigned_at),
-                  inArray(schema.ticketAssignments.agent_id, filters.assignees),
+            ? exists(
+                  fdm
+                      .select({
+                          assignment_id: schema.ticketAssignments.assignment_id,
+                      })
+                      .from(schema.ticketAssignments)
+                      .where(
+                          and(
+                              eq(
+                                  schema.ticketAssignments.ticket_id,
+                                  schema.tickets.ticket_id,
+                              ),
+                              isNull(schema.ticketAssignments.unassigned_at),
+                              inArray(
+                                  schema.ticketAssignments.agent_id,
+                                  filters.assignees,
+                              ),
+                          ),
+                      ),
               )
             : undefined,
         // Tags filter
         Array.isArray(filters?.tags) && filters.tags.length > 0
-            ? inArray(schema.ticketTagsMap.tag_id, filters.tags)
+            ? exists(
+                  fdm
+                      .select({ tag_id: schema.ticketTagsMap.tag_id })
+                      .from(schema.ticketTagsMap)
+                      .where(
+                          and(
+                              eq(
+                                  schema.ticketTagsMap.ticket_id,
+                                  schema.tickets.ticket_id,
+                              ),
+                              inArray(
+                                  schema.ticketTagsMap.tag_id,
+                                  filters.tags,
+                              ),
+                          ),
+                      ),
+              )
             : undefined,
         // Text filter
-        filters.text
+        filters.text && filters.text.trim().length > 0
             ? or(
                   sql`to_tsvector('dutch', ${schema.tickets.subject}) @@ websearch_to_tsquery('dutch', ${filters.text})`,
                   sql`to_tsvector('dutch', ${schema.messages.body}) @@ websearch_to_tsquery('dutch', ${filters.text})`,

@@ -97,6 +97,9 @@ function mergeFiltersInner(
             ...(current.requesterIds ?? []),
         ]
     }
+    if (base.assigned !== undefined || current.assigned !== undefined) {
+        result.assigned = current.assigned ?? base.assigned
+    }
     if (base.fromDate || current.fromDate) {
         result.fromDate = current.fromDate ?? base.fromDate
     }
@@ -118,25 +121,23 @@ function mergeFiltersInner(
     return result
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, url }: Route.LoaderArgs) {
     try {
-        const url = new URL(request.url)
-        let pageOffset: number | undefined
-        let pageLimit: number | undefined
-
         const pageOffsetStr = url.searchParams.get("pageOffset")
-        pageOffset = pageOffsetStr
+        const pageOffset = pageOffsetStr
             ? Number.parseInt(pageOffsetStr, 10)
             : undefined
         const pageLimitStr = url.searchParams.get("pageLimit")
-        pageLimit = pageLimitStr ? Number.parseInt(pageLimitStr, 10) : undefined
+        let pageLimit = pageLimitStr
+            ? Number.parseInt(pageLimitStr, 10)
+            : undefined
         if (!Number.isFinite(pageLimit)) pageLimit = TICKET_VIEWER_PAGE_SIZE
 
         if (typeof pageOffset === "number" && pageOffset < 0) {
             const newSearchParams = new URLSearchParams(url.searchParams)
             newSearchParams.set("pageOffset", "0")
             newSearchParams.set("pageLimit", TICKET_VIEWER_PAGE_SIZE.toString())
-            return redirect(`?${newSearchParams.toString()}`)
+            return redirect(`${url.pathname}?${newSearchParams.toString()}`)
         }
 
         const {
@@ -213,7 +214,7 @@ export async function loader({ request }: Route.LoaderArgs) {
                 ).toString(),
             )
             newSearchParams.set("pageLimit", TICKET_VIEWER_PAGE_SIZE.toString())
-            return redirect(`?${newSearchParams.toString()}`)
+            return redirect(`${url.pathname}?${newSearchParams.toString()}`)
         }
 
         const tickets = await getTickets(
