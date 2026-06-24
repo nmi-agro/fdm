@@ -1,65 +1,68 @@
 # Flower bulbs (bloembollen) — nl_176 + species-specific codes
 
-Covers:
-- Generic / other bulbs: nl_176, nl_1006 (other), nl_997 (dahlia), nl_1000 (iris),
-  nl_1005 (zantedeschia), nl_1007 (amaryllis), nl_1012 (ornamental onion), nl_1015
-  (grape hyacinth), nl_1018 (tassel hyacinth), nl_1027 (peony), nl_6795 (liatris),
-  nl_6803 (snowdrop).
-- **Tulip** (nl_985, nl_986, nl_1004), **lily** (nl_979, nl_980, nl_1002),
-  **daffodil** (nl_982, nl_983, nl_1003), **hyacinth** (nl_970, nl_971, nl_999),
-  **crocus** (nl_976, nl_977, nl_1001), **gladiolus** (nl_967, nl_968, nl_998),
-  **tassel hyacinth** (nl_1016, nl_1017).
+Dekt:
+- Generieke / overige bollen: nl_176, nl_1006 (overig), nl_997 (dahlia), nl_1000 (iris),
+  nl_1005 (zantedeschia), nl_1007 (amaryllis), nl_1012 (sierui), nl_1015
+  (blauwe druif), nl_1018 (kuifhyacint), nl_1027 (pioen), nl_6795 (liatris),
+  nl_6803 (sneeuwklokje).
+- **Tulp** (nl_985, nl_986, nl_1004), **lelie** (nl_979, nl_980, nl_1002),
+  **narcis** (nl_982, nl_983, nl_1003), **hyacint** (nl_970, nl_971, nl_999),
+  **krokus** (nl_976, nl_977, nl_1001), **gladiool** (nl_967, nl_968, nl_998),
+  **kuifhyacint** (nl_1016, nl_1017).
 
-Bulb growing is a niche, contract-driven sector with very specific fertilizer advice
-that varies sharply by species and soil type. This skill provides only the cross-cutting
-rules; refer to the dedicated sector advisory documents for species- and soil-specific
-rates, and let `advice.d_*_req` carry the rate decisions.
+Bloembollenteelt is een niche- en contractgestuurde sector met zeer specifiek
+bemestingsadvies dat sterk varieert per soort en grondsoort. Deze skill geeft alleen de
+overkoepelende regels; verwijs naar de specifieke sectoradviesdocumenten voor soort- en
+grondsoortspecifieke giften, en laat `advice.d_*_req` de giftbeslissingen dragen.
 
-## Cross-cutting rules (apply to all bulb crops in NL)
+## Overkoepelende regels (gelden voor alle bolgewassen in NL)
 
-**Avoid:**
-- **Chloride is the primary risk**. Bulbs — especially lily and hyacinth — are highly
-  Cl-sensitive: KCl, kalksalpeter (CaCl₂ contamination in some grades), basic slag with
-  high Cl content, and slurry with high Cl content cause leaf-margin scorch, poor
-  rooting, and growth disorders. **Always use K₂SO₄ / patentkali as the K source**, and
-  check the Cl content of any compound or organic input before use.
-- Excess N: bulbs are very N-efficient and over-fertilization gives loose-scaled tulips,
-  disease-prone hyacinths, and weak lilies. Stay strictly within `advice.d_n_req`.
-- Late N close to leaf senescence: increases disease susceptibility and blocks the
-  natural translocation of reserves into the bulb.
+**Vermijden:**
+- **Chloride is het primaire risico**. Bollen — vooral lelie en hyacint — zijn sterk
+  Cl-gevoelig: KCl, kalksalpeter (CaCl₂-verontreiniging in sommige kwaliteiten),
+  hoogovenslakkenmeel met hoog Cl-gehalte en drijfmest met hoog Cl-gehalte veroorzaken
+  blad­randschade, slechte beworteling en groeistoornissen. **Gebruik altijd K₂SO₄ /
+  patentkali als K-bron**, en controleer vóór gebruik het Cl-gehalte van elke samengestelde
+  meststof of organische input.
+- Overmaat N: bollen zijn zeer N-efficiënt en overbemesting geeft los geschubde tulpen,
+  ziektegevoelige hyacinten en zwakke lelies. Blijf strikt binnen `advice.d_n_req`.
+- Late N kort voor bladveroudering: verhoogt de ziektegevoeligheid en blokkeert de
+  natuurlijke verplaatsing van reserves naar de bol.
 
-**Prefer:**
-- Split N: most bulbs need an early N application around emergence and a second
-  application around flowering. A roughly half-and-half split is a common starting
-  point; species-specific schemes from sector advice override this.
-- Sulphur per `advice.d_s_req` — bulb crops on the typical sandy dune and zavel soils
-  often show S deficiency.
-- Boron per `advice.d_b_req` — lily and gladiolus in particular are B-sensitive.
-- Manganese and zinc per `advice.d_mn_req` / `advice.d_zn_req` — tulip and hyacinth on
-  calcareous soils often show Mn deficiency.
-- Well-matured, low-Cl organic matter (compost, well-rotted farmyard manure) applied in
-  the previous season, not just before planting.
+**Voorkeur:**
+- Gedeelde N-gift: de meeste bollen hebben een vroege N-gift rond opkomst nodig en een
+  tweede gift rond bloei. Een verdeling van ongeveer half-om-half is een gebruikelijk
+  startpunt; soortspecifieke schema's uit sectoradvies gaan hier boven.
+- Zwavel volgens `advice.d_s_req` — bolgewassen op de typische duinzand- en zavelgronden
+  vertonen vaak S-gebrek.
+- Borium volgens `advice.d_b_req` — vooral lelie en gladiool zijn B-gevoelig.
+- Mangaan en zink volgens `advice.d_mn_req` / `advice.d_zn_req` — tulp en hyacint op
+  kalkrijke gronden vertonen vaak Mn-gebrek.
+- Goed uitgerijpte, Cl-arme organische stof (compost, goed verteerde stalmest) toegediend
+  in het voorafgaande seizoen, niet vlak vóór planten.
 
-**Per species — points to flag:**
-- **Lily (nl_979, nl_980, nl_1002)**: extremely Cl-sensitive; never use KCl; also limit
-  slurry because of Cl and salt content. Patentkali / K₂SO₄ + ammonium sulphate as the
-  base.
-- **Hyacinth (nl_970, nl_971, nl_999, nl_1018)**: highly Cl-sensitive; Mn on calcareous
-  soils via `advice.d_mn_req`.
-- **Tulip (nl_985, nl_986, nl_1004)**: moderately Cl-sensitive; N management drives
-  bulb-lifting quality and skin quality.
-- **Daffodil (nl_982, nl_983, nl_1003)**: relatively robust but Cl is best avoided;
-  liming with care — daffodil does not tolerate high pH after long cropping history.
-- **Crocus (nl_976, nl_977, nl_1001)**, **gladiolus (nl_967, nl_968, nl_998)**:
-  sensitive to salt load; gladiolus needs B.
-- **Dahlia (nl_997), zantedeschia (nl_1005), amaryllis (nl_1007), liatris, peony
-  (nl_1027)** etc.: highly specialised; rely on `advice.d_*_req` and sector advice.
+**Per soort — punten om te markeren:**
+- **Lelie (nl_979, nl_980, nl_1002)**: extreem Cl-gevoelig; gebruik nooit KCl; beperk ook
+  drijfmest vanwege Cl- en zoutgehalte. Patentkali / K₂SO₄ + ammoniumsulfaat als basis.
+- **Hyacint (nl_970, nl_971, nl_999, nl_1018)**: sterk Cl-gevoelig; Mn op kalkrijke
+  gronden via `advice.d_mn_req`.
+- **Tulp (nl_985, nl_986, nl_1004)**: matig Cl-gevoelig; N-beheer stuurt rooikwaliteit
+  en huidkwaliteit van de bol.
+- **Narcis (nl_982, nl_983, nl_1003)**: relatief robuust, maar Cl wordt bij voorkeur
+  vermeden; voorzichtig bekalken — narcis verdraagt na een lange teelthistorie geen hoge
+  pH.
+- **Krokus (nl_976, nl_977, nl_1001)**, **gladiool (nl_967, nl_968, nl_998)**:
+  gevoelig voor zoutbelasting; gladiool heeft B nodig.
+- **Dahlia (nl_997), zantedeschia (nl_1005), amaryllis (nl_1007), liatris, pioen
+  (nl_1027)** etc.: sterk gespecialiseerd; vertrouw op `advice.d_*_req` en sectoradvies.
 
-**Extra attention:**
-- Crop rotation and *Pratylenchus* / nematode management partly drive fertilizer choice
-  (green-manure choice; avoid Tagetes / carrot adjacency; etc.); flag this only if the
-  grower asks — it is not a fertilizer decision.
-- Bulb fields are often on calcareous dune soils or clay; pH is usually already high
-  (pH-KCl > 7) and liming is rarely needed — always verify before recommending lime.
-- Refer to the relevant sector fertilizer guidance for species- and soil-specific
-  N / P / K / S / Mg / B / Mn rates; this skill provides the qualitative envelope only.
+**Extra aandacht:**
+- Vruchtwisseling en *Pratylenchus* / aaltjesbeheer sturen de meststofkeuze deels
+  (keuze van groenbemester; vermijd nabijheid van Tagetes / peen; etc.); markeer dit
+  alleen als de teler ernaar vraagt — het is geen bemestingsbeslissing.
+- Bollenpercelen liggen vaak op kalkrijke duinzandgronden of klei; de pH is meestal al
+  hoog (pH-KCl > 7) en bekalking is zelden nodig — verifieer dit altijd vóór het
+  aanbevelen van kalk.
+- Verwijs naar de relevante sectorbemestingsrichtlijnen voor soort- en
+  grondsoortspecifieke N / P / K / S / Mg / B / Mn-giften; deze skill geeft alleen de
+  kwalitatieve bandbreedte.
