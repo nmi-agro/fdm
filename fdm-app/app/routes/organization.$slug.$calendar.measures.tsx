@@ -305,6 +305,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                 }
             }
         }
+
         const measureRows: MeasureTableRow[] = [...measuresByMId.values()].sort(
             (a, b) => a.m_name.localeCompare(b.m_name, "nl"),
         )
@@ -335,6 +336,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                 mainCultivations: mainCultivations,
                 measures: measures.map((m) => ({
                     m_name: m.m_name,
+                    num_fields:
+                        farmMeasures
+                            .get(farm.b_id_farm)
+                            ?.measures.find((cm) => cm.m_id === m.m_id)
+                            ?.fieldCount ?? 0,
                 })),
             }
         })

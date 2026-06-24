@@ -19,7 +19,7 @@ export type FieldSummaryRow = {
               b_area?: number | null
           }[]
         | null
-    measures: { m_name: string }[]
+    measures: { m_name: string; num_fields?: number }[]
     /** href to the field's measures detail page */
     href: string
 }
@@ -173,7 +173,11 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
                                 key={i}
                                 className="text-xs text-muted-foreground"
                             >
-                                · {m.m_name}
+                                · {m.m_name}{" "}
+                                {typeof m.num_fields === "number" &&
+                                m.num_fields > 0
+                                    ? `(${m.num_fields} ${m.num_fields === 1 ? "perceel" : "percelen"})`
+                                    : ""}
                             </span>
                         ))}
                         {measures.length > 2 && (
