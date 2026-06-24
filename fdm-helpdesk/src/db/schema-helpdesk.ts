@@ -47,7 +47,7 @@ export const tickets = fdmHelpdeskSchema.table(
         index("ticket_farm_idx").on(table.context_farm_id),
         index("title_search_idx").using(
             "gin",
-            sql`to_tsvector('dutch', ${table.subject})`,
+            sql`to_tsvector('dutch', ${table.ticket_ref} || ' ' || ${table.subject})`,
         ),
     ],
 )
