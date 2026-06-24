@@ -29,7 +29,7 @@ export function getSafeFarmPath(currentPath: string, newFarmId: string) {
 
     // Check if the module has safe submodules we want to preserve
     let keepIndex = moduleIndex
-    const subModuleDirs = ["balance", "atlas", "rotation_", "settings"]
+    const subModuleDirs = ["balance", "atlas", "rotation", "settings"]
     if (
         segments.length > moduleIndex + 1 &&
         subModuleDirs.includes(segments[moduleIndex])
