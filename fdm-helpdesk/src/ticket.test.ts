@@ -320,6 +320,19 @@ test.describe("getTickets", () => {
         ).toBe(false)
     })
 
+    test("should search for ticket ref", async ({ fdm }) => {
+        const ticket_1 = await getTicket(fdm, agent_id, ticket_id_1)
+
+        const tickets = await getTickets(fdm, agent_id, {
+            text: ticket_1.ticket_ref,
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 (whose ticket ref is in the search text) should be in the results",
+        ).toBe(true)
+    })
+
     test("should only list regular user's own tickets", async ({ fdm }) => {
         const new_ticket_id = await createTicket(
             fdm,
