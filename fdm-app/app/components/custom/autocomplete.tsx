@@ -7,7 +7,7 @@ import type {
     Path,
     UseFormSetValue,
 } from "react-hook-form"
-import { useFetcher } from "react-router-dom"
+import { useFetcher } from "react-router"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import {
     Command,

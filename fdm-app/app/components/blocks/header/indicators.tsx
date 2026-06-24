@@ -24,7 +24,7 @@ export function HeaderIndicators({ b_id_farm }: { b_id_farm: string }) {
 
     // Read field name + field list from the field detail loader
     const fieldMatch = matches.find((m) => m.id.includes("indicators.$b_id"))
-    const fieldData = fieldMatch?.data as
+    const fieldData = fieldMatch?.loaderData as
         | {
               field?: { b_name?: string | null }
               fieldList?: Array<{ b_id: string; b_name: string | null }>

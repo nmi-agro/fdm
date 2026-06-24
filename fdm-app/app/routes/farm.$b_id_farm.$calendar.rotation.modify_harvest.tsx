@@ -24,8 +24,8 @@ import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_h
 import { getEffectiveHarvestable, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
 
 // Meta
-export const meta: Route.MetaFunction = ({ data }) => {
-    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+    const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
     return [
         { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
         {

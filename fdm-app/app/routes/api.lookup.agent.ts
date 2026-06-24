@@ -1,5 +1,5 @@
 import { type Agent, getAgents } from "@nmi-agro/fdm-helpdesk"
-import { data, type LoaderFunctionArgs } from "react-router-dom"
+import { data, type LoaderFunctionArgs } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
