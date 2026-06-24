@@ -1,23 +1,13 @@
+import { ChevronDown, ChevronRight, CornerDownRight, Info } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
-import { ChevronDown, ChevronRight, Info, CornerDownRight } from "lucide-react"
-import { cn } from "~/lib/utils"
+import { Badge } from "~/components/ui/badge"
 import {
-    type AggregationId,
-    getAggregationInfo,
-    getChildren,
-    getIndicatorIdsForAggregation,
-    getAggregationIdsForIndicator,
-} from "~/lib/aggregations"
-import {
-    getScoreBarClass,
-    getScoreBadgeClass,
-    getScoreDotClass,
-    getScoreTextClass,
-    getScoreVerdict,
-    scoreToDisplay,
-    getIndicatorInfo,
-} from "~/lib/indicators"
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "~/components/ui/collapsible"
+import { Progress } from "~/components/ui/progress"
 import {
     Tooltip,
     TooltipContent,
@@ -25,12 +15,22 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "~/components/ui/collapsible"
-import { Progress } from "~/components/ui/progress"
-import { Badge } from "~/components/ui/badge"
+    type AggregationId,
+    getAggregationIdsForIndicator,
+    getAggregationInfo,
+    getChildren,
+    getIndicatorIdsForAggregation,
+} from "~/lib/aggregations"
+import {
+    getIndicatorInfo,
+    getScoreBadgeClass,
+    getScoreBarClass,
+    getScoreDotClass,
+    getScoreTextClass,
+    getScoreVerdict,
+    scoreToDisplay,
+} from "~/lib/indicators"
+import { cn } from "~/lib/utils"
 
 type FieldEntry = {
     b_id: string
@@ -39,6 +39,8 @@ type FieldEntry = {
 }
 
 type AggregationTreeProps = {
+    /** Whether to say farms-in-organization or fields-in-farm in the user-facing messages */
+    domain?: "organization" | "farm"
     /** Accessor to get aggregation score (0-1) */
     scoreOf: (id: AggregationId) => number | null
     /** Accessor to get indicator score (0-1) */
@@ -48,18 +50,27 @@ type AggregationTreeProps = {
     /** List of fields for drill-down (top-5 worst fields per indicator) */
     fields?: FieldEntry[]
     /** Raw field scores for per-field indicator lookup */
-    fieldScores?: Array<{ b_id: string; score: { indicators: Array<{ indicator_id: string; score: number | null }> } | null }>
+    fieldScores?: Array<{
+        b_id: string
+        score: {
+            indicators: Array<{ indicator_id: string; score: number | null }>
+        } | null
+    }>
     /** Base path for field links, e.g. /farm/123/2026/indicators */
     basePath?: string
+    /** Base path formatter for field links, e.g. (b_id: string) => "/farm/123/2026/indicators/" + b_id */
+    basePathFormatter?: (b_id: string) => string
 }
 
 export function AggregationTree({
+    domain = "farm",
     scoreOf,
     indicatorScoreOf,
     onIndicatorClick,
     fields,
     fieldScores,
     basePath,
+    basePathFormatter,
 }: AggregationTreeProps) {
     // Keep track of expanded state for branches and leaves
     const [expanded, setExpanded] = useState<Record<string, boolean>>({
@@ -85,7 +96,7 @@ export function AggregationTree({
         )
     }
 
-    const renderNode = (id: AggregationId, depth: number = 0) => {
+    const renderNode = (id: AggregationId, depth = 0) => {
         const info = getAggregationInfo(id)
         const scoreVal = scoreOf(id)
         const displayScore = scoreVal !== null ? scoreToDisplay(scoreVal) : null
@@ -226,7 +237,11 @@ export function AggregationTree({
                                         )
 
                                 // Top-5 worst-impact fields for this indicator
-                                const hasFieldData = !!(fields && fieldScores && basePath)
+                                const hasFieldData = !!(
+                                    fields &&
+                                    fieldScores &&
+                                    (basePath || basePathFormatter)
+                                )
                                 const indKey = `ind:${indId}`
                                 const isIndExpanded = !!expanded[indKey]
 
@@ -311,11 +326,15 @@ export function AggregationTree({
                                                             <span className="font-semibold tabular-nums w-6 text-right">
                                                                 {indDisplay}
                                                             </span>
-                                                            {renderScoreBar(indDisplay)}
+                                                            {renderScoreBar(
+                                                                indDisplay,
+                                                            )}
                                                             <span
                                                                 className={cn(
                                                                     "w-2 h-2 rounded-full",
-                                                                    getScoreDotClass(indDisplay)
+                                                                    getScoreDotClass(
+                                                                        indDisplay,
+                                                                    ),
                                                                 )}
                                                             />
                                                         </>
@@ -336,35 +355,69 @@ export function AggregationTree({
                                                 >
                                                     {worstFields.length === 0 ? (
                                                         <p className="text-[10px] text-muted-foreground italic py-1 px-2">
-                                                            Geen perceelsdata beschikbaar.
+                                                            { domain === "organization" ? "Geen bedrijfsdata beschikbaar." : "Geen perceelsdata beschikbaar." }
                                                         </p>
                                                     ) : (
                                                         <>
                                                             <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide pb-0.5">
-                                                                Top {worstFields.length} percelen met hoogste negatieve impact
+                                                                Top{" "}
+                                                                {
+                                                                    worstFields.length
+                                                                }{" "}
+                                                                {domain ===
+                                                                "organization"
+                                                                    ? "bedrijven"
+                                                                    : "percelen"}{" "}
+                                                                met hoogste
+                                                                negatieve impact
                                                             </p>
-                                                            {worstFields.map((field) => (
-                                                                <Link
-                                                                    key={field.b_id}
-                                                                    to={`${basePath}/${field.b_id}`}
-                                                                    className="flex items-center justify-between gap-2 px-2 py-1 rounded border border-dashed border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-xs group"
-                                                                >
-                                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                                        <CornerDownRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                                        <span className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                                                                            {field.b_name || `Perceel ${field.b_id}`}
-                                                                        </span>
-                                                                        {field.b_area != null && (
-                                                                            <span className="text-[10px] text-muted-foreground shrink-0">
-                                                                                ({field.b_area.toFixed(1)} ha)
+                                                            {worstFields.map(
+                                                                (field) => (
+                                                                    <Link
+                                                                        key={
+                                                                            field.b_id
+                                                                        }
+                                                                        to={
+                                                                            basePathFormatter
+                                                                                ? basePathFormatter(
+                                                                                      field.b_id,
+                                                                                  )
+                                                                                : `${basePath}/${field.b_id}`
+                                                                        }
+                                                                        className="flex items-center justify-between gap-2 px-2 py-1 rounded border border-dashed border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-xs group"
+                                                                    >
+                                                                        <div className="flex items-center gap-1.5 min-w-0">
+                                                                            <CornerDownRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                                                            <span className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                                                                                {field.b_name ||
+                                                                                    `${domain === "organization" ? "Bedrijf" : "Perceel"} ${field.b_id}`}
                                                                             </span>
-                                                                        )}
-                                                                    </div>
-                                                                    <span className={cn("font-bold tabular-nums shrink-0", getScoreTextClass(field.display))}>
-                                                                        {field.display}
-                                                                    </span>
-                                                                </Link>
-                                                            ))}
+                                                                            {field.b_area !=
+                                                                                null && (
+                                                                                <span className="text-[10px] text-muted-foreground shrink-0">
+                                                                                    (
+                                                                                    {field.b_area.toFixed(
+                                                                                        1,
+                                                                                    )}{" "}
+                                                                                    ha)
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <span
+                                                                            className={cn(
+                                                                                "font-bold tabular-nums shrink-0",
+                                                                                getScoreTextClass(
+                                                                                    field.display,
+                                                                                ),
+                                                                            )}
+                                                                        >
+                                                                            {
+                                                                                field.display
+                                                                            }
+                                                                        </span>
+                                                                    </Link>
+                                                                ),
+                                                            )}
                                                         </>
                                                     )}
                                                 </div>

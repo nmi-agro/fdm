@@ -44,9 +44,13 @@ export async function loader({ params, request }: Args) {
     try {
         const session = await getSession(request)
 
-        const [ticket, messages, availableTags, canAddMessages, isAgent] =
+        const ticket = await getTicket(
+            fdm,
+            session.principal_id,
+            params.ticket_id,
+        )
+        const [messages, availableTags, canAddMessages, isAgent] =
             await Promise.all([
-                getTicket(fdm, session.principal_id, params.ticket_id),
                 getMessagesForTicket(
                     fdm,
                     session.principal_id,
