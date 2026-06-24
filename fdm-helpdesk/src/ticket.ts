@@ -615,6 +615,43 @@ export async function updateTicketSubjectAndPriorityUnchecked(
 }
 
 /**
+ * Updates the ticket subject.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have agent-side write access to the ticket.
+ * @param ticket_id ID of the ticket to update.
+ * @param subject The new ticket subject.
+ */
+export async function updateTicketSubject(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+    ticket_id: schema.TicketTypeSelect["ticket_id"],
+    subject?: string,
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "ticket-agent-side",
+            "write",
+            ticket_id,
+            principal_id,
+            "updateTicketPriority",
+        )
+
+        await fdm
+            .update(schema.tickets)
+            .set({ subject: subject, updated: sql`now()` })
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+    } catch (e) {
+        throw handleError(e, "Exception for updateTicketSubject", {
+            principal_id,
+            ticket_id,
+        })
+    }
+}
+
+/**
  * Updates the ticket priority.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
@@ -645,6 +682,7 @@ export async function updateTicketPriority(
             .where(eq(schema.tickets.ticket_id, ticket_id))
     } catch (e) {
         throw handleError(e, "Exception for updateTicketPriority", {
+            principal_id,
             ticket_id,
             priority,
         })
