@@ -1,5 +1,5 @@
 {
-  "id": "8c548f2b-3a36-4b98-8927-cb56de61701a",
+  "id": "cb881026-9e17-49e6-9464-7aedaafa8b44",
   "prevId": "c23c89b3-cf18-4fb2-a303-5301589906ec",
   "version": "7",
   "dialect": "postgresql",
@@ -1026,8 +1026,8 @@
           "method": "btree",
           "with": {}
         },
-        "title_search_idx": {
-          "name": "title_search_idx",
+        "ticket_ref_subject_idx": {
+          "name": "ticket_ref_subject_idx",
           "columns": [
             {
               "expression": "to_tsvector('dutch', \"ticket_ref\" || ' ' || coalesce(\"subject\", ''))",

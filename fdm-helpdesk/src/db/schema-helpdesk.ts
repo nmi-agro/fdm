@@ -45,7 +45,7 @@ export const tickets = fdmHelpdeskSchema.table(
         index("ticket_priority_idx").on(table.priority),
         index("ticket_created_idx").on(table.created),
         index("ticket_farm_idx").on(table.context_farm_id),
-        index("title_search_idx").using(
+        index("ticket_ref_subject_idx").using(
             "gin",
             sql`to_tsvector('dutch', ${table.ticket_ref} || ' ' || coalesce(${table.subject}, ''))`,
         ),
