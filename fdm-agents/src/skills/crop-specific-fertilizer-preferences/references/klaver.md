@@ -1,43 +1,43 @@
-# Clover (klaver) — pure stand, clover seed, and clover catch-crop
+# Klaver (klaver) — zuivere teelt, klaverzaad en klaver als vanggewas
 
-Includes:
-- **Production / seed crops**: red clover (nl_799), birdsfoot trefoil / rolklaver
-  (nl_800), white clover (nl_3524), Alexandrian clover (nl_3500), crimson clover
-  (nl_3511), Persian clover (nl_3515).
-- **Clover seed**: nl_804, nl_1570, nl_6757 (Alexandrian), nl_6759 (crimson), nl_6761
-  (Persian), nl_6763 (red), nl_6765 (white), nl_6769 (other).
-- **Clover as green manure / catch crop**: nl_6756 (Alexandrian), nl_6758 (crimson),
-  nl_6760 (Persian), nl_6762 (red), nl_6764 (white).
+Omvat:
+- **Productie- / zaadteelten**: rode klaver (nl_799), birdsfoot trefoil / rolklaver
+  (nl_800), witte klaver (nl_3524), Alexandrijnse klaver (nl_3500), incarnaatklaver
+  (nl_3511), Perzische klaver (nl_3515).
+- **Klaverzaad**: nl_804, nl_1570, nl_6757 (Alexandrijnse), nl_6759 (incarnaat), nl_6761
+  (Perzische), nl_6763 (rode), nl_6765 (witte), nl_6769 (overige).
+- **Klaver als groenbemester / vanggewas**: nl_6756 (Alexandrijnse), nl_6758 (incarnaat),
+  nl_6760 (Perzische), nl_6762 (rode), nl_6764 (witte).
 
-For grass / clover mixtures see `grasland.md` (clover persistence is part of the
-grassland liming and K considerations).
+Voor gras-/klavermengsels zie `grasland.md` (klaverpersistentie maakt deel uit van de
+bekalkings- en K-overwegingen voor grasland).
 
-**Prefer:**
-- **Inoculation** when clover is sown into a rotation without a recent clover history —
-  *Rhizobium leguminosarum* bv. *trifolii* is usually present in NL soils, but on
-  first-time or long-fallow fields inoculation is insurance.
-- P, K, S, B per `advice.d_p_req` / `advice.d_k_req` / `advice.d_s_req` /
-  `advice.d_b_req`. Clover is a heavy P and K user and B-sensitive.
-- Liming on acid soils — clover is pH-sensitive (Rhizobium activity drops on low pH).
-  Treat low pH-KCl as a risk flag and consult `advice.d_ca_req`.
-- Molybdenum on acid soils: Mo availability is poor below pH-KCl ~5.5–6.0, and Mo is the
-  cofactor for nitrogenase. Consult `advice.d_mo_req`.
+**Voorkeur:**
+- **Inoculatie** wanneer klaver wordt gezaaid in een rotatie zonder recente klavergeschiedenis —
+  *Rhizobium leguminosarum* bv. *trifolii* is meestal aanwezig in Nederlandse bodems, maar op
+  percelen met eerste teelt of na langdurige braak is inoculatie een verzekering.
+- P, K, S, B volgens `advice.d_p_req` / `advice.d_k_req` / `advice.d_s_req` /
+  `advice.d_b_req`. Klaver heeft een hoge P- en K-behoefte en is B-gevoelig.
+- Bekalking op zure gronden — klaver is pH-gevoelig (Rhizobium-activiteit neemt af bij lage
+  pH). Behandel een lage pH-KCl als een risicosignaal en raadpleeg `advice.d_ca_req`.
+- Molybdeen op zure gronden: Mo is slecht beschikbaar onder pH-KCl ~5,5–6,0, en Mo is de
+  cofactor voor nitrogenase. Raadpleeg `advice.d_mo_req`.
 
-**Avoid:**
-- Mineral N — suppresses nodulation. Follow `advice.d_n_req` (normally zero for
-  production clover and clover catch-crops).
-- Slurry in spring on production clover — high N content and uneven N release. A modest
-  slurry application in late autumn or before sowing is acceptable.
+**Vermijden:**
+- Minerale N — onderdrukt knolvorming. Volg `advice.d_n_req` (normaal nul voor productieklaver
+  en klaver als vanggewas).
+- Drijfmest in het voorjaar op productieklaver — hoog N-gehalte en ongelijkmatige N-vrijstelling.
+  Een bescheiden drijfmestgift in de late herfst of vóór het zaaien is acceptabel.
 
-**Clover seed crops — extra:**
-- Bee activity is essential for seed set. Avoid insecticide applications during
-  flowering; this is not a fertilizer decision but should be noted in the plan when
-  clover seed is on the farm.
-- Lodging severely depresses seed yield; do not apply any spring N beyond what
-  `advice.d_n_req` supports.
+**Klaverzaadteelten — extra:**
+- Bijenactiviteit is essentieel voor de zaadzetting. Vermijd insecticidetoepassingen tijdens
+  de bloei; dit is geen bemestingsbeslissing, maar moet in het plan worden vermeld wanneer
+  klaverzaad op het bedrijf staat.
+- Legering drukt de zaadopbrengst sterk; geef in het voorjaar geen N boven wat
+  `advice.d_n_req` ondersteunt.
 
-**Clover as green manure / catch crop — extra:**
-- The goal is residual N for the following crop. No fertilization needed; keep
-  `advice.d_n_req` near zero.
-- When incorporated, include the N release in next year's N budget through the standard
-  fdm-calculator workflow (rotation-level), not as an ad-hoc reduction here.
+**Klaver als groenbemester / vanggewas — extra:**
+- Het doel is resterende N voor het volggewas. Geen bemesting nodig; houd `advice.d_n_req`
+  dicht bij nul.
+- Neem bij inwerken de N-vrijstelling op in de N-begroting van volgend jaar via de standaard
+  fdm-calculator-workflow (rotatieniveau), niet als een ad-hoc verlaging hier.

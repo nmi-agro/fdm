@@ -9,6 +9,9 @@ export default function PostHogClient(): PostHog | null {
         if (posthogHost && posthogKey?.startsWith("phc")) {
             posthogClient = new PostHog(posthogKey, {
                 host: posthogHost,
+                // Send events one at a time to avoid 413s from large LLM
+                // payloads (reasoning traces + tool results can be sizeable).
+                maxBatchSize: 1,
             })
         }
     }

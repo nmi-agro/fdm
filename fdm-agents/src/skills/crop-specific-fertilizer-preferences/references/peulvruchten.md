@@ -1,69 +1,71 @@
-# Peulvruchten (legumes) — nl_239, nl_241, nl_244, nl_308, nl_2650, nl_242, nl_243, nl_311, nl_665, nl_853, nl_854, nl_2779, nl_7121
+# Peulvruchten (vlinderbloemigen) — nl_239, nl_241, nl_244, nl_308, nl_2650, nl_242, nl_243, nl_311, nl_665, nl_853, nl_854, nl_2779, nl_7121
 
-Peulvruchten in this file cover several genera with different N₂-fixation strength and
-therefore different N strategies. Pick the subsection that matches the field's catalogue
-code; only the common rules apply unconditionally.
+Peulvruchten in dit bestand omvatten meerdere geslachten met verschillende sterkte van
+N₂-binding en daarom verschillende N-strategieën. Kies de subsectie die past bij de
+cataloguscode van het perceel; alleen de algemene regels gelden onvoorwaardelijk.
 
-## Common rules
+## Algemene regels
 
-**Prefer:**
-- Phosphate and potassium supply is often more important than N for these crops. Ensure P and
-  K advice is met (`advice.d_p_req`, `advice.d_k_req`).
-- Molybdenum (Mo): essential cofactor for nitrogenase; consult `advice.d_mo_req` (Mo is
-  poorly available on acid soils).
+**Voorkeur:**
+- Fosfaat- en kaliumvoorziening is voor deze gewassen vaak belangrijker dan N. Zorg dat het P-
+  en K-advies wordt ingevuld (`advice.d_p_req`, `advice.d_k_req`).
+- Molybdeen (Mo): essentiële cofactor voor nitrogenase; raadpleeg `advice.d_mo_req` (Mo is
+  slecht beschikbaar op zure gronden).
 
-**Avoid:**
-- Slurry at sowing — risk of surface compaction and reduced emergence.
+**Vermijden:**
+- Drijfmest bij het zaaien — risico op oppervlakkige verdichting en verminderde opkomst.
 
-**Extra attention:**
-- N-nalevering (residual N): peulvruchten leave significant residual N for the following crop.
-  Note this in the plan for rotation-level N planning, especially for Vicia and Pisum.
+**Extra aandacht:**
+- N-nalevering (resterende N): peulvruchten laten aanzienlijke resterende N achter voor het
+  volggewas. Noteer dit in het plan voor N-planning op rotatieniveau, vooral voor Vicia en
+  Pisum.
 
 ## Pisum sativum — erwten, kapucijners, schokkers — nl_239, nl_241, nl_244, nl_308, nl_2650
 
-Strong N₂-fixation via *Rhizobium leguminosarum*. The native NL soil population is generally
-adequate; no inoculation needed in standard rotations.
+Sterke N₂-binding via *Rhizobium leguminosarum*. De natuurlijke populatie in Nederlandse
+bodems is doorgaans voldoende; in standaardrotaties is geen inoculatie nodig.
 
-**Prefer:**
-- Minimal mineral N. Follow `advice.d_n_req`; if the advice supports a small starter dose at
-  sowing on low-Nmin fields, use it, no further top-dressing.
+**Voorkeur:**
+- Minimale minerale N. Volg `advice.d_n_req`; als het advies een kleine startgift bij het
+  zaaien op percelen met lage Nmin ondersteunt, gebruik die dan, zonder verdere bijbemesting.
 
-**Avoid:**
-- Mineral N top-dressings during the season — suppress nodulation, waste input, and increase
-  nitrate leaching after harvest.
+**Vermijden:**
+- Minerale N-bijbemestingen tijdens het seizoen — onderdrukken knolvorming, verspillen input
+  en verhogen nitraatuitspoeling na de oogst.
 
 ## Vicia faba — tuinbonen (nl_853, nl_854) en veldbonen (nl_243, nl_311)
 
-Strong N₂-fixation via *Rhizobium leguminosarum* bv. *viciae*. Same rules as Pisum: minimal
-mineral N, follow `advice.d_n_req`. Tuinbonen and veldbonen are both *Vicia faba* in NL
-agronomy — apply identical rules regardless of whether the crop is harvested green
-(nl_854) or droog (nl_853, nl_243, nl_311).
+Sterke N₂-binding via *Rhizobium leguminosarum* bv. *viciae*. Zelfde regels als voor Pisum:
+minimale minerale N, volg `advice.d_n_req`. Tuinbonen en veldbonen zijn in de Nederlandse
+agronomie beide *Vicia faba* — pas identieke regels toe ongeacht of het gewas groen wordt
+geoogst (nl_854) of droog (nl_853, nl_243, nl_311).
 
 ## Glycine max — sojabonen — nl_665
 
-Soja's native rhizobia partner (*Bradyrhizobium japonicum*) is **not** native to Dutch soils.
+De natuurlijke rhizobia-partner van soja (*Bradyrhizobium japonicum*) komt **niet** van nature
+voor in Nederlandse bodems.
 
-**Prefer:**
-- Bradyrhizobium **inoculation is essential** on any field without recent soja history. Flag
-  this prominently in the plan.
-- Minimal mineral N once inoculation is in place; follow `advice.d_n_req`.
+**Voorkeur:**
+- Bradyrhizobium-**inoculatie is essentieel** op elk perceel zonder recente sojageschiedenis.
+  Markeer dit duidelijk in het plan.
+- Minimale minerale N zodra inoculatie op orde is; volg `advice.d_n_req`.
 
-**Avoid:**
-- Skipping inoculation on first-time soja fields — without it, the crop fixes no N and the
-  yield collapses.
+**Vermijden:**
+- Inoculatie overslaan op percelen waar voor het eerst soja wordt geteeld — zonder inoculatie
+  bindt het gewas geen N en valt de opbrengst terug.
 
 ## Phaseolus vulgaris — bruine bonen (nl_242), witte bonen (nl_7121), stamslabonen (nl_2779)
 
-Phaseolus has **weaker N₂-fixation** under Dutch conditions than Vicia or Pisum, and the
-fixation also starts later in the season. A modest starter N dose is therefore commonly part
-of NL advice for these crops.
+Phaseolus heeft onder Nederlandse omstandigheden **zwakkere N₂-binding** dan Vicia of Pisum,
+en de binding start ook later in het seizoen. Een bescheiden startgift N maakt daarom vaak deel
+uit van het Nederlandse advies voor deze gewassen.
 
-**Prefer:**
-- A starter N dose at sowing as supplied by `advice.d_n_req` — do not assume zero N as for
-  erwten/veldbonen.
-- B and Mo per `advice.d_b_req` / `advice.d_mo_req`; Phaseolus is more B-sensitive than the
-  other peulvruchten.
+**Voorkeur:**
+- Een startgift N bij het zaaien zoals geleverd door `advice.d_n_req` — ga niet uit van nul N
+  zoals bij erwten/veldbonen.
+- B en Mo volgens `advice.d_b_req` / `advice.d_mo_req`; Phaseolus is B-gevoeliger dan de
+  andere peulvruchten.
 
-**Avoid:**
-- Treating Phaseolus like erwten/veldbonen and skipping starter N — emergence and early
-  growth suffer on cold or N-poor soils.
+**Vermijden:**
+- Phaseolus behandelen als erwten/veldbonen en de startgift N overslaan — opkomst en vroege
+  groei lijden op koude of N-arme gronden.

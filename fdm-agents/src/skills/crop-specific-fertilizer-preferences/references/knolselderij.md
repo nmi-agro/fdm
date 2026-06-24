@@ -1,30 +1,30 @@
 # Celeriac (knolselderij) — nl_2725 (production), nl_2726 (seeds and propagation material)
 
-Celeriac is a long-cycle (180+ days) root crop, planted in May and harvested in
-October–November. High N / K / B requirement; particularly B-sensitive (heart rot /
-black hearts).
+Knolselderij is een wortelgewas met een lange teeltduur (180+ dagen), geplant in mei en
+geoogst in oktober–november. Hoge behoefte aan N / K / B; bijzonder B-gevoelig
+(hartrot / zwarte harten).
 
-**Prefer:**
-- Split N: base application before planting + 1–2 top-dresses (July and August). The
-  long cycle requires a steady supply to prevent cracking and root anomalies. Total
-  according to `advice.d_n_req`.
-- K as K₂SO₄ — celeriac is moderately Cl-sensitive (taste, shelf life).
-- **Boron**: critical to prevent heart rot (internal black hearts). Combine a soil
-  application with a foliar spray at the first critical growth stage. Follow
+**Voorkeur:**
+- Gedeelde N-gift: basisgift vóór planten + 1–2 bijbemestingen (juli en augustus). De
+  lange teeltduur vraagt om een gelijkmatige aanvoer om scheuren en wortelafwijkingen te
+  voorkomen. Totaal volgens `advice.d_n_req`.
+- K als K₂SO₄ — knolselderij is matig Cl-gevoelig (smaak, houdbaarheid).
+- **Borium**: cruciaal om hartrot (interne zwarte harten) te voorkomen. Combineer een
+  bodemtoepassing met een bladbespuiting in het eerste kritieke groeistadium. Volg
   `advice.d_b_req`.
-- Manganese per `advice.d_mn_req` on calcareous soils.
-- Well-matured organic matter in spring or the previous autumn — celeriac responds
-  strongly to soil structure and organic matter.
+- Mangaan volgens `advice.d_mn_req` op kalkrijke gronden.
+- Goed uitgerijpte organische stof in het voorjaar of de voorgaande herfst — knolselderij
+  reageert sterk op bodemstructuur en organische stof.
 
-**Avoid:**
-- Fresh slurry close to planting — uneven emergence, cracked roots, disease risk
-  (*Sclerotinia*, *Septoria apii*).
-- N peaks in August–September: increase the risk of internal quality defects and hollow
-  roots.
-- Irregular irrigation combined with high N — cracking and hollow roots even when
-  `advice.d_b_req` and `advice.d_ca_req` are met.
+**Vermijden:**
+- Verse drijfmest kort voor planten — ongelijkmatige opkomst, gescheurde knollen,
+  ziekterisico (*Sclerotinia*, *Septoria apii*).
+- N-pieken in augustus–september: verhogen het risico op interne kwaliteitsgebreken en
+  holle knollen.
+- Onregelmatige beregening gecombineerd met hoge N — scheuren en holle knollen, zelfs
+  wanneer aan `advice.d_b_req` en `advice.d_ca_req` is voldaan.
 
-**Extra attention:**
-- Celeriac is not a "root" like carrot or chicory — do not apply carrot rules.
-- Keep the foliage vital into autumn for root sizing; an early-August application is
-  therefore legitimate, provided it is early in the month and within `advice.d_n_req`.
+**Extra aandacht:**
+- Knolselderij is geen "wortel" zoals peen of cichorei — pas geen peenregels toe.
+- Houd het loof vitaal tot in de herfst voor knolgroei; een toepassing begin augustus is
+  daarom legitiem, mits vroeg in de maand en binnen `advice.d_n_req`.

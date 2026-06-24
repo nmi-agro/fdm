@@ -42,7 +42,7 @@ export const FieldPlanEntrySchema = z.object({
  */
 const EmissionSchema = z.object({
     ammonia: z.object({ total: z.number() }),
-    nitrate: z.object({ total: z.number() }),
+    nitrate: z.number(),
 })
 
 /**

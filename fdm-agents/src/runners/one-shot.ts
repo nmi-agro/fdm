@@ -7,6 +7,7 @@ export interface OneShotAgentResult {
     result: string
     structuredResponse?: Record<string, unknown>
     runId: string
+    threadId: string
     usage: {
         inputTokens: number
         outputTokens: number
@@ -99,6 +100,9 @@ export async function runOneShotAgent(
     const abortController = new AbortController()
     const callbacks = buildCallbacks(posthog, context)
     const runId = randomUUID()
+    // Unique thread ID per invocation so all LLM and tool runs for this request
+    // are grouped under a single thread in LangSmith.
+    const threadId = randomUUID()
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -126,6 +130,7 @@ export async function runOneShotAgent(
                 runName: "gerrit-one-shot",
                 metadata: {
                     b_id_farm: context.b_id_farm,
+                    thread_id: threadId,
                 },
                 ...(callbacks ? { callbacks } : {}),
             },
@@ -195,6 +200,7 @@ export async function runOneShotAgent(
             result: finalResponse,
             structuredResponse,
             runId,
+            threadId,
             usage:
                 totalTokens > 0
                     ? { inputTokens, outputTokens, totalTokens }

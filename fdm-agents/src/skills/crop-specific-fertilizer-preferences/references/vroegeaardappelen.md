@@ -1,32 +1,32 @@
-# Early ware potatoes / primeurs — nl_1911, nl_1912
+# Vroege consumptieaardappelen / primeurs — nl_1911, nl_1912
 
-These codes cover early ware potatoes with haulm destruction before 15 July — the
-primeur / early-market segment. The growing season is short (planting from late February
-on clay under plastic / fleece, normal planting from March; harvest from June onwards).
+Deze codes omvatten vroege consumptieaardappelen met loofvernietiging vóór 15 juli — het
+primeur-/vroege-marktsegment. Het groeiseizoen is kort (poten vanaf eind februari
+op klei onder plastic / vliesdoek, normaal poten vanaf maart; oogst vanaf juni).
 
-The general fresh-market rules from `aardappelen.md` apply, with these modifications:
+De algemene versmarktregels uit `aardappelen.md` gelden, met deze aanpassingen:
 
-**Prefer:**
-- Strong front-loading of N: most or all of `advice.d_n_req` at planting, with at most a
-  small early top-dress. Late top-dressings are pointless because the haulm is destroyed
-  before mid-July.
-- Early P availability: cold soils and a short rooting window make these crops highly
-  P-responsive. Ensure a starter P source even when soil P status is adequate.
-- Patentkali or K₂SO₄ for K + Mg + S supply; chloride sensitivity is the same as for
-  fresh-market potatoes.
-- Ammonium-rich N forms (KAS, ammoniumsulfaatsalpeter) on cold spring soils to limit
-  leaching before crop uptake.
+**Voorkeur:**
+- Sterke N-aanvoer aan het begin: het grootste deel of alle `advice.d_n_req` bij het poten, met hooguit een
+  kleine vroege bijbemesting. Late bijbemestingen hebben geen zin omdat het loof
+  vóór half juli wordt vernietigd.
+- Vroege P-beschikbaarheid: koude bodems en een korte bewortelingsperiode maken deze gewassen sterk
+  P-responsief. Zorg voor een P-starterbron, ook wanneer de P-toestand van de bodem voldoende is.
+- Patentkali of K₂SO₄ voor de aanvoer van K + Mg + S; chloridegevoeligheid is gelijk aan die van
+  tafelaardappelen.
+- Ammoniumrijke N-vormen (KAS, ammoniumsulfaatsalpeter) op koude voorjaarsgronden om uitspoeling
+  vóór gewasopname te beperken.
 
-**Avoid:**
-- Slurry (drijfmest) applied close to planting: cold soils mineralise slowly and the crop
-  is too short-lived to benefit. Apply slurry well in advance or use mineral N for this
+**Vermijden:**
+- Drijfmest kort voor het poten: koude bodems mineraliseren langzaam en het gewas
+  staat te kort om ervan te profiteren. Dien drijfmest ruim van tevoren toe of gebruik minerale N voor dit
   segment.
-- Late N (after end of May): wasted because of early haulm destruction.
-- Liming on sand close to planting: scab risk (see `aardappelen.md` → Tafelaardappelen).
+- Late N (na eind mei): verspild door de vroege loofvernietiging.
+- Bekalking op zand kort voor het poten: schurfrisico (zie `aardappelen.md` → Tafelaardappelen).
 
-**Extra attention:**
-- Dry matter and cooking quality matter for the fresh / primeur market — keep N within
+**Extra aandacht:**
+- Drogestof en kookkwaliteit zijn belangrijk voor de vers-/primeurmarkt — houd N binnen
   `advice.d_n_req`.
-- On clay (nl_1911) the rooting depth is shallower under plastic; ensure even N supply.
-- On sand / peat (nl_1912) leaching risk is highest; favour ammonium forms and avoid
-  pure nitrate broadcasts on saturated soils.
+- Op klei (nl_1911) is de bewortelingsdiepte onder plastic geringer; zorg voor een gelijkmatige N-aanvoer.
+- Op zand / veen (nl_1912) is het uitspoelingsrisico het hoogst; geef de voorkeur aan ammoniumvormen en vermijd
+  breedwerpige toediening van puur nitraat op verzadigde bodems.
