@@ -1,7 +1,7 @@
 import type { Ticket } from "@nmi-agro/fdm-helpdesk"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
-import type { ReactNode } from "react"
+import type { MouseEventHandler, ReactNode } from "react"
 import { NavLink, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { TICKET_STATUS, TicketStatusDot } from "./ticket-status"
@@ -13,12 +13,14 @@ export function TicketCard({
     href,
     showAssignees = false,
     badge = null,
+    onClick,
 }: {
     ticket: Ticket
     principal: HelpdeskUser | undefined
     href: string
     showAssignees?: boolean
     badge?: ReactNode
+    onClick?: MouseEventHandler<HTMLAnchorElement> | undefined
 }) {
     const params = useParams()
     const isSelected = params.ticket_id === ticket.ticket_id
@@ -54,6 +56,7 @@ export function TicketCard({
                     ? "bg-muted hover:bg-muted "
                     : "hover:bg-transparent",
             )}
+            onClick={onClick}
         >
             <div
                 className={cn(

@@ -7,7 +7,14 @@ import type {
 import throttle from "lodash.throttle"
 import { ArrowUpDown, ChevronLeft, Filter, Plus, X } from "lucide-react"
 import { Dialog } from "radix-ui"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+    MouseEventHandler,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react"
 import {
     NavLink,
     Outlet,
@@ -121,6 +128,17 @@ function TicketList({
         sorting: "created" as TicketSorting,
     })
 
+    // For being able to keep tickets visible
+    const [displayedTickets, setDisplayedTickets] = useState(tickets)
+    const filterParam = searchParams.get("filters") ?? "{}"
+    const lastFilterParamRef = useRef(filterParam)
+    useEffect(() => {
+        if (lastFilterParamRef.current !== filterParam) {
+            lastFilterParamRef.current = filterParam
+            setDisplayedTickets(tickets)
+        }
+    }, [filterParam, tickets])
+
     const navigateWithFilters = useMemo(
         () =>
             throttle(
@@ -155,6 +173,27 @@ function TicketList({
         setSorting(sorting)
         searchParamsToNavigateTo.current.sorting = sorting
         navigateWithFilters()
+    }
+
+    function handleTicketViewing(
+        ticketId: string,
+    ): MouseEventHandler<HTMLAnchorElement> {
+        return () => {
+            setDisplayedTickets((prevTickets) => {
+                const index = prevTickets.findIndex(
+                    (ticket) => ticket.ticket_id === ticketId,
+                )
+                if (index !== -1) {
+                    const newTickets = [...prevTickets]
+                    newTickets.splice(index, 1, {
+                        ...newTickets[index],
+                        viewed_at: new Date(),
+                    })
+                    return newTickets
+                }
+                return prevTickets
+            })
+        }
     }
 
     return (
@@ -265,7 +304,7 @@ function TicketList({
                 </div>
             </div>
             <div className="overflow-auto grow">
-                {tickets.length === 0 ? (
+                {displayedTickets.length === 0 ? (
                     <Empty className="border-none">
                         <EmptyContent>
                             <EmptyTitle>Geen tickets gevonden</EmptyTitle>
@@ -292,7 +331,7 @@ function TicketList({
                         </EmptyContent>
                     </Empty>
                 ) : (
-                    tickets.map((ticket) => (
+                    displayedTickets.map((ticket) => (
                         <TicketCard
                             key={ticket.ticket_id}
                             ticket={ticket}
@@ -316,6 +355,7 @@ function TicketList({
                                     </Badge>
                                 ) : null
                             }
+                            onClick={handleTicketViewing(ticket.ticket_id)}
                         />
                     ))
                 )}
