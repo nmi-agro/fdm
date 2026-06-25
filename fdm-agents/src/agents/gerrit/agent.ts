@@ -253,10 +253,7 @@ export function countToolRoundtrips(messages: readonly BaseMessage[]): number {
  */
 export type AgentGraph = {
     stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
-    streamEvents(
-        input: unknown,
-        options?: unknown,
-    ): AsyncIterable<unknown>
+    streamEvents(input: unknown, options?: unknown): AsyncIterable<unknown>
 }
 
 function isAgentGraph(obj: unknown): obj is AgentGraph {

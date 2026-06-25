@@ -127,7 +127,9 @@ export default function FarmFieldsOverviewBlock() {
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema) as Resolver<z.infer<typeof FormSchema>>,
+        resolver: zodResolver(FormSchema) as Resolver<
+            z.infer<typeof FormSchema>
+        >,
         defaultValues: {
             b_name: loaderData.field.b_name,
             b_acquiring_method: loaderData.field.b_acquiring_method,
@@ -262,7 +264,12 @@ export default function FarmFieldsOverviewBlock() {
                                     render={({ field, fieldState }) => (
                                         <DatePicker
                                             label="Vanaf wanneer in gebruik?"
-                                            field={field as unknown as ControllerRenderProps<FieldValues, string>}
+                                            field={
+                                                field as unknown as ControllerRenderProps<
+                                                    FieldValues,
+                                                    string
+                                                >
+                                            }
                                             fieldState={fieldState}
                                             className="col-span-1"
                                         />
@@ -275,7 +282,12 @@ export default function FarmFieldsOverviewBlock() {
                                         <DatePicker
                                             label="Tot wanneer in gebruik?"
                                             description="Optioneel"
-                                            field={field as unknown as ControllerRenderProps<FieldValues, string>}
+                                            field={
+                                                field as unknown as ControllerRenderProps<
+                                                    FieldValues,
+                                                    string
+                                                >
+                                            }
                                             fieldState={fieldState}
                                             className="col-span-1"
                                         />

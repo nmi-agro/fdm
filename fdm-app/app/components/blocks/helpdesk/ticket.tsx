@@ -21,9 +21,9 @@ import {
     TICKET_STATUS_DESCRIPTIONS,
     TicketStatusSelector,
 } from "./ticket-status"
+import { TicketSubjectEditor } from "./ticket-subject"
 import { TicketTags } from "./ticket-tags"
 import type { HelpdeskUser } from "./types"
-import { TicketSubjectEditor } from "./ticket-subject"
 
 export function Ticket({
     ticket,

@@ -32,8 +32,8 @@ import {
 import { Button } from "~/components/ui/button"
 import { deleteObject, generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
-import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
+import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -132,7 +132,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     url: await generateSignedReadUrl(image.a_image_path),
                     caption: image.a_image_caption ?? undefined,
                     annotations: image.annotations.map((annotation) => ({
-                            type: (annotation.a_image_annotation_type ?? "pin") as "pin" | "circle" | "arrow" | "freehand",
+                        type: (annotation.a_image_annotation_type ?? "pin") as
+                            | "pin"
+                            | "circle"
+                            | "arrow"
+                            | "freehand",
                         coordinates: parseCoordinates(
                             annotation.a_image_annotation_coordinates,
                         ),
@@ -172,9 +176,8 @@ export default function FieldBcsDetailRoute() {
                         BodemConditieScore verwijderen?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                        Deze actie kan niet ongedaan worden gemaakt.
-                        Alle foto&apos;s en notities worden ook
-                        verwijderd.
+                        Deze actie kan niet ongedaan worden gemaakt. Alle
+                        foto&apos;s en notities worden ook verwijderd.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -233,7 +236,10 @@ export default function FieldBcsDetailRoute() {
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                        <p>Geen foto&apos;s opgeslagen voor deze BodemConditieScore.</p>
+                        <p>
+                            Geen foto&apos;s opgeslagen voor deze
+                            BodemConditieScore.
+                        </p>
                     </div>
                 )}
             </div>

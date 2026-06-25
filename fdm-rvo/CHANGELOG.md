@@ -1,5 +1,18 @@
 # @nmi-agro/fdm-rvo
 
+## 0.3.0
+
+### Minor Changes
+
+- [#644](https://github.com/nmi-agro/fdm/pull/644) [`1e74b1a`](https://github.com/nmi-agro/fdm/commit/1e74b1ac76a0eec217020459a473c2449bb29da3) Thanks [@SvenVw](https://github.com/SvenVw)! - Add function `validateShapefileYear` to check whether has no fields with a starting date greater than selected year
+
+### Patch Changes
+
+- [#634](https://github.com/nmi-agro/fdm/pull/634) [`afdd78f`](https://github.com/nmi-agro/fdm/commit/afdd78f16fad2aef17e03e4eace48628ef7a2d51) Thanks [@SvenVw](https://github.com/SvenVw)! - Resolve all TypeScript errors in `fdm-app`, making it fully type-safe. Includes `MultiPolygon` support in `fdm-core` schema types and geometry fixes in `fdm-rvo`.
+
+- Updated dependencies [[`98e0127`](https://github.com/nmi-agro/fdm/commit/98e0127bd3f02e193ad57a1cfef18fc10df40c67), [`afdd78f`](https://github.com/nmi-agro/fdm/commit/afdd78f16fad2aef17e03e4eace48628ef7a2d51), [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9)]:
+  - @nmi-agro/fdm-core@0.34.0
+
 ## 0.2.3
 
 ### Patch Changes

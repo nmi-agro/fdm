@@ -33,7 +33,10 @@ export function CultivationHarvestsCard({
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl font-semibold tracking-tight text-gray-900">
-                    {getHarvestCapitalizedTerm(b_lu_croprotation, b_lu_harvestable === "multiple")}
+                    {getHarvestCapitalizedTerm(
+                        b_lu_croprotation,
+                        b_lu_harvestable === "multiple",
+                    )}
                 </CardTitle>
                 <div className="flex justify-between">
                     <Button
@@ -52,7 +55,8 @@ export function CultivationHarvestsCard({
                                 !canAddHarvest ? "cursor-not-allowed" : ""
                             }
                         >
-                            {getHarvestCapitalizedTerm(b_lu_croprotation)} toevoegen
+                            {getHarvestCapitalizedTerm(b_lu_croprotation)}{" "}
+                            toevoegen
                         </NavLink>
                     </Button>
                 </div>

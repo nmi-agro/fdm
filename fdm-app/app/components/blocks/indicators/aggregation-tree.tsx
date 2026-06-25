@@ -122,7 +122,7 @@ export function AggregationTree({
                     depth === 1 &&
                         "bg-muted/30 border-border hover:bg-muted/50 font-semibold text-sm",
                     depth === 2 && "bg-card hover:bg-muted/20 text-xs",
-                    isCollapsible && depth > 0 && "cursor-pointer"
+                    isCollapsible && depth > 0 && "cursor-pointer",
                 )}
                 style={{
                     paddingLeft: `${Math.max(10, depth * 16 + 10)}px`,
@@ -133,7 +133,9 @@ export function AggregationTree({
                         <CollapsibleTrigger asChild>
                             <button
                                 type="button"
-                                aria-label={isExpanded ? "Inklappen" : "Uitklappen"}
+                                aria-label={
+                                    isExpanded ? "Inklappen" : "Uitklappen"
+                                }
                                 className="p-0.5 hover:bg-muted rounded text-muted-foreground shrink-0 focus:outline-hidden focus:ring-2 focus:ring-ring"
                             >
                                 {isExpanded ? (
@@ -147,7 +149,10 @@ export function AggregationTree({
                         <div className="w-5 shrink-0" />
                     )}
 
-                    <span className="truncate text-foreground" title={info.name}>
+                    <span
+                        className="truncate text-foreground"
+                        title={info.name}
+                    >
                         {info.name}
                     </span>
 
@@ -156,7 +161,10 @@ export function AggregationTree({
                             <TooltipTrigger asChild>
                                 <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help shrink-0" />
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-[280px] p-2 text-xs bg-popover text-popover-foreground border shadow-md">
+                            <TooltipContent
+                                side="top"
+                                className="max-w-[280px] p-2 text-xs bg-popover text-popover-foreground border shadow-md"
+                            >
                                 <p className="font-semibold text-foreground mb-1">
                                     {info.name}
                                 </p>
@@ -179,7 +187,7 @@ export function AggregationTree({
                                 variant="outline"
                                 className={cn(
                                     "px-2 py-0.5 text-[10px] uppercase tracking-wider",
-                                    getScoreBadgeClass(displayScore)
+                                    getScoreBadgeClass(displayScore),
                                 )}
                             >
                                 {getScoreVerdict(displayScore)}
@@ -222,7 +230,7 @@ export function AggregationTree({
                             {indicatorIds.map((indId) => {
                                 const indInfo = getIndicatorInfo(indId)
                                 if (!indInfo) return null
-                                const indScoreVal = indicatorScoreOf!(indId)
+                                const indScoreVal = indicatorScoreOf?.(indId)
                                 const indDisplay =
                                     indScoreVal !== null
                                         ? scoreToDisplay(indScoreVal)
@@ -233,7 +241,9 @@ export function AggregationTree({
                                         .filter((aId) => aId !== id)
                                         .map(
                                             (aId) =>
-                                                getAggregationInfo(aId).name.split(" ")[0],
+                                                getAggregationInfo(
+                                                    aId,
+                                                ).name.split(" ")[0],
                                         )
 
                                 // Top-5 worst-impact fields for this indicator
@@ -246,25 +256,47 @@ export function AggregationTree({
                                 const isIndExpanded = !!expanded[indKey]
 
                                 const worstFields = hasFieldData
-                                    ? fields!
-                                        .map((field) => {
-                                            const fs = fieldScores!.find((s) => s.b_id === field.b_id)
-                                            const rawScore = fs?.score?.indicators.find(
-                                                (i) => i.indicator_id === indId,
-                                            )?.score
-                                            if (rawScore == null || Number.isNaN(rawScore)) return null
-                                            const display = scoreToDisplay(rawScore)
-                                            const impact =
-                                                field.b_area != null && field.b_area > 0
-                                                    ? (100 - display) * field.b_area
-                                                    : null
-                                            return { ...field, display, impact }
-                                        })
-                                        .filter((f): f is NonNullable<typeof f> & { impact: number } =>
-                                            f !== null && f.impact !== null,
-                                        )
-                                        .sort((a, b) => b.impact - a.impact)
-                                        .slice(0, 5)
+                                    ? fields
+                                          ?.map((field) => {
+                                              const fs = fieldScores?.find(
+                                                  (s) => s.b_id === field.b_id,
+                                              )
+                                              const rawScore =
+                                                  fs?.score?.indicators.find(
+                                                      (i) =>
+                                                          i.indicator_id ===
+                                                          indId,
+                                                  )?.score
+                                              if (
+                                                  rawScore == null ||
+                                                  Number.isNaN(rawScore)
+                                              )
+                                                  return null
+                                              const display =
+                                                  scoreToDisplay(rawScore)
+                                              const impact =
+                                                  field.b_area != null &&
+                                                  field.b_area > 0
+                                                      ? (100 - display) *
+                                                        field.b_area
+                                                      : null
+                                              return {
+                                                  ...field,
+                                                  display,
+                                                  impact,
+                                              }
+                                          })
+                                          .filter(
+                                              (
+                                                  f,
+                                              ): f is NonNullable<typeof f> & {
+                                                  impact: number
+                                              } =>
+                                                  f !== null &&
+                                                  f.impact !== null,
+                                          )
+                                          .sort((a, b) => b.impact - a.impact)
+                                          .slice(0, 5)
                                     : []
 
                                 const indHeaderPl = `${Math.max(10, (depth + 1) * 16 + 10)}px`
@@ -273,46 +305,91 @@ export function AggregationTree({
                                     <Collapsible
                                         key={indId}
                                         open={isIndExpanded}
-                                        onOpenChange={(open) => toggleNode(indKey, open)}
+                                        onOpenChange={(open) =>
+                                            toggleNode(indKey, open)
+                                        }
                                         className="space-y-0.5"
                                     >
                                         <CollapsibleTrigger asChild>
                                             <button
                                                 type="button"
-                                                onClick={() => onIndicatorClick?.(indId)}
+                                                onClick={() =>
+                                                    onIndicatorClick?.(indId)
+                                                }
                                                 className={cn(
                                                     "w-full flex items-center justify-between gap-3 p-2 rounded-md border border-dashed bg-card hover:bg-muted/40 transition-colors text-xs text-left",
-                                                    hasFieldData ? "cursor-pointer" : "",
+                                                    hasFieldData
+                                                        ? "cursor-pointer"
+                                                        : "",
                                                 )}
-                                                style={{ paddingLeft: indHeaderPl }}
+                                                style={{
+                                                    paddingLeft: indHeaderPl,
+                                                }}
                                             >
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {hasFieldData ? (
-                                                        isIndExpanded
-                                                            ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                                            : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                        isIndExpanded ? (
+                                                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                        ) : (
+                                                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                        )
                                                     ) : (
                                                         <div className="w-3.5 shrink-0" />
                                                     )}
-                                                    <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5">
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="font-mono text-[10px] px-1.5 py-0 h-5"
+                                                    >
                                                         {indId}
                                                     </Badge>
                                                     <span className="font-medium truncate text-foreground/90">
                                                         {indInfo.name}
                                                     </span>
 
-                                                    {otherImpacted.length > 0 && (
+                                                    {otherImpacted.length >
+                                                        0 && (
                                                         <TooltipProvider>
                                                             <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 text-muted-foreground cursor-help font-medium">
-                                                                        + {otherImpacted.length} {otherImpacted.length === 1 ? "ander thema" : "andere thema's"}
+                                                                <TooltipTrigger
+                                                                    asChild
+                                                                >
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className="text-[10px] px-1.5 py-0 h-5 text-muted-foreground cursor-help font-medium"
+                                                                    >
+                                                                        +{" "}
+                                                                        {
+                                                                            otherImpacted.length
+                                                                        }{" "}
+                                                                        {otherImpacted.length ===
+                                                                        1
+                                                                            ? "ander thema"
+                                                                            : "andere thema's"}
                                                                     </Badge>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent className="bg-popover text-popover-foreground border shadow-md">
-                                                                    <p className="font-semibold text-xs mb-1">Heeft ook invloed op:</p>
+                                                                    <p className="font-semibold text-xs mb-1">
+                                                                        Heeft
+                                                                        ook
+                                                                        invloed
+                                                                        op:
+                                                                    </p>
                                                                     <ul className="list-disc pl-4 text-muted-foreground">
-                                                                        {otherImpacted.map(oi => <li key={oi}>{oi}</li>)}
+                                                                        {otherImpacted.map(
+                                                                            (
+                                                                                oi,
+                                                                            ) => (
+                                                                                <li
+                                                                                    key={
+                                                                                        oi
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        oi
+                                                                                    }
+                                                                                </li>
+                                                                            ),
+                                                                        )}
                                                                     </ul>
                                                                 </TooltipContent>
                                                             </Tooltip>
@@ -351,11 +428,17 @@ export function AggregationTree({
                                             <CollapsibleContent>
                                                 <div
                                                     className="space-y-0.5 pt-0.5 pb-1"
-                                                    style={{ paddingLeft: `${Math.max(10, (depth + 2) * 16 + 10)}px` }}
+                                                    style={{
+                                                        paddingLeft: `${Math.max(10, (depth + 2) * 16 + 10)}px`,
+                                                    }}
                                                 >
-                                                    {worstFields.length === 0 ? (
+                                                    {worstFields.length ===
+                                                    0 ? (
                                                         <p className="text-[10px] text-muted-foreground italic py-1 px-2">
-                                                            { domain === "organization" ? "Geen bedrijfsdata beschikbaar." : "Geen perceelsdata beschikbaar." }
+                                                            {domain ===
+                                                            "organization"
+                                                                ? "Geen bedrijfsdata beschikbaar."
+                                                                : "Geen perceelsdata beschikbaar."}
                                                         </p>
                                                     ) : (
                                                         <>

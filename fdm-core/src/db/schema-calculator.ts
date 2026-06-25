@@ -24,7 +24,10 @@ export const calculationCache = fdmCalculatorSchema.table(
         created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
-        index("calculation_cache_entity_idx").on(table.entity_type, table.entity_id),
+        index("calculation_cache_entity_idx").on(
+            table.entity_type,
+            table.entity_id,
+        ),
         index("calculation_cache_function_idx").on(table.calculation_function),
     ],
 )

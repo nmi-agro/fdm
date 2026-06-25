@@ -55,14 +55,15 @@ type HeatmapTableProps = {
     /** ID of the currently pinned indicator (highlights the column). */
     selectedIndicatorId?: string | null
 } & (
-        {
-            basePath: string
-            basePathFormatter?: undefined
-        } | {
-            basePath?: undefined
-            basePathFormatter: (b_id: string) => string
-        }
-    )
+    | {
+          basePath: string
+          basePathFormatter?: undefined
+      }
+    | {
+          basePath?: undefined
+          basePathFormatter: (b_id: string) => string
+      }
+)
 
 /**
  * Heatmap table built with TanStack Table for column grouping.

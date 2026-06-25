@@ -1,9 +1,9 @@
-import type { BcsIndicatorKey } from "~/lib/bcs"
 import {
     BCS_COLOR_CLASSES,
     indicatorScoreColor,
 } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { Button } from "~/components/ui/button"
+import type { BcsIndicatorKey } from "~/lib/bcs"
 import { cn } from "~/lib/utils"
 
 interface ScoreButtonProps {
@@ -33,10 +33,15 @@ export function ScoreButton({
     onChange,
     disabled = false,
 }: ScoreButtonProps) {
-    const options = direction === "negative" ? NEGATIVE_OPTIONS : POSITIVE_OPTIONS
+    const options =
+        direction === "negative" ? NEGATIVE_OPTIONS : POSITIVE_OPTIONS
 
     return (
-        <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label={indicator}>
+        <div
+            className="grid grid-cols-3 gap-3"
+            role="radiogroup"
+            aria-label={indicator}
+        >
             {options.map((option) => {
                 const color = indicatorScoreColor(option.value, direction)
                 const selected = option.value === value
@@ -61,7 +66,9 @@ export function ScoreButton({
                         onClick={() => onChange(option.value)}
                     >
                         <span className="font-semibold">{option.label}</span>
-                        <span className="text-xs opacity-80">Score {option.value}</span>
+                        <span className="text-xs opacity-80">
+                            Score {option.value}
+                        </span>
                     </Button>
                 )
             })}

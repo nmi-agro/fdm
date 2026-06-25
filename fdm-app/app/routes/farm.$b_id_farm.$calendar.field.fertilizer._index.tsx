@@ -29,11 +29,11 @@ import { z } from "zod"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
-import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import {
     FormSchema,
     FormSchemaPartialModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
+import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -595,7 +595,9 @@ export default function FarmFieldFertilizerAddIndex() {
                                                 loaderData.fertilizerOptions
                                             }
                                             action={`${location.pathname}${location.search}`}
-                                            navigation={navigation as unknown as Navigation}
+                                            navigation={
+                                                navigation as unknown as Navigation
+                                            }
                                             b_id_farm={loaderData.b_id_farm}
                                             b_id_or_b_lu_catalogue={
                                                 searchParams.get("fieldIds") ||

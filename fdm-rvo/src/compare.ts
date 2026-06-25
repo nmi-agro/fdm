@@ -61,10 +61,7 @@ export function compareFields(
     const matchedRvoIds = new Set<string>()
     const matchedLocalIds = new Set<string>()
 
-    const processMatch = (
-        local: FieldWithCultivations,
-        rvo: RvoField,
-    ) => {
+    const processMatch = (local: FieldWithCultivations, rvo: RvoField) => {
         // Detect property differences
         const diffs = detectDiffs(local, rvo)
 

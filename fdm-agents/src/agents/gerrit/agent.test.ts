@@ -30,7 +30,9 @@ describe("Gerrit Agent", () => {
         expect(GERRIT_INSTRUCTION).toContain("BUFFERSTROKEN")
         expect(GERRIT_INSTRUCTION).toContain("BOUWPLANNIVEAU")
         expect(GERRIT_INSTRUCTION).toContain("BEVEILIGING & CONTEXTGRENZEN")
-        expect(GERRIT_INSTRUCTION).toContain("handleiding-conformiteitscontrole")
+        expect(GERRIT_INSTRUCTION).toContain(
+            "handleiding-conformiteitscontrole",
+        )
         expect(GERRIT_INSTRUCTION).toContain("getCropFertilizerGuide")
     })
 

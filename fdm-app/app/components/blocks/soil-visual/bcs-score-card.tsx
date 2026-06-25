@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import {
     BCS_COLOR_CLASSES,
     BCS_SCORE_DOT,
@@ -5,7 +6,6 @@ import {
     type BcsScores,
     indicatorScoreColor,
 } from "~/components/blocks/soil-visual/bcs-color-utils"
-import { BCS_INDICATORS } from "~/lib/bcs"
 import { Badge } from "~/components/ui/badge"
 import {
     Card,
@@ -14,8 +14,8 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
+import { BCS_INDICATORS } from "~/lib/bcs"
 import { cn } from "~/lib/utils"
-import type { ReactNode } from "react"
 
 interface BcsScoreCardProps {
     scores: BcsScores
@@ -65,9 +65,18 @@ export function BcsScoreCard({
                         {actions}
                     </div>
                 </div>
-                <div className={cn("rounded-xl border p-4", BCS_COLOR_CLASSES[scoreColor])}>
-                    <div className="text-sm font-medium opacity-80">BodemConditieScore</div>
-                    <div className="mt-1 text-4xl font-bold">{d_bcs.toFixed(0)}</div>
+                <div
+                    className={cn(
+                        "rounded-xl border p-4",
+                        BCS_COLOR_CLASSES[scoreColor],
+                    )}
+                >
+                    <div className="text-sm font-medium opacity-80">
+                        BodemConditieScore
+                    </div>
+                    <div className="mt-1 text-4xl font-bold">
+                        {d_bcs.toFixed(0)}
+                    </div>
                     <div className="mt-2 text-sm">
                         {(i_bcs * 100).toFixed(0)}% van de maximale score
                     </div>
@@ -77,10 +86,10 @@ export function BcsScoreCard({
                 {BCS_INDICATORS.map((indicator) => {
                     const score =
                         indicator.key === "a_ph_bcs"
-                            ? a_ph_bcs ?? null
+                            ? (a_ph_bcs ?? null)
                             : indicator.key === "a_som_bcs"
-                              ? a_som_bcs ?? null
-                              : scores[indicator.key] ?? null
+                              ? (a_som_bcs ?? null)
+                              : (scores[indicator.key] ?? null)
 
                     const color =
                         score == null
@@ -94,7 +103,9 @@ export function BcsScoreCard({
                         >
                             <div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-medium">{indicator.name}</span>
+                                    <span className="font-medium">
+                                        {indicator.name}
+                                    </span>
                                     {indicator.source === "lab" ? (
                                         <span className="text-xs text-muted-foreground">
                                             (afgeleid)
@@ -112,7 +123,9 @@ export function BcsScoreCard({
                                 <span
                                     className={cn(
                                         "size-3 rounded-full",
-                                        color ? BCS_SCORE_DOT[color] : "bg-muted-foreground/30",
+                                        color
+                                            ? BCS_SCORE_DOT[color]
+                                            : "bg-muted-foreground/30",
                                     )}
                                 />
                             </div>

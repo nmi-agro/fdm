@@ -68,11 +68,10 @@ export const meta: MetaFunction = () => {
  * - userName: The name of the current user.
  * - farmWritePermission: A Boolean indicating if the user is able to add fields to the farm. Set to true if the information could not be obtained.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
     try {
         // This route is a layout to be able to show dialogs on top of the table
         // An empty layout should be rendered for irrelevant routes
-        const url = new URL(request.url)
         if (params.b_id_farm && params.calendar) {
             const base = `/farm/${params.b_id_farm}/${params.calendar}/field`
 

@@ -8,8 +8,12 @@ export type AtlasViewState = Partial<ViewState> & {
     fitBoundsOptions?: FitBoundsOptions
 }
 
-function getBounds(fields: FeatureCollection | null | undefined): LngLatBoundsLike {
-    const initialBounds: [number, number, number, number] = [3.1, 50.7, 7.2, 53.6]
+function getBounds(
+    fields: FeatureCollection | null | undefined,
+): LngLatBoundsLike {
+    const initialBounds: [number, number, number, number] = [
+        3.1, 50.7, 7.2, 53.6,
+    ]
 
     let bounds: LngLatBoundsLike = initialBounds
     if (fields && fields.features.length > 0) {

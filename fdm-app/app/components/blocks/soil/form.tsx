@@ -102,8 +102,16 @@ export function SoilAnalysisForm(props: {
                                 if (x.type === "numeric") {
                                     return (
                                         <FormField
-                                            control={form.control as unknown as Control<any, any, any>}
-                                            name={x.parameter as Path<SoilFormValues>}
+                                            control={
+                                                form.control as unknown as Control<
+                                                    any,
+                                                    any,
+                                                    any
+                                                >
+                                            }
+                                            name={
+                                                x.parameter as Path<SoilFormValues>
+                                            }
                                             key={x.parameter}
                                             render={({ field }) => (
                                                 <FormItem>
@@ -145,8 +153,16 @@ export function SoilAnalysisForm(props: {
                                 if (x.type === "enum") {
                                     return (
                                         <FormField
-                                            control={form.control as unknown as Control<any, any, any>}
-                                            name={x.parameter as Path<SoilFormValues>}
+                                            control={
+                                                form.control as unknown as Control<
+                                                    any,
+                                                    any,
+                                                    any
+                                                >
+                                            }
+                                            name={
+                                                x.parameter as Path<SoilFormValues>
+                                            }
                                             key={x.parameter}
                                             render={({ field }) => (
                                                 <FormItem>
@@ -211,8 +227,12 @@ export function SoilAnalysisForm(props: {
                                     return (
                                         <DatePicker
                                             key={x.parameter}
-                                            form={form as unknown as UseFormReturn<FieldValues>}
-                                            name={x.parameter as Path<FieldValues>}
+                                            form={
+                                                form as unknown as UseFormReturn<FieldValues>
+                                            }
+                                            name={
+                                                x.parameter as Path<FieldValues>
+                                            }
                                             label={x.name}
                                             description={x.description}
                                         />
@@ -222,8 +242,16 @@ export function SoilAnalysisForm(props: {
                                 if (x.type === "text") {
                                     return (
                                         <FormField
-                                            control={form.control as unknown as Control<any, any, any>}
-                                            name={x.parameter as Path<SoilFormValues>}
+                                            control={
+                                                form.control as unknown as Control<
+                                                    any,
+                                                    any,
+                                                    any
+                                                >
+                                            }
+                                            name={
+                                                x.parameter as Path<SoilFormValues>
+                                            }
                                             key={x.parameter}
                                             render={({ field }) => (
                                                 <FormItem>

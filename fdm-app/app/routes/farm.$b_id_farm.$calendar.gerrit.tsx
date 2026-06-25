@@ -1,17 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import type { ClarifyingQuestion } from "@nmi-agro/fdm-agents"
 import {
-    getFarms,
-    isDerogationGrantedForYear,
-    isOrganicCertificationValid,
     addFertilizerApplication,
+    type Fertilizer,
     fromKgPerHa,
+    getFarms,
     getFertilizerApplications,
     getFertilizers,
     getFields,
+    isDerogationGrantedForYear,
+    isOrganicCertificationValid,
     removeFertilizerApplication,
-    type Fertilizer,
 } from "@nmi-agro/fdm-core"
-import type { ClarifyingQuestion } from "@nmi-agro/fdm-agents"
 import { Bot, FlaskConical } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -34,8 +34,8 @@ import { ClarifyLoading } from "~/components/blocks/gerrit/clarify-loading"
 import { GerritLoading } from "~/components/blocks/gerrit/loading"
 import { PlanTable } from "~/components/blocks/gerrit/plan-table"
 import {
-    QuestionsForm,
     type ClarificationAnswerValue,
+    QuestionsForm,
 } from "~/components/blocks/gerrit/questions-form"
 import {
     GerritFormSchema,
@@ -61,17 +61,17 @@ import { Card } from "~/components/ui/card"
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
-import PostHogClient from "~/posthog.server"
 import { getGerritUsage } from "~/lib/gerrit-limit.server"
+import PostHogClient from "~/posthog.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -121,7 +121,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         Number.parseInt(calendar, 10),
     ).catch(() => false)
 
-    const farmFertilizers = await getFertilizers(fdm, session.principal_id, b_id_farm).catch(() => [])
+    const farmFertilizers = await getFertilizers(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+    ).catch(() => [])
     const fertilizerOptions = farmFertilizers.map((f: any) => ({
         p_id_catalogue: f.p_id_catalogue as string,
         p_name_nl: (f.p_name_nl ?? f.p_id_catalogue) as string,
@@ -144,9 +148,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         },
         fertilizerOptions,
         gerritUsage: {
-            limit: gerritUsage.limit === Infinity ? null : gerritUsage.limit,
+            limit:
+                gerritUsage.limit === Number.POSITIVE_INFINITY
+                    ? null
+                    : gerritUsage.limit,
             used: gerritUsage.used,
-            remaining: gerritUsage.remaining === Infinity ? null : gerritUsage.remaining,
+            remaining:
+                gerritUsage.remaining === Number.POSITIVE_INFINITY
+                    ? null
+                    : gerritUsage.remaining,
         },
     }
 }
@@ -290,8 +300,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function GerritApp() {
-    const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions, gerritUsage } =
-        useLoaderData<typeof loader>()
+    const {
+        farm,
+        farmOptions,
+        defaultStrategies,
+        calendar,
+        fertilizerOptions,
+        gerritUsage,
+    } = useLoaderData<typeof loader>()
     const navigation = useNavigation()
 
     const headerAction = {
@@ -319,8 +335,12 @@ export default function GerritApp() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     // Clarify-phase state
-    const [clarifyingQuestions, setClarifyingQuestions] = useState<ClarifyingQuestion[]>([])
-    const [pendingFormData, setPendingFormData] = useState<z.infer<typeof GerritFormSchema> | null>(null)
+    const [clarifyingQuestions, setClarifyingQuestions] = useState<
+        ClarifyingQuestion[]
+    >([])
+    const [pendingFormData, setPendingFormData] = useState<z.infer<
+        typeof GerritFormSchema
+    > | null>(null)
 
     const eventSourceRef = useRef<EventSource | null>(null)
 
@@ -346,7 +366,10 @@ export default function GerritApp() {
                 const last = next[next.length - 1]
                 next[next.length - 1] = {
                     type: "reasoning",
-                    data: { chunk: (last.data?.chunk ?? "") + (payload?.chunk ?? "") },
+                    data: {
+                        chunk:
+                            (last.data?.chunk ?? "") + (payload?.chunk ?? ""),
+                    },
                 }
                 return next
             }
@@ -367,7 +390,10 @@ export default function GerritApp() {
                 if (value === undefined) return
                 if (key === "selectedFertilizerIds") {
                     // Serialise as JSON; skip if all fertilizers are selected (no restriction)
-                    if (Array.isArray(value) && value.length < fertilizerOptions.length) {
+                    if (
+                        Array.isArray(value) &&
+                        value.length < fertilizerOptions.length
+                    ) {
                         searchParams.set(key, JSON.stringify(value))
                     }
                 } else {
@@ -395,7 +421,10 @@ export default function GerritApp() {
 
     /** Opens the plan-generation SSE stream */
     const startPlanStream = useCallback(
-        (formData: z.infer<typeof GerritFormSchema>, clarifications?: ClarificationAnswerValue[]) => {
+        (
+            formData: z.infer<typeof GerritFormSchema>,
+            clarifications?: ClarificationAnswerValue[],
+        ) => {
             closeEventSource()
             setEvents([])
             setPhase("generating")
@@ -419,23 +448,35 @@ export default function GerritApp() {
                 }
             })()
             if (!searchParams) return
-            const es = new EventSource(`/api/gerrit/stream?${searchParams.toString()}`)
+            const es = new EventSource(
+                `/api/gerrit/stream?${searchParams.toString()}`,
+            )
             eventSourceRef.current = es
 
             es.addEventListener("start", ((e: MessageEvent) => {
-                try { addEvent("status", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("status", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("reasoning", ((e: MessageEvent) => {
-                try { addEvent("reasoning", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("reasoning", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("on_tool_start", ((e: MessageEvent) => {
-                try { addEvent("on_tool_start", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("on_tool_start", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("on_tool_end", ((e: MessageEvent) => {
-                try { addEvent("on_tool_end", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("on_tool_end", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("status", ((e: MessageEvent) => {
-                try { addEvent("status", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("status", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("complete", ((e: MessageEvent) => {
                 try {
@@ -443,7 +484,10 @@ export default function GerritApp() {
                     if (!payload.plan || !payload.strategies) {
                         throw new Error("Incomplete payload")
                     }
-                    setPlanData({ plan: payload.plan, strategies: payload.strategies })
+                    setPlanData({
+                        plan: payload.plan,
+                        strategies: payload.strategies,
+                    })
                     closeEventSource()
                     setPhase("idle")
                 } catch {
@@ -458,7 +502,10 @@ export default function GerritApp() {
                 if ((e as any).data) {
                     try {
                         const payload = JSON.parse((e as any).data)
-                        setErrorMessage(payload.message || "Gerrit kon geen plan genereren.")
+                        setErrorMessage(
+                            payload.message ||
+                                "Gerrit kon geen plan genereren.",
+                        )
                     } catch {
                         setErrorMessage("Gerrit kon geen plan genereren.")
                     }
@@ -484,25 +531,36 @@ export default function GerritApp() {
             setPhase("clarifying")
 
             const searchParams = buildSearchParams(formData)
-            const es = new EventSource(`/api/gerrit/clarify?${searchParams.toString()}`)
+            const es = new EventSource(
+                `/api/gerrit/clarify?${searchParams.toString()}`,
+            )
             eventSourceRef.current = es
 
             es.addEventListener("start", ((e: MessageEvent) => {
-                try { addEvent("status", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("status", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("reasoning", ((e: MessageEvent) => {
-                try { addEvent("reasoning", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("reasoning", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("on_tool_start", ((e: MessageEvent) => {
-                try { addEvent("on_tool_start", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("on_tool_start", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("on_tool_end", ((e: MessageEvent) => {
-                try { addEvent("on_tool_end", JSON.parse(e.data)) } catch {}
+                try {
+                    addEvent("on_tool_end", JSON.parse(e.data))
+                } catch {}
             }) as EventListener)
             es.addEventListener("questions", ((e: MessageEvent) => {
                 try {
                     const payload = JSON.parse(e.data)
-                    const questions: ClarifyingQuestion[] = payload.questions ?? []
+                    const questions: ClarifyingQuestion[] =
+                        payload.questions ?? []
                     closeEventSource()
                     if (questions.length === 0) {
                         // No questions — go straight to plan
@@ -535,7 +593,10 @@ export default function GerritApp() {
             reduceAmmoniaEmissions: false,
             keepNitrogenBalanceBelowTarget: false,
             workOnRotationLevel: false,
-            selectedFertilizerIds: fertilizerOptions.length > 0 ? fertilizerOptions.map((f) => f.p_id_catalogue) as any : undefined,
+            selectedFertilizerIds:
+                fertilizerOptions.length > 0
+                    ? (fertilizerOptions.map((f) => f.p_id_catalogue) as any)
+                    : undefined,
             additionalContext: "",
             geminiModel: "gemini-3.5-flash",
         },
@@ -579,7 +640,7 @@ export default function GerritApp() {
 
     const isRateLimited =
         gerritUsage.limit !== null &&
-        optimisticUsed >= (gerritUsage.limit ?? Infinity)
+        optimisticUsed >= (gerritUsage.limit ?? Number.POSITIVE_INFINITY)
 
     const [showStrategyForm, setShowStrategyForm] = useState(true)
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
@@ -747,12 +808,20 @@ export default function GerritApp() {
                                 {gerritUsage.limit !== null && (
                                     <p className="text-xs text-amber-700 font-medium">
                                         Gebruikt vandaag:{" "}
-                                        <span className={isRateLimited ? "text-red-600 font-bold" : ""}>
-                                            {optimisticUsed} / {gerritUsage.limit}
+                                        <span
+                                            className={
+                                                isRateLimited
+                                                    ? "text-red-600 font-bold"
+                                                    : ""
+                                            }
+                                        >
+                                            {optimisticUsed} /{" "}
+                                            {gerritUsage.limit}
                                         </span>
                                         {isRateLimited && (
                                             <span className="block mt-1 text-red-600">
-                                                Dagelijks limiet bereikt. Probeer morgen opnieuw.
+                                                Dagelijks limiet bereikt.
+                                                Probeer morgen opnieuw.
                                             </span>
                                         )}
                                     </p>
@@ -763,7 +832,9 @@ export default function GerritApp() {
                             {showStrategyForm ? (
                                 <StrategyForm
                                     form={form as any}
-                                    isGenerating={isAIGenerating || phase === "questions"}
+                                    isGenerating={
+                                        isAIGenerating || phase === "questions"
+                                    }
                                     isRateLimited={isRateLimited}
                                     additionalContextValue={
                                         additionalContextValue
@@ -773,7 +844,9 @@ export default function GerritApp() {
                                 />
                             ) : (
                                 <SummaryCards
-                                    farmTotals={farmTotals as FarmTotals | undefined}
+                                    farmTotals={
+                                        farmTotals as FarmTotals | undefined
+                                    }
                                     planSummary={plan?.summary}
                                     activeStrategyLabels={activeStrategyLabels}
                                     onEditStrategy={() =>
@@ -789,9 +862,17 @@ export default function GerritApp() {
                             {errorMessage ? (
                                 <div className="bg-red-50 border border-red-200 p-8 rounded-xl text-center">
                                     <Bot className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                                    <h2 className="text-xl font-bold text-red-900 mb-2">Er is een fout opgetreden</h2>
-                                    <p className="text-red-800">{errorMessage}</p>
-                                    <Button onClick={() => setErrorMessage(null)} className="mt-4" variant="outline">
+                                    <h2 className="text-xl font-bold text-red-900 mb-2">
+                                        Er is een fout opgetreden
+                                    </h2>
+                                    <p className="text-red-800">
+                                        {errorMessage}
+                                    </p>
+                                    <Button
+                                        onClick={() => setErrorMessage(null)}
+                                        className="mt-4"
+                                        variant="outline"
+                                    >
                                         Probeer opnieuw
                                     </Button>
                                 </div>
@@ -801,10 +882,15 @@ export default function GerritApp() {
                                 <QuestionsForm
                                     questions={clarifyingQuestions}
                                     onSubmit={(answers) => {
-                                        if (pendingFormData) startPlanStream(pendingFormData, answers)
+                                        if (pendingFormData)
+                                            startPlanStream(
+                                                pendingFormData,
+                                                answers,
+                                            )
                                     }}
                                     onSkip={() => {
-                                        if (pendingFormData) startPlanStream(pendingFormData)
+                                        if (pendingFormData)
+                                            startPlanStream(pendingFormData)
                                     }}
                                 />
                             ) : phase === "generating" ? (
@@ -812,7 +898,9 @@ export default function GerritApp() {
                             ) : plan ? (
                                 <PlanTable
                                     plan={
-                                        plan as ParsedPlan & { plan: import("~/components/blocks/gerrit/types").PlanRow[] }
+                                        plan as ParsedPlan & {
+                                            plan: import("~/components/blocks/gerrit/types").PlanRow[]
+                                        }
                                     }
                                     isSaving={isSaving}
                                     expandedRows={expandedRows}
@@ -849,7 +937,10 @@ export default function GerritApp() {
                             Hoe werkt Gerrit?
                         </DialogTitle>
                         <DialogDescription>
-                            Gerrit stelt een bemestingsplan op op basis van jouw gekozen strategie. Elk voorstel wordt direct getoetst en doorloopt een cyclus van verbeteringen tot het plan optimaal is.
+                            Gerrit stelt een bemestingsplan op op basis van jouw
+                            gekozen strategie. Elk voorstel wordt direct
+                            getoetst en doorloopt een cyclus van verbeteringen
+                            tot het plan optimaal is.
                         </DialogDescription>
                     </DialogHeader>
                     <ol className="space-y-4 mt-2">
@@ -858,9 +949,13 @@ export default function GerritApp() {
                                 1
                             </div>
                             <div>
-                                <p className="font-semibold text-sm">Inventarisatie</p>
+                                <p className="font-semibold text-sm">
+                                    Inventarisatie
+                                </p>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
-                                    Eerst worden alle gegevens verzameld: je percelen, de gewassen, de bodemanalyses en welke meststoffen beschikbaar zijn.
+                                    Eerst worden alle gegevens verzameld: je
+                                    percelen, de gewassen, de bodemanalyses en
+                                    welke meststoffen beschikbaar zijn.
                                 </p>
                             </div>
                         </li>
@@ -869,9 +964,14 @@ export default function GerritApp() {
                                 2
                             </div>
                             <div>
-                                <p className="font-semibold text-sm">Verduidelijkende vragen</p>
+                                <p className="font-semibold text-sm">
+                                    Verduidelijkende vragen
+                                </p>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
-                                    Als er onduidelijkheden zijn over je strategie of percelen, stelt Gerrit een paar gerichte vragen. Je kunt deze beantwoorden of overslaan.
+                                    Als er onduidelijkheden zijn over je
+                                    strategie of percelen, stelt Gerrit een paar
+                                    gerichte vragen. Je kunt deze beantwoorden
+                                    of overslaan.
                                 </p>
                             </div>
                         </li>
@@ -880,9 +980,14 @@ export default function GerritApp() {
                                 3
                             </div>
                             <div>
-                                <p className="font-semibold text-sm">Ontwerpen en controleren</p>
+                                <p className="font-semibold text-sm">
+                                    Ontwerpen en controleren
+                                </p>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
-                                    Gerrit maakt een eerste bemestingsplan en rekent dit direct door. Er wordt getoetst of het plan past binnen de gebruiksruimte en of de gewassen voldoende krijgen.
+                                    Gerrit maakt een eerste bemestingsplan en
+                                    rekent dit direct door. Er wordt getoetst of
+                                    het plan past binnen de gebruiksruimte en of
+                                    de gewassen voldoende krijgen.
                                 </p>
                             </div>
                         </li>
@@ -891,20 +996,25 @@ export default function GerritApp() {
                                 4
                             </div>
                             <div>
-                                <p className="font-semibold text-sm">Bijsturen tot het klopt</p>
+                                <p className="font-semibold text-sm">
+                                    Bijsturen tot het klopt
+                                </p>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
-                                    Als het eerste ontwerp niet voldoet, past Gerrit het plan zelfstandig aan. Dit herhaalt zich tot er een agronomisch en wettelijk correct voorstel ligt.
+                                    Als het eerste ontwerp niet voldoet, past
+                                    Gerrit het plan zelfstandig aan. Dit
+                                    herhaalt zich tot er een agronomisch en
+                                    wettelijk correct voorstel ligt.
                                 </p>
                             </div>
                         </li>
                     </ol>
                     <p className="text-xs italic text-muted-foreground mt-2">
-                        Het uiteindelijke voorstel zie je op je scherm. Pas als je op 'Plan toepassen' klikt, worden de bemestingen opgeslagen.
+                        Het uiteindelijke voorstel zie je op je scherm. Pas als
+                        je op 'Plan toepassen' klikt, worden de bemestingen
+                        opgeslagen.
                     </p>
                 </DialogContent>
             </Dialog>
         </>
     )
 }
-
-

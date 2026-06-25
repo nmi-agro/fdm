@@ -603,18 +603,36 @@ export function PlanTable({
                                                                                 <div className="flex flex-col gap-1 pt-1 border-t">
                                                                                     <div className="flex justify-between text-sm items-center">
                                                                                         <span className="text-muted-foreground">
-                                                                                            NH₃-emissie (kg N/ha)
+                                                                                            NH₃-emissie
+                                                                                            (kg
+                                                                                            N/ha)
                                                                                         </span>
                                                                                         <span className="tabular-nums text-muted-foreground">
-                                                                                            {Math.round(Math.abs(nBalance.emission.ammonia.total))}
+                                                                                            {Math.round(
+                                                                                                Math.abs(
+                                                                                                    nBalance
+                                                                                                        .emission
+                                                                                                        .ammonia
+                                                                                                        .total,
+                                                                                                ),
+                                                                                            )}
                                                                                         </span>
                                                                                     </div>
                                                                                     <div className="flex justify-between text-sm items-center">
                                                                                         <span className="text-muted-foreground">
-                                                                                            NO₃-uitspoeling (kg N/ha)
+                                                                                            NO₃-uitspoeling
+                                                                                            (kg
+                                                                                            N/ha)
                                                                                         </span>
                                                                                         <span className="tabular-nums text-muted-foreground">
-                                                                                            {Math.round(Math.abs(nBalance.emission.nitrate.total))}
+                                                                                            {Math.round(
+                                                                                                Math.abs(
+                                                                                                    nBalance
+                                                                                                        .emission
+                                                                                                        .nitrate
+                                                                                                        .total,
+                                                                                                ),
+                                                                                            )}
                                                                                         </span>
                                                                                     </div>
                                                                                 </div>

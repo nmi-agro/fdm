@@ -289,24 +289,38 @@ export default function IndicatorsMap({
                         <div className="mt-1.5 pt-1.5 border-t space-y-1">
                             {childEntries.map((child) => {
                                 const childScore =
-                                    typeof hoverInfo.properties[child.id] === "number" &&
-                                    (hoverInfo.properties[child.id] as number) >= 0
-                                        ? (hoverInfo.properties[child.id] as number)
+                                    typeof hoverInfo.properties[child.id] ===
+                                        "number" &&
+                                    (hoverInfo.properties[
+                                        child.id
+                                    ] as number) >= 0
+                                        ? (hoverInfo.properties[
+                                              child.id
+                                          ] as number)
                                         : null
                                 return (
-                                    <div key={child.id} className="flex items-center justify-between gap-2">
+                                    <div
+                                        key={child.id}
+                                        className="flex items-center justify-between gap-2"
+                                    >
                                         <span className="text-muted-foreground truncate text-[10px]">
                                             {child.label}
                                         </span>
                                         {childScore != null ? (
                                             <span
                                                 className="text-[10px] font-semibold tabular-nums shrink-0"
-                                                style={{ color: getScoreColor(childScore) }}
+                                                style={{
+                                                    color: getScoreColor(
+                                                        childScore,
+                                                    ),
+                                                }}
                                             >
                                                 {childScore}
                                             </span>
                                         ) : (
-                                            <span className="text-[10px] text-muted-foreground italic shrink-0">–</span>
+                                            <span className="text-[10px] text-muted-foreground italic shrink-0">
+                                                –
+                                            </span>
                                         )}
                                     </div>
                                 )

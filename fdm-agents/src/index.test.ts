@@ -106,7 +106,9 @@ describe("fdm-agents index", () => {
             expect(prompt).toContain('bedrijf "farm-123"')
             expect(prompt).toContain('jaar "2025"')
             expect(prompt).toContain("Biologische teelt: JA")
-            expect(prompt).toContain("Stikstofbalans onder streefwaarde houden: JA")
+            expect(prompt).toContain(
+                "Stikstofbalans onder streefwaarde houden: JA",
+            )
             expect(prompt).toContain("--- BEGIN ADDITIONAL USER CONTEXT ---")
             expect(prompt).toContain("Please use organic compost.")
             expect(prompt).toContain("--- END ADDITIONAL USER CONTEXT ---")
@@ -246,7 +248,9 @@ describe("fdm-agents index", () => {
 
             // Only the productive grass field should be included
             expect(prompt).toContain("BEDRIJFSPERCELEN (1 productieve percelen")
-            expect(prompt).toContain("5 natuur-/landschapselementen uitgesloten")
+            expect(prompt).toContain(
+                "5 natuur-/landschapselementen uitgesloten",
+            )
             expect(prompt).toContain("grass-1")
             expect(prompt).not.toContain("ditch-1")
             expect(prompt).not.toContain("forest-1")

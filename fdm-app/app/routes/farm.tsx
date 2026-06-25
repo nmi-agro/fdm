@@ -96,7 +96,9 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         // If getSession throws (e.g., invalid token), it might result in a 401
         // We need to handle that case here as well, similar to the ErrorBoundary
         if (error instanceof Response && error.status === 401) {
-            const currentPath = new URL(request.url).pathname.replace(/\/_\.data$/, "/").replace(/\.data$/, "")
+            const currentPath = new URL(request.url).pathname
+                .replace(/\/_\.data$/, "/")
+                .replace(/\.data$/, "")
             const signInUrl = `/signin?redirectTo=${encodeURIComponent(currentPath)}`
             return redirect(signInUrl)
         }

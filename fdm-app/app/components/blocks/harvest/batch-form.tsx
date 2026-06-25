@@ -44,11 +44,11 @@ import {
     TableRow,
 } from "~/components/ui/table"
 import { HarvestFormExplainer } from "./form"
+import { HarvestModeSwitchAlert } from "./mode-switch"
 import { getHarvestParameterLabel } from "./parameters"
 import { BatchFormSchema } from "./schema"
 import type { HarvestableType } from "./types"
 import { getHarvestDateTerm, getHarvestTerm } from "./utils"
-import { HarvestModeSwitchAlert } from "./mode-switch"
 
 type TableColumnName =
     | HarvestParameters[number]
@@ -164,7 +164,10 @@ function createNewRow(
  * consistency
  * @returns the column title/field label
  */
-function getColumnTitle(columnName: TableColumnName, croprotation?: string | null) {
+function getColumnTitle(
+    columnName: TableColumnName,
+    croprotation?: string | null,
+) {
     return columnName === "cutting"
         ? "#"
         : columnName === "b_lu_harvest_date"
@@ -445,7 +448,9 @@ function BatchHarvestFormItemCard({
     return (
         <Card className="p-2 space-y-2">
             <CardHeader className="flex flex-row items-center p-0">
-                <CardTitle className="grow">{index + 1}e {getHarvestTerm(croprotation)}</CardTitle>
+                <CardTitle className="grow">
+                    {index + 1}e {getHarvestTerm(croprotation)}
+                </CardTitle>
                 <Button
                     type="button"
                     variant="ghost"
@@ -462,7 +467,10 @@ function BatchHarvestFormItemCard({
                     <BatchHarvestDataCell
                         key={columnName}
                         index={index}
-                        label={getColumnTitle(columnName, croprotation) ?? undefined}
+                        label={
+                            getColumnTitle(columnName, croprotation) ??
+                            undefined
+                        }
                         columnName={columnName}
                         harvestRow={harvestRow}
                         exampleRow={exampleRow}
@@ -687,7 +695,8 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
             <DialogContent className="flex flex-col max-w-2xl max-h-svh">
                 <DialogHeader>
                     <DialogTitle>
-                        Meerdere {getHarvestTerm(props.b_lu_croprotation, true)} toevoegen
+                        Meerdere {getHarvestTerm(props.b_lu_croprotation, true)}{" "}
+                        toevoegen
                     </DialogTitle>
                     <DialogDescription>
                         {props.isHarvestUpdate
@@ -696,10 +705,10 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                     </DialogDescription>
                 </DialogHeader>
                 {props.onBack && (
-                    <HarvestModeSwitchAlert 
-                        isBatchMode={true} 
-                        b_lu_croprotation={props.b_lu_croprotation} 
-                        onSwitch={props.onBack} 
+                    <HarvestModeSwitchAlert
+                        isBatchMode={true}
+                        b_lu_croprotation={props.b_lu_croprotation}
+                        onSwitch={props.onBack}
                     />
                 )}
                 <RemixFormProvider {...form}>
@@ -758,51 +767,52 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
     return (
         <div className="space-y-6">
             {props.onBack && (
-                <HarvestModeSwitchAlert 
-                    isBatchMode={true} 
-                    b_lu_croprotation={props.b_lu_croprotation} 
-                    onSwitch={props.onBack} 
+                <HarvestModeSwitchAlert
+                    isBatchMode={true}
+                    b_lu_croprotation={props.b_lu_croprotation}
+                    onSwitch={props.onBack}
                 />
             )}
             <RemixFormProvider {...form}>
-            <fetcher.Form
-                id="formHarvest"
-                onSubmit={form.handleSubmit}
-                method="post"
-            >
-                <fieldset
-                    disabled={
-                        form.formState.isSubmitting || fetcher.state !== "idle"
-                    }
-                    className="space-y-8"
+                <fetcher.Form
+                    id="formHarvest"
+                    onSubmit={form.handleSubmit}
+                    method="post"
                 >
-                    <div>
-                        <BatchHarvestFormFields {...props} form={form} />
-                    </div>
-                    <HarvestFormExplainer />
-                    <div className="flex justify-end gap-4">
-                        <Button
-                            type="submit"
-                            className="flex ml-auto"
-                            disabled={
-                                form.formState.isSubmitting ||
-                                fetcher.state !== "idle" ||
-                                harvests.length === 0
-                            }
-                        >
-                            {form.formState.isSubmitting ? (
-                                <>
-                                    <Spinner />
-                                    <span>Opslaan...</span>
-                                </>
-                            ) : (
-                                "Toevoegen"
-                            )}
-                        </Button>
-                    </div>
-                </fieldset>
-            </fetcher.Form>
-        </RemixFormProvider>
+                    <fieldset
+                        disabled={
+                            form.formState.isSubmitting ||
+                            fetcher.state !== "idle"
+                        }
+                        className="space-y-8"
+                    >
+                        <div>
+                            <BatchHarvestFormFields {...props} form={form} />
+                        </div>
+                        <HarvestFormExplainer />
+                        <div className="flex justify-end gap-4">
+                            <Button
+                                type="submit"
+                                className="flex ml-auto"
+                                disabled={
+                                    form.formState.isSubmitting ||
+                                    fetcher.state !== "idle" ||
+                                    harvests.length === 0
+                                }
+                            >
+                                {form.formState.isSubmitting ? (
+                                    <>
+                                        <Spinner />
+                                        <span>Opslaan...</span>
+                                    </>
+                                ) : (
+                                    "Toevoegen"
+                                )}
+                            </Button>
+                        </div>
+                    </fieldset>
+                </fetcher.Form>
+            </RemixFormProvider>
         </div>
     )
 }

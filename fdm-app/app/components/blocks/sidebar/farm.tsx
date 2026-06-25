@@ -180,7 +180,8 @@ export function SidebarFarm({
                         )}
 
                         {/* Conditionally render the Kalender item */}
-                        {isFarmSelected ? (                            <Collapsible
+                        {isFarmSelected ? (
+                            <Collapsible
                                 asChild
                                 open={isCalendarOpen}
                                 className="group/collapsible"
@@ -279,11 +280,13 @@ export function SidebarFarm({
                             {fieldsLink ? (
                                 <SidebarMenuButton
                                     asChild
-                                        isActive={
-                                            location.pathname.includes(`/farm/${farmId}/`) &&
-                                            location.pathname.includes("/field")
-                                        }
-                                    >
+                                    isActive={
+                                        location.pathname.includes(
+                                            `/farm/${farmId}/`,
+                                        ) &&
+                                        location.pathname.includes("/field")
+                                    }
+                                >
                                     <NavLink to={fieldsLink}>
                                         <Square />
                                         <span>Percelen</span>
@@ -313,11 +316,13 @@ export function SidebarFarm({
                             {rotationLink ? (
                                 <SidebarMenuButton
                                     asChild
-                                        isActive={
-                                            location.pathname.includes(`/farm/${farmId}/`) &&
-                                            location.pathname.includes("/rotation")
-                                        }
-                                    >
+                                    isActive={
+                                        location.pathname.includes(
+                                            `/farm/${farmId}/`,
+                                        ) &&
+                                        location.pathname.includes("/rotation")
+                                    }
+                                >
                                     <NavLink to={rotationLink}>
                                         <Sprout />
                                         <span>Bouwplan</span>
@@ -430,89 +435,89 @@ export function SidebarLabs() {
 
     return (
         <TooltipProvider>
-        <SidebarGroup>
-            <SidebarGroupLabel>Labs</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <SidebarMenu>
-                    {isMineralizationEnabled && (
-                        <SidebarMenuItem>
-                            {!isCreateFarmWizard ? (
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={location.pathname.includes(
-                                        `/farm/${farmId}/${selectedCalendar}/mineralization`,
-                                    )}
-                                    tooltip="Stikstofmineralisatie per perceel"
-                                >
-                                    <NavLink
-                                        to={`/farm/${farmId}/${selectedCalendar}/mineralization`}
+            <SidebarGroup>
+                <SidebarGroupLabel>Labs</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        {isMineralizationEnabled && (
+                            <SidebarMenuItem>
+                                {!isCreateFarmWizard ? (
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={location.pathname.includes(
+                                            `/farm/${farmId}/${selectedCalendar}/mineralization`,
+                                        )}
+                                        tooltip="Stikstofmineralisatie per perceel"
                                     >
-                                        <Bubbles />
-                                        <span>Mineralisatie</span>
-                                    </NavLink>
-                                </SidebarMenuButton>
-                            ) : (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <SidebarMenuButton
-                                            asChild
-                                            className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                        <NavLink
+                                            to={`/farm/${farmId}/${selectedCalendar}/mineralization`}
                                         >
-                                            <span className="flex items-center gap-2">
-                                                <Bubbles />
-                                                <span>Mineralisatie</span>
-                                            </span>
-                                        </SidebarMenuButton>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right">
-                                        Voltooi het aanmaken van uw bedrijf om
-                                        Mineralisatie te gebruiken
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                        </SidebarMenuItem>
-                    )}
-                    {isGerritEnabled && (
-                        <SidebarMenuItem>
-                            {!isCreateFarmWizard ? (
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={location.pathname.includes(
-                                        `/farm/${farmId}/${selectedCalendar}/gerrit`,
-                                    )}
-                                    tooltip="Gerrit's Bemestingsplan"
-                                >
-                                    <NavLink
-                                        to={`/farm/${farmId}/${selectedCalendar}/gerrit`}
+                                            <Bubbles />
+                                            <span>Mineralisatie</span>
+                                        </NavLink>
+                                    </SidebarMenuButton>
+                                ) : (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <SidebarMenuButton
+                                                asChild
+                                                className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <Bubbles />
+                                                    <span>Mineralisatie</span>
+                                                </span>
+                                            </SidebarMenuButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                            Voltooi het aanmaken van uw bedrijf
+                                            om Mineralisatie te gebruiken
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
+                            </SidebarMenuItem>
+                        )}
+                        {isGerritEnabled && (
+                            <SidebarMenuItem>
+                                {!isCreateFarmWizard ? (
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={location.pathname.includes(
+                                            `/farm/${farmId}/${selectedCalendar}/gerrit`,
+                                        )}
+                                        tooltip="Gerrit's Bemestingsplan"
                                     >
-                                        <Bot />
-                                        <span>Gerrit</span>
-                                    </NavLink>
-                                </SidebarMenuButton>
-                            ) : (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <SidebarMenuButton
-                                            asChild
-                                            className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                        <NavLink
+                                            to={`/farm/${farmId}/${selectedCalendar}/gerrit`}
                                         >
-                                            <span className="flex items-center gap-2">
-                                                <Bot />
-                                                <span>Gerrit</span>
-                                            </span>
-                                        </SidebarMenuButton>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right">
-                                        Voltooi het aanmaken van uw bedrijf om
-                                        Gerrit te gebruiken
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                        </SidebarMenuItem>
-                    )}
-                </SidebarMenu>
-            </SidebarGroupContent>
-        </SidebarGroup>
+                                            <Bot />
+                                            <span>Gerrit</span>
+                                        </NavLink>
+                                    </SidebarMenuButton>
+                                ) : (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <SidebarMenuButton
+                                                asChild
+                                                className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <Bot />
+                                                    <span>Gerrit</span>
+                                                </span>
+                                            </SidebarMenuButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                            Voltooi het aanmaken van uw bedrijf
+                                            om Gerrit te gebruiken
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
+                            </SidebarMenuItem>
+                        )}
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
         </TooltipProvider>
     )
 }

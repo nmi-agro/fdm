@@ -31,9 +31,9 @@ export function getAmsterdamDayStartISO(now: Date = new Date()): string {
         day: "2-digit",
     }).formatToParts(now)
 
-    const year = Number(parts.find((p) => p.type === "year")!.value)
-    const month = Number(parts.find((p) => p.type === "month")!.value)
-    const day = Number(parts.find((p) => p.type === "day")!.value)
+    const year = Number(parts.find((p) => p.type === "year")?.value)
+    const month = Number(parts.find((p) => p.type === "month")?.value)
+    const day = Number(parts.find((p) => p.type === "day")?.value)
 
     // Find what UTC timestamp corresponds to Amsterdam midnight for this date.
     // Use the approximate UTC midnight of the target date so DST offset is
@@ -41,8 +41,7 @@ export function getAmsterdamDayStartISO(now: Date = new Date()): string {
     const midnightApprox = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
     const amsterdamOffset = getAmsterdamOffsetMinutes(midnightApprox)
     const utcMs =
-        Date.UTC(year, month - 1, day, 0, 0, 0, 0) -
-        amsterdamOffset * 60_000
+        Date.UTC(year, month - 1, day, 0, 0, 0, 0) - amsterdamOffset * 60_000
 
     return new Date(utcMs).toISOString()
 }
@@ -64,7 +63,7 @@ function getAmsterdamOffsetMinutes(date: Date): number {
     }).formatToParts(date)
 
     const get = (type: string) =>
-        Number(parts.find((p) => p.type === type)!.value)
+        Number(parts.find((p) => p.type === type)?.value)
 
     // hour12:false can return 24 at midnight; normalise to 0
     const amsMs = Date.UTC(
@@ -89,7 +88,7 @@ export async function getGerritDailyLimit(
 ): Promise<number> {
     try {
         const posthog = PostHogClient()
-        if (!posthog) return Infinity
+        if (!posthog) return Number.POSITIVE_INFINITY
 
         const flags = await posthog.evaluateFlags(principalId)
         const payload = flags.getFlagPayload(FLAG_KEY)
@@ -106,7 +105,7 @@ export async function getGerritDailyLimit(
             limit = (payload as Record<string, unknown>).limit as number
         }
 
-        if (limit === undefined || limit <= 0) return Infinity
+        if (limit === undefined || limit <= 0) return Number.POSITIVE_INFINITY
         return limit
     } catch {
         return DEFAULT_LIMIT
@@ -159,7 +158,11 @@ export async function countGerritRequestsToday(
 
         const text = await response.text()
         if (!response.ok) {
-            console.error("[gerrit-limit] HogQL query failed", response.status, text)
+            console.error(
+                "[gerrit-limit] HogQL query failed",
+                response.status,
+                text,
+            )
             return 0
         }
 
@@ -185,6 +188,9 @@ export async function getGerritUsage(principalId: string): Promise<{
         countGerritRequestsToday(principalId),
     ])
 
-    const remaining = limit === Infinity ? Infinity : Math.max(0, limit - used)
+    const remaining =
+        limit === Number.POSITIVE_INFINITY
+            ? Number.POSITIVE_INFINITY
+            : Math.max(0, limit - used)
     return { limit, used, remaining }
 }

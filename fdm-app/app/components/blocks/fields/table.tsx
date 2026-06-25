@@ -219,8 +219,7 @@ export function DataTable<TData extends FieldExtended, TValue>({
                                         {
                                             b_name: "Naam",
                                             cultivations: "Gewassen",
-                                            fertilizerApplications:
-                                                "Bemesting",
+                                            fertilizerApplications: "Bemesting",
                                             bcs: "BodemConditieScore",
                                             a_som_loi: "Organische stof",
                                             b_soiltype_agr: "Bodemtype",

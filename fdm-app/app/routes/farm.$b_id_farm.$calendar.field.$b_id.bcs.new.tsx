@@ -17,38 +17,50 @@ import {
     useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import { z } from "zod"
 import { BcsWizard } from "~/components/blocks/soil-visual/bcs-wizard"
 import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
-import { BCS_VISUAL_KEYS, type BcsSavePayload, type BcsVisualKey } from "~/lib/bcs"
+import {
+    BCS_VISUAL_KEYS,
+    type BcsSavePayload,
+    type BcsVisualKey,
+} from "~/lib/bcs"
 import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { z } from "zod"
 
 const BcsSavePayloadSchema = z.object({
     a_date: z.string(),
     b_sampling_date: z.string(),
-    a_depth_lower: z.union([z.number(), z.string(), z.null(), z.undefined()]).optional(),
+    a_depth_lower: z
+        .union([z.number(), z.string(), z.null(), z.undefined()])
+        .optional(),
     scores: z.record(z.string(), z.any()).optional().default({}),
-    images: z.array(
-        z.object({
-            tempId: z.string(),
-            objectKey: z.string(),
-            url: z.string(),
-            caption: z.string().optional(),
-        })
-    ).optional().default([]),
-    annotations: z.array(
-        z.object({
-            tempId: z.string(),
-            tempImageId: z.string(),
-            type: z.enum(["pin", "circle", "arrow", "freehand"]),
-            coordinates: z.any(),
-            text: z.string().optional(),
-            bcsIndicator: z.string().optional(),
-        })
-    ).optional().default([]),
+    images: z
+        .array(
+            z.object({
+                tempId: z.string(),
+                objectKey: z.string(),
+                url: z.string(),
+                caption: z.string().optional(),
+            }),
+        )
+        .optional()
+        .default([]),
+    annotations: z
+        .array(
+            z.object({
+                tempId: z.string(),
+                tempImageId: z.string(),
+                type: z.enum(["pin", "circle", "arrow", "freehand"]),
+                coordinates: z.any(),
+                text: z.string().optional(),
+                bcsIndicator: z.string().optional(),
+            }),
+        )
+        .optional()
+        .default([]),
 })
 
 function getRouteParams(params: ActionFunctionArgs["params"]) {
@@ -83,7 +95,9 @@ function sanitizeScores(payload: BcsSavePayload) {
     return Object.fromEntries(
         BCS_VISUAL_KEYS.flatMap((key) => {
             const score = payload.scores[key]
-            return score === 0 || score === 1 || score === 2 ? [[key, score]] : []
+            return score === 0 || score === 1 || score === 2
+                ? [[key, score]]
+                : []
         }),
     ) as Partial<Record<BcsVisualKey, 0 | 1 | 2>>
 }
@@ -120,17 +134,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             new URL(request.url).pathname,
         )
 
-        const { labContext: _labContext, labAnalysisDate } = await deriveBcsScores(
+        const { labContext: _labContext, labAnalysisDate } =
+            await deriveBcsScores(fdm, session.principal_id, b_id, new Date())
+
+        const currentSoilData = await getCurrentSoilData(
             fdm,
             session.principal_id,
             b_id,
-            new Date(),
         )
-
-        const currentSoilData = await getCurrentSoilData(fdm, session.principal_id, b_id)
-        const soilDataArray = Array.isArray(currentSoilData) ? currentSoilData : []
-        const somItem = soilDataArray.find((item) => item.parameter === "a_som_loi")
-        const phItem = soilDataArray.find((item) => item.parameter === "a_ph_cc")
+        const soilDataArray = Array.isArray(currentSoilData)
+            ? currentSoilData
+            : []
+        const somItem = soilDataArray.find(
+            (item) => item.parameter === "a_som_loi",
+        )
+        const phItem = soilDataArray.find(
+            (item) => item.parameter === "a_ph_cc",
+        )
 
         const rawSource = somItem?.a_source ?? phItem?.a_source ?? null
         const soilParameterDescription = getSoilParametersDescription()
@@ -184,7 +204,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (!BCS_VISUAL_KEYS.some((key) => scores[key] != null)) {
         throw data("Geef minimaal één indicator voor BodemConditieScore op", {
             status: 400,
-            statusText: "Geef minimaal één indicator voor BodemConditieScore op",
+            statusText:
+                "Geef minimaal één indicator voor BodemConditieScore op",
         })
     }
 
@@ -197,7 +218,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const objectKeyPrefix = "soil_image/"
     if (
         payload.images.some(
-            (image) => !image.objectKey || !image.objectKey.startsWith(objectKeyPrefix),
+            (image) => !image.objectKey?.startsWith(objectKeyPrefix),
         )
     ) {
         throw data("Ongeldige afbeeldingreferentie", {
@@ -248,16 +269,23 @@ export async function action({ request, params }: ActionFunctionArgs) {
         for (const [index, annotation] of payload.annotations.entries()) {
             const a_id_image = tempImageIdToStoredId.get(annotation.tempImageId)
             if (!a_id_image) {
-                throw new Error(`Unknown tempImageId: ${annotation.tempImageId}`)
+                throw new Error(
+                    `Unknown tempImageId: ${annotation.tempImageId}`,
+                )
             }
 
-            await addSoilImageAnnotation(fdm, session.principal_id, a_id_image, {
-                a_image_annotation_type: "pin",
-                a_image_annotation_coordinates: annotation.coordinates,
-                a_image_annotation: annotation.text,
-                a_image_annotation_bcs: annotation.bcsIndicator,
-                a_image_annotation_order: index,
-            })
+            await addSoilImageAnnotation(
+                fdm,
+                session.principal_id,
+                a_id_image,
+                {
+                    a_image_annotation_type: "pin",
+                    a_image_annotation_coordinates: annotation.coordinates,
+                    a_image_annotation: annotation.text,
+                    a_image_annotation_bcs: annotation.bcsIndicator,
+                    a_image_annotation_order: index,
+                },
+            )
         }
 
         return redirectWithSuccess(getBcsPath(params), {
@@ -268,13 +296,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         await Promise.allSettled(
             createdImageIds.map((a_id_image) =>
-                removeSoilImage(fdm, session.principal_id, a_id_image, deleteObject),
+                removeSoilImage(
+                    fdm,
+                    session.principal_id,
+                    a_id_image,
+                    deleteObject,
+                ),
             ),
         )
 
         if (createdAnalysisId) {
             await Promise.allSettled([
-                removeSoilAnalysis(fdm, session.principal_id, createdAnalysisId),
+                removeSoilAnalysis(
+                    fdm,
+                    session.principal_id,
+                    createdAnalysisId,
+                ),
             ])
         }
 

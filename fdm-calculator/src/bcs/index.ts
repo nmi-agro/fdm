@@ -1,6 +1,9 @@
 import Decimal from "decimal.js"
+import {
+    type CultivationForCropPlan,
+    deriveCropPlanFractions,
+} from "./crop-plan"
 import { calcPhDelta, type SoiltypeAgr } from "./ph-delta"
-import { deriveCropPlanFractions, type CultivationForCropPlan } from "./crop-plan"
 
 /**
  * BCS (BodemConditieScore) calculation utilities.
@@ -19,7 +22,13 @@ export type OmCropCategory = "akkerbouw" | "grasland" | "mais" | "natuur"
 export type OmSoiltypeN = "klei" | "zand" | "loess" | "veen"
 
 /** Clay/loess soil types that require a_clay_mi for pH optimum calculation. */
-const CLAY_LOESS_SOILTYPES = new Set<SoiltypeAgr>(["zeeklei", "rivierklei", "maasklei", "moerige_klei", "loess"])
+const CLAY_LOESS_SOILTYPES = new Set<SoiltypeAgr>([
+    "zeeklei",
+    "rivierklei",
+    "maasklei",
+    "moerige_klei",
+    "loess",
+])
 
 /**
  * Lab context needed to derive pH and organic matter BCS scores internally.
@@ -91,12 +100,19 @@ const D_BCS_NORMALIZER = new Decimal(40)
  * pH and OM BCS scores are derived internally from `labContext` when provided.
  * The result is floored at 0 — negative totals are not meaningful.
  */
-export function calculateBcs(scores: BcsScores, labContext?: BcsLabContext): BcsResult {
+export function calculateBcs(
+    scores: BcsScores,
+    labContext?: BcsLabContext,
+): BcsResult {
     const d = (v: number | null | undefined) => new Decimal(v ?? 0)
 
     // Derive pH BCS from lab context — skip for clay/loess soils when clay data is missing
     let a_ph_bcs: 0 | 1 | 2 | null = null
-    if (labContext?.a_ph_cc != null && labContext?.a_som_loi != null && labContext?.b_soiltype_agr) {
+    if (
+        labContext?.a_ph_cc != null &&
+        labContext?.a_som_loi != null &&
+        labContext?.b_soiltype_agr
+    ) {
         const soiltype = labContext.b_soiltype_agr as SoiltypeAgr
         const needsClay = CLAY_LOESS_SOILTYPES.has(soiltype)
         if (!needsClay || labContext.a_clay_mi != null) {
@@ -120,11 +136,20 @@ export function calculateBcs(scores: BcsScores, labContext?: BcsLabContext): Bcs
 
     // Derive OM BCS from lab context — independent of pH derivation
     let a_som_bcs: 0 | 1 | 2 | null = null
-    if (labContext?.a_som_loi != null && labContext?.om_crop_category && labContext?.om_soiltype_n) {
-        a_som_bcs = deriveOmBcs(labContext.a_som_loi, labContext.om_crop_category, labContext.om_soiltype_n)
+    if (
+        labContext?.a_som_loi != null &&
+        labContext?.om_crop_category &&
+        labContext?.om_soiltype_n
+    ) {
+        a_som_bcs = deriveOmBcs(
+            labContext.a_som_loi,
+            labContext.om_crop_category,
+            labContext.om_soiltype_n,
+        )
     }
 
-    const d_bcs_decimal = d(scores.a_cc_bcs).times(2)
+    const d_bcs_decimal = d(scores.a_cc_bcs)
+        .times(2)
         .add(d(scores.a_rd_bcs).times(3))
         .add(d(scores.a_sc_bcs).times(3))
         .add(d(scores.a_ew_bcs).times(3))
@@ -151,7 +176,9 @@ export function calculateBcs(scores: BcsScores, labContext?: BcsLabContext): Bcs
 /**
  * Maps a `b_soiltype_agr` value to the simplified soil type used for OM BCS scoring.
  */
-function mapOmSoilType(soiltype: string | null | undefined): OmSoiltypeN | null {
+function mapOmSoilType(
+    soiltype: string | null | undefined,
+): OmSoiltypeN | null {
     switch (soiltype as SoiltypeAgr | null | undefined) {
         case "dekzand":
         case "dalgrond":
@@ -391,22 +418,22 @@ const OM_THRESHOLDS: Record<
     Record<OmSoiltypeN, { low: number; high: number }>
 > = {
     akkerbouw: {
-        klei:  { low: 2.2, high: 3.8 },
-        zand:  { low: 3.0, high: 4.8 },
+        klei: { low: 2.2, high: 3.8 },
+        zand: { low: 3.0, high: 4.8 },
         loess: { low: 2.4, high: 3.3 },
-        veen:  { low: 7.9, high: 14.6 },
+        veen: { low: 7.9, high: 14.6 },
     },
     grasland: {
-        klei:  { low: 6.8, high: 12.9 },
-        zand:  { low: 4.6, high: 6.6 },
+        klei: { low: 6.8, high: 12.9 },
+        zand: { low: 4.6, high: 6.6 },
         loess: { low: 5.1, high: 7.7 },
-        veen:  { low: 15.5, high: 28.6 },
+        veen: { low: 15.5, high: 28.6 },
     },
     mais: {
-        klei:  { low: 3.4, high: 6.2 },
-        zand:  { low: 3.4, high: 4.8 },
+        klei: { low: 3.4, high: 6.2 },
+        zand: { low: 3.4, high: 4.8 },
         loess: { low: 2.6, high: 3.4 },
-        veen:  { low: 8.7, high: 20.1 },
+        veen: { low: 8.7, high: 20.1 },
     },
 }
 

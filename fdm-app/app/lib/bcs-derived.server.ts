@@ -1,9 +1,9 @@
-import type { FdmType } from "@nmi-agro/fdm-core"
-import { getCultivations, getCurrentSoilData } from "@nmi-agro/fdm-core"
 import {
     type BcsLabContext,
     deriveBcsLabContext,
 } from "@nmi-agro/fdm-calculator"
+import type { FdmType } from "@nmi-agro/fdm-core"
+import { getCultivations, getCurrentSoilData } from "@nmi-agro/fdm-core"
 
 export interface DerivedBcsContext {
     labContext: BcsLabContext | null
@@ -20,7 +20,8 @@ export async function deriveBcsScores(
     const soilData = await getCurrentSoilData(fdm, principal_id, b_id)
     const data = Array.isArray(soilData) ? soilData : []
 
-    const get = (param: string) => data.find((d) => d.parameter === param)?.value
+    const get = (param: string) =>
+        data.find((d) => d.parameter === param)?.value
 
     const phItem = data.find((d) => d.parameter === "a_ph_cc")
     const somItem = data.find((d) => d.parameter === "a_som_loi")
@@ -32,7 +33,8 @@ export async function deriveBcsScores(
         return { labContext: null, labAnalysisDate: null }
     }
 
-    const b_soiltype_agr = (get("b_soiltype_agr") as string | null | undefined) ?? null
+    const b_soiltype_agr =
+        (get("b_soiltype_agr") as string | null | undefined) ?? null
     const a_clay_mi = (get("a_clay_mi") as number | null | undefined) ?? null
 
     // Only show an analysis date when both pH and SOM come from the same record

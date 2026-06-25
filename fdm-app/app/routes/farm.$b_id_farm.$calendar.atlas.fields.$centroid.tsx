@@ -208,10 +208,7 @@ async function loadAsyncData(
             fieldDetailsData
 
         const cultivationCatalogueMap = new Map(
-            cultivationCatalogue.map((item) => [
-                item.b_lu_catalogue,
-                item,
-            ]),
+            cultivationCatalogue.map((item) => [item.b_lu_catalogue, item]),
         )
 
         const officialAreaHa = queriedField?.properties?.b_area

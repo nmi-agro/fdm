@@ -88,7 +88,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmContentBlock() {
     const loaderData = useLoaderData<typeof loader>()
 
-    const isValidFarm = loaderData.b_id_farm && loaderData.b_id_farm !== "undefined"
+    const isValidFarm =
+        loaderData.b_id_farm && loaderData.b_id_farm !== "undefined"
 
     const action = {
         to: isValidFarm ? `/farm/${loaderData.b_id_farm}` : "/farm",

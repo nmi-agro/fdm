@@ -36,8 +36,9 @@ export function CultivationSelector({
         })
     }
 
-    const getCultivationStartTime = (value: Date | string | null | undefined) =>
-        value ? new Date(value).getTime() : 0
+    const getCultivationStartTime = (
+        value: Date | string | null | undefined,
+    ) => (value ? new Date(value).getTime() : 0)
 
     const formatCultivationStartDate = (
         value: Date | string | null | undefined,

@@ -1102,8 +1102,12 @@ export const soilImageAnnotating = fdmSchema.table(
         created: timestamp({ withTimezone: true }).notNull().defaultNow(),
         updated: timestamp({ withTimezone: true }),
     },
-    (table) => [index("soil_image_annotating_a_id_image_idx").on(table.a_id_image)],
+    (table) => [
+        index("soil_image_annotating_a_id_image_idx").on(table.a_id_image),
+    ],
 )
 
-export type soilImageAnnotatingTypeSelect = typeof soilImageAnnotating.$inferSelect
-export type soilImageAnnotatingTypeInsert = typeof soilImageAnnotating.$inferInsert
+export type soilImageAnnotatingTypeSelect =
+    typeof soilImageAnnotating.$inferSelect
+export type soilImageAnnotatingTypeInsert =
+    typeof soilImageAnnotating.$inferInsert

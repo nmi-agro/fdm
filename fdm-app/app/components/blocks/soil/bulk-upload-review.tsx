@@ -17,6 +17,7 @@ declare module "@tanstack/react-table" {
         fieldOptions?: React.ReactNode
     }
 }
+
 import * as chrono from "chrono-node"
 import { format, isValid, parseISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
@@ -513,7 +514,13 @@ export function BulkSoilAnalysisReview({
         columns,
         getCoreRowModel: getCoreRowModel(),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        meta: { matches, dates, handleFieldChange, handleDateChange, fieldOptions } as any,
+        meta: {
+            matches,
+            dates,
+            handleFieldChange,
+            handleDateChange,
+            fieldOptions,
+        } as any,
     })
 
     return (

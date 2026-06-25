@@ -27,17 +27,20 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 0,
                 label: "Slecht",
-                description: "Minder dan 30% van de bodem is bedekt; grote delen liggen kaal.",
+                description:
+                    "Minder dan 30% van de bodem is bedekt; grote delen liggen kaal.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description: "Ongeveer 30% tot 70% van het oppervlak is bedekt.",
+                description:
+                    "Ongeveer 30% tot 70% van het oppervlak is bedekt.",
             },
             {
                 score: 2,
                 label: "Goed",
-                description: "Meer dan 70% van de bodem is bedekt door vegetatie of resten.",
+                description:
+                    "Meer dan 70% van de bodem is bedekt door vegetatie of resten.",
             },
         ],
         tip: "Maak een overzichtsfoto recht van boven zodat de bedekking goed zichtbaar is.",
@@ -53,17 +56,20 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 0,
                 label: "Slecht",
-                description: "Wortels zijn oppervlakkig, schaars en vooral in de bovenlaag aanwezig.",
+                description:
+                    "Wortels zijn oppervlakkig, schaars en vooral in de bovenlaag aanwezig.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description: "Wortels komen tot middelmatige diepte en zijn redelijk verdeeld.",
+                description:
+                    "Wortels komen tot middelmatige diepte en zijn redelijk verdeeld.",
             },
             {
                 score: 2,
                 label: "Goed",
-                description: "Wortels gaan diep door en zijn fijn vertakt en dicht aanwezig.",
+                description:
+                    "Wortels gaan diep door en zijn fijn vertakt en dicht aanwezig.",
             },
         ],
         tip: "Fotografeer een schone profielwand of opengebroken kluit met duidelijk zichtbare wortels.",
@@ -79,17 +85,20 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 0,
                 label: "Slecht",
-                description: "De ondergrond is sterk verdicht, hard en toont duidelijke plaatstructuren.",
+                description:
+                    "De ondergrond is sterk verdicht, hard en toont duidelijke plaatstructuren.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description: "Er is enige verdichting zichtbaar, maar nog wel enige kruimeligheid aanwezig.",
+                description:
+                    "Er is enige verdichting zichtbaar, maar nog wel enige kruimeligheid aanwezig.",
             },
             {
                 score: 2,
                 label: "Goed",
-                description: "Geen duidelijke verdichting; de ondergrond is kruimelig en goed doorwortelbaar.",
+                description:
+                    "Geen duidelijke verdichting; de ondergrond is kruimelig en goed doorwortelbaar.",
             },
         ],
         tip: "Leg een detail vast van de ondergrond waar plaatjes of juist kruimels goed zichtbaar zijn.",
@@ -105,7 +114,8 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 0,
                 label: "Slecht",
-                description: "Er zijn 0 tot 2 regenwormen gevonden in het bodemblok.",
+                description:
+                    "Er zijn 0 tot 2 regenwormen gevonden in het bodemblok.",
             },
             {
                 score: 1,
@@ -131,17 +141,20 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 0,
                 label: "Slecht",
-                description: "Grote, harde kluiten die moeilijk breken en weinig kruimels geven.",
+                description:
+                    "Grote, harde kluiten die moeilijk breken en weinig kruimels geven.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description: "Middelgrote kluiten met zowel kruimels als enkele stevige delen.",
+                description:
+                    "Middelgrote kluiten met zowel kruimels als enkele stevige delen.",
             },
             {
                 score: 2,
                 label: "Goed",
-                description: "Kleine, kruimelige aggregaten die gemakkelijk uiteen vallen.",
+                description:
+                    "Kleine, kruimelige aggregaten die gemakkelijk uiteen vallen.",
             },
         ],
         tip: "Fotografeer een opengebroken bodemblok van dichtbij zodat de aggregaten goed zichtbaar zijn.",
@@ -157,17 +170,20 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 0,
                 label: "Slecht",
-                description: "Veel gekleurde vlekken aanwezig; duidelijke sporen van wateroverlast.",
+                description:
+                    "Veel gekleurde vlekken aanwezig; duidelijke sporen van wateroverlast.",
             },
             {
                 score: 1,
                 label: "Matig",
-                description: "Enkele gekleurde vlekken zichtbaar in de profielwand.",
+                description:
+                    "Enkele gekleurde vlekken zichtbaar in de profielwand.",
             },
             {
                 score: 2,
                 label: "Goed",
-                description: "Geen of vrijwel geen gekleurde vlekken zichtbaar.",
+                description:
+                    "Geen of vrijwel geen gekleurde vlekken zichtbaar.",
             },
         ],
         tip: "Maak een scherpe foto van de profielwand bij egaal daglicht om kleurverschillen zichtbaar te maken.",
@@ -188,12 +204,14 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 1,
                 label: "Enig",
-                description: "Op meerdere plekken is enige plasvorming zichtbaar.",
+                description:
+                    "Op meerdere plekken is enige plasvorming zichtbaar.",
             },
             {
                 score: 2,
                 label: "Veel",
-                description: "Regelmatig of veel plasvorming op het bodemoppervlak.",
+                description:
+                    "Regelmatig of veel plasvorming op het bodemoppervlak.",
             },
         ],
         tip: "Gebruik een overzichtsfoto waarop natte plekken en de omvang van de plasvorming duidelijk te zien zijn.",
@@ -219,7 +237,8 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 2,
                 label: "Veel",
-                description: "Veel of diepe scheuren over een groot deel van het oppervlak.",
+                description:
+                    "Veel of diepe scheuren over een groot deel van het oppervlak.",
             },
         ],
         tip: "Fotografeer schuin over het oppervlak zodat diepte en lengte van scheuren beter zichtbaar zijn.",
@@ -245,7 +264,8 @@ export const BCS_GUIDES: IndicatorGuide[] = [
             {
                 score: 2,
                 label: "Veel",
-                description: "Diepe of ernstige spoorvorming of vertrapping aanwezig.",
+                description:
+                    "Diepe of ernstige spoorvorming of vertrapping aanwezig.",
             },
         ],
         tip: "Neem een foto vanuit de lengte van het spoor zodat diepte en breedte goed zichtbaar worden.",

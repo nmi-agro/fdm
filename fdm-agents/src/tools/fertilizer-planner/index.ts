@@ -209,7 +209,10 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         // Skip NMI for fields with no known agricultural crop type.
                         // This covers unknown BRP codes (null croprotation) and
                         // nature/landscape fields which the NMI API does not support.
-                        if (!mainLu.b_lu_croprotation || mainLu.b_lu_croprotation === "nature") {
+                        if (
+                            !mainLu.b_lu_croprotation ||
+                            mainLu.b_lu_croprotation === "nature"
+                        ) {
                             return {
                                 b_id,
                                 advice: null,
@@ -244,7 +247,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             schema: z.object({
                 b_ids: z
                     .array(z.string())
-                    .describe("Lijst van perceel-ID's (b_id) om advies voor op te halen"),
+                    .describe(
+                        "Lijst van perceel-ID's (b_id) om advies voor op te halen",
+                    ),
             }),
         },
     )
@@ -318,7 +323,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 b_id_farm: z.string().describe("Het ID van het bedrijf"),
                 b_ids: z
                     .array(z.string())
-                    .describe("Lijst van perceel-ID's (b_id) om te controleren"),
+                    .describe(
+                        "Lijst van perceel-ID's (b_id) om te controleren",
+                    ),
             }),
         },
     )
@@ -398,7 +405,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             schema: z.object({
                 b_id_farm: z
                     .string()
-                    .describe("Het ID van het bedrijf om de voorraad voor te doorzoeken"),
+                    .describe(
+                        "Het ID van het bedrijf om de voorraad voor te doorzoeken",
+                    ),
                 query: z
                     .string()
                     .optional()
@@ -652,7 +661,10 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                 fieldData.b_id,
                                 timeframe,
                             )
-                            const simMainLu = getMainCultivation(simCultivations, calendar)
+                            const simMainLu = getMainCultivation(
+                                simCultivations,
+                                calendar,
+                            )
                             const croprotation = simMainLu?.b_lu_croprotation
 
                             if (!croprotation || croprotation === "nature") {
@@ -668,12 +680,14 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                     advice = await getNutrientAdvice(fdm, {
                                         b_lu_catalogue:
                                             simMainLu?.b_lu_catalogue ?? "",
-                                        b_centroid: fieldInfo.b_centroid ?? [0, 0],
+                                        b_centroid: fieldInfo.b_centroid ?? [
+                                            0, 0,
+                                        ],
                                         currentSoilData,
                                         nmiApiKey,
                                         b_bufferstrip: fieldInfo.b_bufferstrip,
                                     })
-                                } catch (err) {
+                                } catch (_err) {
                                     // advice remains null if the fetch fails; not an error
                                     adviceSkipped = `Could not fetch NMI nutrient advice for field ${fieldData.b_id}`
                                 }
@@ -1094,7 +1108,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         isDerogation: z.boolean().optional(),
                     })
                     .optional()
-                    .describe("Door de gebruiker in te stellen strategieën voor waarschuwingen"),
+                    .describe(
+                        "Door de gebruiker in te stellen strategieën voor waarschuwingen",
+                    ),
                 fields: z
                     .array(
                         z.object({
@@ -1119,9 +1135,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                     p_id_catalogue: z.string(),
                                     p_app_amount: z
                                         .number()
-                                        .describe(
-                                            "Gifthoeveelheid in kg/ha",
-                                        ),
+                                        .describe("Gifthoeveelheid in kg/ha"),
                                     p_app_amount_unit: z
                                         .string()
                                         .optional()
