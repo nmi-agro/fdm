@@ -140,10 +140,13 @@ export function HarvestsList({
         return (
             <Empty>
                 <EmptyHeader>
-                    <EmptyTitle>Nog geen {getHarvestTerm(b_lu_croprotation)}</EmptyTitle>
+                    <EmptyTitle>
+                        Nog geen {getHarvestTerm(b_lu_croprotation)}
+                    </EmptyTitle>
                     <EmptyDescription>
-                        Voeg een {getHarvestTerm(b_lu_croprotation)} toe om belangrijke gegevens zoals
-                        opbrengst, datum en gehaltes bij te houden.
+                        Voeg een {getHarvestTerm(b_lu_croprotation)} toe om
+                        belangrijke gegevens zoals opbrengst, datum en gehaltes
+                        bij te houden.
                     </EmptyDescription>
                 </EmptyHeader>
             </Empty>

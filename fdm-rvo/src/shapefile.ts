@@ -1,4 +1,4 @@
-import { type FieldGeometry } from "@nmi-agro/fdm-core"
+import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import { multiPolygon, polygon } from "@turf/helpers"
 import type { Feature, FeatureCollection, Geometry, Position } from "geojson"
 import proj4 from "proj4"

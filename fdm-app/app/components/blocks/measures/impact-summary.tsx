@@ -5,11 +5,17 @@
  * displaying their pre-measure vs post-measure scores and the positive delta.
  */
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
-import { TrendingUp, Plus } from "lucide-react"
-import { getIndicatorInfo, scoreToDisplay } from "~/lib/indicators"
+import { Plus, TrendingUp } from "lucide-react"
 import { Badge } from "~/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "~/components/ui/card"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
 import { ScrollArea } from "~/components/ui/scroll-area"
+import { getIndicatorInfo, scoreToDisplay } from "~/lib/indicators"
 
 type ImpactSummaryProps = {
     indicators: Bln3IndicatorResult[]
@@ -36,7 +42,8 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
     if (improvedIndicators.length === 0) {
         return (
             <div className="rounded-lg border bg-muted/20 p-4 text-center text-xs text-muted-foreground">
-                De geselecteerde maatregelen hebben op dit moment geen directe invloed op de BLN3 bodemkwaliteitsindicatoren van dit perceel.
+                De geselecteerde maatregelen hebben op dit moment geen directe
+                invloed op de BLN3 bodemkwaliteitsindicatoren van dit perceel.
             </div>
         )
     }
@@ -46,10 +53,13 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
             <CardHeader className="pb-3 border-b">
                 <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <CardTitle className="text-base font-bold">Invloed op bodemindicatoren</CardTitle>
+                    <CardTitle className="text-base font-bold">
+                        Invloed op bodemindicatoren
+                    </CardTitle>
                 </div>
                 <CardDescription className="text-xs">
-                    De geselecteerde maatregelen zorgen voor een directe verbetering van de volgende bodemindicatoren op dit perceel.
+                    De geselecteerde maatregelen zorgen voor een directe
+                    verbetering van de volgende bodemindicatoren op dit perceel.
                 </CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
@@ -61,7 +71,10 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
                                 className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/30 border border-border text-xs"
                             >
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5">
+                                    <Badge
+                                        variant="secondary"
+                                        className="font-mono text-[10px] px-1.5 py-0 h-5"
+                                    >
                                         {ind.id}
                                     </Badge>
                                     <span className="font-medium truncate text-foreground">
@@ -72,7 +85,10 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
                                     <span className="text-[10px] text-muted-foreground">
                                         {ind.index} → {ind.score}
                                     </span>
-                                    <Badge variant="default" className="font-bold text-[10px] px-1.5 py-0 h-5">
+                                    <Badge
+                                        variant="default"
+                                        className="font-bold text-[10px] px-1.5 py-0 h-5"
+                                    >
                                         <Plus className="w-3 h-3 mr-0.5" />
                                         {ind.impact}
                                     </Badge>

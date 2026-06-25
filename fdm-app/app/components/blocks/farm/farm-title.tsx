@@ -41,9 +41,7 @@ export function FarmTitle({
                 </div>
                 <div className="flex items-center gap-3 ml-auto shrink-0 mt-4 xl:mt-0">
                     {rightNode && (
-                        <div className="flex-shrink-0">
-                            {rightNode}
-                        </div>
+                        <div className="flex-shrink-0">{rightNode}</div>
                     )}
                     {action && (
                         <Button asChild>

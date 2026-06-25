@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { ComponentProps } from "react"
 import {
     checkPermission,
     getFarm,
@@ -9,6 +8,7 @@ import {
     getFertilizers,
     updateFertilizerFromCatalogue,
 } from "@nmi-agro/fdm-core"
+import type { ComponentProps } from "react"
 import {
     type ActionFunctionArgs,
     data,
@@ -205,7 +205,9 @@ export default function FarmFertilizerBlock() {
                                 >["fertilizerParameters"]
                             }
                             form={
-                                form as ComponentProps<typeof FertilizerForm>["form"]
+                                form as ComponentProps<
+                                    typeof FertilizerForm
+                                >["form"]
                             }
                             editable={editable}
                             p_type={fertilizer.p_type}

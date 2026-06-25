@@ -22,7 +22,10 @@ export function NewFieldsAtlas({
 
     useEffect(() => {
         if (viewState.bounds) {
-            mapRef.current?.fitBounds(viewState.bounds, viewState.fitBoundsOptions)
+            mapRef.current?.fitBounds(
+                viewState.bounds,
+                viewState.fitBoundsOptions,
+            )
         }
     }, [viewState])
 

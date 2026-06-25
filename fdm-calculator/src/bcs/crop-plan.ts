@@ -86,7 +86,10 @@ export function deriveCropPlanFractions(
     const catalogueToRotation = new Map<string, string | null>()
     for (const c of cultivations) {
         if (!catalogueToRotation.has(c.b_lu_catalogue)) {
-            catalogueToRotation.set(c.b_lu_catalogue, c.b_lu_croprotation ?? null)
+            catalogueToRotation.set(
+                c.b_lu_catalogue,
+                c.b_lu_croprotation ?? null,
+            )
         }
     }
 

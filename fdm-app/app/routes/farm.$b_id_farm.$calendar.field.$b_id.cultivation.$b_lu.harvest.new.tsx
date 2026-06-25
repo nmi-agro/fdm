@@ -20,7 +20,10 @@ import { BatchHarvestFormDialog } from "~/components/blocks/harvest/batch-form"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
-import { getEffectiveHarvestable, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
+import {
+    getEffectiveHarvestable,
+    getHarvestCapitalizedTerm,
+} from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -30,7 +33,9 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 
 // Meta
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
-    const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
+    const term = getHarvestCapitalizedTerm(
+        loaderData?.cultivation?.b_lu_croprotation,
+    )
     return [
         { title: `${term} toevoegen - Gewas | ${clientConfig.name}` },
         {
@@ -247,9 +252,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 ),
             )
 
-            const term = formValues.harvests.length === 1 
-                ? getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
-                : getHarvestCapitalizedTerm(cultivation.b_lu_croprotation, true)
+            const term =
+                formValues.harvests.length === 1
+                    ? getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
+                    : getHarvestCapitalizedTerm(
+                          cultivation.b_lu_croprotation,
+                          true,
+                      )
             const verb = formValues.harvests.length === 1 ? "is" : "zijn"
             return redirectWithSuccess("..", {
                 message: `${term} ${verb} succesvol toegevoegd! 🎉`,

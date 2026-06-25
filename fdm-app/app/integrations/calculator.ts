@@ -32,10 +32,14 @@ import {
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { getNmiApiKey } from "./nmi.server"
 
-type OrganicMatterFieldInput =
-    Awaited<ReturnType<typeof collectInputForOrganicMatterBalance>>["fields"][number]
+type OrganicMatterFieldInput = Awaited<
+    ReturnType<typeof collectInputForOrganicMatterBalance>
+>["fields"][number]
 
-function getRequiredTimeFrame(timeframe: Timeframe): { start: Date; end: Date } {
+function getRequiredTimeFrame(timeframe: Timeframe): {
+    start: Date
+    end: Date
+} {
     if (!timeframe.start || !timeframe.end) {
         throw new Error("Timeframe start and end must be provided")
     }

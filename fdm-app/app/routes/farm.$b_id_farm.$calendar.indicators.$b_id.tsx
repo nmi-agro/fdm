@@ -31,7 +31,13 @@ import { IndicatorCard } from "~/components/blocks/indicators/indicator-card"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
 import {
     Select,
     SelectContent,
@@ -49,9 +55,13 @@ import {
     getIndicatorsForField,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
+import {
+    AGG_IDS,
+    type AggregationId,
+    getFieldAggregationScore,
+} from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
-import { getFieldAggregationScore, type AggregationId, AGG_IDS } from "~/lib/aggregations"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
@@ -101,21 +111,27 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
     },
     {
         group: "Water Indicatoren",
-        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Water").map((i) => ({
-            value: i.id,
-            label: i.name,
-        })),
+        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Water").map(
+            (i) => ({
+                value: i.id,
+                label: i.name,
+            }),
+        ),
     },
     {
         group: "Nutriënten & Klimaat Indicatoren",
-        options: INDICATORS.filter((i) => ["Nutriëntenkringloop", "Klimaat"].includes(i.ecosysteemdienst)).map((i) => ({
+        options: INDICATORS.filter((i) =>
+            ["Nutriëntenkringloop", "Klimaat"].includes(i.ecosysteemdienst),
+        ).map((i) => ({
             value: i.id,
             label: i.name,
         })),
     },
     {
         group: "Productie (OBI) Indicatoren",
-        options: INDICATORS.filter((i) => i.ecosysteemdienst === "Productie").map((i) => ({
+        options: INDICATORS.filter(
+            (i) => i.ecosysteemdienst === "Productie",
+        ).map((i) => ({
             value: i.id,
             label: i.name,
         })),
@@ -322,7 +338,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const bcsScores = BCS_INDICATORS.flatMap((ind) => {
             const value = (bln3Inputs as Record<string, unknown>)[ind.key]
             if (typeof value !== "number") return []
-            return [{ key: ind.key as string, name: ind.name, value, direction: ind.direction }]
+            return [
+                {
+                    key: ind.key as string,
+                    name: ind.name,
+                    value,
+                    direction: ind.direction,
+                },
+            ]
         })
 
         // Derive the current cultivation (FarmTitle badge) using the May 15th point check.
@@ -586,22 +609,35 @@ export default function IndicatorsFieldDetail() {
                                     <CardHeader className="pb-3">
                                         <div className="flex items-start justify-between gap-4 flex-wrap">
                                             <div>
-                                                <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
+                                                <CardTitle className="text-base font-bold">
+                                                    Perceelsscore
+                                                </CardTitle>
                                                 <CardDescription className="text-xs mt-1.5">
-                                                    Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie voor dit perceel. Klik op de knoppen om in te zoomen.
+                                                    Hieronder ziet u de
+                                                    officiële
+                                                    BLN-bodemkwaliteitshiërarchie
+                                                    voor dit perceel. Klik op de
+                                                    knoppen om in te zoomen.
                                                 </CardDescription>
                                             </div>
                                             <div className="shrink-0">
                                                 <FieldInputDialog
-                                                    cultivations={cultivationSummaries}
-                                                    fieldMeasures={fieldMeasures}
+                                                    cultivations={
+                                                        cultivationSummaries
+                                                    }
+                                                    fieldMeasures={
+                                                        fieldMeasures
+                                                    }
                                                     soilData={soilData}
                                                 />
                                             </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent>
-                                        <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
+                                        <AggregationTree
+                                            scoreOf={scoreOf}
+                                            indicatorScoreOf={indicatorScoreOf}
+                                        />
                                     </CardContent>
                                 </Card>
                             )}

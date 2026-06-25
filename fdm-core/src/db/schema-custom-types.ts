@@ -40,7 +40,9 @@ export const geometry = <
         data: GeometryTypes[TType]
     }>({
         dataType() {
-            return typeof type === "string" ? `geometry(${type},4326)` : "geometry"
+            return typeof type === "string"
+                ? `geometry(${type},4326)`
+                : "geometry"
         },
         toDriver(value) {
             return sql`ST_GeomFromGeoJSON(${JSON.stringify(value)})`
@@ -61,10 +63,7 @@ export const geometry = <
                     )
                 }
 
-                if (
-                    Array.isArray(type) &&
-                    !type.includes(data.type as TType)
-                ) {
+                if (Array.isArray(type) && !type.includes(data.type as TType)) {
                     throw new Error(
                         `Expected geometry type ${type.join(", ")}, got ${data.type}`,
                     )

@@ -43,12 +43,20 @@ function createMockAgent(chunks: Array<[string, Record<string, any>]>): any {
 function createThrowingAgent(error: Error): any {
     return {
         stream: vi.fn().mockResolvedValue(
-            (async function* (): AsyncGenerator<[string, Record<string, any>], void, unknown> {
+            (async function* (): AsyncGenerator<
+                [string, Record<string, any>],
+                void,
+                unknown
+            > {
                 throw error
             })(),
         ),
         streamEvents: vi.fn().mockResolvedValue(
-            (async function* (): AsyncGenerator<[string, Record<string, any>], void, unknown> {
+            (async function* (): AsyncGenerator<
+                [string, Record<string, any>],
+                void,
+                unknown
+            > {
                 throw error
             })(),
         ),

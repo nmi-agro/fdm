@@ -43,11 +43,11 @@ export function getSafeFarmPath(currentPath: string, newFarmId: string) {
 
     // If we have segments beyond the safe keepIndex, truncate them
     if (segments.length > keepIndex + 1) {
-        return "/" + segments.slice(0, keepIndex + 1).join("/")
+        return `/${segments.slice(0, keepIndex + 1).join("/")}`
     }
 
     // Otherwise return the path as is (with the farm ID replaced)
-    return "/" + segments.join("/")
+    return `/${segments.join("/")}`
 }
 
 export function HeaderFarm({

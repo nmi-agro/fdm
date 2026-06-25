@@ -30,7 +30,13 @@ describe("deriveCropPlanFractions", () => {
 
         it("returns all zeros when b_lu_start is missing", () => {
             const result = deriveCropPlanFractions(
-                [{ b_lu_catalogue: "abc", b_lu_croprotation: "grass", b_lu_start: null }],
+                [
+                    {
+                        b_lu_catalogue: "abc",
+                        b_lu_croprotation: "grass",
+                        b_lu_start: null,
+                    },
+                ],
                 2024,
             )
             expect(result.d_cp_grass).toBe(0)

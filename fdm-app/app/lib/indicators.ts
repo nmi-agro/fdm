@@ -335,8 +335,10 @@ export function getScoreTextClass(score100: number): string {
 /** Returns Tailwind classes for the badge variant based on score tier. */
 export function getScoreBadgeClass(score100: number): string {
     const tier = getScoreTier(score100)
-    if (tier === "green") return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 border-transparent hover:bg-emerald-200 dark:hover:bg-emerald-800"
-    if (tier === "yellow") return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 border-transparent hover:bg-amber-200 dark:hover:bg-amber-800"
+    if (tier === "green")
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 border-transparent hover:bg-emerald-200 dark:hover:bg-emerald-800"
+    if (tier === "yellow")
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 border-transparent hover:bg-amber-200 dark:hover:bg-amber-800"
     return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 border-transparent hover:bg-red-200 dark:hover:bg-red-900"
 }
 

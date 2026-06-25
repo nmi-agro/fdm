@@ -119,7 +119,9 @@ export default function Welcome() {
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema) as Resolver<z.infer<typeof FormSchema>>,
+        resolver: zodResolver(FormSchema) as Resolver<
+            z.infer<typeof FormSchema>
+        >,
         defaultValues: {
             firstname: loaderData.firstname || "",
             surname: loaderData.surname || "",

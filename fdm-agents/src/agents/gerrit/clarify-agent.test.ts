@@ -14,19 +14,25 @@ vi.mock("../../models/default", () => ({
 }))
 
 vi.mock("../../tools/fertilizer-planner", () => ({
-    createFertilizerPlannerTools: vi.fn().mockReturnValue([
-        { name: "getFarmFields" },
-        { name: "searchFertilizers" },
-        { name: "simulateFarmPlan" },
-    ]),
-    createClarifyAgentTools: vi.fn().mockReturnValue([
-        { name: "getFarmFields" },
-        { name: "searchFertilizers" },
-    ]),
+    createFertilizerPlannerTools: vi
+        .fn()
+        .mockReturnValue([
+            { name: "getFarmFields" },
+            { name: "searchFertilizers" },
+            { name: "simulateFarmPlan" },
+        ]),
+    createClarifyAgentTools: vi
+        .fn()
+        .mockReturnValue([
+            { name: "getFarmFields" },
+            { name: "searchFertilizers" },
+        ]),
 }))
 
 vi.mock("langchain", () => ({
-    createAgent: vi.fn().mockReturnValue({ stream: vi.fn(), streamEvents: vi.fn() }),
+    createAgent: vi
+        .fn()
+        .mockReturnValue({ stream: vi.fn(), streamEvents: vi.fn() }),
     dynamicSystemPromptMiddleware: vi.fn().mockReturnValue({}),
     toolStrategy: vi.fn().mockReturnValue({}),
 }))
@@ -46,7 +52,9 @@ describe("clarify agent", () => {
 
     it("should throw when no API key is provided", () => {
         vi.stubEnv("GEMINI_API_KEY", "")
-        expect(() => createClarifyAgent({} as any)).toThrow("Missing Gemini API key")
+        expect(() => createClarifyAgent({} as any)).toThrow(
+            "Missing Gemini API key",
+        )
         vi.unstubAllEnvs()
     })
 
@@ -60,13 +68,15 @@ describe("clarify agent", () => {
     it("should pass CLARIFY_INSTRUCTION as the system prompt via middleware callback", async () => {
         const { dynamicSystemPromptMiddleware } = await import("langchain")
         let capturedCallback: (() => string) | undefined
-        vi.mocked(dynamicSystemPromptMiddleware).mockImplementationOnce((cb: any) => {
-            capturedCallback = cb
-            return {} as any
-        })
+        vi.mocked(dynamicSystemPromptMiddleware).mockImplementationOnce(
+            (cb: any) => {
+                capturedCallback = cb
+                return {} as any
+            },
+        )
         createClarifyAgent({} as any, "test-api-key")
         expect(capturedCallback).toBeDefined()
-        expect(capturedCallback!()).toBe(CLARIFY_INSTRUCTION)
+        expect(capturedCallback?.()).toBe(CLARIFY_INSTRUCTION)
     })
 
     it("should throw when createAgent returns a non-graph object", async () => {

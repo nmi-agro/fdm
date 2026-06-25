@@ -59,7 +59,9 @@ Elke vraag moet:
 Geef een JSON-object terug met een "questions"-lijst (0–5 vragen). Geef een lege lijst als er geen wezenlijke ambiguïteiten zijn.
 `
 
-function isAgentGraph(obj: unknown): obj is { stream: Function; streamEvents: Function } {
+function isAgentGraph(
+    obj: unknown,
+): obj is { stream: Function; streamEvents: Function } {
     return (
         obj != null &&
         typeof (obj as any).stream === "function" &&

@@ -790,7 +790,11 @@ export default function MeasuresFieldDetail() {
                             initialFitGeoJSON={selectedFieldGeoJSON}
                             mapStyle={mapStyle}
                             height="400px"
-                            onFieldClick={(b_id) => navigate(`/farm/${b_id_farm}/${calendar}/measures/${b_id}`)}
+                            onFieldClick={(b_id) =>
+                                navigate(
+                                    `/farm/${b_id_farm}/${calendar}/measures/${b_id}`,
+                                )
+                            }
                         />
                     </Suspense>
                 </div>

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto"
 import fs from "node:fs"
 import type { GenericOAuthConfig } from "better-auth/plugins"
-import { decodeJwt, SignJWT, importPKCS8 } from "jose"
+import { decodeJwt, importPKCS8, SignJWT } from "jose"
 
 const AUTHORITY = "https://login.microsoftonline.com"
 const PROFILE_PHOTO_SIZE = 48
@@ -60,9 +60,12 @@ function resolveFileOrInline(value: string, label: string): string {
 
     // Otherwise, treat it as a file path
     if (fs.existsSync(value)) {
-        return fs.readFileSync(value, "utf8").replace(/^\uFEFF/, "").trim()
+        return fs
+            .readFileSync(value, "utf8")
+            .replace(/^\uFEFF/, "")
+            .trim()
     }
-    
+
     // If it doesn't exist but has no PEM headers, it's likely a missing file
     throw new Error(`Microsoft cert auth: ${label} file not found: ${value}`)
 }
@@ -276,7 +279,11 @@ export function createMicrosoftOAuthConfig(
             try {
                 const photoResp = await fetch(
                     `https://graph.microsoft.com/v1.0/me/photos/${PROFILE_PHOTO_SIZE}x${PROFILE_PHOTO_SIZE}/$value`,
-                    { headers: { Authorization: `Bearer ${tokens.accessToken}` } },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${tokens.accessToken}`,
+                        },
+                    },
                 )
                 if (photoResp.ok) {
                     const buf = await photoResp.arrayBuffer()
@@ -299,14 +306,22 @@ export function createMicrosoftOAuthConfig(
             const emailVerified =
                 claims.email_verified !== undefined
                     ? Boolean(claims.email_verified)
-                    : !!(email &&
-                        (
-                            claims.verified_primary_email as
-                                | string[]
-                                | undefined
-                        )?.includes(email))
+                    : !!(
+                          email &&
+                          (
+                              claims.verified_primary_email as
+                                  | string[]
+                                  | undefined
+                          )?.includes(email)
+                      )
 
-            return { id: claims.sub as string, name, email, image: picture, emailVerified }
+            return {
+                id: claims.sub as string,
+                name,
+                email,
+                image: picture,
+                emailVerified,
+            }
         },
 
         // ---------------------------------------------------------------

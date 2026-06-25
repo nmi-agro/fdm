@@ -16,8 +16,15 @@ describe("calculateBcs", () => {
     describe("with all scores at zero", () => {
         it("returns zero for all fields", () => {
             const result = calculateBcs({
-                a_ss_bcs: 0, a_sc_bcs: 0, a_rd_bcs: 0, a_ew_bcs: 0,
-                a_cc_bcs: 0, a_gs_bcs: 0, a_p_bcs: 0, a_c_bcs: 0, a_rt_bcs: 0,
+                a_ss_bcs: 0,
+                a_sc_bcs: 0,
+                a_rd_bcs: 0,
+                a_ew_bcs: 0,
+                a_cc_bcs: 0,
+                a_gs_bcs: 0,
+                a_p_bcs: 0,
+                a_c_bcs: 0,
+                a_rt_bcs: 0,
             })
             expect(result.d_bcs).toBe(0)
             expect(result.i_bcs).toBe(0)
@@ -31,7 +38,9 @@ describe("calculateBcs", () => {
             expect(result.i_bcs).toBe(0)
         })
         it("treats null values as 0", () => {
-            expect(calculateBcs({ a_ss_bcs: null, a_p_bcs: null }).d_bcs).toBe(0)
+            expect(calculateBcs({ a_ss_bcs: null, a_p_bcs: null }).d_bcs).toBe(
+                0,
+            )
         })
     })
 
@@ -60,22 +69,28 @@ describe("calculateBcs", () => {
         // dekzand + no potatoes/sugarbeet/grass/mais → phOptimum ~5.4 for a_som_loi=2
         // a_ph_cc = 5.4 → delta = 0 → derivePhBcs(0) = 2
         it("adds weight 3 for pH BCS (a_ph_bcs=2 at optimum pH, no OM context)", () => {
-            const result = calculateBcs({}, {
-                a_ph_cc: 5.4,
-                a_som_loi: 2,
-                b_soiltype_agr: "dekzand",
-            })
+            const result = calculateBcs(
+                {},
+                {
+                    a_ph_cc: 5.4,
+                    a_som_loi: 2,
+                    b_soiltype_agr: "dekzand",
+                },
+            )
             expect(result.a_ph_bcs).toBe(2)
             expect(result.a_som_bcs).toBeNull()
             expect(result.d_bcs).toBe(6)
         })
         // akkerbouw/zand: thresholds low=3.0, high=4.8 → a_som_loi=4.0 → score 1
         it("adds weight 3 for OM BCS (a_som_bcs=1, no pH context)", () => {
-            const result = calculateBcs({}, {
-                a_som_loi: 4.0,
-                om_crop_category: "akkerbouw",
-                om_soiltype_n: "zand",
-            })
+            const result = calculateBcs(
+                {},
+                {
+                    a_som_loi: 4.0,
+                    om_crop_category: "akkerbouw",
+                    om_soiltype_n: "zand",
+                },
+            )
             expect(result.a_som_bcs).toBe(1)
             expect(result.a_ph_bcs).toBeNull()
             expect(result.d_bcs).toBe(3)
@@ -86,21 +101,27 @@ describe("calculateBcs", () => {
             expect(result.a_som_bcs).toBeNull()
         })
         it("skips pH BCS for clay soil when a_clay_mi is missing", () => {
-            const result = calculateBcs({}, {
-                a_ph_cc: 6.0,
-                a_som_loi: 2,
-                b_soiltype_agr: "zeeklei",
-                a_clay_mi: null,
-            })
+            const result = calculateBcs(
+                {},
+                {
+                    a_ph_cc: 6.0,
+                    a_som_loi: 2,
+                    b_soiltype_agr: "zeeklei",
+                    a_clay_mi: null,
+                },
+            )
             expect(result.a_ph_bcs).toBeNull()
         })
         it("derives pH BCS for clay soil when a_clay_mi is provided", () => {
-            const result = calculateBcs({}, {
-                a_ph_cc: 6.7,
-                a_som_loi: 1,
-                b_soiltype_agr: "zeeklei",
-                a_clay_mi: 4,
-            })
+            const result = calculateBcs(
+                {},
+                {
+                    a_ph_cc: 6.7,
+                    a_som_loi: 1,
+                    b_soiltype_agr: "zeeklei",
+                    a_clay_mi: 4,
+                },
+            )
             expect(result.a_ph_bcs).toBe(2)
         })
     })
@@ -126,12 +147,24 @@ describe("calculateBcs", () => {
         it("is always 40 (official normalizer)", () => {
             expect(calculateBcs({}).d_bcs_max).toBe(40)
             expect(calculateBcs({ a_ss_bcs: 2 }).d_bcs_max).toBe(40)
-            expect(calculateBcs({}, { a_ph_cc: 5.4, a_som_loi: 2, b_soiltype_agr: "dekzand" }).d_bcs_max).toBe(40)
+            expect(
+                calculateBcs(
+                    {},
+                    { a_ph_cc: 5.4, a_som_loi: 2, b_soiltype_agr: "dekzand" },
+                ).d_bcs_max,
+            ).toBe(40)
         })
         it("reaches max field score of 30 without lab scores (i_bcs = 0.75)", () => {
             const result = calculateBcs({
-                a_ss_bcs: 2, a_sc_bcs: 2, a_rd_bcs: 2, a_ew_bcs: 2,
-                a_cc_bcs: 2, a_gs_bcs: 2, a_p_bcs: 0, a_c_bcs: 0, a_rt_bcs: 0,
+                a_ss_bcs: 2,
+                a_sc_bcs: 2,
+                a_rd_bcs: 2,
+                a_ew_bcs: 2,
+                a_cc_bcs: 2,
+                a_gs_bcs: 2,
+                a_p_bcs: 0,
+                a_c_bcs: 0,
+                a_rt_bcs: 0,
             })
             expect(result.d_bcs).toBe(30)
             expect(result.i_bcs).toBeCloseTo(0.75)
@@ -140,7 +173,14 @@ describe("calculateBcs", () => {
             // akkerbouw/zand: a_som_loi=5.0 → a_som_bcs=2 (> high=4.8)
             // dekzand + a_ph_cc=5.4 + a_som_loi=5.0 → phOptimum ~5.2 → delta≈0 → a_ph_bcs=2
             const result = calculateBcs(
-                { a_ss_bcs: 2, a_sc_bcs: 2, a_rd_bcs: 2, a_ew_bcs: 2, a_cc_bcs: 2, a_gs_bcs: 2 },
+                {
+                    a_ss_bcs: 2,
+                    a_sc_bcs: 2,
+                    a_rd_bcs: 2,
+                    a_ew_bcs: 2,
+                    a_cc_bcs: 2,
+                    a_gs_bcs: 2,
+                },
                 {
                     a_ph_cc: 5.4,
                     a_som_loi: 5.0,
@@ -158,7 +198,12 @@ describe("calculateBcs", () => {
 
     describe("i_bcs normalization", () => {
         it("gives i_bcs = 0.5 for d_bcs = 20", () => {
-            const result = calculateBcs({ a_ss_bcs: 2, a_sc_bcs: 2, a_rd_bcs: 2, a_cc_bcs: 1 })
+            const result = calculateBcs({
+                a_ss_bcs: 2,
+                a_sc_bcs: 2,
+                a_rd_bcs: 2,
+                a_cc_bcs: 1,
+            })
             expect(result.d_bcs).toBe(20)
             expect(result.i_bcs).toBe(0.5)
         })
@@ -291,13 +336,19 @@ describe("BCS_INDICATORS", () => {
         expect(BCS_INDICATORS).toHaveLength(11)
     })
     it("has 8 positive indicators", () => {
-        expect(BCS_INDICATORS.filter((i) => i.direction === "positive")).toHaveLength(8)
+        expect(
+            BCS_INDICATORS.filter((i) => i.direction === "positive"),
+        ).toHaveLength(8)
     })
     it("has 3 negative indicators", () => {
-        expect(BCS_INDICATORS.filter((i) => i.direction === "negative")).toHaveLength(3)
+        expect(
+            BCS_INDICATORS.filter((i) => i.direction === "negative"),
+        ).toHaveLength(3)
     })
     it("has 9 field indicators and 2 lab indicators", () => {
-        expect(BCS_INDICATORS.filter((i) => i.source === "field")).toHaveLength(9)
+        expect(BCS_INDICATORS.filter((i) => i.source === "field")).toHaveLength(
+            9,
+        )
         expect(BCS_INDICATORS.filter((i) => i.source === "lab")).toHaveLength(2)
     })
     it("each indicator has a unique key", () => {
@@ -305,7 +356,9 @@ describe("BCS_INDICATORS", () => {
         expect(new Set(keys).size).toBe(BCS_INDICATORS.length)
     })
     it("negative indicators have weight 1 or 2", () => {
-        for (const ind of BCS_INDICATORS.filter((i) => i.direction === "negative")) {
+        for (const ind of BCS_INDICATORS.filter(
+            (i) => i.direction === "negative",
+        )) {
             expect(ind.weight).toBeGreaterThanOrEqual(1)
             expect(ind.weight).toBeLessThanOrEqual(2)
         }
@@ -316,7 +369,9 @@ describe("deriveBcsLabContext", () => {
     const noCultivations: never[] = []
 
     describe("mapOmSoilType — soil type to om_soiltype_n mapping", () => {
-        const soilTypeCases: Array<[string, "zand" | "klei" | "loess" | "veen" | undefined]> = [
+        const soilTypeCases: Array<
+            [string, "zand" | "klei" | "loess" | "veen" | undefined]
+        > = [
             ["dekzand", "zand"],
             ["dalgrond", "zand"],
             ["duinzand", "zand"],
@@ -330,7 +385,11 @@ describe("deriveBcsLabContext", () => {
         for (const [soiltype, expected] of soilTypeCases) {
             it(`maps '${soiltype}' → '${expected}'`, () => {
                 const ctx = deriveBcsLabContext(
-                    { b_soiltype_agr: soiltype, a_ph_cc: null, a_som_loi: null },
+                    {
+                        b_soiltype_agr: soiltype,
+                        a_ph_cc: null,
+                        a_som_loi: null,
+                    },
                     noCultivations,
                     2024,
                 )
@@ -340,7 +399,11 @@ describe("deriveBcsLabContext", () => {
 
         it("maps unknown soil type → undefined", () => {
             const ctx = deriveBcsLabContext(
-                { b_soiltype_agr: "unknown_type", a_ph_cc: null, a_som_loi: null },
+                {
+                    b_soiltype_agr: "unknown_type",
+                    a_ph_cc: null,
+                    a_som_loi: null,
+                },
                 noCultivations,
                 2024,
             )
@@ -360,7 +423,12 @@ describe("deriveBcsLabContext", () => {
     describe("with soil data and no cultivations", () => {
         it("passes through a_ph_cc, a_som_loi, a_clay_mi", () => {
             const ctx = deriveBcsLabContext(
-                { a_ph_cc: 5.8, a_som_loi: 3.2, a_clay_mi: 12, b_soiltype_agr: "zeeklei" },
+                {
+                    a_ph_cc: 5.8,
+                    a_som_loi: 3.2,
+                    a_clay_mi: 12,
+                    b_soiltype_agr: "zeeklei",
+                },
                 noCultivations,
                 2024,
             )
@@ -387,7 +455,12 @@ describe("deriveBcsLabContext", () => {
 
         it("propagates null values as null", () => {
             const ctx = deriveBcsLabContext(
-                { a_ph_cc: null, a_som_loi: null, a_clay_mi: null, b_soiltype_agr: null },
+                {
+                    a_ph_cc: null,
+                    a_som_loi: null,
+                    a_clay_mi: null,
+                    b_soiltype_agr: null,
+                },
                 noCultivations,
                 2024,
             )

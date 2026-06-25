@@ -81,7 +81,13 @@ export function Bln3HelpDialog() {
                             Bedrijfsscore
                         </p>
                         <p className="text-xs">
-                            Op de bedrijfspagina worden alle scores opgebouwd als een <strong>oppervlaktegewogen gemiddelde</strong> van de individuele percelen. Percelen zonder geregistreerde oppervlakte of geldige bodemanalyse worden hierbij automatisch uitgesloten om vertekening te voorkomen.
+                            Op de bedrijfspagina worden alle scores opgebouwd
+                            als een{" "}
+                            <strong>oppervlaktegewogen gemiddelde</strong> van
+                            de individuele percelen. Percelen zonder
+                            geregistreerde oppervlakte of geldige bodemanalyse
+                            worden hierbij automatisch uitgesloten om
+                            vertekening te voorkomen.
                         </p>
                     </div>
 

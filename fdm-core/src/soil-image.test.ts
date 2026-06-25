@@ -1,9 +1,11 @@
-import { describe, expect, inject, it, beforeEach } from "vitest"
+import { beforeEach, describe, expect, inject, it } from "vitest"
+import type * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.types"
 import { addField } from "./field"
 import { createId } from "./id"
+import { addSoilAnalysis, getSoilAnalysis } from "./soil"
 import {
     addSoilImage,
     addSoilImageAnnotation,
@@ -12,8 +14,6 @@ import {
     removeSoilImageAnnotation,
     updateSoilImageAnnotation,
 } from "./soil-image"
-import { addSoilAnalysis, getSoilAnalysis } from "./soil"
-import type * as schema from "./db/schema"
 
 type Polygon = schema.fieldsTypeInsert["b_geometry"]
 
@@ -118,12 +118,17 @@ describe("Soil Image Functions", () => {
 
     describe("addSoilImage", () => {
         it("should add an image linked to a sampling event", async () => {
-            const a_id_image = await addSoilImage(fdm, principal_id, b_id_sampling, {
-                a_image_path: "farms/test/visual-soil/abc123.jpg",
-                a_image_type: "profile",
-                a_image_order: 0,
-                a_image_caption: "Bodemprofiel",
-            })
+            const a_id_image = await addSoilImage(
+                fdm,
+                principal_id,
+                b_id_sampling,
+                {
+                    a_image_path: "farms/test/visual-soil/abc123.jpg",
+                    a_image_type: "profile",
+                    a_image_order: 0,
+                    a_image_caption: "Bodemprofiel",
+                },
+            )
 
             expect(a_id_image).toBeDefined()
             expect(typeof a_id_image).toBe("string")
@@ -187,25 +192,37 @@ describe("Soil Image Functions", () => {
         })
 
         it("should return images with annotations", async () => {
-            const a_id_image = await addSoilImage(fdm, principal_id, b_id_sampling, {
-                a_image_path: "farms/test/visual-soil/abc123.jpg",
-                a_image_type: "profile",
-                a_image_order: 0,
-                a_image_caption: "Bodemprofiel",
-            })
+            const a_id_image = await addSoilImage(
+                fdm,
+                principal_id,
+                b_id_sampling,
+                {
+                    a_image_path: "farms/test/visual-soil/abc123.jpg",
+                    a_image_type: "profile",
+                    a_image_order: 0,
+                    a_image_caption: "Bodemprofiel",
+                },
+            )
 
             await addSoilImageAnnotation(fdm, principal_id, a_id_image, {
                 a_image_annotation_type: "pin",
-                a_image_annotation_coordinates: JSON.stringify({ x: 50, y: 50 }),
+                a_image_annotation_coordinates: JSON.stringify({
+                    x: 50,
+                    y: 50,
+                }),
                 a_image_annotation: "Regenworm",
             })
 
             const images = await getSoilImages(fdm, principal_id, b_id_sampling)
             expect(images).toHaveLength(1)
-            expect(images[0].a_image_path).toBe("farms/test/visual-soil/abc123.jpg")
+            expect(images[0].a_image_path).toBe(
+                "farms/test/visual-soil/abc123.jpg",
+            )
             expect(images[0].a_image_type).toBe("profile")
             expect(images[0].annotations).toHaveLength(1)
-            expect(images[0].annotations[0].a_image_annotation).toBe("Regenworm")
+            expect(images[0].annotations[0].a_image_annotation).toBe(
+                "Regenworm",
+            )
         })
 
         it("should return images sorted by a_image_order", async () => {
@@ -226,13 +243,21 @@ describe("Soil Image Functions", () => {
 
     describe("removeSoilImage", () => {
         it("should remove image and cascade delete annotations", async () => {
-            const a_id_image = await addSoilImage(fdm, principal_id, b_id_sampling, {
-                a_image_path: "farms/test/toremove.jpg",
-            })
+            const a_id_image = await addSoilImage(
+                fdm,
+                principal_id,
+                b_id_sampling,
+                {
+                    a_image_path: "farms/test/toremove.jpg",
+                },
+            )
 
             await addSoilImageAnnotation(fdm, principal_id, a_id_image, {
                 a_image_annotation_type: "pin",
-                a_image_annotation_coordinates: JSON.stringify({ x: 50, y: 50 }),
+                a_image_annotation_coordinates: JSON.stringify({
+                    x: 50,
+                    y: 50,
+                }),
             })
 
             await removeSoilImage(fdm, principal_id, a_id_image)
@@ -242,14 +267,24 @@ describe("Soil Image Functions", () => {
         })
 
         it("should call onDelete callback with the image path", async () => {
-            const a_id_image = await addSoilImage(fdm, principal_id, b_id_sampling, {
-                a_image_path: "farms/test/callback-test.jpg",
-            })
+            const a_id_image = await addSoilImage(
+                fdm,
+                principal_id,
+                b_id_sampling,
+                {
+                    a_image_path: "farms/test/callback-test.jpg",
+                },
+            )
 
             const deletedPaths: string[] = []
-            await removeSoilImage(fdm, principal_id, a_id_image, async (path) => {
-                deletedPaths.push(path)
-            })
+            await removeSoilImage(
+                fdm,
+                principal_id,
+                a_id_image,
+                async (path) => {
+                    deletedPaths.push(path)
+                },
+            )
 
             expect(deletedPaths).toEqual(["farms/test/callback-test.jpg"])
             const images = await getSoilImages(fdm, principal_id, b_id_sampling)
@@ -260,9 +295,14 @@ describe("Soil Image Functions", () => {
             const second_principal = createId()
             const array_principal: string[] = [principal_id, second_principal]
 
-            const a_id_image = await addSoilImage(fdm, array_principal, b_id_sampling, {
-                a_image_path: "farms/test/array-principal.jpg",
-            })
+            const a_id_image = await addSoilImage(
+                fdm,
+                array_principal,
+                b_id_sampling,
+                {
+                    a_image_path: "farms/test/array-principal.jpg",
+                },
+            )
 
             expect(a_id_image).toBeDefined()
 
@@ -318,7 +358,9 @@ describe("Soil Image Functions", () => {
             })
 
             const images = await getSoilImages(fdm, principal_id, b_id_sampling)
-            expect(images[0].annotations[0].a_image_annotation_type).toBe("freehand")
+            expect(images[0].annotations[0].a_image_annotation_type).toBe(
+                "freehand",
+            )
         })
 
         it("should update an annotation", async () => {
@@ -333,10 +375,15 @@ describe("Soil Image Functions", () => {
                 },
             )
 
-            await updateSoilImageAnnotation(fdm, principal_id, a_id_annotation, {
-                a_image_annotation: "Nieuw",
-                a_image_annotation_coordinates: { x: 50, y: 60 },
-            })
+            await updateSoilImageAnnotation(
+                fdm,
+                principal_id,
+                a_id_annotation,
+                {
+                    a_image_annotation: "Nieuw",
+                    a_image_annotation_coordinates: { x: 50, y: 60 },
+                },
+            )
 
             const images = await getSoilImages(fdm, principal_id, b_id_sampling)
             expect(images[0].annotations[0].a_image_annotation).toBe("Nieuw")
@@ -349,7 +396,11 @@ describe("Soil Image Functions", () => {
                 a_id_image,
                 {
                     a_image_annotation_type: "circle",
-                    a_image_annotation_coordinates: JSON.stringify({ cx: 50, cy: 50, radiusPercent: 10 }),
+                    a_image_annotation_coordinates: JSON.stringify({
+                        cx: 50,
+                        cy: 50,
+                        radiusPercent: 10,
+                    }),
                 },
             )
 

@@ -13,10 +13,7 @@ import {
 } from "@sentry/react-router"
 import { isbot } from "isbot"
 import { renderToPipeableStream } from "react-dom/server"
-import type {
-    EntryContext,
-    HandleErrorFunction,
-} from "react-router"
+import type { EntryContext, HandleErrorFunction } from "react-router"
 import { ServerRouter } from "react-router"
 import { reportError } from "~/lib/error"
 import { addSecurityHeaders, getCacheControlHeaders } from "./lib/cache.server"

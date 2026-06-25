@@ -47,7 +47,8 @@ export async function addSoilImage(
             .from(schema.soilSampling)
             .where(eq(schema.soilSampling.b_id_sampling, b_id_sampling))
 
-        if (!sampling) throw new Error(`Soil sampling not found: ${b_id_sampling}`)
+        if (!sampling)
+            throw new Error(`Soil sampling not found: ${b_id_sampling}`)
 
         await checkPermission(
             fdm,
@@ -81,7 +82,13 @@ export async function addSoilImage(
                 ? principal_id
                 : [principal_id]
             for (const creatorId of creatorIds) {
-                await grantRole(tx, "soil_image", "owner", a_id_image, creatorId)
+                await grantRole(
+                    tx,
+                    "soil_image",
+                    "owner",
+                    a_id_image,
+                    creatorId,
+                )
             }
 
             return a_id_image
@@ -242,7 +249,8 @@ export async function addSoilImageAnnotation(
             a_id_annotation,
             a_id_image,
             a_image_annotation_type: input.a_image_annotation_type,
-            a_image_annotation_coordinates: input.a_image_annotation_coordinates,
+            a_image_annotation_coordinates:
+                input.a_image_annotation_coordinates,
             a_image_annotation: input.a_image_annotation ?? null,
             a_image_annotation_bcs: input.a_image_annotation_bcs ?? null,
             a_image_annotation_order: input.a_image_annotation_order ?? 0,

@@ -1,39 +1,45 @@
 import { getFields } from "@nmi-agro/fdm-core"
+import { Map } from "lucide-react"
 import { useEffect, useMemo, useState, useTransition } from "react"
 import {
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
+    NavLink,
     useLoaderData,
     useParams,
-    NavLink,
 } from "react-router"
-import { Map } from "lucide-react"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
 import { AggregationPainpoints } from "~/components/blocks/indicators/aggregation-painpoints"
+import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { HeatmapTable } from "~/components/blocks/indicators/table"
+import { Button } from "~/components/ui/button"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
 import { Switch } from "~/components/ui/switch"
-import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
+import {
+    type AggregationId,
+    computeAreaWeightedAggregation,
+} from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
-import { computeAreaWeightedAggregation, type AggregationId } from "~/lib/aggregations"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import {
-    type Ecosysteemdienst,
-    INDICATORS
-} from "~/lib/indicators"
+import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
@@ -172,15 +178,25 @@ export default function IndicatorsFarmIndex() {
     )
 
     const scoreOf = (aggId: AggregationId) => {
-        return computeAreaWeightedAggregation(filteredScores, filteredFields, aggId)
+        return computeAreaWeightedAggregation(
+            filteredScores,
+            filteredFields,
+            aggId,
+        )
     }
 
     const indicatorScoreOf = (indId: string) => {
         let totalScore = 0
         let totalWeight = 0
         for (const s of filteredScores) {
-            const scoreVal = s.score?.indicators.find((i) => i.indicator_id === indId)?.score
-            if (scoreVal !== undefined && scoreVal !== null && !Number.isNaN(scoreVal)) {
+            const scoreVal = s.score?.indicators.find(
+                (i) => i.indicator_id === indId,
+            )?.score
+            if (
+                scoreVal !== undefined &&
+                scoreVal !== null &&
+                !Number.isNaN(scoreVal)
+            ) {
                 const field = filteredFields.find((f) => f.b_id === s.b_id)
                 const weight = field?.b_area ?? 0
                 if (weight > 0) {
@@ -212,9 +228,18 @@ export default function IndicatorsFarmIndex() {
                         <Card className="shadow-sm border-border">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <CardTitle className="text-base font-bold">Bedrijfsgemiddelde score</CardTitle>
-                                    <Button asChild variant="outline" size="sm" className="h-7 text-xs gap-1.5">
-                                        <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}>
+                                    <CardTitle className="text-base font-bold">
+                                        Bedrijfsgemiddelde score
+                                    </CardTitle>
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs gap-1.5"
+                                    >
+                                        <NavLink
+                                            to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}
+                                        >
                                             <Map className="h-3.5 w-3.5" />
                                             Kaartweergave
                                         </NavLink>
@@ -255,9 +280,12 @@ export default function IndicatorsFarmIndex() {
                     )}
                 >
                     <CardHeader className="pb-3 border-b">
-                        <CardTitle className="text-base font-bold">Detailweergave per perceel</CardTitle>
+                        <CardTitle className="text-base font-bold">
+                            Detailweergave per perceel
+                        </CardTitle>
                         <CardDescription className="text-xs">
-                            Alle {INDICATORS.length} indicatoren voor alle percelen, met filters en zoekmogelijkheden.
+                            Alle {INDICATORS.length} indicatoren voor alle
+                            percelen, met filters en zoekmogelijkheden.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 space-y-4">
@@ -271,14 +299,18 @@ export default function IndicatorsFarmIndex() {
                                 <Input
                                     placeholder="Zoek perceel…"
                                     value={fieldSearch}
-                                    onChange={(e) => setFieldSearch(e.target.value)}
+                                    onChange={(e) =>
+                                        setFieldSearch(e.target.value)
+                                    }
                                     className="w-44 h-8 text-sm"
                                 />
                                 <div className="flex items-center gap-2">
                                     <Switch
                                         id="bufferstrip-toggle"
                                         checked={!hideBufferstrips}
-                                        onCheckedChange={handleToggleBufferstrips}
+                                        onCheckedChange={
+                                            handleToggleBufferstrips
+                                        }
                                     />
                                     <Label
                                         htmlFor="bufferstrip-toggle"

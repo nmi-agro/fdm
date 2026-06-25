@@ -63,7 +63,9 @@ describe("runStreamAgent", () => {
         const agent = makeAgent([
             {
                 event: "on_chat_model_end",
-                data: { output: { content: [{ type: "thinking", thinking: "" }] } },
+                data: {
+                    output: { content: [{ type: "thinking", thinking: "" }] },
+                },
             },
         ])
         const events = await collect(runStreamAgent(agent, "test"))
@@ -196,9 +198,7 @@ describe("runStreamAgent", () => {
                 event: "on_chain_end",
                 data: {
                     output: {
-                        messages: [
-                            { content: ["plain string part"] },
-                        ],
+                        messages: [{ content: ["plain string part"] }],
                     },
                 },
             },
@@ -215,7 +215,11 @@ describe("runStreamAgent", () => {
                 data: {
                     output: {
                         messages: [
-                            { content: [{ type: "thinking", thinking: "denken" }] },
+                            {
+                                content: [
+                                    { type: "thinking", thinking: "denken" },
+                                ],
+                            },
                         ],
                     },
                 },

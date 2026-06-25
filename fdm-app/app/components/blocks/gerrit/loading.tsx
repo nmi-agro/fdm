@@ -1,17 +1,6 @@
-import {
-    Bot,
-    Check,
-    ChevronDown,
-    Circle,
-    Sparkles,
-} from "lucide-react"
+import { Bot, Check, ChevronDown, Circle, Sparkles } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
     Collapsible,
     CollapsibleContent,
@@ -35,10 +24,26 @@ type PhaseStatus = "pending" | "active" | "done"
  */
 const PHASES: { id: string; label: string; tools: string[] }[] = [
     { id: "connect", label: "Gegevens verzamelen", tools: ["getFarmFields"] },
-    { id: "guide", label: "Teelthandleiding raadplegen", tools: ["getCropFertilizerGuide"] },
-    { id: "advice", label: "Bemestingsadvies ophalen", tools: ["getFarmNutrientAdvice"] },
-    { id: "norms", label: "Wettelijke normen berekenen", tools: ["getFarmLegalNorms"] },
-    { id: "fertilizers", label: "Meststoffen zoeken", tools: ["searchFertilizers"] },
+    {
+        id: "guide",
+        label: "Teelthandleiding raadplegen",
+        tools: ["getCropFertilizerGuide"],
+    },
+    {
+        id: "advice",
+        label: "Bemestingsadvies ophalen",
+        tools: ["getFarmNutrientAdvice"],
+    },
+    {
+        id: "norms",
+        label: "Wettelijke normen berekenen",
+        tools: ["getFarmLegalNorms"],
+    },
+    {
+        id: "fertilizers",
+        label: "Meststoffen zoeken",
+        tools: ["searchFertilizers"],
+    },
     { id: "simulate", label: "Plan doorrekenen", tools: ["simulateFarmPlan"] },
     { id: "finalize", label: "Plan afronden", tools: [] },
 ]
@@ -92,10 +97,7 @@ function deriveState(events: StreamEvent[]): DerivedState {
     return { steps, reasoning, statusMessage, hasStarted, finalizing }
 }
 
-function phaseCount(
-    phase: { tools: string[] },
-    derived: DerivedState,
-): number {
+function phaseCount(phase: { tools: string[] }, derived: DerivedState): number {
     let count = 0
     for (const tool of phase.tools) {
         const step = derived.steps.get(tool)
@@ -201,7 +203,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
         if (reasoningOpen && reasoningRef.current) {
             reasoningRef.current.scrollTop = reasoningRef.current.scrollHeight
         }
-    }, [derived.reasoning, reasoningOpen])
+    }, [reasoningOpen])
 
     const phases = useMemo(() => computePhases(derived), [derived])
 
@@ -210,7 +212,8 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
 
     // Gerrit is "thinking" when at least one tool has run, none is currently
     // running, and we are not yet finalizing — i.e. an inter-tool reasoning gap.
-    const isThinking = phases.some((p) => p.status === "active") &&
+    const isThinking =
+        phases.some((p) => p.status === "active") &&
         [...derived.steps.values()].every((s) => s.status === "done") &&
         !derived.finalizing
 

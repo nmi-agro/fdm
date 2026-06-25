@@ -2,18 +2,23 @@ import { apiKey } from "@better-auth/api-key"
 import type { GoogleOptions, User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
-import { genericOAuth, magicLink, organization, username } from "better-auth/plugins"
+import {
+    genericOAuth,
+    magicLink,
+    organization,
+    username,
+} from "better-auth/plugins"
 import { eq } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { generateFromEmail } from "unique-username-generator"
-import * as authNSchema from "./db/schema-authn"
-import { handleError } from "./error"
-import type { FdmType } from "./fdm.types"
-import { autoAcceptInvitationsForNewUser } from "./invitation"
 import {
     createMicrosoftOAuthConfig,
     type MicrosoftCertConfig,
 } from "./authentication-ms"
+import * as authNSchema from "./db/schema-authn"
+import { handleError } from "./error"
+import type { FdmType } from "./fdm.types"
+import { autoAcceptInvitationsForNewUser } from "./invitation"
 
 export type BetterAuth = FdmAuth
 

@@ -19,8 +19,9 @@ import {
     AccordionTrigger,
 } from "~/components/ui/accordion"
 
-type OrganicMatterFieldInput =
-    Awaited<ReturnType<typeof collectInputForOrganicMatterBalance>>["fields"][number]
+type OrganicMatterFieldInput = Awaited<
+    ReturnType<typeof collectInputForOrganicMatterBalance>
+>["fields"][number]
 
 interface OrganicMatterBalanceDetailsProps {
     balanceData: OrganicMatterBalanceFieldNumeric

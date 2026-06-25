@@ -128,24 +128,30 @@ export function FieldInputDialog({
                             label={`BodemConditieScore (${soilData.bcsScores.length} indicatoren)`}
                         >
                             <div className="space-y-0.5">
-                                {soilData.bcsScores.map(({ key, name, value, direction }) => (
-                                    <div
-                                        key={key}
-                                        className="flex items-baseline justify-between gap-2"
-                                    >
-                                        <span className="text-muted-foreground text-xs shrink-0">
-                                            {name}
-                                        </span>
-                                        <span className="text-foreground text-xs tabular-nums font-mono text-right">
-                                            {value}
-                                            <span className="text-muted-foreground ml-1 font-sans">
-                                                {direction === "negative"
-                                                    ? (BCS_SCORE_LABELS_NEGATIVE[value] ?? "")
-                                                    : (BCS_SCORE_LABELS_POSITIVE[value] ?? "")}
+                                {soilData.bcsScores.map(
+                                    ({ key, name, value, direction }) => (
+                                        <div
+                                            key={key}
+                                            className="flex items-baseline justify-between gap-2"
+                                        >
+                                            <span className="text-muted-foreground text-xs shrink-0">
+                                                {name}
                                             </span>
-                                        </span>
-                                    </div>
-                                ))}
+                                            <span className="text-foreground text-xs tabular-nums font-mono text-right">
+                                                {value}
+                                                <span className="text-muted-foreground ml-1 font-sans">
+                                                    {direction === "negative"
+                                                        ? (BCS_SCORE_LABELS_NEGATIVE[
+                                                              value
+                                                          ] ?? "")
+                                                        : (BCS_SCORE_LABELS_POSITIVE[
+                                                              value
+                                                          ] ?? "")}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ),
+                                )}
                             </div>
                         </Section>
                     )}

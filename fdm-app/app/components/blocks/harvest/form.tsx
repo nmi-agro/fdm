@@ -36,10 +36,14 @@ import {
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { useCalendarStore } from "~/store/calendar"
+import { HarvestModeSwitchAlert } from "./mode-switch"
 import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
-import { getHarvestCapitalizedTerm, getHarvestDateTerm, getHarvestTerm } from "./utils"
-import { HarvestModeSwitchAlert } from "./mode-switch"
+import {
+    getHarvestCapitalizedTerm,
+    getHarvestDateTerm,
+    getHarvestTerm,
+} from "./utils"
 
 function toDate(value: Date | string) {
     return value instanceof Date ? value : new Date(value)
@@ -680,10 +684,10 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                             </DialogDescription>
                         </DialogHeader>
                         {props.allowBatch && props.onBatchClick && (
-                            <HarvestModeSwitchAlert 
-                                isBatchMode={false} 
-                                b_lu_croprotation={props.b_lu_croprotation} 
-                                onSwitch={props.onBatchClick} 
+                            <HarvestModeSwitchAlert
+                                isBatchMode={false}
+                                b_lu_croprotation={props.b_lu_croprotation}
+                                onSwitch={props.onBatchClick}
                             />
                         )}
                         <FieldSet
@@ -785,10 +789,10 @@ export function HarvestForm(props: HarvestFormDialogProps) {
     return (
         <div className="space-y-6">
             {props.allowBatch && props.onBatchClick && (
-                <HarvestModeSwitchAlert 
-                    isBatchMode={false} 
-                    b_lu_croprotation={props.b_lu_croprotation} 
-                    onSwitch={props.onBatchClick} 
+                <HarvestModeSwitchAlert
+                    isBatchMode={false}
+                    b_lu_croprotation={props.b_lu_croprotation}
+                    onSwitch={props.onBatchClick}
                 />
             )}
             <RemixFormProvider {...form}>

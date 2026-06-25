@@ -36,12 +36,22 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
             <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Spinner className="h-4 w-4 text-primary shrink-0" />
-                    <span>Gerrit analyseert de gewassen, normen en beschikbare meststoffen om te bepalen of er gerichte vragen nodig zijn.</span>
+                    <span>
+                        Gerrit analyseert de gewassen, normen en beschikbare
+                        meststoffen om te bepalen of er gerichte vragen nodig
+                        zijn.
+                    </span>
                 </div>
                 {preview && (
-                    <div className={cn("flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm")}>
+                    <div
+                        className={cn(
+                            "flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm",
+                        )}
+                    >
                         <Sparkles className="h-4 w-4 shrink-0 text-primary mt-0.5 animate-pulse" />
-                        <span className="italic text-muted-foreground line-clamp-2">{preview}</span>
+                        <span className="italic text-muted-foreground line-clamp-2">
+                            {preview}
+                        </span>
                     </div>
                 )}
             </CardContent>

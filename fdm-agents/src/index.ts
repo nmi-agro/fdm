@@ -6,24 +6,29 @@ import { runOneShotAgent } from "./runners/one-shot"
 import { getMainCultivation } from "./tools/fertilizer-planner"
 
 export type { AgentGraph } from "./agents/gerrit/agent"
+export type {
+    ClarificationAnswer,
+    ClarifyingQuestion,
+    ClarifyingQuestionOption,
+    ClarifyingQuestions,
+} from "./agents/gerrit/clarify-schema"
+export {
+    ClarificationAnswerSchema,
+    ClarifyingQuestionsSchema,
+} from "./agents/gerrit/clarify-schema"
 export type { FertilizerPlanOutput } from "./agents/gerrit/schema"
 export { FertilizerPlanSchema } from "./agents/gerrit/schema"
 export { generateTicketSubjectAndPriority } from "./agents/ticket-triage/agent"
 export type { OneShotAgentResult } from "./runners/one-shot"
 export { AgentRecursionLimitError, AgentTimeoutError } from "./runners/one-shot"
-export { createFertilizerPlannerAgent, createClarifyAgent, getMainCultivation, runOneShotAgent }
-export { runStreamAgent } from "./runners/stream"
 export type { StreamEvent } from "./runners/stream"
-export type {
-    ClarifyingQuestion,
-    ClarifyingQuestionOption,
-    ClarifyingQuestions,
-    ClarificationAnswer,
-} from "./agents/gerrit/clarify-schema"
+export { runStreamAgent } from "./runners/stream"
 export {
-    ClarifyingQuestionsSchema,
-    ClarificationAnswerSchema,
-} from "./agents/gerrit/clarify-schema"
+    createClarifyAgent,
+    createFertilizerPlannerAgent,
+    getMainCultivation,
+    runOneShotAgent,
+}
 
 export interface FertilizerPlanStrategies {
     /** Whether the farm is organic (prohibits mineral fertilizers) */
@@ -68,7 +73,10 @@ export interface FarmFieldSummary {
  * Sanitizes the additionalContext string: trims whitespace, limits to 1000 characters,
  * and strips any prompt-injection attempts (e.g. lines starting with "IGNORE " or "SYSTEM:").
  */
-export function sanitizeAdditionalContext(raw: string, charLimit = 1000): string {
+export function sanitizeAdditionalContext(
+    raw: string,
+    charLimit = 1000,
+): string {
     // 1. Remove markdown code blocks (e.g. ```) to prevent structure breaking
     const noCodeBlocks = raw.replace(/```/g, "'''")
     // 2. Remove XML/HTML-like tags to prevent injection into structural boundaries
@@ -123,7 +131,9 @@ export function buildClarificationsBlock(
 ): string {
     if (!clarifications || clarifications.length === 0) return ""
     const lines = clarifications.map((c) => {
-        const answers = c.selectedOptionLabels.map((l) => sanitizeAdditionalContext(l, 120))
+        const answers = c.selectedOptionLabels.map((l) =>
+            sanitizeAdditionalContext(l, 120),
+        )
         if (c.other) {
             answers.push(`Anders: ${sanitizeAdditionalContext(c.other, 200)}`)
         }

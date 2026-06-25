@@ -3,31 +3,22 @@ import { nl } from "date-fns/locale/nl"
 import {
     Camera,
     CheckCircle2,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
-    ChevronDown,
     Upload,
 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useFetcher } from "react-router"
 import { toast } from "sonner"
-import { DatePicker } from "~/components/custom/date-picker-v2"
+import {
+    BCS_SELECTED_CLASSES,
+    indicatorScoreColor,
+} from "~/components/blocks/soil-visual/bcs-color-utils"
 import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
 import { BCS_GUIDES } from "~/components/blocks/soil-visual/bcs-scoring-guide"
-import { BCS_SELECTED_CLASSES, indicatorScoreColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { ImageGallery } from "~/components/blocks/soil-visual/image-gallery"
-import { uploadBcsImage } from "~/lib/bcs-image-upload.client"
-import {
-    BCS_FIELD_INDICATORS,
-    BCS_VISUAL_KEYS,
-    type AnnotationCoords,
-    type AnnotationType,
-    type BcsPreviewResult,
-    type BcsSavePayload,
-    type BcsVisualKey,
-    type WizardAnnotation,
-    type WizardImage,
-} from "~/lib/bcs"
+import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import {
     Card,
@@ -45,6 +36,18 @@ import {
 } from "~/components/ui/dropdown-menu"
 import { Progress } from "~/components/ui/progress"
 import { Separator } from "~/components/ui/separator"
+import {
+    type AnnotationCoords,
+    type AnnotationType,
+    BCS_FIELD_INDICATORS,
+    BCS_VISUAL_KEYS,
+    type BcsPreviewResult,
+    type BcsSavePayload,
+    type BcsVisualKey,
+    type WizardAnnotation,
+    type WizardImage,
+} from "~/lib/bcs"
+import { uploadBcsImage } from "~/lib/bcs-image-upload.client"
 import { cn } from "~/lib/utils"
 
 interface PhotoUploadButtonProps {
@@ -208,7 +211,7 @@ export function BcsWizard({
             },
         )
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isReviewStep, scores, b_id, samplingDate])
+    }, [isReviewStep, scores, b_id, samplingDate, previewFetcher.submit])
 
     const galleryImages = useMemo(
         () =>
@@ -336,8 +339,9 @@ export function BcsWizard({
                                 BodemConditieScore voor {fieldName}
                             </CardTitle>
                             <CardDescription className="mt-1.5">
-                                Leg eerst de beoordelingsdatum vast en voeg optioneel
-                                foto&apos;s toe die, waar je later notities aan kunt toevoegen.
+                                Leg eerst de beoordelingsdatum vast en voeg
+                                optioneel foto&apos;s toe die, waar je later
+                                notities aan kunt toevoegen.
                             </CardDescription>
                         </>
                     ) : currentIndicator ? (
@@ -535,7 +539,9 @@ export function BcsWizard({
                                             className={cn(
                                                 "w-full rounded-xl border-2 p-3 text-left transition-colors hover:bg-accent",
                                                 selected
-                                                    ? BCS_SELECTED_CLASSES[bcsColor]
+                                                    ? BCS_SELECTED_CLASSES[
+                                                          bcsColor
+                                                      ]
                                                     : "border-border bg-background",
                                             )}
                                         >
@@ -581,8 +587,8 @@ export function BcsWizard({
                             {images.length > 0 ? (
                                 <div className="space-y-3">
                                     <p className="text-sm text-muted-foreground">
-                                        Koppel notities aan deze indicator
-                                        door op een foto te klikken.
+                                        Koppel notities aan deze indicator door
+                                        op een foto te klikken.
                                     </p>
                                     <ImageGallery
                                         images={galleryImages}
@@ -627,8 +633,7 @@ export function BcsWizard({
                                     <div className="flex items-start gap-2">
                                         <CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />
                                         <span>
-                                            Klaar om op te slaan. Je
-                                            hebt{" "}
+                                            Klaar om op te slaan. Je hebt{" "}
                                             {
                                                 BCS_VISUAL_KEYS.filter(
                                                     (key) =>

@@ -12,16 +12,16 @@ import {
     type NormFilling,
     type NutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
-import { getFieldNormValues } from "~/integrations/calculator"
 import {
     type FertilizerApplication,
     getCurrentSoilData,
-    getFields,
     getField,
+    getFields,
     type PrincipalId,
 } from "@nmi-agro/fdm-core"
-import { fdm } from "~/lib/fdm.server"
 import type { FieldMetrics } from "~/components/blocks/gerrit/types"
+import { getFieldNormValues } from "~/integrations/calculator"
+import { fdm } from "~/lib/fdm.server"
 
 function isValidDutchCropCatalogue(b_lu_catalogue: string | undefined) {
     return /^nl_\d+$/.test(b_lu_catalogue ?? "")
@@ -127,9 +127,15 @@ export async function computePlanMetrics(
         enrichedPlan
             .filter((f) => f.b_area)
             .map(async (field) => {
-                let manure: { normValue: number; normSource: string } | undefined
-                let nitrogen: { normValue: number; normSource: string } | undefined
-                let phosphate: { normValue: number; normSource: string } | undefined
+                let manure:
+                    | { normValue: number; normSource: string }
+                    | undefined
+                let nitrogen:
+                    | { normValue: number; normSource: string }
+                    | undefined
+                let phosphate:
+                    | { normValue: number; normSource: string }
+                    | undefined
                 try {
                     const norms = await getFieldNormValues({
                         fdm,
@@ -324,7 +330,7 @@ export async function computePlanMetrics(
                     norms: {
                         manure: manure!,
                         nitrogen: nitrogen!,
-                        phosphate: phosphate!
+                        phosphate: phosphate!,
                     },
                     nBalance: nBalance
                         ? {

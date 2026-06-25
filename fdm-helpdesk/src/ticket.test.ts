@@ -579,11 +579,14 @@ describe("updateTicketSubject", () => {
         expect(ticket.updated).not.toBeNull()
     })
 
-    test("should not let regular users update the subject", async ({
-        fdm,
-    }) => {
+    test("should not let regular users update the subject", async ({ fdm }) => {
         try {
-            await updateTicketSubject(fdm, requester_id, ticket_id, "Ticket 1 Subject")
+            await updateTicketSubject(
+                fdm,
+                requester_id,
+                ticket_id,
+                "Ticket 1 Subject",
+            )
         } catch (_err) {
             const ticket = await getTicket(fdm, requester_id, ticket_id)
             expect(ticket.subject).toBe("Ticket 1")

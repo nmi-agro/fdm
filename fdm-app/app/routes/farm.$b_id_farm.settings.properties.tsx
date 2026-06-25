@@ -156,7 +156,13 @@ export default function FarmSettingsPropertiesBlock() {
                         <div className="grid grid-cols-2 w-full items-center gap-4">
                             <div className="flex flex-col space-y-1.5 col-span-2">
                                 <FormField
-                                    control={form.control as unknown as Control<any, any, any>}
+                                    control={
+                                        form.control as unknown as Control<
+                                            any,
+                                            any,
+                                            any
+                                        >
+                                    }
                                     name="b_name_farm"
                                     render={({ field }) => (
                                         <FormItem>
@@ -176,7 +182,13 @@ export default function FarmSettingsPropertiesBlock() {
                             </div>
                             <div className="flex flex-col space-y-1.5 col-span-1">
                                 <FormField
-                                    control={form.control as unknown as Control<any, any, any>}
+                                    control={
+                                        form.control as unknown as Control<
+                                            any,
+                                            any,
+                                            any
+                                        >
+                                    }
                                     name="b_businessid_farm"
                                     render={({ field }) => (
                                         <FormItem>
@@ -199,7 +211,13 @@ export default function FarmSettingsPropertiesBlock() {
                             </div>
                             <div className="flex flex-col space-y-1.5 col-span-2">
                                 <FormField
-                                    control={form.control as unknown as Control<any, any, any>}
+                                    control={
+                                        form.control as unknown as Control<
+                                            any,
+                                            any,
+                                            any
+                                        >
+                                    }
                                     name="b_address_farm"
                                     render={({ field }) => (
                                         <FormItem>
@@ -223,7 +241,13 @@ Wageningen"
                             </div>
                             <div className="flex flex-col space-y-1.5 col-span-1">
                                 <FormField
-                                    control={form.control as unknown as Control<any, any, any>}
+                                    control={
+                                        form.control as unknown as Control<
+                                            any,
+                                            any,
+                                            any
+                                        >
+                                    }
                                     name="b_postalcode_farm"
                                     render={({ field }) => (
                                         <FormItem>

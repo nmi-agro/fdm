@@ -15,17 +15,22 @@ import { redirectWithSuccess } from "remix-toast"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { FormSchema } from "~/components/blocks/harvest/schema"
+import {
+    getEffectiveHarvestable,
+    getHarvestCapitalizedTerm,
+} from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_harvest"
-import { getEffectiveHarvestable, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
 
 // Meta
 export const meta: Route.MetaFunction = ({ loaderData }) => {
-    const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
+    const term = getHarvestCapitalizedTerm(
+        loaderData?.cultivation?.b_lu_croprotation,
+    )
     return [
         { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
         {
@@ -222,20 +227,31 @@ export default function ModifyHarvestingDialog() {
             exampleHarvestableAnalysis={loaderData.exampleHarvestableAnalysis}
             example_b_lu_harvest_date={loaderData.example_b_lu_harvest_date}
             b_lu_harvest_date={loaderData.b_lu_harvest_date}
-            b_lu_yield={loaderData.initialHarvestableAnalysis.b_lu_yield ?? undefined}
+            b_lu_yield={
+                loaderData.initialHarvestableAnalysis.b_lu_yield ?? undefined
+            }
             b_lu_yield_fresh={
-                loaderData.initialHarvestableAnalysis.b_lu_yield_fresh ?? undefined
+                loaderData.initialHarvestableAnalysis.b_lu_yield_fresh ??
+                undefined
             }
             b_lu_yield_bruto={
-                loaderData.initialHarvestableAnalysis.b_lu_yield_bruto ?? undefined
+                loaderData.initialHarvestableAnalysis.b_lu_yield_bruto ??
+                undefined
             }
-            b_lu_tarra={loaderData.initialHarvestableAnalysis.b_lu_tarra ?? undefined}
-            b_lu_uww={loaderData.initialHarvestableAnalysis.b_lu_uww ?? undefined}
-            b_lu_moist={loaderData.initialHarvestableAnalysis.b_lu_moist ?? undefined}
+            b_lu_tarra={
+                loaderData.initialHarvestableAnalysis.b_lu_tarra ?? undefined
+            }
+            b_lu_uww={
+                loaderData.initialHarvestableAnalysis.b_lu_uww ?? undefined
+            }
+            b_lu_moist={
+                loaderData.initialHarvestableAnalysis.b_lu_moist ?? undefined
+            }
             b_lu_dm={loaderData.initialHarvestableAnalysis.b_lu_dm ?? undefined}
             b_lu_cp={loaderData.initialHarvestableAnalysis.b_lu_cp ?? undefined}
             b_lu_n_harvestable={
-                loaderData.initialHarvestableAnalysis.b_lu_n_harvestable ?? undefined
+                loaderData.initialHarvestableAnalysis.b_lu_n_harvestable ??
+                undefined
             }
             b_lu_harvestable={loaderData.effectiveHarvestable}
             b_lu_start={loaderData.cultivation.b_lu_start}
@@ -356,7 +372,9 @@ export async function action({ request, params }: Route.ActionArgs) {
                         if (missingParameters.length > 0) {
                             const missingParameterLabels =
                                 missingParameters.map((param) => {
-                                    return getHarvestParameterLabel(param as HarvestParameters[number])
+                                    return getHarvestParameterLabel(
+                                        param as HarvestParameters[number],
+                                    )
                                 })
                             const statusText = `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(
                                 ", ",
@@ -378,8 +396,13 @@ export async function action({ request, params }: Route.ActionArgs) {
                 ),
             )
 
-            const termSingular = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
-            const termPlural = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation, true)
+            const termSingular = getHarvestCapitalizedTerm(
+                cultivation.b_lu_croprotation,
+            )
+            const termPlural = getHarvestCapitalizedTerm(
+                cultivation.b_lu_croprotation,
+                true,
+            )
             return redirectWithSuccess("..", {
                 message:
                     harvestingIds.length > 1
@@ -398,8 +421,13 @@ export async function action({ request, params }: Route.ActionArgs) {
                 session.principal_id,
                 firstHarvest.b_lu,
             )
-            const termSingular = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation)
-            const termPlural = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation, true)
+            const termSingular = getHarvestCapitalizedTerm(
+                cultivation?.b_lu_croprotation,
+            )
+            const termPlural = getHarvestCapitalizedTerm(
+                cultivation?.b_lu_croprotation,
+                true,
+            )
 
             await fdm.transaction((tx) =>
                 Promise.all(

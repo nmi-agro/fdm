@@ -24,9 +24,9 @@ import {
 } from "remix-toast"
 import { CultivationDetailsCard } from "~/components/blocks/cultivation/card-details"
 import { CultivationHarvestsCard } from "~/components/blocks/cultivation/card-harvests"
-import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
 import { CultivationDetailsFormSchema } from "~/components/blocks/cultivation/schema"
 import type { HarvestableType } from "~/components/blocks/harvest/types"
+import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -218,7 +218,9 @@ export default function FarmFieldsOverviewBlock() {
             <CultivationHarvestsCard
                 harvests={loaderData.harvests}
                 b_lu_harvestable={loaderData.b_lu_harvestable}
-                b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
+                b_lu_croprotation={
+                    loaderData.cultivation.b_lu_croprotation ?? undefined
+                }
                 harvestParameters={loaderData.harvestParameters}
                 editable={loaderData.cultivationWritePermission}
             />

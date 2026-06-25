@@ -87,7 +87,9 @@ export function SoilAnalysesList({
                                                 : "",
                                         )}
                                     >
-                                        <NavLink to={`./analysis/${analysis.a_id}`}>
+                                        <NavLink
+                                            to={`./analysis/${analysis.a_id}`}
+                                        >
                                             {canModifySoilAnalysis[
                                                 analysis.a_id
                                             ]

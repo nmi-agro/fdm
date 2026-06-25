@@ -108,7 +108,14 @@ export function SummaryCards({
                                                 Ammoniakemissie
                                             </span>
                                             <span className="text-xs tabular-nums text-muted-foreground">
-                                                {Math.round(Math.abs(farmTotals.nBalance.emission.ammonia.total))} kg N/ha
+                                                {Math.round(
+                                                    Math.abs(
+                                                        farmTotals.nBalance
+                                                            .emission.ammonia
+                                                            .total,
+                                                    ),
+                                                )}{" "}
+                                                kg N/ha
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-baseline gap-2">
@@ -116,7 +123,13 @@ export function SummaryCards({
                                                 Nitraatuitspoeling
                                             </span>
                                             <span className="text-xs tabular-nums text-muted-foreground">
-                                                {Math.round(Math.abs(farmTotals.nBalance.emission.nitrate))} kg N/ha
+                                                {Math.round(
+                                                    Math.abs(
+                                                        farmTotals.nBalance
+                                                            .emission.nitrate,
+                                                    ),
+                                                )}{" "}
+                                                kg N/ha
                                             </span>
                                         </div>
                                     </div>

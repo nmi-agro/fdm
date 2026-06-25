@@ -14,7 +14,8 @@ function extractTextContent(content: unknown): string {
         const texts: string[] = []
         for (const part of content) {
             const p = part as Record<string, unknown>
-            if (p?.type === "text" && typeof p.text === "string") texts.push(p.text)
+            if (p?.type === "text" && typeof p.text === "string")
+                texts.push(p.text)
             else if (typeof part === "string") texts.push(part)
         }
         return texts.join("")
@@ -23,7 +24,14 @@ function extractTextContent(content: unknown): string {
 }
 
 export interface StreamEvent {
-    event: "on_chat_model_stream" | "reasoning" | "on_tool_start" | "on_tool_end" | "on_chain_end" | "complete" | "error"
+    event:
+        | "on_chat_model_stream"
+        | "reasoning"
+        | "on_tool_start"
+        | "on_tool_end"
+        | "on_chain_end"
+        | "complete"
+        | "error"
     data?: any
 }
 

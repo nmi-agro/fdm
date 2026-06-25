@@ -146,8 +146,22 @@ describe("getMessageWhereClause", () => {
     test("should return only public messages when isInternal is false", async ({
         fdm,
     }) => {
-        await addMessage(fdm, ticket_id, admin_id, "agent", "Public message", false)
-        await addMessage(fdm, ticket_id, admin_id, "agent", "Internal message", true)
+        await addMessage(
+            fdm,
+            ticket_id,
+            admin_id,
+            "agent",
+            "Public message",
+            false,
+        )
+        await addMessage(
+            fdm,
+            ticket_id,
+            admin_id,
+            "agent",
+            "Internal message",
+            true,
+        )
 
         const messages = await getMessagesForTicket(fdm, admin_id, ticket_id, {
             isInternal: false,
@@ -166,8 +180,22 @@ describe("getMessageWhereClause", () => {
     test("should return only internal messages when isInternal is true", async ({
         fdm,
     }) => {
-        await addMessage(fdm, ticket_id, admin_id, "agent", "Public message", false)
-        await addMessage(fdm, ticket_id, admin_id, "agent", "Internal message", true)
+        await addMessage(
+            fdm,
+            ticket_id,
+            admin_id,
+            "agent",
+            "Public message",
+            false,
+        )
+        await addMessage(
+            fdm,
+            ticket_id,
+            admin_id,
+            "agent",
+            "Internal message",
+            true,
+        )
 
         const messages = await getMessagesForTicket(fdm, admin_id, ticket_id, {
             isInternal: true,
@@ -188,7 +216,14 @@ describe("getMessageWhereClause", () => {
         await addAgent(fdm, admin_id, other_agent_id, "Other Agent")
 
         await addMessage(fdm, ticket_id, admin_id, "agent", "From admin", false)
-        await addMessage(fdm, ticket_id, other_agent_id, "agent", "From other", false)
+        await addMessage(
+            fdm,
+            ticket_id,
+            other_agent_id,
+            "agent",
+            "From other",
+            false,
+        )
 
         const messages = await getMessagesForTicket(fdm, admin_id, ticket_id, {
             sentBy: [admin_id],

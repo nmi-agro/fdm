@@ -64,7 +64,8 @@ export const TICKET_STATUS_DESCRIPTIONS: Record<string, string> = {
     pending: "We zijn aanvullende informatie aan het opvragen.",
     waiting_on_customer:
         "We wachten op een reactie van u. Voeg een bericht hieronder toe.",
-    resolved: "Uw vraag is beantwoord. Maak een nieuwe ticket aan als u een nieuwe vraag heeft.",
+    resolved:
+        "Uw vraag is beantwoord. Maak een nieuwe ticket aan als u een nieuwe vraag heeft.",
     closed: "Dit ticket is gesloten.",
 }
 

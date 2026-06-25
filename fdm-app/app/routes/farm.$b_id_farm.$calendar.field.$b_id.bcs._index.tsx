@@ -23,15 +23,6 @@ import {
     BCS_COLOR_CLASSES,
     type BcsScores,
 } from "~/components/blocks/soil-visual/bcs-color-utils"
-import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,12 +34,21 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
+import { Badge } from "~/components/ui/badge"
+import { Button } from "~/components/ui/button"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
 import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
 import { computeBcs } from "~/lib/bcs.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { isBcsAnalysis } from "~/lib/bcs"
 import { cn } from "~/lib/utils"
 
 function getRouteParams(params: ActionFunctionArgs["params"]) {
@@ -152,14 +152,16 @@ export default function FieldBcsOverviewRoute() {
                     <CardHeader>
                         <CardTitle>Nog geen BodemConditieScore</CardTitle>
                         <CardDescription>
-                            Voeg een nieuwe visuele bodembeoordeling toe
-                            om hier resultaten te zien.
+                            Voeg een nieuwe visuele bodembeoordeling toe om hier
+                            resultaten te zien.
                         </CardDescription>
                     </CardHeader>
                     {loaderData.fieldWritePermission ? (
                         <CardContent>
                             <Button asChild size="lg">
-                                <Link to="./new">Eerste beoordeling toevoegen</Link>
+                                <Link to="./new">
+                                    Eerste beoordeling toevoegen
+                                </Link>
                             </Button>
                         </CardContent>
                     ) : null}
@@ -198,7 +200,7 @@ export default function FieldBcsOverviewRoute() {
                                                 <div className="text-sm text-muted-foreground">
                                                     BodemConditieScore{" "}
                                                     {computed.d_bcs.toFixed(0)}{" "}
-                                                    · Indicator {" "}
+                                                    · Indicator{" "}
                                                     {(
                                                         computed.i_bcs * 100
                                                     ).toFixed(0)}
@@ -234,7 +236,8 @@ export default function FieldBcsOverviewRoute() {
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>
-                                                        BodemConditieScore verwijderen?
+                                                        BodemConditieScore
+                                                        verwijderen?
                                                     </AlertDialogTitle>
                                                     <AlertDialogDescription>
                                                         Deze actie kan niet
