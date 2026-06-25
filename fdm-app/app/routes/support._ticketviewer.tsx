@@ -97,6 +97,12 @@ function mergeFiltersInner(
             ...(current.requesterIds ?? []),
         ]
     }
+    if (base.notViewedBy !== undefined || current.notViewedBy !== undefined) {
+        result.notViewedBy = [
+            ...(base.notViewedBy ?? []),
+            ...(current.notViewedBy ?? []),
+        ]
+    }
     if (base.assigned !== undefined || current.assigned !== undefined) {
         result.assigned = current.assigned ?? base.assigned
     }
@@ -251,6 +257,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
             defaultFilterType: defaultFilterType,
             tickets: tickets,
             totalTicketCount: totalTicketCount,
+            principal_id: session.principal_id,
             principals: principalsSummarized,
             helpdeskReadPermission: helpdeskReadPermission,
             availableTags: availableTags,
@@ -264,6 +271,7 @@ export default function PersonalTicketViewer() {
     const {
         tickets,
         totalTicketCount,
+        principal_id,
         principals,
         helpdeskReadPermission,
         availableTags,
@@ -276,9 +284,10 @@ export default function PersonalTicketViewer() {
         <TicketViewer
             tickets={tickets}
             totalTicketCount={totalTicketCount}
+            principal_id={principal_id}
             principalLookup={principalLookup}
             toPrefix="/support/ticket"
-            helpdeskReadPermission={helpdeskReadPermission}
+            isAgent={helpdeskReadPermission}
             availableTags={availableTags}
         />
     )

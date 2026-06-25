@@ -39,6 +39,7 @@ import {
     PopoverTrigger,
 } from "~/components/ui/popover"
 import { Sheet, SheetClose, SheetPortal } from "~/components/ui/sheet"
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { useIsXl } from "~/hooks/use-is-xl"
 import { useCurrentHelpdeskPage } from "./navigation"
 import { TicketSearch } from "./search"
@@ -53,28 +54,32 @@ export const TICKET_VIEWER_PAGE_SIZE = 20
 function countActiveFilters(filters: TicketFilters): number {
     const { pageOffset: _o, pageLimit: _l, ...userFilters } = filters
     return Object.entries(userFilters).filter(([k, v]) => {
-        if (k === "maxPriority" || k === "text") return false
+        if (k === "maxPriority" || k === "text" || k === "notViewedBy")
+            return false
         if (v === undefined || v === null || v === "") return false
         if (Array.isArray(v)) return v.length > 0
         return true
     }).length
 }
 
+type TicketViewerProps = {
+    tickets: Ticket[]
+    totalTicketCount: number
+    toPrefix: string
+    principal_id?: string
+    principalLookup: Map<string, HelpdeskUser>
+    isAgent: boolean
+    availableTags: TagSummary[]
+}
 function TicketList({
     tickets,
     totalTicketCount,
     toPrefix,
+    principal_id,
     principalLookup,
     isAgent,
     availableTags,
-}: {
-    tickets: Ticket[]
-    totalTicketCount: number
-    toPrefix: string
-    principalLookup: Map<string, HelpdeskUser>
-    isAgent: boolean
-    availableTags: TagSummary[]
-}) {
+}: TicketViewerProps) {
     const location = useLocation()
     const currentPage = useCurrentHelpdeskPage()
     const isAgentView = currentPage === "inbox" || currentPage === "all_tickets"
@@ -153,80 +158,111 @@ function TicketList({
     }
 
     return (
-        <nav className="flex flex-col gap-2 h-full box-border">
-            <div className="flex flex-row items-center p-1 gap-1">
-                <Input
-                    value={filters.text ?? ""}
-                    placeholder="Zoeken..."
-                    onInput={(e) => {
-                        handleNewFilters({
-                            ...filters,
-                            text:
-                                e.currentTarget.value.length === 0
-                                    ? undefined
-                                    : e.currentTarget.value,
-                        })
-                    }}
-                />
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            title="Filters"
-                            className="relative block ml-auto has-[>svg]:p-2 size-auto"
-                        >
-                            <Filter className="mx-auto" />
-                            {countActiveFilters(filters) > 0 && (
-                                <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center p-0 text-[10px]">
-                                    {countActiveFilters(filters)}
-                                </Badge>
-                            )}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-2">
-                        <h2 className="text-sm font-semibold mb-3">
-                            Filters wijzigen
-                        </h2>
-                        <TicketSearch
-                            filters={filters}
-                            setFilters={handleNewFilters}
-                            isAgent={isAgent}
-                            availableTags={availableTags}
-                        />
-                    </PopoverContent>
-                </Popover>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            title="Sorteren"
-                            className="relative block ml-auto has-[>svg]:p-2 size-auto"
-                        >
-                            <ArrowUpDown className="mx-auto" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="p-2">
-                        <DropdownMenuLabel className="text-sm font-semibold mb-3">
-                            Sorteren
-                        </DropdownMenuLabel>
-                        <DropdownMenuCheckboxItem
-                            checked={sorting === "created"}
-                            onClick={() => handleNewSorting("created")}
-                        >
-                            Aangemaakt op
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem
-                            checked={sorting === "priority"}
-                            onClick={() => handleNewSorting("priority")}
-                        >
-                            Prioriteit
-                        </DropdownMenuCheckboxItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+        <nav className="flex flex-col gap-2 h-full box-border space-y-1">
+            <div className="p-1 space-y-1">
+                {principal_id && (
+                    <Tabs
+                        defaultValue="account"
+                        value={
+                            Array.isArray(filters.notViewedBy) &&
+                            filters.notViewedBy.includes(principal_id)
+                                ? "unread"
+                                : "all"
+                        }
+                        onValueChange={(value) => {
+                            if (value === "unread") {
+                                handleNewFilters({
+                                    ...filters,
+                                    notViewedBy: [principal_id],
+                                })
+                            } else {
+                                handleNewFilters({
+                                    ...filters,
+                                    notViewedBy: [],
+                                })
+                            }
+                        }}
+                    >
+                        <TabsList>
+                            <TabsTrigger value="all">Alles</TabsTrigger>
+                            <TabsTrigger value="unread">Ongelezen</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                )}
+                <div className="flex flex-row items-center gap-1">
+                    <Input
+                        value={filters.text ?? ""}
+                        placeholder="Zoeken..."
+                        onInput={(e) => {
+                            handleNewFilters({
+                                ...filters,
+                                text:
+                                    e.currentTarget.value.length === 0
+                                        ? undefined
+                                        : e.currentTarget.value,
+                            })
+                        }}
+                    />
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                title="Filters"
+                                className="relative block ml-auto has-[>svg]:p-2 size-auto"
+                            >
+                                <Filter className="mx-auto" />
+                                {countActiveFilters(filters) > 0 && (
+                                    <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center p-0 text-[10px]">
+                                        {countActiveFilters(filters)}
+                                    </Badge>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-2 transition-[opacity_0.3s,transform_0.3s]">
+                            <h2 className="text-sm font-semibold mb-3">
+                                Filters wijzigen
+                            </h2>
+                            <TicketSearch
+                                filters={filters}
+                                setFilters={handleNewFilters}
+                                isAgent={isAgent}
+                                availableTags={availableTags}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                title="Sorteren"
+                                className="relative block ml-auto has-[>svg]:p-2 size-auto"
+                            >
+                                <ArrowUpDown className="mx-auto" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="p-2">
+                            <DropdownMenuLabel className="text-sm font-semibold mb-3">
+                                Sorteren
+                            </DropdownMenuLabel>
+                            <DropdownMenuCheckboxItem
+                                checked={sorting === "created"}
+                                onClick={() => handleNewSorting("created")}
+                            >
+                                Aangemaakt op
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={sorting === "priority"}
+                                onClick={() => handleNewSorting("priority")}
+                            >
+                                Prioriteit
+                            </DropdownMenuCheckboxItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </div>
             <div className="overflow-auto grow">
                 {tickets.length === 0 ? (
@@ -292,21 +328,7 @@ function TicketList({
     )
 }
 
-export function TicketViewer({
-    tickets,
-    totalTicketCount,
-    toPrefix,
-    principalLookup,
-    helpdeskReadPermission,
-    availableTags,
-}: {
-    tickets: Ticket[]
-    totalTicketCount: number
-    toPrefix: string
-    principalLookup: Map<string, HelpdeskUser>
-    helpdeskReadPermission: boolean
-    availableTags: TagSummary[]
-}) {
+export function TicketViewer(props: TicketViewerProps) {
     const params = useParams()
     const isXl = useIsXl()
     const [sidebarOpen, setSidebarOpen] = useState(!params.ticket_id)
@@ -320,15 +342,6 @@ export function TicketViewer({
         setSidebarOpen(!params.ticket_id)
     }, [params.ticket_id])
 
-    const ticketListProps = {
-        tickets,
-        totalTicketCount,
-        toPrefix,
-        principalLookup,
-        isAgent: helpdeskReadPermission,
-        availableTags: availableTags,
-    }
-
     return (
         <div
             ref={containerRef}
@@ -337,7 +350,7 @@ export function TicketViewer({
             {/* Static sidebar — only rendered on xl+ screens */}
             {isXl && (
                 <aside className="flex flex-col w-100 shrink-0 border-r border-sidebar-border bg-background">
-                    <TicketList {...ticketListProps} />
+                    <TicketList {...props} />
                 </aside>
             )}
 
@@ -372,7 +385,7 @@ export function TicketViewer({
                                 </Button>
                             </SheetClose>
                             <div className="flex-1 min-h-0">
-                                <TicketList {...ticketListProps} />
+                                <TicketList {...props} />
                             </div>
                         </Dialog.Content>
                     </SheetPortal>

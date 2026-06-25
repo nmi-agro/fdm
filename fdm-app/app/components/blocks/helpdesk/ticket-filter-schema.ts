@@ -22,6 +22,7 @@ const DateSchema = z
 export const TicketFilterSchema = z.object({
     assigned: BooleanSchema,
     assignees: z.array(z.string().min(1)).optional(),
+    notViewedBy: z.array(z.string().min(1)).optional(),
     context: z
         .object({
             b_id_farm: z.string().min(1).optional(),
