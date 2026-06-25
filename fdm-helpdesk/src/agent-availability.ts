@@ -16,6 +16,7 @@ import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
+import { createId } from "./id"
 import { ACTIVE_TICKET_STATUSES, getTickets } from "./ticket"
 import {
     assignTicketUnchecked,
@@ -120,9 +121,12 @@ export async function getAvailableAgents(
 }
 
 /**
- * Auto-assign to least-loaded available agent (respects tier cascade)
+ * Auto-assign to least-loaded available agent (respects tier cascade) as the primary assignment.
  *
  * No permission checks are performed, and assigned_by is set to "SYSTEM". Use with caution.
+ * 
+ * This function will always assign when there is a currently available agent, even if the ticket is
+ * already assigned. It will also change the primary assignee to the newly assigned agent.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
@@ -131,7 +135,7 @@ export async function getAvailableAgents(
  * @returns If assignment succeeded, assigned: true and agent_id is the ID of the agent assigned.
  * If no agents were available, assigned: false.
  */
-async function autoAssignTicket(
+export async function autoAssignTicket(
     fdm: FdmHelpdeskType,
     ticket_id: string,
     date: Date,
@@ -151,15 +155,26 @@ async function autoAssignTicket(
         }
         return { assigned: false, agent_id: undefined as never } as const
     } catch (err) {
-        throw handleLoaderError(err, "Exception for autoAssignTicket", {
+        throw handleError(err, "Exception for autoAssignTicket", {
             ticket_id,
             date: date.toISOString(),
         })
     }
 }
 
-// Redistribute an agent's open tickets
-async function reassignAgentTickets(
+/**
+ * Redistributes an agent's currently active tickets. It first checks if there is already another assignee.
+ * If so, it ensures they are the primary assignee. Otherwise, it lists all the available agents who will
+ * meet the ticket deadline and assigns the ticket to the least-loaded one.
+ * 
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param departing_agent_id The ID of the agent whose tickets are being reassigned.
+ * @param reassigned_by The ID of the agent performing the reassignment.
+ * @returns An object containing arrays of reassigned and unassigned tickets.
+ * @throws if the reassigning agent does not have permission to access everything on the helpdesk.
+ */
+export async function reassignAgentTickets(
     fdm: FdmHelpdeskType,
     departing_agent_id: string,
     reassigned_by: string,
@@ -186,12 +201,20 @@ async function reassignAgentTickets(
             []
         const unassigned: string[] = []
         for (const ticket of ticketsToReassign) {
-            if (
-                ticket.assignees.find((a) => a.agent_id !== departing_agent_id)
-                    ?.is_primary
-            ) {
-                continue
+            // No need to reassign if there is already another primary assignee
+            const otherAssignee = ticket.assignees.find((a) => a.agent_id !== departing_agent_id)
+            if (otherAssignee) {
+                if (!otherAssignee.is_primary) {
+                    await assignTicketUnchecked(
+                        fdm,
+                        ticket.ticket_id,
+                        otherAssignee.agent_id,
+                        reassigned_by,
+                        true,
+                    )
+                }
             }
+
             const result = await autoAssignTicket(
                 fdm,
                 ticket.ticket_id,
@@ -213,43 +236,239 @@ async function reassignAgentTickets(
         }
         return { reassigned, unassigned }
     } catch (err) {
-        throw handleLoaderError(err, "Exception for reassignAgentTickets", {
+        throw handleError(err, "Exception for reassignAgentTickets", {
             departing_agent_id,
             reassigned_by,
         })
     }
 }
 
-// Status & schedule management
-async function setAgentStatus(
+/**
+ * Sets the agent status.
+ * 
+ * If the agent will be out-of-office, this will also reassign all of their currently active tickets.
+ * 
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param agent_id ID of the agent whose status is being set.
+ * @param status The new status of the agent. Setting this to "out-of-office" will reassign all of the agent's
+ * currently active tickets.
+ */
+export async function setAgentStatus(
     fdm: FdmHelpdeskType,
+    principal_id: string,
     agent_id: string,
     status: string,
-) {}
-async function setWorkDays(
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "agent",
+            "write",
+            agent_id,
+            principal_id,
+            "setAgentStatus",
+        )
+
+        await fdm.transaction(async tx => {
+            if (status === "out_of_office") {
+                await reassignAgentTickets(tx, agent_id, agent_id)
+            }
+
+            await tx.update(schema.agents).set({
+                availability_status: status,
+                updated: sql`now()`,
+            }).where(eq(schema.agents.agent_id, agent_id))
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for setAgentStatus", {
+            agent_id,
+            status,
+        })
+    }
+}
+
+/**
+ * Sets the days of the week that the agent is available to handle tickets.
+ * 
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param agent_id ID of the agent whose work days are being set.
+ * @param work_days An array of numbers representing the days of the week the agent is available (0 = Sunday, 6 = Saturday).
+ * @throws if any of the provided work days are invalid (not in the range 0-6).
+ */
+export async function setWorkDays(
     fdm: FdmHelpdeskType,
+    principal_id: string,
     agent_id: string,
     work_days: number[],
-) {}
-async function setAssignmentTier(
+) {
+    try {
+        for (const day of work_days) {
+            if (day < 0 || day > 6) {
+                throw new Error(`Invalid work day: ${day}`)
+            }
+        }
+        await checkHelpdeskPermission(
+            fdm,
+            "agent",
+            "write",
+            agent_id,
+            principal_id,
+            "setWorkDays",
+        )
+
+        await fdm.update(schema.agents).set({
+            work_days: [...new Set(work_days)].sort((a, b) => a - b),
+            updated: sql`now()`,
+        }).where(eq(schema.agents.agent_id, agent_id))
+    } catch (err) {
+        throw handleError(err, "Exception for setWorkDays", {
+            agent_id,
+            work_days,
+        })
+    }
+}
+
+/**
+ * Sets the assignment tier for the agent.
+ * 
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param agent_id ID of the agent whose assignment tier is being set.
+ * @param assignment_tier The assignment tier to set for the agent (1, 2, or 3).
+ * @throws if the provided assignment tier is invalid (not 1, 2, or 3).
+ */
+export async function setAssignmentTier(
     fdm: FdmHelpdeskType,
+    principal_id: string,
     agent_id: string,
-    tier: 1 | 2 | 3,
-) {}
-async function scheduleAbsence(
+    assignment_tier: 1 | 2 | 3,
+) {
+    try {
+        if (![1, 2, 3].includes(assignment_tier)) {
+            throw new Error(`Invalid assignment tier: ${assignment_tier}`)
+        }
+
+        await checkHelpdeskPermission(
+            fdm,
+            "agent",
+            "write",
+            agent_id,
+            principal_id,
+            "setAssignmentTier",
+        )
+
+        await fdm.update(schema.agents).set({
+            assignment_tier: assignment_tier,
+            updated: sql`now()`,
+        }).where(eq(schema.agents.agent_id, agent_id))
+    } catch (err) {
+        throw handleError(err, "Exception for setAssignmentTier", {
+            agent_id,
+            assignment_tier,
+        })
+    }
+}
+
+/**
+ * Records the absence of an agent between two specific dates, along with a reason and an optional note.
+ * 
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param agent_id ID of the agent to record the absence of.
+ * @param start_date The start date of the absence.
+ * @param end_date The end date of the absence.
+ * @param reason The reason for the absence.
+ * @param note An optional note providing additional details about the absence.
+ */
+export async function scheduleAbsence(
     fdm: FdmHelpdeskType,
+    principal_id: string,
     agent_id: string,
     start_date: Date,
     end_date: Date,
     reason: string,
     note?: string,
-) {}
-async function cancelAbsence(fdm: FdmHelpdeskType, availability_id: string) {}
-async function getAgentAbsences(fdm: FdmHelpdeskType, agent_id: string) {}
-function handleLoaderError(
-    err: unknown,
-    arg1: string,
-    arg2: { ticket_id: string; date: string },
 ) {
-    throw new Error("Function not implemented.")
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "agent",
+            "write",
+            agent_id,
+            principal_id,
+            "scheduleAbsence",
+        )
+
+        const absence_id = createId()
+        await fdm.insert(schema.agentAbsences).values({
+            absence_id: absence_id,
+            agent_id: agent_id,
+            start_date: start_date,
+            end_date: end_date,
+            reason: reason,
+            note: note,
+        })
+    } catch (err) {
+        throw handleError(err, "Exception for scheduleAbsence", {
+            agent_id,
+            start_date: start_date.toISOString(),
+            end_date: end_date.toISOString(),
+        })
+    }
+}
+
+export async function cancelAbsence(fdm: FdmHelpdeskType, availability_id: string) {
+    try {
+        const absence = await getAbsence(fdm, availability_id)
+
+        await checkHelpdeskPermission(
+            fdm,
+            "agent",
+            "write",
+            absence.agent_id,
+            "",
+            "cancelAbsence",
+        )
+
+        await fdm.delete(schema.agentAbsences).where(eq(schema.agentAbsences.absence_id, availability_id))
+    } catch (err) {
+        throw handleError(err, "Exception for cancelAbsence", {
+            availability_id,
+        })
+    }
+}
+
+export async function getAbsence(fdm: FdmHelpdeskType, absence_id: string) {
+    try {
+        const absences = await fdm.select().from(schema.agentAbsences).where(eq(schema.agentAbsences.absence_id, absence_id)).limit(1)
+
+        if (absences.length === 0) {
+            throw new Error(`Absence with ID ${absence_id} not found`)
+        }
+
+        await checkHelpdeskPermission(
+            fdm,
+            "agent",
+            "read",
+            absences[0].agent_id,
+            "",
+            "getAbsence",
+        )
+
+        return absences[0]
+    } catch (err) {
+        throw handleError(err, "Exception for getAbsence", {
+            absence_id,
+        })
+    }
+}
+
+export async function getAgentAbsences(fdm: FdmHelpdeskType, agent_id: string) {
+    return fdm.select().from(schema.agentAbsences).where(eq(schema.agentAbsences.agent_id, agent_id)).orderBy((t) => [asc(t.start_date)])
 }

@@ -1,4 +1,5 @@
 export * from "./agent"
+export * from "./agent-availability"
 export * from "./authorization"
 export * as schemaHelpdesk from "./db/schema-helpdesk"
 export type * from "./fdm-helpdesk.types"
