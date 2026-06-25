@@ -2,7 +2,7 @@ import type {
     NormFilling as GebruiksnormFillingResult,
     GebruiksnormResult,
 } from "@nmi-agro/fdm-calculator"
-import { NavLink } from "react-router-dom"
+import { NavLink } from "react-router"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import {
     Card,
@@ -56,22 +56,12 @@ const ProgressBar = ({ value }: ProgressBarProps) => (
 )
 
 interface NormItemProps {
-    fieldId: string
-    normName: "nitrogen" | "phosphate" | "manure"
     title: string
-    unit: string
     norm: GebruiksnormResult | undefined
     filling: GebruiksnormFillingResult | undefined
 }
 
-function NormItem({
-    fieldId,
-    normName,
-    title,
-    unit,
-    norm,
-    filling,
-}: NormItemProps) {
+function NormItem({ title, norm, filling }: NormItemProps) {
     if (!norm) return null
 
     const normValue = norm.normValue || 0
@@ -164,30 +154,21 @@ export function FieldNorms({ fieldNorms, fieldOptions }: FieldNormsProps) {
                                 ) : (
                                     <div className="space-y-1">
                                         <NormItem
-                                            fieldId={field.b_id}
-                                            normName="nitrogen"
                                             title="Stikstof, werkzaam"
-                                            unit="kg N/ha"
                                             norm={field.norms?.nitrogen}
                                             filling={
                                                 field.normsFilling?.nitrogen
                                             }
                                         />
                                         <NormItem
-                                            fieldId={field.b_id}
-                                            normName="phosphate"
                                             title="Fosfaat"
-                                            unit="kg P₂O₅/ha"
                                             norm={field.norms?.phosphate}
                                             filling={
                                                 field.normsFilling?.phosphate
                                             }
                                         />
                                         <NormItem
-                                            fieldId={field.b_id}
-                                            normName="manure"
                                             title="Stikstof uit dierlijke mest"
-                                            unit="kg N/ha"
                                             norm={field.norms?.manure}
                                             filling={field.normsFilling?.manure}
                                         />

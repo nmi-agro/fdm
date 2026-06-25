@@ -8,8 +8,13 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
  */
 export function createDefaultModel(apiKey?: string, model?: string) {
     return new ChatGoogleGenerativeAI({
-        model: model ?? "gemini-3.1-pro-preview",
+        model: model ?? "gemini-3.5-flash",
         apiKey: apiKey,
         maxOutputTokens: 65536,
+        // Surface the model's reasoning ("thoughts") so the streaming UI can
+        // show Gerrit's agronomic thinking steps in real time.
+        thinkingConfig: {
+            includeThoughts: true,
+        },
     })
 }

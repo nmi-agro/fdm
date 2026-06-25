@@ -54,10 +54,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         // Check if Mineralization is enabled for this user
         const isMineralizationEnabled =
-            (await posthog?.isFeatureEnabled(
-                "mineralization",
-                session.principal_id,
-            )) ?? true
+            (
+                await posthog?.evaluateFlags(session.principal_id, {
+                    flagKeys: ["mineralization"],
+                })
+            )?.isEnabled("mineralization") ?? true
 
         const timeframe = getTimeframe(params)
 
@@ -142,10 +143,23 @@ export default function MineralizationLayout() {
             : "Schatting van N-levering uit bodemorganische stof."
         : "Stikstofmineralisatie per perceel en bedrijf."
 
+    const { calendar } = useParams()
+    const action = b_id
+        ? {
+              to: `/farm/${loaderData.b_id_farm}/${calendar}/mineralization`,
+              label: "Terug naar mineralisatie",
+              disabled: false,
+          }
+        : {
+              to: `/farm/${loaderData.b_id_farm}`,
+              label: "Terug naar bedrijf",
+              disabled: false,
+          }
+
     if (isMineralizationEnabled === false) {
         return (
             <SidebarInset>
-                <Header action={undefined}>
+                <Header action={action}>
                     <HeaderFarm
                         b_id_farm={loaderData.b_id_farm}
                         farmOptions={loaderData.farmOptions}
@@ -175,7 +189,7 @@ export default function MineralizationLayout() {
 
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

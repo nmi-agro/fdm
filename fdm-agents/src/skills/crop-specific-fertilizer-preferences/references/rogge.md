@@ -1,15 +1,15 @@
-# Rogge (rye) — nl_237, nl_7130
+# Rogge (rogge) — nl_237, nl_7130
 
-**Prefer:**
-- Rogge is the most nutrient-efficient cereal on poor sandy soils. N advice is typically low.
-  Follow `advice.d_n_req`.
-- Single or 2-split N application (early spring + stem extension).
+**Voorkeur:**
+- Rogge is het meest nutriëntenefficiënte graangewas op arme zandgronden. Het N-advies is doorgaans laag.
+  Volg `advice.d_n_req`.
+- Eenmalige of in 2 giften gesplitste N-toediening (vroeg voorjaar + stengelstrekking).
 
-**Avoid:**
-- Excess N beyond `advice.d_n_req`: rogge has very long straw — excess N causes severe
-  lodging.
+**Vermijden:**
+- Te veel N boven `advice.d_n_req`: rogge heeft zeer lang stro — overmaat N veroorzaakt ernstige
+  legering.
 
-**Extra attention:**
-- Rogge is commonly grown on sandy soils in eastern/southern NL where soils are acid and
-  nutrient-poor. Ensure basic soil fertility (pH, K, P) is addressed.
-- N-nalevering: rogge has limited residual N value for the following crop.
+**Extra aandacht:**
+- Rogge wordt vaak geteeld op zandgronden in oostelijk/zuidelijk NL, waar bodems zuur en
+  nutriëntenarm zijn. Zorg dat de basisbodemvruchtbaarheid (pH, K, P) op orde is.
+- N-nalevering: rogge heeft een beperkte rest-N-waarde voor het volggewas.

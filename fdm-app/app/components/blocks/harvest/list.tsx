@@ -13,14 +13,17 @@ import {
 import { Label } from "~/components/ui/label"
 import { getHarvestParameterLabel } from "./parameters"
 import type { HarvestableType } from "./types"
+import { getHarvestTerm } from "./utils"
 
 export function HarvestsList({
     harvests,
     b_lu_harvestable,
+    b_lu_croprotation,
     harvestParameters,
 }: {
     harvests: Harvest[]
     b_lu_harvestable: HarvestableType
+    b_lu_croprotation?: string
     harvestParameters: HarvestParameters
 }) {
     const canAddHarvest =
@@ -49,9 +52,11 @@ export function HarvestsList({
             <div className="flex items-center">
                 <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span className="text-md font-medium">
-                    {format(harvest.b_lu_harvest_date, "PPP", {
-                        locale: nl,
-                    })}
+                    {harvest.b_lu_harvest_date
+                        ? format(harvest.b_lu_harvest_date, "PPP", {
+                              locale: nl,
+                          })
+                        : "—"}
                 </span>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -135,10 +140,13 @@ export function HarvestsList({
         return (
             <Empty>
                 <EmptyHeader>
-                    <EmptyTitle>Nog geen oogst</EmptyTitle>
+                    <EmptyTitle>
+                        Nog geen {getHarvestTerm(b_lu_croprotation)}
+                    </EmptyTitle>
                     <EmptyDescription>
-                        Voeg een oogst toe om belangrijke gegevens zoals
-                        opbrengst, datum en gehaltes bij te houden.
+                        Voeg een {getHarvestTerm(b_lu_croprotation)} toe om
+                        belangrijke gegevens zoals opbrengst, datum en gehaltes
+                        bij te houden.
                     </EmptyDescription>
                 </EmptyHeader>
             </Empty>

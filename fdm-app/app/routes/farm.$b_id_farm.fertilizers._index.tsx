@@ -84,10 +84,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 (x: { parameter: string }) => x.parameter === "p_type_rvo",
             )?.options ?? []
         const rvoLabelByValue = new Map(
-            p_type_rvo_options.map((opt: { value: string; label: string }) => [
-                String(opt.value),
-                opt.label,
-            ]),
+            p_type_rvo_options.map(
+                (opt: { value: string | null; label: string }) => [
+                    String(opt.value ?? ""),
+                    opt.label,
+                ],
+            ),
         )
 
         // Get the available fertilizers and the label for p_type_rvo
@@ -98,8 +100,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         ).then((fertilizers) =>
             fertilizers.map((fertilizer) => ({
                 ...fertilizer,
+                p_name_nl: fertilizer.p_name_nl ?? "",
                 p_type_rvo_label:
-                    rvoLabelByValue.get(String(fertilizer.p_type_rvo)) ?? null,
+                    rvoLabelByValue.get(String(fertilizer.p_type_rvo ?? "")) ??
+                    null,
                 is_custom: fertilizer.p_source === b_id_farm,
             })),
         )
@@ -128,7 +132,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function FarmFertilizersIndexPage({
-    params,
+    params: _params,
 }: Route.ComponentProps) {
     const loaderData = useLoaderData<typeof loader>()
 

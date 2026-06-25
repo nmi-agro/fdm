@@ -174,7 +174,11 @@ export default function OrganicCertificationSettings() {
     const isDeleting =
         navigation.state !== "idle" && navigation.formMethod === "DELETE"
 
-    const form = useRemixForm<z.infer<typeof formSchema>>({
+    const form = useRemixForm<
+        z.input<typeof formSchema>,
+        any,
+        z.output<typeof formSchema>
+    >({
         mode: "onTouched",
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -236,7 +240,9 @@ export default function OrganicCertificationSettings() {
                             <span className="font-medium">
                                 {format(
                                     new Date(
-                                        organicCertification.b_organic_issued,
+                                        String(
+                                            organicCertification.b_organic_issued,
+                                        ),
                                     ),
                                     "PP",
                                     { locale: nl },
@@ -251,7 +257,9 @@ export default function OrganicCertificationSettings() {
                                 {organicCertification.b_organic_expires
                                     ? format(
                                           new Date(
-                                              organicCertification.b_organic_expires,
+                                              String(
+                                                  organicCertification.b_organic_expires,
+                                              ),
                                           ),
                                           "PP",
                                           { locale: nl },
@@ -360,13 +368,13 @@ export default function OrganicCertificationSettings() {
                                         </DialogDescription>
                                     </DialogHeader>
                                     <DatePicker
-                                        form={form}
+                                        form={form as any}
                                         name="b_organic_issued"
                                         label="Startdatum"
                                         description="De datum waarop het certificaat is ingegaan."
                                     />
                                     <DatePicker
-                                        form={form}
+                                        form={form as any}
                                         name="b_organic_expires"
                                         label="Einddatum"
                                         description="De datum waarop het certificaat verloopt."

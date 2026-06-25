@@ -110,6 +110,26 @@ export type Bln3ScoreCollectedInputs = {
     /** Soil organic matter content (%) */
     a_som_loi?: number
 
+    // ── BCS visual soil assessment (BodemConditieScore) ──────────────────────
+    /** Soil structure BCS score (0–2) */
+    a_ss_bcs?: number
+    /** Subsoil compaction BCS score (0–2) */
+    a_sc_bcs?: number
+    /** Root development BCS score (0–2) */
+    a_rd_bcs?: number
+    /** Earthworm count BCS score (0–2) */
+    a_ew_bcs?: number
+    /** Crop cover BCS score (0–2) */
+    a_cc_bcs?: number
+    /** Coloured patches BCS score (0–2) */
+    a_gs_bcs?: number
+    /** Ponding BCS score, negative contribution (0–2) */
+    a_p_bcs?: number
+    /** Cracking BCS score, negative contribution (0–2) */
+    a_c_bcs?: number
+    /** Rutting/trampling BCS score, negative contribution (0–2) */
+    a_rt_bcs?: number
+
     // ── Measures ─────────────────────────────────────────────────────────────
     /** Implemented soil management measures */
     measures?: Bln3Measure[]
@@ -143,11 +163,11 @@ export type Bln3IndicatorResult = {
 }
 
 /**
- * An aggregated score (e.g. OBI, BBWP) combining multiple indicator scores.
- * Not yet implemented in the NMI API — the `aggregations` field is optional.
+ * An aggregated score (e.g. S_BLN, OBI) combining multiple indicator scores.
+ * Returned by the NMI API in the response data.
  */
 export type Bln3AggregationResult = {
-    /** Aggregation identifier (e.g. "OBI", "BBWP") */
+    /** Aggregation identifier (e.g. "S_BLN", "S_PROD_BIOL_BLN") */
     aggregation_id: string
     /** Aggregated score */
     score: number
@@ -158,7 +178,7 @@ export type Bln3AggregationResult = {
  */
 export type Bln3Score = {
     indicators: Bln3IndicatorResult[]
-    /** Aggregation scores — not yet implemented by the NMI API */
+    /** Aggregation scores returned by the NMI API */
     aggregations?: Bln3AggregationResult[]
 }
 

@@ -1,11 +1,20 @@
 import { apiKey } from "@better-auth/api-key"
-import type { GoogleOptions, MicrosoftOptions, User } from "better-auth"
+import type { GoogleOptions, User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
-import { magicLink, organization, username } from "better-auth/plugins"
+import {
+    genericOAuth,
+    magicLink,
+    organization,
+    username,
+} from "better-auth/plugins"
 import { eq } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { generateFromEmail } from "unique-username-generator"
+import {
+    createMicrosoftOAuthConfig,
+    type MicrosoftCertConfig,
+} from "./authentication-ms"
 import * as authNSchema from "./db/schema-authn"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
@@ -34,7 +43,7 @@ export type BetterAuth = FdmAuth
 export function createFdmAuth(
     fdm: FdmType,
     google?: { clientSecret: string; clientId: string },
-    microsoft?: { clientSecret: string; clientId: string },
+    microsoft?: MicrosoftCertConfig,
     sendMagicLinkEmail?: (
         email: string,
         url: string,
@@ -67,41 +76,13 @@ export function createFdmAuth(
         }
     }
 
-    let microsoftAuth: MicrosoftOptions | undefined
-    if (microsoft) {
-        microsoftAuth = {
-            clientId: microsoft.clientId,
-            clientSecret: microsoft.clientSecret,
-            tenantId: "common",
-            prompt: "select_account" as const,
-            mapProfileToUser: async (profile) => {
-                const email = profile.email || (profile as any).mail
-                if (!email) {
-                    throw new Error("microsoft_no_email")
-                }
-
-                const name =
-                    profile.name ||
-                    (profile as any).displayName ||
-                    email.split("@")[0]
-
-                const picture =
-                    (profile as any).picture ?? profile.image ?? null
-
-                const { firstname, surname } = splitFullName(name)
-                return {
-                    name: name,
-                    email: email,
-                    emailVerified: true,
-                    image: picture,
-                    firstname: firstname,
-                    surname: surname,
-                    username: await createUsername(fdm, email),
-                    displayUsername: createDisplayUsername(firstname, surname),
-                }
-            },
-        }
-    }
+    const microsoftGenericOAuthConfig = microsoft
+        ? createMicrosoftOAuthConfig(microsoft, {
+              splitFullName,
+              createUsername: (email) => createUsername(fdm, email),
+              createDisplayUsername,
+          })
+        : undefined
 
     const auth = betterAuth({
         database: drizzleAdapter(fdm, {
@@ -138,7 +119,6 @@ export function createFdmAuth(
         },
         socialProviders: {
             google: googleAuth,
-            microsoft: microsoftAuth,
         },
         rateLimit: {
             enabled: process.env.NODE_ENV === "production",
@@ -163,6 +143,11 @@ export function createFdmAuth(
                 },
             }),
             username(),
+            genericOAuth({
+                config: microsoftGenericOAuthConfig
+                    ? [microsoftGenericOAuthConfig]
+                    : [],
+            }),
             organization({
                 organizationHooks: {
                     beforeCreateOrganization: async ({ organization }) => {

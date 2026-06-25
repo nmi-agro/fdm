@@ -36,6 +36,12 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 
+type OrganicMatterFieldResultWithErrorId = Awaited<
+    ReturnType<typeof getOrganicMatterBalanceForField>
+>["fieldResult"] & {
+    errorId?: string
+}
+
 // Meta
 export const meta: MetaFunction = () => {
     return [
@@ -75,7 +81,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_id,
                 timeframe,
             })
-            let { fieldResult, fieldInput } = result
+            let {
+                fieldResult,
+                fieldInput,
+            }: {
+                fieldResult: OrganicMatterFieldResultWithErrorId
+                fieldInput: typeof result.fieldInput
+            } = result
 
             if (!fieldResult) {
                 throw new Error(
@@ -317,7 +329,7 @@ function OrganicMatterBalance({
                     <CardContent>
                         <div className="space-y-8">
                             <OrganicMatterBalanceDetails
-                                balanceData={fieldResult.balance}
+                                balanceData={result}
                                 fieldInput={fieldInput}
                             />
                         </div>

@@ -54,45 +54,60 @@ export async function collectInputForBln3Score(
         // b_centroid = [lon, lat] (ST_X = longitude, ST_Y = latitude)
         const [a_lon, a_lat] = field.b_centroid
 
-        // Pick the BLN3-relevant soil analysis parameters from the most recent analysis.
-        const latestAnalysis = soilAnalyses[0]
-        const soilData: Omit<
-            Bln3ScoreCollectedInputs,
-            | "a_lat"
-            | "a_lon"
-            | "b_soiltype_agr"
-            | "b_gwl_class"
-            | "cultivations"
-            | "measures"
-        > = {}
-        if (latestAnalysis) {
-            const numericFields = [
-                "a_ca_co_po",
-                "a_cec_co",
-                "a_clay_mi",
-                "a_cn_fr",
-                "a_k_cc",
-                "a_k_co_po",
-                "a_mg_cc",
-                "a_mg_co_po",
-                "a_n_pmn",
-                "a_n_rt",
-                "a_p_al",
-                "a_p_cc",
-                "a_p_wa",
-                "a_ph_cc",
-                "a_s_rt",
-                "a_sand_mi",
-                "a_silt_mi",
-                "a_som_loi",
-            ] as const
-            for (const field of numericFields) {
-                if (typeof latestAnalysis[field] === "number") {
-                    ;(soilData as Record<string, number>)[field] =
-                        latestAnalysis[field] as number
-                }
+        // For each numeric field, pick the most recent soil analysis record that has
+        // a non-null value for that field. Lab and BCS analyses are stored as separate
+        // records, so a single latestAnalysis[0] may be BCS-only or lab-only.
+        const labNumericFields = [
+            "a_ca_co_po",
+            "a_cec_co",
+            "a_clay_mi",
+            "a_cn_fr",
+            "a_k_cc",
+            "a_k_co_po",
+            "a_mg_cc",
+            "a_mg_co_po",
+            "a_n_pmn",
+            "a_n_rt",
+            "a_p_al",
+            "a_p_cc",
+            "a_p_wa",
+            "a_ph_cc",
+            "a_s_rt",
+            "a_sand_mi",
+            "a_silt_mi",
+            "a_som_loi",
+        ] as const
+        const bcsNumericFields = [
+            "a_ss_bcs",
+            "a_sc_bcs",
+            "a_rd_bcs",
+            "a_ew_bcs",
+            "a_cc_bcs",
+            "a_gs_bcs",
+            "a_p_bcs",
+            "a_c_bcs",
+            "a_rt_bcs",
+        ] as const
+        const allNumericFields = [
+            ...labNumericFields,
+            ...bcsNumericFields,
+        ] as const
+
+        const soilData: Record<string, number> = {}
+        for (const f of allNumericFields) {
+            const analysis = soilAnalyses.find((a) => typeof a[f] === "number")
+            if (analysis) {
+                soilData[f] = analysis[f] as number
             }
         }
+
+        // Categorical soil fields: pick from the most recent analysis that has a value.
+        const latestWithSoiltype = soilAnalyses.find(
+            (a) => a.b_soiltype_agr != null,
+        )
+        const latestWithGwlClass = soilAnalyses.find(
+            (a) => a.b_gwl_class != null,
+        )
 
         // Build cultivation history using the Dutch "hoofdteelt" rule (May 15–July 15).
         // Only process years within the span of known cultivation data. Years in that
@@ -151,9 +166,9 @@ export async function collectInputForBln3Score(
         return {
             a_lat,
             a_lon,
-            b_soiltype_agr: (latestAnalysis?.b_soiltype_agr ??
+            b_soiltype_agr: (latestWithSoiltype?.b_soiltype_agr ??
                 undefined) as Bln3ScoreCollectedInputs["b_soiltype_agr"],
-            b_gwl_class: (latestAnalysis?.b_gwl_class ??
+            b_gwl_class: (latestWithGwlClass?.b_gwl_class ??
                 undefined) as Bln3ScoreCollectedInputs["b_gwl_class"],
             ...(bln3Cultivations.length > 0 && {
                 cultivations: bln3Cultivations,

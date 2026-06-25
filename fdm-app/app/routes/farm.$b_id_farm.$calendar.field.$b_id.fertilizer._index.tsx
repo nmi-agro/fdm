@@ -11,6 +11,8 @@ import {
     removeFertilizerApplication,
     updateFertilizerApplication,
 } from "@nmi-agro/fdm-core"
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
+import type { ComponentProps } from "react"
 import {
     type ActionFunctionArgs,
     data,
@@ -26,6 +28,7 @@ import {
     FormSchemaModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
 import { FertilizerApplicationMetricsCard } from "~/components/blocks/fertilizer-applications/metrics"
+import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -113,23 +116,39 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 x.parameter === "p_app_method_options",
         )
         if (!applicationMethods) throw new Error("Parameter metadata missing")
+        const applicationMethodOptions = (applicationMethods.options ?? [])
+            .filter(
+                (
+                    option,
+                ): option is { value: ApplicationMethods; label: string } =>
+                    option.value !== null,
+            )
+            .map((option) => ({
+                value: option.value,
+                label: option.label,
+            }))
         // Map fertilizers to options for the combobox
-        const fertilizerOptions = fertilizers.map((fertilizer) => {
-            const applicationMethodOptions = fertilizer.p_app_method_options
-                ?.map((opt) => {
-                    const meta = applicationMethods.options?.find(
-                        (x) => x.value === opt,
-                    )
-                    return meta ? { value: opt, label: meta.label } : undefined
-                })
-                .filter(Boolean)
-            return {
+        const fertilizerOptions: FertilizerOption[] = fertilizers.map(
+            (fertilizer) => ({
                 value: fertilizer.p_id,
-                label: fertilizer.p_name_nl,
-                applicationMethodOptions: applicationMethodOptions,
+                label: fertilizer.p_name_nl ?? "",
+                applicationMethodOptions: (
+                    fertilizer.p_app_method_options ?? []
+                )
+                    .map((opt) =>
+                        applicationMethodOptions.find((x) => x.value === opt),
+                    )
+                    .filter(
+                        (
+                            option,
+                        ): option is {
+                            value: ApplicationMethods
+                            label: string
+                        } => option !== undefined,
+                    ),
                 p_app_amount_unit: fertilizer.p_app_amount_unit,
-            }
-        })
+            }),
+        )
 
         // Get fertilizer applications for the field
         const fertilizerApplications = await getFertilizerApplications(
@@ -249,7 +268,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             fertilizerApplications: fertilizerApplications,
             fertilizers: fertilizers,
             dose: dose.dose,
-            applicationMethodOptions: applicationMethods.options,
+            applicationMethodOptions,
             fertilizerApplicationMetricsData: fertilizerApplicationMetricsData,
             calendar: calendar,
             fieldWritePermission: await fieldWritePermission,
@@ -297,7 +316,9 @@ export default function FarmFieldsOverviewBlock() {
             <div className="2xl:col-span-2 min-w-0">
                 <FertilizerApplicationMetricsCard
                     fertilizerApplicationMetricsData={
-                        loaderData.fertilizerApplicationMetricsData
+                        loaderData.fertilizerApplicationMetricsData as ComponentProps<
+                            typeof FertilizerApplicationMetricsCard
+                        >["fertilizerApplicationMetricsData"]
                     }
                     isSubmitting={isSubmitting}
                 />
@@ -360,8 +381,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 request,
                 FormSchemaModify,
             )
-            const { p_app_id, p_id, p_app_amount, p_app_date, p_app_method } =
-                formValues
+            const {
+                p_app_id,
+                p_id,
+                p_app_amount_display,
+                p_app_date,
+                p_app_method,
+            } = formValues
 
             if (!p_app_id || typeof p_app_id !== "string") {
                 return dataWithError(
@@ -375,7 +401,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 session.principal_id,
                 p_app_id,
                 p_id,
-                p_app_amount,
+                p_app_amount_display,
                 p_app_method,
                 p_app_date,
             )

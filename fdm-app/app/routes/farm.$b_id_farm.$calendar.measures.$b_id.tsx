@@ -25,6 +25,7 @@ import {
     type MetaFunction,
     useFetcher,
     useLoaderData,
+    useNavigate,
     useNavigation,
     useParams,
 } from "react-router"
@@ -73,8 +74,8 @@ const MeasuresMap = lazy(
     () => import("~/components/blocks/measures/measures-atlas"),
 )
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-    const fieldName = data?.field?.b_name ?? "Perceel"
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+    const fieldName = loaderData?.field?.b_name ?? "Perceel"
     return [
         {
             title: `${fieldName} | Maatregelen | ${clientConfig.name}`,
@@ -388,7 +389,7 @@ function MeasureEditDialog({
             onValid: (data) => {
                 const fd = new FormData()
                 fd.append("intent", "update")
-                fd.append("b_id_measure", measure?.b_id_measure)
+                fd.append("b_id_measure", measure?.b_id_measure ?? "")
                 fd.append("m_start", data.m_start)
                 if (data.m_end) fd.append("m_end", data.m_end)
                 else fd.append("m_end", "")
@@ -561,6 +562,7 @@ export default function MeasuresFieldDetail() {
     } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar, b_id } = useParams()
     const navigation = useNavigation()
+    const navigate = useNavigate()
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editingMeasure, setEditingMeasure] = useState<EditingMeasure | null>(
         null,
@@ -569,7 +571,6 @@ export default function MeasuresFieldDetail() {
         null,
     )
 
-    const basePath = `/farm/${b_id_farm}/${calendar}/measures`
     const indicatorsHref = `/farm/${b_id_farm}/${calendar}/indicators/${b_id}`
 
     return (
@@ -788,8 +789,12 @@ export default function MeasuresFieldDetail() {
                             selectedFieldGeoJSON={selectedFieldGeoJSON}
                             initialFitGeoJSON={selectedFieldGeoJSON}
                             mapStyle={mapStyle}
-                            basePath={basePath}
                             height="400px"
+                            onFieldClick={(b_id) =>
+                                navigate(
+                                    `/farm/${b_id_farm}/${calendar}/measures/${b_id}`,
+                                )
+                            }
                         />
                     </Suspense>
                 </div>

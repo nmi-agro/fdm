@@ -8,7 +8,7 @@ import type {
 import type { Cultivation } from "@nmi-agro/fdm-core"
 import { CircleAlert, CircleCheck, CircleX, Sprout } from "lucide-react"
 import { Suspense } from "react"
-import { Await, NavLink } from "react-router-dom"
+import { Await, NavLink } from "react-router"
 import { CultivationSelector } from "~/components/custom/cultivation-selector"
 import { Button } from "~/components/ui/button"
 import {
@@ -202,13 +202,15 @@ export function FertilizerApplicationMetricsCard({
                                                                         {Math.round(
                                                                             resolvedNorms
                                                                                 .filling
-                                                                                .nitrogen,
+                                                                                .nitrogen
+                                                                                .normFilling,
                                                                         )}{" "}
                                                                         /{" "}
                                                                         {Math.round(
                                                                             resolvedNorms
                                                                                 .value
-                                                                                .nitrogen,
+                                                                                .nitrogen
+                                                                                .normValue,
                                                                         )}{" "}
                                                                         kg N
                                                                     </span>
@@ -217,24 +219,29 @@ export function FertilizerApplicationMetricsCard({
                                                                     value={
                                                                         resolvedNorms
                                                                             .value
-                                                                            .nitrogen ===
+                                                                            .nitrogen
+                                                                            .normValue ===
                                                                         0
                                                                             ? 0
                                                                             : (resolvedNorms
                                                                                   .filling
-                                                                                  .nitrogen /
+                                                                                  .nitrogen
+                                                                                  .normFilling /
                                                                                   resolvedNorms
                                                                                       .value
-                                                                                      .nitrogen) *
+                                                                                      .nitrogen
+                                                                                      .normValue) *
                                                                               100
                                                                     }
                                                                     colorBar={getNormsProgressColor(
                                                                         resolvedNorms
                                                                             .filling
-                                                                            .nitrogen,
+                                                                            .nitrogen
+                                                                            .normFilling,
                                                                         resolvedNorms
                                                                             .value
-                                                                            .nitrogen,
+                                                                            .nitrogen
+                                                                            .normValue,
                                                                     )}
                                                                     className="h-2"
                                                                 />
@@ -263,13 +270,15 @@ export function FertilizerApplicationMetricsCard({
                                                                         {Math.round(
                                                                             resolvedNorms
                                                                                 .filling
-                                                                                .phosphate,
+                                                                                .phosphate
+                                                                                .normFilling,
                                                                         )}{" "}
                                                                         /{" "}
                                                                         {Math.round(
                                                                             resolvedNorms
                                                                                 .value
-                                                                                .phosphate,
+                                                                                .phosphate
+                                                                                .normValue,
                                                                         )}{" "}
                                                                         kg P₂O₅
                                                                     </span>
@@ -278,24 +287,29 @@ export function FertilizerApplicationMetricsCard({
                                                                     value={
                                                                         resolvedNorms
                                                                             .value
-                                                                            .phosphate ===
+                                                                            .phosphate
+                                                                            .normValue ===
                                                                         0
                                                                             ? 0
                                                                             : (resolvedNorms
                                                                                   .filling
-                                                                                  .phosphate /
+                                                                                  .phosphate
+                                                                                  .normFilling /
                                                                                   resolvedNorms
                                                                                       .value
-                                                                                      .phosphate) *
+                                                                                      .phosphate
+                                                                                      .normValue) *
                                                                               100
                                                                     }
                                                                     colorBar={getNormsProgressColor(
                                                                         resolvedNorms
                                                                             .filling
-                                                                            .phosphate,
+                                                                            .phosphate
+                                                                            .normFilling,
                                                                         resolvedNorms
                                                                             .value
-                                                                            .phosphate,
+                                                                            .phosphate
+                                                                            .normValue,
                                                                     )}
                                                                     className="h-2"
                                                                 />
@@ -325,13 +339,15 @@ export function FertilizerApplicationMetricsCard({
                                                                         {Math.round(
                                                                             resolvedNorms
                                                                                 .filling
-                                                                                .manure,
+                                                                                .manure
+                                                                                .normFilling,
                                                                         )}{" "}
                                                                         /{" "}
                                                                         {Math.round(
                                                                             resolvedNorms
                                                                                 .value
-                                                                                .manure,
+                                                                                .manure
+                                                                                .normValue,
                                                                         )}{" "}
                                                                         kg N
                                                                     </span>
@@ -340,24 +356,29 @@ export function FertilizerApplicationMetricsCard({
                                                                     value={
                                                                         resolvedNorms
                                                                             .value
-                                                                            .manure ===
+                                                                            .manure
+                                                                            .normValue ===
                                                                         0
                                                                             ? 0
                                                                             : (resolvedNorms
                                                                                   .filling
-                                                                                  .manure /
+                                                                                  .manure
+                                                                                  .normFilling /
                                                                                   resolvedNorms
                                                                                       .value
-                                                                                      .manure) *
+                                                                                      .manure
+                                                                                      .normValue) *
                                                                               100
                                                                     }
                                                                     colorBar={getNormsProgressColor(
                                                                         resolvedNorms
                                                                             .filling
-                                                                            .manure,
+                                                                            .manure
+                                                                            .normFilling,
                                                                         resolvedNorms
                                                                             .value
-                                                                            .manure,
+                                                                            .manure
+                                                                            .normValue,
                                                                     )}
                                                                     className="h-2"
                                                                 />

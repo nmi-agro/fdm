@@ -1,4 +1,4 @@
-import type { ZodSchema, z } from "zod"
+import type { z } from "zod"
 import { handleActionError } from "./error"
 
 /**
@@ -14,15 +14,14 @@ import { handleActionError } from "./error"
  * @returns The parsed and validated form data.
  * @throws {Response} If the form data fails validation, includes error details.
  */
-export async function extractFormValuesFromRequest<T extends ZodSchema>(
-    request: Request,
-    schema: T,
-) {
+export async function extractFormValuesFromRequest<
+    T extends z.ZodType<unknown>,
+>(request: Request, schema: T): Promise<z.output<T>> {
     try {
         const formData = await request.formData()
         const formObject = Object.fromEntries(formData) as Record<
             string,
-            FormDataEntryValue | unknown[] | null | boolean | undefined
+            unknown
         >
 
         // Trim all values and remove quotation marks
@@ -77,7 +76,7 @@ export async function extractFormValuesFromRequest<T extends ZodSchema>(
             throw new Error(JSON.stringify(errors))
         }
 
-        return parsedData.data as z.infer<T>
+        return parsedData.data
     } catch (error) {
         throw handleActionError(error)
     }

@@ -3,6 +3,7 @@ import type { Fertilizer } from "@nmi-agro/fdm-core"
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import type { Navigation } from "react-router"
 import { useFetcher, useLocation, useNavigation, useParams } from "react-router"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
 import { Button } from "~/components/ui/button"
@@ -18,6 +19,7 @@ import {
 import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 import { FertilizerApplicationForm } from "./form"
+import type { FieldFertilizerFormValues } from "./formschema"
 import { FertilizerApplicationsList } from "./list"
 import type { FertilizerApplication, FertilizerOption } from "./types.d"
 
@@ -155,6 +157,21 @@ export function FertilizerApplicationCard({
         setIsDialogOpen(state)
     }
 
+    const formFertilizerApplication: Partial<FieldFertilizerFormValues> | null =
+        editedFertilizerApplication
+            ? {
+                  p_app_id: editedFertilizerApplication.p_app_id,
+                  p_app_ids: editedFertilizerApplication.p_app_ids,
+                  p_id: editedFertilizerApplication.p_id,
+                  p_app_method:
+                      editedFertilizerApplication.p_app_method ?? undefined,
+                  p_app_amount_display:
+                      editedFertilizerApplication.p_app_amount_display ??
+                      undefined,
+                  p_app_date: editedFertilizerApplication.p_app_date,
+              }
+            : null
+
     return (
         <Card>
             <CardHeader className="flex flex-col space-y-4 xl:flex-row xl:items-center xl:justify-between xl:space-y-0">
@@ -193,12 +210,12 @@ export function FertilizerApplicationCard({
                         <FertilizerApplicationForm
                             options={fertilizerOptions}
                             action={location.pathname}
-                            navigation={navigation}
+                            navigation={navigation as unknown as Navigation}
                             b_id_farm={params.b_id_farm || ""}
                             b_id_or_b_lu_catalogue={
                                 b_id_or_b_lu_catalogue || ""
                             }
-                            fertilizerApplication={editedFertilizerApplication}
+                            fertilizerApplication={formFertilizerApplication}
                         />
                     </DialogContent>
                 </Dialog>

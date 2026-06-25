@@ -1,15 +1,8 @@
 import { lookupPrincipal } from "@nmi-agro/fdm-core"
-import type { LoaderFunctionArgs } from "react-router-dom"
+import type { LoaderFunctionArgs } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-
-// Define the expected return type from lookupPrincipal based on previous usage
-type CorePrincipal = {
-    username: string
-    displayUserName: string
-    type: "user" | "organization"
-}
 
 // Define the structure expected by the AutoComplete component
 type AutocompletePrincipal = {
@@ -31,6 +24,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         // Get identifier from URL query parameters
         const url = new URL(request.url)
         const identifier = url.searchParams.get("identifier") // Read 'identifier' param
+        const usePrincipalId = url.searchParams.has("principal_id")
 
         if (!identifier) {
             return [] // Return empty array directly
@@ -45,16 +39,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
             return [] // Return empty for too short or too long inputs
         }
 
-        const principals: CorePrincipal[] = await lookupPrincipal(
-            fdm,
-            identifier,
-        )
+        const principals = await lookupPrincipal(fdm, identifier)
+
+        const valueSubscript = usePrincipalId ? "id" : "username"
 
         // Map the result to the format expected by AutoComplete
         const autocompletePrincipals: AutocompletePrincipal[] = principals.map(
             (p) => ({
-                value: p.username,
-                label: p.displayUserName,
+                value: p[valueSubscript],
+                label: p.displayUserName ?? p.username,
                 icon: p.type, // Pass the type as the icon identifier
             }),
         )

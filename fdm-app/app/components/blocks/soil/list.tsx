@@ -73,9 +73,13 @@ export function SoilAnalysesList({
 
                             <div className="justify-self-end">
                                 <div className="space-x-4">
-                                    <NavLink
-                                        to={`./analysis/${analysis.a_id}`}
+                                    <Button
                                         asChild
+                                        variant="default"
+                                        disabled={
+                                            fetcher.state === "submitting" ||
+                                            analysis.a_source === "nl-other-nmi"
+                                        }
                                         className={cn(
                                             "pointer-events-auto",
                                             analysis.a_source === "nl-other-nmi"
@@ -83,22 +87,16 @@ export function SoilAnalysesList({
                                                 : "",
                                         )}
                                     >
-                                        <Button
-                                            variant="default"
-                                            disabled={
-                                                fetcher.state ===
-                                                    "submitting" ||
-                                                analysis.a_source ===
-                                                    "nl-other-nmi"
-                                            }
+                                        <NavLink
+                                            to={`./analysis/${analysis.a_id}`}
                                         >
                                             {canModifySoilAnalysis[
                                                 analysis.a_id
                                             ]
                                                 ? "Bewerk"
                                                 : "Bekijk"}
-                                        </Button>
-                                    </NavLink>
+                                        </NavLink>
+                                    </Button>
                                     <Button
                                         variant="destructive"
                                         disabled={

@@ -1,7 +1,7 @@
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import type { FeatureCollection, Geometry } from "geojson"
-import { lazy, Suspense, useState } from "react"
+import { lazy, Suspense, useMemo, useState } from "react"
 import {
     data,
     type LoaderFunctionArgs,
@@ -9,34 +9,26 @@ import {
     useLoaderData,
     useParams,
 } from "react-router"
-import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
-import { Card, CardContent } from "~/components/ui/card"
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectSeparator,
-    SelectTrigger,
-    SelectValue,
-} from "~/components/ui/select"
+import { ScoreSelect } from "~/components/blocks/indicators/atlas"
 import {
     type FieldBln3Score,
     getIndicatorsForFarm,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
+import {
+    AGG_IDS,
+    AGGREGATIONS,
+    type AggregationId,
+    getAggregationInfo,
+    getChildren,
+    getFieldAggregationScore,
+} from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import {
-    ECOSYSTEEMDIENST_INDICATOR_IDS,
-    ECOSYSTEEMDIENST_MAP_PROP,
-    ECOSYSTEEMDIENSTEN,
-    INDICATORS,
-} from "~/lib/indicators"
+import { INDICATORS } from "~/lib/indicators"
 
 const IndicatorsMap = lazy(
     () => import("@/app/components/blocks/indicators/atlas"),
@@ -46,7 +38,7 @@ export const meta: MetaFunction = () => {
     return [{ title: `Indicatoren | Atlas | ${clientConfig.name}` }]
 }
 
-function computeFieldAvgScore(fs: FieldBln3Score | undefined): number {
+export function computeFieldAvgScore(fs: FieldBln3Score | undefined): number {
     if (!fs?.score) return -1
     const vals = fs.score.indicators
         .map((ind) => ind.score)
@@ -99,33 +91,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     (score) => score.b_id === field.b_id,
                 )
 
-                const groupAvg = (ids: string[]): number => {
-                    const scores = ids
-                        .map(
-                            (id) =>
-                                fs?.score?.indicators.find(
-                                    (indicator) =>
-                                        indicator.indicator_id === id,
-                                )?.score,
-                        )
-                        .filter((score): score is number => {
-                            return score != null && !Number.isNaN(score)
-                        })
-
-                    return scores.length > 0
-                        ? Math.round(
-                              (scores.reduce((sum, score) => sum + score, 0) /
-                                  scores.length) *
-                                  100,
-                          )
-                        : -1
-                }
-
-                const catProps: Record<string, number> = {}
-
-                for (const dienst of ECOSYSTEEMDIENSTEN) {
-                    const ids = ECOSYSTEEMDIENST_INDICATOR_IDS[dienst]
-                    catProps[ECOSYSTEEMDIENST_MAP_PROP[dienst]] = groupAvg(ids)
+                const aggProps: Record<string, number> = {}
+                for (const aggId of AGG_IDS) {
+                    const scoreVal = getFieldAggregationScore(fs?.score, aggId)
+                    aggProps[aggId] =
+                        scoreVal !== null ? Math.round(scoreVal * 100) : -1
                 }
 
                 const indicatorProps: Record<string, number> = {}
@@ -146,7 +116,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         b_name: field.b_name ?? null,
                         b_area: field.b_area ?? null,
                         avgScore: computeFieldAvgScore(fs),
-                        ...catProps,
+                        ...aggProps,
                         ...indicatorProps,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {
@@ -171,70 +141,34 @@ export default function AtlasIndicatorsMap() {
     const { fieldsGeoJSON, mapStyle } = useLoaderData<typeof loader>()
     const { b_id_farm, calendar } = useParams()
     const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
-    const [selectedProperty, setSelectedProperty] = useState("avgScore")
+    const [selectedProperty, setSelectedProperty] = useState("S_BLN")
 
     const selectedLabel =
         selectedProperty === "avgScore"
             ? "Gemiddelde score"
-            : (Object.entries(ECOSYSTEEMDIENST_MAP_PROP).find(
-                  ([, v]) => v === selectedProperty,
-              )?.[0] ??
-              INDICATORS.find((i) => i.id === selectedProperty)?.name ??
-              selectedProperty)
+            : Object.keys(AGGREGATIONS).includes(selectedProperty)
+              ? getAggregationInfo(selectedProperty as AggregationId).name
+              : (INDICATORS.find((i) => i.id === selectedProperty)?.name ??
+                selectedProperty)
+
+    // Compute child entries (one level down) for the currently selected property
+    const childEntries = useMemo(() => {
+        if (!Object.keys(AGGREGATIONS).includes(selectedProperty)) return []
+        const childIds = getChildren(selectedProperty as AggregationId)
+        return childIds.map((childId) => ({
+            id: childId,
+            label: getAggregationInfo(childId).name,
+            score: null as number | null, // score is read per-field from feature properties
+        }))
+    }, [selectedProperty])
 
     return (
         <div style={{ height: "calc(100vh - 64px)" }} className="relative">
-            {/* Floating indicator selector + info banner */}
-            <Card className="absolute top-3 left-3 z-10 w-64 shadow-md bg-background/90 backdrop-blur-sm">
-                <CardContent className="p-2 space-y-2">
-                    <Select
-                        value={selectedProperty}
-                        onValueChange={setSelectedProperty}
-                    >
-                        <SelectTrigger className="w-full text-xs h-8">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="avgScore">
-                                Gemiddelde score
-                            </SelectItem>
-                            <SelectSeparator />
-                            <SelectGroup>
-                                <SelectLabel className="text-xs text-muted-foreground">
-                                    Ecosysteemdiensten
-                                </SelectLabel>
-                                {ECOSYSTEEMDIENSTEN.map((dienst) => (
-                                    <SelectItem
-                                        key={dienst}
-                                        value={
-                                            ECOSYSTEEMDIENST_MAP_PROP[dienst]
-                                        }
-                                    >
-                                        {dienst}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                            <SelectSeparator />
-                            {ECOSYSTEEMDIENSTEN.map((dienst) => (
-                                <SelectGroup key={dienst}>
-                                    <SelectLabel className="text-xs text-muted-foreground">
-                                        {dienst}
-                                    </SelectLabel>
-                                    {INDICATORS.filter(
-                                        (i) => i.ecosysteemdienst === dienst,
-                                    ).map((i) => (
-                                        <SelectItem key={i.id} value={i.id}>
-                                            {i.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Bln3BetaBanner />
-                </CardContent>
-            </Card>
-
+            <ScoreSelect
+                selectedProperty={selectedProperty}
+                setSelectedProperty={setSelectedProperty}
+                detailPath={basePath}
+            />
             <Suspense
                 fallback={
                     <div className="absolute inset-0 bg-muted animate-pulse" />
@@ -247,6 +181,7 @@ export default function AtlasIndicatorsMap() {
                     selectedProperty={selectedProperty}
                     label={selectedLabel}
                     height="100%"
+                    childEntries={childEntries}
                 />
             </Suspense>
         </div>

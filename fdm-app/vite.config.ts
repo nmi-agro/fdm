@@ -72,6 +72,7 @@ export default defineConfig((env) => {
                 "posthog-js",
                 "posthog-js/react",
                 "@geomatico/maplibre-cog-protocol",
+                "remix-hook-form",
             ],
         },
         build: {
@@ -89,6 +90,7 @@ export default defineConfig((env) => {
                 "@nmi-agro/fdm-rvo",
                 "@nmi-agro/fdm-agents",
                 "@nmi-agro/fdm-api",
+                "@nmi-agro/fdm-helpdesk",
             ],
             // Pre-bundle heavy transitive deps that workspace packages pull in,
             // so they are processed once rather than on every cold dev start.

@@ -8,8 +8,10 @@ import {
     getFields,
     updateFertilizerApplication,
 } from "@nmi-agro/fdm-core"
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { Info } from "lucide-react"
 import { useState } from "react"
+import type { Navigation } from "react-router"
 import {
     type ActionFunctionArgs,
     data,
@@ -31,6 +33,7 @@ import {
     FormSchema,
     FormSchemaPartialModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
+import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -152,7 +155,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             return {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
             }
         })
 
@@ -168,23 +171,43 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             (x) => x.parameter === "p_app_method_options",
         )
         if (!applicationMethods) throw new Error("Parameter metadata missing")
+        const availableApplicationMethodOptions = (
+            applicationMethods.options ?? []
+        )
+            .filter(
+                (
+                    option,
+                ): option is { value: ApplicationMethods; label: string } =>
+                    option.value !== null,
+            )
+            .map((option) => ({
+                value: option.value,
+                label: option.label,
+            }))
         // Map fertilizers to options for the combobox
-        const fertilizerOptions = fertilizers.map((fertilizer) => {
-            const applicationMethodOptions = fertilizer.p_app_method_options
-                ?.map((opt) => {
-                    const meta = applicationMethods.options?.find(
-                        (x) => x.value === opt,
-                    )
-                    return meta ? { value: opt, label: meta.label } : undefined
-                })
-                .filter((option) => option !== undefined)
-            return {
+        const fertilizerOptions: FertilizerOption[] = fertilizers.map(
+            (fertilizer) => ({
                 value: fertilizer.p_id,
-                label: fertilizer.p_name_nl as string,
-                applicationMethodOptions: applicationMethodOptions,
+                label: fertilizer.p_name_nl ?? "",
+                applicationMethodOptions: (
+                    fertilizer.p_app_method_options ?? []
+                )
+                    .map((opt) =>
+                        availableApplicationMethodOptions.find(
+                            (x) => x.value === opt,
+                        ),
+                    )
+                    .filter(
+                        (
+                            option,
+                        ): option is {
+                            value: ApplicationMethods
+                            label: string
+                        } => option !== undefined,
+                    ),
                 p_app_amount_unit: fertilizer.p_app_amount_unit,
-            }
-        })
+            }),
+        )
 
         // Get the necessary date to render the modify fertilizer form
         let loaderExampleFertilizerApplication:
@@ -313,7 +336,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             selectedFields: selectedFields.map((field) => ({
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: Math.round(field.b_area * 10) / 10,
+                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
             })),
             fieldOptions: fieldOptions,
             fertilizerApplication: loaderFertilizerApplication,
@@ -572,7 +595,9 @@ export default function FarmFieldFertilizerAddIndex() {
                                                 loaderData.fertilizerOptions
                                             }
                                             action={`${location.pathname}${location.search}`}
-                                            navigation={navigation}
+                                            navigation={
+                                                navigation as unknown as Navigation
+                                            }
                                             b_id_farm={loaderData.b_id_farm}
                                             b_id_or_b_lu_catalogue={
                                                 searchParams.get("fieldIds") ||

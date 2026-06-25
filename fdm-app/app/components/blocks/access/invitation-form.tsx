@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { User, Users } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { Form, useNavigation, useSubmit } from "react-router-dom"
+import { Form, useNavigation, useSubmit } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import isEmail from "validator/lib/isEmail"
 import type { z } from "zod"
@@ -39,6 +39,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
     const navigation = useNavigation()
     const isSubmitting = navigation.state !== "idle"
     const wasSubmitting = useRef(false)
+    const formRef = useRef<HTMLFormElement>(null)
     const [selectedValue, setSelectedValue] = useState<string>("")
     const form = useRemixForm<z.infer<typeof AccessFormSchema>>({
         mode: "onTouched",
@@ -75,7 +76,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
 
     return (
         <RemixFormProvider {...form}>
-            <Form method="post" onSubmit={form.handleSubmit}>
+            <Form ref={formRef} method="post" onSubmit={form.handleSubmit}>
                 <fieldset
                     disabled={isSubmitting}
                     className="flex items-center justify-between space-x-4"
@@ -87,9 +88,9 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                         iconMap={iconMap}
                         selectedValue={selectedValue}
                         onSelectedValueChange={(value) => {
-                            setSelectedValue(value)
+                            setSelectedValue(value ?? "")
                             // Update form value when selected
-                            form.setValue("username", value, {
+                            form.setValue("username", value ?? "", {
                                 shouldTouch: true,
                             })
                         }}
@@ -98,12 +99,11 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                                 <button
                                     className="w-full cursor-pointer text-center hover:underline"
                                     onClick={() => {
-                                        form.setValue("username", value)
-                                        // Trigger form submission programmatically
-                                        // This will use the onSubmit handler defined on the Form
-                                        ;(form.handleSubmit as any)({
-                                            preventDefault: () => {},
+                                        form.setValue("username", value, {
+                                            shouldTouch: true,
+                                            shouldValidate: true,
                                         })
+                                        formRef.current?.requestSubmit()
                                     }}
                                     type="button"
                                 >

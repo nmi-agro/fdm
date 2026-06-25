@@ -12,10 +12,10 @@ import maplibregl, { type GeoJSONFeature } from "maplibre-gl"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
     Layer,
+    type LayerProps,
     Map as MapGL,
     type MapMouseEvent,
     type MapRef,
-    type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import type { MetaFunction } from "react-router"
@@ -36,7 +36,10 @@ import {
 } from "~/components/blocks/atlas/atlas-soil-analysis"
 import { FieldSourceClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import {
+    type AtlasViewState,
+    getViewState,
+} from "~/components/blocks/atlas/atlas-viewstate"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import {
     Select,
@@ -125,8 +128,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         ),
                         b_id: field.b_id,
                         b_name: field.b_name,
-                        b_area: Math.round(field.b_area * 10) / 10,
-                        b_lu_name: field.b_lu_name,
+                        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+                        b_lu_name:
+                            (field as { b_lu_name?: string }).b_lu_name ?? "",
                         b_id_source: field.b_id_source,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {
@@ -238,7 +242,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
 
     // ViewState logic
     const initialViewState = getViewState(fieldsData)
-    const [viewState, setViewState] = useState<ViewState>(() => {
+    const [viewState, setViewState] = useState<AtlasViewState>(() => {
         if (typeof window !== "undefined") {
             try {
                 const savedViewState = sessionStorage.getItem("mapViewState")
@@ -249,10 +253,15 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                 // ignore storage errors (e.g., private mode)
             }
         }
-        return initialViewState as ViewState
+        return initialViewState
     })
 
     const [showFields, setShowFields] = useState(true)
+    const layerLayout = { visibility: showFields ? "visible" : "none" } as const
+    const heatmapOutlineLayer = {
+        ...heatmapLayerOutlineStyle,
+        layout: layerLayout,
+    } as LayerProps
     type HoverInfo = {
         x: number
         y: number
@@ -278,8 +287,6 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
             }
         }
     }, [viewState])
-
-    const layerLayout = { visibility: showFields ? "visible" : "none" } as const
 
     const onMouseMove = useCallback((e: MapMouseEvent) => {
         const feature = e.features?.[0]
@@ -354,13 +361,11 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                         <Layer
                             id={heatmapLayerId}
                             {...heatmapLayerStyle}
-                            source={heatmapLayerId}
                             layout={layerLayout}
                         />
                         <Layer
                             id={heatmapOutlineLayerId}
-                            {...heatmapLayerOutlineStyle}
-                            layout={layerLayout}
+                            {...heatmapOutlineLayer}
                         />
                     </FieldSourceClickable>
                 )}

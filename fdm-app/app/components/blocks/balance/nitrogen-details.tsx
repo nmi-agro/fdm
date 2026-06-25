@@ -306,6 +306,9 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                                     return null
                                 }
 
+                                const harvestDate =
+                                    harvestDetails.b_lu_harvest_date
+
                                 return (
                                     <NavLink
                                         to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivationDetails.b_lu}/harvest/${harvest.id}`}
@@ -313,11 +316,11 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                                     >
                                         <li className="text-sm text-muted-foreground hover:underline">
                                             Oogst op{" "}
-                                            {format(
-                                                harvestDetails.b_lu_harvest_date,
-                                                "PP",
-                                                { locale: nl },
-                                            )}
+                                            {harvestDate
+                                                ? format(harvestDate, "PP", {
+                                                      locale: nl,
+                                                  })
+                                                : "onbekende datum"}
                                             : {harvest.value} kg N / ha
                                         </li>
                                     </NavLink>

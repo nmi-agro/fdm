@@ -1,17 +1,17 @@
-# Koolzaad / Raapzaad (oilseed rape) — nl_1922, nl_1923, nl_664, nl_7124
+# Koolzaad / Raapzaad (koolzaad) — nl_1922, nl_1923, nl_664, nl_7124
 
-**Prefer:**
-- Sulphur: the highest S-demanding arable crop in Dutch cropping systems. **Always** include S
-  supply to meet `advice.d_s_req`. Apply in spring at green-up (most effective timing). If
-  autumn application is also possible, split across autumn + spring.
-- Split N: 2–3 spring applications at green-up, stem extension, and pre-flowering. When the
-  crop is poorly developed and was sown late (before end of August), allocate roughly
-  15–20 % of the calculator-supplied N total (`advice.d_n_req`) to autumn; well-established
-  autumn crops do not need autumn N at all.
-- Boron: koolzaad is sensitive to B deficiency (hollow stems, poor pod set). Include B to
-  meet `advice.d_b_req`.
+**Voorkeur:**
+- Zwavel: het akkerbouwgewas met de hoogste S-behoefte in Nederlandse bouwplannen. Neem **altijd** S-aanvoer op
+  om aan `advice.d_s_req` te voldoen. Dien toe in het voorjaar bij hergroei (meest effectieve timing). Als
+  herfsttoediening ook mogelijk is, splits dan over herfst + voorjaar.
+- Gesplitste N-gift: 2–3 voorjaarstoedieningen bij hergroei, stengelstrekking en vóór de bloei. Wanneer het
+  gewas slecht ontwikkeld is en laat is gezaaid (vóór eind augustus), wijs dan ongeveer
+  15–20 % van de door de calculator geleverde totale N (`advice.d_n_req`) toe aan de herfst; goed gevestigde
+  herfstgewassen hebben helemaal geen herfst-N nodig.
+- Borium: koolzaad is gevoelig voor B-gebrek (holle stengels, slechte hauwzetting). Neem B op om
+  aan `advice.d_b_req` te voldoen.
 
-**Avoid:**
-- High single-dose spring N: risk of lodging and uneven ripening.
-- Slurry applied in autumn at full dose — large part of N is lost over winter; a moderate
-  autumn slurry application (for P/K/S) followed by mineral N in spring is more efficient.
+**Vermijden:**
+- Hoge eenmalige N-gift in het voorjaar: risico op legering en ongelijkmatige afrijping.
+- Drijfmest in de herfst in volledige dosering — een groot deel van de N gaat in de winter verloren; een matige
+  herfsttoediening van drijfmest (voor P/K/S), gevolgd door minerale N in het voorjaar, is efficiënter.

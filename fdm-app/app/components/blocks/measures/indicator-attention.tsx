@@ -31,12 +31,11 @@ type AttentionItem = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-    Gewasproductie:
+    Productie:
         "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400",
-    Koolstofvastlegging:
+    Klimaat:
         "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
-    Waterkwaliteit:
-        "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
+    Water: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
     Nutriëntenkringloop:
         "bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
 }

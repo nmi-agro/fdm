@@ -1,12 +1,6 @@
+import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import { multiPolygon, polygon } from "@turf/helpers"
-import type {
-    Feature,
-    FeatureCollection,
-    Geometry,
-    MultiPolygon,
-    Polygon,
-    Position,
-} from "geojson"
+import type { Feature, FeatureCollection, Geometry, Position } from "geojson"
 import proj4 from "proj4"
 import { combine, parseDbf, parseShp } from "shpjs"
 import type { RvoField } from "./types"
@@ -38,7 +32,7 @@ export async function parseShapefileGeometry(
     shp_file: FileInterface,
     shx_file: FileInterface | undefined,
     prj_file: Blob | string | undefined,
-): Promise<(Polygon | MultiPolygon)[]> {
+): Promise<FieldGeometry[]> {
     try {
         const [shpData, shxData, projection] = await Promise.all([
             shp_file instanceof Blob ? shp_file.arrayBuffer() : shp_file,
@@ -104,7 +98,7 @@ export async function parseShapefileAttributes(
  * @throws if any of the required properties are missing
  */
 export function convertShapefileFeatureIntoRvoField(
-    feature: Feature<Polygon, Partial<RvoProperties>>,
+    feature: Feature<FieldGeometry, Partial<RvoProperties>>,
 ): RvoField {
     const isDefined = (x: unknown) => x !== null && typeof x !== "undefined"
     const { properties, geometry } = feature
@@ -178,6 +172,31 @@ export function convertShapefileFeatureIntoRvoField(
 }
 
 /**
+ * Validates that none of the parsed RVO fields have a `BeginDate` year greater than the selected calendar year.
+ *
+ * A field first registered in a prior year (e.g. 2024) may legitimately appear in a 2025 shapefile,
+ * but a field with a `BeginDate` of 2026 cannot belong to a 2025 import.
+ *
+ * @param rvoFields Parsed list of RVO fields (output of `getRvoFieldsFromShapefile`)
+ * @param year The selected calendar year
+ * @returns `{ valid: true }` when all fields are within the selected year, or
+ *          `{ valid: false, maxYear: <highest offending year> }` when at least one field is from the future
+ */
+export function validateShapefileYear(
+    rvoFields: RvoField[],
+    year: number,
+): { valid: true } | { valid: false; maxYear: number } {
+    const offendingYears = rvoFields
+        .map((field) => new Date(field.properties.BeginDate).getUTCFullYear())
+        .filter((beginYear) => beginYear > year)
+
+    if (offendingYears.length > 0) {
+        return { valid: false, maxYear: Math.max(...offendingYears) }
+    }
+    return { valid: true }
+}
+
+/**
  * Parses the files found in a MijnPercelen Shapefile export and compiles a GeoJSON feature collection where each feature's properties represent the field properties registered by RVO.
  *
  * `mestData` is not available in Shapefiles and will not be available in the result, thus no buffer strip information
@@ -201,7 +220,7 @@ export async function getRvoFieldsFromShapefile(
     )
     const attributes = await parseShapefileAttributes(dbf_file)
     const shapefile: FeatureCollection<
-        Polygon,
+        FieldGeometry,
         Partial<RvoProperties>
     > = combine([geometries, attributes])
 

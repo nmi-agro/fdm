@@ -44,14 +44,14 @@ import type { FieldSummaryRow } from "./field-summary-columns"
 interface FieldSummaryTableProps {
     columns: ColumnDef<FieldSummaryRow>[]
     data: FieldSummaryRow[]
-    onAddMeasure: (selectedFieldIds: string[]) => void
+    onAddMeasure?: (selectedFieldIds: string[]) => void
     canModify?: boolean
 }
 
 export function FieldSummaryTable({
     columns,
     data,
-    onAddMeasure,
+    onAddMeasure = () => {},
     canModify = true,
 }: FieldSummaryTableProps) {
     const [sorting, setSorting] = useState<SortingState>([
@@ -82,7 +82,9 @@ export function FieldSummaryTable({
             rows = rows.filter((r) => {
                 const target = [
                     r.b_name ?? "",
-                    r.mainCultivation?.b_lu_name ?? "",
+                    ...(r.mainCultivations?.map(
+                        (cult) => cult.b_lu_name ?? "",
+                    ) ?? []),
                     ...r.measures.map((m) => m.m_name),
                 ]
                     .filter(Boolean)

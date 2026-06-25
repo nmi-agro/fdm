@@ -1,3 +1,4 @@
+import type { ImportReviewAction, UserChoiceMap } from "@nmi-agro/fdm-rvo/types"
 import {
     type ColumnDef,
     flexRender,
@@ -30,14 +31,14 @@ declare module "@tanstack/react-table" {
 interface MeasuresDataTableProps {
     columns: ColumnDef<MeasureTableRow>[]
     data: MeasureTableRow[]
-    onAddClick: () => void
+    onAddClick?: () => void
     canModify?: boolean
 }
 
 export function MeasuresDataTable({
     columns,
     data,
-    onAddClick,
+    onAddClick = () => {},
     canModify = true,
 }: MeasuresDataTableProps) {
     const [sorting, setSorting] = useState<SortingState>([])
@@ -52,7 +53,13 @@ export function MeasuresDataTable({
             columnVisibility: { actions: canModify },
         },
         meta: {
-            canModify: canModify,
+            canModify,
+            calendar: "",
+            userChoices: {} as UserChoiceMap,
+            onChoiceChange: (() => {}) as (
+                id: string,
+                action: ImportReviewAction,
+            ) => void,
         },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,

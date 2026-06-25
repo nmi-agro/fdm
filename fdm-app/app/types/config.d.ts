@@ -15,7 +15,17 @@ export interface ServerConfig {
         microsoft?:
             | {
                   clientId: string
-                  clientSecret: string
+                  tenantId?: string
+                  privateKey: string
+                  certificate: string
+                  certThumbprint?: string
+              }
+            | {
+                  clientId: string
+                  tenantId?: string
+                  privateKey: string
+                  certificate?: string
+                  certThumbprint: string
               }
             | undefined
     }
@@ -53,6 +63,8 @@ export interface ServerConfig {
         posthog?: {
             key: string
             host: string
+            projectId?: string
+            personalApiKey?: string
         } | null
     }
     mail?: {
@@ -60,7 +72,12 @@ export interface ServerConfig {
             key: string
             sender_address: string
             sender_name: string
+            helpdesk_sender_address?: string
+            helpdesk_sender_name?: string
         }
+    }
+    helpdesk: {
+        enableTicketTriage: boolean
     }
 }
 

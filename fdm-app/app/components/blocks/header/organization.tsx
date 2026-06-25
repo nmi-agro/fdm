@@ -49,6 +49,17 @@ export function HeaderOrganization({
                 `routes/organization.$slug.$calendar.balance.${type}._index`,
         ),
     )
+    const isMeasuresRoute = !!matches.find(
+        (match) => match.id === "routes/organization.$slug.$calendar.measures",
+    )
+    const isIndicatorsRoute = !!matches.find(
+        (match) =>
+            match.id === "routes/organization.$slug.$calendar.indicators",
+    )
+    const isIndicatorsAtlasRoute = !!matches.find(
+        (match) =>
+            match.id === "routes/organization.$slug.$calendar.atlas.indicators",
+    )
 
     return (
         <>
@@ -183,6 +194,23 @@ export function HeaderOrganization({
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </BreadcrumbItem>
+                        </>
+                    ) : isMeasuresRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Maatregelen</BreadcrumbItem>
+                        </>
+                    ) : isIndicatorsRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Indicatoren</BreadcrumbItem>
+                        </>
+                    ) : isIndicatorsAtlasRoute ? (
+                        <>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Atlas</BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>Indicatoren</BreadcrumbItem>
                         </>
                     ) : isFarmsRoute ? (
                         <>

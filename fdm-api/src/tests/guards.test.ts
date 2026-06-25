@@ -1,13 +1,18 @@
 /**
  * Tests for request guard middleware and GeoJSON coordinate validator (src/guards.ts):
+ * - createPathExistenceGuard: 404 for unregistered paths before auth
  * - requestGuard: content-type enforcement and body size limit
  * - assertGeoJsonCoordinates: coordinate count validation (unit)
  */
 
 import { Hono } from "hono"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createErrorHandler } from "../error"
-import { assertGeoJsonCoordinates, requestGuard } from "../guards"
+import {
+    assertGeoJsonCoordinates,
+    createPathExistenceGuard,
+    requestGuard,
+} from "../guards"
 import { createFdmApi } from "../index"
 
 // ---------------------------------------------------------------------------
@@ -25,6 +30,102 @@ function makeGuardApp() {
     app.all("*", (c) => c.text("ok", 200))
     return app
 }
+
+// ---------------------------------------------------------------------------
+// createPathExistenceGuard
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal mock auth / fdm for createFdmApi tests that need the full route tree.
+ */
+function makeFullApp() {
+    const mockAuth = {
+        api: {
+            verifyApiKey: vi.fn().mockResolvedValue({
+                valid: false,
+                error: { message: "Invalid API key." },
+                key: null,
+            }),
+        },
+    } as any
+    const mockFdm = {
+        insert: vi.fn().mockReturnThis(),
+        values: vi.fn().mockReturnThis(),
+        onConflictDoUpdate: vi.fn().mockReturnThis(),
+        returning: vi
+            .fn()
+            .mockResolvedValue([{ count: 1, lastRequest: Date.now() }]),
+    } as any
+    return createFdmApi(mockFdm, mockAuth, {
+        appName: "Test",
+        appUrl: "https://test.example.com",
+    })
+}
+
+describe("createPathExistenceGuard", () => {
+    let consolDebugSpy: ReturnType<typeof vi.spyOn>
+    let consoleWarnSpy: ReturnType<typeof vi.spyOn>
+
+    beforeEach(() => {
+        consolDebugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+        consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    })
+
+    it("returns 404 for a path that does not match any registered route", async () => {
+        const app = makeFullApp()
+        const res = await app.request("/credentials.json", { method: "GET" })
+        expect(res.status).toBe(404)
+    })
+
+    it("response body has type containing not-found for non-existent path", async () => {
+        const app = makeFullApp()
+        const res = await app.request("/wp-login.php", { method: "GET" })
+        const body = await res.json()
+        expect(body.type).toContain("not-found")
+    })
+
+    it("response Content-Type is application/problem+json for non-existent path", async () => {
+        const app = makeFullApp()
+        const res = await app.request("/.env", { method: "GET" })
+        expect(res.headers.get("content-type")).toContain(
+            "application/problem+json",
+        )
+    })
+
+    it("logs console.debug (not console.warn) for non-existent paths", async () => {
+        const app = makeFullApp()
+        await app.request("/credentials.json", { method: "GET" })
+        expect(consolDebugSpy).toHaveBeenCalledWith(
+            expect.stringContaining("path-not-found"),
+        )
+        expect(consoleWarnSpy).not.toHaveBeenCalled()
+    })
+
+    it("passes through to auth for a known API path (returns 401, not 404)", async () => {
+        const app = makeFullApp()
+        const res = await app.request("/farms", { method: "GET" })
+        expect(res.status).toBe(401)
+    })
+
+    it("passes through OPTIONS requests (CORS preflight not blocked)", async () => {
+        const app = makeFullApp()
+        const res = await app.request("/credentials.json", {
+            method: "OPTIONS",
+            headers: {
+                Origin: "https://example.com",
+                "Access-Control-Request-Method": "GET",
+            },
+        })
+        expect(res.status).not.toBe(404)
+    })
+
+    it("response body detail includes the requested path", async () => {
+        const app = makeFullApp()
+        const res = await app.request("/some/unknown/path", { method: "GET" })
+        const body = await res.json()
+        expect(body.detail).toContain("/some/unknown/path")
+    })
+})
 
 // ---------------------------------------------------------------------------
 // requestGuard: GET / DELETE pass through without Content-Type check

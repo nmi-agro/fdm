@@ -1,36 +1,45 @@
 import { getFields } from "@nmi-agro/fdm-core"
+import { Map } from "lucide-react"
 import { useEffect, useMemo, useState, useTransition } from "react"
 import {
     data,
     type LoaderFunctionArgs,
     type MetaFunction,
+    NavLink,
     useLoaderData,
     useParams,
 } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { AggregationCard } from "~/components/blocks/indicators/aggregation-card"
+import { AggregationPainpoints } from "~/components/blocks/indicators/aggregation-painpoints"
+import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { HeatmapTable } from "~/components/blocks/indicators/table"
+import { Button } from "~/components/ui/button"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
 import { Switch } from "~/components/ui/switch"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
+import {
+    type AggregationId,
+    computeAreaWeightedAggregation,
+} from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
-import { computeFarmAggregation } from "~/lib/bln3"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import {
-    ECOSYSTEEMDIENST_FULL_NAME,
-    ECOSYSTEEMDIENST_INDICATOR_IDS,
-    ECOSYSTEEMDIENSTEN,
-    type Ecosysteemdienst,
-} from "~/lib/indicators"
+import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
@@ -88,6 +97,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_id: f.b_id,
                 b_name: f.b_name,
                 b_bufferstrip: f.b_bufferstrip ?? false,
+                b_area: f.b_area ?? null,
             })),
             fieldScores,
         }
@@ -167,113 +177,168 @@ export default function IndicatorsFarmIndex() {
         [fieldScores, filteredFieldIds],
     )
 
-    // Compute per-ecosystem-service aggregations client-side
-    const ecosysteemdienst_scores = useMemo(
-        () =>
-            ECOSYSTEEMDIENSTEN.map((dienst) => ({
-                dienst,
-                score: computeFarmAggregation(
-                    filteredScores,
-                    ECOSYSTEEMDIENST_INDICATOR_IDS[dienst],
-                    "score",
-                ),
-                index: computeFarmAggregation(
-                    filteredScores,
-                    ECOSYSTEEMDIENST_INDICATOR_IDS[dienst],
-                    "index",
-                ),
-            })),
-        [filteredScores],
-    )
+    const scoreOf = (aggId: AggregationId) => {
+        return computeAreaWeightedAggregation(
+            filteredScores,
+            filteredFields,
+            aggId,
+        )
+    }
+
+    const indicatorScoreOf = (indId: string) => {
+        let totalScore = 0
+        let totalWeight = 0
+        for (const s of filteredScores) {
+            const scoreVal = s.score?.indicators.find(
+                (i) => i.indicator_id === indId,
+            )?.score
+            if (
+                scoreVal !== undefined &&
+                scoreVal !== null &&
+                !Number.isNaN(scoreVal)
+            ) {
+                const field = filteredFields.find((f) => f.b_id === s.b_id)
+                const weight = field?.b_area ?? 0
+                if (weight > 0) {
+                    totalScore += scoreVal * weight
+                    totalWeight += weight
+                }
+            }
+        }
+        return totalWeight > 0 ? totalScore / totalWeight : null
+    }
 
     return (
         <>
             <FarmTitle
                 title="Indicatoren"
                 description="BLN3 bodemkwaliteitsindicatoren voor alle percelen op dit bedrijf."
+                rightNode={
+                    <div className="flex items-center gap-2">
+                        <Bln3BetaBanner />
+                        <Bln3HelpDialog />
+                    </div>
+                }
             />
 
             <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
-                <Bln3BetaBanner />
-
-                {/* Aggregations section */}
+                {/* Aggregations hierarchy tree */}
                 <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                            Ecosysteemdiensten
-                        </h3>
-                        <Bln3HelpDialog />
-                    </div>
-                    <div className="flex gap-3">
-                        {ecosysteemdienst_scores.map(
-                            ({ dienst, score, index }) => (
-                                <AggregationCard
-                                    key={dienst}
-                                    label={dienst}
-                                    name={ECOSYSTEEMDIENST_FULL_NAME[dienst]}
-                                    score01={score}
-                                    index01={index}
-                                    showIndex={showIndex}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+                        <Card className="shadow-sm border-border">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base font-bold">
+                                        Bedrijfsgemiddelde score
+                                    </CardTitle>
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs gap-1.5"
+                                    >
+                                        <NavLink
+                                            to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}
+                                        >
+                                            <Map className="h-3.5 w-3.5" />
+                                            Kaartweergave
+                                        </NavLink>
+                                    </Button>
+                                </div>
+                                {/* <CardDescription className="text-xs">
+                                    Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 
+                                    <strong> gewogen gemiddelden op basis van perceeloppervlakte</strong>. Klik op de knoppen om verder in te zoomen op branches en onderliggende indicatoren.
+                                </CardDescription> */}
+                            </CardHeader>
+                            <CardContent>
+                                <AggregationTree
+                                    scoreOf={scoreOf}
+                                    indicatorScoreOf={indicatorScoreOf}
+                                    fields={filteredFields}
+                                    fieldScores={filteredScores}
+                                    basePath={basePath}
                                 />
-                            ),
-                        )}
+                            </CardContent>
+                        </Card>
+                        <div>
+                            <AggregationPainpoints
+                                fields={filteredFields}
+                                fieldScores={filteredScores}
+                                basePath={basePath}
+                            />
+                        </div>
                     </div>
                 </section>
 
                 <Separator />
 
                 {/* Indicator table section */}
-                <section
+                <Card
                     className={cn(
-                        "space-y-3 transition-opacity duration-150",
+                        "transition-opacity duration-150 bg-muted/10",
                         showPending && "opacity-50 pointer-events-none",
                     )}
                 >
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <CategoryFilter
-                            activeCategories={activeCategories}
-                            onToggle={handleToggleCategory}
-                            onClearAll={handleClearCategories}
-                        />
-                        <div className="flex items-center gap-4">
-                            <Input
-                                placeholder="Zoek perceel…"
-                                value={fieldSearch}
-                                onChange={(e) => setFieldSearch(e.target.value)}
-                                className="w-44 h-8 text-sm"
+                    <CardHeader className="pb-3 border-b">
+                        <CardTitle className="text-base font-bold">
+                            Detailweergave per perceel
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                            Alle {INDICATORS.length} indicatoren voor alle
+                            percelen, met filters en zoekmogelijkheden.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                            <CategoryFilter
+                                activeCategories={activeCategories}
+                                onToggle={handleToggleCategory}
+                                onClearAll={handleClearCategories}
                             />
-                            <div className="flex items-center gap-2">
-                                <Switch
-                                    id="bufferstrip-toggle"
-                                    checked={!hideBufferstrips}
-                                    onCheckedChange={handleToggleBufferstrips}
+                            <div className="flex items-center gap-4 flex-wrap">
+                                <Input
+                                    placeholder="Zoek perceel…"
+                                    value={fieldSearch}
+                                    onChange={(e) =>
+                                        setFieldSearch(e.target.value)
+                                    }
+                                    className="w-44 h-8 text-sm"
                                 />
-                                <Label
-                                    htmlFor="bufferstrip-toggle"
-                                    className="text-sm cursor-pointer select-none"
-                                >
-                                    {hideBufferstrips
-                                        ? "Zonder bufferstroken"
-                                        : "Met bufferstroken"}
-                                </Label>
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        id="bufferstrip-toggle"
+                                        checked={!hideBufferstrips}
+                                        onCheckedChange={
+                                            handleToggleBufferstrips
+                                        }
+                                    />
+                                    <Label
+                                        htmlFor="bufferstrip-toggle"
+                                        className="text-sm cursor-pointer select-none"
+                                    >
+                                        {hideBufferstrips
+                                            ? "Zonder bufferstroken"
+                                            : "Met bufferstroken"}
+                                    </Label>
+                                </div>
+                                <MeasuresToggle
+                                    withMeasures={withMeasures}
+                                    onToggle={handleToggleMeasures}
+                                />
                             </div>
-                            <MeasuresToggle
-                                withMeasures={withMeasures}
-                                onToggle={handleToggleMeasures}
-                            />
                         </div>
-                    </div>
-                    <HeatmapTable
-                        fields={filteredFields.map((field) => ({
-                            b_id: field.b_id,
-                            b_name: field.b_name,
-                        }))}
-                        fieldScores={filteredScores}
-                        activeCategories={activeCategories}
-                        showIndex={showIndex}
-                        basePath={basePath}
-                    />
-                </section>
+                        <HeatmapTable
+                            fields={filteredFields.map((field) => ({
+                                b_id: field.b_id,
+                                b_name: field.b_name,
+                            }))}
+                            fieldScores={filteredScores}
+                            activeCategories={activeCategories}
+                            showIndex={showIndex}
+                            basePath={basePath}
+                        />
+                    </CardContent>
+                </Card>
             </div>
         </>
     )

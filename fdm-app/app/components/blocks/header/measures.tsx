@@ -26,7 +26,7 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
     const fieldMatch = matches.find(
         (m) => m.id === "routes/farm.$b_id_farm.$calendar.measures.$b_id",
     )
-    const fieldData = fieldMatch?.data as
+    const fieldData = fieldMatch?.loaderData as
         | {
               field?: { b_name?: string | null }
               fieldList?: Array<{ b_id: string; b_name: string | null }>

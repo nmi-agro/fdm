@@ -1,32 +1,32 @@
-# Wintergerst / Zomergerst (winter barley / spring barley) — nl_235, nl_236
+# Wintergerst / Zomergerst (wintergerst / zomergerst) — nl_235, nl_236
 
-In Dutch practice, **brouwgerst is almost exclusively zomergerst** (nl_236); wintergerst
-(nl_235) is grown for voer. The brouwgerst rules below therefore apply primarily to
-zomergerst contracted with a maltster.
+In de Nederlandse praktijk is **brouwgerst vrijwel altijd zomergerst** (nl_236); wintergerst
+(nl_235) wordt geteeld voor voer. De onderstaande regels voor brouwgerst gelden daarom vooral voor
+zomergerst die onder contract staat bij een mouterij.
 
-**Prefer:**
-- Same split N approach as wheat but with **lower total N rates** (per `advice.d_n_req`).
-- Sulphur: similar sensitivity to wheat; include S at stem extension if `advice.d_s_req > 0`.
+**Voorkeur:**
+- Dezelfde aanpak met gesplitste N-giften als bij tarwe, maar met **lagere totale N-giften** (volgens `advice.d_n_req`).
+- Zwavel: vergelijkbare gevoeligheid als tarwe; neem S op bij stengelstrekking als `advice.d_s_req > 0`.
 
 ## Zomergerst, brouwkwaliteit
 
-For **brouwgerst** (malting barley), the eiwitgehalte must typically fall within
-9.5–11.5 % (the exact band is set by the maltster's contract — Heineken, Holland Malt,
-Soufflet, etc.). Excess N raises protein above the contract band; too low N gives lege
-korrels and kiemproblemen.
+Voor **brouwgerst** (moutgerst) moet het eiwitgehalte doorgaans binnen
+9.5–11.5 % vallen (de exacte bandbreedte staat in het contract van de mouterij — Heineken, Holland Malt,
+Soufflet, etc.). Te veel N verhoogt het eiwit boven de contractband; te weinig N geeft lege
+korrels en kiemproblemen.
 
-**Avoid:**
-- Exceeding `advice.d_n_req` on brouwgerst — contracts often have N-ceiling clauses with
-  financial penalties. Flag an intent question if the field-specific advice itself looks
-  high enough to push protein out of the contract band.
-- Chloride sources for K when soil K is already adequate.
+**Vermijden:**
+- Overschrijding van `advice.d_n_req` bij brouwgerst — contracten bevatten vaak N-plafonds met
+  financiële kortingen. Stel een intentievraag als het perceelsspecifieke advies zelf
+  hoog genoeg lijkt om het eiwit buiten de contractband te brengen.
+- Chloridebronnen voor K wanneer de bodem-K al voldoende is.
 
-## Wintergerst (and zomergerst voer)
+## Wintergerst (en zomergerst voer)
 
-- No protein ceiling — standard N advice applies per `advice.d_n_req`.
-- Brouwgerst-grade wintergerst contracts exist but are uncommon; treat the field as voer
-  unless the farmer states otherwise.
+- Geen eiwitplafond — het standaard N-advies geldt volgens `advice.d_n_req`.
+- Contracten voor wintergerst met brouwgerstkwaliteit bestaan, maar zijn ongebruikelijk; behandel het perceel als voer
+  tenzij de teler anders aangeeft.
 
-**Extra attention:**
-- Manganese: same risk profile as wintertarwe on calcareous and high-pH soils. Treat as a
-  risk flag and consult `advice.d_mn_req`.
+**Extra aandacht:**
+- Mangaan: hetzelfde risicoprofiel als wintertarwe op kalkrijke bodems en bodems met hoge pH. Behandel dit als een
+  risicosignaal en raadpleeg `advice.d_mn_req`.

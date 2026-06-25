@@ -4,6 +4,7 @@ import {
     getFertilizerParametersDescription,
     getFertilizers,
 } from "@nmi-agro/fdm-core"
+import type { ComponentProps } from "react"
 import {
     type ActionFunctionArgs,
     data,
@@ -108,7 +109,13 @@ export default function FarmFertilizerPage() {
             />
             <div className="p-4 md:p-8 pt-0 md:pt-0">
                 <div className="mx-auto max-w-6xl w-full">
-                    <FarmNewFertilizerBlock loaderData={loaderData} />
+                    <FarmNewFertilizerBlock
+                        loaderData={
+                            loaderData as ComponentProps<
+                                typeof FarmNewFertilizerBlock
+                            >["loaderData"]
+                        }
+                    />
                 </div>
             </div>
         </div>
@@ -145,7 +152,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
             fdm,
             session.principal_id,
             b_id_farm,
-            buildCataloguePayload(formValues, rvoToType),
+            buildCataloguePayload(formValues, rvoToType) as Parameters<
+                typeof addFertilizerToCatalogue
+            >[3],
         )
 
         const p_new_id = await addFertilizer(

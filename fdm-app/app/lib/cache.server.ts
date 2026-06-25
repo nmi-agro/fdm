@@ -137,7 +137,7 @@ export function addSecurityHeaders(headers: Headers): Headers {
         worker-src 'self' blob:;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.posthog.com;
         font-src 'self' https://fonts.gstatic.com https://*.posthog.com data:;
-        img-src 'self' data: blob: https://service.pdok.nl https://*.maptiler.com https://*.openstreetmap.org https://*.public.blob.vercel-storage.com https://images.unsplash.com https://lh3.googleusercontent.com https://graph.microsoft.com https://*.posthog.com;
+        img-src 'self' data: blob: https://service.pdok.nl https://*.maptiler.com https://*.openstreetmap.org https://*.public.blob.vercel-storage.com https://images.unsplash.com https://lh3.googleusercontent.com https://graph.microsoft.com https://storage.googleapis.com/minas2/ https://storage.googleapis.com/minas2-dev/ https://*.posthog.com;
         connect-src 'self' https://service.pdok.nl https://server.arcgisonline.com https://api.maptiler.com https://nominatim.openstreetmap.org https://sentry.io https://*.sentry.io https://*.ingest.de.sentry.io https://*.nmi-agro.nl https://storage.googleapis.com/fdm-public-data/ https://*.posthog.com ws://localhost:* http://localhost:*;
         frame-src 'self';
         media-src 'self' https://*.posthog.com;

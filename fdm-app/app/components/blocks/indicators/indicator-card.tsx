@@ -14,6 +14,7 @@ import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
 import {
+    type Ecosysteemdienst,
     type FieldMeasure,
     getScoreColor,
     getScoreTier,
@@ -34,13 +35,12 @@ type IndicatorCardProps = {
     showIndex: boolean
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-    Gewasproductie:
+const CATEGORY_COLORS: Record<Ecosysteemdienst, string> = {
+    Productie:
         "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400",
-    Koolstofvastlegging:
+    Klimaat:
         "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
-    Waterkwaliteit:
-        "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
+    Water: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
     Nutriëntenkringloop:
         "bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
 }
@@ -153,8 +153,7 @@ export function IndicatorCard({
                             <span
                                 className={cn(
                                     "text-[10px] font-medium rounded-full px-2 py-0.5",
-                                    CATEGORY_COLORS[info.ecosysteemdienst] ??
-                                        "bg-muted text-muted-foreground",
+                                    CATEGORY_COLORS[info.ecosysteemdienst],
                                 )}
                             >
                                 {info.ecosysteemdienst}

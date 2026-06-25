@@ -1,9 +1,5 @@
 import type { GebruiksnormResult, NormFilling } from "@nmi-agro/fdm-calculator"
-import {
-    createFunctionsForFertilizerApplicationFilling,
-    createFunctionsForNorms,
-    NormNotApplicableError,
-} from "@nmi-agro/fdm-calculator"
+import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import {
     getFarm,
     getFarms,
@@ -50,6 +46,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "~/components/ui/tooltip"
+import { getNorms } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -173,57 +170,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             let fieldNormData: FieldNormData = {
                 b_id: field.b_id,
                 b_name: field.b_name,
-                b_area: field.b_area,
+                b_area: field.b_area ?? 0,
             }
             let errorMessage: string | null = null
 
             try {
-                const functionsForNorms = createFunctionsForNorms(
-                    "NL",
-                    calendar,
-                )
-                const functionsForFilling =
-                    createFunctionsForFertilizerApplicationFilling(
-                        "NL",
-                        calendar,
-                    )
-
-                const input = await functionsForNorms.collectInputForNorms(
+                const normsResult = await getNorms({
                     fdm,
-                    session.principal_id,
-                    field.b_id,
-                )
-
-                const [normManure, normPhosphate, normNitrogen] =
-                    await Promise.all([
-                        functionsForNorms.calculateNormForManure(fdm, input),
-                        functionsForNorms.calculateNormForPhosphate(fdm, input),
-                        functionsForNorms.calculateNormForNitrogen(fdm, input),
-                    ])
-
-                const fillingInput =
-                    await functionsForFilling.collectInputForFertilizerApplicationFilling(
-                        fdm,
-                        session.principal_id,
-                        field.b_id,
-                        normPhosphate.normValue,
-                    )
-
-                const [fillingManure, fillingPhosphate, fillingNitrogen] =
-                    await Promise.all([
-                        functionsForFilling.calculateFertilizerApplicationFillingForManure(
-                            fdm,
-                            fillingInput,
-                        ),
-                        functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(
-                            fdm,
-                            fillingInput,
-                        ),
-                        functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(
-                            fdm,
-                            fillingInput,
-                        ),
-                    ])
+                    principal_id: session.principal_id,
+                    b_id: field.b_id,
+                    calendar,
+                })
 
                 const fertilizerApplications = await getFertilizerApplications(
                     fdm,
@@ -234,16 +191,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
                 fieldNormData = {
                     ...fieldNormData,
-                    norms: {
-                        manure: normManure,
-                        phosphate: normPhosphate,
-                        nitrogen: normNitrogen,
-                    },
-                    normsFilling: {
-                        manure: fillingManure,
-                        phosphate: fillingPhosphate,
-                        nitrogen: fillingNitrogen,
-                    },
+                    norms: normsResult.value,
+                    normsFilling: normsResult.filling,
                     fertilizerApplications: fertilizerApplications,
                 }
             } catch (error) {
@@ -280,9 +229,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FieldNormsBlock() {
     const loaderData = useLoaderData<typeof loader>()
 
+    const action = {
+        to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/norms`,
+        label: "Terug naar gebruiksruimte",
+        disabled: false,
+    }
+
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

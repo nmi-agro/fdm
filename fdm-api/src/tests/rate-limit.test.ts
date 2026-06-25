@@ -312,16 +312,14 @@ describe("rate-limit: all rate-limited paths call the DB exactly once", () => {
         ["GET /farms", "/farms"],
         ["GET /farms/:id", "/farms/farm-1"],
         ["GET /fields/:id", "/fields/field-1"],
-        ["GET /cultivations", "/cultivations"],
         ["GET /cultivations/:id", "/cultivations/cult-1"],
-        ["GET /harvests", "/harvests"],
         ["GET /harvests/:id", "/harvests/harvest-1"],
         ["GET /fertilizers/:id", "/fertilizers/fert-1"],
         ["GET /fertilizer-applications/:id", "/fertilizer-applications/app-1"],
-        ["GET /measures", "/measures"],
-        ["GET /organic-certifications", "/organic-certifications"],
-        ["GET /derogations", "/derogations"],
-        ["GET /soil-analyses", "/soil-analyses"],
+        ["GET /measures/:id", "/measures/measure-1"],
+        ["GET /organic-certifications/:id", "/organic-certifications/org-1"],
+        ["GET /derogations/:id", "/farms/farm-1/derogations"],
+        ["GET /soil-analyses/:id", "/soil-analyses/soil-1"],
     ]
 
     for (const [name, path] of paths) {

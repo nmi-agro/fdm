@@ -194,7 +194,8 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
 function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
     const params = useParams()
     const fetcher = useFetcher()
-    const returnUrl = (table.options.meta as { returnUrl: string }).returnUrl
+    const returnUrl = (table.options.meta as unknown as { returnUrl: string })
+        .returnUrl
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
     const modifiableApps = row.original.applications.filter(

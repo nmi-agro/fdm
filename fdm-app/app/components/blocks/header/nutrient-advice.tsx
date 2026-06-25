@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import {
     BreadcrumbItem,
@@ -22,8 +22,6 @@ export function HeaderNutrientAdvice({
     b_id: string | undefined
     fieldOptions: HeaderFieldOption[]
 }) {
-    const location = useLocation()
-    const _currentPath = String(location.pathname)
     const calendar = useCalendarStore((state) => state.calendar)
 
     return (

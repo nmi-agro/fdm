@@ -95,7 +95,14 @@ export function NewFieldsForm({
                                                 Oppervlak (ha)
                                             </FormLabel>
                                             <FormControl>
-                                                <Input {...field} type="text" />
+                                                <Input
+                                                    {...field}
+                                                    value={
+                                                        (field.value as string) ??
+                                                        ""
+                                                    }
+                                                    type="text"
+                                                />
                                             </FormControl>
                                             <FormDescription />
                                             <FormMessage />

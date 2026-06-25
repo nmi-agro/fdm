@@ -1,5 +1,11 @@
 import { Info } from "lucide-react"
-import { Alert, AlertDescription } from "~/components/ui/alert"
+import { Badge } from "~/components/ui/badge"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "~/components/ui/tooltip"
 
 /**
  * Informational banner shown on all BLN3 indicator pages.
@@ -10,13 +16,24 @@ import { Alert, AlertDescription } from "~/components/ui/alert"
  */
 export function Bln3BetaBanner() {
     return (
-        <Alert className="flex border-muted bg-muted/50 text-muted-foreground items-center">
-            <Info className="h-4" />
-            <AlertDescription className="ml-2 pt-1 items-center">
-                De BLN3-scores en de lijst van maatregelen zijn nog in
-                ontwikkeling en kunnen worden gewijzigd. De getoonde scores zijn
-                niet definitief en de lijst van maatregelen is niet volledig.
-            </AlertDescription>
-        </Alert>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Badge
+                        variant="secondary"
+                        className="cursor-help font-medium gap-1 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20"
+                    >
+                        <Info className="h-3 w-3" />
+                        In ontwikkeling
+                    </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[300px] text-sm p-3">
+                    De BLN3-scores en de lijst van maatregelen zijn nog in
+                    ontwikkeling en kunnen worden gewijzigd. De getoonde scores
+                    zijn niet definitief en de lijst van maatregelen is niet
+                    volledig.
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     )
 }

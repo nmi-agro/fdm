@@ -1,0 +1,64 @@
+{
+    "name": "@nmi-agro/fdm-helpdesk",
+    "private": false,
+    "version": "0.1.0",
+    "description": "Help desk back-end for FDM",
+    "homepage": "https://svenvw.github.io/fdm/",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/nmi-agro/fdm.git"
+    },
+    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
+    "license": "MIT",
+    "type": "module",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "coverage": "dotenvx run -- vitest run --coverage",
+        "db:generate": "npx drizzle-kit generate",
+        "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
+        "dotenvx": "dotenvx",
+        "build": "dotenvx run -- tsdown",
+        "check-types": "tsc --noEmit",
+        "preinstall": "npx only-allow pnpm",
+        "preview": "vite preview",
+        "test": "dotenvx run -- vitest run",
+        "test-coverage": "dotenvx run -- vitest run --coverage",
+        "watch": "dotenvx run -- vitest"
+    },
+    "dependencies": {
+        "drizzle-orm": "catalog:",
+        "nanoid": "^5.1.15",
+        "postgres": "^3.4.9",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@dotenvx/dotenvx": "catalog:",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "drizzle-kit": "catalog:",
+        "tsdown": "catalog:",
+        "typedoc": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "engines": {
+        "node": ">=24.0.0"
+    },
+    "packageManager": "pnpm@10.33.2",
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    }
+}

@@ -22,15 +22,17 @@ vi.mock("../../tools/fertilizer-planner", () => ({
 describe("Gerrit Agent", () => {
     it("should have the correct name and description", () => {
         expect(GERRIT_NAME).toBe("Gerrit")
-        expect(GERRIT_DESCRIPTION).toContain("Dutch Agronomist")
+        expect(GERRIT_DESCRIPTION).toContain("agronoom-expert")
     })
 
     it("should have instruction containing critical constraints", () => {
-        expect(GERRIT_INSTRUCTION).toContain("LEGAL NORMS")
-        expect(GERRIT_INSTRUCTION).toContain("BUFFER STRIPS")
-        expect(GERRIT_INSTRUCTION).toContain("ROTATION LEVEL")
-        expect(GERRIT_INSTRUCTION).toContain("SECURITY & CONTEXT BOUNDARIES")
-        expect(GERRIT_INSTRUCTION).toContain("guide-compliance pass")
+        expect(GERRIT_INSTRUCTION).toContain("WETTELIJKE NORMEN")
+        expect(GERRIT_INSTRUCTION).toContain("BUFFERSTROKEN")
+        expect(GERRIT_INSTRUCTION).toContain("BOUWPLANNIVEAU")
+        expect(GERRIT_INSTRUCTION).toContain("BEVEILIGING & CONTEXTGRENZEN")
+        expect(GERRIT_INSTRUCTION).toContain(
+            "handleiding-conformiteitscontrole",
+        )
         expect(GERRIT_INSTRUCTION).toContain("getCropFertilizerGuide")
     })
 
@@ -48,7 +50,9 @@ describe("Gerrit Agent", () => {
     })
 
     it("should export a tool limit warning message", () => {
-        expect(TOOL_LIMIT_WARNING).toContain("final fertilizer plan NOW")
+        expect(TOOL_LIMIT_WARNING).toContain(
+            "definitieve bemestingsplan opleveren",
+        )
     })
 })
 

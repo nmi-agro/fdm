@@ -1,8 +1,16 @@
 import {
     flexRender,
     getCoreRowModel,
+    type RowData,
     useReactTable,
 } from "@tanstack/react-table"
+
+declare module "@tanstack/react-table" {
+    interface TableMeta<TData extends RowData> {
+        returnUrl?: string
+    }
+}
+
 import { useMemo } from "react"
 import { cn } from "@/app/lib/utils"
 import {
@@ -224,7 +232,7 @@ export function DataTable({
         columns: columns,
         data: records,
         getCoreRowModel: getCoreRowModel(),
-        meta: { returnUrl },
+        meta: { returnUrl } as unknown as any,
         state: {
             columnVisibility: columnVisibility,
         },

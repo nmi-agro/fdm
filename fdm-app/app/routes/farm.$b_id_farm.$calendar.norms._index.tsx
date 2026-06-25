@@ -7,8 +7,8 @@ import type {
     NormFilling,
 } from "@nmi-agro/fdm-calculator"
 import {
-    createFunctionsForFertilizerApplicationFilling,
-    createFunctionsForNorms,
+    aggregateNormFillingsToFarmLevel,
+    aggregateNormsToFarmLevel,
     NormNotApplicableError,
 } from "@nmi-agro/fdm-calculator"
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
@@ -34,6 +34,7 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { getNorms } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -140,86 +141,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             const fieldErrorMessages: string[] = []
             const fieldWarningMessages: string[] = []
             try {
-                // Calculate norms per field
-                const functionsForNorms = createFunctionsForNorms(
-                    "NL",
-                    calendar,
-                )
-                const functionsForFilling =
-                    createFunctionsForFertilizerApplicationFilling(
-                        "NL",
-                        calendar,
-                    )
-
                 const fieldNormPromises = fields.map(async (field) => {
                     try {
-                        // Collect the input for norms
-                        const input =
-                            await functionsForNorms.collectInputForNorms(
-                                fdm,
-                                session.principal_id,
-                                field.b_id,
-                            )
-
-                        // Calculate the norms first
-                        const [normManure, normPhosphate, normNitrogen] =
-                            await Promise.all([
-                                functionsForNorms.calculateNormForManure(
-                                    fdm,
-                                    input,
-                                ),
-                                functionsForNorms.calculateNormForPhosphate(
-                                    fdm,
-                                    input,
-                                ),
-                                functionsForNorms.calculateNormForNitrogen(
-                                    fdm,
-                                    input,
-                                ),
-                            ])
-
-                        // Collect the input for fillings, using the calculated phosphate norm
-                        const fillingInput =
-                            await functionsForFilling.collectInputForFertilizerApplicationFilling(
-                                fdm,
-                                session.principal_id,
-                                field.b_id,
-                                normPhosphate.normValue, // Pass the calculated fosfaatgebruiksnorm
-                            )
-
-                        // Calculate the fillings
-                        const [
-                            fillingManure,
-                            fillingPhosphate,
-                            fillingNitrogen,
-                        ] = await Promise.all([
-                            functionsForFilling.calculateFertilizerApplicationFillingForManure(
-                                fdm,
-                                fillingInput,
-                            ),
-                            functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(
-                                fdm,
-                                fillingInput,
-                            ),
-                            functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(
-                                fdm,
-                                fillingInput,
-                            ),
-                        ])
+                        const normsResult = await getNorms({
+                            fdm,
+                            principal_id: session.principal_id,
+                            b_id: field.b_id,
+                            calendar,
+                        })
 
                         return {
                             b_id: field.b_id,
-                            b_area: field.b_area,
-                            norms: {
-                                manure: normManure,
-                                phosphate: normPhosphate,
-                                nitrogen: normNitrogen,
-                            },
-                            normsFilling: {
-                                manure: fillingManure,
-                                phosphate: fillingPhosphate,
-                                nitrogen: fillingNitrogen,
-                            },
+                            b_area: field.b_area ?? 0,
+                            norms: normsResult.value,
+                            normsFilling: normsResult.filling,
                         }
                     } catch (error) {
                         const fieldName =
@@ -232,7 +167,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                             fieldWarningMessages.push(`${fieldName}: ${msg}`)
                             return {
                                 b_id: field.b_id,
-                                b_area: field.b_area,
+                                b_area: field.b_area ?? 0,
                                 errorMessage: msg,
                                 isWarning: true,
                             }
@@ -241,7 +176,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         fieldErrorMessages.push(`${fieldName}: ${msg}`)
                         return {
                             b_id: field.b_id,
-                            b_area: field.b_area,
+                            b_area: field.b_area ?? 0,
                             errorMessage: msg,
                         }
                     }
@@ -277,20 +212,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 })
 
                 // Aggregate the norms to farm level
-                const validFieldNorms = (fieldNorms || []).filter(
-                    (field) => field.norms !== undefined,
-                ) as InputAggregateNormsToFarmLevel
-                farmNorms =
-                    functionsForNorms.aggregateNormsToFarmLevel(validFieldNorms)
+                const validFieldNorms: InputAggregateNormsToFarmLevel = (
+                    fieldNorms || []
+                )
+                    .filter(
+                        (
+                            field,
+                        ): field is FieldNorm & {
+                            norms: NonNullable<FieldNorm["norms"]>
+                        } => field.norms !== undefined,
+                    )
+                    .map((field) => ({
+                        b_id: field.b_id,
+                        b_area: field.b_area ?? 0,
+                        norms: field.norms,
+                    }))
+                farmNorms = aggregateNormsToFarmLevel(validFieldNorms)
 
                 // Aggregate the fillings to farm level
-                const validFieldFillings = (fieldNorms || []).filter(
-                    (field) => field.normsFilling !== undefined,
-                ) as InputAggregateNormFillingsToFarmLevel
+                const validFieldFillings: InputAggregateNormFillingsToFarmLevel =
+                    (fieldNorms || [])
+                        .filter(
+                            (
+                                field,
+                            ): field is FieldNorm & {
+                                normsFilling: NonNullable<
+                                    FieldNorm["normsFilling"]
+                                >
+                            } => field.normsFilling !== undefined,
+                        )
+                        .map((field) => ({
+                            b_id: field.b_id,
+                            b_area: field.b_area ?? 0,
+                            normsFilling: field.normsFilling,
+                        }))
                 farmFillings =
-                    functionsForFilling.aggregateNormFillingsToFarmLevel(
-                        validFieldFillings,
-                    )
+                    aggregateNormFillingsToFarmLevel(validFieldFillings)
             } catch (error) {
                 errorMessage = String(error).replace("Error: ", "")
             }
@@ -324,9 +281,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmNormsBlock() {
     const loaderData = useLoaderData<typeof loader>()
 
+    const action = {
+        to: `/farm/${loaderData.b_id_farm}`,
+        label: "Terug naar bedrijf",
+        disabled: false,
+    }
+
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

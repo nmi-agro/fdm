@@ -137,6 +137,7 @@ type DynaChartPoint = {
     b_nw_max: number
     b_nw_recommended: number | null
     b_n_uptake: number | null
+    b_no3_leach: number | null
     b_nw_difference?: number
     _events?: DynaChartEvent[]
 }
@@ -260,7 +261,7 @@ export function DynaChart({
         ...d,
         b_nw_difference:
             d.b_n_uptake !== null && d.b_n_uptake !== undefined
-                ? d.b_nw - d.b_n_uptake - d.b_no3_leach
+                ? d.b_nw - d.b_n_uptake - (d.b_no3_leach ?? 0)
                 : null,
     }))
 

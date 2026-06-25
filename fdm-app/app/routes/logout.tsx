@@ -24,7 +24,7 @@ export async function action({ request }: ActionFunctionArgs) {
         await auth.api.revokeSession({
             headers: request.headers,
             body: {
-                token: session?.session?.token || undefined,
+                token: session?.session?.token ?? "",
             },
         })
         return redirect("/signin")

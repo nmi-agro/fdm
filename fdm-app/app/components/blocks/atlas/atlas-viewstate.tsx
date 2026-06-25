@@ -1,13 +1,24 @@
 import geojsonExtent from "@mapbox/geojson-extent"
 import type { FeatureCollection } from "geojson"
+import type { FitBoundsOptions, LngLatBoundsLike } from "maplibre-gl"
+import type { ViewState } from "react-map-gl/maplibre"
 
-function getBounds(fields: FeatureCollection | null | undefined) {
-    const initialBounds = [3.1, 50.7, 7.2, 53.6]
+export type AtlasViewState = Partial<ViewState> & {
+    bounds?: LngLatBoundsLike
+    fitBoundsOptions?: FitBoundsOptions
+}
 
-    let bounds = initialBounds
+function getBounds(
+    fields: FeatureCollection | null | undefined,
+): LngLatBoundsLike {
+    const initialBounds: [number, number, number, number] = [
+        3.1, 50.7, 7.2, 53.6,
+    ]
+
+    let bounds: LngLatBoundsLike = initialBounds
     if (fields && fields.features.length > 0) {
         try {
-            bounds = geojsonExtent(fields)
+            bounds = geojsonExtent(fields) as [number, number, number, number]
         } catch (error) {
             console.error("Failed to calculate bounds:", error)
         }
@@ -16,27 +27,27 @@ function getBounds(fields: FeatureCollection | null | undefined) {
     return bounds
 }
 
-export function getViewState(fields: FeatureCollection | null | undefined) {
+export function getViewState(
+    fields: FeatureCollection | null | undefined,
+): AtlasViewState {
     if (fields) {
         const bounds = getBounds(fields)
 
-        const viewState = {
-            bounds: bounds,
+        return {
+            bounds,
             fitBoundsOptions: { padding: 100 },
             pitch: 0,
             bearing: 0,
-            padding: { top: 0, bottom: 0, left: 0, right: 0 }, // Default padding
+            padding: { top: 0, bottom: 0, left: 0, right: 0 },
         }
-        return viewState
     }
 
-    const viewState = {
-        longitude: 4.9, // Default longitude for initial view
-        latitude: 52.2, // Default latitude for initial view
-        zoom: 6, // Default zoom level
-        pitch: 0, // Default pitch
-        bearing: 0, // Default bearing
-        padding: { top: 0, bottom: 0, left: 0, right: 0 }, // Default padding
+    return {
+        longitude: 4.9,
+        latitude: 52.2,
+        zoom: 6,
+        pitch: 0,
+        bearing: 0,
+        padding: { top: 0, bottom: 0, left: 0, right: 0 },
     }
-    return viewState
 }

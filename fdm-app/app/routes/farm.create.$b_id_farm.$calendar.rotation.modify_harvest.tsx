@@ -18,11 +18,13 @@ export const meta: MetaFunction = () => {
 }
 
 export async function loader(props: UpstreamRoute.LoaderArgs) {
-    return originalLoader(props)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return originalLoader(props as any)
 }
 
 export default ModifyHarvest
 
 export async function action(props: UpstreamRoute.ActionArgs) {
-    return originalAction(props)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return originalAction(props as any)
 }

@@ -3,6 +3,7 @@ import {
     addSoilAnalysis,
     determineIfFieldIsBuffer,
     type Field,
+    type FieldGeometry,
     getCultivationsForFarm,
     getCultivationsFromCatalogue,
     getFarm,
@@ -18,7 +19,6 @@ import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import area from "@turf/area"
 import { lineString } from "@turf/helpers"
 import { length } from "@turf/length"
-import type { MultiPolygon, Polygon } from "geojson"
 import type { MetaFunction } from "react-router"
 import { data } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
@@ -37,6 +37,7 @@ import {
     getRvoFieldsFromShapefile,
     processRvoImport,
     RvoImportReviewStatus,
+    validateShapefileYear,
 } from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
@@ -53,6 +54,8 @@ export const meta: MetaFunction = () => {
         },
     ]
 }
+
+type ReviewItem = RvoImportReviewItem<Field>
 
 interface MijnPercelenUploadServerContext {
     request: Request
@@ -98,6 +101,7 @@ export async function genericAction(
     | {
           success?: boolean
           message?: string
+          suggestedYear?: number
           RvoImportReviewData?: RvoImportReviewItem<Field>[]
       }
 > {
@@ -191,8 +195,19 @@ export async function genericAction(
                 prj_file,
             )
 
+            // Validate that no field has a BeginDate year greater than the selected calendar year
+            const yearValidation = validateShapefileYear(rvoFields, year)
+            if (!yearValidation.valid) {
+                return {
+                    success: false,
+                    message: `Het shapefile bevat percelen met een ingangsdatum in ${yearValidation.maxYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar heeft gekozen.`,
+                    suggestedYear: yearValidation.maxYear,
+                    RvoImportReviewData: undefined,
+                }
+            }
+
             /** Calculates the perimeter of the given polygon geometry in meters */
-            function perimeter(geometry: Polygon | MultiPolygon) {
+            function perimeter(geometry: FieldGeometry) {
                 if (geometry.type === "Polygon") {
                     return length(lineString(geometry.coordinates[0]), {
                         units: "meters",
@@ -261,7 +276,7 @@ export async function genericAction(
             )
             const userChoicesJson = formData.get("userChoices")
 
-            let rvoImportReviewData: RvoImportReviewItem<any>[] = []
+            let rvoImportReviewData: ReviewItem[] = []
             let userChoices: UserChoiceMap = {}
 
             if (!RvoImportReviewDataJson || !userChoicesJson) {
@@ -284,7 +299,7 @@ export async function genericAction(
                 throw new Error("Invalid user choices format")
             }
 
-            const addedFields: { b_id: string; geometry: any }[] = []
+            const addedFields: { b_id: string; geometry: FieldGeometry }[] = []
             await fdm.transaction(async (tx) => {
                 await processRvoImport(
                     tx,

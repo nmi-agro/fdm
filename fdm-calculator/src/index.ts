@@ -52,6 +52,28 @@ export type {
     OrganicMatterSupplyNumeric,
     OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
+export type { CropPlanFractions, CultivationForCropPlan } from "./bcs/crop-plan"
+export { deriveCropPlanFractions } from "./bcs/crop-plan"
+export type {
+    BcsIndicatorKey,
+    BcsLabContext,
+    BcsRawSoilData,
+    BcsResult,
+    BcsScores,
+    OmCropCategory,
+    OmSoiltypeN,
+} from "./bcs/index"
+export {
+    BCS_INDICATORS,
+    calculateBcs,
+    deriveBcsLabContext,
+    deriveOmBcs,
+    derivePhBcs,
+    getBcsScoreColor,
+    getBcsScoreLabel,
+} from "./bcs/index"
+export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
+export { calcPhDelta } from "./bcs/ph-delta"
 export {
     collectInputForBln3Score,
     getBln3Score,

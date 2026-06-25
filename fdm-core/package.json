@@ -1,7 +1,7 @@
 {
     "name": "@nmi-agro/fdm-core",
     "private": false,
-    "version": "0.33.0",
+    "version": "0.34.0",
     "description": "Interface for the Farm Data Model",
     "license": "MIT",
     "homepage": "https://svenvw.github.io/fdm/",
@@ -52,7 +52,7 @@
         "@vitest/coverage-v8": "catalog:",
         "drizzle-kit": "catalog:",
         "fs-extra": "^11.3.5",
-        "globals": "^17.6.0",
+        "globals": "^17.7.0",
         "tsdown": "catalog:",
         "typedoc": "catalog:",
         "typedoc-plugin-missing-exports": "catalog:",
@@ -60,20 +60,21 @@
         "vitest": "catalog:"
     },
     "dependencies": {
-        "@nmi-agro/fdm-data": "workspace:*",
         "@better-auth/api-key": "catalog:",
+        "@nmi-agro/fdm-data": "workspace:*",
         "@types/geojson": "^7946.0.16",
         "better-auth": "catalog:",
         "decimal.js": "^10.6.0",
         "drizzle-orm": "catalog:",
-        "nanoid": "^5.1.11",
+        "jose": "catalog:",
+        "nanoid": "^5.1.15",
         "postgres": "^3.4.9",
         "safe-stable-stringify": "^2.5.0",
         "unique-username-generator": "^1.5.1",
         "validator": "^13.15.35",
         "zod": "^4.4.3"
     },
-    "packageManager": "pnpm@11.0.9",
+    "packageManager": "pnpm@11.7.0",
     "engines": {
         "node": ">=24.0.0"
     },

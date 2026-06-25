@@ -1,16 +1,36 @@
-import { jsonb, pgSchema, text, timestamp } from "drizzle-orm/pg-core"
+import {
+    boolean,
+    index,
+    jsonb,
+    pgSchema,
+    text,
+    timestamp,
+} from "drizzle-orm/pg-core"
 
 export const fdmCalculatorSchema = pgSchema("fdm-calculator")
 export type fdmSchemaCalculatorTypeSelect = typeof fdmCalculatorSchema.table
 
-export const calculationCache = fdmCalculatorSchema.table("calculation_cache", {
-    calculation_hash: text().notNull().primaryKey(),
-    calculation_function: text().notNull(),
-    calculator_version: text(),
-    input: jsonb().notNull(),
-    result: jsonb().notNull(),
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-})
+export const calculationCache = fdmCalculatorSchema.table(
+    "calculation_cache",
+    {
+        calculation_hash: text().notNull().primaryKey(),
+        calculation_function: text().notNull(),
+        calculator_version: text(),
+        input: jsonb().notNull(),
+        result: jsonb().notNull(),
+        entity_type: text(), // e.g., 'farm', 'field'
+        entity_id: text(), // The ID of the farm or field
+        is_processing: boolean().notNull().default(false), // Lock for background workers
+        created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        index("calculation_cache_entity_idx").on(
+            table.entity_type,
+            table.entity_id,
+        ),
+        index("calculation_cache_function_idx").on(table.calculation_function),
+    ],
+)
 
 export type CalculationCacheTypeSelect = typeof calculationCache.$inferSelect
 export type CalculationCacheTypeInsert = typeof calculationCache.$inferInsert

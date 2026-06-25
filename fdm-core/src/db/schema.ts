@@ -5,6 +5,7 @@ import {
     check,
     index,
     integer,
+    jsonb,
     pgSchema,
     primaryKey,
     text,
@@ -91,8 +92,8 @@ export const fields = fdmSchema.table(
     {
         b_id: text().primaryKey(),
         b_name: text().notNull(),
-        b_geometry: geometry("b_geometry", {
-            type: "Polygon",
+        b_geometry: geometry<"Polygon" | "MultiPolygon">("b_geometry", {
+            type: ["Polygon", "MultiPolygon"],
         }), // PGLite does not support PostGIS yet; I expect to be supported in Q4 2024: https://github.com/electric-sql/pglite/issues/11
         b_id_source: text(),
         b_bufferstrip: boolean().notNull().default(false),
@@ -744,6 +745,15 @@ export const soilAnalysis = fdmSchema.table("soil_analysis", {
     a_zn_cc: numericCasted(),
     b_gwl_class: gwlClassEnum(),
     b_soiltype_agr: soiltypeEnum(),
+    a_ss_bcs: numericCasted(),
+    a_sc_bcs: numericCasted(),
+    a_rd_bcs: numericCasted(),
+    a_ew_bcs: numericCasted(),
+    a_cc_bcs: numericCasted(),
+    a_gs_bcs: numericCasted(),
+    a_p_bcs: numericCasted(),
+    a_c_bcs: numericCasted(),
+    a_rt_bcs: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
 })
@@ -1007,3 +1017,97 @@ export type measureCatalogueEnablingTypeSelect =
     typeof measureCatalogueEnabling.$inferSelect
 export type measureCatalogueEnablingTypeInsert =
     typeof measureCatalogueEnabling.$inferInsert
+
+// ─── Soil Image ───────────────────────────────────────────────────────────────
+
+export const visualImageTypeOptions = [
+    { value: "profile", label: "Bodemprofiel" },
+    { value: "surface", label: "Bodemoppervlak" },
+    { value: "roots", label: "Beworteling" },
+    { value: "earthworms", label: "Regenwormen" },
+    { value: "structure", label: "Bodemstructuur" },
+    { value: "other", label: "Overig" },
+] as const
+export const visualImageTypeEnum = fdmSchema.enum(
+    "a_image_type",
+    visualImageTypeOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const annotationTypeOptions = [
+    { value: "pin", label: "Pin" },
+    { value: "circle", label: "Cirkel" },
+    { value: "arrow", label: "Pijl" },
+    { value: "freehand", label: "Vrije vorm" },
+] as const
+export const annotationTypeEnum = fdmSchema.enum(
+    "a_image_annotation_type",
+    annotationTypeOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const bcsIndicatorOptions = [
+    { value: "a_ss_bcs", label: "Bodemstructuur" },
+    { value: "a_sc_bcs", label: "Verdichting ondergrond" },
+    { value: "a_rd_bcs", label: "Beworteling" },
+    { value: "a_ew_bcs", label: "Regenwormen" },
+    { value: "a_cc_bcs", label: "Gewasbedekking" },
+    { value: "a_gs_bcs", label: "Gekleurde vlekken" },
+    { value: "a_p_bcs", label: "Plasvorming" },
+    { value: "a_c_bcs", label: "Scheuren" },
+    { value: "a_rt_bcs", label: "Spoorvorming/vertrapping" },
+] as const
+export const bcsIndicatorEnum = fdmSchema.enum(
+    "a_image_annotation_bcs",
+    bcsIndicatorOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+// Define soil_image table — stores GCS references for soil photos linked to a sampling event.
+export const soilImage = fdmSchema.table(
+    "soil_image",
+    {
+        a_id_image: text().primaryKey(),
+        b_id_sampling: text()
+            .notNull()
+            .references(() => soilSampling.b_id_sampling, {
+                onDelete: "cascade",
+            }),
+        a_image_path: text().notNull(),
+        a_image_type: visualImageTypeEnum(),
+        a_image_order: integer().notNull().default(0),
+        a_image_caption: text(),
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        updated: timestamp({ withTimezone: true }),
+    },
+    (table) => [index("soil_image_b_id_sampling_idx").on(table.b_id_sampling)],
+)
+
+export type soilImageTypeSelect = typeof soilImage.$inferSelect
+export type soilImageTypeInsert = typeof soilImage.$inferInsert
+
+// Define soil_image_annotating table — action table for annotating soil images.
+// data_json holds percentage-based coordinates for device-responsive rendering.
+export const soilImageAnnotating = fdmSchema.table(
+    "soil_image_annotating",
+    {
+        a_id_annotation: text().primaryKey(),
+        a_id_image: text()
+            .notNull()
+            .references(() => soilImage.a_id_image, {
+                onDelete: "cascade",
+            }),
+        a_image_annotation_type: annotationTypeEnum().notNull(),
+        a_image_annotation_coordinates: jsonb().notNull(),
+        a_image_annotation: text(),
+        a_image_annotation_bcs: bcsIndicatorEnum(),
+        a_image_annotation_order: integer().notNull().default(0),
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+        updated: timestamp({ withTimezone: true }),
+    },
+    (table) => [
+        index("soil_image_annotating_a_id_image_idx").on(table.a_id_image),
+    ],
+)
+
+export type soilImageAnnotatingTypeSelect =
+    typeof soilImageAnnotating.$inferSelect
+export type soilImageAnnotatingTypeInsert =
+    typeof soilImageAnnotating.$inferInsert

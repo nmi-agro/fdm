@@ -115,6 +115,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         b_bufferstrip: f.b_bufferstrip,
                         b_lu_catalogue: mainLu?.b_lu_catalogue || null,
                         b_lu_name: mainLu?.b_lu_name || null,
+                        b_lu_croprotation: mainLu?.b_lu_croprotation || null,
                         b_lu_start: mainLu?.b_lu_start
                             ? new Date(mainLu.b_lu_start)
                                   .toISOString()
@@ -135,12 +136,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "getFarmFields",
             description:
-                "Get the list of all fields belonging to the farm for the current year, including their main cultivation details and key soil properties (agricultural soil type, texture, groundwater class, organic matter).",
+                "Haal de lijst op van alle percelen die bij het bedrijf horen voor het huidige jaar, inclusief de hoofdteeltgegevens en belangrijkste bodemeigenschappen (landbouwgrondsoort, textuur, grondwaterklasse, organische stof).",
             schema: z.object({
-                b_id_farm: z.string().describe("The ID of the farm"),
+                b_id_farm: z.string().describe("Het ID van het bedrijf"),
                 calendar: z
                     .string()
-                    .describe('The calendar year (e.g. "2025")'),
+                    .describe('Het kalenderjaar (bijv. "2025")'),
             }),
         },
     )
@@ -205,6 +206,20 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             }
                         }
 
+                        // Skip NMI for fields with no known agricultural crop type.
+                        // This covers unknown BRP codes (null croprotation) and
+                        // nature/landscape fields which the NMI API does not support.
+                        if (
+                            !mainLu.b_lu_croprotation ||
+                            mainLu.b_lu_croprotation === "nature"
+                        ) {
+                            return {
+                                b_id,
+                                advice: null,
+                                skipped: `Crop type not suitable for NMI nutrient advice: ${mainLu.b_lu_croprotation ?? "unknown"}`,
+                            }
+                        }
+
                         const advice = await getNutrientAdvice(fdm, {
                             b_lu_catalogue: mainLu.b_lu_catalogue,
                             b_centroid: field.b_centroid ?? [0, 0],
@@ -228,11 +243,13 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "getFarmNutrientAdvice",
             description:
-                "Get the full nutrient advice (N, P, K, Ca, Mg, S, micro-nutrients) for specific fields based on soil samples and crop rotation.",
+                "Haal het volledige bemestingsadvies op (N, P, K, Ca, Mg, S, micronutriënten) voor specifieke percelen op basis van bodemmonsters en teeltrotatie.",
             schema: z.object({
                 b_ids: z
                     .array(z.string())
-                    .describe("List of field IDs (b_id) to fetch advice for"),
+                    .describe(
+                        "Lijst van perceel-ID's (b_id) om advies voor op te halen",
+                    ),
             }),
         },
     )
@@ -301,12 +318,14 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "getFarmLegalNorms",
             description:
-                "Get the three legal limits (Animal Manure Nitrogen, Total Workable Nitrogen, and Phosphate) for fields.",
+                "Haal de drie wettelijke grenzen op (dierlijke mest stikstof, werkzame stikstof totaal en fosfaat) voor percelen.",
             schema: z.object({
-                b_id_farm: z.string().describe("The ID of the farm"),
+                b_id_farm: z.string().describe("Het ID van het bedrijf"),
                 b_ids: z
                     .array(z.string())
-                    .describe("List of field IDs (b_id) to check"),
+                    .describe(
+                        "Lijst van perceel-ID's (b_id) om te controleren",
+                    ),
             }),
         },
     )
@@ -329,6 +348,15 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 args.b_id_farm,
             )
             let results = [...farmFertilizers]
+
+            // Restrict to the user-selected fertilizers if provided (non-empty list only).
+            const allowedIds = config?.configurable
+                ?.allowedFertilizerCatalogueIds as string[] | undefined
+            if (allowedIds && allowedIds.length > 0) {
+                results = results.filter((f) =>
+                    allowedIds.includes(f.p_id_catalogue),
+                )
+            }
 
             if (args.p_type) {
                 results = results.filter((f) => f.p_type === args.p_type)
@@ -373,19 +401,21 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "searchFertilizers",
             description:
-                "Search for fertilizer products available in the farm inventory (including custom ones) by name or type.",
+                "Zoek naar meststofproducten beschikbaar in de bedrijfsvoorraad (inclusief eigen producten) op naam of type.",
             schema: z.object({
                 b_id_farm: z
                     .string()
-                    .describe("The ID of the farm to search inventory for"),
+                    .describe(
+                        "Het ID van het bedrijf om de voorraad voor te doorzoeken",
+                    ),
                 query: z
                     .string()
                     .optional()
-                    .describe('Search term (e.g. "pig manure", "KAS")'),
+                    .describe('Zoekterm (bijv. "varkensdrijfmest", "KAS")'),
                 p_type: z
                     .enum(["manure", "mineral", "compost"])
                     .optional()
-                    .describe("Filter by fertilizer type"),
+                    .describe("Filter op meststoftype"),
             }),
         },
     )
@@ -623,28 +653,44 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             nmiApiKey &&
                             isValidDutchCropCatalogue(fieldData.b_lu_catalogue)
                         ) {
-                            try {
-                                const currentSoilData =
-                                    await getCurrentSoilData(
-                                        fdm,
-                                        principalId,
-                                        fieldData.b_id,
-                                    )
-                                advice = await getNutrientAdvice(fdm, {
-                                    b_lu_catalogue:
-                                        fieldData.b_lu_catalogue || "",
-                                    b_centroid: fieldInfo.b_centroid ?? [0, 0],
-                                    currentSoilData,
-                                    nmiApiKey,
-                                    b_bufferstrip: fieldInfo.b_bufferstrip,
-                                })
-                            } catch (err) {
-                                // advice remains null if the fetch fails
-                                console.debug(
-                                    "Failed to fetch nutrient advice for field",
-                                    fieldData.b_id,
-                                    err,
-                                )
+                            // Fetch the cultivation's crop type to guard against
+                            // unknown/non-agricultural BRP codes that NMI doesn't support.
+                            const simCultivations = await getCultivations(
+                                fdm,
+                                principalId,
+                                fieldData.b_id,
+                                timeframe,
+                            )
+                            const simMainLu = getMainCultivation(
+                                simCultivations,
+                                calendar,
+                            )
+                            const croprotation = simMainLu?.b_lu_croprotation
+
+                            if (!croprotation || croprotation === "nature") {
+                                adviceSkipped = `Crop type not suitable for NMI nutrient advice: ${croprotation ?? "unknown"}`
+                            } else {
+                                try {
+                                    const currentSoilData =
+                                        await getCurrentSoilData(
+                                            fdm,
+                                            principalId,
+                                            fieldData.b_id,
+                                        )
+                                    advice = await getNutrientAdvice(fdm, {
+                                        b_lu_catalogue:
+                                            simMainLu?.b_lu_catalogue ?? "",
+                                        b_centroid: fieldInfo.b_centroid ?? [
+                                            0, 0,
+                                        ],
+                                        currentSoilData,
+                                        nmiApiKey,
+                                        b_bufferstrip: fieldInfo.b_bufferstrip,
+                                    })
+                                } catch (_err) {
+                                    // advice remains null if the fetch fails; not an error
+                                    adviceSkipped = `Could not fetch NMI nutrient advice for field ${fieldData.b_id}`
+                                }
                             }
                         } else if (
                             nmiApiKey &&
@@ -805,7 +851,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             if (failedNormFields.length > 0) {
                 agronomicWarnings.push(
-                    `Norm computation failed for ${failedNormFields.length} field(s): [${failedNormFields.join(", ")}]. Farm-level norms may be slightly understated.`,
+                    `Normberekening mislukt voor ${failedNormFields.length} perceel(en): [${failedNormFields.join(", ")}]. Normen op bedrijfsniveau kunnen iets te laag zijn weergegeven.`,
                 )
             }
 
@@ -814,7 +860,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     .filter((r: any) => r.isBufferStripViolation === true)
                     .map((r: any) => r.b_id)
                 complianceIssues.push(
-                    `Buffer strip violation: Fields [${bufferFields.join(", ")}] are buffer strips and cannot receive fertilizers.`,
+                    `Bufferstrook-overtreding: Percelen [${bufferFields.join(", ")}] zijn bufferstroken en mogen geen meststoffen ontvangen.`,
                 )
             }
 
@@ -823,7 +869,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     farmFillingsKg.manure - farmNormsKg.manure,
                 )
                 complianceIssues.push(
-                    `Legal norm violation (Manure N): Farm exceeds the limit by ${excess} kg N. Total applied: ${farmFillingsKg.manure} kg, Limit: ${farmNormsKg.manure} kg.`,
+                    `Wettelijke normoverschrijding (Mest-N): Bedrijf overschrijdt de grens met ${excess} kg N. Totaal toegediend: ${farmFillingsKg.manure} kg, Grens: ${farmNormsKg.manure} kg.`,
                 )
             }
 
@@ -832,7 +878,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     farmFillingsKg.nitrogen - farmNormsKg.nitrogen,
                 )
                 complianceIssues.push(
-                    `Legal norm violation (Workable N): Farm exceeds the limit by ${excess} kg N. Total applied: ${farmFillingsKg.nitrogen} kg, Limit: ${farmNormsKg.nitrogen} kg.`,
+                    `Wettelijke normoverschrijding (Werkzame N): Bedrijf overschrijdt de grens met ${excess} kg N. Totaal toegediend: ${farmFillingsKg.nitrogen} kg, Grens: ${farmNormsKg.nitrogen} kg.`,
                 )
             }
 
@@ -841,7 +887,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     farmFillingsKg.phosphate - farmNormsKg.phosphate,
                 )
                 complianceIssues.push(
-                    `Legal norm violation (Phosphate): Farm exceeds the limit by ${excess} kg P2O5. Total applied: ${farmFillingsKg.phosphate} kg, Limit: ${farmNormsKg.phosphate} kg.`,
+                    `Wettelijke normoverschrijding (Fosfaat): Bedrijf overschrijdt de grens met ${excess} kg P2O5. Totaal toegediend: ${farmFillingsKg.phosphate} kg, Grens: ${farmNormsKg.phosphate} kg.`,
                 )
             }
 
@@ -854,7 +900,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         )
                         if (fert?.p_type === "mineral") {
                             complianceIssues.push(
-                                `Strategy violation (Organic Farming): Plan includes mineral fertilizer (${fert.p_id_catalogue} on field ${field.b_id}), which is not allowed.`,
+                                `Strategie-overtreding (Biologische teelt): Plan bevat een minerale meststof (${fert.p_id_catalogue} op perceel ${field.b_id}), wat niet is toegestaan.`,
                             )
                         }
                     }
@@ -874,7 +920,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                             fert.p_p_rt > 0
                         ) {
                             complianceIssues.push(
-                                `Strategy violation (Derogation): Plan includes a mineral fertilizer with phosphate (${fert.p_id_catalogue} on field ${field.b_id}), which is not allowed under derogation rules.`,
+                                `Strategie-overtreding (Derogatie): Plan bevat een minerale meststof met fosfaat (${fert.p_id_catalogue} op perceel ${field.b_id}), wat onder derogatieregels niet is toegestaan.`,
                             )
                         }
                     }
@@ -891,7 +937,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         farmNBalance.balance - farmNBalance.target,
                     )
                     agronomicWarnings.push(
-                        `Strategy warning (Nitrogen Target): The farm-level nitrogen balance (${Math.round(farmNBalance.balance)} kg N/ha) exceeds the target (${Math.round(farmNBalance.target)} kg N/ha) by ${excess} kg N/ha.`,
+                        `Strategiewaarschuwing (Stikstofdoel): De stikstofbalans op bedrijfsniveau (${Math.round(farmNBalance.balance)} kg N/ha) overschrijdt het doel (${Math.round(farmNBalance.target)} kg N/ha) met ${excess} kg N/ha.`,
                     )
                 }
             }
@@ -961,7 +1007,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
                         if (mismatch) {
                             agronomicWarnings.push(
-                                `Strategy warning (Rotation Level): Field ${currentField.b_id} (Crop: ${currentField.b_lu_name}) has different applications than other fields in the same group. For the "Work on Rotation Level" strategy, all fields with the same crop must receive identical applications.`,
+                                `Strategiewaarschuwing (Bouwplanniveau): Perceel ${currentField.b_id} (Gewas: ${currentField.b_lu_name}) heeft andere giften dan andere percelen in dezelfde groep. Voor de strategie "Werken op bouwplanniveau" moeten alle percelen met hetzelfde gewas identieke giften ontvangen.`,
                             )
                         }
                     }
@@ -993,7 +1039,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                                 (f: SimulationField) => f.b_id === result.b_id,
                             )
                             agronomicWarnings.push(
-                                `Strategy warning (Reduce Ammonia Emissions): Field ${result.b_id}${fieldData ? ` (${fieldData.b_lu_name})` : ""} has a high weighted-average NH3 emission factor (${Math.round(avgEmissionFactor * 100)}%, threshold: ${NH3_EMISSION_FACTOR_THRESHOLD * 100}%). Consider switching to low-emission application methods (e.g., injection or incorporation) instead of broadcasting or spraying.`,
+                                `Strategiewaarschuwing (Ammoniakreductie): Perceel ${result.b_id}${fieldData ? ` (${fieldData.b_lu_name})` : ""} heeft een hoge gewogen gemiddelde NH3-emissiefactor (${Math.round(avgEmissionFactor * 100)}%, drempel: ${NH3_EMISSION_FACTOR_THRESHOLD * 100}%). Overweeg emissiearme toedieningsmethoden (bijv. injectie of inwerken) in plaats van breedwerpig strooien of spuiten.`,
                             )
                         }
                     }
@@ -1015,11 +1061,11 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         phosphateHeadroom <= farmNormsKg.phosphate * 0.05
                     ) {
                         agronomicWarnings.push(
-                            `Strategy warning (Fill Manure Space): The farm has unused manure space (${remaining} kg N), but workable N and/or phosphate space is limiting. First check whether high-workability mineral N can be partly replaced by an agronomically suitable manure with a lower p_n_wc, so animal-manure space is filled without exceeding workable N or phosphate. If substitution is not feasible because of crop-specific guidance, product availability, or phosphate, explain that constraint instead of simply adding manure.`,
+                            `Strategiewaarschuwing (Mestruimte vullen): Het bedrijf heeft ongebruikte mestruimte (${remaining} kg N), maar de ruimte voor werkzame N en/of fosfaat is beperkend. Controleer eerst of minerale N met hoge werkzaamheid deels vervangen kan worden door een agronomisch geschikte mest met een lagere p_n_wc, zodat de dierlijke-mestruimte gevuld wordt zonder werkzame N of fosfaat te overschrijden. Als vervanging niet haalbaar is vanwege gewasspecifieke richtlijnen, productbeschikbaarheid of fosfaat, leg die beperking dan uit in plaats van simpelweg mest toe te voegen.`,
                         )
                     } else {
                         agronomicWarnings.push(
-                            `Strategy warning (Fill Manure Space): The farm has unused manure space (${remaining} kg N available). Consider adding more manure to maximize usage.`,
+                            `Strategiewaarschuwing (Mestruimte vullen): Het bedrijf heeft ongebruikte mestruimte (${remaining} kg N beschikbaar). Overweeg meer mest toe te voegen om het gebruik te maximaliseren.`,
                         )
                     }
                 }
@@ -1028,7 +1074,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
             for (const r of validFieldResults) {
                 if (r.fieldMetrics?.omBalance && r.fieldMetrics.omBalance < 0) {
                     agronomicWarnings.push(
-                        `Strategy warning (Organic Matter): Field ${r.b_id} has a negative organic matter balance (${Math.round(r.fieldMetrics.omBalance)} kg EOM/ha). Consider applying compost or other fertilizer with a high EOM content.`,
+                        `Strategiewaarschuwing (Organische stof): Perceel ${r.b_id} heeft een negatieve organische stofbalans (${Math.round(r.fieldMetrics.omBalance)} kg EOS/ha). Overweeg compost of een andere meststof met een hoog EOS-gehalte toe te passen.`,
                     )
                 }
             }
@@ -1049,9 +1095,9 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "simulateFarmPlan",
             description:
-                "Simulates a proposed fertilizer plan to check compliance against all 3 legal norms, organic matter balance, and nitrogen balance.",
+                "Simuleert een voorgesteld bemestingsplan om de conformiteit met alle 3 wettelijke normen, de organische stofbalans en de stikstofbalans te controleren.",
             schema: z.object({
-                b_id_farm: z.string().describe("The ID of the farm"),
+                b_id_farm: z.string().describe("Het ID van het bedrijf"),
                 strategies: z
                     .object({
                         isOrganic: z.boolean().optional(),
@@ -1062,57 +1108,57 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                         isDerogation: z.boolean().optional(),
                     })
                     .optional()
-                    .describe("User strategies to enforce in warnings"),
+                    .describe(
+                        "Door de gebruiker in te stellen strategieën voor waarschuwingen",
+                    ),
                 fields: z
                     .array(
                         z.object({
-                            b_id: z.string().describe("The field ID"),
+                            b_id: z.string().describe("Het perceel-ID"),
                             b_lu_catalogue: z
                                 .string()
                                 .describe(
-                                    "The crop catalogue ID (e.g., nl_265) for this field",
+                                    "Het gewascatalogus-ID (bijv. nl_265) voor dit perceel",
                                 ),
                             b_lu_name: z
                                 .string()
                                 .describe(
-                                    "The name of the crop (e.g., Wintertarwe)",
+                                    "De naam van het gewas (bijv. Wintertarwe)",
                                 ),
                             b_lu_start: z
                                 .string()
                                 .describe(
-                                    "The sowing or start date of the crop (YYYY-MM-DD)",
+                                    "De zaai- of startdatum van het gewas (YYYY-MM-DD)",
                                 ),
                             applications: z.array(
                                 z.object({
                                     p_id_catalogue: z.string(),
                                     p_app_amount: z
                                         .number()
-                                        .describe(
-                                            "Application amount in kg/ha",
-                                        ),
+                                        .describe("Gifthoeveelheid in kg/ha"),
                                     p_app_amount_unit: z
                                         .string()
                                         .optional()
                                         .describe(
-                                            "The unit of the application amount (e.g., m3/ha, kg/ha, l/ha, t/ha)",
+                                            "De eenheid van de gifthoeveelheid (bijv. m3/ha, kg/ha, l/ha, t/ha)",
                                         ),
                                     p_app_amount_display: z
                                         .number()
                                         .optional()
                                         .describe(
-                                            "The numeric application amount (unit is carried separately in p_app_amount_unit)",
+                                            "De numerieke gifthoeveelheid (de eenheid staat apart in p_app_amount_unit)",
                                         ),
                                     p_app_date: z
                                         .string()
                                         .describe(
-                                            "Application date in YYYY-MM-DD format",
+                                            "Toedieningsdatum in formaat YYYY-MM-DD",
                                         ),
                                     p_app_method: z.string().optional(),
                                 }),
                             ),
                         }),
                     )
-                    .describe("Proposed applications per field"),
+                    .describe("Voorgestelde giften per perceel"),
             }),
         },
     )
@@ -1148,7 +1194,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                 cropIndex = JSON.parse(readFileSync(indexPath, "utf-8"))
             } catch {
                 return {
-                    guide: "No crop-specific fertilizer guidance available (index not found).",
+                    guide: "Geen gewasspecifieke bemestingsrichtlijnen beschikbaar (index niet gevonden).",
                     matchedCrops: [],
                 }
             }
@@ -1162,7 +1208,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
 
             if (filesToLoad.size === 0) {
                 return {
-                    guide: "No crop-specific fertilizer guidance found for the provided crop codes.",
+                    guide: "Geen gewasspecifieke bemestingsrichtlijnen gevonden voor de opgegeven gewascodes.",
                     matchedCrops: [],
                 }
             }
@@ -1183,12 +1229,12 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         {
             name: "getCropFertilizerGuide",
             description:
-                "Load crop-specific fertilizer preferences and restrictions for the crops on this farm. Call this once after getFarmFields, passing all unique b_lu_catalogue values found on the farm. Returns agronomic rules (preferred products, split timings, nutrients to avoid) per crop group.",
+                "Laad de gewasspecifieke bemestingsvoorkeuren en -beperkingen voor de gewassen op dit bedrijf. Roep dit één keer aan na getFarmFields en geef alle unieke b_lu_catalogue-waarden op die op het bedrijf voorkomen. Geeft agronomische regels (gewenste producten, gedeelde timing, te vermijden nutriënten) per gewasgroep terug.",
             schema: z.object({
                 b_lu_catalogues: z
                     .array(z.string())
                     .describe(
-                        "List of unique crop catalogue codes present on the farm (e.g. ['nl_2014', 'nl_259', 'nl_265'])",
+                        "Lijst van unieke gewascataloguscodes die op het bedrijf voorkomen (bijv. ['nl_2014', 'nl_259', 'nl_265'])",
                     ),
             }),
         },
@@ -1202,6 +1248,16 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
         simulateFarmPlanTool,
         getCropFertilizerGuideTool,
     ]
+}
+
+/**
+ * Returns the planner tool subset safe for the clarify agent:
+ * all tools except simulateFarmPlan (which is plan-execution, not investigation).
+ */
+export function createClarifyAgentTools(fdm: FdmType) {
+    return createFertilizerPlannerTools(fdm).filter(
+        (t) => (t as any).name !== "simulateFarmPlan",
+    )
 }
 
 interface SearchArgs {

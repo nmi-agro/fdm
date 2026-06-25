@@ -2,8 +2,9 @@ import type { Row } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import React from "react"
-import { Link } from "react-router-dom"
+import { Link } from "react-router"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
+import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
 import type { FieldRow, RotationExtended } from "./columns"
 
@@ -148,7 +149,7 @@ export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({
                                 key={record.id}
                                 record={record}
                             >
-                                {`${idx + 1}e ${row.original.b_lu_croprotation === "grass" ? "snede" : "oogst"}:`}
+                                {`${idx + 1}e ${getHarvestTerm(row.original.b_lu_croprotation)}:`}
                                 <br />
                                 {formatDateRange(record.dates)}
                             </HarvestDatesDisplayButton>

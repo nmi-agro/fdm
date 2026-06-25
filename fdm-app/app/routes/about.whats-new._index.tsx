@@ -24,6 +24,26 @@ export const meta: MetaFunction = () => {
 
 export const changelogEntries: ChangelogEntry[] = [
     {
+        version: "v0.32.0",
+        date: "25 juni 2026",
+        title: "BodemConditieScore, vernieuwde BLN3-weergave en een helpdesk",
+        description:
+            "Met de BodemConditieScore (BCS) legt u een visuele bodembeoordeling vast op de perceelpagina, inclusief foto's en notities. De BLN3-bodemkwaliteit is vernieuwd met officiële scores voor ecosysteemdientsten, een uitklapbare structuur en een knelpunten-analyse, en is nu ook op organisatieniveau te bekijken. Daarnaast is er een helpdesk onder Ondersteuning en zijn er verbeteringen rond grasland, het uploaden van shapefiles en de navigatie.",
+        items: [
+            "BodemConditieScore (BCS): Op de perceelpagina kunt u nu een BodemConditieScore vastleggen. Via een stapsgewijze wizard beoordeelt u de bodem aan de hand van visuele kenmerken in het veld en voegt u desgewenst foto's toe. U ziet een totaalscore met een kleur en label (van Slecht tot Zeer goed) en de scores per indicator. Foto's kunt u voorzien van notities. Op mobiel kunt u direct een foto maken of er een uit uw galerij kiezen. Waar bodemanalyses beschikbaar zijn, worden ook pH- en organische-stofscores afgeleid.",
+            "BLN3-bodemkwaliteit vernieuwd: De weergave van de BLN scores is herzien. In plaats van eigen, benaderende gemiddelden worden nu de officiële aggregatiescores van de NMI getoond. Met een uitklapbare structuur klikt u van de hoofdscore door naar onderliggende categorieën tot aan de afzonderlijke indicatoren. Een nieuwe 'Knelpuntenanalyse' laat zien welke onderdelen op uw bedrijf het zwakst scoren en welke percelen daar het meest aan bijdragen, met directe links naar de betreffende percelen. Bij De satellietkaart kunt u nu ook kiezen om de score voor ecosysteemdiensten weer te geven, en de uitgebreide indicatorentabel staat nu onder een uitklapknop.",
+            "BLN3 op organisatieniveau: Organisaties kunnen nu een overzicht zien van de BLN3-indicatoren en -maatregelen van de bedrijven waartoe zij toegang hebben. U ziet de gemiddelde indicatoren per bedrijf en kunt vanuit een perceel doorklikken naar de atlas van dat bedrijf. De organisatie-indicatorenpagina toont de opbouw van de scores en de vijf zwakst scorende bedrijven; de maatregelenpagina toont alle maatregelen van de bedrijven, met snelle navigatie naar het betreffende bedrijf.",
+            "Helpdesk onder Ondersteuning: Onder het tabblad Ondersteuning is een helpdesk toegevoegd voor het stellen van vragen, doorgeven van bugs en het geven van feedback. U kunt tickets aanmaken en terugvinden, en uw eigen tickets doorzoeken en sorteren op onder meer prioriteit, aanmaakdatum en labels. Medewerkers kunnen tickets toewijzen, prioriteren, van labels voorzien en categoriseren.",
+            "Meerdere sneden tegelijk toevoegen: Voor grasland kunt u nu meerdere sneden in één keer invoeren via een nieuwe invoermodus van het oogstformulier. Dit werkt zowel op het tabblad teelten van de perceelpagina als bij het toevoegen van een oogst vanuit de bouwplantabel.",
+            "Aangepaste termen voor grasland: Bij grasland worden nu de passender termen 'snede' en 'maaien' gebruikt in plaats van 'oogst'.",
+            "Foutmeldingen direct bij het oogstformulier: Wanneer een oogst niet kan worden opgeslagen vanwege een controle op de server, ziet u de foutmelding nu direct bij het betreffende veld in het formulier.",
+            "Controle op het jaar bij shapefiles: Als u een shapefile uploadt met percelen waarvan de startdatum na het geselecteerde jaar ligt, krijgt u nu een duidelijke melding dat u waarschijnlijk het verkeerde jaar heeft gekozen, met een knop om direct naar het meest waarschijnlijke jaar te wisselen.",
+            "Knop één niveau omhoog: In de header staat nu een knop waarmee u één niveau omhoog navigeert (bijvoorbeeld van een perceel terug naar het bedrijf), wat het navigeren in geneste pagina's makkelijker maakt.",
+            "Veiliger inloggen met Microsoft: Het inloggen met Microsoft maakt nu gebruik van certificaten in plaats van een wachtwoordsleutel. Dit verbetert de beveiliging en is verder niet merkbaar bij het aanmelden.",
+            "Foutmelding bij wisselen van bedrijf hersteld: Het wisselen van bedrijf op diep geneste pagina's leidt niet langer tot een 404-foutmelding.",
+        ],
+    },
+    {
         version: "v0.31.0",
         date: "28 mei 2026",
         title: `BLN3 indicatoren en maatregelen, bodemanalyses in Atlas en ${clientConfig.name} API`,
@@ -32,7 +52,7 @@ export const changelogEntries: ChangelogEntry[] = [
             "BLN3 bodemindicatoren: Op de nieuwe indicatorenpagina ziet u de BLN3-scores voor uw bedrijf. Per perceel kunt u de individuele indicatorscores bekijken om inzicht in de bodemkwaliteit te krijgen.",
             "BLN3 maatregelen: Bij de indicatoren kunt u maatregelen bekijken die bijdragen aan het verbeteren van de bodemkwaliteit. U kunt aangeven welke maatregelen u nu kiest.",
             "Bodemanalyse in Atlas: De Atlas bevat nu een weergave voor bodemanalyses. Hiermee kunt u de resultaten van uw bodemanalyses ruimtelijk verkennen over uw percelen.",
-            "Hoofgewas naast perceelsnaam bij bedrijfsbalans: De perceelslijst op de balanspagina toont nu een badge met het hoofdgewas per perceel, zodat u in één oogopslag ziet welk gewas op welk perceel staat.",
+            "Hoofdgewas naast perceelsnaam bij bedrijfsbalans: De perceelslijst op de balanspagina toont nu een badge met het hoofdgewas per perceel, zodat u in één oogopslag ziet welk gewas op welk perceel staat.",
             `${clientConfig.name} API en ontwikkelaarsinstellingen: De ${clientConfig.name} API is beschikbaar voor koppelingen met externe systemen. Via de nieuwe ontwikkelaarsinstellingen kunt u API-sleutels aanmaken en beheren voor programmatische toegang tot uw gegevens.`,
             "Bodemparameters bij alleen-lezen toegang: Gebruikers met alleen leestoegang zien bij bodemparameters nu een link naar de bodemanalyse in plaats van een bewerkknop, zodat duidelijker is dat de waarden niet bewerkt kunnen worden.",
             "Waarschuwing bij ontbrekende normen: Wanneer voor een perceel geen gebruiksnormen bepaald kunnen worden, wordt dit nu duidelijk gemeld zodat u weet waarom bepaalde berekeningen niet beschikbaar zijn.",
@@ -340,7 +360,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * update posts.
  */
 export default function WhatsNew() {
-    const _loaderData = useLoaderData<typeof loader>()
+    useLoaderData<typeof loader>()
     const markAllAsSeen = useChangelogStore((state) => state.markAllAsSeen)
 
     useEffect(() => {

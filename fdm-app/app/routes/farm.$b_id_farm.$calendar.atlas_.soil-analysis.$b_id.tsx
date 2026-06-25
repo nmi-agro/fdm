@@ -65,9 +65,16 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 export default function AtlasSoilAnalysisFieldDetailLayout() {
     const { b_id_farm, calendar, b_id, farmOptions, fieldOptions } =
         useLoaderData<typeof loader>()
+
+    const action = {
+        to: `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`,
+        label: "Terug naar atlas",
+        disabled: false,
+    }
+
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
                 <HeaderAtlas b_id_farm={b_id_farm} />
                 <HeaderField

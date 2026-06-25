@@ -187,7 +187,8 @@ export default function FieldNutrientAdviceIndex() {
                                                 backgroundColor:
                                                     getCultivationColor(
                                                         field.mainCultivation
-                                                            .b_lu_croprotation,
+                                                            .b_lu_croprotation ??
+                                                            undefined,
                                                     ),
                                             }}
                                             className="text-white hover:opacity-90"
@@ -225,7 +226,8 @@ export default function FieldNutrientAdviceIndex() {
                                                             style={{
                                                                 backgroundColor:
                                                                     getCultivationColor(
-                                                                        c.b_lu_croprotation,
+                                                                        c.b_lu_croprotation ??
+                                                                            undefined,
                                                                     ),
                                                             }}
                                                             className="text-white hover:opacity-90"

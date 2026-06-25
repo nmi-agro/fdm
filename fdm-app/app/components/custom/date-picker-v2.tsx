@@ -120,7 +120,7 @@ export function DatePicker({
             data-invalid={fieldState.invalid}
             className={cn("gap-1", className)}
         >
-            <FieldLabel>{label}</FieldLabel>
+            {typeof label === "string" && <FieldLabel>{label}</FieldLabel>}
             <div className="flex relative gap-2">
                 <Input
                     {...field}
@@ -186,7 +186,7 @@ function formatDate(date: Date | undefined) {
     return format(date, "PPP", { locale: nl })
 }
 
-function parseDateText(
+export function parseDateText(
     date: string | Date | undefined,
     calendarYear?: number,
 ): Date | undefined {

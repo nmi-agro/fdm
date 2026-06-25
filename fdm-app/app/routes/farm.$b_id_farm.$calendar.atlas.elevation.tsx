@@ -22,7 +22,6 @@ import {
     type MapLayerMouseEvent,
     type MapRef,
     Source,
-    type ViewState,
     type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import {
@@ -36,7 +35,10 @@ import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { ElevationLegend } from "~/components/blocks/atlas/atlas-legend"
 import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import {
+    type AtlasViewState,
+    getViewState,
+} from "~/components/blocks/atlas/atlas-viewstate"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -127,8 +129,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                     properties: {
                         b_id: field.b_id,
                         b_name: field.b_name,
-                        b_area: Math.round(field.b_area * 10) / 10,
-                        b_lu_name: field.b_lu_name,
+                        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+                        b_lu_name:
+                            (field as { b_lu_name?: string }).b_lu_name ?? "",
                         b_id_source: field.b_id_source,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {
@@ -188,7 +191,7 @@ export default function FarmAtlasElevationBlock() {
 
     // ViewState logic
     const initialViewState = getViewState(fields)
-    const [viewState, setViewState] = useState<ViewState>(() => {
+    const [viewState, setViewState] = useState<AtlasViewState>(() => {
         if (typeof window !== "undefined") {
             try {
                 const savedViewState = sessionStorage.getItem("mapViewState")
@@ -199,7 +202,7 @@ export default function FarmAtlasElevationBlock() {
                 // ignore storage errors (e.g., private mode)
             }
         }
-        return initialViewState as ViewState
+        return initialViewState
     })
 
     const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
@@ -379,8 +382,7 @@ export default function FarmAtlasElevationBlock() {
             // Optimization: limit to 12 tiles to avoid overload
             const visibleFeatures = indexData.features
                 .filter((f) => {
-                    if (!f.geometry || f.geometry.type !== "Polygon")
-                        return false
+                    if (f.geometry?.type !== "Polygon") return false
                     const ring = (f.geometry as any).coordinates[0]
                     return polygonIntersectsPolygon(rdCoords, ring)
                 })
@@ -416,11 +418,7 @@ export default function FarmAtlasElevationBlock() {
                             ]) as [number, number]
                             // Find which tile contains this point
                             const feature = visibleFeatures.find((f) => {
-                                if (
-                                    !f.geometry ||
-                                    f.geometry.type !== "Polygon"
-                                )
-                                    return false
+                                if (f.geometry?.type !== "Polygon") return false
                                 const ring = (f.geometry as any).coordinates[0]
                                 return isPointInPolygon(rdP, ring)
                             })
@@ -571,8 +569,7 @@ export default function FarmAtlasElevationBlock() {
                     ]
 
                     const feature = indexData.features.find((f) => {
-                        if (!f.geometry || f.geometry.type !== "Polygon")
-                            return false
+                        if (f.geometry?.type !== "Polygon") return false
                         const ring = (f.geometry as any).coordinates[0]
                         return isPointInPolygon(rdP, ring)
                     })
@@ -604,6 +601,8 @@ export default function FarmAtlasElevationBlock() {
             }, 200),
         [],
     )
+
+    const currentZoom = viewState.zoom ?? 0
 
     return (
         <div className="relative h-full w-full">
@@ -649,7 +648,7 @@ export default function FarmAtlasElevationBlock() {
                 <MapTilerAttribution />
 
                 {/* WMS Overview Layer (Zoom < 13) */}
-                {showElevation && viewState.zoom < 13 && (
+                {showElevation && currentZoom < 13 && (
                     <Source
                         id="ahn-wms"
                         type="raster"
@@ -723,10 +722,10 @@ export default function FarmAtlasElevationBlock() {
                         max={legendMax}
                         loading={isUpdating}
                         hoverValue={hoverElevation}
-                        showScale={viewState.zoom >= 13 && showElevation}
+                        showScale={currentZoom >= 13 && showElevation}
                         networkStatus={networkStatus}
                         message={
-                            showElevation && viewState.zoom < 13
+                            showElevation && currentZoom < 13
                                 ? "Zoom in voor meer detail"
                                 : undefined
                         }

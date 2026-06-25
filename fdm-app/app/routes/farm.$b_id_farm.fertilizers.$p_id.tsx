@@ -8,6 +8,7 @@ import {
     getFertilizers,
     updateFertilizerFromCatalogue,
 } from "@nmi-agro/fdm-core"
+import type { ComponentProps } from "react"
 import {
     type ActionFunctionArgs,
     data,
@@ -161,7 +162,7 @@ export default function FarmFertilizerBlock() {
 
     const form = useRemixForm<z.infer<typeof FormSchema>>({
         mode: "onTouched",
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as never,
         defaultValues: buildFertilizerDefaults(fertilizer),
     })
 
@@ -198,8 +199,16 @@ export default function FarmFertilizerBlock() {
                 <div className="space-y-6 p-4 md:p-8 pb-0">
                     <div className="mx-auto max-w-6xl w-full">
                         <FertilizerForm
-                            fertilizerParameters={fertilizerParameters}
-                            form={form}
+                            fertilizerParameters={
+                                fertilizerParameters as ComponentProps<
+                                    typeof FertilizerForm
+                                >["fertilizerParameters"]
+                            }
+                            form={
+                                form as ComponentProps<
+                                    typeof FertilizerForm
+                                >["form"]
+                            }
                             editable={editable}
                             p_type={fertilizer.p_type}
                             rvoLabels={rvoLabels}

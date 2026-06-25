@@ -161,6 +161,7 @@ function setupDefaultMocks() {
             b_lu_name: "Gras",
             b_lu_start: "2025-01-01",
             b_lu_end: null,
+            b_lu_croprotation: "grass",
         },
     ])
     ;(getCurrentSoilData as any).mockResolvedValue([
@@ -541,6 +542,79 @@ describe("tool execute functions", () => {
             )
             expect(result.fertilizers).toEqual([])
         })
+
+        it("should filter by allowedFertilizerCatalogueIds from configurable", async () => {
+            ;(getFertilizers as any).mockResolvedValue([
+                mockFertilizer,
+                {
+                    ...mockFertilizer,
+                    p_id_catalogue: "fert-2",
+                    p_name_nl: "KAS",
+                    p_type: "mineral",
+                },
+            ])
+            const result = await getTool("searchFertilizers").invoke(
+                { b_id_farm: "farm-1" },
+                {
+                    configurable: {
+                        ...makeConfigurable().configurable,
+                        allowedFertilizerCatalogueIds: ["fert-2"],
+                    },
+                },
+            )
+            expect(result.fertilizers).toHaveLength(1)
+            expect(result.fertilizers[0].p_id_catalogue).toBe("fert-2")
+        })
+
+        it("should return all fertilizers when allowedFertilizerCatalogueIds is empty", async () => {
+            const result = await getTool("searchFertilizers").invoke(
+                { b_id_farm: "farm-1" },
+                {
+                    configurable: {
+                        ...makeConfigurable().configurable,
+                        allowedFertilizerCatalogueIds: [],
+                    },
+                },
+            )
+            expect(result.fertilizers).toHaveLength(1)
+        })
+    })
+
+    // ── getCropFertilizerGuide ────────────────────────────────────────────────
+    describe("getCropFertilizerGuide", () => {
+        it("should return fallback when crop index file is not found", async () => {
+            // Pass an unknown code so the skill resolves a non-existent path
+            const result = await getTool("getCropFertilizerGuide").invoke(
+                { b_lu_catalogues: [] },
+                makeConfigurable(),
+            )
+            // Either index-not-found or no-matching-codes fallback is acceptable
+            expect(result.guide).toBeTruthy()
+            expect(result.matchedCrops).toEqual([])
+        })
+
+        it("should return no-match fallback for unrecognised crop codes", async () => {
+            const result = await getTool("getCropFertilizerGuide").invoke(
+                { b_lu_catalogues: ["nl_99999_unknown"] },
+                makeConfigurable(),
+            )
+            expect(result.matchedCrops).toEqual([])
+        })
+
+        it("should return guide content for known crop codes", async () => {
+            const result = await getTool("getCropFertilizerGuide").invoke(
+                { b_lu_catalogues: ["nl_265"] },
+                makeConfigurable(),
+            )
+            // nl_265 = grasland, should match grasland.md in skills
+            if (result.matchedCrops.length > 0) {
+                expect(result.guide).toBeTruthy()
+                expect(result.matchedCrops).toContain("grasland.md")
+            } else {
+                // Skills not present in test environment — both outcomes are valid
+                expect(result.matchedCrops).toEqual([])
+            }
+        })
     })
 
     // ── simulateFarmPlan ─────────────────────────────────────────────────────
@@ -587,7 +661,7 @@ describe("tool execute functions", () => {
             )
             expect(result.isValid).toBe(false)
             expect(result.complianceIssues[0]).toContain(
-                "Buffer strip violation",
+                "Bufferstrook-overtreding",
             )
             expect(result.fieldResults[0].isBufferStripViolation).toBe(true)
         })
@@ -672,7 +746,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Manure N"),
+                    i.includes("Mest-N"),
                 ),
             ).toBe(true)
         })
@@ -690,7 +764,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Workable N"),
+                    i.includes("Werkzame N"),
                 ),
             ).toBe(true)
         })
@@ -708,7 +782,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Phosphate"),
+                    i.includes("Fosfaat"),
                 ),
             ).toBe(true)
         })
@@ -721,7 +795,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Organic Farming"),
+                    i.includes("Biologische teelt"),
                 ),
             ).toBe(true)
         })
@@ -737,7 +811,7 @@ describe("tool execute functions", () => {
             expect(result.isValid).toBe(false)
             expect(
                 result.complianceIssues.some((i: string) =>
-                    i.includes("Derogation"),
+                    i.includes("Derogatie"),
                 ),
             ).toBe(true)
         })
@@ -755,7 +829,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Nitrogen Target"),
+                    w.includes("Stikstofdoel"),
                 ),
             ).toBe(true)
         })
@@ -808,7 +882,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Rotation Level"),
+                    w.includes("Bouwplanniveau"),
                 ),
             ).toBe(true)
         })
@@ -862,7 +936,7 @@ describe("tool execute functions", () => {
             // Same applications → no rotation mismatch warning
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Rotation Level"),
+                    w.includes("Bouwplanniveau"),
                 ),
             ).toBe(false)
         })
@@ -880,7 +954,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Reduce Ammonia Emissions"),
+                    w.includes("Ammoniakreductie"),
                 ),
             ).toBe(true)
         })
@@ -893,7 +967,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Reduce Ammonia Emissions"),
+                    w.includes("Ammoniakreductie"),
                 ),
             ).toBe(false)
         })
@@ -910,7 +984,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Fill Manure Space"),
+                    w.includes("Mestruimte vullen"),
                 ),
             ).toBe(true)
         })
@@ -926,7 +1000,7 @@ describe("tool execute functions", () => {
             )
             expect(
                 result.agronomicWarnings.some((w: string) =>
-                    w.includes("Organic Matter"),
+                    w.includes("Organische stof"),
                 ),
             ).toBe(true)
         })

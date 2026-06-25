@@ -1,8 +1,9 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { ChevronRight } from "lucide-react"
 import React from "react"
-import { NavLink } from "react-router-dom"
+import { NavLink } from "react-router"
 import { cn } from "@/app/lib/utils"
+import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
@@ -226,10 +227,10 @@ export const columns: ColumnDef<RotationExtended>[] = [
                         </TooltipTrigger>
                         <TooltipContent>
                             {tooltipMessageNumHarvests > 1
-                                ? "U zou in plaats daarvan de huidige oogsten bijwerken."
+                                ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation, true)} bijwerken.`
                                 : tooltipMessageNumHarvests === 1
-                                  ? "U zou in plaats daarvan de huidige oogst bijwerken."
-                                  : "U zou in plaats daarvan een oogst moeten toevoegen."}
+                                  ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation)} bijwerken.`
+                                  : `U zou in plaats daarvan een ${getHarvestTerm(cultivation.b_lu_croprotation)} moeten toevoegen.`}
                         </TooltipContent>
                     </Tooltip>
                 </span>
@@ -247,7 +248,9 @@ export const columns: ColumnDef<RotationExtended>[] = [
         accessorKey: "b_harvest_date",
         enableSorting: false,
         header: ({ column }) => {
-            return <DataTableColumnHeader column={column} title="Oogstdata" />
+            return (
+                <DataTableColumnHeader column={column} title="Oogst/Maaidata" />
+            )
         },
         enableHiding: true, // Enable hiding for mobile
         cell: ({ row }) => {

@@ -1,4 +1,22 @@
+import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import { z } from "zod"
+
+const PositionSchema = z.tuple([z.number(), z.number()]).rest(z.number())
+const LinearRingSchema = z.array(PositionSchema)
+const PolygonGeometrySchema = z.object({
+    type: z.literal("Polygon"),
+    coordinates: z.array(LinearRingSchema),
+})
+const MultiPolygonGeometrySchema = z.object({
+    type: z.literal("MultiPolygon"),
+    coordinates: z.array(z.array(LinearRingSchema)),
+})
+
+export const FieldGeometrySchema: z.ZodType<FieldGeometry> =
+    z.discriminatedUnion("type", [
+        PolygonGeometrySchema,
+        MultiPolygonGeometrySchema,
+    ])
 
 const MestCropDetailsSchema = z
     .object({
@@ -81,15 +99,12 @@ export const MestDataSchema = z
  * This schema matches the GeoJSON Feature structure returned by the RVO connector.
  * It validates the essential properties required for field synchronization.
  *
- * @remarks
- * The geometry is typed as `z.any()` here to allow flexibility with GeoJSON types,
- * but in practice, it will be a Polygon or MultiPolygon.
  */
 export const RvoFieldSchema = z.object({
     /** Fixed type for GeoJSON Feature */
     type: z.literal("Feature"),
     /** GeoJSON geometry of the field (Polygon or MultiPolygon) */
-    geometry: z.any(),
+    geometry: FieldGeometrySchema,
     /** Properties specific to the RVO crop field */
     properties: z.object({
         /** Unique identifier for the crop field (Gewasperceel ID) */
