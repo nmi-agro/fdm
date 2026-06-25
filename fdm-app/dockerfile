@@ -22,11 +22,20 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Strip minimumReleaseAge configuration inside Docker. 
-# This prevents the [ERR_PNPM_MISSING_TIME] error during pnpm deploy where pnpm 
-# crashes if it cannot find timestamp metadata in the local Docker cache. 
+# Strip minimumReleaseAge configuration inside Docker.
+# This prevents the [ERR_PNPM_MISSING_TIME] error during pnpm deploy where pnpm
+# crashes if it cannot find timestamp metadata in the local Docker cache.
 # The lockfile already guarantees these packages were verified when committed.
-RUN sed -i '/^minimumReleaseAge/d' pnpm-workspace.yaml
+#
+# We must remove BOTH the `minimumReleaseAge:` scalar AND the entire
+# `minimumReleaseAgeExclude:` block (key + its indented list items). A naive
+# `sed '/^minimumReleaseAge/d'` deletes both key lines but leaves the orphaned
+# `  - '@nmi-agro/*'` list item dangling, corrupting the YAML. The awk below is
+# block-aware: it drops the exclude key and every following indented line until
+# the next top-level key, leaving other lists (packages:, allowBuilds:) intact.
+RUN awk '/^minimumReleaseAge:/{next} /^minimumReleaseAgeExclude:/{skip=1;next} skip&&/^[ \t]/{next} {skip=0} {print}' \
+      pnpm-workspace.yaml > pnpm-workspace.yaml.tmp && \
+    mv pnpm-workspace.yaml.tmp pnpm-workspace.yaml
 
 # Install dependencies.
 # --config.prefer-online=true forces pnpm to re-fetch package metadata from the
