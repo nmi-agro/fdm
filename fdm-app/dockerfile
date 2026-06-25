@@ -28,12 +28,14 @@ COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 # The lockfile already guarantees these packages were verified when committed.
 #
 # We must remove BOTH the `minimumReleaseAge:` scalar AND the entire
-# `minimumReleaseAgeExclude:` block (key + its indented list items). A naive
+# `minimumReleaseAgeExclude:` block (key + its list items). A naive
 # `sed '/^minimumReleaseAge/d'` deletes both key lines but leaves the orphaned
-# `  - '@nmi-agro/*'` list item dangling, corrupting the YAML. The awk below is
-# block-aware: it drops the exclude key and every following indented line until
-# the next top-level key, leaving other lists (packages:, allowBuilds:) intact.
-RUN awk '/^minimumReleaseAge:/{next} /^minimumReleaseAgeExclude:/{skip=1;next} skip&&/^[ \t]/{next} {skip=0} {print}' \
+# `- '@nmi-agro/*'` list item dangling, corrupting the YAML. Note that the
+# `turbo prune` output re-emits list items at column 0 (no indentation), so the
+# awk below ends the exclude block on the next line that is neither indented
+# (`^[ \t]`) nor a list item (`^-`), leaving other blocks (packages:,
+# allowBuilds:) intact.
+RUN awk '/^minimumReleaseAge:/{next} /^minimumReleaseAgeExclude:/{skip=1;next} skip&&/^([ \t]|-)/{next} {skip=0} {print}' \
       pnpm-workspace.yaml > pnpm-workspace.yaml.tmp && \
     mv pnpm-workspace.yaml.tmp pnpm-workspace.yaml
 
