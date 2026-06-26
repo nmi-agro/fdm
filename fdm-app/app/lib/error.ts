@@ -90,7 +90,7 @@ export function handleLoaderError(error: unknown) {
       console.warn(`Loader error: ${error.status} - ${error.statusText}`)
 
       // Customize the user-facing message based on the status code
-      let userMessage = "Er is iets fout gegaan." // Default message
+      let userMessage: string
       switch (error.status) {
         case 400:
           userMessage = error.statusText
@@ -224,7 +224,7 @@ export function handleActionError(error: unknown) {
       console.warn(`Action error: ${error.status} - ${error.statusText}`)
 
       // Customize the user-facing message based on the status code
-      let userMessage = "Er is iets fout gegaan." // Default message
+      let userMessage: string
       let dataStatus = "error"
       switch (error.status) {
         case 400:

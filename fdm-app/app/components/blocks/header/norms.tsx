@@ -35,10 +35,7 @@ export function HeaderNorms({
             <DropdownMenu>
               <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
                 <span className="truncate">
-                  {b_id && fieldOptions
-                    ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ??
-                      "Unknown field")
-                    : "Kies een perceel"}
+                  {fieldOptions.find((option) => option.b_id === b_id)?.b_name ?? "Unknown field"}
                 </span>
                 <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
               </DropdownMenuTrigger>

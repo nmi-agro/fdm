@@ -115,7 +115,7 @@ export function calculateTargetForNitrogenBalance(
     return new Decimal(0)
   }
   const timeFrameFraction = timeFrameDays.add(1).dividedBy(365)
-  const target = new Decimal(targetValue ?? 0).times(timeFrameFraction)
+  const target = targetValue.times(timeFrameFraction)
 
   return target
 }

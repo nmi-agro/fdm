@@ -35,7 +35,7 @@ export function HeaderNutrientAdvice({
             <DropdownMenu>
               <DropdownMenuTrigger className="focus-visible:ring-ring flex max-w-30 items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:max-w-50 md:max-w-none">
                 <span className="truncate">
-                  {b_id && fieldOptions
+                  {fieldOptions
                     ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ??
                       "Unknown field")
                     : "Kies een perceel"}
