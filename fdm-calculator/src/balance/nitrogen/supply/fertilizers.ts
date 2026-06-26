@@ -33,11 +33,10 @@ export function calculateNitrogenSupplyByFertilizers(
 
     const p_n_rt = new Decimal(fertilizerDetail.p_n_rt ?? 0)
     const p_app_amount = new Decimal(application.p_app_amount ?? 0)
-    let applicationValue = new Decimal(0)
 
     // p_n_rt is g N per kg fertilizer; p_app_amount is kg fertilizer / ha
     // applicationValue is kg N / ha
-    applicationValue = p_app_amount.times(p_n_rt).dividedBy(1000)
+    const applicationValue = p_app_amount.times(p_n_rt).dividedBy(1000)
     const newApplicationEntry = {
       id: application.p_app_id,
       value: applicationValue,

@@ -44,7 +44,7 @@ export function calculateNitrogenEmissionViaAmmoniaByResidues(
     // Get the (total) yield for this crop and number of harvests
     let totalYield = new Decimal(0)
     let harvestCount = 0
-    let b_lu_yield = new Decimal(0)
+    let b_lu_yield: Decimal
     for (const harvest of harvests.filter((h) => h.b_lu === cultivation.b_lu)) {
       let yieldForThisHarvest: Decimal | null = null
       if (

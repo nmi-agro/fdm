@@ -358,8 +358,8 @@ export default function FarmAtlasElevationBlock() {
         }
       }
 
-      let min = 1000
-      let max = -1000
+      let min: number
+      let max: number
 
       // Gather values for samples with concurrency limit
       const results: (number | null)[] = []

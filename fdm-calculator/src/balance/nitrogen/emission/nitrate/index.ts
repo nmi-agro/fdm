@@ -36,7 +36,7 @@ export function calculateNitrogenEmissionViaNitrate(
   cultivationDetails: Map<string, CultivationDetail>,
 ): NitrogenEmissionNitrate {
   // Determine land type based on active cultivations, prioritizing cropland
-  let landType: "grassland" | "cropland" | "bare soil" = "bare soil"
+  let landType: "grassland" | "cropland" | "bare soil"
   let hasGrassland = false
   let hasCropland = false
 

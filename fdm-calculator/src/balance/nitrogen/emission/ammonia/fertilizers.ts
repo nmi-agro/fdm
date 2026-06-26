@@ -43,7 +43,7 @@ export function calculateNitrogenEmissionViaAmmoniaByFertilizers(
     }
 
     const p_app_amount = new Decimal(application.p_app_amount ?? 0)
-    let applicationValue = new Decimal(0)
+    let applicationValue: Decimal
     let emissionFactor: Decimal
 
     switch (fertilizerDetail.p_type) {
@@ -189,7 +189,7 @@ function determineManureAmmoniaEmissionFactor(
     return cultivation.b_lu_start.getTime() <= p_app_date.getTime()
   })
 
-  let landType: "grassland" | "cropland" | "bare soil" = "bare soil"
+  let landType: "grassland" | "cropland" | "bare soil"
 
   // Determine land type based on active cultivations, prioritizing cropland
   let hasGrassland = false
