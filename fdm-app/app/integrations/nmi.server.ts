@@ -1,4 +1,4 @@
-/* eslint-disable typescript/no-redundant-type-constituents */
+/* eslint-disable typescript/no-redundant-type-constituents -- 'any' is used intentionally inside custom return types to represent raw third-party JSON properties that cannot be typed ahead of time. */
 import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import centroid from "@turf/centroid"
 import { fileTypeFromBuffer } from "file-type"

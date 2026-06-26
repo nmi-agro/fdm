@@ -1,4 +1,4 @@
-/* eslint-disable typescript/restrict-template-expressions */
+/* eslint-disable typescript/restrict-template-expressions -- catalogueName is a union of string literals which safely interpolates in template strings. */
 import { getCatalogueBln } from "./catalogues/bln"
 import type { CatalogueMeasure, CatalogueMeasureName } from "./d"
 

@@ -11,7 +11,7 @@ const mockFdm = {
   where: vi.fn().mockReturnThis(),
   limit: vi.fn().mockReturnThis(),
   // biome-ignore lint/suspicious/noThenProperty: Simulate cache miss
-  // eslint-disable-next-line unicorn/no-thenable
+  // eslint-disable-next-line unicorn/no-thenable -- Mocking a `.then` method is necessary here to simulate a query builder returning cache-miss results.
   then: vi.fn((resolve) => (resolve ? Promise.resolve(resolve([])) : Promise.resolve([]))),
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockResolvedValue(undefined),

@@ -336,7 +336,7 @@ export async function genericAction(
       message: `Error at saving RVO fields: ${await extractErrorMessage(e)}`,
     }
   } finally {
-    // eslint-disable-next-line typescript/await-thenable
+    // eslint-disable-next-line typescript/await-thenable -- Promise.allSettled is natively awaitable, but linter context can occasionally misidentify third-party promise types.
     await Promise.allSettled(storageKeys.map((storageKey) => fileStorage.remove(storageKey)))
     await fs
       .rm(`./uploads/shapefiles/${uploadRequestId}`, {

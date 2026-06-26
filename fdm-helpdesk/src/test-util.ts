@@ -31,7 +31,7 @@ export const test = baseTest.extend(
   "fdm",
   { scope: "worker" },
   // biome-ignore lint/correctness/noEmptyPattern: vitest fixtures require using object destructuring for arguments due to reflection
-  // eslint-disable-next-line no-empty-pattern
+  // eslint-disable-next-line no-empty-pattern -- Vitest uses object destructuring reflection to register fixtures, necessitating an empty pattern placeholder for unused initial arguments.
   async ({}, { onCleanup }) => {
     const client = postgres({
       host: inject("host"),

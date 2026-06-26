@@ -1,4 +1,4 @@
-/* eslint-disable typescript/unbound-method */
+/* eslint-disable typescript/unbound-method -- xxhash.h32ToString is a standalone utility function that does not rely on a specific 'this' context. */
 import xxhash from "xxhash-wasm"
 
 // Initialize hash function lazily to avoid top-level await

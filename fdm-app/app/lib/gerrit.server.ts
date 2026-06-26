@@ -135,7 +135,7 @@ export async function computePlanMetrics(
         }
 
         const syntheticApps: FertilizerApplication[] = field.applications.map((app, i) => {
-          // eslint-disable-next-line no-control-regex
+          // eslint-disable-next-line no-control-regex -- Non-ASCII control character matching is explicitly required to safely sanitize and strip malformed catalogue IDs.
           const sanitizedCatalogueId = app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
           const fert = fertilizers.find((f) => f.p_id_catalogue === sanitizedCatalogueId)
           return {
