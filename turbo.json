@@ -1,61 +1,49 @@
 {
-    "$schema": "https://v2-9-14.turborepo.dev/schema.json",
-    "tasks": {
-        "build": {
-            "outputs": ["dist/**", "build/**"],
-            "passThroughEnv": [
-                "SENTRY_AUTH_TOKEN",
-                "PUBLIC_SENTRY_ORG",
-                "PUBLIC_SENTRY_PROJECT"
-            ],
-            "dependsOn": ["^build"]
-        },
-        "build-docs": {
-            "outputs": ["build/**"],
-            "dependsOn": ["^build-docs"]
-        },
-        "check-types": {
-            "outputs": [],
-            "dependsOn": ["^build", "^check-types"]
-        },
-        "//#format-and-lint": {},
-        "//#format-and-lint:fix": {
-            "cache": false
-        },
-        "//#format-and-lint:fix-unsafe": {
-            "cache": false
-        },
-        "test-coverage": {
-            "outputs": [],
-            "persistent": false,
-            "cache": false,
-            "dependsOn": ["^build"],
-            "env": [
-                "POSTGRES_HOST",
-                "POSTGRES_PORT",
-                "POSTGRES_DB",
-                "POSTGRES_USER",
-                "POSTGRES_PASSWORD"
-            ]
-        },
-        "watch": {
-            "persistent": true,
-            "cache": false,
-            "env": [
-                "POSTGRES_HOST",
-                "POSTGRES_PORT",
-                "POSTGRES_DB",
-                "POSTGRES_USER",
-                "POSTGRES_PASSWORD"
-            ]
-        },
-        "dev": {
-            "persistent": true,
-            "cache": false
-        },
-        "watch-docs": {
-            "persistent": true,
-            "cache": false
-        }
+  "$schema": "https://v2-9-14.turborepo.dev/schema.json",
+  "tasks": {
+    "build": {
+      "outputs": ["dist/**", "build/**"],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN", "PUBLIC_SENTRY_ORG", "PUBLIC_SENTRY_PROJECT"],
+      "dependsOn": ["^build"]
+    },
+    "build-docs": {
+      "outputs": ["build/**"],
+      "dependsOn": ["^build-docs"]
+    },
+    "check-types": {
+      "outputs": [],
+      "dependsOn": ["^build", "^check-types"]
+    },
+    "//#lint": {},
+    "//#lint:fix": {
+      "cache": false
+    },
+    "//#lint:fix-suggest": {
+      "cache": false
+    },
+    "//#lint:fix-suggest-unsafe": {
+      "cache": false
+    },
+    "//#format": {},
+    "test-coverage": {
+      "outputs": [],
+      "persistent": false,
+      "cache": false,
+      "dependsOn": ["^build"],
+      "env": ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
+    },
+    "watch": {
+      "persistent": true,
+      "cache": false,
+      "env": ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "watch-docs": {
+      "persistent": true,
+      "cache": false
     }
+  }
 }
