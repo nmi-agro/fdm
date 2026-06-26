@@ -394,7 +394,6 @@ export function NitrogenBalanceChart(
   const { type, balanceData, fieldInput } = props
   const [barOutlineFocus, setBarOutlineFocus] = useState<string | number | undefined>()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each value in props is passed separately
   const { legend, chartData, chartConfig, supplyBar, removalBar } = useMemo(
     () => buildChartDataAndLegend(props),
     [type, balanceData, fieldInput],
@@ -515,7 +514,6 @@ export function NitrogenBalanceChart(
                     {itemConfig.label}
                   </div>
                   {itemConfig.detail?.map((detail, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: detail is constant
                     <div key={i}>
                       <div className="inline-block me-2 h-2 w-2 rounded-[2px]" />
                       {detail}

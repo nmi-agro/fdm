@@ -50,7 +50,6 @@ export function OrganizationSettingsForm({
   }
 
   // Reset the form when the organization changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: organization.slug is the key
   useEffect(() => {
     form.reset({
       name: organization?.name,
@@ -62,7 +61,6 @@ export function OrganizationSettingsForm({
   // Update slug when name changes
   const organizationName = form.getValues("name")
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: convertToSlug changes on every re-render and should not be used as a hook dependency
   useEffect(() => {
     if (!organizationName) return
     const newSlug = convertToSlug(organizationName)

@@ -160,7 +160,6 @@ export function DataTable<TData extends FieldExtended, TValue>({
     },
   })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: rowSelection is needed for Bemesting button activation
   const selectedFields = useMemo(() => {
     return table.getFilteredSelectedRowModel().rows.map((row) => row.original)
   }, [table, rowSelection])

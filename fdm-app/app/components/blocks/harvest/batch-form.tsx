@@ -467,7 +467,6 @@ function BatchHarvestFormFields({
   const [harvestExamplesMap, setHarvestExamplesMap] = useState(
     new Map<string, Partial<HarvestRow>>(),
   )
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fieldArray's initial value is derived from harvestPairs
   useEffect(() => {
     const result = new Map<string, Partial<HarvestRow>>()
     if (harvestPairs) {

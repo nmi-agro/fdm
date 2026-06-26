@@ -233,7 +233,6 @@ export function DataTable<TData extends RotationExtended, TValue>({
     return searchTerms === "" || fuzzysort.go(searchTerms, [data.searchTarget]).length > 0
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the filter function is pure
   const rowSelection = useMemo(() => {
     return Object.fromEntries([
       // Crop selection state is derived from whether all its fields are selected
@@ -302,7 +301,6 @@ export function DataTable<TData extends RotationExtended, TValue>({
     },
   })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: rowSelection is needed for Oogst button activation
   const selectedCultivations = useMemo(() => {
     return table
       .getFilteredRowModel()
@@ -312,7 +310,6 @@ export function DataTable<TData extends RotationExtended, TValue>({
       .map((row) => row.original)
   }, [table, rowSelection])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: rowSelection is needed for Bemesting button activation
   const selectedFields = useMemo(() => {
     return (
       table

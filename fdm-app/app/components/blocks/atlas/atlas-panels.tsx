@@ -393,7 +393,6 @@ export function FieldsPanelSelection({
     updatePanel()
   }, [fields, isSubmitting, map, submitSelectedFields, continueTo, numFieldsSaved])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refs will change when the panel changes
   useEffect(() => {
     const scrollElement = scrollRef.current
     const scrollContainerElement = scrollContainerRef.current

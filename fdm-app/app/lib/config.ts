@@ -9,7 +9,6 @@ declare global {
 // Define a function to initialize the runtime environment map
 const initializeRuntimeEnvMap = (): RuntimeConfig => {
   // On the client, __RUNTIME_CONFIG__ is populated by the root loader.
-  // biome-ignore lint/complexity/useOptionalChain: Is required to run
   if (typeof window !== "undefined" && window.__RUNTIME_CONFIG__) {
     return window.__RUNTIME_CONFIG__
   }

@@ -270,7 +270,6 @@ function MineralizationFieldContent({
           <CardContent className="space-y-1.5">
             {insights.map((insight, i) => (
               <p
-                // biome-ignore lint/suspicious/noArrayIndexKey: stable insight list
                 key={i}
                 className="text-sm"
               >

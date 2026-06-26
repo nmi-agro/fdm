@@ -46,7 +46,6 @@ export function MineralizationFieldsSkeleton() {
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder
               key={i}
               className="flex items-center justify-between"
             >
@@ -100,7 +99,6 @@ export function DynaFallback() {
           </CardHeader>
           <CardContent className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder
               <Skeleton key={i} className="h-4 w-full" />
             ))}
           </CardContent>
@@ -111,7 +109,6 @@ export function DynaFallback() {
           </CardHeader>
           <CardContent className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder
               <Skeleton key={i} className="h-4 w-full" />
             ))}
           </CardContent>
@@ -147,7 +144,6 @@ export function MineralizationFieldDetailFallback() {
           </CardHeader>
           <CardContent className="space-y-2">
             {Array.from({ length: 6 }).map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder
               <Skeleton key={i} className="h-4 w-full" />
             ))}
           </CardContent>
@@ -158,7 +154,6 @@ export function MineralizationFieldDetailFallback() {
           </CardHeader>
           <CardContent className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder
               <Skeleton key={i} className="h-4 w-full" />
             ))}
           </CardContent>

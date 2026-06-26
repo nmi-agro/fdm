@@ -48,7 +48,6 @@ const Chemical = ({ symbol, style }: { symbol: string; style?: any }) => {
     <Text style={style}>
       {parts.map((part, i) => (
         <Text
-          // biome-ignore lint/suspicious/noArrayIndexKey: simple split, stable order
           key={`${part}-${i}`}
           style={/^\d+$/.test(part) ? { fontSize: 6 } : {}}
         >

@@ -228,7 +228,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
       return dataWithSuccess("fields have been updated", {
         message: `${formValues.b_name} is bijgewerkt! 🎉`,
       })
-      // biome-ignore lint/style/noUselessElse: for low maintenance
     } else if (request.method === "DELETE") {
       // Delete field
       const field = await getField(fdm, session.principal_id, b_id)

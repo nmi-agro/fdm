@@ -166,7 +166,6 @@ export default function AddFarmPage() {
   const isDerogationPossible = Number(selectedYear) < 2026
 
   // Set default organic issued date when certification is checked
-  // biome-ignore lint/correctness/useExhaustiveDependencies: form.setValue and form.getValues are stable
   useEffect(() => {
     if (organicCertified && !form.getValues("organic_issued")) {
       form.setValue("organic_issued", new Date(Number(selectedYear), 0, 1))
@@ -176,7 +175,6 @@ export default function AddFarmPage() {
   }, [organicCertified, selectedYear])
 
   // Reset derogation when year >= 2026
-  // biome-ignore lint/correctness/useExhaustiveDependencies: form.setValue is stable
   useEffect(() => {
     if (Number(selectedYear) >= 2026) {
       form.setValue("has_derogation", false)

@@ -170,7 +170,6 @@ function DynaTooltipContent({
       {point._events && point._events.length > 0 && (
         <div className="border-t border-border/50 pt-1.5 grid gap-1">
           {point._events.map((ev, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: stable ordered list
             <div key={i} className="flex items-center gap-1.5">
               <div
                 className="shrink-0 rounded-full h-2.5 w-2.5"

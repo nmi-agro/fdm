@@ -34,7 +34,6 @@ function truncateMessage(body: string, limit: number) {
 /** Render plain-text lines with <br/> between lines only (no trailing break). */
 function renderLines(text: string) {
   return text.split("\n").map((line, index) => (
-    // biome-ignore lint/suspicious/noArrayIndexKey: text is constant for the lifetime of the component
     <span key={index}>
       {index > 0 && <br />}
       {line}

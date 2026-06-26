@@ -521,7 +521,6 @@ export const columns: ColumnDef<ReviewItem>[] = [
       }
 
       return (
-        // biome-ignore lint/a11y/noLabelWithoutControl: input is nested inside the label
         <label className="flex flex-row items-center gap-1 text-muted-foreground">
           <Checkbox checked={value} onCheckedChange={handleUpdateValue} />
           <span className="align-top">{value ? "Ja" : "Nee"}</span>

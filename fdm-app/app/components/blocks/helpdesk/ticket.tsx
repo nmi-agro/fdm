@@ -169,7 +169,6 @@ export function Ticket({
           >
             <p
               className="whitespace-pre-wrap text-sm"
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: message bodies are sanitized server-side via fdm-helpdesk's `escapeHTML` before being written to the database
               dangerouslySetInnerHTML={{ __html: msg.body }}
             />
           </Message>

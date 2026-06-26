@@ -166,7 +166,6 @@ describe("Authorization Functions", () => {
       await expect(
         checkPermission(
           fdm,
-          // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
           "unknown_resource" as any,
           "read",
           farm_id,
@@ -250,7 +249,6 @@ describe("Authorization Functions", () => {
       await expect(
         grantRole(
           fdm,
-          // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
           "unknown_resource" as any,
           "owner",
           farm_id,
@@ -264,7 +262,6 @@ describe("Authorization Functions", () => {
         grantRole(
           fdm,
           "farm",
-          // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
           "unknown_role" as any,
           farm_id,
           principal_id,
@@ -274,7 +271,6 @@ describe("Authorization Functions", () => {
 
     it("should throw an error for invalid principal_id", async () => {
       await expect(
-        // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
         grantRole(fdm, "farm", "owner", farm_id, null as any),
       ).rejects.toThrowError()
     })
@@ -329,7 +325,6 @@ describe("Authorization Functions", () => {
       await expect(
         revokePrincipal(
           fdm,
-          // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
           "unknown_resource" as any,
           farm_id,
           principal_id,
@@ -381,7 +376,6 @@ describe("Authorization Functions", () => {
       await expect(
         updateRole(
           fdm,
-          // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
           "unknown_resource" as any,
           "advisor",
           farm_id,
@@ -395,7 +389,6 @@ describe("Authorization Functions", () => {
         updateRole(
           fdm,
           "farm",
-          // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
           "unknown_role" as any,
           farm_id,
           principal_id,
@@ -538,7 +531,6 @@ describe("Authorization Functions", () => {
       await expect(
         listResources(
           fdm,
-          // biome-ignore lint/suspicious/noExplicitAny: Checking validation with unit test
           "unknown_resource" as any,
           "read",
           principal_id,
@@ -550,7 +542,6 @@ describe("Authorization Functions", () => {
         listResources(
           fdm,
           "farm",
-          // biome-ignore lint/suspicious/noExplicitAny: Checking validation with unit test
           "unknown_action" as any,
           principal_id,
         ),
@@ -733,7 +724,6 @@ describe("Authorization Functions", () => {
       await expect(
         getRolesOfPrincipalForResource(
           fdm,
-          // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
           "unknown_resource" as any,
           farm_id,
           principal_id,
@@ -791,7 +781,6 @@ describe("Authorization Functions", () => {
       await expect(
         listPrincipalsForResource(
           fdm,
-          // biome-ignore lint/suspicious/noExplicitAny: Used for testing validation
           "invalid_resource" as any,
           farm_id,
         ),

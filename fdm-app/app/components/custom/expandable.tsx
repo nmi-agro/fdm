@@ -85,7 +85,6 @@ export function ExpandableContent(props: ExpandableContentProps) {
   const [fullHeight, setFullHeight] = useState<number | null>(null)
 
   // Measure the expanded height to decide to show the expansion button
-  // biome-ignore lint/correctness/useExhaustiveDependencies: children are only used to trigger the effect
   useLayoutEffect(() => {
     const el = textRef.current
     if (!el) return
