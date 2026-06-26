@@ -77,38 +77,29 @@ interface FertilizerApplicationMetricsCardProps {
     isSubmitting: boolean
 }
 
-function MissingParametersErrorDisplay<T>(
-    result: MetricsResult<T>,
-): result is { status: "error"; message: string } {
+function MissingParametersErrorDisplay<T>(result: MetricsResult<T>) {
     return result.status === "error" &&
-        result.message.match(/Missing required soil parameters/)
-        ? ((
-              <div className="text-muted-foreground">
-                  <p>
-                      Voor dit perceel zijn de benodigde bodemparameters niet
-                      bekend:
-                  </p>
-                  <br />
-                  <ul className="list-disc list-inside">
-                      {result.message.match(/a_n_rt/) ? (
-                          <li>Totaal stikstofgehalte</li>
-                      ) : null}
-                      {result.message.match(/b_soiltype_agr/) ? (
-                          <li>Agrarisch bodemtype</li>
-                      ) : null}
-                      {result.message.match(/a_c_of|a_som_loi/) ? (
-                          <li>Organische stofgehalte</li>
-                      ) : null}
-                  </ul>
-              </div>
-          ) as unknown as true)
-        : result.status === "error"
-          ? ((
-                <div className="text-destructive text-sm">
-                    Fout bij berekening
-                </div>
-            ) as unknown as true)
-          : (null as unknown as false)
+        result.message.match(/Missing required soil parameters/) ? (
+        <div className="text-muted-foreground">
+            <p>
+                Voor dit perceel zijn de benodigde bodemparameters niet bekend:
+            </p>
+            <br />
+            <ul className="list-disc list-inside">
+                {result.message.match(/a_n_rt/) ? (
+                    <li>Totaal stikstofgehalte</li>
+                ) : null}
+                {result.message.match(/b_soiltype_agr/) ? (
+                    <li>Agrarisch bodemtype</li>
+                ) : null}
+                {result.message.match(/a_c_of|a_som_loi/) ? (
+                    <li>Organische stofgehalte</li>
+                ) : null}
+            </ul>
+        </div>
+    ) : result.status === "error" ? (
+        <div className="text-destructive text-sm">Fout bij berekening</div>
+    ) : null
 }
 
 export function FertilizerApplicationMetricsCard({
@@ -205,13 +196,13 @@ export function FertilizerApplicationMetricsCard({
                                                 }
                                             >
                                                 {(result) => {
-                                                    const ErrorDisplay =
-                                                        MissingParametersErrorDisplay(
+                                                    if (
+                                                        result.status ===
+                                                        "error"
+                                                    ) {
+                                                        return MissingParametersErrorDisplay(
                                                             result,
                                                         )
-
-                                                    if (ErrorDisplay) {
-                                                        return ErrorDisplay
                                                     }
 
                                                     const resolvedNorms =
@@ -474,13 +465,13 @@ export function FertilizerApplicationMetricsCard({
                                                 resolve={nitrogenBalance}
                                             >
                                                 {(result) => {
-                                                    const ErrorDisplay =
-                                                        MissingParametersErrorDisplay(
+                                                    if (
+                                                        result.status ===
+                                                        "error"
+                                                    ) {
+                                                        return MissingParametersErrorDisplay(
                                                             result,
                                                         )
-
-                                                    if (ErrorDisplay) {
-                                                        return ErrorDisplay
                                                     }
 
                                                     const resolvedNitrogenBalance =

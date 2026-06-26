@@ -58,8 +58,9 @@ export const meta: MetaFunction = () => {
  *
  * @param fn Function that fetches the metrics.
  * @returns `{ status: "ok", data: ... }` if the function resolves.
- * `{ "status": "error", message: ... }` with the error message if rejection is an instance of Error.
- * @throws any rejection other than those that are an instance of Error.
+ * `{ "status": "error", message: ... }` with the error message if a rejection
+ * happens due to missing soil parameters.
+ * @throws any rejection other than those for missing soil parameters.
  */
 async function promiseMetricsResult<T>(
     fn: () => Promise<T>,
@@ -72,7 +73,10 @@ async function promiseMetricsResult<T>(
             data: data,
         }
     } catch (err) {
-        if (err instanceof Error) {
+        if (
+            err instanceof Error &&
+            err.message.match(/Missing required soil parameters/)
+        ) {
             return {
                 status: "error",
                 message: err.message,
@@ -233,17 +237,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
 
         const fertilizerApplicationMetricsData = {
-            norms:
+            norms: promiseMetricsResult(async () =>
                 calendar === "2025" || calendar === "2026"
-                    ? promiseMetricsResult(() =>
-                          getNorms({
-                              fdm,
-                              principal_id,
-                              b_id,
-                              calendar,
-                          }),
-                      )
-                    : Promise.resolve(null),
+                    ? getNorms({
+                          fdm,
+                          principal_id,
+                          b_id,
+                          calendar,
+                      })
+                    : null,
+            ),
             nitrogenBalance: promiseMetricsResult(() =>
                 getNitrogenBalanceForField({
                     fdm,
