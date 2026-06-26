@@ -9,11 +9,19 @@
  * - Jose's SignJWT is used to build id_tokens for getUserInfo tests
  */
 import { createHash, generateKeyPairSync, randomUUID } from "node:crypto"
+import { unlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { writeFileSync, unlinkSync } from "node:fs"
-import { SignJWT, importPKCS8 } from "jose"
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { importPKCS8, SignJWT } from "jose"
+import {
+    afterEach,
+    beforeAll,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from "vitest"
 import {
     createMicrosoftClientAssertion,
     createMicrosoftOAuthConfig,
@@ -49,7 +57,9 @@ const FAKE_CERT_THUMBPRINT = createHash("sha1")
 
 beforeAll(() => {
     const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 })
-    privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString()
+    privateKeyPem = privateKey
+        .export({ type: "pkcs8", format: "pem" })
+        .toString()
 })
 
 /** Base config that uses certThumbprint (no cert PEM needed for signing). */
@@ -116,7 +126,9 @@ describe("createMicrosoftClientAssertion", () => {
         const t2 = await createMicrosoftClientAssertion(config)
 
         // Both calls should produce the same x5t (cached)
-        expect(decodeProtectedHeader(t1).x5t).toBe(decodeProtectedHeader(t2).x5t)
+        expect(decodeProtectedHeader(t1).x5t).toBe(
+            decodeProtectedHeader(t2).x5t,
+        )
     })
 
     it("sets correct JWT claims (iss, sub, aud, exp)", async () => {
@@ -141,7 +153,7 @@ describe("createMicrosoftClientAssertion", () => {
             tenantId: undefined,
         }
         const token = await createMicrosoftClientAssertion(config)
-        expect((decodeJwt(token).aud as string)).toContain("/common/")
+        expect(decodeJwt(token).aud as string).toContain("/common/")
     })
 
     it("throws when neither certificate nor certThumbprint is provided", async () => {
@@ -239,7 +251,9 @@ describe("createMicrosoftOAuthConfig", () => {
     })
 
     it("enables PKCE", () => {
-        expect(createMicrosoftOAuthConfig(baseConfig(), mockHelpers).pkce).toBe(true)
+        expect(createMicrosoftOAuthConfig(baseConfig(), mockHelpers).pkce).toBe(
+            true,
+        )
     })
 
     // -----------------------------------------------------------------------
@@ -274,7 +288,9 @@ describe("createMicrosoftOAuthConfig", () => {
 
         it("returns null when idToken is missing", async () => {
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-            const result = await cfg.getUserInfo!({ accessToken: "tok" } as any)
+            const result = await cfg.getUserInfo?.({
+                accessToken: "tok",
+            } as any)
             expect(result).toBeNull()
         })
 
@@ -287,7 +303,7 @@ describe("createMicrosoftOAuthConfig", () => {
             })
             global.fetch = fetchReturning(false)
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-            const result = await cfg.getUserInfo!({
+            const result = await cfg.getUserInfo?.({
                 idToken,
                 accessToken: "tok",
             } as any)
@@ -306,7 +322,10 @@ describe("createMicrosoftOAuthConfig", () => {
             })
             global.fetch = fetchReturning(false)
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-            const result = await cfg.getUserInfo!({ idToken, accessToken: "tok" } as any)
+            const result = await cfg.getUserInfo?.({
+                idToken,
+                accessToken: "tok",
+            } as any)
             expect(result?.email).toBe("mail@example.com")
         })
 
@@ -317,7 +336,10 @@ describe("createMicrosoftOAuthConfig", () => {
             })
             global.fetch = fetchReturning(false)
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-            const result = await cfg.getUserInfo!({ idToken, accessToken: "tok" } as any)
+            const result = await cfg.getUserInfo?.({
+                idToken,
+                accessToken: "tok",
+            } as any)
             expect(result?.name).toBe("noname")
         })
 
@@ -330,7 +352,10 @@ describe("createMicrosoftOAuthConfig", () => {
             const imgBytes = Buffer.from("img-bytes")
             global.fetch = fetchReturning(true, imgBytes.buffer)
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-            const result = await cfg.getUserInfo!({ idToken, accessToken: "tok" } as any)
+            const result = await cfg.getUserInfo?.({
+                idToken,
+                accessToken: "tok",
+            } as any)
             expect(result?.image).toMatch(/^data:image\/jpeg;base64,/)
         })
 
@@ -339,7 +364,7 @@ describe("createMicrosoftOAuthConfig", () => {
             global.fetch = fetchReturning(false)
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
             await expect(
-                cfg.getUserInfo!({ idToken, accessToken: "tok" } as any),
+                cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any),
             ).rejects.toThrow("microsoft_no_email")
         })
 
@@ -351,7 +376,10 @@ describe("createMicrosoftOAuthConfig", () => {
             })
             global.fetch = vi.fn().mockRejectedValue(new Error("network"))
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-            const result = await cfg.getUserInfo!({ idToken, accessToken: "tok" } as any)
+            const result = await cfg.getUserInfo?.({
+                idToken,
+                accessToken: "tok",
+            } as any)
             expect(result?.email).toBe("e@example.com")
             expect(result?.image).toBeUndefined()
         })
@@ -364,10 +392,10 @@ describe("createMicrosoftOAuthConfig", () => {
     describe("mapProfileToUser", () => {
         it("maps email and name to FDM user fields", async () => {
             const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-            const result = await cfg.mapProfileToUser!({
+            const result = (await cfg.mapProfileToUser?.({
                 email: "john@example.com",
                 name: "John Doe",
-            }) as Record<string, unknown>
+            })) as Record<string, unknown>
             expect(result.email).toBe("john@example.com")
             expect(result.firstname).toBe("John")
             expect(result.surname).toBe("Doe")

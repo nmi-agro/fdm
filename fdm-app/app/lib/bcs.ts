@@ -65,7 +65,11 @@ export interface FreehandCoords {
     points: Array<{ x: number; y: number }>
 }
 
-export type AnnotationCoords = PinCoords | CircleCoords | ArrowCoords | FreehandCoords
+export type AnnotationCoords =
+    | PinCoords
+    | CircleCoords
+    | ArrowCoords
+    | FreehandCoords
 
 export interface WizardAnnotation {
     tempId: string

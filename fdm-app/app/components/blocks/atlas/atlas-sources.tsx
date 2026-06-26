@@ -20,11 +20,7 @@ import {
     useRef,
     useState,
 } from "react"
-import {
-    type MapLayerMouseEvent,
-    Source,
-    useMap,
-} from "react-map-gl/maplibre"
+import { type MapLayerMouseEvent, Source, useMap } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
 import { deserializeFgb } from "./atlas-fgb"
 import { generateFeatureClass } from "./atlas-functions"

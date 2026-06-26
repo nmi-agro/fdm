@@ -95,9 +95,7 @@ export async function collectInputForBln3Score(
 
         const soilData: Record<string, number> = {}
         for (const f of allNumericFields) {
-            const analysis = soilAnalyses.find(
-                (a) => typeof a[f] === "number",
-            )
+            const analysis = soilAnalyses.find((a) => typeof a[f] === "number")
             if (analysis) {
                 soilData[f] = analysis[f] as number
             }

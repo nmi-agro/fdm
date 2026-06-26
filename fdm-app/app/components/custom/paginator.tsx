@@ -93,7 +93,9 @@ export function Paginator({ totalItems, pageSize }: PaginatorProps) {
                     <PaginationLink
                         size="default"
                         href={getPageSearch(location.search, pageSize, page)}
-                    />
+                    >
+                        {page + 1}
+                    </PaginationLink>
                 </PaginationItem>,
             )
         }

@@ -74,6 +74,6 @@ export interface FarmTotals {
     nBalance: {
         balance: number
         target: number
-        emission: { ammonia: { total: number }; nitrate: { total: number } }
+        emission: { ammonia: { total: number }; nitrate: number }
     } | null
 }

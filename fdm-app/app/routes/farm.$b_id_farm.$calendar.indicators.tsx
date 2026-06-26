@@ -5,6 +5,7 @@ import {
     type MetaFunction,
     Outlet,
     useLoaderData,
+    useParams,
 } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -75,10 +76,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function IndicatorsLayout() {
     const loaderData = useLoaderData<typeof loader>()
+    const { b_id } = useParams()
+
+    const action = b_id
+        ? {
+              to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/indicators`,
+              label: "Terug naar indicatoren",
+              disabled: false,
+          }
+        : {
+              to: `/farm/${loaderData.b_id_farm}`,
+              label: "Terug naar bedrijf",
+              disabled: false,
+          }
 
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

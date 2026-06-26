@@ -14,7 +14,7 @@ import {
 import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { NavLink, useParams } from "react-router-dom"
+import { NavLink, useParams } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useFieldSelectionStore } from "@/app/store/field-selection"
 import { Button } from "~/components/ui/button"
@@ -219,8 +219,7 @@ export function DataTable<TData extends FieldExtended, TValue>({
                                         {
                                             b_name: "Naam",
                                             cultivations: "Gewassen",
-                                            fertilizerApplications:
-                                                "Bemesting",
+                                            fertilizerApplications: "Bemesting",
                                             bcs: "BodemConditieScore",
                                             a_som_loi: "Organische stof",
                                             b_soiltype_agr: "Bodemtype",

@@ -36,10 +36,11 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 
-type OrganicMatterFieldResultWithErrorId =
-    Awaited<ReturnType<typeof getOrganicMatterBalanceForField>>["fieldResult"] & {
-        errorId?: string
-    }
+type OrganicMatterFieldResultWithErrorId = Awaited<
+    ReturnType<typeof getOrganicMatterBalanceForField>
+>["fieldResult"] & {
+    errorId?: string
+}
 
 // Meta
 export const meta: MetaFunction = () => {

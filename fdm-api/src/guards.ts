@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import { ApiError } from "./error"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH"])
@@ -15,6 +16,53 @@ const bodyLimitMiddleware = bodyLimit({
         )
     },
 })
+
+/**
+ * Creates middleware that returns a 404 problem response for paths that don't match any
+ * registered route handler, short-circuiting before authentication runs.
+ *
+ * Hono populates `c.req.matchedRoutes` upfront with all matching entries. Entries from
+ * `app.use()` (global middleware) carry `method: "ALL"`, while actual route handlers carry
+ * their specific HTTP method. A request to a non-existent path therefore has no
+ * `method !== "ALL"` entry, which this guard uses to detect and reject the request early —
+ * before any API-key DB lookup occurs.
+ *
+ * @param appUrl - Canonical application URL used to build the absolute problem type URI.
+ * @returns A Hono middleware that responds with 404 for unmatched paths and calls `next()` for matched ones.
+ * @example
+ * ```ts
+ * app.use("*", createPathExistenceGuard("https://example.com"))
+ * ```
+ */
+export function createPathExistenceGuard(appUrl: string): MiddlewareHandler {
+    return async (c, next) => {
+        if (c.req.method === "OPTIONS") {
+            return next()
+        }
+
+        const hasRouteHandler = c.req.matchedRoutes.some(
+            (r) => r.method !== "ALL",
+        )
+        if (!hasRouteHandler) {
+            console.debug(
+                `[fdm-api] path-not-found path=${c.req.path}`,
+            )
+            return c.json(
+                {
+                    type: `${appUrl}/problems/not-found`,
+                    title: "Not Found",
+                    status: 404,
+                    detail: `${c.req.path} does not exist.`,
+                    instance: c.req.path,
+                },
+                404 as ContentfulStatusCode,
+                { "content-type": "application/problem+json" },
+            )
+        }
+
+        return next()
+    }
+}
 
 /**
  * Validates request bodies for API write operations before they reach route handlers.

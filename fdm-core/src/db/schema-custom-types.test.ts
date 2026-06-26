@@ -53,9 +53,9 @@ describe("parseHexToGeometry", () => {
             caughtError = e
         }
         expect(caughtError).toBeInstanceOf(Error)
-        expect((caughtError as Error & { cause?: Error }).cause?.message).toContain(
-            "Buffer too small to read MultiPolygon",
-        )
+        expect(
+            (caughtError as Error & { cause?: Error }).cause?.message,
+        ).toContain("Buffer too small to read MultiPolygon")
     })
 
     it("throws when the buffer is too small to read the nested Polygon header", () => {
@@ -68,9 +68,9 @@ describe("parseHexToGeometry", () => {
             caughtError = e
         }
         expect(caughtError).toBeInstanceOf(Error)
-        expect((caughtError as Error & { cause?: Error }).cause?.message).toContain(
-            "Buffer too small to read nested Polygon",
-        )
+        expect(
+            (caughtError as Error & { cause?: Error }).cause?.message,
+        ).toContain("Buffer too small to read nested Polygon")
     })
 
     it("throws when the nested geometry type is not Polygon", () => {
@@ -84,9 +84,9 @@ describe("parseHexToGeometry", () => {
             caughtError = e
         }
         expect(caughtError).toBeInstanceOf(Error)
-        expect((caughtError as Error & { cause?: Error }).cause?.message).toContain(
-            "Expected nested Polygon",
-        )
+        expect(
+            (caughtError as Error & { cause?: Error }).cause?.message,
+        ).toContain("Expected nested Polygon")
     })
 })
 

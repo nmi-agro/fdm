@@ -61,7 +61,9 @@ export async function processRvoImport(
 ) {
     await fdm.transaction(async (tx) => {
         const addedFields: Array<{ b_id: string; geometry: FieldGeometry }> = []
-        async function handleItem(item: RvoImportReviewItem<ProcessLocalField>) {
+        async function handleItem(
+            item: RvoImportReviewItem<ProcessLocalField>,
+        ) {
             const id = getItemId(item)
             const action = userChoices[id]
 

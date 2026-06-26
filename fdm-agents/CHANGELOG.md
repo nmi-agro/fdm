@@ -1,5 +1,27 @@
 # @nmi-agro/fdm-agents
 
+## 0.4.0
+
+### Minor Changes
+
+- [#646](https://github.com/nmi-agro/fdm/pull/646) [`9a8b5fa`](https://github.com/nmi-agro/fdm/commit/9a8b5fa1b0c8e34cb7c9bc9e874f77c410665350) Thanks [@SvenVw](https://github.com/SvenVw)! - Enable the user to select fertilizers for the strategy at Gerrit to ignore certain fertilizers
+
+- [#646](https://github.com/nmi-agro/fdm/pull/646) [`7f501b5`](https://github.com/nmi-agro/fdm/commit/7f501b528f0df2ac9f6112e54023079cc4eca8a2) Thanks [@SvenVw](https://github.com/SvenVw)! - Add generating claryfing questions at beginning of Gerrit to get additional user input for that farm specific
+
+- [#646](https://github.com/nmi-agro/fdm/pull/646) [`d333599`](https://github.com/nmi-agro/fdm/commit/d333599c83859b3f77915a1df0d651aa022dc5c0) Thanks [@SvenVw](https://github.com/SvenVw)! - Use streaming for Gerrit and show progress while awaiting the response of Gerrit
+
+- [#646](https://github.com/nmi-agro/fdm/pull/646) [`814c8fc`](https://github.com/nmi-agro/fdm/commit/814c8fccdbd8db794dfde6ab5f946a4e03f4377c) Thanks [@SvenVw](https://github.com/SvenVw)! - Switch default model for Gerrit to Gemini 3.5 Flash
+
+- [#628](https://github.com/nmi-agro/fdm/pull/628) [`f889ae6`](https://github.com/nmi-agro/fdm/commit/f889ae6f1bb0fe05c95f347fd9923295c59d3591) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added the helpdesk triage agent. This agent can take the ticket body text, and generate a subject line and assign a priority for it. It is independent of the fdm-helpdesk package and works as a feature of fdm-app.
+
+### Patch Changes
+
+- [#646](https://github.com/nmi-agro/fdm/pull/646) [`3d0099f`](https://github.com/nmi-agro/fdm/commit/3d0099f023fcd5e4f7746049be6cb575d6f3eedf) Thanks [@SvenVw](https://github.com/SvenVw)! - Rewrite prompt and tools to Dutch to improve the Dutch wording in the response
+
+- Updated dependencies [[`98e0127`](https://github.com/nmi-agro/fdm/commit/98e0127bd3f02e193ad57a1cfef18fc10df40c67), [`afdd78f`](https://github.com/nmi-agro/fdm/commit/afdd78f16fad2aef17e03e4eace48628ef7a2d51), [`c07e18c`](https://github.com/nmi-agro/fdm/commit/c07e18c7bc178a7c052fcdde0db30a56d508587a), [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9), [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9)]:
+  - @nmi-agro/fdm-core@0.34.0
+  - @nmi-agro/fdm-calculator@0.16.0
+
 ## 0.3.1
 
 ### Patch Changes

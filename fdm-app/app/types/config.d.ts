@@ -63,6 +63,8 @@ export interface ServerConfig {
         posthog?: {
             key: string
             host: string
+            projectId?: string
+            personalApiKey?: string
         } | null
     }
     mail?: {

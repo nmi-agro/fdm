@@ -496,7 +496,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
                         parsedYear >= 1970 &&
                         parsedYear < 2100
                             ? parsedYear
-                            : timeframe.start?.getFullYear() ?? new Date().getFullYear()
+                            : (timeframe.start?.getFullYear() ??
+                              new Date().getFullYear())
                     const cultivationDefaultDates =
                         await getDefaultDatesOfCultivation(
                             fdm,

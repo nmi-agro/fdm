@@ -21,9 +21,9 @@ import {
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
 import {
     type CropRow,
     columns,
@@ -164,7 +164,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                                 getHarvestabilityFromCatalogue(
                                     cultivation.b_lu_catalogue,
                                 ),
-                                cultivation.b_lu_croprotation ?? ""
+                                cultivation.b_lu_croprotation ?? "",
                             )
 
                             return getHarvests(
@@ -291,7 +291,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                     cultivationsForCatalogue[0]?.b_lu_croprotation ?? ""
                 const b_lu_harvestable = getEffectiveHarvestable(
                     getHarvestabilityFromCatalogue(b_lu_catalogue),
-                    b_lu_croprotation
+                    b_lu_croprotation,
                 )
                 return {
                     type: "crop",

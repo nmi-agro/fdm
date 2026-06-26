@@ -31,7 +31,7 @@ async function validatePdfMagicBytes(file: File) {
     }
     const buffer = await file.arrayBuffer()
     const type = await fileTypeFromBuffer(Buffer.from(buffer))
-    if (!type || type.ext !== "pdf" || type.mime !== "application/pdf") {
+    if (type?.ext !== "pdf" || type.mime !== "application/pdf") {
         throw new Error(
             `invalid: Bestand "${file.name}" is geen geldig PDF-bestand.`,
         )

@@ -5,6 +5,7 @@ import {
     type MetaFunction,
     Outlet,
     useLoaderData,
+    useParams,
 } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -126,10 +127,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmBalanceNitrogenBlock() {
     const loaderData = useLoaderData<typeof loader>()
+    const { b_id, calendar } = useParams()
+
+    const action = b_id
+        ? {
+              to: `/farm/${loaderData.b_id_farm}/${calendar}/nutrient_advice`,
+              label: "Terug naar bemestingsadvies",
+              disabled: false,
+          }
+        : {
+              to: `/farm/${loaderData.b_id_farm}`,
+              label: "Terug naar bedrijf",
+              disabled: false,
+          }
 
     return (
         <SidebarInset>
-            <Header action={undefined}>
+            <Header action={action}>
                 <HeaderFarm
                     b_id_farm={loaderData.b_id_farm}
                     farmOptions={loaderData.farmOptions}

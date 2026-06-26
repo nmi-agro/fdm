@@ -8,7 +8,13 @@ import {
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useWatch } from "react-hook-form"
-import { Form, NavLink, useActionData, useLocation, useNavigation } from "react-router"
+import {
+    Form,
+    NavLink,
+    useActionData,
+    useLocation,
+    useNavigation,
+} from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
@@ -469,18 +475,15 @@ function YearSwitcher({
     pathname: string
 }) {
     const currentYear = Number(calendar)
-    const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i).filter(
-        (y) => y !== currentYear,
-    )
+    const years = Array.from(
+        { length: 11 },
+        (_, i) => currentYear - 5 + i,
+    ).filter((y) => y !== currentYear)
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 w-full"
-                >
+                <Button variant="outline" size="sm" className="mt-2 w-full">
                     Kies een ander jaar
                 </Button>
             </DropdownMenuTrigger>
@@ -488,10 +491,7 @@ function YearSwitcher({
                 {years.map((year) => (
                     <DropdownMenuItem key={year} asChild>
                         <NavLink
-                            to={pathname.replace(
-                                `/${calendar}/`,
-                                `/${year}/`,
-                            )}
+                            to={pathname.replace(`/${calendar}/`, `/${year}/`)}
                         >
                             {year}
                         </NavLink>

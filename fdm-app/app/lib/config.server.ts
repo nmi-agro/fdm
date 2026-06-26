@@ -102,6 +102,12 @@ export const serverConfig: ServerConfig = {
         posthog: {
             key: String(process.env.PUBLIC_POSTHOG_KEY),
             host: String(process.env.PUBLIC_POSTHOG_HOST),
+            ...(process.env.POSTHOG_PROJECT_ID
+                ? { projectId: process.env.POSTHOG_PROJECT_ID }
+                : {}),
+            ...(process.env.POSTHOG_PERSONAL_API_KEY
+                ? { personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY }
+                : {}),
         },
     },
 

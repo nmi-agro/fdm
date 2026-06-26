@@ -17,6 +17,7 @@ import {
     unassignTicket,
     updateTicketPriority,
     updateTicketStatus,
+    updateTicketSubject,
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import { dataWithSuccess } from "remix-toast"
@@ -34,7 +35,10 @@ import {
     TicketTagsSchema,
 } from "~/components/blocks/helpdesk/tag-schema"
 import { Ticket } from "~/components/blocks/helpdesk/ticket"
-import { TicketPrioritySchema } from "~/components/blocks/helpdesk/ticket-schema"
+import {
+    TicketPrioritySchema,
+    TicketSubjectSchema,
+} from "~/components/blocks/helpdesk/ticket-schema"
 
 interface Args {
     params: { ticket_id: string }
@@ -44,9 +48,13 @@ export async function loader({ params, request }: Args) {
     try {
         const session = await getSession(request)
 
-        const [ticket, messages, availableTags, canAddMessages, isAgent] =
+        const ticket = await getTicket(
+            fdm,
+            session.principal_id,
+            params.ticket_id,
+        )
+        const [messages, availableTags, canAddMessages, isAgent] =
             await Promise.all([
-                getTicket(fdm, session.principal_id, params.ticket_id),
                 getMessagesForTicket(
                     fdm,
                     session.principal_id,
@@ -164,6 +172,10 @@ export const ActionSchema = z.discriminatedUnion("intent", [
     z.object({ intent: z.literal("mark_ticket_as_viewed") }),
     z.object({ intent: z.literal("set_ticket_status"), status: z.string() }),
     z.object({
+        intent: z.literal("update_subject"),
+        subject: TicketSubjectSchema,
+    }),
+    z.object({
         intent: z.literal("update_priority"),
         priority: TicketPrioritySchema,
     }),
@@ -199,6 +211,19 @@ export async function action({ params, request }: Args) {
 
             return dataWithSuccess("De status is successvol bijgewerkt!", {
                 message: "De status is successvol bijgewerkt!",
+            })
+        }
+
+        if (formValues.intent === "update_subject") {
+            await updateTicketSubject(
+                fdm,
+                session.principal_id,
+                params.ticket_id,
+                formValues.subject,
+            )
+
+            return dataWithSuccess("Het onderwerp is succesvol bijgewerkt!", {
+                message: "Het onderwerp is succesvol bijgewerkt!",
             })
         }
 
@@ -449,6 +474,15 @@ export async function action({ params, request }: Args) {
             })
         }
     } catch (err) {
+        // extractFormValuesFromRequest calls handleActionError itself, so if that is detected to be the case,
+        // return the response returned from it directly.
+        if (err instanceof Promise) {
+            const awaited = await (err as Promise<any>).catch(() => {})
+            if (awaited.type === "DataWithResponseInit") {
+                return awaited
+            }
+        }
+
         throw handleActionError(err)
     }
 }

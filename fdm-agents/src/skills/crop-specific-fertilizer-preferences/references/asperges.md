@@ -1,55 +1,58 @@
 # Asparagus (asperges) — nl_2710, nl_2711, nl_2712
 
-Asparagus is a **perennial** crop (10–15+ productive years) on light sandy or zavel
-soils (Limburg, Noord-Brabant). The fertilizer regime depends sharply on the life stage
-of the field.
+Asperges zijn een **meerjarig** gewas (10–15+ productieve jaren) op lichte zand- of
+zavelgronden (Limburg, Noord-Brabant). Het bemestingsregime hangt sterk af van de
+levensfase van het perceel.
 
-> **nl_2711** = area not yet in production (planting year through third year).
-> **nl_2710** = area in production. **nl_2712** = seeds and propagation material
-> (nursery).
+> **nl_2711** = areaal nog niet in productie (plantjaar tot en met derde jaar).
+> **nl_2710** = areaal in productie. **nl_2712** = zaaizaad en vermeerderingsmateriaal
+> (kwekerij).
 
-## Establishment and young planting — nl_2711
+## Vestiging en jonge aanplant — nl_2711
 
-**Prefer:**
-- Well-matured organic matter (compost, well-rotted farmyard manure) **incorporated
-  before planting** to depth — asparagus roots deeply. This is the most important
-  structural and P / K investment for the entire cropping cycle.
-- Low to moderate N in the first years — `advice.d_n_req` already accounts for the life
-  stage.
-- Liming before planting on acid sand: target pH-KCl is higher than for most arable
-  crops; consult `advice.d_ca_req`.
+**Voorkeur:**
+- Goed uitgerijpte organische stof (compost, goed verteerde stalmest) **vóór planten
+  diep ingewerkt** — asperges wortelen diep. Dit is de belangrijkste structurele en
+  P / K-investering voor de volledige teeltcyclus.
+- Lage tot matige N in de eerste jaren — `advice.d_n_req` houdt al rekening met de
+  levensfase.
+- Bekalken vóór planten op zuur zand: de streef-pH-KCl ligt hoger dan voor de meeste
+  akkerbouwgewassen; raadpleeg `advice.d_ca_req`.
 
-**Avoid:**
-- Fresh slurry or pig slurry: disease risk (*Fusarium*) and salt load in a perennial
-  crop.
-- Excess N in young years — overstimulates the haulm but builds poor roots.
+**Vermijden:**
+- Verse drijfmest of varkensdrijfmest: ziekterisico (*Fusarium*) en zoutbelasting in een
+  meerjarig gewas.
+- Overmaat N in jonge jaren — stimuleert het loof te sterk maar bouwt zwakke wortels op.
 
-## Productive years — nl_2710
+## Productieve jaren — nl_2710
 
-Two fertilizer moments per year are standard:
+Twee bemestingsmomenten per jaar zijn standaard:
 
-1. **Early spring, before emergence**: main N + K application (in green-asparagus
-   systems, after the beds are levelled and plastic is removed).
-2. **After the harvest season ("after the last cut", end of June)**: an N application to
-   support fern development, since the fern builds reserves for the following year.
+1. **Vroeg voorjaar, vóór opkomst**: hoofdgift N + K (in systemen met groene asperges,
+   nadat de bedden zijn geëgaliseerd en het plastic is verwijderd).
+2. **Na het oogstseizoen ("na de laatste steek", eind juni)**: een N-gift ter
+   ondersteuning van de loofontwikkeling, omdat het loof reserves opbouwt voor het
+   volgende jaar.
 
-**Prefer:**
-- Splits as above, totals according to `advice.d_n_req`.
-- K as K₂SO₄ / patentkali — asparagus is moderately Cl-sensitive, especially in
-  productive years (sap composition, taste, shelf life).
-- B per `advice.d_b_req` — perennial asparagus shows B deficiency on light sandy soils.
-- S per `advice.d_s_req`.
-- Annual or biennial well-matured organic matter between the beds or as a surface
-  application in autumn.
+**Voorkeur:**
+- Deelgiften zoals hierboven, totalen volgens `advice.d_n_req`.
+- K als K₂SO₄ / patentkali — asperges zijn matig Cl-gevoelig, vooral in productieve
+  jaren (sapsamenstelling, smaak, houdbaarheid).
+- B volgens `advice.d_b_req` — meerjarige asperges vertonen B-gebrek op lichte
+  zandgronden.
+- S volgens `advice.d_s_req`.
+- Jaarlijks of tweejaarlijks goed uitgerijpte organische stof tussen de bedden of als
+  oppervlakkige toepassing in de herfst.
 
-**Avoid:**
-- N applications during the cutting season — no effect on the current year, only loss.
-- Fresh slurry in productive plantings — *Fusarium* and bacterial soft-rot risk.
-- KCl in large amounts — chloride in sap can degrade taste and shelf life.
+**Vermijden:**
+- N-toepassingen tijdens het steekseizoen — geen effect op het lopende jaar, alleen
+  verlies.
+- Verse drijfmest in productieve aanplant — risico op *Fusarium* en bacteriële zachtrot.
+- KCl in grote hoeveelheden — chloride in het sap kan smaak en houdbaarheid verslechteren.
 
-**Extra attention:**
-- pH management is multi-year: moderately acid to neutral soil (pH-KCl around 5.5–6.5
-  on sand) is typical; avoid extreme liming.
-- Asparagus replant disease is fungal / nematode driven — not a fertilizer issue, but
-  flag in the plan that establishment belongs on a fresh field.
-- White and green asparagus have the same fertilizer requirements.
+**Extra aandacht:**
+- pH-beheer is meerjarig: matig zure tot neutrale grond (pH-KCl rond 5.5–6.5 op zand) is
+  gebruikelijk; vermijd extreme bekalking.
+- Aspergeherinplantziekte wordt door schimmels / aaltjes gestuurd — geen
+  bemestingskwestie, maar markeer in het plan dat vestiging op een vers perceel hoort.
+- Witte en groene asperges hebben dezelfde bemestingsbehoeften.

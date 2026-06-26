@@ -360,26 +360,15 @@ async function selectTickets(
 
     const whereClause = getTicketWhereClause(fdm, { ...filters, requesterIds })
 
+    const isFilteringText =
+        typeof filters.text === "string" && filters.text.trim().length > 0
+
     if (selectCount) {
-        return await fdm
+        let query = fdm
             .select({
                 count: sql<number>`cast(count(distinct ${schema.tickets.ticket_id}) as integer)`,
             })
             .from(schema.tickets)
-            .leftJoin(
-                schema.ticketAssignments,
-                and(
-                    eq(
-                        schema.ticketAssignments.ticket_id,
-                        schema.tickets.ticket_id,
-                    ),
-                    isNull(schema.ticketAssignments.unassigned_at),
-                ),
-            )
-            .leftJoin(
-                schema.ticketTagsMap,
-                eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
-            )
             .leftJoin(
                 schema.ticketViews,
                 and(
@@ -387,7 +376,9 @@ async function selectTickets(
                     inArray(schema.ticketViews.actor_id, principal_ids),
                 ),
             )
-            .leftJoin(
+
+        if (isFilteringText) {
+            query = query.leftJoin(
                 schema.messages,
                 and(
                     eq(schema.messages.ticket_id, schema.tickets.ticket_id),
@@ -396,7 +387,9 @@ async function selectTickets(
                         : not(schema.messages.is_internal),
                 ),
             )
-            .where(whereClause)
+        }
+
+        return await query.where(whereClause)
     }
 
     // If actually returning tickets, ensure either priority, text relevance, or creation date ordering
@@ -410,8 +403,17 @@ async function selectTickets(
     ELSE 0 END`
             : undefined
     const textRelevanceQuery =
-        sorting === "text_relevance" && filters.text
-            ? sql<number>`max(ts_rank(setweight(to_tsvector('dutch', ${schema.messages.body}), 'A'), websearch_to_tsquery('dutch', ${filters.text})))`
+        sorting === "text_relevance" && isFilteringText
+            ? sql<number>`GREATEST(
+                ts_rank(
+                    setweight(to_tsvector('dutch', ${schema.tickets.ticket_ref} || ' ' || coalesce(${schema.tickets.subject}, '')), 'A'),
+                    websearch_to_tsquery('dutch', ${filters.text})
+                ),
+                max(ts_rank(
+                    setweight(to_tsvector('dutch', coalesce(${schema.messages.body}, '')), 'B'),
+                    websearch_to_tsquery('dutch', ${filters.text})
+                ))
+            )`
             : undefined
 
     let query = fdm
@@ -425,23 +427,6 @@ async function selectTickets(
                 : {}),
         })
         .from(schema.tickets)
-        .leftJoin(
-            schema.ticketAssignments,
-            eq(schema.ticketAssignments.ticket_id, schema.tickets.ticket_id),
-        )
-        .leftJoin(
-            schema.ticketTagsMap,
-            eq(schema.ticketTagsMap.ticket_id, schema.tickets.ticket_id),
-        )
-        .leftJoin(
-            schema.messages,
-            and(
-                eq(schema.messages.ticket_id, schema.tickets.ticket_id),
-                helpdeskReadPermission
-                    ? undefined
-                    : not(schema.messages.is_internal),
-            ),
-        )
         // TODO: check if each agent has viewed, not only one of them
         .leftJoin(
             schema.ticketViews,
@@ -450,6 +435,20 @@ async function selectTickets(
                 inArray(schema.ticketViews.actor_id, principal_ids),
             ),
         )
+
+    if (isFilteringText) {
+        query = query.leftJoin(
+            schema.messages,
+            and(
+                eq(schema.messages.ticket_id, schema.tickets.ticket_id),
+                helpdeskReadPermission
+                    ? undefined
+                    : not(schema.messages.is_internal),
+            ),
+        )
+    }
+
+    query = query
         .where(whereClause)
         .groupBy(schema.tickets.ticket_id)
         .orderBy((t) => {
@@ -462,7 +461,7 @@ async function selectTickets(
             }
 
             return [desc(t.created)]
-        })
+        }) as typeof query
 
     if (filters.pageOffset) {
         query = query.offset(filters.pageOffset) as typeof query
@@ -620,6 +619,43 @@ export async function updateTicketSubjectAndPriorityUnchecked(
 }
 
 /**
+ * Updates the ticket subject.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have agent-side write access to the ticket.
+ * @param ticket_id ID of the ticket to update.
+ * @param subject The new ticket subject.
+ */
+export async function updateTicketSubject(
+    fdm: FdmHelpdeskType,
+    principal_id: HelpdeskPrincipalId,
+    ticket_id: schema.TicketTypeSelect["ticket_id"],
+    subject?: string,
+) {
+    try {
+        await checkHelpdeskPermission(
+            fdm,
+            "ticket-agent-side",
+            "write",
+            ticket_id,
+            principal_id,
+            "updateTicketPriority",
+        )
+
+        await fdm
+            .update(schema.tickets)
+            .set({ subject: subject, updated: sql`now()` })
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+    } catch (e) {
+        throw handleError(e, "Exception for updateTicketSubject", {
+            principal_id,
+            ticket_id,
+        })
+    }
+}
+
+/**
  * Updates the ticket priority.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
@@ -650,6 +686,7 @@ export async function updateTicketPriority(
             .where(eq(schema.tickets.ticket_id, ticket_id))
     } catch (e) {
         throw handleError(e, "Exception for updateTicketPriority", {
+            principal_id,
             ticket_id,
             priority,
         })

@@ -12,6 +12,44 @@ import {
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 
+export function getSafeFarmPath(currentPath: string, newFarmId: string) {
+    const segments = currentPath.split("/").filter(Boolean)
+    if (segments[0] !== "farm" || segments.length < 2) {
+        return `/farm/${newFarmId}`
+    }
+
+    if (segments[1] === newFarmId) {
+        return currentPath
+    }
+
+    // Replace the farm ID (which is at index 1)
+    segments[1] = newFarmId
+
+    // Check if there's a calendar year at index 2
+    const hasCalendar = /^\d{4}$/.test(segments[2] || "")
+
+    // The module is either at index 3 (if calendar) or index 2 (if no calendar)
+    const moduleIndex = hasCalendar ? 3 : 2
+
+    // Check if the module has safe submodules we want to preserve
+    let keepIndex = moduleIndex
+    const subModuleDirs = ["balance", "atlas", "rotation", "settings"]
+    if (
+        segments.length > moduleIndex + 1 &&
+        subModuleDirs.includes(segments[moduleIndex])
+    ) {
+        keepIndex = moduleIndex + 1
+    }
+
+    // If we have segments beyond the safe keepIndex, truncate them
+    if (segments.length > keepIndex + 1) {
+        return `/${segments.slice(0, keepIndex + 1).join("/")}`
+    }
+
+    // Otherwise return the path as is (with the farm ID replaced)
+    return `/${segments.join("/")}`
+}
+
 export function HeaderFarm({
     b_id_farm,
     farmOptions,
@@ -59,9 +97,9 @@ export function HeaderFarm({
                                     <NavLink
                                         to={
                                             b_id_farm
-                                                ? currentPath.replace(
-                                                      /^\/farm\/[^/]+/,
-                                                      `/farm/${option.b_id_farm}`,
+                                                ? getSafeFarmPath(
+                                                      currentPath,
+                                                      option.b_id_farm,
                                                   )
                                                 : `/farm/${option.b_id_farm}`
                                         }

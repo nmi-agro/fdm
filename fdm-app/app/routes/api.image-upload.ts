@@ -1,9 +1,9 @@
-import { nanoid } from "nanoid"
-import { fileTypeFromBuffer } from "file-type"
+import { addSoilImage } from "@nmi-agro/fdm-core"
 import type { FileUpload } from "@remix-run/form-data-parser"
 import { parseFormData } from "@remix-run/form-data-parser"
+import { fileTypeFromBuffer } from "file-type"
+import { nanoid } from "nanoid"
 import type { ActionFunctionArgs } from "react-router"
-import { addSoilImage } from "@nmi-agro/fdm-core"
 import { uploadObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
@@ -59,7 +59,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
         fileBuffer = Buffer.from(arrayBuffer)
         detectedMime = fileType.mime
-        return new File([new Uint8Array(arrayBuffer)], fileUpload.name, { type: detectedMime })
+        return new File([new Uint8Array(arrayBuffer)], fileUpload.name, {
+            type: detectedMime,
+        })
     }
 
     let formData: FormData
@@ -104,7 +106,9 @@ export async function action({ request }: ActionFunctionArgs) {
     const rawImageType = formData.get("a_image_type")?.toString()
     if (rawImageType !== undefined && !ALLOWED_IMAGE_TYPES.has(rawImageType)) {
         return Response.json(
-            { error: `Invalid a_image_type. Allowed: ${[...ALLOWED_IMAGE_TYPES].join(", ")}` },
+            {
+                error: `Invalid a_image_type. Allowed: ${[...ALLOWED_IMAGE_TYPES].join(", ")}`,
+            },
             { status: 400 },
         )
     }
@@ -118,7 +122,11 @@ export async function action({ request }: ActionFunctionArgs) {
         | undefined
 
     const rawOrder = Number(formData.get("a_image_order") ?? 0)
-    if (!Number.isFinite(rawOrder) || rawOrder < 0 || !Number.isInteger(rawOrder)) {
+    if (
+        !Number.isFinite(rawOrder) ||
+        rawOrder < 0 ||
+        !Number.isInteger(rawOrder)
+    ) {
         return Response.json(
             { error: "a_image_order must be a non-negative integer" },
             { status: 400 },

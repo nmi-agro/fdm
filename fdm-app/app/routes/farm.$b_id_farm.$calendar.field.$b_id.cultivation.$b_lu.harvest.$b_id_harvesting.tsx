@@ -3,8 +3,8 @@ import {
     getCultivation,
     getHarvest,
     getParametersForHarvestCat,
-    removeHarvest,
     type HarvestParameters,
+    removeHarvest,
     updateHarvest,
 } from "@nmi-agro/fdm-core"
 import {
@@ -17,7 +17,10 @@ import {
 import { dataWithWarning, redirectWithSuccess } from "remix-toast"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { FormSchema } from "~/components/blocks/harvest/schema"
-import { getEffectiveHarvestable, getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
+import {
+    getEffectiveHarvestable,
+    getHarvestCapitalizedTerm,
+} from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -29,8 +32,10 @@ import { getHarvestParameterLabel } from "../components/blocks/harvest/parameter
 type HarvestParameter = HarvestParameters[number]
 
 // Meta
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-    const term = getHarvestCapitalizedTerm(data?.cultivation?.b_lu_croprotation)
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+    const term = getHarvestCapitalizedTerm(
+        loaderData?.cultivation?.b_lu_croprotation,
+    )
     return [
         { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
         {
@@ -302,7 +307,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 harvestProperties,
             )
 
-            const term = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
+            const term = getHarvestCapitalizedTerm(
+                cultivation.b_lu_croprotation,
+            )
             return redirectWithSuccess(
                 `/farm/${b_id_farm}/${calendar}/field/${b_id}/cultivation/${b_lu}`,
                 {
@@ -315,7 +322,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             if (!b_id_harvesting) {
                 throw new Error("missing: b_id_harvesting")
             }
-            
+
             // To get croprotation for delete message, we might need cultivation
             // Just use a generic or fetch cultivation if we want the exact term.
             // Let's just fetch it quickly since it's a small read:
@@ -324,8 +331,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 session.principal_id,
                 b_lu,
             )
-            const term = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation)
-            
+            const term = getHarvestCapitalizedTerm(
+                cultivation?.b_lu_croprotation,
+            )
+
             await removeHarvest(fdm, session.principal_id, b_id_harvesting)
             return redirectWithSuccess(
                 `/farm/${b_id_farm}/${calendar}/field/${b_id}/cultivation/${b_lu}`,

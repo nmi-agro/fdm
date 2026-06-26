@@ -1,5 +1,5 @@
 import { format } from "date-fns/format"
-import { NavLink } from "react-router-dom"
+import { NavLink } from "react-router"
 import type { Cultivation } from "./types"
 
 interface Harvest {

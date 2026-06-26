@@ -23,12 +23,12 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FertilizerApplicationCard } from "~/components/blocks/fertilizer-applications/card"
-import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import {
     FormSchema,
     FormSchemaModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
 import { FertilizerApplicationMetricsCard } from "~/components/blocks/fertilizer-applications/metrics"
+import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"

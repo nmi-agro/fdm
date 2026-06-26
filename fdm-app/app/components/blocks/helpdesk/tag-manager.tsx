@@ -26,17 +26,17 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
 import {
-    DEFAULT_TAG_COLOR,
-    DEFAULT_TAG_COLOR_LABEL,
-    SWATCH,
-    TagCreator,
-} from "./tag-creator"
-import {
     Empty,
     EmptyDescription,
     EmptyHeader,
     EmptyTitle,
 } from "../../ui/empty"
+import {
+    DEFAULT_TAG_COLOR,
+    DEFAULT_TAG_COLOR_LABEL,
+    SWATCH,
+    TagCreator,
+} from "./tag-creator"
 
 type TagExtended = Tag
 

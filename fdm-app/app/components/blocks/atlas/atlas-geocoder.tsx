@@ -65,47 +65,49 @@ class GeocoderControlClass implements IControl {
                         const data = await res.json()
 
                         if (Array.isArray(data)) {
-                            const features = data.map((item: NominatimResult) => {
-                                const bbox = item.boundingbox
-                                    ? [
-                                          Number.parseFloat(
-                                              item.boundingbox[2],
-                                          ), // minLon
-                                          Number.parseFloat(
-                                              item.boundingbox[0],
-                                          ), // minLat
-                                          Number.parseFloat(
-                                              item.boundingbox[3],
-                                          ), // maxLon
-                                          Number.parseFloat(
-                                              item.boundingbox[1],
-                                          ), // maxLat
-                                      ]
-                                    : undefined
+                            const features = data.map(
+                                (item: NominatimResult) => {
+                                    const bbox = item.boundingbox
+                                        ? [
+                                              Number.parseFloat(
+                                                  item.boundingbox[2],
+                                              ), // minLon
+                                              Number.parseFloat(
+                                                  item.boundingbox[0],
+                                              ), // minLat
+                                              Number.parseFloat(
+                                                  item.boundingbox[3],
+                                              ), // maxLon
+                                              Number.parseFloat(
+                                                  item.boundingbox[1],
+                                              ), // maxLat
+                                          ]
+                                        : undefined
 
-                                return {
-                                    id: item.place_id,
-                                    type: "Feature",
-                                    geometry: {
-                                        type: "Point",
-                                        coordinates: [
+                                    return {
+                                        id: item.place_id,
+                                        type: "Feature",
+                                        geometry: {
+                                            type: "Point",
+                                            coordinates: [
+                                                Number.parseFloat(item.lon),
+                                                Number.parseFloat(item.lat),
+                                            ],
+                                        },
+                                        properties: item,
+                                        place_name: item.display_name,
+                                        place_type: [item.type],
+                                        text:
+                                            item.display_name?.split(",")[0] ||
+                                            item.display_name,
+                                        center: [
                                             Number.parseFloat(item.lon),
                                             Number.parseFloat(item.lat),
                                         ],
-                                    },
-                                    properties: item,
-                                    place_name: item.display_name,
-                                    place_type: [item.type],
-                                    text:
-                                        item.display_name?.split(",")[0] ||
-                                        item.display_name,
-                                    center: [
-                                        Number.parseFloat(item.lon),
-                                        Number.parseFloat(item.lat),
-                                    ],
-                                    bbox: bbox,
-                                }
-                            })
+                                        bbox: bbox,
+                                    }
+                                },
+                            )
                             return { features }
                         }
                         console.warn(

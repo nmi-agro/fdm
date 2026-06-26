@@ -1,110 +1,109 @@
 # Orchard fruit and small fruit (fruitteelt)
 
-Includes:
-- **Pome and stone fruit**: apple (nl_212 generic, nl_1095 planted current season,
-  nl_1096 planted previous season), pear (shared under nl_212), plum (nl_1870), cherry
-  (nl_1872 sour, nl_2328 sweet).
-- **Small fruit / soft fruit**: blueberry (nl_1869), blackcurrant (nl_1873), redcurrant
-  (nl_2325), raspberry (nl_2326), gooseberry / other small fruit (nl_1874).
-- **Strawberry, open ground**: nl_2700 (propagation), nl_2701 (waiting bed), nl_2702
-  (production), nl_2703 (seeds / propagation).
-- **Strawberry on raised tabletops (stellingen)**: nl_2704–nl_2707 (same role split).
+Omvat:
+- **Pit- en steenvrucht**: appel (nl_212 generiek, nl_1095 geplant huidig seizoen,
+  nl_1096 geplant vorig seizoen), peer (gedeeld onder nl_212), pruim (nl_1870), kers
+  (nl_1872 zuur, nl_2328 zoet).
+- **Kleinfruit / zachtfruit**: blauwe bes (nl_1869), zwarte bes (nl_1873), rode bes
+  (nl_2325), framboos (nl_2326), kruisbes / overig kleinfruit (nl_1874).
+- **Aardbei, vollegrond**: nl_2700 (vermeerdering), nl_2701 (wachtbed), nl_2702
+  (productie), nl_2703 (zaaizaad / vermeerdering).
+- **Aardbei op stellingen**: nl_2704–nl_2707 (zelfde rolverdeling).
 
-Fruit growing is a perennial sector with strongly **leaf-analysis-driven** fertilization;
-annual soil analysis alone is not sufficient. Refer to the relevant sector fertilizer
-guidance for species- and cultivar-specific rates; this skill provides only the general
-envelope.
+Fruitteelt is een meerjarige sector met sterk **bladanalysegestuurde** bemesting;
+jaarlijkse bodemanalyse alleen is niet voldoende. Verwijs naar de relevante
+sectorbemestingsrichtlijnen voor soort- en cultivarspecifieke giften; deze skill geeft
+alleen de algemene bandbreedte.
 
-> **Strawberry is botanically small fruit but agronomically closer to field vegetables**
-> — see the strawberry section below.
+> **Aardbei is botanisch kleinfruit maar agronomisch nauwer verwant aan vollegrondsgroenten**
+> — zie de aardbeiensectie hieronder.
 
-## Pome and stone fruit — apple, pear, plum, cherry (nl_212, nl_1095, nl_1096, nl_1870, nl_1872, nl_2328)
+## Pit- en steenvrucht — appel, peer, pruim, kers (nl_212, nl_1095, nl_1096, nl_1870, nl_1872, nl_2328)
 
-**Prefer:**
-- **Leaf-analysis-driven** N, P, K, Mg, Ca, B, Mn, Zn — request the annual leaf analysis
-  from the grower and combine it with `advice.d_*_req`.
-- Split N: small early-spring application (bud swelling / mouse-ear stage) plus a second
-  application after flowering. An autumn leaf-fall foliar urea application after harvest
-  for leaf-reserve formation is common in apple — this is foliar, not a soil
-  application.
-- K as K₂SO₄ / patentkali — KCl is unusual in fruit: apple is moderately Cl-sensitive,
-  and patentkali also supplies the Mg that apple structurally needs.
-- Magnesium per `advice.d_mg_req` — apple has a strong Mg requirement (Mg deficiency
-  causes leaf browning and pre-harvest drop).
-- Boron per `advice.d_b_req` — pear and plum in particular are B-sensitive (poor fruit
-  set).
-- Calcium for apple: bitter pit in Elstar, Jonagold etc. is a classic Ca-translocation
-  problem. Soil Ca alone is not sufficient — repeated Ca foliar sprays from fruit set
-  to just before picking are standard practice. `advice.d_ca_req` covers the soil part,
-  not the foliar sprays.
+**Voorkeur:**
+- **Bladanalysegestuurde** N, P, K, Mg, Ca, B, Mn, Zn — vraag de jaarlijkse bladanalyse
+  op bij de teler en combineer die met `advice.d_*_req`.
+- Gedeelde N-gift: kleine vroege voorjaarsgift (knopzwelling / muizenoorstadium) plus
+  een tweede gift na de bloei. Een bladtoepassing met ureum in de herfst rond bladval,
+  na de oogst, voor vorming van bladreserves is gebruikelijk in appel — dit is een
+  bladtoepassing, geen bodemtoepassing.
+- K als K₂SO₄ / patentkali — KCl is ongebruikelijk in fruit: appel is matig
+  Cl-gevoelig, en patentkali levert ook de Mg die appel structureel nodig heeft.
+- Magnesium volgens `advice.d_mg_req` — appel heeft een sterke Mg-behoefte
+  (Mg-gebrek veroorzaakt bladverbruining en voortijdige vruchtval).
+- Borium volgens `advice.d_b_req` — vooral peer en pruim zijn B-gevoelig (slechte
+  vruchtzetting).
+- Calcium voor appel: bitter pit in Elstar, Jonagold etc. is een klassiek
+  Ca-translocatieprobleem. Bodem-Ca alleen is niet voldoende — herhaalde
+  Ca-bladbespuitingen vanaf vruchtzetting tot kort vóór pluk zijn standaardpraktijk.
+  `advice.d_ca_req` dekt het bodemdeel, niet de bladbespuitingen.
 
-**Avoid:**
-- High N in young plantings (nl_1095, nl_1096): produces overly vigorous growth at the
-  cost of early production and root development. `advice.d_n_req` accounts for age.
-- N applications after mid-July in apple: reduce fruit colouring and storage life
-  (Jonagold, Elstar, Kanzi); for pear (Conference) it shortens storage life.
-- KCl in mature plantings — Cl load in fruit and leaves.
-- Fresh slurry directly around the trunk — root damage and salt stress.
+**Vermijden:**
+- Hoge N in jonge aanplant (nl_1095, nl_1096): geeft te sterke groei ten koste van
+  vroege productie en wortelontwikkeling. `advice.d_n_req` houdt rekening met leeftijd.
+- N-toepassingen na half juli in appel: verminderen vruchtkleur en bewaarbaarheid
+  (Jonagold, Elstar, Kanzi); bij peer (Conference) verkort het de bewaarbaarheid.
+- KCl in volwassen aanplant — Cl-belasting in fruit en blad.
+- Verse drijfmest direct rond de stam — wortelschade en zoutstress.
 
-**Extra attention:**
-- In modern orchards fertilization is often delivered via **fertigation / drip**; the
-  rates from `advice.d_*_req` still apply, only the delivery route differs.
-- Hail nets / rain covers in modern pome and stone fruit affect N mineralisation (lower
-  soil temperature); when in doubt, be slightly more cautious with early N.
-- For young plantings (nl_1095, nl_1096), structure and soil moisture are more
-  important than fertilization — flag this if the grower presents a newly planted
-  orchard.
+**Extra aandacht:**
+- In moderne boomgaarden wordt bemesting vaak toegediend via **fertigatie / druppel**; de
+  giften uit `advice.d_*_req` blijven gelden, alleen de toedieningsroute verschilt.
+- Hagelnetten / regenkappen in moderne pit- en steenvrucht beïnvloeden N-mineralisatie
+  (lagere bodemtemperatuur); wees bij twijfel iets voorzichtiger met vroege N.
+- Voor jonge aanplant (nl_1095, nl_1096) zijn structuur en bodemvocht belangrijker dan
+  bemesting — markeer dit als de teler een nieuw aangeplante boomgaard opvoert.
 
-## Small fruit — currants, raspberry, gooseberry (nl_1869, nl_1873, nl_2325, nl_2326, nl_1874)
+## Kleinfruit — bessen, framboos, kruisbes (nl_1869, nl_1873, nl_2325, nl_2326, nl_1874)
 
-**Prefer:**
-- **Blueberry (nl_1869)** requires an **acid soil** (pH-KCl 4.0–5.0). **No liming** in
-  blueberry plantings; instead, acidification with elemental S or acid organic matter
-  (peat, coniferous compost) is standard. `advice.d_ca_req > 0` in blueberry is a
-  signal that the field is unsuitable and must appear as a warning in the plan.
-- Black / red currants, gooseberries: pH-KCl 5.5–6.0 on sand, higher on clay; follow
+**Voorkeur:**
+- **Blauwe bes (nl_1869)** vraagt een **zure grond** (pH-KCl 4.0–5.0). **Geen
+  bekalking** in blauwe-bessenaanplant; in plaats daarvan is verzuring met elementaire S
+  of zure organische stof (veen, naaldhoutcompost) standaard. `advice.d_ca_req > 0` bij
+  blauwe bes is een signaal dat het perceel ongeschikt is en als waarschuwing in het plan
+  moet verschijnen.
+- Zwarte / rode bessen, kruisbessen: pH-KCl 5.5–6.0 op zand, hoger op klei; volg
   `advice.d_ca_req`.
-- Split N with base in spring and a small top-dress after flowering; no N after
-  mid-July.
-- K as K₂SO₄ — all small fruits are Cl-sensitive.
-- Boron and Mg per `advice.d_b_req` / `advice.d_mg_req`.
+- Gedeelde N met basisgift in het voorjaar en een kleine bijbemesting na de bloei; geen N
+  na half juli.
+- K als K₂SO₄ — alle kleinfruit is Cl-gevoelig.
+- Borium en Mg volgens `advice.d_b_req` / `advice.d_mg_req`.
 
-**Avoid:**
-- KCl on small fruit — leaf-margin scorch and reduced shelf life.
-- Liming in blueberry plantings — destroys the entire cropping system.
-- Fresh slurry between the bushes — root damage and disease risk.
+**Vermijden:**
+- KCl op kleinfruit — bladrandverbranding en verminderde houdbaarheid.
+- Bekalking in blauwe-bessenaanplant — vernietigt het volledige teeltsysteem.
+- Verse drijfmest tussen de struiken — wortelschade en ziekterisico.
 
-## Strawberry (nl_2700–nl_2707)
+## Aardbei (nl_2700–nl_2707)
 
-Strawberry is **short-perennial** (1–2 production years) and agronomically closest to
-field vegetables.
+Aardbei is **kort-meerjarig** (1–2 productiejaren) en agronomisch het meest verwant aan
+vollegrondsgroenten.
 
-**Prefer:**
-- Base NPK before planting (July–August for everbearer / waiting-bed plants;
-  August–September for June-bearers); spring top-dress for the production field.
-- Fertigation where available — strawberry is a classic fertigation crop on tabletops
-  and ridge systems.
-- K as K₂SO₄ — strawberry is Cl-sensitive (fruit quality, taste, shelf life).
-- Boron and Ca per `advice.d_b_req` / `advice.d_ca_req` — Ca against leaf-margin
-  symptoms and soft fruit.
+**Voorkeur:**
+- Basisgift NPK vóór planten (juli–augustus voor doordragers / wachtbedplanten;
+  augustus–september voor junidragers); voorjaarsbijbemesting voor het productieperceel.
+- Fertigatie waar beschikbaar — aardbei is een klassiek fertigatiegewas op stellingen en
+  rugteeltsystemen.
+- K als K₂SO₄ — aardbei is Cl-gevoelig (vruchtkwaliteit, smaak, houdbaarheid).
+- Borium en Ca volgens `advice.d_b_req` / `advice.d_ca_req` — Ca tegen bladrandsymptomen
+  en zacht fruit.
 
-**Avoid:**
-- High N during fruiting — soft fruit, *Botrytis*, taste loss.
-- Fresh slurry in production fields — *Phytophthora* and *Botrytis* risk, and food-
-  safety considerations.
-- KCl in production fields.
+**Vermijden:**
+- Hoge N tijdens vruchtzetting en oogst — zacht fruit, *Botrytis*, smaakverlies.
+- Verse drijfmest in productiepercelen — risico op *Phytophthora* en *Botrytis*, en
+  aandachtspunten rond voedselveiligheid.
+- KCl in productiepercelen.
 
-**Tabletop production (nl_2704–nl_2707)**: fertilization via nutrient solution and
-fertigation; this skill covers only the general envelope. Refer to the grower's or
-propagator's specific feeding schedules.
+**Teelt op stellingen (nl_2704–nl_2707)**: bemesting via voedingsoplossing en
+fertigatie; deze skill dekt alleen de algemene bandbreedte. Verwijs naar de specifieke
+voedingsschema's van de teler of vermeerderaar.
 
-**Propagation and waiting beds (nl_2700, nl_2701, nl_2704, nl_2705)** require lower N
-than production (controlled growth, no fruiting wanted); `advice.d_n_req` accounts for
-this stage.
+**Vermeerdering en wachtbedden (nl_2700, nl_2701, nl_2704, nl_2705)** vragen minder N
+dan productie (beheerste groei, geen vruchtvorming gewenst); `advice.d_n_req` houdt
+rekening met dit stadium.
 
-**Extra attention (all fruit types):**
-- Soil and leaf analysis are both needed; soil analysis alone over- or under-estimates
-  the actual supply in a perennial planting.
-- Residual N from a grubbed-out old planting or a grass strip between rows is
-  significant; factor this into the following year via the standard fdm-calculator
-  workflow, not here.
+**Extra aandacht (alle fruitsoorten):**
+- Zowel bodem- als bladanalyse zijn nodig; bodemanalyse alleen overschat of onderschat de
+  werkelijke aanvoer in een meerjarige aanplant.
+- Rest-N uit een gerooid oud perceel of uit een grasstrook tussen de rijen is aanzienlijk;
+  neem dit mee in het volgende jaar via de standaard fdm-calculator-workflow, niet hier.

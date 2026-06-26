@@ -7,8 +7,7 @@ import {
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import type { LoaderFunctionArgs } from "react-router"
-import { redirect, useLoaderData } from "react-router"
-import { Outlet } from "react-router-dom"
+import { Outlet, redirect, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"
 import { SidebarOrganization } from "~/components/blocks/sidebar/organization"
@@ -166,7 +165,7 @@ export default function App() {
                     userName={loaderData.userName}
                 />
             </Sidebar>
-            <SidebarInset>
+            <SidebarInset className="min-w-0">
                 <Header action={undefined}>
                     <HeaderOrganization
                         selectedOrganizationSlug={

@@ -12,8 +12,8 @@ import maplibregl, { type GeoJSONFeature } from "maplibre-gl"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
     Layer,
-    Map as MapGL,
     type LayerProps,
+    Map as MapGL,
     type MapMouseEvent,
     type MapRef,
     type ViewStateChangeEvent,
@@ -129,7 +129,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         b_id: field.b_id,
                         b_name: field.b_name,
                         b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-                        b_lu_name: (field as { b_lu_name?: string }).b_lu_name ?? "",
+                        b_lu_name:
+                            (field as { b_lu_name?: string }).b_lu_name ?? "",
                         b_id_source: field.b_id_source,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {

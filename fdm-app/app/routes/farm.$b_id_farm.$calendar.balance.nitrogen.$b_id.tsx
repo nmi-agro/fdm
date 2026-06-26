@@ -150,7 +150,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             )
 
             if (!inputForField) {
-                throw new Error(`Nitrogen balance input not found for field ${b_id}`)
+                throw new Error(
+                    `Nitrogen balance input not found for field ${b_id}`,
+                )
             }
 
             return {

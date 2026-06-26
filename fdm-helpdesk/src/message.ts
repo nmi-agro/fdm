@@ -33,7 +33,7 @@ const messageColumns = {
 /**
  * Whether the principal can read internal messages in the helpdesk.
  * This requires the ability to read everything on the helpdesk.
- * 
+ *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); must have read permission for the helpdesk.

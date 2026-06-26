@@ -12,10 +12,11 @@ const MultiPolygonGeometrySchema = z.object({
     coordinates: z.array(z.array(LinearRingSchema)),
 })
 
-export const FieldGeometrySchema: z.ZodType<FieldGeometry> = z.discriminatedUnion(
-    "type",
-    [PolygonGeometrySchema, MultiPolygonGeometrySchema],
-)
+export const FieldGeometrySchema: z.ZodType<FieldGeometry> =
+    z.discriminatedUnion("type", [
+        PolygonGeometrySchema,
+        MultiPolygonGeometrySchema,
+    ])
 
 const MestCropDetailsSchema = z
     .object({

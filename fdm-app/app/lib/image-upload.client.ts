@@ -47,8 +47,10 @@ export async function uploadSoilImage(
     const formData = new FormData()
     formData.append("file", compressed, compressed.name)
     formData.append("b_id_sampling", b_id_sampling)
-    if (options.a_image_type) formData.append("a_image_type", options.a_image_type)
-    if (options.a_image_caption) formData.append("a_image_caption", options.a_image_caption)
+    if (options.a_image_type)
+        formData.append("a_image_type", options.a_image_type)
+    if (options.a_image_caption)
+        formData.append("a_image_caption", options.a_image_caption)
     formData.append("a_image_order", String(options.a_image_order ?? 0))
 
     const response = await fetch("/api/image-upload", {

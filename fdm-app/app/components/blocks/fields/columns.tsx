@@ -1,3 +1,4 @@
+import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
     ArrowUpRightFromSquare,
@@ -7,8 +8,7 @@ import {
     Square,
     Triangle,
 } from "lucide-react"
-import { NavLink } from "react-router-dom"
-import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
+import { NavLink } from "react-router"
 import type { BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
@@ -216,9 +216,7 @@ export const columns: ColumnDef<FieldExtended>[] = [
         enableSorting: true,
         sortingFn: "alphanumeric",
         header: ({ column }) => {
-            return (
-                <DataTableColumnHeader column={column} title="BCS" />
-            )
+            return <DataTableColumnHeader column={column} title="BCS" />
         },
         enableHiding: true,
         cell: ({ row }) => {

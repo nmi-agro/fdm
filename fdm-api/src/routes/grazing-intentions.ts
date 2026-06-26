@@ -158,8 +158,9 @@ export function registerGrazingIntentionRoutes(
         typeof putGrazingIntentionRoute
     > = async (c) => {
         const principal = c.get("principal") as unknown as ApiPrincipalContext
-        // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-        const { b_id_farm, b_grazing_intention_year } = c.req.valid("param") as { b_id_farm: string; b_grazing_intention_year: number }
+        const { b_id_farm, b_grazing_intention_year } = c.req.valid(
+            "param" as never,
+        ) as { b_id_farm: string; b_grazing_intention_year: number }
         // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
         const body = c.req.valid("json") as z.infer<
             typeof SetGrazingIntentionBodySchema
@@ -185,8 +186,9 @@ export function registerGrazingIntentionRoutes(
         typeof deleteGrazingIntentionRoute
     > = async (c) => {
         const principal = c.get("principal") as unknown as ApiPrincipalContext
-        // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-        const { b_id_farm, b_grazing_intention_year } = c.req.valid("param") as { b_id_farm: string; b_grazing_intention_year: number }
+        const { b_id_farm, b_grazing_intention_year } = c.req.valid(
+            "param" as never,
+        ) as { b_id_farm: string; b_grazing_intention_year: number }
         await services.removeGrazingIntention(
             fdm,
             principal.effectivePrincipalId,

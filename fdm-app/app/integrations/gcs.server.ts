@@ -96,7 +96,9 @@ export async function generateSignedUploadUrl(
  * @param objectKey - The GCS object path
  * @returns Signed read URL
  */
-export async function generateSignedReadUrl(objectKey: string): Promise<string> {
+export async function generateSignedReadUrl(
+    objectKey: string,
+): Promise<string> {
     const storage = getStorage()
     const bucket = getBucketName()
 
@@ -167,7 +169,10 @@ export async function deleteObject(objectKey: string): Promise<void> {
     const storage = getStorage()
     const bucket = getBucketName()
 
-    await storage.bucket(bucket).file(objectKey).delete({ ignoreNotFound: true })
+    await storage
+        .bucket(bucket)
+        .file(objectKey)
+        .delete({ ignoreNotFound: true })
 }
 
 /**

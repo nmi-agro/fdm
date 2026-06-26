@@ -47,7 +47,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
-export const meta: MetaFunction<typeof loader> = ({ data: loaderData }) => {
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
     const name = loaderData?.field?.b_name ?? "Perceel"
     return [
         {

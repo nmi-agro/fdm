@@ -556,15 +556,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const baseFilename = `Bemestingsplan_${safeName}_${calendar}.pdf`
         const encodedName = encodeURIComponent(baseFilename)
 
-        return new Response(
-            Readable.toWeb(stream) as unknown as ReadableStream,
-            {
-                headers: {
-                    "Content-Type": "application/pdf",
-                    "Content-Disposition": `attachment; filename="${baseFilename}"; filename*=UTF-8''${encodedName}`,
-                },
+        return new Response(Readable.toWeb(stream as any) as any, {
+            headers: {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `attachment; filename="${baseFilename}"; filename*=UTF-8''${encodedName}`,
             },
-        )
+        })
     } catch (error) {
         throw handleLoaderError(error)
     }

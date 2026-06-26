@@ -775,11 +775,11 @@ export function ImageGallery({
                                                                     )
                                                                 if (slen > 3) {
                                                                     const sux =
-                                                                            sdx /
-                                                                            slen,
-                                                                        suy =
-                                                                            sdy /
-                                                                            slen
+                                                                        sdx /
+                                                                        slen
+                                                                    const suy =
+                                                                        sdy /
+                                                                        slen
                                                                     const arrowPx =
                                                                         Math.min(
                                                                             slen *
@@ -790,9 +790,9 @@ export function ImageGallery({
                                                                         arrowPx *
                                                                         0.45
                                                                     const spx =
-                                                                            -suy,
-                                                                        spy =
-                                                                            sux
+                                                                        -suy
+                                                                    const spy =
+                                                                        sux
                                                                     const sbsx =
                                                                         (c.x2 *
                                                                             imgSize.w) /
@@ -806,21 +806,21 @@ export function ImageGallery({
                                                                         suy *
                                                                             arrowPx
                                                                     const sw1x =
-                                                                            sbsx +
-                                                                            spx *
-                                                                                wingPx,
-                                                                        sw1y =
-                                                                            sbsy +
-                                                                            spy *
-                                                                                wingPx
+                                                                        sbsx +
+                                                                        spx *
+                                                                            wingPx
+                                                                    const sw1y =
+                                                                        sbsy +
+                                                                        spy *
+                                                                            wingPx
                                                                     const sw2x =
-                                                                            sbsx -
-                                                                            spx *
-                                                                                wingPx,
-                                                                        sw2y =
-                                                                            sbsy -
-                                                                            spy *
-                                                                                wingPx
+                                                                        sbsx -
+                                                                        spx *
+                                                                            wingPx
+                                                                    const sw2y =
+                                                                        sbsy -
+                                                                        spy *
+                                                                            wingPx
                                                                     const toX =
                                                                         (
                                                                             sx: number,

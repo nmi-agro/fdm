@@ -20,6 +20,7 @@ import {
     markTicketAsViewed,
     updateTicketPriority,
     updateTicketStatus,
+    updateTicketSubject,
     updateTicketSubjectAndPriorityUnchecked,
     validateTicketStatusTransition,
 } from "./ticket"
@@ -320,6 +321,63 @@ test.describe("getTickets", () => {
         ).toBe(false)
     })
 
+    test("should search for ticket ref", async ({ fdm }) => {
+        const ticket_1 = await getTicket(fdm, agent_id, ticket_id_1)
+
+        const tickets = await getTickets(fdm, agent_id, {
+            text: ticket_1.ticket_ref,
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 (whose ticket ref is in the search text) should be in the results",
+        ).toBe(true)
+    })
+
+    test("should search for ticket ref when subject is null", async ({
+        fdm,
+    }) => {
+        const ticket_id = await createTicket(
+            fdm,
+            requester_id,
+            "Very mysterious ticket",
+        )
+
+        const updated = await fdm
+            .update(schema.tickets)
+            .set({ subject: null })
+            .where(eq(schema.tickets.ticket_id, ticket_id))
+            .returning({ ticket_ref: schema.tickets.ticket_ref })
+
+        if (!updated[0]) {
+            throw new Error("Failed to update ticket subject to null")
+        }
+
+        const tickets = await getTickets(fdm, agent_id, {
+            text: updated[0].ticket_ref,
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id),
+            "Ticket with this ticket ref should be in the results even if subject is null",
+        ).toBe(true)
+    })
+
+    test("should not filter by whitespace search text", async ({ fdm }) => {
+        const tickets = await getTickets(fdm, agent_id, {
+            text: "       ",
+        })
+
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_1),
+            "Ticket 1 should be in the results",
+        ).toBe(true)
+        expect(
+            tickets.some((t) => t.ticket_id === ticket_id_2),
+            "Ticket 2 should be in the results",
+        ).toBe(true)
+    })
+
     test("should only list regular user's own tickets", async ({ fdm }) => {
         const new_ticket_id = await createTicket(
             fdm,
@@ -393,6 +451,59 @@ test.describe("getTickets", () => {
         ).toBe(specific_ticket_id_2)
         expect(tickets[1].ticket_id).toBe(specific_ticket_id_1)
     })
+
+    test("should sort by creation date without a text filter", async ({
+        fdm,
+    }) => {
+        const specific_agent_id = createId()
+        await addAgent(fdm, agent_id, specific_agent_id, "Specific Agent")
+        const specific_ticket_id_1 = await createTicket(
+            fdm,
+            requester_id,
+            "New helpdesk feature",
+        )
+        const specific_ticket_id_2 = await createTicket(
+            fdm,
+            requester_id,
+            "New feature",
+        )
+        await assignTicket(
+            fdm,
+            specific_ticket_id_1,
+            specific_agent_id,
+            specific_agent_id,
+            true,
+        )
+        await assignTicket(
+            fdm,
+            specific_ticket_id_2,
+            specific_agent_id,
+            specific_agent_id,
+            true,
+        )
+
+        await fdm
+            .update(schema.tickets)
+            .set({ created: new Date("2023-01-02T00:00:00.000Z") })
+            .where(eq(schema.tickets.ticket_id, specific_ticket_id_1))
+        await fdm
+            .update(schema.tickets)
+            .set({ created: new Date("2023-01-03T00:00:00.000Z") })
+            .where(eq(schema.tickets.ticket_id, specific_ticket_id_2))
+
+        const tickets = await getTickets(
+            fdm,
+            specific_agent_id,
+            { assignees: [specific_agent_id] },
+            "text_relevance",
+        )
+
+        expect(
+            tickets[0].ticket_id,
+            "Ticket 2 contains the search terms as is while Ticket 1 doesnt",
+        ).toBe(specific_ticket_id_2)
+        expect(tickets[1].ticket_id).toBe(specific_ticket_id_1)
+    })
 })
 
 describe("updateTicketSubjectAndPriorityUnchecked", () => {
@@ -446,6 +557,44 @@ describe("updateTicketSubjectAndPriorityUnchecked", () => {
         expect(ticket.subject).toBe("Ticket 1")
         expect(ticket.priority).toBe("low")
         expect(ticket.updated).not.toBeNull()
+    })
+})
+
+describe("updateTicketSubject", () => {
+    let agent_id: string
+    let requester_id: string
+    let ticket_id: string
+
+    test.beforeEach(async ({ fdm }) => {
+        agent_id = createId()
+        requester_id = createId()
+        await addAdminAgent(fdm, agent_id, "Support Agent")
+        ticket_id = await createTicket(fdm, requester_id, "Ticket 1")
+    })
+
+    test("should let agents update the subject", async ({ fdm }) => {
+        await updateTicketSubject(fdm, agent_id, ticket_id, "Ticket 1 Subject")
+        const ticket = await getTicket(fdm, agent_id, ticket_id)
+        expect(ticket.subject).toBe("Ticket 1 Subject")
+        expect(ticket.updated).not.toBeNull()
+    })
+
+    test("should not let regular users update the subject", async ({ fdm }) => {
+        try {
+            await updateTicketSubject(
+                fdm,
+                requester_id,
+                ticket_id,
+                "Ticket 1 Subject",
+            )
+        } catch (_err) {
+            const ticket = await getTicket(fdm, requester_id, ticket_id)
+            expect(ticket.subject).toBe("Ticket 1")
+            expect(ticket.updated).toBeNull()
+            return
+        }
+
+        throw new Error("Should have thrown")
     })
 })
 
@@ -806,6 +955,46 @@ describe("getTicketCount", () => {
         })
 
         expect(ticketCount).toBe(3)
+    })
+
+    test("should not count tickets multiple times", async ({ fdm }) => {
+        const requester_id = createId()
+
+        const ticket_id = await createTicket(fdm, requester_id, "Ticket")
+        await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "customer",
+            "I have a question I would like to ask.",
+        )
+        await addMessage(
+            fdm,
+            ticket_id,
+            requester_id,
+            "agent",
+            "Please don't hesitate to ask.",
+        )
+        const tag_id_1 = await createTag(
+            fdm,
+            admin_id,
+            `Blue${createId(8)}`,
+            "#0000ff",
+        )
+        const tag_id_2 = await createTag(
+            fdm,
+            admin_id,
+            `Red${createId(8)}`,
+            "#ff0000",
+        )
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id_1)
+        await addTagToTicket(fdm, admin_id, ticket_id, tag_id_2)
+
+        const count = await getTicketCount(fdm, admin_id, {
+            tags: [tag_id_1, tag_id_2],
+            text: "ask",
+        })
+        expect(count).toBe(1)
     })
 })
 

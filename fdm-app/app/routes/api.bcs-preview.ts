@@ -1,8 +1,8 @@
 import type { ActionFunctionArgs } from "react-router"
 import type { BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { getSession } from "~/lib/auth.server"
-import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
+import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { fdm } from "~/lib/fdm.server"
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -23,7 +23,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const samplingDate = new Date(body.samplingDate)
     if (Number.isNaN(samplingDate.getTime())) {
-        return Response.json({ error: "samplingDate is invalid" }, { status: 400 })
+        return Response.json(
+            { error: "samplingDate is invalid" },
+            { status: 400 },
+        )
     }
 
     const session = await getSession(request)

@@ -1,0 +1,137 @@
+---
+slug: release-june-2026
+title: June 2026 Release
+authors: [svenverweij]
+tags: [release, fdm-app, fdm-core, fdm-calculator, fdm-data, fdm-api, fdm-agents, fdm-docs, fdm-rvo, fdm-helpdesk]
+date: 2026-06-25
+---
+
+The June 2026 release adds the BodemConditieScore (BCS) as a new visual soil analysis feature across the stack, reworks how Gerrit assists with fertilizer planning, redesigns the BLN3 soil quality views around official NMI API aggregations, and introduces an in-app Helpdesk for support. The release also improves the grassland harvest workflow, hardens shapefile import validation, switches Microsoft sign-in to certificate-based authentication, and includes a range of navigation and engineering improvements.
+
+{/* truncate */}
+
+### BodemConditieScore (BCS) — Visual Soil Analysis
+
+The BodemConditieScore is a field assessment method that scores soil condition from a set of visual indicators observed in the field, optionally combined with laboratory measurements. This release adds end-to-end support for recording, calculating, and reviewing BCS assessments, including photographs and annotations.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+*   BCS indicator scores (`a_ss_bcs` … `a_rt_bcs`) are stored directly on the `soil_analysis` table, with soil sampling linking an analysis to a field via `b_id_sampling`.
+*   New tables `soil_image` and `soil_image_annotating` store photographs (GCS path, type, order, caption) and their annotations (pins, circles, arrows, and freehand drawings, each with an optional link to a BCS indicator).
+*   New functions cover the full lifecycle: `addSoilImage`, `getSoilImages`, `removeSoilImage`, `addSoilImageAnnotation`, `updateSoilImageAnnotation`, and `removeSoilImageAnnotation`.
+*   `soil_image` is added as a named resource in the authorization chain (farm → field → soil_image via `b_id_sampling`).
+*   A database migration (`0030_graceful_hawkeye.sql`) is included.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+*   `calculateBcs(scores, labContext?)` computes the weighted total `D_BCS` and the normalized indicator `I_BCS` using exact `Decimal.js` arithmetic. When a `labContext` is supplied, it also derives lab-based `a_ph_bcs` and `a_som_bcs` scores.
+*   `getBcsScoreColor` and `getBcsScoreLabel` map a `D_BCS` value to a colour band and a Dutch label (Slecht / Onvoldoende / Matig / Goed / Zeer goed).
+*   `derivePhBcs` and `deriveOmBcs` derive pH and organic-matter BCS scores from lab measurements using the OBIC logistic function and crop × soil-type quantile thresholds.
+*   `calcPhDelta` ports the OBIC `calc_ph_delta` function using embedded Handboek Bodem en Bemesting lookup tables, returning `D_PH_DELTA`.
+*   `BCS_INDICATORS` now lists all 11 entries (9 field indicators and 2 lab-derived), each tagged with a `source` of `"field"` or `"lab"`.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   A new BCS overview page shows the total score and a per-indicator breakdown with an image gallery, and a detail page presents a score card, annotated gallery, and computed lab-derived pH/OM scores.
+*   A step-by-step BCS wizard guides users through a sampling date, optional photo upload, per-indicator scoring with criteria shown as buttons, and a review step with a server-side preview score before saving.
+*   The image gallery supports pin, text, and area annotations, with annotation numbers shown on the image and hover highlighting in the list.
+*   Photo upload is mobile-friendly, offering a Camera / Galerij choice on mobile (using direct camera access) and a regular file picker on desktop, with file-type validation on upload.
+*   A "BodemConditieScore" entry is added to the field-page sidebar between Bodem and Kaart.
+
+### Gerrit — AI Fertilizer Planning Assistant (Labs)
+
+Gerrit remains a research preview. This release focuses on making its responses more transparent, more controllable, and better suited to Dutch users.
+
+**FDM Agents (`@nmi-agro/fdm-agents`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+*   Gerrit now streams its response and shows progress while the answer is being generated, rather than waiting for the complete result.
+*   At the start of a session, Gerrit can generate clarifying questions to gather farm-specific input before producing a plan.
+*   Users can select which fertilizers Gerrit may consider for a strategy, allowing specific fertilizers to be excluded.
+*   The result now shows the nitrate leaching and ammonia emissions associated with the proposed fertilizer plan.
+*   Gemini 3.5 Flash is now the default model for Gerrit.
+*   A daily rate limit has been added, and the interface makes clear that Gerrit is a research preview.
+*   Prompts and tools have been rewritten in Dutch to improve the wording of Dutch responses.
+
+### BLN3 Soil Quality (Bodemkwaliteit)
+
+This release reworks how BLN3 soil quality is presented, replacing self-computed placeholder averages with official aggregation scores from the NMI API and adding tools to analyse them.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+*   `Bln3AggregationResult` and the `Bln3Score.aggregations` field are now documented and typed as fully implemented and returned by the NMI API, so consumers can read pre-computed official aggregations (such as OBI subcategories and the `S_BLN` root score) directly from the response without maintaining client-side approximations.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   Aggregation scores now come directly from the NMI API instead of self-computed placeholder averages.
+*   A new interactive drill-down tree (`AggregationTree`) lets users start from root scores, expand into branches and subcategories, and reach the individual contributing indicators.
+*   The `S_BBWP` (BedrijfsBodemWaterPlan) is integrated as a sibling root card with its own water-policy indicators where applicable.
+*   Per-field scores are rolled up to farm level using an area-weighted average that excludes fields with missing area or scores.
+*   A "Knelpunten Analyse" widget highlights the weakest aspects of a farm and ranks the fields responsible, with links to the relevant field detail pages.
+*   Interactive satellite field maps can be coloured by any main or sub-aggregation in the hierarchy.
+*   The large indicators-per-field table on the farm indicators page is now placed under a collapsible details button.
+*   Organizations can view an overview of BLN3 measures and indicators across the farms they have access to, including a heatmap atlas, a top-5 offending farms ranking, and a measures overview, with quick navigation into individual farms.
+*   The colouring of the theme badges on the indicators view has been improved.
+
+### Helpdesk
+
+This release introduces an in-app helpdesk to complement support email.
+
+**FDM Application (`@nmi-agro/fdm-app`)** and **FDM Helpdesk (`@nmi-agro/fdm-helpdesk`)**
+
+*   A new helpdesk under the Support tab provides ticket management and search. Support agents can keep track of who handles each ticket, set priorities, assign tags, and categorize tickets. Both users and agents can search the tickets they have access to and sort them by priority, creation date, tags, assignees, requesting user, or full-text search.
+
+**FDM Agents (`@nmi-agro/fdm-agents`)**
+
+*   A helpdesk triage agent takes a ticket body and generates a subject line and priority. It is independent of the `fdm-helpdesk` package and works as a feature of `fdm-app`.
+
+### Grassland and Harvest Workflow
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   Multiple grass harvests can now be added at once through a batch entry mode of the harvest form, available on the field detail page's cultivations tab and the rotation table's add-harvest route.
+*   For grassland harvests, the more appropriate terms "snede" and "maaien" are used instead of "oogst".
+*   Server-side validation errors are now shown inline on the harvest form when a submission fails server-side validation.
+
+### Shapefile Import Validation
+
+**FDM RVO (`@nmi-agro/fdm-rvo`)**
+
+*   A new `validateShapefileYear` function checks whether a shapefile contains fields with a starting date later than the selected year.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   When a shapefile is uploaded with a starting date later than the selected year, an error explains that the wrong year was probably selected and offers a button to switch to the most plausible year.
+
+### Security — Microsoft Sign-In with Certificates
+
+**FDM Core (`@nmi-agro/fdm-core`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+*   Microsoft sign-in now uses certificates instead of a client secret, improving the security of the authentication flow.
+
+**FDM Docs (`@nmi-agro/fdm-docs`)**
+
+*   A new documentation section describes how to set up certificates for signing in with Microsoft.
+
+### Navigation and UI Improvements
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+*   A button in the header navigates one level up (for example, from a field to its farm), improving navigation in nested pages.
+*   The Labs pages are deactivated in the sidebar during the farm-create wizard.
+*   Fixed 404 errors when switching farms on deeply nested pages.
+
+### Under the Hood
+
+**FDM Core (`@nmi-agro/fdm-core`)**, **FDM Application (`@nmi-agro/fdm-app`)**, and **FDM RVO (`@nmi-agro/fdm-rvo`)**
+
+*   All TypeScript errors in `fdm-app` have been resolved, making it fully type-safe. This includes `MultiPolygon` support in the `fdm-core` schema types and geometry fixes in `fdm-rvo`.
+*   `fdm-app` has been migrated to React Router v8.
+*   The application opts in to stable React Router v8 future flags (`v8_splitRouteModules`, `v8_viteEnvironmentApi`, `v8_passThroughRequests`, and `v8_trailingSlashAwareDataRequests`) to suppress startup warnings.
+
+### Hotfixes since May 2026
+
+No interim patches were published between the May 2026 and June 2026 releases; all changes described above are part of this release.
+
+---
+
+For a detailed list of changes, please refer to the package-specific changelogs for [fdm-app](https://github.com/nmi-agro/fdm/blob/main/fdm-app/CHANGELOG.md), [fdm-core](https://github.com/nmi-agro/fdm/blob/main/fdm-core/CHANGELOG.md), [fdm-calculator](https://github.com/nmi-agro/fdm/blob/main/fdm-calculator/CHANGELOG.md), [fdm-data](https://github.com/nmi-agro/fdm/blob/main/fdm-data/CHANGELOG.md), [fdm-rvo](https://github.com/nmi-agro/fdm/blob/main/fdm-rvo/CHANGELOG.md), [fdm-agents](https://github.com/nmi-agro/fdm/blob/main/fdm-agents/CHANGELOG.md), and [fdm-docs](https://github.com/nmi-agro/fdm/blob/main/fdm-docs/CHANGELOG.md). Feedback and contributions are welcome on our GitHub repository.

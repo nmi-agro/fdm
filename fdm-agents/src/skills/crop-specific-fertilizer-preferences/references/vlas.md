@@ -1,13 +1,13 @@
-# Vlas (flax) — nl_249, nl_666, nl_3736
+# Vlas (vlas) — nl_249, nl_666, nl_3736
 
-**Prefer:**
-- Vlas has a very low N requirement — one of the lowest among Dutch arable crops. Follow
-  `advice.d_n_req` strictly. Excess N causes lodging, reduces fibre quality (vezelvlas), and
-  delays ripening.
-- Potassium: moderate K demand; K₂SO₄ or KCl both acceptable (no Cl sensitivity).
-- Zinc: vlas can show Zn deficiency; check `advice.d_zn_req`.
+**Voorkeur:**
+- Vlas heeft een zeer lage N-behoefte — een van de laagste onder Nederlandse akkerbouwgewassen. Volg
+  `advice.d_n_req` strikt. Te veel N veroorzaakt legering, verlaagt de vezelkwaliteit (vezelvlas) en
+  vertraagt de afrijping.
+- Kalium: matige K-behoefte; K₂SO₄ of KCl zijn beide acceptabel (geen Cl-gevoeligheid).
+- Zink: vlas kan Zn-gebrek laten zien; controleer `advice.d_zn_req`.
 
-**Avoid:**
-- N above advice: lodging is the primary yield and quality limiter. Stick strictly to
+**Vermijden:**
+- N boven het advies: legering is de belangrijkste beperking voor opbrengst en kwaliteit. Houd je strikt aan
   `advice.d_n_req`.
-- Fresh manure: risk of uneven N mineralisation causing lodging patches.
+- Verse mest: risico op ongelijkmatige N-mineralisatie die legeringsplekken veroorzaakt.

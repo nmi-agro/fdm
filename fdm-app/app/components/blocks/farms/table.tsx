@@ -41,7 +41,9 @@ interface DataTableProps<TData, TValue> {
     data: TData[]
 }
 
-function withSearchTarget<TData extends FarmExtended>(item: TData): TData & { searchTarget: string } {
+function withSearchTarget<TData extends FarmExtended>(
+    item: TData,
+): TData & { searchTarget: string } {
     return {
         ...item,
         fields: item.fields ? item.fields.map(withSearchTarget) : item.fields,

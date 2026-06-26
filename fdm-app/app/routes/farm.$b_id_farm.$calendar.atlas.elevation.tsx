@@ -130,7 +130,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                         b_id: field.b_id,
                         b_name: field.b_name,
                         b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-                        b_lu_name: (field as { b_lu_name?: string }).b_lu_name ?? "",
+                        b_lu_name:
+                            (field as { b_lu_name?: string }).b_lu_name ?? "",
                         b_id_source: field.b_id_source,
                     },
                     geometry: simplify(field.b_geometry as Geometry, {
@@ -381,8 +382,7 @@ export default function FarmAtlasElevationBlock() {
             // Optimization: limit to 12 tiles to avoid overload
             const visibleFeatures = indexData.features
                 .filter((f) => {
-                    if (!f.geometry || f.geometry.type !== "Polygon")
-                        return false
+                    if (f.geometry?.type !== "Polygon") return false
                     const ring = (f.geometry as any).coordinates[0]
                     return polygonIntersectsPolygon(rdCoords, ring)
                 })
@@ -418,11 +418,7 @@ export default function FarmAtlasElevationBlock() {
                             ]) as [number, number]
                             // Find which tile contains this point
                             const feature = visibleFeatures.find((f) => {
-                                if (
-                                    !f.geometry ||
-                                    f.geometry.type !== "Polygon"
-                                )
-                                    return false
+                                if (f.geometry?.type !== "Polygon") return false
                                 const ring = (f.geometry as any).coordinates[0]
                                 return isPointInPolygon(rdP, ring)
                             })
@@ -573,8 +569,7 @@ export default function FarmAtlasElevationBlock() {
                     ]
 
                     const feature = indexData.features.find((f) => {
-                        if (!f.geometry || f.geometry.type !== "Polygon")
-                            return false
+                        if (f.geometry?.type !== "Polygon") return false
                         const ring = (f.geometry as any).coordinates[0]
                         return isPointInPolygon(rdP, ring)
                     })

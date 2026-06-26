@@ -4,7 +4,7 @@ import { apiReference } from "@scalar/hono-api-reference"
 import { cors } from "hono/cors"
 import { createApiKeyAuth } from "./auth"
 import { createErrorHandler, createNotFoundHandler } from "./error"
-import { requestGuard } from "./guards"
+import { createPathExistenceGuard, requestGuard } from "./guards"
 import type { FdmApiConfig, FdmApiServices } from "./index"
 import { registerCalculationRoutes } from "./routes/calculations"
 import { registerCultivationRoutes } from "./routes/cultivations"
@@ -79,6 +79,7 @@ export function buildApp(
     )
 
     app.use("*", requestGuard)
+    app.use("*", createPathExistenceGuard(appUrl))
     app.use(
         "*",
         createApiKeyAuth(auth, [

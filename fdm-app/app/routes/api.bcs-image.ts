@@ -1,10 +1,10 @@
-import { nanoid } from "nanoid"
-import { fileTypeFromBuffer } from "file-type"
+import { checkPermission } from "@nmi-agro/fdm-core"
 import type { FileUpload } from "@remix-run/form-data-parser"
 import { parseFormData } from "@remix-run/form-data-parser"
+import { fileTypeFromBuffer } from "file-type"
+import { nanoid } from "nanoid"
 import type { ActionFunctionArgs } from "react-router"
-import { checkPermission } from "@nmi-agro/fdm-core"
-import { uploadObject, generateSignedReadUrl } from "~/integrations/gcs.server"
+import { generateSignedReadUrl, uploadObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
 
@@ -61,7 +61,8 @@ export async function action({ request }: ActionFunctionArgs) {
             uploadHandler,
         )
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Invalid upload"
+        const message =
+            error instanceof Error ? error.message : "Invalid upload"
         return Response.json({ error: message }, { status: 400 })
     }
 
@@ -88,7 +89,9 @@ export async function action({ request }: ActionFunctionArgs) {
         )
     } catch {
         return Response.json(
-            { error: "You do not have permission to upload images for this field" },
+            {
+                error: "You do not have permission to upload images for this field",
+            },
             { status: 403 },
         )
     }
