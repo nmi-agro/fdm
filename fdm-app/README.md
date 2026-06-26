@@ -24,25 +24,25 @@ The `fdm-app` is a React application providing a user-friendly interface for vis
    pnpm add @nmi-agro/fdm-app
 ```
 
-3.  **Configuration:**
-    Configure the application by setting environment variables. Create a `.env` file in the `fdm-app` directory by copying the provided `.env.example` file:
+3. **Configuration:**
+   Configure the application by setting environment variables. Create a `.env` file in the `fdm-app` directory by copying the provided `.env.example` file:
 
-    ```bash
-    cp .env.example .env
-    ```
+   ```bash
+   cp .env.example .env
+   ```
 
-    Edit the `.env` file and provide values for the necessary variables. Key configuration areas include:
-    - **General:** Application name (`VITE_FDM_NAME`), environment (`NODE_ENV`).
-    - **Session:** A strong secret key (`FDM_SESSION_SECRET`).
-    - **Database:** Connection details for your PostgreSQL database.
-    - **Authentication:** Secrets and URLs for `better-auth` and optionally OAuth providers (Google, Microsoft).
-    - **Map:** Map provider configuration (`PUBLIC_MAP_PROVIDER`) and API key if using MapTiler (`PUBLIC_MAPTILER_API_KEY`).
-    - **Data URLs:** Paths to external data files (`AVAILABLE_FIELDS_URL`).
-    - **Analytics (Optional):** Configuration for Sentry and/or PostHog. These services are disabled by default. To enable them, provide the relevant keys/DSNs as described in `.env.example`.
+   Edit the `.env` file and provide values for the necessary variables. Key configuration areas include:
+   - **General:** Application name (`VITE_FDM_NAME`), environment (`NODE_ENV`).
+   - **Session:** A strong secret key (`FDM_SESSION_SECRET`).
+   - **Database:** Connection details for your PostgreSQL database.
+   - **Authentication:** Secrets and URLs for `better-auth` and optionally OAuth providers (Google, Microsoft).
+   - **Map:** Map provider configuration (`PUBLIC_MAP_PROVIDER`) and API key if using MapTiler (`PUBLIC_MAPTILER_API_KEY`).
+   - **Data URLs:** Paths to external data files (`AVAILABLE_FIELDS_URL`).
+   - **Analytics (Optional):** Configuration for Sentry and/or PostHog. These services are disabled by default. To enable them, provide the relevant keys/DSNs as described in `.env.example`.
 
-    Refer to the comments within the `.env.example` file for detailed explanations of each variable and whether it's required. **Never commit your `.env` file to version control.**
+   Refer to the comments within the `.env.example` file for detailed explanations of each variable and whether it's required. **Never commit your `.env` file to version control.**
 
-4.  **Running the App:**
+4. **Running the App:**
 
 ```bash
     # Development mode

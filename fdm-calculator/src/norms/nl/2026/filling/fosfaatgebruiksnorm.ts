@@ -162,9 +162,7 @@ export function calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNor
         remainingDiscountablePhosphate = remainingDiscountablePhosphate.minus(phosphateToDiscount)
         normFillingDetails = `OS-rijke meststof (${discountFactor.times(
           100,
-        )}% korting) draagt ${phosphateToDiscount
-          .times(discountFactor)
-          .toFixed(2)}kg bij aan de norm.`
+        )}% korting) draagt ${phosphateToDiscount.times(discountFactor).toFixed(2)}kg bij aan de norm.`
       } else {
         normFillingDetails = "OS-rijke meststof, geen korting toegepast."
       }

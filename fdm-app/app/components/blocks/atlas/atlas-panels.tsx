@@ -323,9 +323,7 @@ export function FieldsPanelSelection({
                           <p className="text-sm leading-none font-medium">
                             {cultivation.b_lu_name}
                           </p>
-                          <p className="text-muted-foreground text-sm">
-                            {`${cultivation.count} percelen`}
-                          </p>
+                          <p className="text-muted-foreground text-sm">{`${cultivation.count} percelen`}</p>
                         </div>
                       </div>
                     ))}

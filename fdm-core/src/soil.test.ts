@@ -335,7 +335,9 @@ describe("Soil Analysis Functions", () => {
       b_id,
       a_depth_lower,
       b_sampling_date,
-      { a_som_loi: a_som_loi },
+      {
+        a_som_loi: a_som_loi,
+      },
     )
 
     // Add second soil analysis

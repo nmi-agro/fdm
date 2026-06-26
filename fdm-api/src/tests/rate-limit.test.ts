@@ -274,7 +274,9 @@ describe("rate-limit: bucket selection by HTTP method", () => {
     const app = makeApp(mockFdm, mockAuth)
     await app.request(
       "/farms/farm-1/calculations/nitrogen-balance?start=2024-01-01&end=2024-12-31",
-      { headers: { "x-api-key": "valid" } },
+      {
+        headers: { "x-api-key": "valid" },
+      },
     )
     expect(mockFdm.values).toHaveBeenCalledWith(
       expect.objectContaining({ key: "fdm-api:key-1:calc" }),

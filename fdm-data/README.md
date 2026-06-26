@@ -12,13 +12,13 @@ The `fdm-data` package extends the Farm Data Model (FDM) core functionality by p
 
 ## Getting Started
 
-1.  **Installation:**
+1. **Installation:**
 
-    ```bash
-    pnpm add @nmi-agro/fdm-data
-    ```
+   ```bash
+   pnpm add @nmi-agro/fdm-data
+   ```
 
-2.  **Integration:** Import `fdm-data` into your application along with `fdm-core`. The catalogues are designed to work directly with the core FDM schema. See the usage examples below.
+2. **Integration:** Import `fdm-data` into your application along with `fdm-core`. The catalogues are designed to work directly with the core FDM schema. See the usage examples below.
 
 ## Usage
 

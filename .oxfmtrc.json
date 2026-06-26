@@ -1,7 +1,11 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
   "semi": false,
   "useTabs": false,
+  "singleQuote": false,
+  "trailingComma": "all",
   "sortImports": {
     "newlinesBetween": false,
     "groups": [
@@ -17,5 +21,6 @@
   "sortTailwindcss": {
     "functions": ["clsx", "cn"],
     "preserveWhitespace": true
-  }
+  },
+  "sortPackageJson": true
 }
