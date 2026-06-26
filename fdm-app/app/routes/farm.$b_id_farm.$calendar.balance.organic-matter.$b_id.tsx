@@ -1,3 +1,7 @@
+import {
+    calculateOrganicMatterBalance,
+    collectInputForOrganicMatterBalance,
+} from "@nmi-agro/fdm-calculator"
 import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
     ArrowDownToLine,
@@ -28,7 +32,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import { getOrganicMatterBalanceForField } from "~/integrations/calculator"
+import type { getOrganicMatterBalanceForField } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -73,27 +77,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
         const field = await getField(fdm, session.principal_id, b_id)
 
-        const organicMatterBalancePromise = (async () => {
-            const result = await getOrganicMatterBalanceForField({
+        const organicMatterBalancePromise = collectInputForOrganicMatterBalance(
+            fdm,
+            session.principal_id,
+            b_id_farm,
+            timeframe,
+            b_id,
+        ).then(async (input) => {
+            type InputType = Omit<typeof input, "timeFrame"> & {
+                timeFrame: { start: Date; end: Date }
+            }
+            const omBalanceResult = await calculateOrganicMatterBalance(
                 fdm,
-                principal_id: session.principal_id,
-                b_id_farm,
-                b_id,
-                timeframe,
-            })
-            let {
-                fieldResult,
-                fieldInput,
-            }: {
-                fieldResult: OrganicMatterFieldResultWithErrorId
-                fieldInput: typeof result.fieldInput
-            } = result
+                input as InputType,
+            )
+            let fieldResult: OrganicMatterFieldResultWithErrorId | undefined =
+                omBalanceResult.fields.find(
+                    (field: { b_id: string }) => field.b_id === b_id,
+                )
 
             if (!fieldResult) {
                 throw new Error(
                     `Organic matter balance data not found for field ${b_id}`,
                 )
             }
+
             if (fieldResult.errorMessage) {
                 const errorId = reportError(
                     fieldResult.errorMessage,
@@ -111,12 +119,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 )
                 fieldResult = { ...fieldResult, errorId }
             }
+            const inputForField = input.fields.find(
+                (field: { field: { b_id: string } }) =>
+                    field.field.b_id === b_id,
+            )
+
+            if (!inputForField) {
+                throw new Error(
+                    `Organic matter balance input not found for field ${b_id}`,
+                )
+            }
 
             return {
                 fieldResult: fieldResult,
-                fieldInput: fieldInput,
+                fieldInput: inputForField,
             }
-        })()
+        })
 
         return {
             organicMatterBalanceResult: organicMatterBalancePromise,
