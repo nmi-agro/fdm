@@ -9,7 +9,6 @@
     "build": "pnpm run build:api && docusaurus build",
     "build:api": "typedoc --options typedoc.json",
     "build-docs": "pnpm run build:api && docusaurus build",
-    "lint": "markdownlint-cli2  '**/*.md' '#node_modules --format",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
@@ -35,7 +34,6 @@
     "@docusaurus/module-type-aliases": "3.10.1",
     "@docusaurus/tsconfig": "3.10.1",
     "@docusaurus/types": "3.10.1",
-    "markdownlint-cli2": "^0.22.1",
     "typedoc": "catalog:",
     "typedoc-plugin-markdown": "^4.12.0",
     "typescript": "catalog:"
